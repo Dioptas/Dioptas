@@ -308,11 +308,7 @@ impl Processing {
         }
         #[cfg(feature = "dioptrin")]
         if geometry_active {
-            let native = dioptrin::geometry::Geometry::new(
-                image.shape[0],
-                image.shape[1],
-                geometry.native_poni(),
-            );
+            let native = geometry.native_geometry(image.shape)?;
             let tth = native.calc_tth_all();
             let azi = native.calc_azimuth_all();
             for (kind, entry) in self.corrections.as_object().unwrap() {

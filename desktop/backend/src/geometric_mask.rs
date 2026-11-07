@@ -288,8 +288,7 @@ impl Session {
         #[cfg(feature = "dioptrin")]
         {
             let [h, w] = self.image.as_ref().unwrap().shape;
-            let geometry =
-                dioptrin::geometry::Geometry::new(h, w, self.settings.geometry.native_poni());
+            let geometry = self.native_geometry([h, w])?;
             let tth = geometry.calc_tth_all();
             for (i, t) in tth.iter().enumerate() {
                 if i % w == 0 {

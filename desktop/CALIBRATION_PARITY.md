@@ -242,3 +242,15 @@ native smoke passes all four help buttons, outside-app placement, screen-edge
 fallback and focus preservation on recheck; its first run failed the focus
 assertion. The bundled native workflow smoke also passes and reaps its processing
 child. These checks do not establish Windows/Linux popup behavior.
+
+## Native detector geometry stage (2026-11-07)
+
+The Rust backend now routes calibration residuals/Jacobians, initial centre
+estimates, ring searches/contours, integration/cake coordinates, normalization,
+linked inspection, phase guides and radial/Spot masks through Dioptrin's physical
+detector model. Existing detector, spline, manual geometry and Undo/Redo controls
+are retained. First-image identification and an explicit orientation selector
+are added. See [the detector qualification ledger](NATIVE_DETECTOR_PARITY.md) for
+reference tolerances, supported catalogue models, project resources and limits.
+The ordinary Python launcher is still present; this stage does not claim a
+fully migrated/distributable application.

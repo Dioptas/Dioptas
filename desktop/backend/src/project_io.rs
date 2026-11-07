@@ -189,7 +189,8 @@ pub(super) fn put(group: &hdf5::Group, shape: &[usize], data: &[f64]) -> Result<
     Ok(json!(key))
 }
 pub(super) fn read_array(d: &hdf5::Dataset) -> Result<Vec<f64>, String> {
-    if d.ndim() > 2 || d.size() > 64 * 1024 * 1024 {
+    if (d.ndim() > 2 && (d.ndim() != 4 || d.shape()[2..] != [4, 3])) || d.size() > 64 * 1024 * 1024
+    {
         return Err("Project array exceeds supported dimensions or 64 million samples.".into());
     }
     let dtype = d.dtype().native()?;

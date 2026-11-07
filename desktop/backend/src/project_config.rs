@@ -111,23 +111,12 @@ pub(super) fn desktop_metadata(s: &Session) -> Value {
 fn geometry(p: &Value) -> Result<Geometry, String> {
     let g = &p["geometry"];
     let config = &g["detector_config"];
-    if p["detector_mode"].as_i64().unwrap_or(1) != 1
-        || optional_string(&p["distortion_spline_filename"]).is_some()
-        || optional_string(&p["detector_filename"]).is_some()
-        || g["detector"]
-            .as_str()
-            .is_some_and(|s| !s.eq_ignore_ascii_case("detector"))
-        || config["orientation"].as_u64().is_some_and(|v| v != 3)
+    if let Some(version) = g.get("poni_version")
+        && !version.as_f64().is_some_and(|v| [1., 2., 2.1].contains(&v))
     {
-        return Err("This project configuration needs named/nonuniform detector, orientation or spline support that is not migrated yet.".into());
+        return Err("Unsupported project PONI geometry version.".into());
     }
-    if let Some(fields) = config.as_object()
-        && fields
-            .keys()
-            .any(|k| !["pixel1", "pixel2", "orientation", "max_shape"].contains(&k.as_str()))
-    {
-        return Err("Project detector configuration contains unsupported geometry fields.".into());
-    }
+
     let mut v = json!({});
     let fallback = Geometry::default();
     let fallback = serde_json::to_value(fallback).map_err(|e| e.to_string())?;
@@ -145,7 +134,117 @@ fn geometry(p: &Value) -> Result<Geometry, String> {
             .unwrap_or_else(|| fallback[key].clone());
     }
     v["polarization_factor"] = p["polarization_factor"].clone();
-    Geometry::manual(&v).map(|(g, _)| g)
+    let (mut geometry, _) = Geometry::manual(&v)?;
+    let name = optional_string(&p["detector_name"])
+        .or_else(|| optional_string(&g["detector"]))
+        .unwrap_or("Detector".into());
+    if name != "Detector" && name != "Custom" && name != "NexusDetector" {
+        geometry.select_detector(&name)?;
+    }
+    let detector_path =
+        optional_string(&p["detector_filename"]).or_else(|| optional_string(&config["filename"]));
+    if name == "NexusDetector" && detector_path.is_none() {
+        return Err("Project NeXus detector filename is missing.".into());
+    }
+    if let Some(path) = detector_path {
+        geometry.load_detector_file(Path::new(&path))?;
+    }
+    if let Some(path) = optional_string(&p["distortion_spline_filename"])
+        .or_else(|| optional_string(&config["splineFile"]))
+        .or_else(|| optional_string(&config["splinefile"]))
+    {
+        geometry.load_spline(Path::new(&path))?;
+    }
+    if config
+        .get("orientation")
+        .is_some_and(|v| v.as_u64() != Some(3))
+        || geometry.detector.is_some()
+    {
+        let d = geometry.detector.get_or_insert_with(|| {
+            Arc::new(dioptrin::detector::Detector::custom(
+                geometry.pixel1,
+                geometry.pixel2,
+            ))
+        });
+        let d = Arc::make_mut(d);
+        d.orientation = match config.get("orientation") {
+            None => 3,
+            Some(value) => value
+                .as_u64()
+                .filter(|v| *v <= 4)
+                .ok_or("Invalid detector orientation.")? as u8,
+        };
+    }
+    if let Some(fields) = config.as_object() {
+        for (key, value) in fields {
+            if [
+                "pixel1",
+                "pixel2",
+                "orientation",
+                "max_shape",
+                "filename",
+                "splineFile",
+                "splinefile",
+            ]
+            .contains(&key.as_str())
+                || (key == "sensor" && value.is_null())
+            {
+                continue;
+            }
+            if !geometry
+                .detector
+                .as_ref()
+                .is_some_and(|d| d.config.get(key) == Some(value))
+            {
+                return Err(format!(
+                    "Project detector option {key} is not a supported factory value; its geometry must not be discarded."
+                ));
+            }
+        }
+    }
+    if let Some(fields) = g.as_object() {
+        for (key, value) in fields {
+            if [
+                "poni_version",
+                "dist",
+                "poni1",
+                "poni2",
+                "rot1",
+                "rot2",
+                "rot3",
+                "wavelength",
+                "detector",
+                "detector_config",
+            ]
+            .contains(&key.as_str())
+                || (key == "parallax" && value.is_null())
+            {
+                continue;
+            }
+            return Err(format!(
+                "Project geometry option {key} is unsupported; its geometry must not be discarded."
+            ));
+        }
+    }
+    if let (Some(d), Some(shape)) = (
+        &geometry.detector,
+        config.get("max_shape").filter(|v| !v.is_null()),
+    ) {
+        let shape: [usize; 2] =
+            serde_json::from_value(shape.clone()).map_err(|_| "Invalid project detector shape.")?;
+        if d.name != "Detector" && d.max_shape != Some(shape) {
+            return Err("Project shape differs from its detector definition.".into());
+        }
+    }
+    let declared = [
+        config.get("pixel1").and_then(Value::as_f64),
+        config.get("pixel2").and_then(Value::as_f64),
+    ];
+    if declared.iter().any(Option::is_some) {
+        geometry.frame_pixels = Some(declared);
+    }
+    geometry.validate()?;
+    Ok(geometry)
 }
 pub(super) fn load(
     s: &mut Session,
@@ -162,7 +261,27 @@ pub(super) fn load(
     let mask = with_defaults("mask", &doc["mask"]);
     s.settings.transformations = crate::transform::parse(&img["transformations"])?;
     s.processing.factor = finite(&img["factor"], "Image scale factor", -1e12, 1e12)?;
-    s.settings.geometry = geometry(&cal)?;
+    s.settings.geometry = if let Some(saved) = doc["native_desktop"].get("physical_geometry") {
+        let mut saved = saved.clone();
+        let detector = saved
+            .get_mut("detector")
+            .map(Value::take)
+            .unwrap_or(Value::Null);
+        let mut g: Geometry = serde_json::from_value(saved).map_err(|e| e.to_string())?;
+        g.detector = decode_detector(file, &detector)?;
+        g.validate()?;
+        g
+    } else {
+        geometry(&cal)?
+    };
+    if doc["native_desktop"].get("physical_geometry").is_none()
+        && !s.settings.transformations.is_empty()
+        && s.settings.geometry.detector.is_some()
+    {
+        return Err("This legacy Qt project has a transformed detector without an owned physical model. Export its detector geometry to NeXus or use the Qt project until that compatibility case is qualified.".into());
+    }
+    s.settings.original_detector =
+        decode_detector(file, &doc["native_desktop"]["original_detector"])?;
     s.settings.original_pixels = if doc["native_desktop"]
         .get("original_pixel_sizes")
         .is_some_and(Value::is_null)
@@ -456,6 +575,9 @@ pub(super) fn load(
     }
     s.mask_filename = optional_string(&local["mask_filename"]);
     series::load_configuration(s, file, doc, index, selected)?;
+    if let Some(image) = &s.image {
+        s.settings.geometry.sync_shape(image.shape)?;
+    }
     s.prepare_processing()?;
     s.refresh_masks(&s.control.clone())?;
     let stored = s.patterns.raw.clone();
@@ -496,7 +618,7 @@ fn restore_calibration(s: &mut Session, cal: &Value, meta: &Value) -> Result<(),
         c.reference = c.choose(name)?;
     }
     for (i, key) in GEOMETRY_KEYS.iter().enumerate() {
-        let live = serde_json::to_value(&s.settings.geometry).map_err(|e| e.to_string())?;
+        let live = s.settings.geometry.manual_values(s.settings.polarization);
         c.start[i] = cal["fixed_values"]
             .get(key)
             .or_else(|| cal["start_values"].get(key))
@@ -650,7 +772,7 @@ pub(super) fn save(
     doc["mask"]["mode"] = json!(s.mask_mode);
     let g = &settings.geometry;
     let geometry = json!({"poni_version":2.1,"dist":g.dist,"poni1":g.poni1,"poni2":g.poni2,"rot1":g.rot1,"rot2":g.rot2,"rot3":g.rot3,
-        "wavelength":g.wavelength,"detector":"Detector","detector_config":{"pixel1":g.pixel1,"pixel2":g.pixel2,"orientation":3}});
+        "wavelength":g.wavelength,"detector":g.detector.as_ref().map(|d|d.name.as_str()).unwrap_or("Detector"),"detector_config":{"pixel1":g.pixel1,"pixel2":g.pixel2,"orientation":g.detector.as_ref().map(|d|d.orientation).unwrap_or(3),"max_shape":g.detector.as_ref().and_then(|d|d.max_shape)}});
     let mut start = json!({"polarization_factor":settings.polarization});
     let mut fixed = json!({});
     for (i, key) in GEOMETRY_KEYS.iter().enumerate() {
@@ -663,7 +785,7 @@ pub(super) fn save(
         &mut doc["calibration"],
         &json!({"start_values":start,"fixed_values":fixed,"fit_wavelength":s.calibration.free[6],"use_mask":settings.use_mask,
         "polarization_factor":settings.polarization,"supersampling_factor":settings.supersampling,"correct_solid_angle":settings.solid_angle,
-        "geometry":geometry,"is_calibrated":settings.calibrated,"poni_filename":settings.calibration_path.as_deref().unwrap_or(""),
+        "detector_mode":if g.detector_file.is_some(){2}else if g.detector.as_ref().is_some_and(|d|d.name!="Detector"){3}else{1},"detector_name":g.detector.as_ref().map(|d|d.name.as_str()).unwrap_or(""),"detector_filename":g.detector_file.as_deref().unwrap_or(""),"distortion_spline_filename":g.distortion_file,"geometry":geometry,"is_calibrated":settings.calibrated,"poni_filename":settings.calibration_path.as_deref().unwrap_or(""),
         "calibration_name":settings.calibration_name.as_deref().unwrap_or(""),"peak_selections":s.calibration.picks.iter().map(|p|json!([p.ring-1,p.points])).collect::<Vec<_>>()}),
     );
     let processing = s.processing.details();
@@ -690,6 +812,12 @@ pub(super) fn save(
         "custom_calibrant":s.calibration.custom.as_ref().map(|r|json!({"name":r.name,"content":r.content})),"setup_confirmed":s.calibration.confirmed,
         "workflow":s.workflow,"geometry_source":s.calibration.source}}),
     );
+    let mut owned = g.clone();
+    owned.detector = None;
+    let mut physical = serde_json::to_value(owned).map_err(|e| e.to_string())?;
+    physical["detector"] = encode_detector(g.detector.as_deref(), payloads)?;
+    native["physical_geometry"] = physical;
+    native["original_detector"] = encode_detector(settings.original_detector.as_deref(), payloads)?;
     doc["native_desktop"] = native;
     if let Some((path, shape, values, enabled)) = s.processing.project_flat() {
         doc["native_desktop"]["flat_response"] = put(cache, &shape, values)?;
@@ -748,4 +876,83 @@ pub(super) fn save(
     doc["plugins"] = json!(plugins);
     series::save_configuration(s, group, &mut doc)?;
     Ok(doc)
+}
+
+fn encode_detector(
+    d: Option<&dioptrin::detector::Detector>,
+    payloads: &hdf5::Group,
+) -> Result<Value, String> {
+    use dioptrin::detector::PixelMap;
+    let Some(d) = d else { return Ok(Value::Null) };
+    let mut header = d.clone();
+    header.map = PixelMap::Uniform;
+    let mut value = serde_json::to_value(header).map_err(|e| e.to_string())?;
+    value["map"] = match &d.map {
+        PixelMap::Corners { shape, values } => {
+            let raw: Vec<_> = values.iter().flatten().flatten().copied().collect();
+            json!({"native_corners":put(payloads,&[shape[0],shape[1],4,3],&raw)?})
+        }
+        PixelMap::Transformed { base, operation } => {
+            json!({"native_transform":{"base":encode_detector(Some(base),payloads)?,"operation":operation}})
+        }
+        map => serde_json::to_value(map).map_err(|e| e.to_string())?,
+    };
+    Ok(value)
+}
+fn decode_detector(
+    file: &hdf5::File,
+    value: &Value,
+) -> Result<Option<Arc<dioptrin::detector::Detector>>, String> {
+    use dioptrin::detector::{Detector, PixelMap};
+    if value.is_null() {
+        return Ok(None);
+    }
+    let mut header = value.clone();
+    let map = header["map"].take();
+    header["map"] = json!("Uniform");
+    let mut d: Detector = serde_json::from_value(header).map_err(|e| e.to_string())?;
+    d.map = if let Some(reference) = map.get("native_corners") {
+        let (shape, data) =
+            array(file, "payloads", reference)?.ok_or("Missing project detector corners.")?;
+        if shape.len() != 4 || shape[2..] != [4, 3] {
+            return Err("Invalid project detector corners.".into());
+        }
+        let values = data
+            .as_chunks::<12>()
+            .0
+            .iter()
+            .map(|p| std::array::from_fn(|i| [p[i * 3], p[i * 3 + 1], p[i * 3 + 2]]))
+            .collect();
+        PixelMap::Corners {
+            shape: [shape[0], shape[1]],
+            values: Arc::new(values),
+        }
+    } else if let Some(transform) = map.get("native_transform") {
+        PixelMap::Transformed {
+            base: decode_detector(file, &transform["base"])?
+                .ok_or("Missing detector transform base.")?,
+            operation: serde_json::from_value(transform["operation"].clone())
+                .map_err(|e| e.to_string())?,
+        }
+    } else {
+        serde_json::from_value(map).map_err(|e| e.to_string())?
+    };
+    d.validate()?;
+    Ok(Some(Arc::new(d)))
+}
+
+#[cfg(test)]
+mod detector_options_tests {
+    use super::*;
+    #[test]
+    fn legacy_factory_options_are_retained_or_rejected_explicitly() {
+        let mut p = json!({"polarization_factor":0.,"detector_name":"Aarhus","geometry":{"detector":"Aarhus","detector_config":{"radius":0.29989}}});
+        let g = geometry(&p).unwrap();
+        assert_eq!(g.detector.as_ref().unwrap().config["radius"], 0.29989);
+        p["geometry"]["detector_config"]["radius"] = json!(0.4);
+        assert!(geometry(&p).is_err());
+        p["geometry"]["detector_config"]["radius"] = json!(0.29989);
+        p["geometry"]["parallax"] = json!({"material":"Si"});
+        assert!(geometry(&p).is_err());
+    }
 }

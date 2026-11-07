@@ -6,7 +6,6 @@ use crate::{
     image::{CombinedSource, Image},
 };
 use dioptrin::{
-    geometry::Geometry,
     integration::{
         Fixed1dPlan, InputOrder, IntegrationMethod, Integrator, MaskMode, RadialUnit, SparseLayout,
     },
@@ -120,9 +119,9 @@ fn key(shape: [usize; 2], p: &Parameters, m: &[u8], o: &Options, cake: bool) -> 
     }
 }
 impl Plan {
-    fn new(key: Key) -> Self {
+    fn new(key: Key) -> Result<Self, String> {
         let [h, w] = key.shape;
-        let mut engine = Integrator::new(Geometry::new(h, w, key.geometry.native_poni()))
+        let mut engine = Integrator::new(key.geometry.native_geometry([h, w])?)
             .with_method(if key.supersampling > 1 {
                 IntegrationMethod::Supersampled {
                     n_ss: key.supersampling,
@@ -152,7 +151,7 @@ impl Plan {
             dim1: h,
             dim2: w,
         });
-        Self {
+        Ok(Self {
             key,
             engine,
             fixed: None,
@@ -160,7 +159,7 @@ impl Plan {
             general_2d: None,
             normalization: None,
             radial: None,
-        }
+        })
     }
     fn fixed(&mut self) -> Result<Arc<Fixed1dPlan>, String> {
         if self.fixed.is_none() {
@@ -252,12 +251,12 @@ impl Engine {
     pub fn diagnostics(&self) -> Value {
         json!({"patternPlanBuilds":self.pattern_builds,"cakePlanBuilds":self.cake_builds,"combinedDecodes":self.combined_decodes,"preparedHits":self.prepared_hits,"residentIntegrations":self.resident_calls})
     }
-    fn pattern_plan(&mut self, k: Key) -> &mut Plan {
+    fn pattern_plan(&mut self, k: Key) -> Result<&mut Plan, String> {
         if self.pattern.as_ref().is_none_or(|p| p.key != k) {
-            self.pattern = Some(Plan::new(k));
+            self.pattern = Some(Plan::new(k)?);
             self.pattern_builds += 1;
         }
-        self.pattern.as_mut().unwrap()
+        Ok(self.pattern.as_mut().unwrap())
     }
     /// Admission is metadata-only. Unsupported layouts decode through ordinary
     /// native input once; admitted-source failures never become silent fallbacks.
@@ -318,7 +317,7 @@ impl Engine {
             mask.to_vec()
         };
         let k = key(source.shape, p, &m, &o, false);
-        let plan = self.pattern_plan(k.clone()).fixed()?;
+        let plan = self.pattern_plan(k.clone())?.fixed()?;
         let raw = self.raw.as_mut().unwrap();
         let kind = raw.reader.pixel_type();
         let frame = image
@@ -416,7 +415,7 @@ impl Engine {
             (r.x, r.y, r.sigma, None)
         } else {
             self.resident_calls += 1;
-            let plan = self.pattern_plan(k);
+            let plan = self.pattern_plan(k)?;
             if o.dynamic_mask && plan.engine.mask().is_none_or(|m| m.data != mask) {
                 plan.engine.set_mask(Mask {
                     data: mask.to_vec(),
@@ -485,7 +484,7 @@ impl Engine {
         let (pattern, sigma) = self.integrate_pattern(data, shape, p, mask, o, prepared)?;
         let ck = key(shape, p, mask, o, true);
         if self.cake.as_ref().is_none_or(|plan| plan.key != ck) {
-            self.cake = Some(Plan::new(ck));
+            self.cake = Some(Plan::new(ck)?);
             self.cake_builds += 1;
         }
         let plan = self.cake.as_mut().unwrap();

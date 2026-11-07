@@ -11,10 +11,10 @@ remaining workflows have been migrated and qualified.
 From `desktop/`:
 
 ```sh
-# File input, display and masks; no Dioptrin dependency is compiled.
+# Native processor, including the Dioptrin integration engine.
 npm run backend:build
 
-# Opt-in native Dioptrin engine for the integration workflow below.
+# Compatibility alias; Dioptrin is now enabled by default.
 npm run backend:build:dioptrin
 
 # Explicit experimental Rust selection, with its own Vite port (1428).
@@ -50,7 +50,7 @@ reference environment is used only for migration tests.
 ## Implemented boundary
 
 - Independent `dioptrin-io` input, pinned to source revision
-  `cf33ecf89c1aaafa95982df491d90a38e15c2332`, including compressed TIFF/EDF/CBF,
+  `344011962df431a6a47e3a3fb727aa9c65df3131`, including compressed TIFF/EDF/CBF,
   native formats, detector containers and HDF5. Only enabled reader features
   are admitted. JPEG/JPEG2000 and sparse reconstruction are not enabled in this
   initial consumer.
@@ -72,8 +72,7 @@ reference environment is used only for migration tests.
   Input size and pending work are bounded; progress bypasses the worker queue.
 - Full-source asinh histograms; percentile, min/max, and mean ± 3 std Auto
   levels, with the existing repeated-gap rule. Scientific precision supplies
-  detector and cake display statistics and pixel readouts. With the optional
-  engine, calibrated detector readouts include native 2θ and pixel-scale angular
+  detector and cake display statistics and pixel readouts. With Dioptrin, calibrated detector readouts include native 2θ and pixel-scale angular
   resolution; the interface derives Q/d from the session wavelength as before.
 - Brush/eraser, clear, mask Undo/Redo, use-mask and transparency. Mask history
   payloads are bounded to 128 MiB. Deferred mask operations clear stale products
@@ -84,11 +83,10 @@ reference environment is used only for migration tests.
   display, peak picking and integration. Imprint bakes the current plugin mask
   into the user mask and disables the plugin in one Undo/Redo step. Invalid or
   cancelled changes preserve settings, masks, products and history.
-- Flat uniform-pixel PONI loading/writing and complete manual pyFAI geometry.
-  PONI and manual-command quantities use SI units and radians; the existing
-  React form owns the display-unit conversions. Unsupported named detectors,
-  orientations, spline corrections and PONI fields are rejected explicitly.
-- With optional `dioptrin` feature: native PixelSplit 1D and cake integration,
+- [Detector definitions, orientations, Fit2D splines and geometry conversion](../NATIVE_DETECTOR_PARITY.md), with first-image metadata/shape identification,
+  built-in masks, NeXus corner files, owned project resources and calibration history.
+  PONI/manual quantities retain their existing units; the React forms own display conversion.
+- With the default `dioptrin` feature: native PixelSplit 1D and cake integration,
   solid-angle and polarization corrections, 2θ/Q/d pattern coordinates, Poisson
   errors, and explicit radial/cake binning. Cake coordinates remain 2θ. Grid
   metadata follows pixel-corner extents and the engine's azimuth-bin-center
@@ -170,8 +168,8 @@ for exact defaults, finite-input scope and independent reference checks.
 
 ## Remaining application migration
 
-- Named/nonuniform detectors, orientation variants, distortion splines and
-  Fit2D manual-geometry conversion need their own input/geometry qualification.
+- The detector stage is implemented within the [documented qualification boundary](../NATIVE_DETECTOR_PARITY.md). Nondefault manufacturer geometry options,
+  hexagonal pixels and detector files embedding flat/dark corrections need further work.
 - Arbitrary third-party Python plugins need a native extension contract or
   individual ports. The three bundled dynamic plugins, separate LA Cosmic action
   and NPY/TIFF/EDF/text mask loading are implemented.
@@ -179,8 +177,9 @@ for exact defaults, finite-input scope and independent reference checks.
   bundling/notices on macOS, Windows and Linux are required before switching the
   default launcher and removing the desktop's required Python distribution.
 
-Dioptrin remains an optional Cargo feature. Native numerical operations report
-that requirement explicitly when built without it. Unported commands return
+Native builds now enable Dioptrin by default. The `--no-default-features`
+diagnostic build retains input/display/masking but disables numerical commands;
+it is not the target scientific runtime. Unported commands return
 errors without Python fallback. This opt-in backend is not yet a replacement
 for every current application workflow.
 
@@ -190,7 +189,7 @@ The implementation in `src/mask_plugins.rs` ports the bundled sources in
 `dioptas/model/util/mask_plugins/`; `src/mask_plugins.json` is a static copy of
 their names, descriptions, defaults and schemas at `a55e5bb1`. No Python or
 SciPy executes at build time or runtime. Threshold and Cosmic do not require
-Dioptrin. Spot uses its optional native full-resolution two-theta geometry;
+Dioptrin. Spot uses native full-resolution two-theta geometry;
 without that feature, enabling Spot returns an explicit build instruction.
 Without a calibration, an enabled Spot plugin returns an empty mask, matching
 the existing plugin's behavior.

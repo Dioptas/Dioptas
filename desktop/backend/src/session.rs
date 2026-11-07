@@ -39,10 +39,14 @@ use calibration::{Calibration, History, Workflow};
 #[cfg(feature = "dioptrin")]
 use std::time::Instant;
 
+type DetectorMaskCache = (Arc<dioptrin::detector::Detector>, [usize; 2], Arc<Vec<u8>>);
+#[cfg(feature = "dioptrin")]
+type NativeGeometryCache = (Geometry, [usize; 2], dioptrin::geometry::Geometry);
 #[derive(Clone, PartialEq)]
 struct Settings {
     transformations: Vec<crate::transform::Transform>,
     original_pixels: Option<[f64; 2]>,
+    original_detector: Option<Arc<dioptrin::detector::Detector>>,
     geometry: Geometry,
     calibrated: bool,
     calibration_name: Option<String>,
@@ -71,6 +75,7 @@ impl Default for Settings {
         Self {
             transformations: vec![],
             original_pixels: None,
+            original_detector: None,
             geometry: Geometry::default(),
             calibrated: false,
             calibration_name: None,
@@ -121,6 +126,9 @@ pub struct Session {
     mask_filename: Option<String>,
     mask_mode: bool,
     effective_mask: Arc<Vec<u8>>,
+    #[cfg(feature = "dioptrin")]
+    native_geometry_cache: std::cell::RefCell<Option<NativeGeometryCache>>,
+    detector_mask: std::cell::RefCell<Option<DetectorMaskCache>>,
     plugins: Plugins,
     image_generation: u64,
     mask_raster: Option<Raster>,
@@ -175,6 +183,9 @@ impl Session {
             mask_filename: None,
             mask_mode: true,
             effective_mask: Arc::new(vec![]),
+            detector_mask: Default::default(),
+            #[cfg(feature = "dioptrin")]
+            native_geometry_cache: Default::default(),
             plugins: Plugins::default(),
             image_generation: 0,
             mask_raster: None,
@@ -374,7 +385,7 @@ impl Session {
                 return Ok(Reply::metadata(
                     json!({"ok": true, "protocol": 2, "transport": "stdio", "runtime": "rust", "pid": std::process::id(), "qtApplication": false,
                 "engine": if cfg!(feature="dioptrin") { Some("dioptrin") } else { None },
-                "capabilities": ["image-input", "frame-navigation", "binary-rasters", "display-statistics", "mask-brush", "mask-history", "mask-plugins", "calibration-peaks", "calibration-history", "uniform-poni", "manual-pyfai-geometry", "xy-export", "project-format-2", "configuration-management", "image-transformations", "geometric-masks", "mask-lacosmic"]}),
+                "capabilities": ["image-input", "frame-navigation", "binary-rasters", "display-statistics", "mask-brush", "mask-history", "mask-plugins", "calibration-peaks", "calibration-history", "uniform-poni", "manual-pyfai-geometry", "xy-export", "project-format-2", "configuration-management", "image-transformations", "geometric-masks", "mask-lacosmic","detector-definitions","detector-orientations","distortion-splines","fit2d-geometry"]}),
                 ));
             }
             "state" => return Ok(self.snapshot(true)),
@@ -427,7 +438,26 @@ impl Session {
                     file.to_path_buf()
                 };
                 let mut image = Image::prepare(&file, args)?;
+                if self.settings.geometry.auto_assign
+                    && !self.settings.calibrated
+                    && self.settings.transformations.is_empty()
+                {
+                    let (description, pixels) = image.detector_hints();
+                    let found =
+                        dioptrin::detector::identify(image.source_shape, pixels, &description);
+                    let g = &mut self.settings.geometry;
+                    if let Some(d) = found.selected {
+                        d.binning(image.source_shape)?;
+                        [g.pixel1, g.pixel2] = d.effective_pixels(image.source_shape);
+                        g.detector = Some(Arc::new(d));
+                    }
+                    g.auto_assign = false;
+                    g.assignment = Some(found.reason);
+                    g.candidates = found.candidates;
+                }
+
                 image.orient(&self.settings.transformations, &self.control)?;
+                self.settings.geometry.sync_shape(image.shape)?;
                 #[cfg(feature = "dioptrin")]
                 let prepared = if self.settings.calibrated && !defer && !self.processing.active() {
                     let options = self.integration_options();
@@ -540,7 +570,10 @@ impl Session {
             "open_calibration" => {
                 check_keys(args, &["path", "defer_integration"])?;
                 let file = path(args)?;
-                let candidate = Geometry::load(file)?;
+                let mut candidate = Geometry::load(file)?;
+                if let Some(image) = &self.image {
+                    candidate.sync_shape(image.shape)?;
+                }
                 self.settings.geometry = candidate;
                 self.settings.original_pixels = None;
                 self.settings.calibration_path = Some(file.to_string_lossy().into_owned());
@@ -551,21 +584,35 @@ impl Session {
                         .to_string_lossy()
                         .into_owned(),
                 );
+                self.rebase_detector_reset()?;
                 self.loaded_geometry("loaded");
                 self.calculate(defer)?;
             }
             "manual_geometry" => {
                 check_keys(args, &["convention", "values", "defer_integration"])?;
-                if args["convention"] != "pyfai" {
-                    return Err("Fit2D conversion is not migrated yet; use the pyFAI geometry fields or a supported PONI file.".into());
+                let (mut geometry, polarization) = match args["convention"].as_str() {
+                    Some("pyfai") => Geometry::manual(&args["values"])?,
+                    Some("fit2d") => Geometry::manual_fit2d(&args["values"])?,
+                    _ => return Err("Choose pyFAI or Fit2D geometry convention.".into()),
+                };
+                geometry.detector = self.settings.geometry.detector.clone();
+                geometry.frame_pixels = self.settings.geometry.frame_pixels;
+                geometry.detector_file = self.settings.geometry.detector_file.clone();
+                geometry.distortion_file = self.settings.geometry.distortion_file.clone();
+                geometry.set_pixels(
+                    [geometry.pixel1, geometry.pixel2],
+                    self.image.as_ref().map(|i| i.shape),
+                )?;
+                if let Some(image) = &self.image {
+                    geometry.validate_shape(image.shape)?;
                 }
-                let (geometry, polarization) = Geometry::manual(&args["values"])?;
                 self.settings.geometry = geometry;
                 self.settings.original_pixels = None;
                 self.settings.polarization = polarization;
                 self.settings.calibrated = true;
                 self.settings.calibration_name = Some("manual".into());
                 self.settings.calibration_path = None;
+                self.rebase_detector_reset()?;
                 self.loaded_geometry("manual");
                 self.calculate(defer)?;
             }
@@ -580,7 +627,7 @@ impl Session {
                     );
                 }
                 let file = path(args)?;
-                atomic_write(file, self.settings.geometry.save_text().as_bytes())?;
+                self.settings.geometry.save_to(file)?;
                 self.calibration.saved = true;
                 self.settings.calibration_path = Some(file.to_string_lossy().into_owned());
                 self.settings.calibration_name = Some(
@@ -907,11 +954,7 @@ impl Session {
                 let pixel = {
                     let mut pixel = pixel;
                     if self.settings.calibrated {
-                        let geometry = dioptrin::geometry::Geometry::new(
-                            image.shape[0],
-                            image.shape[1],
-                            self.settings.geometry.native_poni(),
-                        );
+                        let geometry = self.native_geometry(image.shape)?;
                         let row_next = if y + 1 < image.shape[0] {
                             y + 1
                         } else {
@@ -1117,12 +1160,41 @@ impl Session {
             self.undo.remove(0);
         }
     }
+    #[cfg(feature = "dioptrin")]
+    fn native_geometry(&self, shape: [usize; 2]) -> Result<dioptrin::geometry::Geometry, String> {
+        let mut cache = self.native_geometry_cache.borrow_mut();
+        if let Some((parameters, size, g)) = cache.as_ref()
+            && parameters == &self.settings.geometry
+            && *size == shape
+        {
+            return Ok(g.clone());
+        }
+        let g = self.settings.geometry.native_geometry(shape)?;
+        *cache = Some((self.settings.geometry.clone(), shape, g.clone()));
+        Ok(g)
+    }
+    fn physical_mask(&self, shape: [usize; 2]) -> Result<Option<Arc<Vec<u8>>>, String> {
+        let Some(d) = &self.settings.geometry.detector else {
+            return Ok(None);
+        };
+        let mut cache = self.detector_mask.borrow_mut();
+        if let Some((detector, size, mask)) = cache.as_ref()
+            && *size == shape
+            && Arc::ptr_eq(d, detector)
+        {
+            return Ok(Some(mask.clone()));
+        }
+        let values = Arc::new(d.builtin_mask(shape)?);
+        *cache = Some((d.clone(), shape, values.clone()));
+        Ok(Some(values))
+    }
     fn refresh_masks(&mut self, control: &Control) -> Result<(), String> {
         if let Some(image) = &self.image {
             // Publish caches, display and effective mask together only after
             // all enabled plugins have completed successfully.
             let mut plugins = self.plugins.clone();
-            let combined = plugins.refresh(
+            self.settings.geometry.validate_shape(image.shape)?;
+            let mut combined = plugins.refresh(
                 &self.scientific_values(),
                 image.shape,
                 self.scientific_generation,
@@ -1130,6 +1202,11 @@ impl Session {
                 &self.mask,
                 control,
             )?;
+            if let Some(built) = self.physical_mask(image.shape)? {
+                for (v, b) in combined.iter_mut().zip(built.iter()) {
+                    *v |= *b;
+                }
+            }
             self.plugins = plugins;
             self.mask_raster = Some(Raster::mask(&combined, image.shape));
             self.effective_mask = Arc::new(combined);
@@ -1218,6 +1295,9 @@ impl Session {
     }
     fn calculate(&mut self, defer: bool) -> Result<(), String> {
         self.control.check()?;
+        if let Some(image) = &self.image {
+            self.settings.geometry.sync_shape(image.shape)?;
+        }
         self.prepare_processing()?;
         self.refresh_masks(&self.control.clone())?;
         if self.image.is_none() && self.patterns.imported && !defer {
@@ -1326,6 +1406,13 @@ impl Session {
         } else {
             vec![0; shape[0] * shape[1]]
         };
+        if !(self.settings.use_mask && self.effective_mask.len() == shape[0] * shape[1])
+            && let Ok(Some(built)) = self.physical_mask(shape)
+        {
+            for (v, b) in m.iter_mut().zip(built.iter()) {
+                *v |= *b;
+            }
+        }
         if let Some([r0, r1, c0, c1]) = self.settings.roi {
             for row in 0..shape[0] {
                 for col in 0..shape[1] {
@@ -1432,12 +1519,12 @@ impl Session {
                 "autoProcess":false,"autoProcessError":"", "frame":self.image.as_ref().map(|i|i.frame).unwrap_or(0), "frames":self.image.as_ref().map(|i|i.frames).unwrap_or(0)
             },
             "calibration": {
-                "setupConfirmed":s.calibrated, "detectorIsCustom":true, "referenceLines":[],
+                "setupConfirmed":s.calibrated, "detectorIsCustom":g.detector.as_ref().is_none_or(|d|d.name=="Detector"), "referenceLines":[],
                 "workflow":{"autoIncrement":true,"searchSize":10,"automaticRefinement":false,"algorithm":"Massif","deltaTth":0.5,"meanFactor":3,"intensityLimit":55000,"numberOfRings":15},
-                "parameters":parameters,"freeParameterCount":6,"polarization":s.polarization,"fitWavelength":false,"detectorFile":null,"distortionFile":null,"transformations":s.transformations,
-                "pyfai":g.manual_values(s.polarization),"fit2d":{},"steps":["available","unavailable","unavailable","available"],"geometrySource":if s.calibrated {"loaded"} else {"none"},
+                "parameters":parameters,"freeParameterCount":6,"polarization":s.polarization,"fitWavelength":false,"detectorFile":g.detector_file,"distortionFile":g.distortion_file.as_deref().or_else(||g.detector.as_ref().filter(|d|d.has_spline()).map(|_|"Embedded detector spline")),"transformations":s.transformations,
+                "pyfai":g.manual_values(s.polarization),"fit2d":g.fit2d_values(s.polarization),"steps":["available","unavailable","unavailable","available"],"geometrySource":if s.calibrated {"loaded"} else {"none"},
                 "canUndo":false,"canRedo":false,"engine":engine,"engineLabel":engine_label,"engines":[{"id":engine,"label":engine_label,"available":true}],
-                "calibrant":"LaB6","calibrants":["LaB6"],"detectors":["Custom"],"detector":"Custom","pixelX":g.pixel2*1e6,"pixelY":g.pixel1*1e6,
+                "calibrant":"LaB6","calibrants":["LaB6"],"detectors":std::iter::once("Custom").chain(dioptrin::detector::catalog().iter().map(|d|d.name.as_str())).collect::<Vec<_>>(),"detector":g.detector.as_ref().map(|d|if d.name=="Detector" {"Custom"}else{d.name.as_str()}).unwrap_or("Custom"),"pixelX":g.pixel2*1e6,"pixelY":g.pixel1*1e6,"detectorOrientation":g.detector.as_ref().map(|d|d.orientation).unwrap_or(3),"detectorAssignment":g.assignment,"detectorCandidates":g.candidates,
                 "distance":g.dist*1000.0,"wavelength":g.wavelength*1e10,"fitTilts":true,"fitDirty":false,"rmsDegrees":null,"saved":false,"picks":[],"rings":[]
             }
         }, "pattern":self.pattern, "cake":null, "rings":[], "linked":null, "batch":null, "map":null});

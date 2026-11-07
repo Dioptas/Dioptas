@@ -314,11 +314,7 @@ impl Session {
         if let Some(image) = &self.image
             && self.settings.calibrated
         {
-            let native = dioptrin::geometry::Geometry::new(
-                image.shape[0],
-                image.shape[1],
-                self.settings.geometry.native_poni(),
-            );
+            let native = self.native_geometry(image.shape)?;
             let angles = native.calc_tth_all();
             let step = image.shape[0].max(image.shape[1]).div_ceil(512).max(1);
             for (i, p) in self

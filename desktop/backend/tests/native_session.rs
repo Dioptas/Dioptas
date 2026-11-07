@@ -300,9 +300,9 @@ fn unsupported_geometry_and_options_fail_without_publishing_partial_changes() {
     let poni = fs::read_to_string(root().join("dioptas/tests/data/CeO2_Pilatus1M.poni")).unwrap();
     for contents in [
         poni.replace("SplineFile: None", "SplineFile: correction.spline"),
-        format!("{poni}\nDetector: Pilatus1M\n"),
+        format!("{poni}\nDetector: UnavailableModel\n"),
         format!(
-            "{poni}\nDetector_config: {{\"pixel1\": 0.000172, \"pixel2\": 0.000172, \"orientation\": 1}}\n"
+            "{poni}\nDetector_config: {{\"pixel1\": 0.000172, \"pixel2\": 0.000172, \"orientation\": 8}}\n"
         ),
     ] {
         let path = temp.path().join("unsupported.poni");

@@ -46,11 +46,7 @@ impl Session {
             let source = args["source"].as_str().ok_or("Choose a validation view.")?;
             let x = finite(&args["x"], "Position", -1e12, 1e12)?;
             let image = self.image.as_ref().unwrap();
-            let native = dioptrin::geometry::Geometry::new(
-                image.shape[0],
-                image.shape[1],
-                self.settings.geometry.native_poni(),
-            );
+            let native = self.native_geometry(image.shape)?;
             let previous = self.linked_snapshot();
             let mut azimuth = previous["azimuth"].as_f64();
             let mut image_point = Value::Null;

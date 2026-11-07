@@ -103,6 +103,9 @@ export interface State {
 export interface Calibration {
   setupConfirmed: boolean;
   detectorIsCustom: boolean;
+  detectorOrientation?: number;
+  detectorAssignment?: string | null;
+  detectorCandidates?: string[];
   referenceLines: { ring: number; x: number }[];
   workflow: {
     autoIncrement: boolean;

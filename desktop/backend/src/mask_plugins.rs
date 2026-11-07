@@ -320,7 +320,7 @@ fn cosmic(data: &[f64], shape: [usize; 2], p: &Value, c: &Control) -> Result<Vec
 }
 #[cfg(feature = "dioptrin")]
 fn bin_indices(g: &Geometry, shape: [usize; 2], bins: usize) -> Result<Vec<usize>, String> {
-    let tth = dioptrin::geometry::Geometry::new(shape[0], shape[1], g.native_poni()).calc_tth_all();
+    let tth = g.native_geometry(shape)?.calc_tth_all();
     let min = tth.iter().copied().fold(f64::INFINITY, f64::min);
     let max = tth.iter().copied().fold(f64::NEG_INFINITY, f64::max);
     let width = (max - min) / bins as f64;

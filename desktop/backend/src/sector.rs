@@ -89,8 +89,7 @@ pub fn build(
     range: Option<[f64; 2]>,
     nss: usize,
 ) -> Result<Grid, String> {
-    let (rows, cols) = g.corner_grid();
-    let (tth, azi) = g.calc_tth_and_azimuth(&rows, &cols);
+    let (tth, azi) = g.angular_corners();
     let radial = radial_unit.convert_from_tth(&tth, g.poni.wavelength);
     let (rmin, rmax, dr) = if nss > 1 {
         let center_radial = radial_unit.convert_from_tth(&g.calc_tth_all(), g.poni.wavelength);
@@ -105,7 +104,6 @@ pub fn build(
     let mut buckets = vec![Vec::<(usize, f64)>::new(); bins * azimuth_bins];
     let centers = g.calc_azimuth_all();
     let [h, w] = [g.dim1, g.dim2];
-    let stride = w + 1;
     let mut entries = 0usize;
     let mut sample_radial = Vec::new();
     let mut sample_azimuth = Vec::new();
@@ -145,8 +143,7 @@ pub fn build(
                 entries += 1;
             }
         } else {
-            let base = (i / w) * stride + i % w;
-            let ids = [base, base + 1, base + stride + 1, base + stride];
+            let ids = g.corner_indices(i);
             let center = unwrap(center_azimuth, (angles[0] + angles[1]) * 0.5);
             let p: Vec<_> = ids
                 .iter()

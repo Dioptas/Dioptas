@@ -9,8 +9,8 @@ use dioptrin::{
 };
 use std::cell::RefCell;
 
-fn geometry(shape: [usize; 2], parameters: &Geometry) -> NativeGeometry {
-    NativeGeometry::new(shape[0], shape[1], parameters.native_poni())
+fn geometry(shape: [usize; 2], parameters: &Geometry) -> Result<NativeGeometry, String> {
+    parameters.native_geometry(shape)
 }
 
 fn fit_once(
@@ -49,8 +49,9 @@ fn fit_once(
                 },
             )
             .ok_or("Could not estimate the ring center. Pick more positions around the rings.")?;
-            start.poni1 = (center.d1 + 0.5) * start.pixel1;
-            start.poni2 = (center.d2 + 0.5) * start.pixel2;
+            let p = geometry(shape, &start)?.detector_position(center.d1 + 0.5, center.d2 + 0.5);
+            start.poni1 = p[1];
+            start.poni2 = p[2];
         }
         start.dist = candidate.data.start[0];
         start.rot1 = 0.0;
@@ -105,7 +106,7 @@ fn fit_once(
         candidate.data.reference.spacings.clone(),
     );
     let fitted =
-        dioptrin::calibration::refine(&geometry(shape, &start), &points, &reference, &options)
+        dioptrin::calibration::refine(&geometry(shape, &start)?, &points, &reference, &options)
             .map_err(|e| {
                 format!("Calibration fit failed: {e}. Previous geometry and picked peaks restored.")
             })?;
@@ -143,6 +144,7 @@ fn fit_once(
         pixel1: p.pixel1,
         pixel2: p.pixel2,
         wavelength: p.wavelength,
+        ..candidate.geometry.clone()
     };
     candidate.geometry.validate()?;
     if !fitted.rms_rad.is_finite() {
@@ -172,7 +174,10 @@ fn rings(candidate: &Snapshot, shape: [usize; 2], cache: &RefCell<Option<RingCac
     {
         return entry.value.clone();
     }
-    let field = geometry(shape, &candidate.geometry).calc_tth_all();
+    let Ok(native) = geometry(shape, &candidate.geometry) else {
+        return json!([]);
+    };
+    let field = native.calc_tth_all();
     let value = crate::peak_search::contours(&field, shape, &targets);
     *cache.borrow_mut() = Some(RingCache {
         geometry: candidate.geometry.clone(),
@@ -381,7 +386,7 @@ impl Session {
                         )?;
                     }
                     publish(&candidate, ring, total, "Finding peaks on ring", Some(ring));
-                    let field = geometry(shape, &candidate.geometry).calc_tth_all();
+                    let field = geometry(shape, &candidate.geometry)?.calc_tth_all();
                     let target = candidate
                         .data
                         .reference

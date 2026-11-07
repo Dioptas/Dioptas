@@ -236,6 +236,7 @@ impl Default for Workflow {
 pub(super) struct Snapshot {
     transformations: Vec<crate::transform::Transform>,
     original_pixels: Option<[f64; 2]>,
+    original_detector: Option<Arc<dioptrin::detector::Detector>>,
     roi: Option<[usize; 4]>,
     geometry: Geometry,
     calibrated: bool,
@@ -300,6 +301,8 @@ pub(super) fn is_command(action: &str) -> bool {
             | "save_peaks"
             | "load_peaks"
             | "calibration_engine"
+            | "detector_file"
+            | "distortion_file"
     )
 }
 impl Session {
@@ -307,6 +310,7 @@ impl Session {
         Snapshot {
             transformations: self.settings.transformations.clone(),
             original_pixels: self.settings.original_pixels,
+            original_detector: self.settings.original_detector.clone(),
             roi: self.settings.roi,
             geometry: self.settings.geometry.clone(),
             calibrated: self.settings.calibrated,
@@ -321,6 +325,7 @@ impl Session {
             self.settings.roi = s.roi;
         }
         self.settings.original_pixels = s.original_pixels;
+        self.settings.original_detector = s.original_detector;
         self.settings.geometry = s.geometry;
         self.settings.calibrated = s.calibrated;
         self.settings.calibration_name = s.name;
@@ -358,6 +363,10 @@ impl Session {
         match outcome {
             Err(error) => Err(error),
             Ok(mut extra) => {
+                self.control.check()?;
+                if let Some(image) = &self.image {
+                    self.settings.geometry.sync_shape(image.shape)?;
+                }
                 let oriented = self.settings.transformations != before.transformations;
                 if self.settings.geometry != before.geometry
                     || self.settings.calibrated != before.calibrated
@@ -404,6 +413,7 @@ impl Session {
                         "pixel_x",
                         "pixel_y",
                         "detector",
+                        "orientation",
                         "fit_tilts",
                     ],
                 )?;
@@ -412,10 +422,27 @@ impl Session {
                         .calibration
                         .choose(name.as_str().ok_or("Calibrant needs a name.")?)?;
                 }
-                if let Some(v) = args.get("detector")
-                    && v != "Custom"
+                if let Some(v) = args.get("detector") {
+                    self.settings
+                        .geometry
+                        .select_detector(v.as_str().ok_or("Choose a detector.")?)?;
+                }
+
+                if args.get("detector").is_some()
+                    && let (Some(image), Some(d)) = (&self.image, &self.settings.geometry.detector)
                 {
-                    return Err("Named detectors are not migrated yet; choose Custom.".into());
+                    d.binning(image.shape)?;
+                    [self.settings.geometry.pixel1, self.settings.geometry.pixel2] =
+                        d.effective_pixels(image.shape);
+                }
+                if let Some(v) = args.get("orientation") {
+                    let orientation = integer(v, "Detector orientation", 0, 4)? as u8;
+                    let g = &mut self.settings.geometry;
+                    let d = g.detector.get_or_insert_with(|| {
+                        Arc::new(dioptrin::detector::Detector::custom(g.pixel1, g.pixel2))
+                    });
+                    Arc::make_mut(d).orientation = orientation;
+                    g.auto_assign = false;
                 }
                 if let Some(v) = args.get("wavelength") {
                     self.calibration.start[6] = finite(v, "Wavelength (Å)", 0.01, 10.0)? * 1e-10;
@@ -431,6 +458,11 @@ impl Session {
                     self.settings.geometry.pixel1 =
                         finite(v, "Pixel height (µm)", 0.1, 5000.0)? * 1e-6;
                 }
+                if args.get("pixel_x").is_some() || args.get("pixel_y").is_some() {
+                    let g = &mut self.settings.geometry;
+                    g.auto_assign = false;
+                    g.set_pixels([g.pixel1, g.pixel2], self.image.as_ref().map(|i| i.shape))?;
+                }
                 if let Some(v) = args.get("fit_tilts") {
                     let tilts = boolean(v, "Fit tilts")?;
                     for i in 3..6 {
@@ -444,7 +476,42 @@ impl Session {
                 {
                     self.calibration.confirmed = true;
                 }
+                if ["detector", "orientation", "pixel_x", "pixel_y"]
+                    .iter()
+                    .any(|k| args.get(*k).is_some())
+                {
+                    self.rebase_detector_reset()?;
+                }
                 self.calibration.reference_wavelength = self.calibration.start[6];
+                self.calibration.dirty = self.settings.calibrated;
+                self.calibration.rms = None;
+                self.calibration.saved = false;
+            }
+            "detector_file" | "distortion_file" => {
+                check_keys(args, &["path", "reset", "defer_integration"])?;
+                if args["reset"] == true {
+                    if action == "detector_file" {
+                        self.settings.geometry.select_detector("Custom")?;
+                    } else {
+                        self.settings.geometry.reset_spline();
+                        if let Some(d) = &mut self.settings.original_detector {
+                            Arc::make_mut(d).clear_spline();
+                        }
+                    }
+                } else {
+                    let file = path(args)?;
+                    if action == "detector_file" {
+                        self.settings.geometry.load_detector_file(file)?;
+                    } else {
+                        self.settings.geometry.frame_pixels = None;
+                        self.settings.geometry.load_spline(file)?;
+                    }
+                }
+                if let Some(image) = &self.image {
+                    self.settings.geometry.validate_shape(image.shape)?;
+                }
+                self.settings.original_pixels = None;
+                self.rebase_detector_reset()?;
                 self.calibration.dirty = self.settings.calibrated;
                 self.calibration.rms = None;
                 self.calibration.saved = false;

@@ -2,6 +2,62 @@
 use super::*;
 use crate::transform::{self, Transform};
 impl Session {
+    /// A new definition applies to the current view. Rebase its reset snapshot
+    /// to source order so Reset cannot resurrect a previously selected detector.
+    pub(super) fn rebase_detector_reset(&mut self) -> Result<(), String> {
+        if let Some(image) = &self.image {
+            self.settings.geometry.sync_shape(image.shape)?;
+        }
+        if self.settings.transformations.is_empty() {
+            self.settings.original_detector = None;
+            return Ok(());
+        }
+        use dioptrin::detector::DetectorTransform as D;
+        let inverse = transform::inverse(&self.settings.transformations);
+        let labels = Arc::new((0usize..15).collect::<Vec<_>>());
+        let shape = [3, 5];
+        let wanted = transform::apply(&labels, shape, &inverse, &self.control)?;
+        let size = transform::shape(shape, &inverse);
+        let candidates = [
+            (D::Identity, vec![]),
+            (D::Left, vec![Transform::LeftArray]),
+            (D::Right, vec![Transform::RightArray]),
+            (D::Half, vec![Transform::LeftArray, Transform::LeftArray]),
+            (D::Horizontal, vec![Transform::Horizontal]),
+            (D::Vertical, vec![Transform::Vertical]),
+            (
+                D::Transpose,
+                vec![Transform::LeftArray, Transform::Vertical],
+            ),
+            (
+                D::Transverse,
+                vec![Transform::LeftArray, Transform::Horizontal],
+            ),
+        ];
+        let mut operation = None;
+        for (candidate, ops) in candidates {
+            if transform::shape(shape, &ops) == size
+                && transform::apply(&labels, shape, &ops, &self.control)? == wanted
+            {
+                operation = Some(candidate);
+                break;
+            }
+        }
+        let operation = operation.ok_or("Invalid composed detector transformation.")?;
+        self.settings.original_detector = self
+            .settings
+            .geometry
+            .detector
+            .as_ref()
+            .map(|d| d.transformed(operation).map(Arc::new))
+            .transpose()?;
+        let mut pixels = [self.settings.geometry.pixel1, self.settings.geometry.pixel2];
+        if size != shape {
+            pixels.swap(0, 1)
+        }
+        self.settings.original_pixels = Some(pixels);
+        Ok(())
+    }
     pub(super) fn reorient_view(&mut self, target: &[Transform]) -> Result<(), String> {
         if target == self.settings.transformations {
             return Ok(());
@@ -42,6 +98,9 @@ impl Session {
             return Ok(self.snapshot(true));
         }
         let before = self.calibration_snapshot();
+        if self.settings.transformations.is_empty() {
+            self.settings.original_detector = self.settings.geometry.detector.clone();
+        }
         let mut target = self.settings.transformations.clone();
         if let Some(op) = op {
             if target.len() >= 1024 {
@@ -52,6 +111,16 @@ impl Session {
             self.settings
                 .original_pixels
                 .get_or_insert([self.settings.geometry.pixel1, self.settings.geometry.pixel2]);
+            if let Some(d) = &self.settings.geometry.detector {
+                use dioptrin::detector::DetectorTransform as D;
+                let operation = match op {
+                    Transform::LeftArray => D::Left,
+                    Transform::RightArray => D::Right,
+                    Transform::Horizontal => D::Horizontal,
+                    Transform::Vertical => D::Vertical,
+                };
+                self.settings.geometry.detector = Some(Arc::new(d.transformed(operation)?));
+            }
             if op.swaps_axes() {
                 std::mem::swap(
                     &mut self.settings.geometry.pixel1,
@@ -61,6 +130,7 @@ impl Session {
             target.push(op);
         } else {
             target.clear();
+            self.settings.geometry.detector = self.settings.original_detector.take();
             if let Some([p1, p2]) = self.settings.original_pixels.take() {
                 self.settings.geometry.pixel1 = p1;
                 self.settings.geometry.pixel2 = p2;

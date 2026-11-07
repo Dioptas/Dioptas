@@ -36,6 +36,7 @@
     "test:native-project-transport": "node --test scripts/native_project_transport.test.mjs",
     "test:native-geometry-mask": "node scripts/native_geometry_mask_smoke.mjs",
     "test:native-geometry-mask-transport": "node --test scripts/native_geometry_mask_transport.test.mjs",
+    "test:native-detectors": "node scripts/native_detector_smoke.mjs",
     "test:native-lacosmic": "node scripts/native_lacosmic_smoke.mjs",
     "test:native-lacosmic-transport": "node --test scripts/native_lacosmic_transport.test.mjs"
   },

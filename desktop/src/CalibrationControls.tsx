@@ -127,6 +127,14 @@ export function CalibrationControls({
               </select>
             </div>
           </div>
+          {c?.detectorAssignment && (
+            <p className="muted" role="status">
+              {c.detectorAssignment}
+              {!!c.detectorCandidates?.length && c.detector === "Custom" && (
+                <>: {c.detectorCandidates.join(", ")}</>
+              )}
+            </p>
+          )}
           <div className="setup-pair">
             <label className="field-label">
               Pixel width · µm

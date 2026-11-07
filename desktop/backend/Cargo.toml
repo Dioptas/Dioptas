@@ -8,19 +8,20 @@ license = "MIT"
 description = "Python-free Dioptas desktop processing boundary"
 
 [features]
-default = []
-# Engine selection is independent of file input; Dioptrin remains optional.
-dioptrin = ["dep:dioptrin"]
+default = ["dioptrin"]
+# Dioptrin is the default engine; retain the diagnostic non-numerical build.
+dioptrin = []
 
 [dependencies]
 dioptrin-io = { git = "https://github.com/CPrescher/dioptrin-io", rev = "344011962df431a6a47e3a3fb727aa9c65df3131", features = ["wrappers", "hdf5", "containers", "bruker", "oxford", "raxis", "fixed", "fit2d", "kcd", "mpa", "esperanto", "mar345", "xsd"] }
-dioptrin = { git = "https://github.com/CPrescher/Dioptrin", rev = "5e245da8c3df4735f2d0d28933c22fe16ac70c1f", optional = true, default-features = false }
+dioptrin = { git = "https://github.com/CPrescher/Dioptrin", rev = "5273868599151eb536ddccca56c7fd80437a0754", default-features = false }
 half = "2"
 serde = { version = "1", features = ["derive", "rc"] }
 # Preserve the established ordering of plugin controls in embedded schemas.
 serde_json = { version = "1", features = ["preserve_order"] }
 sha2 = "0.10"
 tempfile = "3"
+time = { version = "0.3", features = ["formatting"] }
 phasesmith-core = { git = "https://github.com/CPrescher/PhaseSmith", rev = "f0925305c70fc8ea5965d14f03aa51b8399621d8" }
 phasesmith-crystallography = { git = "https://github.com/CPrescher/PhaseSmith", rev = "f0925305c70fc8ea5965d14f03aa51b8399621d8" }
 phasesmith-io = { git = "https://github.com/CPrescher/PhaseSmith", rev = "f0925305c70fc8ea5965d14f03aa51b8399621d8" }

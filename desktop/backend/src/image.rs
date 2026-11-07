@@ -392,6 +392,98 @@ impl Image {
         self.file_info = Arc::new(self.metadata_text());
         Ok(())
     }
+    /// Stored acquisition identity/pitch, without altering the original metadata.
+    pub fn detector_hints(&self) -> (String, Option<[f64; 2]>) {
+        use dioptrin_io::wrapped::Metadata as M;
+        let mut description = String::new();
+        let mut pixels = None;
+        if let Some(reader) = &self.reader {
+            let reader = reader.lock().unwrap();
+            let header = match reader.metadata(self.frame) {
+                Some(M::Cbf(m)) => m.pilatus.as_ref(),
+                Some(M::DetectorTiff(m)) => match m.header {
+                    dioptrin_io::detector_tiff::Header::Pilatus(h) => Some(h),
+                    _ => None,
+                },
+                _ => None,
+            };
+            if let Some(h) = header {
+                description = h.fields.get("Detector").cloned().unwrap_or_default();
+                if let Some(value) = h.fields.get("Pixel_size") {
+                    let numbers: Vec<f64> = value
+                        .split(|c: char| c.is_whitespace() || c == 'x' || c == ',')
+                        .filter_map(|s| s.parse().ok())
+                        .collect();
+                    if numbers.len() == 2 && !value.contains("um") && !value.contains("µm") {
+                        pixels = Some([numbers[1], numbers[0]]);
+                    }
+                }
+            }
+            if let Some(h) = reader.hdf5_reader() {
+                for (k, v) in h.fields() {
+                    if ["detector", "description", "model"].contains(&k.as_str()) {
+                        description.push(' ');
+                        description.push_str(v);
+                    }
+                }
+            }
+        }
+        // Supplement HDF5 acquisition metadata from standard NeXus scalar fields.
+        if matches!(
+            self.path.extension().and_then(|e| e.to_str()),
+            Some("h5" | "hdf5" | "nxs")
+        ) && let Ok(file) = hdf5::File::open(&self.path)
+        {
+            for base in [
+                "/entry/instrument/detector",
+                "/entry/instrument/detector/detectorSpecific",
+            ] {
+                for key in ["description", "detector_model", "model"] {
+                    if let Some(dataset) = metadata_dataset(&file, &format!("{base}/{key}"))
+                        && dataset.size() == 1
+                    {
+                        if let Ok(s) = dataset.read_scalar::<hdf5::types::VarLenUnicode>() {
+                            description.push(' ');
+                            description.push_str(s.as_str());
+                        } else if let Ok(s) = dataset.read_scalar::<hdf5::types::VarLenAscii>() {
+                            description.push(' ');
+                            description.push_str(s.as_str());
+                        }
+                    }
+                }
+            }
+            let number = |key: &str| {
+                metadata_dataset(&file, &format!("/entry/instrument/detector/{key}"))
+                    .filter(|d| d.size() == 1)?
+                    .read_scalar::<f64>()
+                    .ok()
+            };
+            if let (Some(y), Some(x)) = (number("y_pixel_size"), number("x_pixel_size")) {
+                pixels = Some([y, x]);
+            }
+        }
+        // Acquisition headers include generation/readout labels that are not
+        // separate physical geometries in the pyFAI catalogue. Normalize only
+        // explicit tokens; e.g. Pilatus 300k must keep its model number.
+        let mut identity = description
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+            .to_ascii_uppercase();
+        for (label, physical) in [
+            ("PILATUS3 X ", "PILATUS "),
+            ("PILATUS3 S ", "PILATUS "),
+            ("PILATUS3 ", "PILATUS "),
+            ("PILATUS2 X ", "PILATUS "),
+            ("PILATUS2 ", "PILATUS "),
+            ("EIGER2 XE ", "EIGER2 "),
+            ("EIGER2 X ", "EIGER2 "),
+            ("EIGER X ", "EIGER "),
+        ] {
+            identity = identity.replace(label, physical);
+        }
+        (identity, pixels)
+    }
     fn metadata_text(&self) -> String {
         use dioptrin_io::wrapped::Metadata as M;
         let Some(source_reader) = &self.reader else {
@@ -477,6 +569,28 @@ impl FileIdentity {
             object,
         })
     }
+}
+
+/// Identification is optional: do not follow metadata aliases/external files
+/// outside the authoritative image reader's frozen source graph.
+fn metadata_dataset(file: &hdf5::File, path: &str) -> Option<hdf5::Dataset> {
+    let parts: Vec<_> = path.trim_start_matches('/').split('/').collect();
+    let mut group = file.group("/").ok()?;
+    for (index, part) in parts.iter().enumerate() {
+        let kind = group
+            .find_link(Default::default(), Default::default(), |name, info| {
+                Ok((name == *part).then_some(info.link_type))
+            })
+            .ok()??;
+        if kind != hdf5::LinkType::Hard {
+            return None;
+        }
+        if index + 1 == parts.len() {
+            return group.dataset(part).ok();
+        }
+        group = group.group(part).ok()?;
+    }
+    None
 }
 
 pub fn scalar_values(pixels: &PixelBuffer) -> Result<Vec<f64>, String> {
