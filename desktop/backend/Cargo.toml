@@ -13,17 +13,24 @@ default = []
 dioptrin = ["dep:dioptrin"]
 
 [dependencies]
-dioptrin-io = { git = "https://github.com/CPrescher/dioptrin-io", rev = "cf33ecf89c1aaafa95982df491d90a38e15c2332", features = ["wrappers", "hdf5", "containers", "bruker", "oxford", "raxis", "fixed", "fit2d", "kcd", "mpa", "esperanto", "mar345", "xsd"] }
-dioptrin = { git = "https://github.com/CPrescher/Dioptrin", rev = "bc27eb5bfae376f83ecc99befc7b578624a7dfbd", optional = true, default-features = false }
+dioptrin-io = { git = "https://github.com/CPrescher/dioptrin-io", rev = "344011962df431a6a47e3a3fb727aa9c65df3131", features = ["wrappers", "hdf5", "containers", "bruker", "oxford", "raxis", "fixed", "fit2d", "kcd", "mpa", "esperanto", "mar345", "xsd"] }
+dioptrin = { git = "https://github.com/CPrescher/Dioptrin", rev = "5e245da8c3df4735f2d0d28933c22fe16ac70c1f", optional = true, default-features = false }
 half = "2"
-serde = { version = "1", features = ["derive"] }
+serde = { version = "1", features = ["derive", "rc"] }
 # Preserve the established ordering of plugin controls in embedded schemas.
 serde_json = { version = "1", features = ["preserve_order"] }
 sha2 = "0.10"
 tempfile = "3"
-
-[dev-dependencies]
+phasesmith-core = { git = "https://github.com/CPrescher/PhaseSmith", rev = "f0925305c70fc8ea5965d14f03aa51b8399621d8" }
+phasesmith-crystallography = { git = "https://github.com/CPrescher/PhaseSmith", rev = "f0925305c70fc8ea5965d14f03aa51b8399621d8" }
+phasesmith-io = { git = "https://github.com/CPrescher/PhaseSmith", rev = "f0925305c70fc8ea5965d14f03aa51b8399621d8" }
+phasesmith-model = { git = "https://github.com/CPrescher/PhaseSmith", rev = "f0925305c70fc8ea5965d14f03aa51b8399621d8" }
+peritheos = { git = "https://github.com/CPrescher/peritheos", rev = "3c79b1aedf28c348a49cc22d9f24d92895546283" }
+nalgebra = "0.35"
 tiff = "0.8"
+base64 = "0.22"
+png = "0.18"
+csv = "1"
 hdf5 = { package = "hdf5-metno", version = "=0.15.1", features = ["static", "zlib", "lzf"] }
 
 [[bin]]
@@ -35,4 +42,22 @@ path = "src/main.rs"
 # Keep the real-image native algorithms practical in the development preview.
 # This changes optimization only, not float arithmetic policy or CPU target.
 [profile.dev.package.dioptrin]
+opt-level = 2
+
+[profile.dev.package.dioptas-backend]
+opt-level = 2
+
+[profile.dev.package.dioptrin-io]
+opt-level = 2
+
+[profile.dev.package.phasesmith-core]
+opt-level = 2
+
+[profile.dev.package.phasesmith-crystallography]
+opt-level = 2
+
+[profile.dev.package.peritheos]
+opt-level = 2
+
+[profile.dev.package.sha2]
 opt-level = 2

@@ -199,8 +199,8 @@ fn publish(
 impl Session {
     pub(super) fn seeded_peaks(&self, seed: [f64; 2]) -> Result<Vec<[f64; 2]>, String> {
         let image = self.image.as_ref().ok_or("Open a calibrant image first.")?;
-        let clean: Vec<_> = image
-            .values
+        let clean: Vec<_> = self
+            .scientific_values()
             .iter()
             .enumerate()
             .map(|(i, &v)| {
@@ -331,18 +331,28 @@ impl Session {
                 );
                 publish(&candidate, 0, total, "Preparing peak search", Some(1));
                 let mut plugins = self.plugins.clone();
+                let mut processing = self.processing.clone();
+                let mut data = self.scientific_values();
+                let mut data_generation = self.scientific_generation;
                 let mut mask = Vec::new();
                 let mut candidates = Vec::new();
                 for ring in 1..=total {
                     control.check()?;
+                    let current =
+                        processing.values(image, self.image_generation, &candidate.geometry)?;
+                    let changed = !Arc::ptr_eq(&current, &data);
+                    if changed {
+                        data_generation += 1;
+                        data = current;
+                    }
                     // Spot Mask follows the detached candidate geometry. Its
                     // cache and newly excluded peaks must never leak into the
                     // durable model if this complete fit is cancelled.
                     let current_mask = if self.settings.use_mask {
                         plugins.refresh(
-                            &image.values,
+                            &data,
                             shape,
-                            self.image_generation,
+                            data_generation,
                             Some(&candidate.geometry),
                             &self.mask,
                             &control,
@@ -350,10 +360,9 @@ impl Session {
                     } else {
                         vec![0; image.values.len()]
                     };
-                    if ring == 1 || current_mask != mask {
+                    if ring == 1 || current_mask != mask || changed {
                         mask = current_mask;
-                        let clean: Vec<_> = image
-                            .values
+                        let clean: Vec<_> = data
                             .iter()
                             .enumerate()
                             .map(|(i, &v)| {
@@ -382,7 +391,7 @@ impl Session {
                         .ok_or("Ring unavailable at fitted wavelength.")?
                         .1;
                     let points = crate::peak_search::on_ring(
-                        &image.values,
+                        &data,
                         &field,
                         &mask,
                         shape,

@@ -71,7 +71,7 @@ fn original_samples_stay_in_stored_order_and_scientific_rows_flip_once() {
     let (_temp, path) = small_image();
     let image = Image::open(&path, &json!({})).unwrap();
     assert_eq!(
-        image.values,
+        *image.values,
         vec![8., 9., 10., 11., 4., 5., 6., 7., 0., 1., 2., 3.]
     );
     assert_eq!(
@@ -322,7 +322,7 @@ fn unsupported_geometry_and_options_fail_without_publishing_partial_changes() {
         session
             .invoke(&request(
                 "integration_settings",
-                json!({"bins":123,"solid_angle":false})
+                json!({"bins":123,"unsupported_option":false})
             ))
             .result["ok"],
         false

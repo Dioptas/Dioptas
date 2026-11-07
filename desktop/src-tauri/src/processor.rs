@@ -20,6 +20,26 @@ pub struct Packet {
 }
 
 impl Packet {
+    pub fn result_value(&self) -> Result<Value, String> {
+        let length = u32::from_le_bytes(
+            self.bytes
+                .get(..4)
+                .ok_or("Truncated processing header")?
+                .try_into()
+                .unwrap(),
+        ) as usize;
+        let header: Value = serde_json::from_slice(
+            self.bytes
+                .get(4..4 + length)
+                .ok_or("Truncated processing header")?,
+        )
+        .map_err(|e| e.to_string())?;
+        header
+            .get("result")
+            .cloned()
+            .ok_or_else(|| "Missing processing result".into())
+    }
+
     pub fn metadata(result: Value) -> Self {
         let header = json!({"result": result, "buffers": []})
             .to_string()
@@ -63,7 +83,9 @@ impl Backend {
 }
 
 // The child is local and trusted, but reject broken framing before allocating.
-const MAX_HEADER: usize = 16 * 1024 * 1024;
+// Map retains the established numeric indices/values contract for up to four
+// million cells. Detector and series rasters remain separate binary buffers.
+const MAX_HEADER: usize = 256 * 1024 * 1024;
 const MAX_BUFFERS: usize = 1024 * 1024 * 1024;
 fn read_packet(reader: &mut impl Read) -> Result<(u64, Packet), String> {
     let mut prefix = [0u8; 4];

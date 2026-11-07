@@ -1,5 +1,7 @@
 # Integration Phase controls
 
+The opt-in Rust implementation has a separate [native qualification ledger](NATIVE_INTEGRATION_PARITY.md), including the integration, phase and Batch/Map migration. The Python/Qt behavior and historical checks below remain reference evidence.
+
 Compared on 2026-11-02 against the actual Qt PhaseWidget, PhaseController,
 PhaseEditorWidget, PhaseEditorController, EosDatabaseController,
 PhaseInPatternController, and PhaseInCakeController. The six principal widget/

@@ -1,5 +1,7 @@
 # Map workflow parity (2026-11-04)
 
+The opt-in Rust implementation has a separate [native qualification ledger](NATIVE_INTEGRATION_PARITY.md), including the integration, phase and Batch/Map migration. The Python/Qt behavior and historical checks below remain reference evidence.
+
 The GUI follow-up was developed in the assigned `codex/desktop-map` worktree
 from `codex/react-desktop` at `dd9795d3`. Integration into the primary
 `codex/react-desktop` checkout on 2026-11-04 includes its subsequent phase-editor

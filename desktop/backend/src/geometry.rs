@@ -30,6 +30,26 @@ impl Default for Geometry {
     }
 }
 impl Geometry {
+    /// Same Fit2D beam-center based automatic bin count as Configuration.
+    pub fn automatic_bins(&self, shape: [usize; 2]) -> usize {
+        let center_x = (self.poni2 - self.dist * self.rot1.tan()) / self.pixel2;
+        let center_y = (self.poni1
+            + self.dist * self.rot2.sin() / (self.rot1.cos() * self.rot2.cos()))
+            / self.pixel1;
+        // Preserve the existing model's shape/center convention exactly.
+        let [width, height] = shape.map(|v| v as f64);
+        let a = if center_x > 0.0 && center_x < width {
+            (width - center_x).abs().max(center_x)
+        } else {
+            width
+        };
+        let b = if center_y > 0.0 && center_y < height {
+            (height - center_y).abs().max(center_y)
+        } else {
+            height
+        };
+        ((a.hypot(b) * 2.0) as usize).clamp(1, 100000)
+    }
     #[cfg(feature = "dioptrin")]
     pub fn native_poni(&self) -> dioptrin::poni::Poni {
         dioptrin::poni::Poni {

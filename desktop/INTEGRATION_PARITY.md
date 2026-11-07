@@ -1,5 +1,7 @@
 # Integration workflow comparison
 
+The opt-in Rust implementation has a separate [native qualification ledger](NATIVE_INTEGRATION_PARITY.md), including the integration, phase and Batch/Map migration. The Python/Qt behavior and historical checks below remain reference evidence.
+
 Implemented on `codex/desktop-integration` from checkpoint `4ef2ca3d`, using
 current read-only Qt source at `/Users/clemens/Programming/Dioptas` and the
 corresponding scientific models in this checkout. Comparison date: 2026-11-01.

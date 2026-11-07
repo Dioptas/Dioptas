@@ -8,18 +8,37 @@ use crate::{
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+#[path = "batch_workflow.rs"]
+mod batch_workflow;
 #[path = "calibration.rs"]
 mod calibration;
+#[path = "checkpoint.rs"]
+mod checkpoint;
+#[path = "file_workflow.rs"]
+mod file_workflow;
+#[path = "image_batch.rs"]
+mod image_batch;
+#[path = "integration_history.rs"]
+mod integration_history;
+#[path = "linked.rs"]
+mod linked;
+#[path = "map_workflow.rs"]
+mod map_workflow;
+#[path = "mask_io.rs"]
+mod mask_io;
+#[path = "phase_workflow.rs"]
+mod phase_workflow;
 use crate::mask_plugins::{Plugins, State as PluginState};
 use calibration::{Calibration, History, Workflow};
 #[cfg(feature = "dioptrin")]
 use std::time::Instant;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 struct Settings {
     geometry: Geometry,
     calibrated: bool,
     calibration_name: Option<String>,
+    calibration_path: Option<String>,
     unit: String,
     bins: usize,
     cake_bins: usize,
@@ -27,6 +46,17 @@ struct Settings {
     transparent_mask: bool,
     polarization: f64,
     errors: bool,
+    automatic_binning: bool,
+    supersampling: usize,
+    solid_angle: bool,
+    azimuth: Option<[f64; 2]>,
+    cake_azimuth: Option<[f64; 2]>,
+    trim_zeros: bool,
+    spread: bool,
+    csc: bool,
+    roi: Option<[usize; 4]>,
+    auto_save: bool,
+    formats: Vec<String>,
 }
 impl Default for Settings {
     fn default() -> Self {
@@ -34,6 +64,7 @@ impl Default for Settings {
             geometry: Geometry::default(),
             calibrated: false,
             calibration_name: None,
+            calibration_path: None,
             unit: "2th_deg".into(),
             bins: 1000,
             cake_bins: 360,
@@ -41,6 +72,17 @@ impl Default for Settings {
             transparent_mask: false,
             polarization: 0.99,
             errors: false,
+            automatic_binning: false,
+            supersampling: 1,
+            solid_angle: true,
+            azimuth: None,
+            cake_azimuth: None,
+            trim_zeros: false,
+            spread: false,
+            csc: true,
+            roi: None,
+            auto_save: false,
+            formats: vec![".xy".into()],
         }
     }
 }
@@ -51,8 +93,22 @@ pub struct Session {
     settings: Settings,
     image: Option<Image>,
     image_raster: Option<Raster>,
-    mask: Vec<u8>,
-    effective_mask: Vec<u8>,
+    processed_raster: Option<Raster>,
+    processed_values: Option<Arc<Vec<f64>>>,
+    scientific_generation: u64,
+    processing: crate::processing::Processing,
+    patterns: crate::pattern::Patterns,
+    phases: crate::phases::Phases,
+    batch: Option<crate::series::Series>,
+    scan: Option<crate::scan::Scan>,
+    image_batch_mode: String,
+    actions: crate::custom_actions::Actions,
+    files: file_workflow::Files,
+    integration_history: integration_history::IntegrationHistory,
+    inspection: Option<linked::Inspection>,
+    mask: Arc<Vec<u8>>,
+    mask_filename: Option<String>,
+    effective_mask: Arc<Vec<u8>>,
     plugins: Plugins,
     image_generation: u64,
     mask_raster: Option<Raster>,
@@ -60,9 +116,9 @@ pub struct Session {
     redo: Vec<MaskSnapshot>,
     revision: u64,
     elapsed_ms: Option<f64>,
-    pattern: Option<Value>,
+    pattern: Option<Arc<Value>>,
     cake: Option<Raster>,
-    cake_values: Option<Vec<f64>>,
+    cake_values: Option<Arc<Vec<f64>>>,
     calibration: Calibration,
     workflow: Workflow,
     calibration_history: History,
@@ -71,10 +127,14 @@ pub struct Session {
     ring_cache: std::cell::RefCell<Option<calibration::RingCache>>,
     #[cfg(feature = "dioptrin")]
     sigma: Option<Vec<f64>>,
+    #[cfg(feature = "dioptrin")]
+    engine: crate::integration::Engine,
+    #[cfg(feature = "dioptrin")]
+    prepared: Option<crate::integration::Prepared>,
 }
 #[derive(Clone, PartialEq)]
 struct MaskSnapshot {
-    user: Vec<u8>,
+    user: Arc<Vec<u8>>,
     plugins: Vec<PluginState>,
 }
 impl Session {
@@ -84,8 +144,22 @@ impl Session {
             settings: Settings::default(),
             image: None,
             image_raster: None,
-            mask: vec![],
-            effective_mask: vec![],
+            processed_raster: None,
+            processed_values: None,
+            scientific_generation: 0,
+            processing: Default::default(),
+            patterns: Default::default(),
+            phases: Default::default(),
+            batch: None,
+            scan: None,
+            image_batch_mode: "integrate".into(),
+            actions: Default::default(),
+            files: Default::default(),
+            integration_history: Default::default(),
+            inspection: None,
+            mask: Arc::new(vec![]),
+            mask_filename: None,
+            effective_mask: Arc::new(vec![]),
             plugins: Plugins::default(),
             image_generation: 0,
             mask_raster: None,
@@ -104,6 +178,10 @@ impl Session {
             ring_cache: Default::default(),
             #[cfg(feature = "dioptrin")]
             sigma: None,
+            #[cfg(feature = "dioptrin")]
+            engine: Default::default(),
+            #[cfg(feature = "dioptrin")]
+            prepared: None,
         }
     }
     pub fn invoke(&mut self, request: &Request) -> Reply {
@@ -114,29 +192,134 @@ impl Session {
         if let Err(error) = request.validate() {
             return Reply::error(error);
         }
+        let checkpoint = (!matches!(
+            request.action.as_str(),
+            "state"
+                | "pixel"
+                | "image_levels"
+                | "__host__"
+                | "integration_diagnostics"
+                | "integration_phase_guides"
+        ))
+        .then(|| self.checkpoint());
+        let integration_before =
+            integration_history::is_edit(&request.action).then(|| self.integration_snapshot());
+        if matches!(
+            request.action.as_str(),
+            "undo_calibration" | "redo_calibration"
+        ) {
+            self.integration_history.break_group();
+        }
         let before = matches!(
             request.action.as_str(),
             "manual_geometry" | "open_calibration"
         )
         .then(|| self.calibration_snapshot());
+        let calibration_head = self.calibration_history.undo.last().cloned();
         match self.dispatch(&request.action, &request.payload) {
             Ok(mut reply) => {
                 if let Some(before) = before {
                     let after = self.calibration_snapshot();
                     self.calibration_history
-                        .record(&request.action, before, after);
+                        .record(&request.action, before, after, self.revision);
                     if reply.result["state"].is_object() {
                         for (key, value) in self.calibration_payload().as_object().unwrap() {
                             reply.result["state"]["calibration"][key] = value.clone();
                         }
                     }
                 }
+                if let Some(before) = integration_before {
+                    let after = self.integration_snapshot();
+                    let cal_seq = self.calibration_history.undo.last().map_or(0, |e| e.3);
+                    let changed = self.integration_history.record(
+                        before,
+                        after,
+                        &request.action,
+                        &request.payload,
+                        self.revision,
+                        cal_seq,
+                    );
+                    if changed {
+                        self.calibration_history.redo.clear();
+                    }
+                } else if !matches!(
+                    request.action.as_str(),
+                    "undo_calibration" | "redo_calibration"
+                ) && self.calibration_history.undo.last().is_some_and(|entry| {
+                    calibration_head
+                        .as_ref()
+                        .is_none_or(|previous| !Arc::ptr_eq(entry, previous))
+                }) {
+                    self.integration_history.clear_redo();
+                }
+                if reply.result["state"].is_object() {
+                    reply.result["state"]["calibration"]["canUndo"] = json!(
+                        !self.calibration_history.undo.is_empty()
+                            || self.integration_history.can_undo()
+                    );
+                    reply.result["state"]["calibration"]["canRedo"] = json!(
+                        !self.calibration_history.redo.is_empty()
+                            || self.integration_history.can_redo()
+                    );
+                }
                 reply
             }
-            Err(error) => Reply::error(error),
+            Err(error) => {
+                if let Some(checkpoint) = checkpoint {
+                    self.restore_checkpoint(checkpoint);
+                }
+                if error.starts_with("Operation cancelled")
+                    && (request.action.starts_with("batch_")
+                        || request.action.starts_with("map_")
+                        || request.action == "integration_batch"
+                        || (request.action == "open_image"
+                            && request.payload["paths"]
+                                .as_array()
+                                .is_some_and(|p| p.len() > 1)))
+                {
+                    Reply::metadata(json!({"ok":true,"cancelled":true}))
+                } else {
+                    Reply::error(error)
+                }
+            }
         }
     }
     fn dispatch(&mut self, action: &str, args: &Value) -> Result<Reply, String> {
+        if action == "mask_file" {
+            return self.mask_file(args);
+        }
+        if action == "custom_command" {
+            let image = self.image.as_ref();
+            let context = json!({"image_path":image.map(|i|&i.path),"image_name":image.and_then(|i|i.path.file_name()).map(|n|n.to_string_lossy()),"image_directory":image.and_then(|i|i.path.parent()),"frame_index":image.map(|i|i.frame),"frame_number":image.map(|i|i.frame+1),"dataset":image.and_then(|i|i.options.get("dataset")),"calibration_path":self.settings.calibration_path,"project_path":null,"wavelength_angstrom":if self.settings.calibrated{Some(self.settings.geometry.wavelength*1e10)}else{None}});
+            return Ok(Reply::metadata(self.actions.invoke(args, context)?));
+        }
+        if action == "open_image" && args.get("paths").is_some() {
+            let paths = batch_workflow::source_paths(args)?;
+            if paths.len() > 1 {
+                return self.image_batch(paths, args);
+            }
+            let mut single = args.clone();
+            for key in ["paths", "multiple", "batch_mode", "output_directory"] {
+                single.as_object_mut().unwrap().remove(key);
+            }
+            single["path"] = json!(paths[0]);
+            return self.dispatch("open_image", &single);
+        }
+        if let Some(reply) = self.integration_history_command(action)? {
+            return Ok(reply);
+        }
+        if let Some(reply) = self.file_command(action, args)? {
+            return Ok(reply);
+        }
+        if let Some(reply) = self.phase_command(action, args)? {
+            return Ok(reply);
+        }
+        if let Some(reply) = self.batch_command(action, args)? {
+            return Ok(reply);
+        }
+        if let Some(reply) = self.map_command(action, args)? {
+            return Ok(reply);
+        }
         if calibration::is_command(action) {
             let defer = args
                 .get("defer_integration")
@@ -174,6 +357,8 @@ impl Session {
                 self.calibration.confirmed = true;
                 self.workflow = Workflow::default();
                 self.plugins = Plugins::default();
+                self.processing = Default::default();
+                self.patterns = Default::default();
                 self.calibration_history = History::default();
                 self.undo.clear();
                 self.redo.clear();
@@ -191,10 +376,50 @@ impl Session {
                         "follow_external_links",
                         "cbf_dialect",
                         "defer_integration",
+                        "directory",
+                        "multiple",
+                        "batch_mode",
+                        "output_directory",
                     ],
                 )?;
-                let image = Image::open(path(args)?, args)?;
+                let file = path(args)?;
+                let file = if !file.is_absolute() {
+                    args["directory"]
+                        .as_str()
+                        .map_or_else(|| file.to_path_buf(), |d| Path::new(d).join(file))
+                } else {
+                    file.to_path_buf()
+                };
+                let mut image = Image::prepare(&file, args)?;
+                #[cfg(feature = "dioptrin")]
+                let prepared = if self.settings.calibrated && !defer && !self.processing.active() {
+                    let options = self.integration_options();
+                    let load_mask = image
+                        .combined_source(image.frame)?
+                        .map(|source| self.integration_mask(source.shape))
+                        .unwrap_or_default();
+                    self.engine.load_combined(
+                        &mut image,
+                        args.get("frame").and_then(Value::as_u64).unwrap_or(0) as usize,
+                        &self.settings.geometry,
+                        &load_mask,
+                        &options,
+                        &self.control,
+                    )?
+                } else {
+                    None
+                };
+                #[cfg(feature = "dioptrin")]
+                if prepared.is_none() {
+                    image.read(image.frame)?;
+                }
+                #[cfg(not(feature = "dioptrin"))]
+                image.read(image.frame)?;
                 self.publish_image(image);
+                #[cfg(feature = "dioptrin")]
+                {
+                    self.prepared = prepared;
+                }
                 self.calculate(defer)?;
             }
             "next_image" => {
@@ -213,6 +438,14 @@ impl Session {
                     })
                     .transpose()?
                     .unwrap_or(1);
+                #[cfg(feature = "dioptrin")]
+                let options = self.integration_options();
+                #[cfg(feature = "dioptrin")]
+                let load_mask = self
+                    .image
+                    .as_ref()
+                    .map(|i| self.integration_mask(i.shape))
+                    .unwrap_or_default();
                 let image = self.image.as_mut().ok_or("Open an image first.")?;
                 let index = (image.frame as i64)
                     .checked_add(
@@ -222,13 +455,41 @@ impl Session {
                     )
                     .ok_or("Frame step exceeds range.")?;
                 if index < 0 || index >= image.frames as i64 {
-                    return Err("No further frame in this source. Neighboring-file navigation is not migrated yet.".into());
+                    let target = file_workflow::neighbor(
+                        &image.path,
+                        &self.files.image_mode,
+                        direction.signum() * step as i64,
+                    )?;
+                    let mut options = image.options.clone();
+                    options["path"] = json!(target);
+                    options["defer_integration"] = json!(defer);
+                    return self.dispatch("open_image", &options);
                 }
                 let previous_shape = image.shape;
+                #[cfg(feature = "dioptrin")]
+                {
+                    self.prepared =
+                        if self.settings.calibrated && !defer && !self.processing.active() {
+                            self.engine.load_combined(
+                                image,
+                                index as usize,
+                                &self.settings.geometry,
+                                &load_mask,
+                                &options,
+                                &self.control,
+                            )?
+                        } else {
+                            None
+                        };
+                    if self.prepared.is_none() {
+                        image.read(index as usize)?;
+                    }
+                }
+                #[cfg(not(feature = "dioptrin"))]
                 image.read(index as usize)?;
                 self.image_generation += 1;
                 if image.shape != previous_shape {
-                    self.mask = vec![0; image.values.len()];
+                    self.mask = Arc::new(vec![0; image.values.len()]);
                     self.undo.clear();
                     self.redo.clear();
                     self.mask_raster = Some(Raster::mask(&self.mask, image.shape));
@@ -244,6 +505,7 @@ impl Session {
                 let file = path(args)?;
                 let candidate = Geometry::load(file)?;
                 self.settings.geometry = candidate;
+                self.settings.calibration_path = Some(file.to_string_lossy().into_owned());
                 self.settings.calibrated = true;
                 self.settings.calibration_name = Some(
                     file.file_name()
@@ -264,6 +526,7 @@ impl Session {
                 self.settings.polarization = polarization;
                 self.settings.calibrated = true;
                 self.settings.calibration_name = Some("manual".into());
+                self.settings.calibration_path = None;
                 self.loaded_geometry("manual");
                 self.calculate(defer)?;
             }
@@ -280,6 +543,13 @@ impl Session {
                 let file = path(args)?;
                 atomic_write(file, self.settings.geometry.save_text().as_bytes())?;
                 self.calibration.saved = true;
+                self.settings.calibration_path = Some(file.to_string_lossy().into_owned());
+                self.settings.calibration_name = Some(
+                    file.file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .into_owned(),
+                );
                 let mut reply = self.snapshot(false);
                 reply.result["savedPath"] = json!(file);
                 return Ok(reply);
@@ -294,18 +564,50 @@ impl Session {
                                 _ => return Err("Unsupported integration unit.".into()),
                             }
                         }
-                        "bins" => candidate.bins = integer(value, "Radial bins", 1, 10000)?,
-                        "cake_bins" => candidate.cake_bins = integer(value, "Cake bins", 1, 1440)?,
+                        "bins" => {
+                            candidate.automatic_binning = value.is_null();
+                            if !value.is_null() {
+                                candidate.bins = integer(value, "Radial bins", 1, 100000)?;
+                            }
+                        }
+                        "cake_bins" => candidate.cake_bins = integer(value, "Cake bins", 1, 10000)?,
                         "use_mask" => candidate.use_mask = boolean(value, key)?,
                         "transparent_mask" => candidate.transparent_mask = boolean(value, key)?,
                         "polarization" => {
                             candidate.polarization = finite(value, "Polarization", -1.0, 1.0)?
                         }
                         "poisson_errors" => candidate.errors = boolean(value, key)?,
-                        "solid_angle" if value == true => {}
-                        "supersampling" if value.as_u64() == Some(1) => {}
-                        "trim_zeros" | "auto_save" if value == false => {}
-                        "azimuth_range" | "cake_azimuth_range" if value.is_null() => {}
+                        "solid_angle" => candidate.solid_angle = boolean(value, key)?,
+                        "supersampling" => candidate.supersampling = integer(value, key, 1, 20)?,
+                        "trim_zeros" => candidate.trim_zeros = boolean(value, key)?,
+                        "auto_save" => candidate.auto_save = boolean(value, key)?,
+                        "azimuthal_std" => candidate.spread = boolean(value, key)?,
+                        "sparse_layout" => {
+                            candidate.csc = match value.as_str() {
+                                Some("csc") => true,
+                                Some("csr") => false,
+                                _ => return Err("Choose CSC or CSR sparse layout.".into()),
+                            }
+                        }
+                        "azimuth_range" => candidate.azimuth = optional_azimuth(value)?,
+                        "cake_azimuth_range" => candidate.cake_azimuth = optional_azimuth(value)?,
+                        "formats" => {
+                            let entries = value
+                                .as_array()
+                                .filter(|a| !a.is_empty())
+                                .ok_or("Choose at least one pattern format.")?;
+                            candidate.formats = entries
+                                .iter()
+                                .map(|v| {
+                                    v.as_str()
+                                        .filter(|s| {
+                                            [".xy", ".xye", ".chi", ".dat", ".fxye"].contains(s)
+                                        })
+                                        .map(str::to_string)
+                                        .ok_or("Choose a supported pattern format.")
+                                })
+                                .collect::<Result<_, _>>()?;
+                        }
                         "defer_integration" => {
                             boolean(value, key)?;
                         }
@@ -323,6 +625,18 @@ impl Session {
                 {
                     return Err("Cake output exceeds four million bins.".into());
                 }
+                if !candidate.errors
+                    && candidate
+                        .formats
+                        .iter()
+                        .any(|v| v == ".xye" || v == ".fxye")
+                {
+                    return Err("Enable Calculate Poisson errors for XYE/FXYE output.".into());
+                }
+                if candidate.unit != self.settings.unit {
+                    self.patterns
+                        .convert_unit(&candidate.unit, candidate.geometry.wavelength)?;
+                }
                 self.settings = candidate;
                 self.calculate(defer)?;
             }
@@ -334,6 +648,138 @@ impl Session {
                     return Err("This native processor has no numerical engine. Build with --features dioptrin; Python will not be started.".into());
                 }
                 self.calculate(false)?;
+            }
+            "integration_roi" => {
+                check_keys(args, &["limits", "defer_integration"])?;
+                self.require_image()?;
+                self.settings.roi = if args["limits"].is_null() {
+                    None
+                } else {
+                    let a = args["limits"]
+                        .as_array()
+                        .filter(|a| a.len() == 4)
+                        .ok_or("ROI needs row minimum/maximum and column minimum/maximum.")?;
+                    let shape = self.image.as_ref().unwrap().shape;
+                    let mut r = [0; 4];
+                    for i in 0..4 {
+                        r[i] = integer(&a[i], "ROI bound", 0, shape[if i < 2 { 0 } else { 1 }])?;
+                    }
+                    if r[0] >= r[1] || r[2] >= r[3] {
+                        return Err("ROI minimum must be below maximum.".into());
+                    }
+                    Some(r)
+                };
+                self.calculate(defer)?;
+            }
+            "integration_image_background"
+            | "integration_flat_field"
+            | "integration_correction" => {
+                self.require_image()?;
+                let shape = self.image.as_ref().unwrap().shape;
+                match action {
+                    "integration_image_background" => {
+                        check_keys(
+                            args,
+                            &["path", "reset", "scale", "offset", "defer_integration"],
+                        )?;
+                        self.processing.background(args, shape)?;
+                    }
+                    "integration_flat_field" => {
+                        check_keys(args, &["path", "enabled", "reset", "defer_integration"])?;
+                        self.processing.flat_field(args, shape)?;
+                    }
+                    _ => {
+                        check_keys(
+                            args,
+                            &["kind", "enabled", "parameters", "defer_integration"],
+                        )?;
+                        self.processing.correction(args, self.settings.calibrated)?;
+                    }
+                }
+                self.calculate(defer)?;
+            }
+            "integration_background" => {
+                check_keys(
+                    args,
+                    &["enabled", "smoothing", "iterations", "order", "range"],
+                )?;
+                self.patterns.configure_background(args)?;
+                self.rebuild_pattern()?;
+            }
+            "validation_position" => return self.validation_position(args),
+            "integration_clear_background" => {
+                self.patterns.clear_background();
+                self.rebuild_pattern()?;
+            }
+            "integration_overlay" => {
+                self.patterns.edit_overlay(args, self.pattern.as_deref())?;
+                self.rebuild_pattern()?;
+                self.revision += 1;
+                let mut reply = self.snapshot(false);
+                reply.buffers.clear();
+                for key in [
+                    "image", "rawImage", "mask", "cake", "rings", "linked", "batch", "map",
+                ] {
+                    reply.result.as_object_mut().unwrap().remove(key);
+                }
+                reply.result["patternOnly"] = json!(true);
+                return Ok(reply);
+            }
+            "integration_open_pattern" => {
+                check_keys(args, &["path", "direction", "step", "directory"])?;
+                let mut file = if let Some(direction) = args.get("direction") {
+                    let direction = direction
+                        .as_i64()
+                        .filter(|d| *d == 1 || *d == -1)
+                        .ok_or("Pattern direction must be -1 or 1.")?;
+                    let step = args
+                        .get("step")
+                        .map(|v| integer(v, "Pattern file step", 1, 100000))
+                        .transpose()?
+                        .unwrap_or(1);
+                    if !self.patterns.imported {
+                        return Err("Load a pattern file before browsing files.".into());
+                    }
+                    file_workflow::neighbor(
+                        Path::new(
+                            self.patterns
+                                .path
+                                .as_ref()
+                                .ok_or("Load a pattern file first.")?,
+                        ),
+                        &self.patterns.file_mode,
+                        direction * step as i64,
+                    )?
+                } else {
+                    path(args)?.to_path_buf()
+                };
+                if !file.is_absolute()
+                    && let Some(dir) = args.get("directory").and_then(Value::as_str)
+                {
+                    file = Path::new(dir).join(file);
+                }
+                let curve = crate::pattern::Curve::read(&file)?;
+                let name = file
+                    .file_stem()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .into_owned();
+                self.patterns.ingest(
+                    curve,
+                    &self.settings.unit,
+                    &name,
+                    Some(file.to_string_lossy().into_owned()),
+                    true,
+                );
+                self.rebuild_pattern()?;
+            }
+            "integration_pattern_navigation" => {
+                check_keys(args, &["mode"])?;
+                self.patterns.file_mode = args["mode"]
+                    .as_str()
+                    .filter(|s| ["number", "time"].contains(s))
+                    .ok_or("Choose number or time file order.")?
+                    .into();
             }
             "image_levels" => {
                 check_keys(args, &["source", "mode", "percentile", "filter_gaps"])?;
@@ -365,7 +811,18 @@ impl Session {
                                 json!({"ok":true,"display":"detector","levels":null}),
                             ));
                         };
-                        (image.values.as_slice(), image.shape, "detector")
+                        (
+                            if source == "raw_detector" {
+                                image.values.as_slice()
+                            } else {
+                                self.processed_values
+                                    .as_ref()
+                                    .unwrap_or(&image.values)
+                                    .as_slice()
+                            },
+                            image.shape,
+                            "detector",
+                        )
                     }
                     "cake" => {
                         let Some(data) = self.cake_values.as_ref() else {
@@ -375,7 +832,14 @@ impl Session {
                         };
                         (
                             data.as_slice(),
-                            [self.settings.cake_bins, self.settings.bins],
+                            [
+                                self.settings.cake_bins,
+                                if self.settings.automatic_binning {
+                                    self.automatic_bins()
+                                } else {
+                                    self.settings.bins
+                                },
+                            ],
                             "cake",
                         )
                     }
@@ -394,7 +858,12 @@ impl Session {
                 if x >= image.shape[1] || y >= image.shape[0] {
                     return Err("Pixel is outside the detector.".into());
                 }
-                let pixel = json!({"x":x,"y":y,"value":image.values[y*image.shape[1]+x]});
+                let data = if args["source"] == "raw_detector" {
+                    image.values.clone()
+                } else {
+                    self.scientific_values()
+                };
+                let pixel = json!({"x":x,"y":y,"value":data[y*image.shape[1]+x]});
                 #[cfg(feature = "dioptrin")]
                 let pixel = {
                     let mut pixel = pixel;
@@ -460,7 +929,7 @@ impl Session {
                     }
                     parsed.push((x, y));
                 }
-                let mut mask = self.mask.clone();
+                let mut mask = self.mask.as_ref().clone();
                 for (x, y) in parsed {
                     for row in ((y - radius).max(0.0) as usize)
                         ..((y + radius + 1.0).ceil() as usize).min(image.shape[0])
@@ -502,39 +971,14 @@ impl Session {
             "mask_plugin" => {
                 return self.mask_plugin(args, defer);
             }
-            "export_pattern" | "integration_save_pattern" => {
-                check_keys(args, &["path"])?;
-                let file = path(args)?;
-                if file.extension().and_then(|s| s.to_str()) != Some("xy") {
-                    return Err("Only XY export is migrated so far; choose a .xy file.".into());
-                }
-                let pattern = self
-                    .pattern
-                    .as_ref()
-                    .ok_or("Integrate an image before saving a pattern.")?;
-                let mut text = format!(
-                    "# Dioptas native backend; radial unit: {}\n",
-                    self.settings.unit
-                );
-                for (x, y) in pattern["x"]
-                    .as_array()
-                    .unwrap()
-                    .iter()
-                    .zip(pattern["y"].as_array().unwrap())
-                {
-                    let x = x
-                        .as_f64()
-                        .ok_or("Pattern contains a nonfinite coordinate.")?;
-                    let y = y
-                        .as_f64()
-                        .ok_or("Pattern contains a nonfinite intensity.")?;
-                    text.push_str(&format!("{x:.17e} {y:.17e}\n"));
-                }
-                atomic_write(file, text.as_bytes())?;
-                return Ok(Reply::metadata(json!({"ok": true, "savedPath": file})));
-            }
             "integration_phase_guides" => {
-                return Ok(Reply::metadata(json!({"ok": true, "phaseGuides": []})));
+                return self.phase_guides();
+            }
+            #[cfg(feature = "dioptrin")]
+            "integration_diagnostics" => {
+                return Ok(Reply::metadata(
+                    json!({"ok":true,"integrationDiagnostics":self.engine.diagnostics()}),
+                ));
             }
             "custom_command" if args["operation"] == "list" => {
                 return Ok(Reply::metadata(
@@ -558,7 +1002,21 @@ impl Session {
         }
     }
     fn publish_image(&mut self, image: Image) {
+        self.inspection = None;
+        self.integration_history = Default::default();
+        self.files.image_directory = image
+            .path
+            .parent()
+            .unwrap_or(Path::new("."))
+            .to_string_lossy()
+            .into_owned();
+        #[cfg(feature = "dioptrin")]
+        {
+            self.prepared = None;
+        }
         self.image_generation += 1;
+        self.processed_values = None;
+        self.processed_raster = None;
         self.calibration.picks.clear();
         self.calibration.rms = None;
         self.calibration_history = History::default();
@@ -568,7 +1026,8 @@ impl Session {
             .as_ref()
             .is_none_or(|old| old.shape != image.shape)
         {
-            self.mask = vec![0; image.values.len()];
+            self.settings.roi = None;
+            self.mask = Arc::new(vec![0; image.values.len()]);
             self.undo.clear();
             self.redo.clear();
         }
@@ -583,7 +1042,7 @@ impl Session {
         // Bound history payloads to 128 MiB, including redo. No unbounded list
         // of full-resolution masks is retained.
         let before = self.mask_snapshot();
-        self.mask = mask;
+        self.mask = Arc::new(mask);
         self.record_mask(before);
     }
     fn mask_snapshot(&self) -> MaskSnapshot {
@@ -611,16 +1070,16 @@ impl Session {
             // all enabled plugins have completed successfully.
             let mut plugins = self.plugins.clone();
             let combined = plugins.refresh(
-                &image.values,
+                &self.scientific_values(),
                 image.shape,
-                self.image_generation,
+                self.scientific_generation,
                 self.settings.calibrated.then_some(&self.settings.geometry),
                 &self.mask,
                 control,
             )?;
             self.plugins = plugins;
             self.mask_raster = Some(Raster::mask(&combined, image.shape));
-            self.effective_mask = combined;
+            self.effective_mask = Arc::new(combined);
         }
         Ok(())
     }
@@ -645,12 +1104,12 @@ impl Session {
         let mut plugins = self.plugins.clone();
         let index = plugins.edit(name, args.get("enabled"), args.get("settings"))?;
         let image = self.image.as_ref().unwrap();
-        let mut user = self.mask.clone();
+        let mut user = self.mask.as_ref().clone();
         let control = self.control.clone();
         plugins.refresh(
-            &image.values,
+            &self.scientific_values(),
             image.shape,
-            self.image_generation,
+            self.scientific_generation,
             self.settings.calibrated.then_some(&self.settings.geometry),
             &user,
             &control,
@@ -667,7 +1126,7 @@ impl Session {
         control.check()?;
         let before = self.mask_snapshot();
         let old_plugins = std::mem::replace(&mut self.plugins, plugins);
-        self.mask = user;
+        self.mask = Arc::new(user);
         let old_use = self.settings.use_mask;
         self.settings.use_mask = true;
         let previous = (
@@ -705,12 +1164,23 @@ impl Session {
         Ok(self.snapshot(false))
     }
     fn calculate(&mut self, defer: bool) -> Result<(), String> {
-        self.refresh_masks(&Control::default())?;
+        self.control.check()?;
+        self.prepare_processing()?;
+        self.refresh_masks(&self.control.clone())?;
+        if self.image.is_none() && self.patterns.imported && !defer {
+            return self.rebuild_pattern();
+        }
         self.pattern = None;
         self.cake = None;
         self.cake_values = None;
         self.elapsed_ms = None;
+        #[cfg(feature = "dioptrin")]
+        {
+            self.sigma = None;
+        }
         if defer {
+            self.patterns.raw = None;
+            self.patterns.extracted = None;
             return Ok(());
         }
         #[cfg(feature = "dioptrin")]
@@ -720,39 +1190,133 @@ impl Session {
                 && self.settings.calibrated
             {
                 let start = Instant::now();
-                let clear = vec![];
-                let mask = if self.settings.use_mask {
-                    &self.effective_mask
-                } else {
-                    &clear
-                };
-                let unmasked;
-                let mask = if mask.is_empty() {
-                    unmasked = vec![0; image.values.len()];
-                    &unmasked
-                } else {
-                    mask
-                };
-                let products = crate::integration::integrate(
-                    image,
+                let mask = self.integration_mask(image.shape);
+                let products = self.engine.integrate(
+                    &self.scientific_values(),
+                    image.shape,
                     &self.settings.geometry,
-                    mask,
-                    crate::integration::Options {
-                        bins: self.settings.bins,
-                        cake_bins: self.settings.cake_bins,
-                        unit: &self.settings.unit,
-                        polarization: self.settings.polarization,
-                        errors: self.settings.errors,
+                    &mask,
+                    &self.integration_options(),
+                    self.prepared.take(),
+                )?;
+                self.control.check()?;
+                let mut raw = crate::pattern::Curve::from_json(&products.pattern)?;
+                raw.sigma = products.sigma.as_ref().map(|s| Arc::new(s.clone()));
+                self.patterns.ingest(
+                    raw,
+                    &self.settings.unit,
+                    &if image.frames > 1 {
+                        format!(
+                            "{}_{:05}",
+                            image.path.file_stem().unwrap_or_default().to_string_lossy(),
+                            image.frame
+                        )
+                    } else {
+                        image
+                            .path
+                            .file_stem()
+                            .unwrap_or_default()
+                            .to_string_lossy()
+                            .into_owned()
                     },
+                    None,
+                    false,
                 );
-                self.pattern = Some(products.pattern);
+                self.rebuild_pattern()?;
                 self.cake = Some(products.cake);
-                self.cake_values = Some(products.cake_values);
+                self.cake_values = Some(Arc::new(products.cake_values));
                 self.sigma = products.sigma;
                 self.elapsed_ms = Some(start.elapsed().as_secs_f64() * 1000.0);
+                self.auto_save()?;
             }
         }
         Ok(())
+    }
+    fn rebuild_pattern(&mut self) -> Result<(), String> {
+        let mut pattern = self.patterns.build(&self.control)?;
+        if let Some(p) = &mut pattern {
+            p["phaseLines"] = self.phases.lines(
+                &self.patterns.unit,
+                self.settings.geometry.wavelength * 1e10,
+            );
+        }
+        self.pattern = pattern.map(Arc::new);
+        Ok(())
+    }
+    #[cfg(feature = "dioptrin")]
+    fn integration_options(&self) -> crate::integration::Options {
+        crate::integration::Options {
+            automatic_bins: self.settings.automatic_binning,
+            bins: if self.settings.automatic_binning {
+                self.automatic_bins()
+            } else {
+                self.settings.bins
+            },
+            cake_bins: self.settings.cake_bins,
+            unit: self.settings.unit.clone(),
+            polarization: self.settings.polarization,
+            errors: self.settings.errors,
+            supersampling: self.settings.supersampling,
+            solid_angle: self.settings.solid_angle,
+            azimuth: self.settings.azimuth,
+            cake_azimuth: self.settings.cake_azimuth,
+            trim: self.settings.trim_zeros,
+            spread: self.settings.spread,
+            dynamic_mask: self.settings.use_mask && self.plugins.states.iter().any(|p| p.enabled),
+            csc: self.settings.csc,
+        }
+    }
+    #[cfg(feature = "dioptrin")]
+    fn integration_mask(&self, shape: [usize; 2]) -> Vec<u8> {
+        let mut m = if self.settings.use_mask && self.effective_mask.len() == shape[0] * shape[1] {
+            self.effective_mask.as_ref().clone()
+        } else {
+            vec![0; shape[0] * shape[1]]
+        };
+        if let Some([r0, r1, c0, c1]) = self.settings.roi {
+            for row in 0..shape[0] {
+                for col in 0..shape[1] {
+                    if row < r0 || row >= r1 || col < c0 || col >= c1 {
+                        m[row * shape[1] + col] = 1;
+                    }
+                }
+            }
+        }
+        m
+    }
+    fn scientific_values(&self) -> Arc<Vec<f64>> {
+        self.processed_values
+            .as_ref()
+            .cloned()
+            .or_else(|| self.image.as_ref().map(|i| i.values.clone()))
+            .unwrap_or_else(|| Arc::new(vec![]))
+    }
+    fn prepare_processing(&mut self) -> Result<(), String> {
+        if let Some(image) = &self.image {
+            let values =
+                self.processing
+                    .values(image, self.image_generation, &self.settings.geometry)?;
+            if self
+                .processed_values
+                .as_ref()
+                .is_none_or(|old| !Arc::ptr_eq(old, &values))
+            {
+                self.scientific_generation += 1;
+                self.processed_raster = if Arc::ptr_eq(&values, &image.values) {
+                    self.image_raster.clone()
+                } else {
+                    Some(Raster::image(&values, image.shape))
+                };
+                self.processed_values = Some(values);
+            }
+        }
+        Ok(())
+    }
+    fn automatic_bins(&self) -> usize {
+        let Some(image) = &self.image else {
+            return self.settings.bins;
+        };
+        self.settings.geometry.automatic_bins(image.shape)
     }
     fn snapshot(&self, include_image: bool) -> Reply {
         let s = &self.settings;
@@ -798,15 +1362,15 @@ impl Session {
         let mut result = json!({"ok": true, "backend": {"runtime": "rust", "experimental": true}, "state": {
             "revision": self.revision, "hasImage": self.image.is_some(), "imageName": name, "imagePath": image_path, "shape": shape,
             "calibrationName": s.calibration_name, "calibrated": s.calibrated, "projectName": null, "unit": s.unit,
-            "bins": s.bins, "useMask": s.use_mask, "transparentMask": s.transparent_mask,
+            "bins": if s.automatic_binning {Value::Null}else{json!(s.bins)}, "useMask": s.use_mask, "transparentMask": s.transparent_mask,
             "maskedPixels": self.effective_mask.iter().filter(|&&v| v != 0).count(), "canUndoMask": !self.undo.is_empty(), "canRedoMask": !self.redo.is_empty(),
             "maskDetails": {"mode": true, "filename": null, "plugins": self.plugins.details()}, "exampleAvailable": self.root.join("dioptas/tests/data/CeO2_Pilatus1M.tif").is_file(),
             "elapsedMs": self.elapsed_ms, "integrationDirty": self.image.is_some() && s.calibrated && self.pattern.is_none(), "configurationCount": 1, "configurationIndex": 0,
             "geometry": {"dist":g.dist,"poni1":g.poni1,"poni2":g.poni2,"rot1":g.rot1,"rot2":g.rot2,"rot3":g.rot3,"wavelength":g.wavelength},
             "integration": {
-                "roi":null, "automaticBinning": false, "actualBins": s.bins, "supersampling":1, "azimuthRange":null, "cakeAzimuthRange":null,
-                "cakeBins": s.cake_bins, "solidAngle":true, "polarization":s.polarization, "poissonErrors":s.errors, "trimZeros":false,
-                "autoSave":false, "formats":[".xy"], "outputDirectory":"", "imageBackground":{"filename":null,"scale":1,"offset":0},
+                "roi":s.roi, "automaticBinning": s.automatic_binning, "actualBins": if s.automatic_binning {self.automatic_bins()}else{s.bins}, "supersampling":s.supersampling, "azimuthRange":s.azimuth, "cakeAzimuthRange":s.cake_azimuth,
+                "cakeBins": s.cake_bins, "solidAngle":s.solid_angle, "polarization":s.polarization, "poissonErrors":s.errors, "trimZeros":s.trim_zeros,
+                "autoSave":s.auto_save, "formats":s.formats, "outputDirectory":"", "imageBackground":{"filename":null,"scale":1,"offset":0},
                 "patternBackground":{"enabled":false,"smoothing":1,"iterations":1,"order":1,"range":null,"overlay":false},
                 "flatField":{"filename":null,"enabled":false}, "corrections":serde_json::from_str::<Value>(include_str!("correction_defaults.json")).expect("checked correction schema"), "overlayDirectory":"", "waterfallSeparation":0, "overlays":[], "sameConditions":true,
                 "phaseColdPressure":false, "phases":[], "batchFrames":0, "patternName":name.clone().unwrap_or_default(), "patternPath":"", "patternFileIteration":"number",
@@ -824,6 +1388,32 @@ impl Session {
             }
         }, "pattern":self.pattern, "cake":null, "rings":[], "linked":null, "batch":null, "map":null});
         let mut buffers = Vec::new();
+        for (key, value) in self.patterns.details().as_object().unwrap() {
+            result["state"]["integration"][key] = value.clone();
+        }
+        result["state"]["integration"]["imageDirectory"] = json!(self.files.image_directory);
+        result["state"]["integration"]["outputDirectory"] = json!(self.files.output_directory);
+        result["state"]["integration"]["fileIteration"] = json!(self.files.image_mode);
+        result["state"]["integration"]["autoProcess"] = json!(self.files.auto_process);
+        result["state"]["integration"]["autoProcessError"] = json!(self.files.auto_error);
+        result["state"]["integration"]["fileInfo"] = json!(
+            self.image
+                .as_ref()
+                .map(|i| i.file_info.as_str())
+                .unwrap_or("")
+        );
+        result["linked"] = self.linked_snapshot();
+        result["state"]["integration"]["phases"] = self.phases.details();
+        result["state"]["integration"]["batchFrames"] =
+            json!(self.batch.as_ref().map_or(0, |b| b.count()));
+        result["state"]["imageBatchMode"] = json!(self.image_batch_mode);
+        result["state"]["integration"]["imageBatchMode"] = json!(self.image_batch_mode);
+        result["state"]["maskDetails"]["filename"] = json!(self.mask_filename);
+        result["state"]["integration"]["sameConditions"] = json!(self.phases.same_conditions);
+        result["state"]["integration"]["phaseColdPressure"] = json!(self.phases.cold_pressure);
+        for (key, value) in self.processing.details().as_object().unwrap() {
+            result["state"]["integration"][key] = value.clone();
+        }
         for (key, value) in self.calibration_payload().as_object().unwrap() {
             result["state"]["calibration"][key] = value.clone();
         }
@@ -832,12 +1422,14 @@ impl Session {
             result["rings"] = self.calibration_rings();
         }
         if let Some(image) = &self.image {
-            result["nativeSource"] = json!({"dtype":image.source_dtype,"storedOrientationPreserved":true,"scientificRowOrder":"bottom-up","frame":image.frame,"frames":image.frames});
+            result["nativeSource"] = json!({"dtype":image.source_dtype,"storedOrientationPreserved":true,"scientificRowOrder":"bottom-up","frame":image.frame,"frames":image.frames,"ordinaryDecodes":image.ordinary_decodes,"loadPath":if image.combined{"combined-hdf5"}else{"native-reader"}});
         }
         if include_image && let Some(raster) = &self.image_raster {
-            result["image"] = raster.metadata.clone();
             result["rawImage"] = raster.metadata.clone();
             buffers.push(raster.buffer.clone());
+            let processed = self.processed_raster.as_ref().unwrap_or(raster);
+            result["image"] = processed.metadata.clone();
+            buffers.push(processed.buffer.clone());
         }
         if let Some(raster) = &self.mask_raster {
             result["mask"] = raster.metadata.clone();
@@ -847,13 +1439,10 @@ impl Session {
             result["cake"] = raster.metadata.clone();
             buffers.push(raster.buffer.clone());
         }
-        #[cfg(feature = "dioptrin")]
-        if let Some(sigma) = &self.sigma
-            && result["pattern"].is_object()
-        {
-            result["pattern"]["sigma"] = json!(sigma);
-        }
-        Reply { result, buffers }
+        let mut reply = Reply { result, buffers };
+        self.attach_batch(&mut reply);
+        self.attach_map(&mut reply);
+        reply
     }
 }
 
@@ -880,6 +1469,23 @@ fn check_keys(args: &Value, allowed: &[&str]) -> Result<(), String> {
 fn boolean(value: &Value, label: &str) -> Result<bool, String> {
     value.as_bool().ok_or(format!("{label} must be a boolean."))
 }
+fn optional_azimuth(value: &Value) -> Result<Option<[f64; 2]>, String> {
+    if value.is_null() {
+        return Ok(None);
+    }
+    let a = value
+        .as_array()
+        .filter(|a| a.len() == 2)
+        .ok_or("Azimuth range needs two angles or full range.")?;
+    let range = [
+        finite(&a[0], "Azimuth (°)", -180.0, 180.0)?,
+        finite(&a[1], "Azimuth (°)", -180.0, 180.0)?,
+    ];
+    if range[0] == range[1] {
+        return Err("Azimuth endpoints must differ.".into());
+    }
+    Ok(Some(range))
+}
 fn finite(value: &Value, label: &str, low: f64, high: f64) -> Result<f64, String> {
     value
         .as_f64()
@@ -897,7 +1503,7 @@ fn integer(value: &Value, label: &str, low: usize, high: usize) -> Result<usize,
             "{label} must be an integer between {low} and {high}."
         ))
 }
-fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), String> {
+pub(crate) fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), String> {
     use std::io::Write;
     let mut temp = tempfile::NamedTempFile::new_in(
         path.parent()

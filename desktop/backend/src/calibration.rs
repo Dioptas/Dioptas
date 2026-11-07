@@ -18,6 +18,7 @@ const KEYS: [&str; 7] = [
 const MAX_POINTS: usize = 100_000;
 
 #[cfg(feature = "dioptrin")]
+#[derive(Clone)]
 pub(super) struct RingCache {
     geometry: Geometry,
     targets: Vec<(usize, f64)>,
@@ -239,18 +240,19 @@ pub(super) struct Snapshot {
     polarization: f64,
     data: Calibration,
 }
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub(super) struct History {
-    undo: Vec<(String, Snapshot, Snapshot)>,
-    redo: Vec<(String, Snapshot, Snapshot)>,
+    pub(super) undo: Vec<Arc<(String, Snapshot, Snapshot, u64)>>,
+    pub(super) redo: Vec<Arc<(String, Snapshot, Snapshot, u64)>>,
 }
 impl History {
-    pub(super) fn record(&mut self, label: &str, before: Snapshot, after: Snapshot) {
+    pub(super) fn record(&mut self, label: &str, before: Snapshot, after: Snapshot, sequence: u64) {
         if before == after {
             return;
         }
         self.redo.clear();
-        self.undo.push((label.into(), before, after));
+        self.undo
+            .push(Arc::new((label.into(), before, after, sequence)));
         let reference_cost = |r: &Reference| r.content.len() + r.spacings.len() * 8 + r.name.len();
         let cost = |s: &Snapshot| {
             s.data
@@ -267,7 +269,7 @@ impl History {
                 || self
                     .undo
                     .iter()
-                    .map(|(_, a, b)| cost(a) + cost(b))
+                    .map(|entry| cost(&entry.1) + cost(&entry.2))
                     .sum::<usize>()
                     > 64 * 1024 * 1024)
         {
@@ -315,6 +317,7 @@ impl Session {
         self.calibration = s.data;
     }
     pub(super) fn loaded_geometry(&mut self, source: &str) {
+        self.inspection = None;
         let g = &self.settings.geometry;
         self.calibration.start = [
             g.dist,
@@ -360,7 +363,8 @@ impl Session {
                         | "calibration_engine"
                 ) {
                     let after = self.calibration_snapshot();
-                    self.calibration_history.record(action, before, after);
+                    self.calibration_history
+                        .record(action, before, after, self.revision + 1);
                 }
                 self.revision += 1;
                 let mut reply = self.snapshot(false);
@@ -484,6 +488,7 @@ impl Session {
             "pick_peak" => {
                 check_keys(args, &["x", "y", "ring", "automatic", "search_size"])?;
                 let image = self.image.as_ref().ok_or("Open a calibrant image first.")?;
+                let values = self.scientific_values();
                 let x = finite(&args["x"], "x", 0.0, image.shape[1] as f64 - 1.0)?;
                 let y = finite(&args["y"], "y", 0.0, image.shape[0] as f64 - 1.0)?;
                 let rings = self
@@ -509,7 +514,7 @@ impl Session {
                     let mut best = None;
                     for yy in row..(row + size).min(image.shape[0]) {
                         for xx in col..(col + size).min(image.shape[1]) {
-                            let value = image.values[yy * image.shape[1] + xx];
+                            let value = values[yy * image.shape[1] + xx];
                             if value.is_finite()
                                 && (!self.settings.use_mask
                                     || self.effective_mask[yy * image.shape[1] + xx] == 0)
@@ -734,7 +739,7 @@ impl Session {
         }
         let lines:Vec<_>=angles.iter().map(|&(ring,t)|json!({"ring":ring,"x":match self.settings.unit.as_str(){"q_A^-1"=>4.0*std::f64::consts::PI*(t/2.0).sin()/(g.wavelength*1e10),"d_A"=>g.wavelength*1e10/(2.0*(t/2.0).sin()),_=>t.to_degrees()}})).collect();
         json!({"setupConfirmed":c.confirmed,"workflow":self.workflow,"parameters":c.parameters(g),"freeParameterCount":c.free_count(),"polarization":self.settings.polarization,"fitWavelength":c.free[6],
-            "geometrySource":c.source,"canUndo":!self.calibration_history.undo.is_empty(),"canRedo":!self.calibration_history.redo.is_empty(),"fitTilts":c.free[3],
+            "geometrySource":c.source,"canUndo":!self.calibration_history.undo.is_empty()||self.integration_history.can_undo(),"canRedo":!self.calibration_history.redo.is_empty()||self.integration_history.can_redo(),"fitTilts":c.free[3],
             "calibrant":c.reference.name,"calibrants":names,"distance":c.start[0]*1000.0,"wavelength":c.start[6]*1e10,"fitDirty":c.dirty,"rmsDegrees":c.rms,"saved":c.saved,"picks":c.picks,
             "rings":angles.iter().map(|&(ring,t)|json!({"ring":ring,"twoTheta":t.to_degrees()})).collect::<Vec<_>>(),"referenceLines":lines,
             "steps":[if self.image.is_some(){"done"}else{"attention"},if !c.picks.is_empty(){"done"}else if self.settings.calibrated{"skipped"}else{"attention"},if self.settings.calibrated{"done"}else if !c.picks.is_empty(){"attention"}else{"pending"},if self.settings.calibrated{"done"}else{"pending"}]})

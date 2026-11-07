@@ -1,0 +1,562 @@
+//! Owned processed series and Qt-compatible HDF5, with reversible normalization.
+use crate::{display::Raster, pattern::Curve};
+use serde::{Deserialize, Serialize};
+use serde_json::{Value, json};
+use std::{path::Path, str::FromStr, sync::Arc};
+#[derive(Clone, Serialize, Deserialize)]
+pub(crate) struct Entry {
+    pub path: String,
+    pub frame: usize,
+}
+#[derive(Clone)]
+pub(crate) struct Series {
+    pub x: Arc<Vec<f64>>,
+    pub raw: Arc<Vec<f64>>,
+    pub data: Arc<Vec<f64>>,
+    pub spread: Option<Arc<Vec<f64>>>,
+    pub raw_spread: Option<Arc<Vec<f64>>>,
+    pub unit: String,
+    pub wavelength: Option<f64>,
+    pub entries: Arc<Vec<Entry>>,
+    pub paths: Vec<String>,
+    pub total: usize,
+    pub selected: usize,
+    pub normalization: [usize; 2],
+    pub reference: usize,
+    pub normalized: bool,
+    pub raster: Raster,
+    pub calibration: String,
+    pub mask: String,
+}
+impl Series {
+    pub fn append(&self, other: &Self) -> Result<Self, String> {
+        if self.normalized || other.normalized {
+            return Err("Restore original series data before appending frames.".into());
+        }
+        if self.unit != other.unit || self.x != other.x || self.wavelength != other.wavelength {
+            return Err(
+                "Live radial axes or calibration differ; reintegrate the scan before appending."
+                    .into(),
+            );
+        }
+        if self
+            .data
+            .len()
+            .checked_add(other.data.len())
+            .is_none_or(|n| n > 64_000_000)
+        {
+            return Err("Processed scan exceeds 64 million samples.".into());
+        }
+        let mut data = self.data.as_ref().clone();
+        data.extend(other.data.iter().copied());
+        let mut entries = self.entries.as_ref().clone();
+        entries.extend(other.entries.iter().cloned());
+        let mut paths = self.paths.clone();
+        for p in &other.paths {
+            if !paths.contains(p) {
+                paths.push(p.clone());
+            }
+        }
+        let mut s = Self::new(
+            self.x.as_ref().clone(),
+            data,
+            self.unit.clone(),
+            self.wavelength,
+            entries,
+            paths,
+            self.total + other.total,
+        )?;
+        match (&self.spread, &other.spread) {
+            (Some(a), Some(b)) => {
+                let mut spread = a.as_ref().clone();
+                spread.extend(b.iter().copied());
+                s.spread = Some(Arc::new(spread));
+                s.raw_spread = s.spread.clone();
+            }
+            (None, None) => {}
+            _ => {
+                return Err(
+                    "Live azimuthal spread settings differ; reintegrate the scan before appending."
+                        .into(),
+                );
+            }
+        }
+        s.calibration = self.calibration.clone();
+        s.mask = self.mask.clone();
+        Ok(s)
+    }
+    pub fn new(
+        x: Vec<f64>,
+        data: Vec<f64>,
+        unit: String,
+        wavelength: Option<f64>,
+        entries: Vec<Entry>,
+        paths: Vec<String>,
+        total: usize,
+    ) -> Result<Self, String> {
+        if x.is_empty()
+            || entries.is_empty()
+            || data.len() != x.len().saturating_mul(entries.len())
+            || data.len() > 64_000_000
+            || x.iter().any(|x| !x.is_finite())
+            || !["2th_deg", "q_A^-1", "q_nm^-1", "d_A"].contains(&unit.as_str())
+        {
+            return Err("A series needs a bounded non-empty intensity matrix, finite radial axis and supported unit.".into());
+        }
+        let raster = Raster::image(&data, [entries.len(), x.len()]);
+        let n = x.len();
+        let data = Arc::new(data);
+        Ok(Self {
+            x: Arc::new(x),
+            raw: data.clone(),
+            data,
+            unit,
+            wavelength,
+            entries: Arc::new(entries),
+            paths,
+            total,
+            selected: 0,
+            normalization: [0, n],
+            reference: 0,
+            normalized: false,
+            raster,
+            calibration: String::new(),
+            mask: String::new(),
+            spread: None,
+            raw_spread: None,
+        })
+    }
+    pub fn count(&self) -> usize {
+        self.entries.len()
+    }
+    pub fn profile(&self, index: usize, unit: &str) -> Result<Curve, String> {
+        if index >= self.count() {
+            return Err("Choose a frame within the series.".into());
+        }
+        let x = if unit == self.unit {
+            self.x.clone()
+        } else {
+            if [unit, self.unit.as_str()].contains(&"2th_deg") && self.wavelength.is_none() {
+                return Err(
+                    "This stored batch has no recorded wavelength for angular conversion.".into(),
+                );
+            }
+            let x = self
+                .x
+                .iter()
+                .map(|&x| {
+                    crate::pattern::convert_coordinate(
+                        x,
+                        &self.unit,
+                        unit,
+                        self.wavelength.unwrap_or(1e-10),
+                    )
+                })
+                .collect::<Vec<_>>();
+            if x.iter().any(|x| !x.is_finite()) {
+                return Err(
+                    "The requested series axis cannot be converted at the recorded wavelength."
+                        .into(),
+                );
+            }
+            Arc::new(x)
+        };
+        let n = self.x.len();
+        Ok(Curve {
+            x,
+            y: Arc::new(self.data[index * n..(index + 1) * n].to_vec()),
+            sigma: None,
+            spread: self
+                .spread
+                .as_ref()
+                .map(|s| Arc::new(s[index * n..(index + 1) * n].to_vec())),
+        })
+    }
+    pub fn normalize(
+        &mut self,
+        enabled: bool,
+        range: [usize; 2],
+        reference: usize,
+    ) -> Result<(), String> {
+        let n = self.x.len();
+        let mut data = self.raw.clone();
+        let mut spread = self.raw_spread.clone();
+        if enabled {
+            if range[0] >= range[1] || range[1] > n || reference >= self.count() {
+                return Err("Choose a non-empty normalization interval and a reference frame within the series.".into());
+            }
+            let means: Vec<_> = self
+                .raw
+                .chunks_exact(n)
+                .map(|row| {
+                    row[range[0]..range[1]].iter().sum::<f64>() / (range[1] - range[0]) as f64
+                })
+                .collect();
+            if means.iter().any(|m| !m.is_finite() || *m <= 0.0) {
+                return Err("Normalization requires a positive, finite mean intensity in every frame. Choose another bin range.".into());
+            }
+            let factors: Vec<_> = means.iter().map(|m| means[reference] / m).collect();
+            if factors.iter().any(|f| !f.is_finite() || *f <= 0.0) {
+                return Err(
+                    "Normalization factors are outside the supported intensity range.".into(),
+                );
+            }
+            data = Arc::new(
+                self.raw
+                    .iter()
+                    .enumerate()
+                    .map(|(i, v)| v * factors[i / n])
+                    .collect(),
+            );
+            spread = self.raw_spread.as_ref().map(|s| {
+                Arc::new(
+                    s.iter()
+                        .enumerate()
+                        .map(|(i, v)| v * factors[i / n])
+                        .collect(),
+                )
+            });
+        }
+        self.raster = Raster::image(&data, [self.count(), n]);
+        self.data = data;
+        self.spread = spread;
+        self.normalized = enabled;
+        self.normalization = range;
+        self.reference = reference;
+        Ok(())
+    }
+    pub fn metadata(&self, unit: &str, phases: Value) -> Value {
+        let unit = if self.wavelength.is_none()
+            && unit != self.unit
+            && [unit, self.unit.as_str()].contains(&"2th_deg")
+        {
+            self.unit.as_str()
+        } else {
+            unit
+        };
+        let curve = self
+            .profile(self.selected, unit)
+            .or_else(|_| self.profile(self.selected, &self.unit))
+            .unwrap();
+        let files:Vec<_>=self.paths.iter().map(|p|json!({"path":p,"name":Path::new(p).file_name().unwrap_or_default().to_string_lossy(),"frames":self.entries.iter().filter(|e|e.path==*p).count(),"first":self.entries.iter().position(|e|e.path==*p)})).collect();
+        json!({"id":self.raster.buffer.id,"raster":self.raster.metadata,"x":curve.x,"wavelength":self.wavelength,"unit":unit,"sourceUnit":self.unit,"entries":self.entries.iter().map(|e|json!({"path":e.path,"name":if e.path.is_empty(){"Stored pattern".into()}else{Path::new(&e.path).file_name().unwrap_or_default().to_string_lossy()},"frame":e.frame+1})).collect::<Vec<_>>(),"files":files,"pattern":{"x":curve.x,"y":curve.y,"unit":unit},"selected":self.selected,"total":self.total,"canReintegrate":self.paths.iter().any(|p|!p.is_empty()&&Path::new(p).is_file()),"normalized":self.normalized,"normalizationRange":self.normalization,"normalizationReference":self.reference,"calibration":self.calibration,"mask":self.mask,"phaseLines":phases,"position":null})
+    }
+    pub fn save(&self, path: &Path) -> Result<(), String> {
+        let mut temp = tempfile::NamedTempFile::new_in(path.parent().unwrap_or(Path::new(".")))
+            .map_err(|e| e.to_string())?;
+        if path
+            .extension()
+            .is_some_and(|s| s.eq_ignore_ascii_case("csv"))
+        {
+            use std::io::Write;
+            let mut w = csv::Writer::from_writer(&mut temp);
+            w.write_record(if self.spread.is_some() {
+                vec!["radial", "frame", "intensity", "azimuthal_std"]
+            } else {
+                vec!["radial", "frame", "intensity"]
+            })
+            .map_err(|e| e.to_string())?;
+            for (j, &x) in self.x.iter().enumerate() {
+                for i in 0..self.count() {
+                    let k = i * self.x.len() + j;
+                    let mut row = vec![x.to_string(), i.to_string(), self.data[k].to_string()];
+                    if let Some(s) = &self.spread {
+                        row.push(s[k].to_string());
+                    }
+                    w.write_record(row).map_err(|e| e.to_string())?;
+                }
+            }
+            w.flush().map_err(|e| e.to_string())?;
+            drop(w);
+            temp.flush().map_err(|e| e.to_string())?;
+        } else {
+            let f = hdf5::File::create(temp.path()).map_err(|e| e.to_string())?;
+            let entry = f.create_group("processed").map_err(|e| e.to_string())?;
+            let result = entry.create_group("result").map_err(|e| e.to_string())?;
+            let process = entry.create_group("process").map_err(|e| e.to_string())?;
+            result
+                .new_dataset::<f64>()
+                .shape([self.count(), self.x.len()])
+                .create("data")
+                .and_then(|d| d.write_raw(self.data.as_slice()))
+                .map_err(|e| e.to_string())?;
+            let axis = result
+                .new_dataset_builder()
+                .with_data(self.x.as_slice())
+                .create("binning")
+                .map_err(|e| e.to_string())?;
+            string_attr(&axis, "radial_unit", &self.unit)?;
+            if let Some(spread) = &self.spread {
+                result
+                    .new_dataset::<f64>()
+                    .shape([self.count(), self.x.len()])
+                    .create("azimuthal_std")
+                    .and_then(|d| d.write_raw(spread.as_slice()))
+                    .map_err(|e| e.to_string())?;
+            }
+            let mut paths = self.paths.clone();
+            for e in self.entries.iter() {
+                if !paths.contains(&e.path) {
+                    paths.push(e.path.clone());
+                }
+            }
+            if paths.is_empty() {
+                paths.push(String::new());
+            }
+            let strings: Vec<_> = paths
+                .iter()
+                .map(|s| hdf5::types::VarLenUnicode::from_str(s).map_err(|e| e.to_string()))
+                .collect::<Result<_, _>>()?;
+            process
+                .new_dataset_builder()
+                .with_data(&strings)
+                .create("files")
+                .map_err(|e| e.to_string())?;
+            let positions: Vec<i64> = self
+                .entries
+                .iter()
+                .flat_map(|e| {
+                    [
+                        paths.iter().position(|p| *p == e.path).unwrap() as i64,
+                        e.frame as i64,
+                    ]
+                })
+                .collect();
+            process
+                .new_dataset::<i64>()
+                .shape([self.count(), 2])
+                .create("pos_map")
+                .and_then(|d| d.write_raw(&positions))
+                .map_err(|e| e.to_string())?;
+            let mut filemap = vec![0_u64];
+            for p in &paths {
+                filemap.push(
+                    filemap.last().unwrap()
+                        + self.entries.iter().filter(|e| e.path == *p).count() as u64,
+                );
+            }
+            process
+                .new_dataset_builder()
+                .with_data(&filemap)
+                .create("file_map")
+                .map_err(|e| e.to_string())?;
+            for (name, value) in [
+                ("cal_file", self.calibration.as_str()),
+                ("mask_file", self.mask.as_str()),
+                ("int_method", "csc"),
+                ("int_unit", self.unit.as_str()),
+            ] {
+                let s = hdf5::types::VarLenUnicode::from_str(value).map_err(|e| e.to_string())?;
+                process
+                    .new_dataset::<hdf5::types::VarLenUnicode>()
+                    .shape(())
+                    .create(name)
+                    .and_then(|d| d.write_scalar(&s))
+                    .map_err(|e| e.to_string())?;
+            }
+            if let Some(w) = self.wavelength {
+                result
+                    .new_attr::<f64>()
+                    .shape(())
+                    .create("desktop_wavelength_m")
+                    .and_then(|a| a.write_scalar(&w))
+                    .map_err(|e| e.to_string())?;
+            }
+            let metadata = json!({"entries":self.entries,"paths":paths,"total":self.total,"selected":self.selected,"normalization":self.normalization,"reference":self.reference,"normalized":self.normalized});
+            let meta = serde_json::to_vec(&metadata).map_err(|e| e.to_string())?;
+            result
+                .new_dataset_builder()
+                .with_data(&meta)
+                .create("desktop_metadata")
+                .map_err(|e| e.to_string())?;
+            if self.normalized {
+                result
+                    .new_dataset::<f64>()
+                    .shape([self.count(), self.x.len()])
+                    .create("desktop_original")
+                    .and_then(|d| d.write_raw(self.raw.as_slice()))
+                    .map_err(|e| e.to_string())?;
+                if let Some(s) = &self.raw_spread {
+                    result
+                        .new_dataset::<f64>()
+                        .shape([self.count(), self.x.len()])
+                        .create("desktop_original_spread")
+                        .and_then(|d| d.write_raw(s.as_slice()))
+                        .map_err(|e| e.to_string())?;
+                }
+            }
+            f.flush().map_err(|e| e.to_string())?;
+        }
+        temp.persist(path).map_err(|e| e.to_string())?;
+        Ok(())
+    }
+    pub fn load(path: &Path) -> Result<Self, String> {
+        let f = hdf5::File::open(path).map_err(|e| e.to_string())?;
+        let group = if f.link_exists("processed/result") {
+            f.group("processed/result")
+        } else {
+            f.group("/")
+        }
+        .map_err(|e| e.to_string())?;
+        let d = group.dataset("data").map_err(|e| e.to_string())?;
+        let shape = d.shape();
+        if shape.len() != 2
+            || shape[0] == 0
+            || shape[1] == 0
+            || shape[0]
+                .checked_mul(shape[1])
+                .is_none_or(|n| n > 64_000_000)
+        {
+            return Err("The batch does not contain a bounded non-empty pattern matrix.".into());
+        }
+        let axis = group.dataset("binning").map_err(|e| e.to_string())?;
+        if axis.shape() != [shape[1]] {
+            return Err("Batch radial axis differs from the matrix width.".into());
+        }
+        let unit = axis
+            .attr("radial_unit")
+            .ok()
+            .and_then(|a| read_string_attr(&a))
+            .unwrap_or_else(|| "2th_deg".into());
+        let wavelength = group
+            .attr("desktop_wavelength_m")
+            .ok()
+            .and_then(|a| a.read_scalar::<f64>().ok())
+            .filter(|w| w.is_finite() && *w > 0.0);
+        let mut entries = vec![
+            Entry {
+                path: String::new(),
+                frame: 0
+            };
+            shape[0]
+        ];
+        for (i, e) in entries.iter_mut().enumerate() {
+            e.frame = i;
+        }
+        let mut paths = vec![];
+        let mut calibration = String::new();
+        let mut mask = String::new();
+        if let Ok(process) = f.group("processed/process") {
+            if let Ok(files) = process.dataset("files") {
+                paths = read_strings(&files)?;
+            }
+            if let Ok(pos) = process.dataset("pos_map") {
+                if pos.shape() != [shape[0], 2] {
+                    return Err("Batch raw position map has the wrong shape.".into());
+                }
+                let positions = pos.read_raw::<i64>().map_err(|e| e.to_string())?;
+                for (e, p) in entries.iter_mut().zip(positions.as_chunks::<2>().0) {
+                    if p[0] < 0 || p[1] < 0 {
+                        return Err("Negative raw frame mapping.".into());
+                    }
+                    e.path = paths
+                        .get(p[0] as usize)
+                        .cloned()
+                        .ok_or("Invalid raw file mapping.")?;
+                    e.frame = p[1] as usize;
+                }
+            }
+            calibration = process
+                .dataset("cal_file")
+                .ok()
+                .and_then(|d| read_strings(&d).ok())
+                .and_then(|s| s.first().cloned())
+                .unwrap_or_default();
+            mask = process
+                .dataset("mask_file")
+                .ok()
+                .and_then(|d| read_strings(&d).ok())
+                .and_then(|s| s.first().cloned())
+                .unwrap_or_default();
+        }
+        let mut s = Self::new(
+            axis.read_raw::<f64>().map_err(|e| e.to_string())?,
+            d.read_raw::<f64>().map_err(|e| e.to_string())?,
+            unit,
+            wavelength,
+            entries,
+            paths,
+            shape[0],
+        )?;
+        s.calibration = calibration;
+        s.mask = mask;
+        if let Ok(spread) = group.dataset("azimuthal_std") {
+            if spread.shape() != shape {
+                return Err("Azimuthal spread matrix has the wrong shape.".into());
+            }
+            s.spread = Some(Arc::new(
+                spread.read_raw::<f64>().map_err(|e| e.to_string())?,
+            ));
+            s.raw_spread = s.spread.clone();
+        }
+        if let Ok(meta) = group.dataset("desktop_metadata") {
+            if meta.size() > 16 * 1024 * 1024 {
+                return Err("Series metadata exceeds 16 MiB.".into());
+            }
+            let v: Value =
+                serde_json::from_slice(&meta.read_raw::<u8>().map_err(|e| e.to_string())?)
+                    .map_err(|e| e.to_string())?;
+            if v["normalized"] == true {
+                let original = group
+                    .dataset("desktop_original")
+                    .map_err(|e| e.to_string())?;
+                if original.shape() != shape {
+                    return Err("Original series matrix has the wrong shape.".into());
+                }
+                s.raw = Arc::new(original.read_raw::<f64>().map_err(|e| e.to_string())?);
+                s.normalized = true;
+                s.normalization = serde_json::from_value(v["normalization"].clone())
+                    .map_err(|e| e.to_string())?;
+                s.reference = v["reference"]
+                    .as_u64()
+                    .ok_or("Invalid normalization reference.")?
+                    as usize;
+                if s.normalization[0] >= s.normalization[1]
+                    || s.normalization[1] > s.x.len()
+                    || s.reference >= s.count()
+                {
+                    return Err("Invalid stored normalization.".into());
+                }
+                if let Ok(spread) = group.dataset("desktop_original_spread") {
+                    if spread.shape() != shape {
+                        return Err("Original spread matrix has the wrong shape.".into());
+                    }
+                    s.raw_spread = Some(Arc::new(
+                        spread.read_raw::<f64>().map_err(|e| e.to_string())?,
+                    ));
+                }
+            }
+        }
+        Ok(s)
+    }
+}
+fn string_attr(location: &hdf5::Location, name: &str, value: &str) -> Result<(), String> {
+    let value = hdf5::types::VarLenUnicode::from_str(value).map_err(|e| e.to_string())?;
+    location
+        .new_attr::<hdf5::types::VarLenUnicode>()
+        .shape(())
+        .create(name)
+        .and_then(|a| a.write_scalar(&value))
+        .map_err(|e| e.to_string())
+}
+fn read_string_attr(a: &hdf5::Attribute) -> Option<String> {
+    a.read_scalar::<hdf5::types::VarLenUnicode>()
+        .map(|s| s.as_str().into())
+        .or_else(|_| {
+            a.read_scalar::<hdf5::types::VarLenAscii>()
+                .map(|s| s.as_str().into())
+        })
+        .ok()
+}
+fn read_strings(d: &hdf5::Dataset) -> Result<Vec<String>, String> {
+    if d.size() > 1_000_000 {
+        return Err("Too many raw source paths.".into());
+    }
+    d.read_raw::<hdf5::types::VarLenUnicode>()
+        .map(|v| v.iter().map(|s| s.as_str().into()).collect())
+        .or_else(|_| {
+            d.read_raw::<hdf5::types::VarLenAscii>()
+                .map(|v| v.iter().map(|s| s.as_str().into()).collect())
+        })
+        .map_err(|e| e.to_string())
+}

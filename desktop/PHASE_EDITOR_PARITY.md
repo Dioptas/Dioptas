@@ -1,5 +1,7 @@
 # React/Tauri phase editor
 
+The opt-in Rust implementation has a separate [native qualification ledger](NATIVE_INTEGRATION_PARITY.md), including the integration, phase and Batch/Map migration. The Python/Qt behavior and historical checks below remain reference evidence.
+
 Implemented on `codex/phase-editor-ergonomics`, starting from `d4efd68a`.
 Compared against Qt's `PhaseEditorWidget`, `PhaseEditorController`, `EosRecordDialog`,
 `SpaceGroupSelector`, and the shared `PhaseModel`. The widget in the current

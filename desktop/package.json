@@ -29,7 +29,9 @@
     "test:custom-commands": "node scripts/custom_commands_smoke.mjs",
     "benchmark:pattern": "node scripts/pattern_benchmark.mjs",
     "benchmark:pattern:native": "node scripts/pattern_native_benchmark.mjs",
-    "test:pattern-quality": "node scripts/pattern_quality.mjs"
+    "test:pattern-quality": "node scripts/pattern_quality.mjs",
+    "test:native-integration": "node scripts/native_integration_workflow_smoke.mjs",
+    "test:native-integration-transport": "node --test scripts/native_integration_transport.test.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",

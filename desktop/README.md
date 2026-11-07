@@ -16,8 +16,11 @@ The native calibration stage retains the existing controls, automatic ring
 refinement, live progress/cancellation and grouped edit/fit Undo/Redo for the
 currently supported flat uniform-pixel geometry.
 All three bundled masking plugins also run natively, including their settings,
-dynamic recomputation, imprint and Undo/Redo. The migration document records
-the chosen C/SciPy reference behavior and remaining general masking workflows.
+dynamic recomputation, imprint and Undo/Redo. The native integration stage adds
+warm-plan reuse and combined HDF5 loading, corrections/backgrounds, pattern and
+overlay I/O, phase/material editing, Batch and Map with the existing controls.
+See the [qualification ledger](NATIVE_INTEGRATION_PARITY.md) for measured parity,
+benchmark scope and remaining project/configuration and detector work.
 
 Integration and Map use the same `RasterView` and `PatternView` renderers.
 `diffractionPlotSetup.ts` prepares their common detector mask/click properties

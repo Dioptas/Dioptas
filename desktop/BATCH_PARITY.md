@@ -1,5 +1,7 @@
 # Batch processing in the React desktop
 
+The opt-in Rust implementation has a separate [native qualification ledger](NATIVE_INTEGRATION_PARITY.md), including the integration, phase and Batch/Map migration. The Python/Qt behavior and historical checks below remain reference evidence.
+
 Batch starts from Qt's `dioptas/widgets/integration/BatchWidget.py` and its
 controllers, and reuses `BatchModel` and the current Python integration pipeline.
 It is a separate companion window linked to Integration. There is no Batch mode

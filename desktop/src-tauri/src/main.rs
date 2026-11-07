@@ -210,6 +210,42 @@ fn window_action_allowed(window: &str, action: &str) -> bool {
     }
 }
 
+// Documentation navigation is an explicit UI action; numerical workers never launch a browser.
+fn finish_packet(packet: Result<Packet, String>, action: &str) -> Result<Packet, String> {
+    let packet = packet?;
+    if action == "integration_phase_documentation" {
+        let result = packet.result_value()?;
+        if let Some(url) = result["documentationUrl"]
+            .as_str()
+            .filter(|_| result["ok"] == true)
+        {
+            if !(url.starts_with("https://") || url.starts_with("http://"))
+                || url.contains(['\n', '\r', '\0'])
+            {
+                return Err("Invalid record documentation URL.".into());
+            }
+            #[cfg(target_os = "macos")]
+            let mut command = std::process::Command::new("open");
+            #[cfg(target_os = "linux")]
+            let mut command = std::process::Command::new("xdg-open");
+            #[cfg(target_os = "windows")]
+            let mut command = {
+                let mut c = std::process::Command::new("rundll32");
+                c.arg("url.dll,FileProtocolHandler");
+                c
+            };
+            command
+                .arg(url)
+                .stdin(std::process::Stdio::null())
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .spawn()
+                .map_err(|e| format!("The system browser could not open the documentation: {e}"))?;
+        }
+    }
+    Ok(packet)
+}
+
 #[tauri::command]
 async fn desktop_invoke(
     app: tauri::AppHandle,
@@ -270,7 +306,7 @@ async fn desktop_invoke(
                 if !choose_batch_image_output(&app, &action, &mut payload)? {
                     return Ok(Packet::metadata(json!({"ok": true, "cancelled": true})));
                 }
-                return processor.request_packet(&action, payload, cached);
+                return finish_packet(processor.request_packet(&action, payload, cached), &action);
             }
             let selected = if choice.save {
                 let name = if action == "integration_save_image" || action == "integration_phase_export" {
@@ -291,7 +327,7 @@ async fn desktop_invoke(
         if !choose_batch_image_output(&app, &action, &mut payload)? {
             return Ok(Packet::metadata(json!({"ok": true, "cancelled": true})));
         }
-        processor.request_packet(&action, payload, cached)
+        finish_packet(processor.request_packet(&action, payload, cached), &action)
     })
     .await
     .map_err(|e| e.to_string())?

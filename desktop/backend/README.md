@@ -93,7 +93,7 @@ reference environment is used only for migration tests.
   errors, and explicit radial/cake binning. Cake coordinates remain 2θ. Grid
   metadata follows pixel-corner extents and the engine's azimuth-bin-center
   convention. Native kernels are reused rather than copied or reimplemented.
-- Atomic XY pattern and PONI exports. Other export formats are not migrated.
+- Atomic XY/XYE/CHI/DAT/FXYE pattern and PONI exports, mask files, image/cake exports, processed HDF5/CSV series and phase/material exports. See the integration-stage qualification below.
 - Embedded native calibrant resources and session-owned custom `.D` references;
   wavelength-dependent ring availability and validation-only reference changes.
   Building the processor embeds the existing source calibrants without Python.
@@ -123,43 +123,43 @@ reference environment is used only for migration tests.
   cancelled/failed fit restores geometry, picks, diagnostics, history and prior
   display products. Cancellation is checked between native calls/ring stages;
   a single library call is not interrupted internally. No Python fallback is
-  used. A standalone non-calibration integration call remains noninterruptible.
+  used. Bulk integration checks cancellation between files, frames and processing stages; an individual numerical kernel is not interrupted internally.
 
-The schema-only `src/correction_defaults.json` retains the existing React
-controls' parameter definitions from `dioptas.desktop.integration.CORRECTIONS`
-at migration base `b418d66b`. These corrections are disabled and their commands
-remain unsupported; this file is not a scientific correction implementation.
+## Integration, phases and Batch/Map
 
-## Remaining migration, in order
+The integration stage now includes persistent pattern/cake plans, combined HDF5
+loading, corrections and backgrounds, pattern/overlay editing and I/O, linked
+inspection, automatic incoming-file processing, phase/material editing, Batch,
+Map and explicit custom actions. It keeps the existing React command contract.
+Integration and phase edits share chronological calibration Undo/Redo; raw source
+files and authored catalog records remain unchanged. Failed or cancelled bulk
+operations restore the complete preceding scientific state.
 
-1. **Remaining calibration geometry:** Fit2D conversion, linked inspection,
-   detector definitions, orientations, nonuniform pixel corners, distortion
-   splines and their round trips. Detector rings use sampled display contours;
-   fitting, integration and ring searches retain full-resolution samples.
-2. **Image/mask/integration parity:** transformations, neighboring-file series,
-   geometric masks and the separate LA Cosmic mask operation, background images, flat fields,
-   absorption corrections, SmoothBruckner background, sectors/wrapped ranges,
-   automatic bins, supersampling, statistics, other exports and autoprocessing.
-3. **Phases and overlays:** native PhaseSmith and Peritheos APIs, material/CIF/
-   JCPDS/EOSMAT adapters, search, editing, source provenance and legacy formats.
-   Add dependencies only as each workflow is migrated.
-4. **Persistence and multi-image work:** `.dio` read/write compatibility,
-   configurations, Batch, Map, processed HDF5 and custom actions. Arbitrary
-   third-party Python mask plugins need a native extension contract or individual
-   ports; the bundled plugins are already native.
-5. **Default transition and distribution:** cover the complete required command
-   inventory and scientific reference corpus; build/test native libraries and
-   installers on macOS, Windows and Linux; bundle the native executable and
-   notices; then select Rust by default and remove the Python runtime from the
-   new desktop's required distribution. The original Qt application can retain
-   its Python source independently.
+See [native integration qualification](../NATIVE_INTEGRATION_PARITY.md) for the
+implemented controls, pinned Qt/API sources, independent numerical checks, real
+Eiger timing scope and reproduction commands. `src/correction_defaults.json`
+provides the existing cBN/OIADAC parameter metadata; `processing.rs` implements
+those corrections in native f64, together with image backgrounds and flat fields.
 
-Dioptrin remains an optional Cargo feature. A complete native default must
-resolve required numerical-engine availability while preserving that policy;
-the existence of a native adapter does not establish detector-wide parity.
-Unported commands and settings return explicit errors without Python fallback.
-The existing UI still exposes unported controls in this development preview;
-it is not yet a replacement for the everyday application.
+## Remaining application migration
+
+- `.dio` project read/write, multiple configurations and their complete session
+  recovery remain unported. Processed Batch HDF5 is implemented separately; it
+  does not substitute for project persistence.
+- Named/nonuniform detectors, orientation variants, distortion splines and
+  Fit2D manual-geometry conversion need their own input/geometry qualification.
+- Image rotations/flips, general geometric mask shapes/morphology and the
+  separate LA Cosmic operation remain migration work. The three bundled dynamic
+  plugins and NPY/TIFF/EDF/text mask loading are implemented. Arbitrary third-party
+  Python plugins need a native extension contract or individual ports.
+- Broader detector/format/scientific reference coverage and native installer
+  bundling/notices on macOS, Windows and Linux are required before switching the
+  default launcher and removing the desktop's required Python distribution.
+
+Dioptrin remains an optional Cargo feature. Native numerical operations report
+that requirement explicitly when built without it. Unported commands return
+errors without Python fallback. This opt-in backend is not yet a replacement
+for every current application workflow.
 
 ## Native masking behavior
 
@@ -195,56 +195,24 @@ selection between algorithms while retaining the current controls.
 
 No extra user-directory or installed entry-point plugins were present in the
 checked environment. Unknown plugin names fail explicitly; Python plugin files
-are not imported by this backend. General mask shapes/morphology, mask file
-import/export, and the separate LA Cosmic operation remain migration work.
+are not imported by this backend. General mask shapes/morphology and the separate
+LA Cosmic operation remain migration work; mask-file I/O is now native.
 
-## Qt integration changes to carry forward
+## Qt integration changes carried forward
 
-Read-only source audit on 2026-11-07: the Qt checkout at
-`/Users/clemens/Programming/Dioptas`, revision `2e34f09f`, includes shared
-Dioptrin plans/selectable CSC (`62024fea`), warm Batch/Map startup reuse
-(`81a23206`) and detector navigation/display improvements (`65c24a45`). The
-separate Qt preview at `/Users/clemens/Programming/Dioptas-fused-preview`,
-revision `d6d479dc`, adds combined fixed-mask HDF5 loading/integration. Neither
-checkout was modified. Integration migration must retain these behaviors:
+The native adapter owns persistent, bounded pattern/cake plans on the existing
+processing worker. Batch/Map use that same owner; bulk work does not rebuild
+unchanged plans or calculate cakes for every frame. Compatible fixed-mask
+Bitshuffle/LZ4 u16/u32 HDF5 frames use one typed decode and an owned prepared f64
+pattern, with source/dataset identities checked before publication. Corrections
+and dynamic masks use the resident native path. All routes retain f64 science
+and the same bottom-up detector convention.
 
-- Keep geometry/LUT/normalization state on one persistent owner worker, cache
-  pattern/cake units with bounded memory, and only change native settings when
-  they differ. Warm plans before admitting large Batch/Map queues; reuse those
-  plans on the same worker and reconcile setters after bulk work.
-- Distinguish fixed masks/ROI from dynamic masks and preserve CSC and
-  supersampling selection. Bound input queues and decoder workspaces; queued
-  frames must own their storage even when decoder buffers are reused.
-- For eligible full-frame Bitshuffle/LZ4 native u16/u32 HDF5 inputs, decode once
-  to original typed display pixels plus a prepared float64 pattern. Retain exact
-  dataset/header selection, frozen file identity and the single row flip.
-  Compatible sources can reuse the lookup through `set_source`.
-- Reuse prepared results only for matching immutable pixels, effective mask,
-  geometry, shape, bins, unit, polarization, supersampling and error terms.
-  Pixel/correction/transform changes invalidate them. Unsupported layouts or
-  settings use ordinary native loading/resident-array integration once; do not
-  reread already decoded pixels to attempt an optimization. A changed source
-  must fail atomically. Do not wait behind bulk work for an optional combined
-  load; reject stale deliveries by image/settings revision.
-- Retain float64 weights, sums, normalization and Poisson terms; compare original
-  counts and results independently, and benchmark matched cold/warm workloads
-  including load, display, task preparation, dispatch and product application.
-
-The authoritative owners are Qt `model/integration_task.py`,
-`model/loader/combinedHdf5.py`, `model/loader/fastHdf5.py`,
-`model/Configuration.py` and `controller/async_job.py`. The combined API is newer
-than this backend's pins: `dioptrin-io` preview `d91d567` (following `1fd538d`)
-and Dioptrin fixed-plan revision `72e9b72` underlie that Qt benchmark. Its
-`python-fused` bridge is reference adapter code, not a Python dependency to add
-to this processor. Qualify and pin the corresponding Rust APIs before adoption.
-
-The current native integration adapter still constructs a new integrator per
-call and retains a separate f64 scientific image. It does **not** yet carry these
-warm-plan/combined-load optimizations. The Qt report's roughly 20.6% lower warm
-open-to-pattern latency is a source benchmark for one Eiger 9M fixture on macOS,
-not a speed measurement of this native desktop. See the Qt preview's
-`docs/benchmarks/2026-11-07-combined-hdf5.md` and provenance/validation receipts
-for its exact scope and reproduction conditions.
+Read-only references were Qt `2e34f09f`, combined Qt preview `9c73ffb3`,
+`dioptrin-io` `3440119` and Dioptrin `5e245da`; exact pins and restrictions are
+in [the qualification ledger](../NATIVE_INTEGRATION_PARITY.md). The Qt report's
+20.6% timing is historical source evidence. The separately measured native
+Eiger result is recorded in that ledger with its own matched workload.
 
 ## Verification
 
@@ -287,7 +255,7 @@ pattern and cake. Screenshots and its receipt are written under ignored
 these checks.
 
 Local checkpoint, 2026-11-07: native tests pass with and without the numerical
-engine (26 and 20 tests respectively); all 19 Tauri host tests and 59 JavaScript
+engine (27 and 21 tests respectively); all 19 Tauri host tests and 59 JavaScript
 tests pass. At the input-stage checkpoint the existing Python desktop suite
 passed with 294 tests and five optional skips; Python implementation files have
 not changed in this calibration stage. Strict native Clippy, formatting and the

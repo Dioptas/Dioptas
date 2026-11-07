@@ -32,11 +32,17 @@ fn base([height, width]: [usize; 2], dtype: &str, buffer: &Buffer) -> Value {
     json!({"width": width, "height": height, "fullWidth": width, "fullHeight": height,
         "step": 1, "dtype": dtype, "limits": [0, 1], "bufferId": buffer.id})
 }
-fn percentile(sorted: &[f64], p: f64) -> f64 {
-    let rank = (sorted.len() - 1) as f64 * p / 100.0;
+fn percentile(values: &mut [f64], p: f64) -> f64 {
+    let rank = (values.len() - 1) as f64 * p / 100.0;
     let i = rank.floor() as usize;
     let fraction = rank - i as f64;
-    sorted[i] * (1.0 - fraction) + sorted[(i + 1).min(sorted.len() - 1)] * fraction
+    let (_, value, right) = values.select_nth_unstable_by(i, f64::total_cmp);
+    let next = right
+        .iter()
+        .min_by(|a, b| a.total_cmp(b))
+        .copied()
+        .unwrap_or(*value);
+    *value * (1.0 - fraction) + next * fraction
 }
 /// Same gap rule as the existing desktop: repeated constant columns, then rows.
 fn gap_value(values: &[f64], [height, width]: [usize; 2]) -> Option<f64> {
@@ -94,11 +100,12 @@ pub fn levels(
     if finite.is_empty() {
         return None;
     }
-    finite.sort_by(f64::total_cmp);
-    let (min, max) = (finite[0], finite[finite.len() - 1]);
+    let min = *finite.iter().min_by(|a, b| a.total_cmp(b)).unwrap();
+    let max = *finite.iter().max_by(|a, b| a.total_cmp(b)).unwrap();
     let (low, high) = match mode {
         "minmax" => (min, max),
         "mean3std" => {
+            finite.sort_by(f64::total_cmp);
             // Shifted population variance avoids cancellation at large offsets.
             let offset = min;
             let mean_shift = finite.iter().map(|v| v - offset).sum::<f64>() / finite.len() as f64;
@@ -112,8 +119,8 @@ pub fn levels(
             (min.max(mean - 3.0 * std), max.min(mean + 3.0 * std))
         }
         _ => (
-            percentile(&finite, clipping),
-            percentile(&finite, 100.0 - clipping),
+            percentile(&mut finite, clipping),
+            percentile(&mut finite, 100.0 - clipping),
         ),
     };
     Some([

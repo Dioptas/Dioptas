@@ -46,7 +46,7 @@ export function nativeClient() {
     try {
       while (input.length >= 4) {
         const length = input.readUInt32LE(0);
-        if (length > 16 * 1024 * 1024)
+        if (length > 256 * 1024 * 1024)
           throw new Error("Oversized native header");
         if (input.length < 4 + length) return;
         const header = JSON.parse(input.subarray(4, 4 + length));

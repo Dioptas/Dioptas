@@ -224,97 +224,14 @@ pub fn on_ring(
 /// Display-only marching-squares paths. Coordinates are detector pixel centers;
 /// fitting and searches always use the original full-resolution field.
 pub fn contours(angles: &[f64], shape: [usize; 2], targets: &[(usize, f64)]) -> serde_json::Value {
-    use serde_json::json;
-    use std::collections::{BTreeMap, BTreeSet};
-    let [h, w] = shape;
-    let step = h.max(w).div_ceil(450).max(1);
-    let rows: Vec<_> = (0..h).step_by(step).collect();
-    let cols: Vec<_> = (0..w).step_by(step).collect();
-    let mut paths = vec![];
-    if rows.len() < 2 || cols.len() < 2 {
-        return json!(paths);
-    }
-    let low = angles.iter().copied().fold(f64::INFINITY, f64::min);
-    let high = angles.iter().copied().fold(f64::NEG_INFINITY, f64::max);
-    for &(ring, target) in targets {
-        if target <= low || target >= high {
-            continue;
-        }
-        let mut vertices = BTreeMap::new();
-        let mut adjacent: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
-        for row in 0..rows.len() - 1 {
-            for col in 0..cols.len() - 1 {
-                let positions = [
-                    (row, col),
-                    (row, col + 1),
-                    (row + 1, col + 1),
-                    (row + 1, col),
-                ];
-                let values = positions.map(|(y, x)| angles[rows[y] * w + cols[x]]);
-                let edge_ids = [
-                    (row * cols.len() + col) * 2,
-                    (row * cols.len() + col + 1) * 2 + 1,
-                    ((row + 1) * cols.len() + col) * 2,
-                    (row * cols.len() + col) * 2 + 1,
-                ];
-                let mut crossed = vec![];
-                for (edge, (a, b)) in [(0, 1), (1, 2), (3, 2), (0, 3)].into_iter().enumerate() {
-                    if (values[a] < target) == (values[b] < target)
-                        || !values[a].is_finite()
-                        || !values[b].is_finite()
-                    {
-                        continue;
-                    }
-                    let t = (target - values[a]) / (values[b] - values[a]);
-                    let (ay, ax) = positions[a];
-                    let (by, bx) = positions[b];
-                    let point = [
-                        cols[ax] as f64 + t * (cols[bx] as f64 - cols[ax] as f64) + 0.5,
-                        rows[ay] as f64 + t * (rows[by] as f64 - rows[ay] as f64) + 0.5,
-                    ];
-                    vertices.insert(edge_ids[edge], point);
-                    crossed.push(edge_ids[edge]);
-                }
-                for pair in crossed.as_chunks::<2>().0 {
-                    adjacent.entry(pair[0]).or_default().push(pair[1]);
-                    adjacent.entry(pair[1]).or_default().push(pair[0]);
-                }
-            }
-        }
-        let mut visited = BTreeSet::new();
-        let starts: Vec<_> = adjacent
-            .iter()
-            .filter(|(_, v)| v.len() == 1)
-            .map(|(&k, _)| k)
-            .chain(adjacent.keys().copied())
-            .collect();
-        for start in starts {
-            if visited.contains(&start) {
-                continue;
-            }
-            let mut current = start;
-            let mut points = vec![];
-            loop {
-                if !visited.insert(current) {
-                    break;
-                }
-                points.push(vertices[&current]);
-                if let Some(&next) = adjacent[&current]
-                    .iter()
-                    .find(|&&next| !visited.contains(&next))
-                {
-                    current = next;
-                } else {
-                    if adjacent[&current].contains(&start) {
-                        points.push(vertices[&start]);
-                    }
-                    break;
-                }
-            }
-            if points.len() >= 2 {
-                paths.push(json!({"ring":ring,"points":points}));
-            }
-        }
-    }
-    json!(paths)
+    contours_at_step(
+        angles,
+        shape,
+        targets,
+        shape[0].max(shape[1]).div_ceil(450).max(1),
+    )
 }
+pub fn full_contours(angles: &[f64], shape: [usize; 2], target: f64) -> serde_json::Value {
+    contours_at_step(angles, shape, &[(0, target)], 1)
+}
+use crate::contours::contours_at_step;

@@ -1,5 +1,7 @@
 # EoS Material Database explorer
 
+The opt-in Rust implementation has a separate [native qualification ledger](NATIVE_INTEGRATION_PARITY.md), including the integration, phase and Batch/Map migration. The Python/Qt behavior and historical checks below remain reference evidence.
+
 Current interface, simplified on 2026-11-04 after feedback on information overload.
 The browser is a material/record picker. Full scientific documentation is reached
 through the selected record's Peritheos and reconstruction-report links.

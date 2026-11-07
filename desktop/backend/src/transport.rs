@@ -89,7 +89,7 @@ pub fn serve(
                     ),
                     Ordering::Release,
                 );
-                if matches!(request.action.as_str(), "calibrate" | "mask_plugin") {
+                if controlled(&request.action) {
                     *worker_active.lock().unwrap() = Some(control.clone());
                     if worker_closing.load(Ordering::Acquire) {
                         control.cancel();
@@ -162,7 +162,7 @@ pub fn serve(
                     }
                     _ => {
                         let control = Arc::new(Control::default());
-                        if matches!(request.action.as_str(), "calibrate" | "mask_plugin") {
+                        if controlled(&request.action) {
                             control.publish(json!({"running":true,"current":0,"total":1,"label":"Waiting for processing"}));
                             let mut active = active.lock().unwrap();
                             if active.is_none() {
@@ -202,4 +202,34 @@ pub fn serve(
             .map_err(|_| "Native processing worker panicked.".to_string())?;
         result.and(finished)
     })
+}
+
+fn controlled(action: &str) -> bool {
+    matches!(
+        action,
+        "calibrate"
+            | "mask_plugin"
+            | "open_image"
+            | "next_image"
+            | "integrate"
+            | "open_calibration"
+            | "manual_geometry"
+            | "settings"
+            | "integration_settings"
+            | "integration_background"
+            | "integration_image_background"
+            | "integration_flat_field"
+            | "integration_correction"
+            | "integration_overlay"
+            | "integration_phase"
+            | "batch_load"
+            | "batch_load_data"
+            | "batch_folder"
+            | "integration_batch"
+            | "batch_folder_step"
+            | "map_load"
+            | "map_folder"
+            | "map_poll"
+            | "process_image_batch"
+    )
 }
