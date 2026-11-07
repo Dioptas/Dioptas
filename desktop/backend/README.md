@@ -1,6 +1,6 @@
 # Native backend migration
 
-The first migration stage runs the existing React interface against a Rust
+The native migration runs the existing React interface against a Rust
 processing executable. It does not start or import Python. Tauri still owns
 native dialogs and the processor's stdio pipes; no scientific HTTP server is
 introduced. The normal preview continues to use its Python backend until the
@@ -21,11 +21,13 @@ npm run backend:build:dioptrin
 npm run tauri:native-dev
 ```
 
-Open a detector image, load a supported `.poni` calibration (or enter complete
-pyFAI-convention geometry), then use Integration. The raw CeO2 example remains
-uncalibrated; its reference PONI is
-`dioptas/tests/data/CeO2_Pilatus1M.poni`. Ring picking and calibration fitting
-are not part of this first stage.
+Open a detector image and use the existing Image → Peaks → Fit → Validate
+workflow. Enter pixel sizes and fit start values, pick measured rings, and use
+Calibrate for a fresh fit or Refine to continue an existing geometry. Automatic
+refinement retains the existing Massif/Blob, angular-width, intensity, and ring
+count controls. Alternatively, load a supported `.poni` or enter complete
+pyFAI-convention geometry before Integration. The raw CeO2 example remains
+uncalibrated; its reference PONI is not used by picking/fitting tests.
 
 For an embedded frontend, first run `npm run build` and
 `npm run tauri:build -- --debug`, then start the resulting host with
@@ -86,6 +88,36 @@ reference environment is used only for migration tests.
   metadata follows pixel-corner extents and the engine's azimuth-bin-center
   convention. Native kernels are reused rather than copied or reimplemented.
 - Atomic XY pattern and PONI exports. Other export formats are not migrated.
+- Embedded native calibrant resources and session-owned custom `.D` references;
+  wavelength-dependent ring availability and validation-only reference changes.
+  Building the processor embeds the existing source calibrants without Python.
+- Seeded native Massif or single-local-maximum peak picking, subpixel scientific
+  coordinates, auto advance, grouped table edits/reassignment/multiple deletion,
+  and compatible version-1 standalone peak files. Peak files retain the existing
+  bottom-left row/column convention and validate dimensions, orientation,
+  calibrant spacings, ring IDs and every coordinate before replacement.
+- Seven independent fit checkboxes, fixed values, free wavelength, fresh-start
+  versus continued fits, fitted residuals, and display ring contours. Native
+  Dioptrin supplies the numerical fit and seeded Massif kernels; its fixed
+  rotations retain the user's exact entered interval in the adapter.
+- Staged automatic ring search/refit using the existing angular-band,
+  mean-factor + population std threshold, upper-intensity ceiling and mask
+  semantics. Massif uses Dioptrin's background/maximum extraction; Blob uses a
+  native f64 difference-of-Gaussians scale space at 1/2/4/8 pixels. These native
+  searches preserve the workflow and controls, not bit-identical pyFAI peak
+  selections. The independent forward-model checks below qualify their outputs.
+- Calibration snapshot Undo/Redo covers setup, constraints, picks/group edits,
+  references, geometry load/manual edits, and complete fits. An automatic search
+  is one history entry. No-op/failed commands retain Redo; new edits invalidate
+  it. History is bounded by count and estimated payload; mask history retains
+  the separate scope from the first native stage.
+- Detached live progress previews contain candidate picks, active ring,
+  fitted contours and RMS. Progress and cancellation bypass the scientific
+  worker through stdio; queued cancellation is retained at worker start. A
+  cancelled/failed fit restores geometry, picks, diagnostics, history and prior
+  display products. Cancellation is checked between native calls/ring stages;
+  a single library call is not interrupted internally. No Python fallback is
+  used. A standalone non-calibration integration call remains noninterruptible.
 
 The schema-only `src/correction_defaults.json` retains the existing React
 controls' parameter definitions from `dioptas.desktop.integration.CORRECTIONS`
@@ -94,13 +126,10 @@ remain unsupported; this file is not a scientific correction implementation.
 
 ## Remaining migration, in order
 
-1. **Calibration and geometry:** native peak selections, calibrant resources,
-   group/history files, fixed/free parameter fitting, automatic ring refinement,
-   cancellation/rollback, Fit2D conversion, and full-resolution linked/ring
-   contours. Then complete detector definitions, orientations, pixel corners,
-   distortion splines and round trips. The current native integration call is
-   not interruptible; a busy cancel request reports this rather than falsely
-   claiming cancellation.
+1. **Remaining calibration geometry:** Fit2D conversion, linked inspection,
+   detector definitions, orientations, nonuniform pixel corners, distortion
+   splines and their round trips. Detector rings use sampled display contours;
+   fitting, integration and ring searches retain full-resolution samples.
 2. **Image/mask/integration parity:** transformations, neighboring-file series,
    geometric and automatic masks, plugins, background images, flat fields,
    absorption corrections, SmoothBruckner background, sectors/wrapped ranges,
@@ -125,6 +154,54 @@ Unported commands and settings return explicit errors without Python fallback.
 The existing UI still exposes unported controls in this development preview;
 it is not yet a replacement for the everyday application.
 
+## Qt integration changes to carry forward
+
+Read-only source audit on 2026-11-07: the Qt checkout at
+`/Users/clemens/Programming/Dioptas`, revision `2e34f09f`, includes shared
+Dioptrin plans/selectable CSC (`62024fea`), warm Batch/Map startup reuse
+(`81a23206`) and detector navigation/display improvements (`65c24a45`). The
+separate Qt preview at `/Users/clemens/Programming/Dioptas-fused-preview`,
+revision `d6d479dc`, adds combined fixed-mask HDF5 loading/integration. Neither
+checkout was modified. Integration migration must retain these behaviors:
+
+- Keep geometry/LUT/normalization state on one persistent owner worker, cache
+  pattern/cake units with bounded memory, and only change native settings when
+  they differ. Warm plans before admitting large Batch/Map queues; reuse those
+  plans on the same worker and reconcile setters after bulk work.
+- Distinguish fixed masks/ROI from dynamic masks and preserve CSC and
+  supersampling selection. Bound input queues and decoder workspaces; queued
+  frames must own their storage even when decoder buffers are reused.
+- For eligible full-frame Bitshuffle/LZ4 native u16/u32 HDF5 inputs, decode once
+  to original typed display pixels plus a prepared float64 pattern. Retain exact
+  dataset/header selection, frozen file identity and the single row flip.
+  Compatible sources can reuse the lookup through `set_source`.
+- Reuse prepared results only for matching immutable pixels, effective mask,
+  geometry, shape, bins, unit, polarization, supersampling and error terms.
+  Pixel/correction/transform changes invalidate them. Unsupported layouts or
+  settings use ordinary native loading/resident-array integration once; do not
+  reread already decoded pixels to attempt an optimization. A changed source
+  must fail atomically. Do not wait behind bulk work for an optional combined
+  load; reject stale deliveries by image/settings revision.
+- Retain float64 weights, sums, normalization and Poisson terms; compare original
+  counts and results independently, and benchmark matched cold/warm workloads
+  including load, display, task preparation, dispatch and product application.
+
+The authoritative owners are Qt `model/integration_task.py`,
+`model/loader/combinedHdf5.py`, `model/loader/fastHdf5.py`,
+`model/Configuration.py` and `controller/async_job.py`. The combined API is newer
+than this backend's pins: `dioptrin-io` preview `d91d567` (following `1fd538d`)
+and Dioptrin fixed-plan revision `72e9b72` underlie that Qt benchmark. Its
+`python-fused` bridge is reference adapter code, not a Python dependency to add
+to this processor. Qualify and pin the corresponding Rust APIs before adoption.
+
+The current native integration adapter still constructs a new integrator per
+call and retains a separate f64 scientific image. It does **not** yet carry these
+warm-plan/combined-load optimizations. The Qt report's roughly 20.6% lower warm
+open-to-pattern latency is a source benchmark for one Eiger 9M fixture on macOS,
+not a speed measurement of this native desktop. See the Qt preview's
+`docs/benchmarks/2026-11-07-combined-hdf5.md` and provenance/validation receipts
+for its exact scope and reproduction conditions.
+
 ## Verification
 
 From the repository root:
@@ -137,10 +214,13 @@ cargo test --locked --manifest-path desktop/backend/Cargo.toml --all-features
 cargo build --locked --manifest-path desktop/backend/Cargo.toml --features dioptrin
 cargo test --locked --manifest-path desktop/src-tauri/Cargo.toml
 .venv/bin/python desktop/scripts/native_backend_parity.py
+.venv/bin/python desktop/scripts/native_calibration_parity.py
 cd desktop
 npm test
 npm run build
 npm run test:native-backend
+npm run test:native-calibration
+npm run test:native-calibration-transport
 ```
 
 The native tests exercise original counts and orientation, TIFF/HDF5 source
@@ -160,9 +240,29 @@ pattern and cake. Screenshots and its receipt are written under ignored
 these checks.
 
 Local checkpoint, 2026-11-07: native tests pass with and without the numerical
-engine (12 tests in each build); all 19 Tauri host tests and 59 JavaScript tests
-pass. The existing Python desktop suite passes with 294 tests and five optional
-skips. Strict native Clippy, formatting and the production frontend build pass.
+engine (21 and 16 tests respectively); all 19 Tauri host tests and 59 JavaScript
+tests pass. At the input-stage checkpoint the existing Python desktop suite
+passed with 294 tests and five optional skips; Python implementation files have
+not changed in this calibration stage. Strict native Clippy, formatting and the
+production frontend build pass.
 The independent input/display comparisons and headless Chromium/WebKit workflow
 checks pass within their scope above. Visible native dialogs/windows and
 Windows/Linux execution have not been requalified for this backend.
+
+The calibration-stage tests additionally cover exact synthetic geometry,
+fixed distance/tilts, free wavelength, rotations outside the principal interval,
+all-fixed fits, unavailable-ring rejection, Massif/Blob searches, peak-file
+compatibility, atomic input validation, transaction-sized history and cancelled/
+failed refinement restoration. The real stdio test runs with Python and PATH
+unavailable and checks immediate queued cancellation and responsive abort.
+
+Measured CeO2 fixture, five original seed locations: 174 picked points in five
+groups produce RMS 0.008680343581089094°; four-ring automatic Massif refinement
+produces 59 points in four groups with RMS 0.010147852936183156°. Independent
+pyFAI evaluation of the exported PONI/points reproduces both residuals within
+1e-9°, and the Python desktop reads the exported peak groups exactly. These
+are regression residuals, not detector-wide accuracy or identifiability claims.
+Both headless Chromium and WebKit exercise actual picks, Undo/Redo, fresh
+Calibrate, continued automatic Refine, live previews and validation plots without
+rendering/command errors. Receipts/screenshots are under ignored
+`desktop/artifacts/native-calibration/`.

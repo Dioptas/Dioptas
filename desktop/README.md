@@ -6,12 +6,15 @@ and uses its scientific models and file formats. It is not a complete
 replacement yet.
 
 An opt-in [native Rust backend migration](backend/README.md) now runs the
-image → loaded/manual geometry → integration workflow without Python, using
+image → peak picking/fitting or loaded/manual geometry → integration workflow without Python, using
 `dioptrin-io` and an optional native Dioptrin adapter. Build with
 `npm run backend:build:dioptrin`, then use `npm run tauri:native-dev` from
 `desktop/` for its isolated port 1428. This is an incomplete migration preview;
 the ordinary launcher still selects the existing Python backend. See the
 migration document for the implemented boundary, verification and remaining work.
+The native calibration stage retains the existing controls, automatic ring
+refinement, live progress/cancellation and grouped edit/fit Undo/Redo for the
+currently supported flat uniform-pixel geometry.
 
 Integration and Map use the same `RasterView` and `PatternView` renderers.
 `diffractionPlotSetup.ts` prepares their common detector mask/click properties

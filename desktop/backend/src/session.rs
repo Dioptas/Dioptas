@@ -1,3 +1,4 @@
+use crate::control::Control;
 use crate::{
     display::{self, Raster},
     geometry::Geometry,
@@ -6,6 +7,10 @@ use crate::{
 };
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+#[path = "calibration.rs"]
+mod calibration;
+use calibration::{Calibration, History, Workflow};
 #[cfg(feature = "dioptrin")]
 use std::time::Instant;
 
@@ -54,6 +59,12 @@ pub struct Session {
     pattern: Option<Value>,
     cake: Option<Raster>,
     cake_values: Option<Vec<f64>>,
+    calibration: Calibration,
+    workflow: Workflow,
+    calibration_history: History,
+    control: Arc<Control>,
+    #[cfg(feature = "dioptrin")]
+    ring_cache: std::cell::RefCell<Option<calibration::RingCache>>,
     #[cfg(feature = "dioptrin")]
     sigma: Option<Vec<f64>>,
 }
@@ -73,20 +84,55 @@ impl Session {
             pattern: None,
             cake: None,
             cake_values: None,
+            calibration: Calibration::default(),
+            workflow: Workflow::default(),
+            calibration_history: History::default(),
+            control: Arc::new(Control::default()),
+            #[cfg(feature = "dioptrin")]
+            ring_cache: Default::default(),
             #[cfg(feature = "dioptrin")]
             sigma: None,
         }
     }
     pub fn invoke(&mut self, request: &Request) -> Reply {
+        self.invoke_controlled(request, Arc::new(Control::default()))
+    }
+    pub fn invoke_controlled(&mut self, request: &Request, control: Arc<Control>) -> Reply {
+        self.control = control;
         if let Err(error) = request.validate() {
             return Reply::error(error);
         }
+        let before = matches!(
+            request.action.as_str(),
+            "manual_geometry" | "open_calibration"
+        )
+        .then(|| self.calibration_snapshot());
         match self.dispatch(&request.action, &request.payload) {
-            Ok(reply) => reply,
+            Ok(mut reply) => {
+                if let Some(before) = before {
+                    let after = self.calibration_snapshot();
+                    self.calibration_history
+                        .record(&request.action, before, after);
+                    if reply.result["state"].is_object() {
+                        for (key, value) in self.calibration_payload().as_object().unwrap() {
+                            reply.result["state"]["calibration"][key] = value.clone();
+                        }
+                    }
+                }
+                reply
+            }
             Err(error) => Reply::error(error),
         }
     }
     fn dispatch(&mut self, action: &str, args: &Value) -> Result<Reply, String> {
+        if calibration::is_command(action) {
+            let defer = args
+                .get("defer_integration")
+                .map(|v| boolean(v, "Defer integration"))
+                .transpose()?
+                .unwrap_or(false);
+            return self.calibration_command(action, args, defer);
+        }
         let defer = args
             .get("defer_integration")
             .map(|v| boolean(v, "Defer integration"))
@@ -109,6 +155,13 @@ impl Session {
                 settings.geometry.pixel2 = 172e-6;
                 settings.geometry.wavelength = 0.406626e-10;
                 self.settings = settings;
+                self.calibration = Calibration::default();
+                self.calibration.reference = self.calibration.choose("CeO2")?;
+                self.calibration.start[6] = self.settings.geometry.wavelength;
+                self.calibration.reference_wavelength = self.settings.geometry.wavelength;
+                self.calibration.confirmed = true;
+                self.workflow = Workflow::default();
+                self.calibration_history = History::default();
                 self.undo.clear();
                 self.redo.clear();
                 self.image = None;
@@ -166,6 +219,9 @@ impl Session {
                     self.mask_raster = Some(Raster::mask(&self.mask, image.shape));
                 }
                 self.image_raster = Some(Raster::image(&image.values, image.shape));
+                self.calibration.picks.clear();
+                self.calibration.rms = None;
+                self.calibration_history = History::default();
                 self.calculate(defer)?;
             }
             "open_calibration" => {
@@ -180,6 +236,7 @@ impl Session {
                         .to_string_lossy()
                         .into_owned(),
                 );
+                self.loaded_geometry("loaded");
                 self.calculate(defer)?;
             }
             "manual_geometry" => {
@@ -192,6 +249,7 @@ impl Session {
                 self.settings.polarization = polarization;
                 self.settings.calibrated = true;
                 self.settings.calibration_name = Some("manual".into());
+                self.loaded_geometry("manual");
                 self.calculate(defer)?;
             }
             "save_calibration" => {
@@ -199,9 +257,17 @@ impl Session {
                 if !self.settings.calibrated {
                     return Err("Load or enter a calibration first.".into());
                 }
+                if self.calibration.dirty {
+                    return Err(
+                        "Fit the current ring selections before saving the calibration.".into(),
+                    );
+                }
                 let file = path(args)?;
                 atomic_write(file, self.settings.geometry.save_text().as_bytes())?;
-                return Ok(Reply::metadata(json!({"ok": true, "savedPath": file})));
+                self.calibration.saved = true;
+                let mut reply = self.snapshot(false);
+                reply.result["savedPath"] = json!(file);
+                return Ok(reply);
             }
             "settings" | "integration_settings" => {
                 let mut candidate = self.settings.clone();
@@ -473,6 +539,9 @@ impl Session {
         }
     }
     fn publish_image(&mut self, image: Image) {
+        self.calibration.picks.clear();
+        self.calibration.rms = None;
+        self.calibration_history = History::default();
         self.image_raster = Some(Raster::image(&image.values, image.shape));
         if self
             .image
@@ -621,6 +690,13 @@ impl Session {
             }
         }, "pattern":self.pattern, "cake":null, "rings":[], "linked":null, "batch":null, "map":null});
         let mut buffers = Vec::new();
+        for (key, value) in self.calibration_payload().as_object().unwrap() {
+            result["state"]["calibration"][key] = value.clone();
+        }
+        #[cfg(feature = "dioptrin")]
+        if self.settings.calibrated {
+            result["rings"] = self.calibration_rings();
+        }
         if let Some(image) = &self.image {
             result["nativeSource"] = json!({"dtype":image.source_dtype,"storedOrientationPreserved":true,"scientificRowOrder":"bottom-up","frame":image.frame,"frames":image.frames});
         }

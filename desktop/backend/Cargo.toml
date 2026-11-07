@@ -30,3 +30,8 @@ name = "dioptas-processor"
 path = "src/main.rs"
 
 [workspace]
+
+# Keep the real-image native algorithms practical in the development preview.
+# This changes optimization only, not float arithmetic policy or CPU target.
+[profile.dev.package.dioptrin]
+opt-level = 2
