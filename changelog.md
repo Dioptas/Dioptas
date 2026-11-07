@@ -1,3 +1,31 @@
+# 0.13.0 (2026-11-07)
+
+## Faster fixed-mask Eiger integration
+
+- Supported Eiger HDF5 frames can now produce their display image and 1D
+  pattern in one native block-decoding pass. Parallel block workers share
+  the fixed integration table. Original uint16/uint32 display counts and
+  float64 integration weights, sums and Poisson uncertainties are preserved.
+- The documented warm-cache Eiger 9M Qt benchmark measured approximately 20%
+  lower open-to-pattern latency: 180–182 ms to 143–145 ms. The comparison
+  includes Qt image/model updates and debounce; physical screen presentation
+  was not measured. See the [benchmark and all-frame validation](https://github.com/Dioptas/Dioptas/blob/0.13.0/docs/benchmarks/2026-11-07-combined-hdf5.md).
+- The combined path is selected automatically for compatible single-frame,
+  fixed-mask integrations. Dynamic masking, Batch, Map and cake integration
+  retain their existing processing paths and compatibility fallbacks.
+
+## Native packages and consistency
+
+- Standalone applications include Dioptrin 0.10.0 and dioptrin-io 0.2.0.
+  The existing `dioptrin` extra installs their published wheels, including
+  the fused bridge, without a separate Rust checkout or adapter build.
+- Source or integration-setting changes invalidate prepared results so the
+  displayed counts and pattern remain consistent. Native work stays on its
+  owning thread, and an active Batch or Map job keeps its processing lane.
+- Release checks verify both native packages in the frozen applications.
+  The bundled Dioptrin update also fixes concurrent initialization of shared
+  lookup tables.
+
 # 0.12.1 (2026-11-06)
 
 ## Fixes and performance
