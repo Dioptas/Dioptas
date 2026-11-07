@@ -1,0 +1,62 @@
+name: CI fused HDF5
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-preview:
+    name: Qt with native fused bridge
+    runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+      RAYON_NUM_THREADS: '4'
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: qt
+      - uses: actions/checkout@v7
+        with:
+          repository: CPrescher/dioptrin-io
+          ref: d91d567262d20e500a587d4ea53b9aed32ddc8dd
+          path: io
+      - uses: actions/checkout@v7
+        with:
+          repository: CPrescher/Dioptrin
+          ref: 72e9b72fa3ccaed19aa4ee09e3cb8bf002590a78
+          path: dioptrin
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: astral-sh/setup-uv@v7
+      - name: Qt build/runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libglib2.0-0 libxkbcommon-x11-dev libxcb-xinerama0 libxcb-cursor0 libopengl0 libhdf5-dev pkg-config libxml2-dev libxslt1-dev zlib1g-dev
+      - run: uv sync --locked --python 3.13 --extra test --extra dioptrin
+        working-directory: qt
+      - run: python -m pip install maturin patchelf
+      - name: Configure the pinned native dependency
+        shell: python
+        run: |
+          import json
+          from pathlib import Path
+          path = Path('io/python-fused/.cargo/config.toml')
+          path.parent.mkdir(parents=True, exist_ok=True)
+          source = json.dumps(Path('dioptrin').resolve().as_posix())
+          path.write_text('[patch.crates-io]\ndioptrin = { path = ' + source + ' }\n')
+      - run: maturin build --locked --release --interpreter ../../qt/.venv/bin/python --out dist
+        working-directory: io/python-fused
+      - name: Install the real bridge without changing other dependencies
+        run: uv pip install --python qt/.venv/bin/python --no-deps --no-index --find-links io/python-fused/dist dioptrin-io-fused
+      - name: Check native capabilities (no skipped native tests)
+        run: qt/.venv/bin/python -c "import dioptrin_io_fused as f; assert hasattr(f.FusedHdf5Integrator, 'load_integrate1d')"
+      - name: Single-decode, owner-thread, source, masking and bulk regressions
+        working-directory: qt
+        run: .venv/bin/python -m pytest dioptas/tests/unit_tests/test_fused_single_frame.py dioptas/tests/unit_tests/test_integration_task.py dioptas/tests/controller_tests/test_integration_coordinator.py dioptas/tests/controller_tests/test_async_map_batch.py dioptas/tests/unit_tests/test_batch_task.py dioptas/tests/unit_tests/test_fast_hdf5_pipeline.py dioptas/tests/unit_tests/test_dioptrin_mask_modes.py -q
