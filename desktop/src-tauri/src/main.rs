@@ -11,7 +11,7 @@ use calibration_tooltip::{
     show_calibration_tooltip, TooltipState,
 };
 
-use processor::{Packet, Processor};
+use processor::{Backend, Packet, Processor};
 use serde_json::{json, Value};
 use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use tauri::{Manager, State};
@@ -329,7 +329,8 @@ fn main() {
         .manage(map_window::MapWindowState::default())
         .manage(map_window::BatchWindowState::default())
         .manage(Host {
-            processor: Processor::start(example).map(Arc::new),
+            processor: Backend::requested(&args, std::env::var("DIOPTAS_BACKEND").ok().as_deref())
+                .and_then(|backend| Processor::start_backend(example, backend)).map(Arc::new),
             smoke,
             closing: AtomicBool::new(false),
         })

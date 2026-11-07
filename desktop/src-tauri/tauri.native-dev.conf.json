@@ -1,0 +1,12 @@
+{
+  "identifier": "org.dioptas.desktop-native-preview",
+  "build": {
+    "beforeDevCommand": "npm run dev -- --port 1428 --strictPort",
+    "devUrl": "http://127.0.0.1:1428"
+  },
+  "app": {
+    "security": {
+      "devCsp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost ws://127.0.0.1:1428; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:"
+    }
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "cbn": {
+    "enabled": false,
+    "parameters": {
+      "diamond_thickness": 2.0,
+      "seat_thickness": 5.0,
+      "small_cbn_seat_radius": 0.5,
+      "large_cbn_seat_radius": 2.0,
+      "tilt": 0.0,
+      "tilt_rotation": 0.0,
+      "diamond_abs_length": 13.7,
+      "cbn_abs_length": 14.05,
+      "center_offset": 0.0,
+      "center_offset_angle": 0.0
+    },
+    "fields": {
+      "diamond_thickness": {
+        "label": "Diamond thickness (mm)",
+        "min": 0.001,
+        "max": 100.0
+      },
+      "seat_thickness": {
+        "label": "Seat thickness (mm)",
+        "min": 0.001,
+        "max": 100.0
+      },
+      "small_cbn_seat_radius": {
+        "label": "Small seat radius (mm)",
+        "min": 0.001,
+        "max": 100.0
+      },
+      "large_cbn_seat_radius": {
+        "label": "Large seat radius (mm)",
+        "min": 0.001,
+        "max": 100.0
+      },
+      "tilt": {
+        "label": "Tilt (\u00b0)",
+        "min": -89.0,
+        "max": 89.0
+      },
+      "tilt_rotation": {
+        "label": "Tilt rotation (\u00b0)",
+        "min": -360.0,
+        "max": 360.0
+      },
+      "diamond_abs_length": {
+        "label": "Diamond absorption length (mm)",
+        "min": 0.001,
+        "max": 1000000.0
+      },
+      "cbn_abs_length": {
+        "label": "cBN absorption length (mm)",
+        "min": 0.001,
+        "max": 1000000.0
+      },
+      "center_offset": {
+        "label": "Center offset (mm)",
+        "min": -100.0,
+        "max": 100.0
+      },
+      "center_offset_angle": {
+        "label": "Offset angle (\u00b0)",
+        "min": -360.0,
+        "max": 360.0
+      }
+    }
+  },
+  "oiadac": {
+    "enabled": false,
+    "parameters": {
+      "detector_thickness": 40.0,
+      "absorption_length": 150.0,
+      "tilt": 0.0,
+      "rotation": 0.0
+    },
+    "fields": {
+      "detector_thickness": {
+        "label": "Detector thickness (\u00b5m)",
+        "min": 0.001,
+        "max": 1000000.0
+      },
+      "absorption_length": {
+        "label": "Absorption length (\u00b5m)",
+        "min": 0.001,
+        "max": 1000000.0
+      },
+      "tilt": {
+        "label": "Detector tilt (\u00b0)",
+        "min": -89.0,
+        "max": 89.0
+      },
+      "rotation": {
+        "label": "Detector rotation (\u00b0)",
+        "min": -360.0,
+        "max": 360.0
+      }
+    }
+  }
+}

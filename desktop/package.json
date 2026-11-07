@@ -4,6 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "backend:build": "cargo build --locked --manifest-path backend/Cargo.toml",
+    "backend:build:dioptrin": "cargo build --locked --manifest-path backend/Cargo.toml --features dioptrin",
+    "backend:test": "cargo test --locked --manifest-path backend/Cargo.toml --all-features",
+    "test:native-backend": "node scripts/native_backend_smoke.mjs",
+    "tauri:native-dev": "tauri dev --config src-tauri/tauri.native-dev.conf.json -- -- --backend=rust",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:phase-dev": "tauri dev --config src-tauri/tauri.phase-dev.conf.json -- -- --example",

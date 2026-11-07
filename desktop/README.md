@@ -5,6 +5,14 @@ Mask, Integration and Map modes, plus a linked Batch window. It lives beside the
 and uses its scientific models and file formats. It is not a complete
 replacement yet.
 
+An opt-in [native Rust backend migration](backend/README.md) now runs the
+image → loaded/manual geometry → integration workflow without Python, using
+`dioptrin-io` and an optional native Dioptrin adapter. Build with
+`npm run backend:build:dioptrin`, then use `npm run tauri:native-dev` from
+`desktop/` for its isolated port 1428. This is an incomplete migration preview;
+the ordinary launcher still selects the existing Python backend. See the
+migration document for the implemented boundary, verification and remaining work.
+
 Integration and Map use the same `RasterView` and `PatternView` renderers.
 `diffractionPlotSetup.ts` prepares their common detector mask/click properties
 and pattern colors, visibility, phase references, overlay legends, linked radial

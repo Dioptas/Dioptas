@@ -1,5 +1,12 @@
 # Calibration workflow comparison
 
+The optional [native Rust migration](backend/README.md) currently supports
+loading/writing flat uniform-pixel PONI and complete manual pyFAI geometry,
+followed by native integration. Peak picking, fitting, automatic refinement,
+detector definitions, distortion and Fit2D conversion remain on the migration
+backlog. The parity evidence below continues to describe the existing Python
+backend; it must not be attributed to the Rust processor.
+
 Compared on 2026-11-01 against this checkout's Qt
 `dioptas/widgets/CalibrationWidget.py`,
 `dioptas/controller/CalibrationController.py`, and the shared

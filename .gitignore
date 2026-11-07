@@ -201,6 +201,7 @@ desktop/node_modules/
 dioptas/desktop/ui/
 desktop/artifacts/
 desktop/src-tauri/target/
+desktop/backend/target/
 desktop/src-tauri/gen/
 
 # Disposable hot-reload smoke probe (normally removed automatically)

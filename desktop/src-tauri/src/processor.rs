@@ -36,6 +36,32 @@ impl Packet {
 
 type Reply = Result<Packet, String>;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Backend {
+    Python,
+    Rust,
+}
+
+impl Backend {
+    pub fn requested(args: &[String], environment: Option<&str>) -> Result<Self, String> {
+        let choices: Vec<_> = args
+            .iter()
+            .filter_map(|arg| arg.strip_prefix("--backend="))
+            .collect();
+        if choices.len() > 1 || args.iter().any(|arg| arg == "--backend") {
+            return Err("Specify the processor once as --backend=rust or --backend=python.".into());
+        }
+        match choices.first().copied().or(environment).unwrap_or("python") {
+            "python" => Ok(Self::Python),
+            "rust" => Ok(Self::Rust),
+            _ => Err(
+                "Choose --backend=rust or --backend=python. No fallback processor was started."
+                    .into(),
+            ),
+        }
+    }
+}
+
 // The child is local and trusted, but reject broken framing before allocating.
 const MAX_HEADER: usize = 16 * 1024 * 1024;
 const MAX_BUFFERS: usize = 1024 * 1024 * 1024;
@@ -119,25 +145,65 @@ impl Processor {
             })
     }
 
+    #[cfg(test)]
     pub fn start(example: bool) -> Result<Self, String> {
+        Self::start_backend(example, Backend::Python)
+    }
+
+    pub fn start_backend(example: bool, backend: Backend) -> Result<Self, String> {
         let root = Self::source_root();
-        let python = std::env::var_os("DIOPTAS_PYTHON")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| {
-                root.join(if cfg!(windows) {
-                    ".venv/Scripts/python.exe"
+        let mut command = match backend {
+            Backend::Python => {
+                let python = std::env::var_os("DIOPTAS_PYTHON")
+                    .map(PathBuf::from)
+                    .unwrap_or_else(|| {
+                        root.join(if cfg!(windows) {
+                            ".venv/Scripts/python.exe"
+                        } else {
+                            ".venv/bin/python"
+                        })
+                    });
+                if !python.is_file() {
+                    return Err(format!("The local Python environment is missing at {}. Run uv sync --python 3.13 in the Dioptas checkout, then restart.", python.display()));
+                }
+                let mut command = Command::new(python);
+                command
+                    .args(["-u", "-m", "dioptas.desktop.stdio"])
+                    .env("PYTHONUNBUFFERED", "1");
+                command
+            }
+            Backend::Rust => {
+                let filename = if cfg!(windows) {
+                    "dioptas-processor.exe"
                 } else {
-                    ".venv/bin/python"
-                })
-            });
-        if !python.is_file() {
-            return Err(format!("The local Python environment is missing at {}. Run uv sync --python 3.13 in the Dioptas checkout, then restart.", python.display()));
-        }
-        let mut command = Command::new(python);
+                    "dioptas-processor"
+                };
+                let native = std::env::var_os("DIOPTAS_NATIVE_PROCESSOR")
+                    .map(PathBuf::from)
+                    .unwrap_or_else(|| {
+                        let sibling = std::env::current_exe()
+                            .ok()
+                            .and_then(|p| p.parent().map(|p| p.join(filename)));
+                        sibling.filter(|p| p.is_file()).unwrap_or_else(|| {
+                            root.join("desktop/backend/target")
+                                .join(if cfg!(debug_assertions) {
+                                    "debug"
+                                } else {
+                                    "release"
+                                })
+                                .join(filename)
+                        })
+                    });
+                if !native.is_file() {
+                    return Err(format!("The native processor is missing at {}. Build it with npm run backend:build in desktop. Python was not started.", native.display()));
+                }
+                let mut command = Command::new(native);
+                command.arg("--source-root").arg(&root);
+                command
+            }
+        };
         command
-            .args(["-u", "-m", "dioptas.desktop.stdio"])
             .current_dir(root)
-            .env("PYTHONUNBUFFERED", "1")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit());
@@ -233,7 +299,7 @@ impl Processor {
         if self.closed.swap(true, Ordering::SeqCst) {
             return;
         }
-        // EOF asks Python to cancel, drain commands, and release thread-affine
+        // EOF asks the processor to drain commands and release thread-affine
         // models. Bound shutdown if a native library cannot respond to cancel.
         self.input.lock().unwrap().take();
         let mut child = self.child.lock().unwrap();
@@ -257,6 +323,52 @@ impl Drop for Processor {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn backend_selection_is_explicit_and_never_silently_falls_back() {
+        assert_eq!(Backend::requested(&[], None).unwrap(), Backend::Python);
+        assert_eq!(
+            Backend::requested(&[], Some("rust")).unwrap(),
+            Backend::Rust
+        );
+        assert_eq!(
+            Backend::requested(&["--backend=rust".into()], Some("python")).unwrap(),
+            Backend::Rust
+        );
+        assert!(Backend::requested(&["--backend=unknown".into()], None).is_err());
+        assert!(Backend::requested(&["--backend".into(), "rust".into()], None).is_err());
+        assert!(
+            Backend::requested(&["--backend=rust".into(), "--backend=python".into()], None)
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn native_processor_uses_the_same_pipe_and_releases_its_rust_child() {
+        let processor = Processor::start_backend(false, Backend::Rust).unwrap();
+        let host = processor.request("__host__", json!({})).unwrap();
+        assert_eq!(host["runtime"], "rust");
+        assert_eq!(host["protocol"], 2);
+        let image = processor.request("example", json!({})).unwrap();
+        assert_eq!(image["ok"], true);
+        assert_eq!(image["image"]["width"], 981);
+        assert_eq!(image["image"]["height"], 1043);
+        assert_eq!(
+            processor
+                .request("open_project", json!({"path":"not-migrated.dio"}))
+                .unwrap()["ok"],
+            false
+        );
+        processor.shutdown();
+        assert!(processor
+            .child
+            .lock()
+            .unwrap()
+            .try_wait()
+            .unwrap()
+            .is_some());
+        assert!(processor.request("state", json!({})).is_err());
+    }
 
     #[test]
     fn real_session_multiplexes_responses_and_closes_its_child() {
