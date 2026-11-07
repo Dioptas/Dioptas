@@ -9,7 +9,7 @@ This setup targets GitHub-hosted macOS runners. It does not require an App Store
 listing or a provisioning profile for Dioptas's current capabilities.
 
 The current build candidate locks core Peritheos to 0.18.0 and installs Dioptrin
-0.7.0 from PyPI using `uv sync --locked --extra test --extra dioptrin`.
+0.10.0 and dioptrin-io 0.2.0 from PyPI using `uv sync --locked --extra test --extra dioptrin`.
 Dioptrin is MIT licensed and needs no activation, license key, or download token.
 The workflows verify its version before building; the frozen startup check also
 requires the backend and exercises synthetic 1D and 2D integration. Update the
