@@ -70,7 +70,10 @@ jobs:
           python3 - <<'PY'
           import json, os, subprocess
           config = {"bundle": {"macOS": {"signingIdentity": os.environ["DIOPTAS_CODESIGN_IDENTITY"]}}}
-          subprocess.run(["npm", "run", "desktop:build", "--", "--config", json.dumps(config), "--bundles", "app", "--", "--locked"], check=True)
+          env = {**os.environ, "GITHUB_SHA": "adefdee708e2574d827eced40fd354b43dce7c22", "GITHUB_REF_NAME": "codex/tauri-desktop-builds"}
+          subprocess.run(["npm", "run", "desktop:build", "--", "--config", json.dumps(config), "--bundles", "app", "--", "--locked"], check=True, env=env)
+          info = json.load(open("dist-desktop/build-info.json"))
+          assert info["commit"] == env["GITHUB_SHA"] and info["channel"] == "desktop" and not info["dirty"], info
           PY
       - name: Notarize and staple MossA and its installer
         working-directory: mossa
