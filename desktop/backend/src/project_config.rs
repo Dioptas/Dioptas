@@ -160,14 +160,32 @@ pub(super) fn load(
     let cal = with_defaults("calibration", &doc["calibration"]);
     let pat = with_defaults("pattern", &doc["pattern"]);
     let mask = with_defaults("mask", &doc["mask"]);
-    if img["transformations"]
-        .as_array()
-        .is_none_or(|a| !a.is_empty())
-    {
-        return Err("Project image transformations must be migrated before this configuration can be processed natively.".into());
-    }
+    s.settings.transformations = crate::transform::parse(&img["transformations"])?;
     s.processing.factor = finite(&img["factor"], "Image scale factor", -1e12, 1e12)?;
     s.settings.geometry = geometry(&cal)?;
+    s.settings.original_pixels = if doc["native_desktop"]
+        .get("original_pixel_sizes")
+        .is_some_and(Value::is_null)
+    {
+        None
+    } else if let Some(p) = doc["native_desktop"]["original_pixel_sizes"].as_array() {
+        if p.len() != 2 {
+            return Err("Invalid original detector pixel sizes.".into());
+        }
+        let pixels = [
+            finite(&p[0], "Pixel size", 0., f64::MAX)?,
+            finite(&p[1], "Pixel size", 0., f64::MAX)?,
+        ];
+        if pixels.iter().any(|v| *v <= 0.) {
+            return Err("Original detector pixel sizes must be positive.".into());
+        }
+        Some(pixels)
+    } else {
+        // Older writers do not store the detector's reset snapshot. Keep
+        // their saved geometry authoritative, as the existing reader does.
+        None
+    };
+    s.mask_mode = boolean(&mask["mode"], "Mask mode")?;
     s.settings.calibrated = boolean(&cal["is_calibrated"], "Calibrated")?;
     s.settings.calibration_name = optional_string(&cal["calibration_name"]);
     s.settings.calibration_path = optional_string(&cal["poni_filename"]);
@@ -192,14 +210,14 @@ pub(super) fn load(
             shape,
             values,
             options,
-        )?);
+        )?)?;
     } else if !text(&img["filename"]).is_empty() {
         let mut options = options;
         options["frame"] = json!(frame);
         s.publish_image(Image::open(
             Path::new(img["filename"].as_str().unwrap()),
             &options,
-        )?);
+        )?)?;
     }
     let shape = s.image.as_ref().map(|i| i.shape);
     let settings = json!({"unit":p["integration_unit"],"bins":p["integration_rad_points"],"cake_bins":p["cake_azimuth_points"],
@@ -237,15 +255,19 @@ pub(super) fn load(
             }
             s.settings.roi = Some(roi);
         }
+        let source_shape = s.image.as_ref().unwrap().source_shape;
         if let Some((dims, values)) = array(file, "cache", &doc["background_data"])? {
-            if dims != shape {
+            if dims != source_shape {
                 return Err("Project background dimensions differ from the image.".into());
             }
-            s.processing
-                .restore_background(text(&img["background_filename"]), shape, values);
+            s.processing.restore_background(
+                text(&img["background_filename"]),
+                source_shape,
+                values,
+            );
         } else if !text(&img["background_filename"]).is_empty() {
             s.processing
-                .background(&json!({"path":img["background_filename"]}), shape)?;
+                .background(&json!({"path":img["background_filename"]}), source_shape)?;
         }
         s.processing.scale = finite(&img["background_scaling"], "Background scale", -1e12, 1e12)?;
         s.processing.offset = finite(&img["background_offset"], "Background offset", -1e12, 1e12)?;
@@ -270,20 +292,22 @@ pub(super) fn load(
                     "flat_field" => {
                         let flat = array(file, "cache", &doc["native_desktop"]["flat_response"])?;
                         if let Some((dims, values)) = flat {
-                            if dims != shape {
+                            if dims != source_shape {
                                 return Err(
                                     "Project flat-field dimensions differ from the image.".into()
                                 );
                             }
                             s.processing.restore_flat(
                                 text(&parameters["filename"]),
-                                shape,
+                                source_shape,
                                 values,
                                 true,
                             )?;
                         } else {
-                            s.processing
-                                .flat_field(&json!({"path":parameters["filename"]}), shape)?;
+                            s.processing.flat_field(
+                                &json!({"path":parameters["filename"]}),
+                                source_shape,
+                            )?;
                         }
                     }
                     _ => {
@@ -298,12 +322,12 @@ pub(super) fn load(
             && let Some((dims, values)) =
                 array(file, "cache", &doc["native_desktop"]["flat_response"])?
         {
-            if dims != shape {
+            if dims != source_shape {
                 return Err("Project flat-field dimensions differ from the image.".into());
             }
             s.processing.restore_flat(
                 text(&doc["native_desktop"]["flat_filename"]),
-                shape,
+                source_shape,
                 values,
                 false,
             )?;
@@ -597,12 +621,12 @@ pub(super) fn save(
     merge(
         &mut doc["img"],
         &json!({"filename":image.map(|i|&i.path).unwrap_or(&PathBuf::new()),"series_pos":image.map_or(1,|i|i.frame+1),
-        "autoprocess":s.files.auto_process,"file_iteration_mode":s.files.image_mode,"factor":s.processing.factor,"transformations":[],
+        "autoprocess":s.files.auto_process,"file_iteration_mode":s.files.image_mode,"factor":s.processing.factor,"transformations":settings.transformations,
         "background_scaling":s.processing.scale,"background_offset":s.processing.offset}),
     );
     doc["series_max"] = json!(image.map_or(1, |i| i.frames));
     doc["image_data"] = if let Some(image) = image {
-        put(cache, &image.shape, &image.values)?
+        put(cache, &image.source_shape, &image.source_values)?
     } else {
         Value::Null
     };
@@ -623,6 +647,7 @@ pub(super) fn save(
         doc.get("mask_data").cloned().unwrap_or(Value::Null)
     };
     doc["mask"]["roi"] = json!(settings.roi);
+    doc["mask"]["mode"] = json!(s.mask_mode);
     let g = &settings.geometry;
     let geometry = json!({"poni_version":2.1,"dist":g.dist,"poni1":g.poni1,"poni2":g.poni2,"rot1":g.rot1,"rot2":g.rot2,"rot3":g.rot3,
         "wavelength":g.wavelength,"detector":"Detector","detector_config":{"pixel1":g.pixel1,"pixel2":g.pixel2,"orientation":3}});
@@ -660,7 +685,7 @@ pub(super) fn save(
     }
     merge(
         &mut native,
-        &json!({"version":1,"pattern_name":s.patterns.name,"correction_drafts":processing["corrections"],"label":c.label,"reader_options":image.map(|i|&i.options),"mask_filename":s.mask_filename,"image_batch_mode":s.image_batch_mode,
+        &json!({"version":1,"original_pixel_sizes":settings.original_pixels,"pattern_name":s.patterns.name,"correction_drafts":processing["corrections"],"label":c.label,"reader_options":image.map(|i|&i.options),"mask_filename":s.mask_filename,"image_batch_mode":s.image_batch_mode,
         "calibration":{"version":1,"calibrant":s.calibration.reference.name,"fit_dirty":s.calibration.dirty,"rms_degrees":s.calibration.rms,
         "custom_calibrant":s.calibration.custom.as_ref().map(|r|json!({"name":r.name,"content":r.content})),"setup_confirmed":s.calibration.confirmed,
         "workflow":s.workflow,"geometry_source":s.calibration.source}}),

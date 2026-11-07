@@ -23,6 +23,8 @@ See the [qualification ledger](NATIVE_INTEGRATION_PARITY.md) for measured parity
 benchmark scope and remaining detector work. Native format-2 `.dio` persistence
 and configuration select/add/duplicate/rename/remove controls are now available;
 see [project compatibility and verification](NATIVE_PROJECT_PARITY.md).
+The next stage adds [native rotations/flips and geometric masks](NATIVE_GEOMETRY_MASK_PARITY.md)
+through the existing controls, including per-configuration persistence and history.
 
 Integration and Map use the same `RasterView` and `PatternView` renderers.
 `diffractionPlotSetup.ts` prepares their common detector mask/click properties

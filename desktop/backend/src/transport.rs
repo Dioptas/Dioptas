@@ -80,6 +80,8 @@ pub fn serve(
                             | "settings"
                             | "integration_settings"
                             | "mask_stroke"
+                            | "mask_edit"
+                            | "image_transform"
                             | "clear_mask"
                             | "undo_mask"
                             | "redo_mask"
@@ -208,6 +210,8 @@ fn controlled(action: &str) -> bool {
     matches!(
         action,
         "calibrate"
+            | "image_transform"
+            | "mask_edit"
             | "mask_plugin"
             | "open_image"
             | "next_image"

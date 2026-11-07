@@ -69,9 +69,10 @@ stages; an individual HDF5/library call is not interrupted internally.
 
 The current reader accepts format 2. Legacy formats 0/1 and future versions fail
 explicitly, as do active unsupported plugins and science outside the native
-adapter's supported boundary: named/nonuniform/oriented/spline detector geometry,
-image transformations, or unsupported thermal-pressure settings. Disabled unknown
-plugin state is retained. Legacy files need a compatible original reader and
+adapter's supported boundary: named/nonuniform/oriented/spline detector geometry
+or unsupported thermal-pressure settings. Image rotations/flips and geometric
+masks are now implemented in [the next stage](NATIVE_GEOMETRY_MASK_PARITY.md).
+Disabled unknown plugin state is retained. Legacy files need a compatible original reader and
 explicit data export; resaving in the current Python reader is not a legacy
 conversion path. Remaining geometry/masking/package work is listed in
 [the backend migration document](backend/README.md).

@@ -252,12 +252,16 @@ impl Processing {
         if self
             .background
             .as_ref()
-            .is_some_and(|p| p.shape != image.shape)
+            .is_some_and(|p| p.shape != image.source_shape)
         {
             self.background = None;
             self.cache = None;
         }
-        if self.flat.as_ref().is_some_and(|p| p.shape != image.shape) {
+        if self
+            .flat
+            .as_ref()
+            .is_some_and(|p| p.shape != image.source_shape)
+        {
             self.flat = None;
             self.flat_enabled = false;
             self.cache = None;
@@ -280,12 +284,24 @@ impl Processing {
         }
         let mut values = image.values.as_ref().clone();
         if let Some(background) = &self.background {
-            for (v, b) in values.iter_mut().zip(background.values.iter()) {
+            let background = crate::transform::apply(
+                &background.values,
+                background.shape,
+                &image.transformations,
+                &crate::control::Control::default(),
+            )?;
+            for (v, b) in values.iter_mut().zip(background.iter()) {
                 *v -= self.scale * b + self.offset;
             }
         }
         if self.flat_enabled {
-            let response = &self.flat.as_ref().unwrap().values;
+            let flat = self.flat.as_ref().unwrap();
+            let response = crate::transform::apply(
+                &flat.values,
+                flat.shape,
+                &image.transformations,
+                &crate::control::Control::default(),
+            )?;
             for (v, f) in values.iter_mut().zip(response.iter()) {
                 *v /= f;
             }

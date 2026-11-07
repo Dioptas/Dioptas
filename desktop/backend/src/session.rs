@@ -16,8 +16,12 @@ mod calibration;
 mod checkpoint;
 #[path = "file_workflow.rs"]
 mod file_workflow;
+#[path = "geometric_mask.rs"]
+mod geometric_mask;
 #[path = "image_batch.rs"]
 mod image_batch;
+#[path = "image_transform.rs"]
+mod image_transform;
 #[path = "integration_history.rs"]
 mod integration_history;
 #[path = "linked.rs"]
@@ -37,6 +41,8 @@ use std::time::Instant;
 
 #[derive(Clone, PartialEq)]
 struct Settings {
+    transformations: Vec<crate::transform::Transform>,
+    original_pixels: Option<[f64; 2]>,
     geometry: Geometry,
     calibrated: bool,
     calibration_name: Option<String>,
@@ -63,6 +69,8 @@ struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
+            transformations: vec![],
+            original_pixels: None,
             geometry: Geometry::default(),
             calibrated: false,
             calibration_name: None,
@@ -111,6 +119,7 @@ pub struct Session {
     inspection: Option<linked::Inspection>,
     mask: Arc<Vec<u8>>,
     mask_filename: Option<String>,
+    mask_mode: bool,
     effective_mask: Arc<Vec<u8>>,
     plugins: Plugins,
     image_generation: u64,
@@ -137,6 +146,7 @@ pub struct Session {
 }
 #[derive(Clone, PartialEq)]
 struct MaskSnapshot {
+    mode: bool,
     user: Arc<Vec<u8>>,
     plugins: Vec<PluginState>,
 }
@@ -163,6 +173,7 @@ impl Session {
             inspection: None,
             mask: Arc::new(vec![]),
             mask_filename: None,
+            mask_mode: true,
             effective_mask: Arc::new(vec![]),
             plugins: Plugins::default(),
             image_generation: 0,
@@ -291,6 +302,8 @@ impl Session {
                         || request.action == "open_project"
                         || request.action == "save_project"
                         || request.action == "configuration"
+                        || request.action == "mask_edit"
+                        || request.action == "image_transform"
                         || request.action == "integration_batch"
                         || (request.action == "open_image"
                             && request.payload["paths"]
@@ -361,7 +374,7 @@ impl Session {
                 return Ok(Reply::metadata(
                     json!({"ok": true, "protocol": 2, "transport": "stdio", "runtime": "rust", "pid": std::process::id(), "qtApplication": false,
                 "engine": if cfg!(feature="dioptrin") { Some("dioptrin") } else { None },
-                "capabilities": ["image-input", "frame-navigation", "binary-rasters", "display-statistics", "mask-brush", "mask-history", "mask-plugins", "calibration-peaks", "calibration-history", "uniform-poni", "manual-pyfai-geometry", "xy-export", "project-format-2", "configuration-management"]}),
+                "capabilities": ["image-input", "frame-navigation", "binary-rasters", "display-statistics", "mask-brush", "mask-history", "mask-plugins", "calibration-peaks", "calibration-history", "uniform-poni", "manual-pyfai-geometry", "xy-export", "project-format-2", "configuration-management", "image-transformations", "geometric-masks"]}),
                 ));
             }
             "state" => return Ok(self.snapshot(true)),
@@ -386,7 +399,7 @@ impl Session {
                 self.undo.clear();
                 self.redo.clear();
                 self.image = None;
-                self.publish_image(candidate);
+                self.publish_image(candidate)?;
                 self.refresh_masks(&Control::default())?;
             }
             "open_image" => {
@@ -414,6 +427,7 @@ impl Session {
                     file.to_path_buf()
                 };
                 let mut image = Image::prepare(&file, args)?;
+                image.orient(&self.settings.transformations, &self.control)?;
                 #[cfg(feature = "dioptrin")]
                 let prepared = if self.settings.calibrated && !defer && !self.processing.active() {
                     let options = self.integration_options();
@@ -438,7 +452,7 @@ impl Session {
                 }
                 #[cfg(not(feature = "dioptrin"))]
                 image.read(image.frame)?;
-                self.publish_image(image);
+                self.publish_image(image)?;
                 #[cfg(feature = "dioptrin")]
                 {
                     self.prepared = prepared;
@@ -528,6 +542,7 @@ impl Session {
                 let file = path(args)?;
                 let candidate = Geometry::load(file)?;
                 self.settings.geometry = candidate;
+                self.settings.original_pixels = None;
                 self.settings.calibration_path = Some(file.to_string_lossy().into_owned());
                 self.settings.calibrated = true;
                 self.settings.calibration_name = Some(
@@ -546,6 +561,7 @@ impl Session {
                 }
                 let (geometry, polarization) = Geometry::manual(&args["values"])?;
                 self.settings.geometry = geometry;
+                self.settings.original_pixels = None;
                 self.settings.polarization = polarization;
                 self.settings.calibrated = true;
                 self.settings.calibration_name = Some("manual".into());
@@ -698,7 +714,7 @@ impl Session {
             | "integration_flat_field"
             | "integration_correction" => {
                 self.require_image()?;
-                let shape = self.image.as_ref().unwrap().shape;
+                let shape = self.image.as_ref().unwrap().source_shape;
                 match action {
                     "integration_image_background" => {
                         check_keys(
@@ -923,6 +939,12 @@ impl Session {
                 };
                 return Ok(Reply::metadata(json!({"ok":true,"pixel":pixel})));
             }
+            "image_transform" => {
+                return self.image_transform(args, defer);
+            }
+            "mask_edit" => {
+                return self.geometric_mask(args, defer);
+            }
             "mask_stroke" => {
                 check_keys(args, &["points", "radius", "erase", "defer_integration"])?;
                 let image = self
@@ -968,7 +990,7 @@ impl Session {
                         }
                     }
                 }
-                self.replace_mask(mask);
+                self.replace_mask_mode(mask, !erase);
                 self.settings.use_mask = true;
                 self.calculate(defer)?;
             }
@@ -988,6 +1010,7 @@ impl Session {
                 let previous = source.pop().ok_or("No mask edit to undo/redo.")?;
                 destination.push(current);
                 self.mask = previous.user;
+                self.mask_mode = previous.mode;
                 self.plugins.states = previous.plugins;
                 self.calculate(defer)?;
             }
@@ -1024,7 +1047,8 @@ impl Session {
             Err("Open an image first.".into())
         }
     }
-    fn publish_image(&mut self, image: Image) {
+    fn publish_image(&mut self, mut image: Image) -> Result<(), String> {
+        image.orient(&self.settings.transformations, &self.control)?;
         self.inspection = None;
         self.integration_history = Default::default();
         self.files.image_directory = image
@@ -1060,16 +1084,22 @@ impl Session {
         self.cake = None;
         self.cake_values = None;
         self.elapsed_ms = None;
+        Ok(())
     }
     fn replace_mask(&mut self, mask: Vec<u8>) {
+        self.replace_mask_mode(mask, self.mask_mode);
+    }
+    fn replace_mask_mode(&mut self, mask: Vec<u8>, mode: bool) {
         // Bound history payloads to 128 MiB, including redo. No unbounded list
         // of full-resolution masks is retained.
         let before = self.mask_snapshot();
         self.mask = Arc::new(mask);
+        self.mask_mode = mode;
         self.record_mask(before);
     }
     fn mask_snapshot(&self) -> MaskSnapshot {
         MaskSnapshot {
+            mode: self.mask_mode,
             user: self.mask.clone(),
             plugins: self.plugins.states.clone(),
         }
@@ -1387,7 +1417,7 @@ impl Session {
             "calibrationName": s.calibration_name, "calibrated": s.calibrated, "projectName": self.project.path.as_ref().and_then(|p|p.file_name()).map(|p|p.to_string_lossy()), "unit": s.unit,
             "bins": if s.automatic_binning {Value::Null}else{json!(s.bins)}, "useMask": s.use_mask, "transparentMask": s.transparent_mask,
             "maskedPixels": self.effective_mask.iter().filter(|&&v| v != 0).count(), "canUndoMask": !self.undo.is_empty(), "canRedoMask": !self.redo.is_empty(),
-            "maskDetails": {"mode": true, "filename": null, "plugins": self.plugins.details()}, "exampleAvailable": self.root.join("dioptas/tests/data/CeO2_Pilatus1M.tif").is_file(),
+            "maskDetails": {"mode": self.mask_mode, "filename": null, "plugins": self.plugins.details()}, "exampleAvailable": self.root.join("dioptas/tests/data/CeO2_Pilatus1M.tif").is_file(),
             "elapsedMs": self.elapsed_ms, "integrationDirty": self.image.is_some() && s.calibrated && self.pattern.is_none(), "configurationCount": self.project.configurations.len(), "configurationIndex": self.project.selected,
             "configurationLabels": self.project.labels(),"configurationContext":self.project.active_id,
             "geometry": {"dist":g.dist,"poni1":g.poni1,"poni2":g.poni2,"rot1":g.rot1,"rot2":g.rot2,"rot3":g.rot3,"wavelength":g.wavelength},
@@ -1404,7 +1434,7 @@ impl Session {
             "calibration": {
                 "setupConfirmed":s.calibrated, "detectorIsCustom":true, "referenceLines":[],
                 "workflow":{"autoIncrement":true,"searchSize":10,"automaticRefinement":false,"algorithm":"Massif","deltaTth":0.5,"meanFactor":3,"intensityLimit":55000,"numberOfRings":15},
-                "parameters":parameters,"freeParameterCount":6,"polarization":s.polarization,"fitWavelength":false,"detectorFile":null,"distortionFile":null,"transformations":[],
+                "parameters":parameters,"freeParameterCount":6,"polarization":s.polarization,"fitWavelength":false,"detectorFile":null,"distortionFile":null,"transformations":s.transformations,
                 "pyfai":g.manual_values(s.polarization),"fit2d":{},"steps":["available","unavailable","unavailable","available"],"geometrySource":if s.calibrated {"loaded"} else {"none"},
                 "canUndo":false,"canRedo":false,"engine":engine,"engineLabel":engine_label,"engines":[{"id":engine,"label":engine_label,"available":true}],
                 "calibrant":"LaB6","calibrants":["LaB6"],"detectors":["Custom"],"detector":"Custom","pixelX":g.pixel2*1e6,"pixelY":g.pixel1*1e6,

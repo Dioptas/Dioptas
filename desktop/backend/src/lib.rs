@@ -26,6 +26,7 @@ mod scan;
 mod sector;
 mod series;
 pub mod session;
+mod transform;
 pub mod transport;
 
 pub use session::Session;

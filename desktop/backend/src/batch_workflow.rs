@@ -103,6 +103,7 @@ impl Session {
                     self.control.check()?;
                     self.control.publish(json!({"running":true,"current":i,"total":paths.len(),"label":"Reading series metadata"}));
                     let mut image = Image::prepare(Path::new(p), &options)?;
+                    image.orient(&self.settings.transformations, &self.control)?;
                     if image.shape == [0, 0] {
                         image.read(0)?;
                     }
@@ -146,6 +147,7 @@ impl Session {
                         }
                     }
                     let mut image = Image::prepare(source, &options)?;
+                    image.orient(&self.settings.transformations, &self.control)?;
                     if image.frames != *frames
                         || image.shape != *shape
                         || image.source_fingerprint()? != *fingerprint

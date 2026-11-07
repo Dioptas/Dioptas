@@ -71,7 +71,7 @@ impl Session {
         for (i, p) in paths.iter().enumerate() {
             self.control.check()?;
             self.control.publish(json!({"running":true,"current":i,"total":paths.len(),"label":if output.is_some(){"Saving batch images"}else{"Combining batch images"}}));
-            let image = if i == 0 {
+            let mut image = if i == 0 {
                 first.clone()
             } else {
                 Image::open(Path::new(p), &options)?
@@ -80,12 +80,13 @@ impl Session {
                 return Err("Batch images must have matching detector shapes.".into());
             }
             if let Some(staging) = &staging {
+                image.orient(&self.settings.transformations, &self.control)?;
                 let values = processing.values(
                     &image,
                     self.image_generation + i as u64 + 1,
                     &self.settings.geometry,
                 )?;
-                save_image_tiff(&staging.path().join(&names[i]), &values, shape)?;
+                save_image_tiff(&staging.path().join(&names[i]), &values, image.shape)?;
             } else {
                 for (sum, value) in sum.iter_mut().zip(image.values.iter()) {
                     *sum += value;
@@ -136,7 +137,7 @@ impl Session {
                 paths.len()
             ),
         )?;
-        self.publish_image(first);
+        self.publish_image(first)?;
         self.calculate(false)?;
         self.revision += 1;
         Ok(self.snapshot(true))

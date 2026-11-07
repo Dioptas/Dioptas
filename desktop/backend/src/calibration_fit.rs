@@ -457,7 +457,7 @@ impl Session {
             self.effective_mask.clone(),
             self.mask_raster.clone(),
         );
-        self.restore_calibration(candidate);
+        self.restore_calibration(candidate)?;
         let result = self.calculate(defer).and_then(|_| control.check());
         if result.is_ok() {
             *self.ring_cache.borrow_mut() = ring_cache.into_inner();

@@ -181,8 +181,9 @@ mode compares JSON and verifies authored hashes/helper provenance.
 ## Remaining whole-application gates
 
 Project `.dio` persistence and multiple configurations are now implemented in
-the [next migration stage](NATIVE_PROJECT_PARITY.md). General image transforms,
-remaining geometric mask operations, named/distorted detector geometry, full
+the [project migration stage](NATIVE_PROJECT_PARITY.md). Image transforms and
+geometric masks are implemented in the [following stage](NATIVE_GEOMETRY_MASK_PARITY.md).
+Named/distorted detector geometry, full
 reader-semantic coverage and cross-platform native installer qualification remain.
 Batch HDF5 preserves processed series; `.dio` retains supported project state. Numerical
 fixture agreement is not a universal scientific equivalence proof. These gaps

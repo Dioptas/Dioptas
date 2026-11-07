@@ -209,7 +209,7 @@ impl Session {
                                     image.shape,
                                     self.scientific_values().as_ref().clone(),
                                     json!({}),
-                                )?);
+                                )?)?;
                                 fresh.control = self.control.clone();
                                 fresh.calculate(false)?;
                             }

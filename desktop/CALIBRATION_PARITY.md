@@ -4,7 +4,9 @@ The optional [native Rust migration](backend/README.md) now supports measured
 peak picking, grouped edits, constraints, fresh/continued fitting, staged
 automatic Massif/Blob refinement, live progress/cancel with rollback, calibration
 Undo/Redo, standalone peak files and fitted validation plots. It also supports
-flat uniform-pixel PONI and complete manual pyFAI geometry. Native detector
+flat uniform-pixel PONI and complete manual pyFAI geometry. Native image
+rotations/flips/reset and their history are now covered in the
+[orientation and geometric-mask stage](NATIVE_GEOMETRY_MASK_PARITY.md). Native detector
 definitions, distortion, linked inspection and Fit2D conversion remain on the
 migration backlog. The native scope/evidence is recorded in that migration
 document; the older comparison below describes the existing Python backend and

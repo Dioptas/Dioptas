@@ -151,12 +151,20 @@ optional extensions alongside the existing interoperable scientific groups.
 See [project qualification](../NATIVE_PROJECT_PARITY.md) for cross-reader checks,
 offline behavior, atomic save/load cancellation and explicit compatibility limits.
 
+## Image orientation and geometric masks
+
+The native backend now supports rotations/flips/reset and the existing geometric
+mask controls: rectangle, circle, polygon, arc, thresholds, radial intervals and
+Grow/Shrink/Invert/Clear, including Unmask and history. Transforms retain source
+pixels, masks, backgrounds and flat fields, carry through Batch/Map and persist
+per configuration. See [orientation/masking qualification](../NATIVE_GEOMETRY_MASK_PARITY.md)
+for exact conventions, reference differences and reproduction commands.
+
 ## Remaining application migration
 
 - Named/nonuniform detectors, orientation variants, distortion splines and
   Fit2D manual-geometry conversion need their own input/geometry qualification.
-- Image rotations/flips, general geometric mask shapes/morphology and the
-  separate LA Cosmic operation remain migration work. The three bundled dynamic
+- The separate LA Cosmic operation remains migration work. The three bundled dynamic
   plugins and NPY/TIFF/EDF/text mask loading are implemented. Arbitrary third-party
   Python plugins need a native extension contract or individual ports.
 - Broader detector/format/scientific reference coverage and native installer
@@ -202,8 +210,8 @@ selection between algorithms while retaining the current controls.
 
 No extra user-directory or installed entry-point plugins were present in the
 checked environment. Unknown plugin names fail explicitly; Python plugin files
-are not imported by this backend. General mask shapes/morphology and the separate
-LA Cosmic operation remain migration work; mask-file I/O is now native.
+are not imported by this backend. Geometric mask shapes/morphology and mask-file
+I/O are now native. The separate LA Cosmic operation remains migration work.
 
 ## Qt integration changes carried forward
 
@@ -262,7 +270,7 @@ pattern and cake. Screenshots and its receipt are written under ignored
 these checks.
 
 Local checkpoint, 2026-11-07: native tests pass with and without the numerical
-engine (32 and 26 tests respectively); all 19 Tauri host tests and 60 JavaScript
+engine (35 and 29 tests respectively); all 19 Tauri host tests and 60 JavaScript
 tests pass. At the input-stage checkpoint the existing Python desktop suite
 passed with 294 tests and five optional skips; Python implementation files have
 not changed in these native migration stages. Strict native Clippy, formatting and the

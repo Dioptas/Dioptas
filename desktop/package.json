@@ -33,7 +33,9 @@
     "test:native-integration": "node scripts/native_integration_workflow_smoke.mjs",
     "test:native-integration-transport": "node --test scripts/native_integration_transport.test.mjs",
     "test:native-project": "node scripts/native_project_smoke.mjs",
-    "test:native-project-transport": "node --test scripts/native_project_transport.test.mjs"
+    "test:native-project-transport": "node --test scripts/native_project_transport.test.mjs",
+    "test:native-geometry-mask": "node scripts/native_geometry_mask_smoke.mjs",
+    "test:native-geometry-mask-transport": "node --test scripts/native_geometry_mask_transport.test.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",

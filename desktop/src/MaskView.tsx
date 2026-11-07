@@ -58,6 +58,7 @@ export function MaskView({
     null,
   );
   const drawingSequence = useRef(0);
+  const orientationContext = plotViewContext(state);
   const [preferences, setPreferences] = useImageDisplayPreferences(
     "mask-detector",
     "vertical",
@@ -66,7 +67,7 @@ export function MaskView({
     setPoints((previous) => (previous.length ? [] : previous));
     setPendingOverlay(null);
     drawingSequence.current++;
-  }, [image?.data]);
+  }, [image?.data, orientationContext]);
   useEffect(() => setPoints([]), [tools.shape, tools.erase, resetKey]);
   const cancelSelection = useCallback(() => setPoints([]), []);
   useEffect(() => {

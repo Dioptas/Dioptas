@@ -234,6 +234,9 @@ impl Default for Workflow {
 
 #[derive(Clone, PartialEq)]
 pub(super) struct Snapshot {
+    transformations: Vec<crate::transform::Transform>,
+    original_pixels: Option<[f64; 2]>,
+    roi: Option<[usize; 4]>,
     geometry: Geometry,
     calibrated: bool,
     name: Option<String>,
@@ -302,6 +305,9 @@ pub(super) fn is_command(action: &str) -> bool {
 impl Session {
     pub(super) fn calibration_snapshot(&self) -> Snapshot {
         Snapshot {
+            transformations: self.settings.transformations.clone(),
+            original_pixels: self.settings.original_pixels,
+            roi: self.settings.roi,
             geometry: self.settings.geometry.clone(),
             calibrated: self.settings.calibrated,
             name: self.settings.calibration_name.clone(),
@@ -309,12 +315,18 @@ impl Session {
             data: self.calibration.clone(),
         }
     }
-    fn restore_calibration(&mut self, s: Snapshot) {
+    fn restore_calibration(&mut self, s: Snapshot) -> Result<(), String> {
+        if s.transformations != self.settings.transformations {
+            self.reorient_view(&s.transformations)?;
+            self.settings.roi = s.roi;
+        }
+        self.settings.original_pixels = s.original_pixels;
         self.settings.geometry = s.geometry;
         self.settings.calibrated = s.calibrated;
         self.settings.calibration_name = s.name;
         self.settings.polarization = s.polarization;
         self.calibration = s.data;
+        Ok(())
     }
     pub(super) fn loaded_geometry(&mut self, source: &str) {
         self.inspection = None;
@@ -344,11 +356,9 @@ impl Session {
         let before = self.calibration_snapshot();
         let outcome = self.edit_calibration(action, args, defer);
         match outcome {
-            Err(error) => {
-                self.restore_calibration(before);
-                Err(error)
-            }
+            Err(error) => Err(error),
             Ok(mut extra) => {
+                let oriented = self.settings.transformations != before.transformations;
                 if self.settings.geometry != before.geometry
                     || self.settings.calibrated != before.calibrated
                 {
@@ -367,7 +377,7 @@ impl Session {
                         .record(action, before, after, self.revision + 1);
                 }
                 self.revision += 1;
-                let mut reply = self.snapshot(false);
+                let mut reply = self.snapshot(oriented);
                 if let Some(extra) = extra.as_object_mut() {
                     for (key, value) in extra.iter() {
                         reply.result[key] = value.clone();
@@ -642,7 +652,7 @@ impl Session {
                     file.set_extension("json");
                 }
                 let document = json!({"format":"dioptas-calibration-peaks","version":1,"coordinates":"row-column-bottom-left","imageShape":self.image.as_ref().unwrap().shape,
-                    "imageTransformations":[],"calibrant":{"name":self.calibration.reference.name,"dSpacingsAngstrom":self.calibration.reference.spacings},"groups":self.calibration.picks});
+                    "imageTransformations":self.settings.transformations,"calibrant":{"name":self.calibration.reference.name,"dSpacingsAngstrom":self.calibration.reference.spacings},"groups":self.calibration.picks});
                 atomic_write(
                     &file,
                     format!(
@@ -667,7 +677,7 @@ impl Session {
                 }
                 let shape = self.image.as_ref().unwrap().shape;
                 if document["imageShape"] != json!(shape)
-                    || document["imageTransformations"] != json!([])
+                    || document["imageTransformations"] != json!(self.settings.transformations)
                 {
                     return Err(
                         "The saved peaks require the same image dimensions and orientation.".into(),
@@ -708,7 +718,7 @@ impl Session {
                 };
                 source.pop();
                 destination.push(entry);
-                self.restore_calibration(snapshot);
+                self.restore_calibration(snapshot)?;
                 self.calculate(defer)?;
                 let ring = self
                     .calibration

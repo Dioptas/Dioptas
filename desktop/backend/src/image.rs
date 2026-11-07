@@ -1,5 +1,6 @@
 //! Source samples remain typed and in stored row order. The numerical/display
 //! view flips rows exactly once to the established Dioptas bottom-left convention.
+//! Later rotations/flips permute that view without rewriting source samples.
 use dioptrin_io::{
     PixelBuffer,
     wrapped::{FrameBuffer, Input, Reader},
@@ -17,6 +18,9 @@ pub struct Image {
     pub frame: usize,
     pub frames: usize,
     pub shape: [usize; 2],
+    pub source_shape: [usize; 2],
+    pub source_values: Arc<Vec<f64>>,
+    pub(crate) transformations: Vec<crate::transform::Transform>,
     pub values: Arc<Vec<f64>>,
     pub source_dtype: String,
     pub ordinary_decodes: u64,
@@ -25,6 +29,17 @@ pub struct Image {
     pub options: Value,
 }
 impl Image {
+    pub(crate) fn orient(
+        &mut self,
+        ops: &[crate::transform::Transform],
+        control: &crate::control::Control,
+    ) -> Result<(), String> {
+        self.values =
+            crate::transform::apply(&self.source_values, self.source_shape, ops, control)?;
+        self.shape = crate::transform::shape(self.source_shape, ops);
+        self.transformations = ops.to_vec();
+        Ok(())
+    }
     pub fn set_derived(&mut self, values: Vec<f64>, description: &str) -> Result<(), String> {
         if values.len() != self.shape[0] * self.shape[1] || values.iter().any(|v| !v.is_finite()) {
             return Err("Invalid combined detector samples.".into());
@@ -149,6 +164,9 @@ impl Image {
             frame,
             frames,
             shape,
+            source_shape: shape,
+            source_values: Arc::new(vec![]),
+            transformations: vec![],
             values: Arc::new(vec![]),
             source_dtype: String::new(),
             ordinary_decodes: 0,
@@ -186,6 +204,7 @@ impl Image {
             .flatten()
             .copied()
             .collect();
+        let source_values = Arc::new(values);
         Ok(Self {
             reader: None,
             buffer: Arc::new(FrameBuffer::default()),
@@ -194,7 +213,10 @@ impl Image {
             frame,
             frames,
             shape,
-            values: Arc::new(values),
+            source_shape: shape,
+            source_values: source_values.clone(),
+            transformations: vec![],
+            values: source_values,
             source_dtype: "F64".into(),
             ordinary_decodes: 0,
             combined: false,
@@ -208,7 +230,8 @@ impl Image {
         if self.reader.is_none() {
             let mut options = self.options.clone();
             options["frame"] = serde_json::json!(index);
-            let candidate = Self::open(&self.path, &options)?;
+            let mut candidate = Self::open(&self.path, &options)?;
+            candidate.orient(&self.transformations, &crate::control::Control::default())?;
             *self = candidate;
             return Ok(());
         }
@@ -252,8 +275,10 @@ impl Image {
         self.combined = false;
         self.buffer = Arc::new(candidate);
         self.combined_pixels = None;
-        self.values = Arc::new(values);
-        self.shape = shape;
+        self.source_values = Arc::new(values);
+        self.source_shape = shape;
+        let ops = self.transformations.clone();
+        self.orient(&ops, &crate::control::Control::default())?;
         self.frame = index;
         self.file_info = Arc::new(self.metadata_text());
         Ok(())
@@ -299,6 +324,9 @@ impl Image {
     }
     pub fn combined_source(&self, index: usize) -> Result<Option<CombinedSource>, String> {
         self.check_sources()?;
+        if !self.transformations.is_empty() {
+            return Ok(None);
+        }
         let Some(source_reader) = &self.reader else {
             return Ok(None);
         };
@@ -356,8 +384,10 @@ impl Image {
         self.combined_pixels = Some(Arc::new(pixels));
         self.buffer = Arc::new(FrameBuffer::default());
         self.combined = true;
-        self.values = Arc::new(values);
-        self.shape = shape;
+        self.source_values = Arc::new(values);
+        self.source_shape = shape;
+        let ops = self.transformations.clone();
+        self.orient(&ops, &crate::control::Control::default())?;
         self.frame = index;
         self.file_info = Arc::new(self.metadata_text());
         Ok(())
