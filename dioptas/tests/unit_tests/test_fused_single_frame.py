@@ -73,7 +73,7 @@ def fake_backends(monkeypatch):
     return calls
 
 
-def test_selects_eight_core_fused_preview_and_reuses_plan(hdf_task, fake_backends):
+def test_selects_configured_fused_workers_and_reuses_plan(hdf_task, fake_backends):
     _, task = hdf_task
     engine = PersistentIntegrationEngine()
     engine.compute(task)
@@ -81,7 +81,7 @@ def test_selects_eight_core_fused_preview_and_reuses_plan(hdf_task, fake_backend
     assert not fake_backends.ordinary
     assert len(fake_backends.builds) == 1
     assert len(fake_backends.fused) == 2
-    assert fake_backends.builds[0][3]["num_workers"] == 8
+    assert fake_backends.builds[0][3]["num_workers"] == task.fused_num_workers
     assert fake_backends.fused[1][1]["errors"]
     np.testing.assert_array_equal(fake_backends.fused[0][1]["expected_image"], task.image)
 
