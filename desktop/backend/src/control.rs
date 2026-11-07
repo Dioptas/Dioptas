@@ -16,7 +16,7 @@ impl Control {
     }
     pub fn check(&self) -> Result<(), String> {
         if self.cancelled.load(Ordering::Acquire) {
-            Err("Calibration cancelled; previous geometry and picked peaks restored.".into())
+            Err("Operation cancelled; previous state restored.".into())
         } else {
             Ok(())
         }

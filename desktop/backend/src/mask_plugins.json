@@ -1,0 +1,161 @@
+[
+  {
+    "name": "Threshold Mask",
+    "description": "Masks pixels with intensity outside a configurable range. Useful for removing hot pixels, dead pixels, or saturated detector regions.",
+    "settings": {
+      "above_enabled": true,
+      "above_value": 10000000.0,
+      "below_enabled": false,
+      "below_value": 0.0
+    },
+    "schema": {
+      "above_enabled": {
+        "type": "bool",
+        "default": true,
+        "label": "Mask above",
+        "description": "Enable masking of pixels with intensity above the upper threshold."
+      },
+      "above_value": {
+        "type": "float",
+        "default": 10000000.0,
+        "label": "Upper threshold",
+        "min": -1000000000000.0,
+        "max": 1000000000000.0,
+        "decimals": 1,
+        "description": "Pixels with intensity above this value will be masked."
+      },
+      "below_enabled": {
+        "type": "bool",
+        "default": false,
+        "label": "Mask below",
+        "description": "Enable masking of pixels with intensity below the lower threshold."
+      },
+      "below_value": {
+        "type": "float",
+        "default": 0.0,
+        "label": "Lower threshold",
+        "min": -1000000000000.0,
+        "max": 1000000000000.0,
+        "decimals": 1,
+        "description": "Pixels with intensity below this value will be masked."
+      }
+    }
+  },
+  {
+    "name": "Cosmic Ray Mask",
+    "description": "Detects cosmic ray artifacts by comparing each pixel's intensity to local statistics (mean and standard deviation) in a sliding window. Pixels significantly brighter than their neighborhood are flagged. Runs iteratively to catch fainter artifacts revealed after removing bright ones.",
+    "settings": {
+      "sigma": 5.0,
+      "window_size": 5,
+      "iterations": 2,
+      "min_intensity": 100.0
+    },
+    "schema": {
+      "sigma": {
+        "type": "float",
+        "default": 5.0,
+        "label": "Sigma",
+        "min": 1.0,
+        "max": 50.0,
+        "decimals": 1,
+        "description": "Number of standard deviations above the local mean for a pixel to be flagged as a cosmic ray. Higher values are more conservative."
+      },
+      "window_size": {
+        "type": "int",
+        "default": 5,
+        "label": "Window size",
+        "min": 3,
+        "max": 51,
+        "description": "Size of the local neighborhood window (in pixels) used to calculate mean and standard deviation. Should be odd."
+      },
+      "iterations": {
+        "type": "int",
+        "default": 2,
+        "label": "Iterations",
+        "min": 1,
+        "max": 10,
+        "description": "Number of detection passes. Each pass removes found cosmic rays before the next, catching fainter artifacts revealed by removal of bright ones."
+      },
+      "min_intensity": {
+        "type": "float",
+        "default": 100.0,
+        "label": "Min intensity",
+        "min": 0.0,
+        "max": 1000000000000.0,
+        "decimals": 1,
+        "description": "Minimum absolute pixel intensity to consider as a cosmic ray. Pixels below this value are never flagged, regardless of their local z-score."
+      }
+    }
+  },
+  {
+    "name": "Spot Mask",
+    "description": "Masks single-crystal spots and intensity outliers in powder diffraction images by binning pixels by 2-theta and flagging those that deviate significantly from the bin mean. Requires calibration geometry.",
+    "settings": {
+      "method": "median",
+      "esdmul": 3.0,
+      "num_bins": 445,
+      "iterations": 1,
+      "smooth_sigma": 1.0,
+      "smooth_threshold": 0.3
+    },
+    "schema": {
+      "method": {
+        "type": "choice",
+        "default": "median",
+        "label": "Method",
+        "choices": [
+          "median",
+          "mean"
+        ],
+        "description": "Statistical method for outlier detection. 'median' uses median + k\u00d7MAD (robust, recommended). 'mean' uses mean + k\u00d7std (faster but less sensitive)."
+      },
+      "esdmul": {
+        "type": "float",
+        "default": 3.0,
+        "label": "Sigma multiplier",
+        "min": 1.0,
+        "max": 50.0,
+        "decimals": 1,
+        "step": 0.1,
+        "description": "Number of standard deviations (or MADs) above the bin center for a pixel to be flagged as an outlier. Lower values mask more aggressively."
+      },
+      "num_bins": {
+        "type": "int",
+        "default": 445,
+        "label": "Number of 2\u03b8 bins",
+        "min": 64,
+        "max": 8192,
+        "step": 20,
+        "description": "Number of angular bins to divide the 2-theta range into. More bins give finer angular resolution but fewer pixels per bin for statistics."
+      },
+      "iterations": {
+        "type": "int",
+        "default": 1,
+        "label": "Iterations",
+        "min": 1,
+        "max": 5,
+        "description": "Number of sigma-clipping iterations. More iterations improve robustness when many outliers are present in a bin, but each iteration roughly doubles computation time. Only used with Python fallback (C extension always uses single pass)."
+      },
+      "smooth_sigma": {
+        "type": "float",
+        "default": 1.0,
+        "label": "Smooth sigma (px)",
+        "min": 0.0,
+        "max": 10.0,
+        "decimals": 1,
+        "step": 0.1,
+        "description": "Gaussian smoothing sigma applied to the raw binary mask before thresholding. Merges nearby flagged pixels into coherent spot regions. Set to 0 to disable smoothing."
+      },
+      "smooth_threshold": {
+        "type": "float",
+        "default": 0.3,
+        "label": "Smooth threshold",
+        "min": 0.01,
+        "max": 1.0,
+        "decimals": 2,
+        "step": 0.01,
+        "description": "Threshold applied after Gaussian smoothing. Pixels with smoothed values above this are included in the final mask. Lower values expand masked regions."
+      }
+    }
+  }
+]

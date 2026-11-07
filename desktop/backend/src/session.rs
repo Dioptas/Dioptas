@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 #[path = "calibration.rs"]
 mod calibration;
+use crate::mask_plugins::{Plugins, State as PluginState};
 use calibration::{Calibration, History, Workflow};
 #[cfg(feature = "dioptrin")]
 use std::time::Instant;
@@ -51,9 +52,12 @@ pub struct Session {
     image: Option<Image>,
     image_raster: Option<Raster>,
     mask: Vec<u8>,
+    effective_mask: Vec<u8>,
+    plugins: Plugins,
+    image_generation: u64,
     mask_raster: Option<Raster>,
-    undo: Vec<Vec<u8>>,
-    redo: Vec<Vec<u8>>,
+    undo: Vec<MaskSnapshot>,
+    redo: Vec<MaskSnapshot>,
     revision: u64,
     elapsed_ms: Option<f64>,
     pattern: Option<Value>,
@@ -68,6 +72,11 @@ pub struct Session {
     #[cfg(feature = "dioptrin")]
     sigma: Option<Vec<f64>>,
 }
+#[derive(Clone, PartialEq)]
+struct MaskSnapshot {
+    user: Vec<u8>,
+    plugins: Vec<PluginState>,
+}
 impl Session {
     pub fn new(root: PathBuf) -> Self {
         Self {
@@ -76,6 +85,9 @@ impl Session {
             image: None,
             image_raster: None,
             mask: vec![],
+            effective_mask: vec![],
+            plugins: Plugins::default(),
+            image_generation: 0,
             mask_raster: None,
             undo: vec![],
             redo: vec![],
@@ -143,7 +155,7 @@ impl Session {
                 return Ok(Reply::metadata(
                     json!({"ok": true, "protocol": 2, "transport": "stdio", "runtime": "rust", "pid": std::process::id(), "qtApplication": false,
                 "engine": if cfg!(feature="dioptrin") { Some("dioptrin") } else { None },
-                "capabilities": ["image-input", "frame-navigation", "binary-rasters", "display-statistics", "mask-brush", "mask-history", "uniform-poni", "manual-pyfai-geometry", "xy-export"]}),
+                "capabilities": ["image-input", "frame-navigation", "binary-rasters", "display-statistics", "mask-brush", "mask-history", "mask-plugins", "calibration-peaks", "calibration-history", "uniform-poni", "manual-pyfai-geometry", "xy-export"]}),
                 ));
             }
             "state" => return Ok(self.snapshot(true)),
@@ -161,11 +173,13 @@ impl Session {
                 self.calibration.reference_wavelength = self.settings.geometry.wavelength;
                 self.calibration.confirmed = true;
                 self.workflow = Workflow::default();
+                self.plugins = Plugins::default();
                 self.calibration_history = History::default();
                 self.undo.clear();
                 self.redo.clear();
                 self.image = None;
                 self.publish_image(candidate);
+                self.refresh_masks(&Control::default())?;
             }
             "open_image" => {
                 check_keys(
@@ -212,6 +226,7 @@ impl Session {
                 }
                 let previous_shape = image.shape;
                 image.read(index as usize)?;
+                self.image_generation += 1;
                 if image.shape != previous_shape {
                     self.mask = vec![0; image.values.len()];
                     self.undo.clear();
@@ -472,16 +487,20 @@ impl Session {
             }
             "undo_mask" | "redo_mask" => {
                 self.require_image()?;
+                let current = self.mask_snapshot();
                 let (source, destination) = if action == "undo_mask" {
                     (&mut self.undo, &mut self.redo)
                 } else {
                     (&mut self.redo, &mut self.undo)
                 };
                 let previous = source.pop().ok_or("No mask edit to undo/redo.")?;
-                destination.push(std::mem::replace(&mut self.mask, previous));
-                self.mask_raster =
-                    Some(Raster::mask(&self.mask, self.image.as_ref().unwrap().shape));
+                destination.push(current);
+                self.mask = previous.user;
+                self.plugins.states = previous.plugins;
                 self.calculate(defer)?;
+            }
+            "mask_plugin" => {
+                return self.mask_plugin(args, defer);
             }
             "export_pattern" | "integration_save_pattern" => {
                 check_keys(args, &["path"])?;
@@ -539,6 +558,7 @@ impl Session {
         }
     }
     fn publish_image(&mut self, image: Image) {
+        self.image_generation += 1;
         self.calibration.picks.clear();
         self.calibration.rms = None;
         self.calibration_history = History::default();
@@ -562,16 +582,130 @@ impl Session {
     fn replace_mask(&mut self, mask: Vec<u8>) {
         // Bound history payloads to 128 MiB, including redo. No unbounded list
         // of full-resolution masks is retained.
-        self.undo.push(std::mem::replace(&mut self.mask, mask));
+        let before = self.mask_snapshot();
+        self.mask = mask;
+        self.record_mask(before);
+    }
+    fn mask_snapshot(&self) -> MaskSnapshot {
+        MaskSnapshot {
+            user: self.mask.clone(),
+            plugins: self.plugins.states.clone(),
+        }
+    }
+    fn record_mask(&mut self, before: MaskSnapshot) {
+        if before == self.mask_snapshot() {
+            return;
+        }
+        self.undo.push(before);
         self.redo.clear();
         while self.undo.len() > 1
-            && self.undo.iter().map(Vec::len).sum::<usize>() > 128 * 1024 * 1024
+            && (self.undo.len() > 128
+                || self.undo.iter().map(|s| s.user.len() + 4096).sum::<usize>() > 128 * 1024 * 1024)
         {
             self.undo.remove(0);
         }
-        self.mask_raster = Some(Raster::mask(&self.mask, self.image.as_ref().unwrap().shape));
+    }
+    fn refresh_masks(&mut self, control: &Control) -> Result<(), String> {
+        if let Some(image) = &self.image {
+            // Publish caches, display and effective mask together only after
+            // all enabled plugins have completed successfully.
+            let mut plugins = self.plugins.clone();
+            let combined = plugins.refresh(
+                &image.values,
+                image.shape,
+                self.image_generation,
+                self.settings.calibrated.then_some(&self.settings.geometry),
+                &self.mask,
+                control,
+            )?;
+            self.plugins = plugins;
+            self.mask_raster = Some(Raster::mask(&combined, image.shape));
+            self.effective_mask = combined;
+        }
+        Ok(())
+    }
+    fn mask_plugin(&mut self, args: &Value, defer: bool) -> Result<Reply, String> {
+        self.require_image()?;
+        check_keys(
+            args,
+            &[
+                "name",
+                "enabled",
+                "settings",
+                "imprint",
+                "defer_integration",
+            ],
+        )?;
+        let name = args["name"].as_str().ok_or("Choose a mask plugin.")?;
+        let imprint = args
+            .get("imprint")
+            .map(|v| boolean(v, "Imprint"))
+            .transpose()?
+            .unwrap_or(false);
+        let mut plugins = self.plugins.clone();
+        let index = plugins.edit(name, args.get("enabled"), args.get("settings"))?;
+        let image = self.image.as_ref().unwrap();
+        let mut user = self.mask.clone();
+        let control = self.control.clone();
+        plugins.refresh(
+            &image.values,
+            image.shape,
+            self.image_generation,
+            self.settings.calibrated.then_some(&self.settings.geometry),
+            &user,
+            &control,
+        )?;
+        if imprint {
+            if !plugins.states[index].enabled {
+                return Err("Enable the plugin before imprinting its mask.".into());
+            }
+            for (out, &v) in user.iter_mut().zip(plugins.mask(index).unwrap()) {
+                *out |= v;
+            }
+            plugins.states[index].enabled = false;
+        }
+        control.check()?;
+        let before = self.mask_snapshot();
+        let old_plugins = std::mem::replace(&mut self.plugins, plugins);
+        self.mask = user;
+        let old_use = self.settings.use_mask;
+        self.settings.use_mask = true;
+        let previous = (
+            self.pattern.take(),
+            self.cake.take(),
+            self.cake_values.take(),
+            self.elapsed_ms,
+            self.mask_raster.clone(),
+            self.effective_mask.clone(),
+        );
+        #[cfg(feature = "dioptrin")]
+        let previous_sigma = self.sigma.take();
+        let outcome = self.calculate(defer).and_then(|_| control.check());
+        control.finish();
+        if let Err(error) = outcome {
+            self.mask = before.user;
+            self.plugins = old_plugins;
+            self.settings.use_mask = old_use;
+            (
+                self.pattern,
+                self.cake,
+                self.cake_values,
+                self.elapsed_ms,
+                self.mask_raster,
+                self.effective_mask,
+            ) = previous;
+            #[cfg(feature = "dioptrin")]
+            {
+                self.sigma = previous_sigma;
+            }
+            return Err(error);
+        }
+        self.record_mask(before);
+        self.revision += 1;
+        Ok(self.snapshot(false))
     }
     fn calculate(&mut self, defer: bool) -> Result<(), String> {
+        self.refresh_masks(&Control::default())?;
         self.pattern = None;
         self.cake = None;
         self.cake_values = None;
@@ -588,7 +722,7 @@ impl Session {
                 let start = Instant::now();
                 let clear = vec![];
                 let mask = if self.settings.use_mask {
-                    &self.mask
+                    &self.effective_mask
                 } else {
                     &clear
                 };
@@ -665,8 +799,8 @@ impl Session {
             "revision": self.revision, "hasImage": self.image.is_some(), "imageName": name, "imagePath": image_path, "shape": shape,
             "calibrationName": s.calibration_name, "calibrated": s.calibrated, "projectName": null, "unit": s.unit,
             "bins": s.bins, "useMask": s.use_mask, "transparentMask": s.transparent_mask,
-            "maskedPixels": self.mask.iter().filter(|&&v| v != 0).count(), "canUndoMask": !self.undo.is_empty(), "canRedoMask": !self.redo.is_empty(),
-            "maskDetails": {"mode": true, "filename": null, "plugins": []}, "exampleAvailable": self.root.join("dioptas/tests/data/CeO2_Pilatus1M.tif").is_file(),
+            "maskedPixels": self.effective_mask.iter().filter(|&&v| v != 0).count(), "canUndoMask": !self.undo.is_empty(), "canRedoMask": !self.redo.is_empty(),
+            "maskDetails": {"mode": true, "filename": null, "plugins": self.plugins.details()}, "exampleAvailable": self.root.join("dioptas/tests/data/CeO2_Pilatus1M.tif").is_file(),
             "elapsedMs": self.elapsed_ms, "integrationDirty": self.image.is_some() && s.calibrated && self.pattern.is_none(), "configurationCount": 1, "configurationIndex": 0,
             "geometry": {"dist":g.dist,"poni1":g.poni1,"poni2":g.poni2,"rot1":g.rot1,"rot2":g.rot2,"rot3":g.rot3,"wavelength":g.wavelength},
             "integration": {

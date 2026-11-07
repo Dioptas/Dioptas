@@ -17,7 +17,8 @@ dioptrin-io = { git = "https://github.com/CPrescher/dioptrin-io", rev = "cf33ecf
 dioptrin = { git = "https://github.com/CPrescher/Dioptrin", rev = "bc27eb5bfae376f83ecc99befc7b578624a7dfbd", optional = true, default-features = false }
 half = "2"
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+# Preserve the established ordering of plugin controls in embedded schemas.
+serde_json = { version = "1", features = ["preserve_order"] }
 sha2 = "0.10"
 tempfile = "3"
 

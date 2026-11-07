@@ -10,6 +10,8 @@
     "test:native-backend": "node scripts/native_backend_smoke.mjs",
     "test:native-calibration": "node scripts/native_calibration_smoke.mjs",
     "test:native-calibration-transport": "node --test scripts/native_calibration_transport.test.mjs",
+    "test:native-mask": "node scripts/native_mask_smoke.mjs",
+    "test:native-mask-transport": "node --test scripts/native_mask_transport.test.mjs",
     "tauri:native-dev": "tauri dev --config src-tauri/tauri.native-dev.conf.json -- -- --backend=rust",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",

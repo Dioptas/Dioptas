@@ -85,10 +85,11 @@ pub fn serve(
                             | "redo_mask"
                             | "undo_calibration"
                             | "redo_calibration"
+                            | "mask_plugin"
                     ),
                     Ordering::Release,
                 );
-                if request.action == "calibrate" {
+                if matches!(request.action.as_str(), "calibrate" | "mask_plugin") {
                     *worker_active.lock().unwrap() = Some(control.clone());
                     if worker_closing.load(Ordering::Acquire) {
                         control.cancel();
@@ -161,8 +162,8 @@ pub fn serve(
                     }
                     _ => {
                         let control = Arc::new(Control::default());
-                        if request.action == "calibrate" {
-                            control.publish(json!({"running":true,"current":0,"total":1,"label":"Waiting for calibration"}));
+                        if matches!(request.action.as_str(), "calibrate" | "mask_plugin") {
+                            control.publish(json!({"running":true,"current":0,"total":1,"label":"Waiting for processing"}));
                             let mut active = active.lock().unwrap();
                             if active.is_none() {
                                 *active = Some(control.clone());

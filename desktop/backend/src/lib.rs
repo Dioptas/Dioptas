@@ -7,6 +7,7 @@ mod geometry;
 pub mod image;
 #[cfg(feature = "dioptrin")]
 mod integration;
+mod mask_plugins;
 #[cfg(feature = "dioptrin")]
 mod peak_search;
 pub mod protocol;

@@ -15,6 +15,9 @@ migration document for the implemented boundary, verification and remaining work
 The native calibration stage retains the existing controls, automatic ring
 refinement, live progress/cancellation and grouped edit/fit Undo/Redo for the
 currently supported flat uniform-pixel geometry.
+All three bundled masking plugins also run natively, including their settings,
+dynamic recomputation, imprint and Undo/Redo. The migration document records
+the chosen C/SciPy reference behavior and remaining general masking workflows.
 
 Integration and Map use the same `RasterView` and `PatternView` renderers.
 `diffractionPlotSetup.ts` prepares their common detector mask/click properties

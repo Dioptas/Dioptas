@@ -346,6 +346,11 @@ impl Session {
                 Err(error)
             }
             Ok(mut extra) => {
+                if self.settings.geometry != before.geometry
+                    || self.settings.calibrated != before.calibrated
+                {
+                    self.refresh_masks(&crate::control::Control::default())?;
+                }
                 if !matches!(
                     action,
                     "workflow_settings"
@@ -507,7 +512,7 @@ impl Session {
                             let value = image.values[yy * image.shape[1] + xx];
                             if value.is_finite()
                                 && (!self.settings.use_mask
-                                    || self.mask[yy * image.shape[1] + xx] == 0)
+                                    || self.effective_mask[yy * image.shape[1] + xx] == 0)
                                 && best.is_none_or(|(_, _, v)| value > v)
                             {
                                 best = Some((yy, xx, value));

@@ -204,7 +204,7 @@ impl Session {
             .iter()
             .enumerate()
             .map(|(i, &v)| {
-                if v.is_finite() && (!self.settings.use_mask || self.mask[i] == 0) {
+                if v.is_finite() && (!self.settings.use_mask || self.effective_mask[i] == 0) {
                     v
                 } else {
                     0.0
@@ -213,7 +213,7 @@ impl Session {
             .collect();
         let row = seed[0].round_ties_even() as usize;
         let col = seed[1].round_ties_even() as usize;
-        if self.settings.use_mask && self.mask[row * image.shape[1] + col] != 0 {
+        if self.settings.use_mask && self.effective_mask[row * image.shape[1] + col] != 0 {
             return Err("The selected pixel is masked.".into());
         }
         self.control.check()?;
@@ -330,31 +330,47 @@ impl Session {
                         .len(),
                 );
                 publish(&candidate, 0, total, "Preparing peak search", Some(1));
-                let mask: Vec<_> = self
-                    .mask
-                    .iter()
-                    .map(|&v| if self.settings.use_mask { v } else { 0 })
-                    .collect();
-                let clean: Vec<_> = image
-                    .values
-                    .iter()
-                    .enumerate()
-                    .map(|(i, &v)| {
-                        if v.is_finite() && mask[i] == 0 {
-                            v
-                        } else {
-                            0.0
-                        }
-                    })
-                    .collect();
-                let candidates = crate::peak_search::candidates(
-                    &clean,
-                    shape,
-                    &self.workflow.algorithm,
-                    &control,
-                )?;
+                let mut plugins = self.plugins.clone();
+                let mut mask = Vec::new();
+                let mut candidates = Vec::new();
                 for ring in 1..=total {
                     control.check()?;
+                    // Spot Mask follows the detached candidate geometry. Its
+                    // cache and newly excluded peaks must never leak into the
+                    // durable model if this complete fit is cancelled.
+                    let current_mask = if self.settings.use_mask {
+                        plugins.refresh(
+                            &image.values,
+                            shape,
+                            self.image_generation,
+                            Some(&candidate.geometry),
+                            &self.mask,
+                            &control,
+                        )?
+                    } else {
+                        vec![0; image.values.len()]
+                    };
+                    if ring == 1 || current_mask != mask {
+                        mask = current_mask;
+                        let clean: Vec<_> = image
+                            .values
+                            .iter()
+                            .enumerate()
+                            .map(|(i, &v)| {
+                                if v.is_finite() && mask[i] == 0 {
+                                    v
+                                } else {
+                                    0.0
+                                }
+                            })
+                            .collect();
+                        candidates = crate::peak_search::candidates(
+                            &clean,
+                            shape,
+                            &self.workflow.algorithm,
+                            &control,
+                        )?;
+                    }
                     publish(&candidate, ring, total, "Finding peaks on ring", Some(ring));
                     let field = geometry(shape, &candidate.geometry).calc_tth_all();
                     let target = candidate
@@ -428,6 +444,9 @@ impl Session {
             self.cake_values.take(),
             self.elapsed_ms,
             self.sigma.take(),
+            self.plugins.clone(),
+            self.effective_mask.clone(),
+            self.mask_raster.clone(),
         );
         self.restore_calibration(candidate);
         let result = self.calculate(defer).and_then(|_| control.check());
@@ -441,6 +460,9 @@ impl Session {
                 self.cake_values,
                 self.elapsed_ms,
                 self.sigma,
+                self.plugins,
+                self.effective_mask,
+                self.mask_raster,
             ) = previous;
         }
         control.finish();
