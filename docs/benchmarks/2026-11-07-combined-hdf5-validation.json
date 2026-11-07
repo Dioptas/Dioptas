@@ -1,0 +1,21 @@
+{
+  "frames": 625,
+  "shape": [
+    625,
+    3262,
+    3108
+  ],
+  "original_count_hashes": "all match independent h5py references",
+  "mask_sha256": "0c510a98b4afac57dab92441a40a58d1c740807ac51f89fd6178baf895175af1",
+  "workers": 8,
+  "bins": 2000,
+  "polarization": 0.965,
+  "weights": "float64",
+  "sums": "float64",
+  "poisson": true,
+  "max_scaled_intensity_error": 3.729590407763731e-15,
+  "max_scaled_sigma_error": 1.7001559950074322e-15,
+  "validation_seconds": 22.002999499964062,
+  "reference_sha256": "2f44251471cf500a69bb4e7a8a0d69e690da063a227c2d6aad72985ba4ef54b9",
+  "method": "one combined decode per frame; reference integration uses returned resident pixels"
+}

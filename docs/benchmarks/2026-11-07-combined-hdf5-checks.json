@@ -1,0 +1,33 @@
+{
+  "qt_regressions": {
+    "passed": 90,
+    "note": ""
+  },
+  "image_and_state": {
+    "passed": 67,
+    "note": ""
+  },
+  "final_combined_preview": {
+    "passed": 27,
+    "note": "The final preview suite overlaps the broader Qt regression suite."
+  },
+  "native_bridge": {
+    "passed": 11,
+    "note": "",
+    "strict_clippy": true
+  },
+  "io_rust_all_features": {
+    "passed": 414,
+    "strict_clippy": true,
+    "no_default_features_build": true
+  },
+  "sphinx_manuals": {
+    "warnings_as_errors": true
+  },
+  "science_validation": {
+    "frames": 625,
+    "timed_qt_operations": 144,
+    "source_hashes_verified": true,
+    "count_hashes": "all 625 exact matches"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "recorded_utc": "2026-11-07T09:06:35.258213+00:00",
+  "source_sha256": {
+    "dioptas/model/Configuration.py": "a5641e13780a2057f00226f9ecf189822e56cd5a508b334ace7d7bfe394bc959",
+    "dioptas/model/integration_task.py": "9743122f687d51c712abc2acd8d73b94c3e20216e7ec30e6d2877590857a55be",
+    "dioptas/model/loader/fusedHdf5.py": "8ee1a8f9f9318f164b30a39e9450dc9955c12470e42a354efd6519bbc4cb9ec3",
+    "scripts/benchmark_fused_single_frame.py": "90c12bfe506386e6971f219d4303297c6732ef18592d8f2ae0cbfe82c3edcbd1",
+    "/Users/clemens/Programming/dioptrin-io-worktrees/qt-fused/python-fused/Cargo.toml": "611fd178ce65f28b0daec8b4c7b329c2a0543dbc643af98402d42a50c52859a7",
+    "/Users/clemens/Programming/dioptrin-io-worktrees/qt-fused/python-fused/Cargo.lock": "9d6ce89861f4d112a77ba09ce13b9840f3c7b7dfd76473851d9161a45a4f1270",
+    "/Users/clemens/Programming/dioptrin-io-worktrees/qt-fused/python-fused/src/lib.rs": "929b240e9601f3236f0d77771c96183e201fa3e5f19988dde13cf248e8692463"
+  },
+  "qt_base": "2e34f09f114cb950c4c84e7db4b83dc2d32fe307",
+  "io_base": "1fd538d297e1618b98941e3b9ddc29b112a60655",
+  "dioptrin_fixed_plan_commit": "72e9b72fa3ccaed19aa4ee09e3cb8bf002590a78",
+  "wheel_sha256": "d3676624d236a86c336b442767edd17376cf223038ef876f033257752eacd2c5",
+  "platform": "ProductName:\t\tmacOS\nProductVersion:\t\t26.6.2\nBuildVersion:\t\t25G83",
+  "cpu": "Apple M4 Pro",
+  "command": "PYTHONPATH=BRIDGE_INSTALL RAYON_NUM_THREADS=8 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 QT_QPA_PLATFORM=offscreen python -m scripts.benchmark_fused_single_frame --hdf5 FILE --poni PONI --mask-u8 MASK --output results.json",
+  "conditions": "Other applications active; warm OS file cache; matched frame selection, effective mask, geometry, float64 arithmetic; no rendering/debounce included.",
+  "post_benchmark_changes": [
+    "Added an eligibility fallback for nonpositive wavelength; benchmark wavelength is positive.",
+    "Added the real Qt coordinator owner-thread test.",
+    "Bundled codec, Python binding, Dioptrin and Rayon license notices in the adapter wheel; native code unchanged."
+  ],
+  "validated_source_sha256": {
+    "dioptas/model/Configuration.py": "a5641e13780a2057f00226f9ecf189822e56cd5a508b334ace7d7bfe394bc959",
+    "dioptas/model/integration_task.py": "acee6ec56e1fbd2221920ca17400780e05f3fd0ff32085fdc05531d50aecb4f1",
+    "dioptas/model/loader/fusedHdf5.py": "8ee1a8f9f9318f164b30a39e9450dc9955c12470e42a354efd6519bbc4cb9ec3",
+    "scripts/benchmark_fused_single_frame.py": "90c12bfe506386e6971f219d4303297c6732ef18592d8f2ae0cbfe82c3edcbd1",
+    "/Users/clemens/Programming/dioptrin-io-worktrees/qt-fused/python-fused/Cargo.toml": "611fd178ce65f28b0daec8b4c7b329c2a0543dbc643af98402d42a50c52859a7",
+    "/Users/clemens/Programming/dioptrin-io-worktrees/qt-fused/python-fused/Cargo.lock": "9d6ce89861f4d112a77ba09ce13b9840f3c7b7dfd76473851d9161a45a4f1270",
+    "/Users/clemens/Programming/dioptrin-io-worktrees/qt-fused/python-fused/src/lib.rs": "929b240e9601f3236f0d77771c96183e201fa3e5f19988dde13cf248e8692463"
+  },
+  "final_wheel_sha256": "212d6dffd983b14bd916ef676bd78618254dcd57a866f8e09c12daa03bbc4559"
+}

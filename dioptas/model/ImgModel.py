@@ -79,6 +79,7 @@ class ImgModel:
     def __init__(self) -> None:
         super().__init__()
         self.filename: str = ""
+        self.combined_frame_loader = None
         self._loaded_file_signature = None
         self._loaded_source = None
 
@@ -108,6 +109,7 @@ class ImgModel:
         # anything that gets loaded from an image file and needs to be reset if a file without these attributes is
         # loaded 2D array containing the current image
         self.loadable_data: list[dict[str, Any]] = [
+            {"name": "combined_pattern", "default": None, "attribute": "_combined_pattern"},
             {
                 "name": "img_data",
                 "default": np.zeros((2048, 2048)),
@@ -341,10 +343,15 @@ class ImgModel:
 
         # read the file before touching any state, so a failing load leaves
         # the model exactly as it was
-        image_file_data = self.get_image_data(filename, pos)
+        image_file_data = (self.combined_frame_loader(filename, pos)
+                           if self.combined_frame_loader is not None else None)
+        if image_file_data is None:
+            image_file_data = self.get_image_data(filename, pos)
+        elif "loader" in image_file_data:
+            self.loader = image_file_data["loader"]
         self.filename = filename
         self.set_loadable_attributes(image_file_data)
-        self._loaded_file_signature = self._file_signature(filename)
+        self._loaded_file_signature = image_file_data.get("source_identity") or self._file_signature(filename)
         self._loaded_source = self.selected_source
 
         self.file_name_iterator.update_filename(filename)
@@ -540,6 +547,7 @@ class ImgModel:
         self.series_max = self.loader.series_max
         self.series_pos = min(self.series_pos, self.series_max)
         self._sync_file_params()
+        self._combined_pattern = None
         self._img_data = self.series_get_image(self.series_pos - 1)
 
         self._perform_img_transformations()
@@ -693,7 +701,7 @@ class ImgModel:
     def file_iteration_mode(self, new_mode: str) -> None:
         self.params.file_iteration_mode = new_mode
 
-    def load_series_img(self, pos: int) -> None:
+    def load_series_img(self, pos: int, *, force: bool = False) -> None:
         """
         Takes a position in the series to load, sanitizes it and puts the result from the function assigned to
         series_get_image into _img_data. series_get_image gets called with a position starting from 0, all other series
@@ -701,14 +709,23 @@ class ImgModel:
         """
         logger.debug("Loading series image at position %d", pos)
         pos = min(max(pos, 1), self.series_max)
-        if self.series_pos == pos:
+        if self.series_pos == pos and not force:
             return
 
         if self.series_get_image is None:
             self._reload_series_file()
 
+        payload = (self.combined_frame_loader(self.filename, pos - 1, existing_loader=self.loader)
+                   if self.combined_frame_loader is not None else None)
+        if payload is None:
+            pixels = self.series_get_image(pos - 1)
+            cached = None
+        else:
+            pixels, cached = payload["img_data"], payload["combined_pattern"]
+            self._img_data_fabio = payload.get("img_data_fabio")
         self.series_pos = pos
-        self._img_data = self.series_get_image(pos - 1)
+        self._img_data = pixels
+        self._combined_pattern = cached
 
         self._perform_img_transformations()
         self._calculate_img_data()

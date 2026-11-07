@@ -14,6 +14,8 @@ from typing import Any
 import numpy as np
 from pyFAI.integrator.azimuthal import AzimuthalIntegrator
 
+from .loader.fusedHdf5 import FusedHdf5Source
+from .loader.combinedHdf5 import CombinedLoadEngine, PreparedPattern
 from .util.spottiness import integrate_spottiness, trim_spread
 from .util.calc import supersample_image, trim_trailing_zeros
 
@@ -29,6 +31,9 @@ class _DioptrinBackend:
         self.unit = None
         self.mask = _UNSET
         self.polarization = _UNSET
+        self.layout = None
+        self.fused = None
+        self.fused_key = None
 
 
 @dataclass(frozen=True)
@@ -57,6 +62,9 @@ class IntegrationTask:
     dioptrin_geometry_config: dict[str, float] | None = None
     calculate_azimuthal_std: bool = False
     dioptrin_sparse_layout: str = "csc"
+    fused_hdf5_source: FusedHdf5Source | None = None
+    fused_num_workers: int = 8
+    precomputed_pattern: PreparedPattern | None = None
 
 
 @dataclass(frozen=True)
@@ -103,6 +111,7 @@ class PersistentIntegrationEngine:
         self._dioptrin_unavailable = False
         self._geometry_key = None
         self._lock = threading.Lock()
+        self._combined_loader = CombinedLoadEngine()
 
     @property
     def pyfai_integrator(self):
@@ -119,9 +128,14 @@ class PersistentIntegrationEngine:
             self._select_geometry(task)
             return self._compute_locked(task)
 
+    def load_combined(self, request):
+        with self._lock:
+            return self._combined_loader.load(request)
+
     def close(self) -> None:
         """Drop native backend objects on their owning worker thread."""
         with self._lock:
+            self._combined_loader.close()
             self._pyfai_integrator = None
             self._dioptrin_backends.clear()
             self._geometry_key = None
@@ -136,7 +150,7 @@ class PersistentIntegrationEngine:
         jobs share that lane so setters cannot race with another integration.
         """
         calibration = configuration.calibration_model
-        task = configuration.create_integration_task()
+        task = configuration.create_integration_task(allow_fused=False)
         if (task is None or not task.prefer_dioptrin
                 or configuration.has_dynamic_mask
                 or not calibration.can_use_dioptrin_batch(
@@ -237,12 +251,16 @@ class PersistentIntegrationEngine:
         integrator = backend.integrator
         if hasattr(integrator, "set_sparse_layout"):
             integrator.set_sparse_layout(task.dioptrin_sparse_layout)
+        if backend.layout != task.dioptrin_sparse_layout:
+            backend.fused = None
+            backend.layout = task.dioptrin_sparse_layout
         method = (
             ("supersampled", task.supersampling_factor)
             if task.supersampling_factor > 1
             else ("pixel_split", None)
         )
         if method != backend.method:
+            backend.fused = None
             if method[0] == "supersampled":
                 integrator.set_method(method[0], n_ss=method[1])
             else:
@@ -250,17 +268,20 @@ class PersistentIntegrationEngine:
             backend.method = method
 
         if unit != backend.unit:
+            backend.fused = None
             integrator.set_unit(unit)
             backend.unit = unit
 
         mask = task.mask.astype(np.uint8) if task.mask is not None else None
         if not _arrays_equal(mask, backend.mask):
+            backend.fused = None
             integrator.set_mask(mask)
             backend.mask = (
                 np.array(mask, copy=True) if mask is not None else None
             )
 
         if task.polarization_factor != backend.polarization:
+            backend.fused = None
             integrator.set_polarization_factor(task.polarization_factor)
             backend.polarization = task.polarization_factor
 
@@ -269,27 +290,33 @@ class PersistentIntegrationEngine:
         cake = None
 
         if task.calculate_pattern:
-            if _can_use_dioptrin_pattern(task):
-                pattern_unit = "2th_deg" if task.unit == "d_A" else task.unit
-                dioptrin = self._ensure_dioptrin(task, pattern_unit)
-            else:
-                dioptrin = None
-            if dioptrin is not None:
-                self._configure_dioptrin(
-                    dioptrin,
-                    task,
-                    pattern_unit,
-                )
-                pattern = _integrate_pattern_dioptrin(
-                    dioptrin.integrator,
-                    self._ensure_pyfai(task),
-                    task,
-                )
+            prepared = task.precomputed_pattern
+            if prepared is not None and prepared.matches(task):
+                pattern = _finish_pattern_dioptrin(
+                    prepared.loaded.result, task, prepared.loaded.request.settings.points)
             if pattern is None:
-                image, mask = _pyfai_inputs(task)
-                pattern = _integrate_pattern(
-                    self._ensure_pyfai(task), task, image, mask
-                )
+                if _can_use_dioptrin_pattern(task):
+                    pattern_unit = "2th_deg" if task.unit == "d_A" else task.unit
+                    dioptrin = self._ensure_dioptrin(task, pattern_unit)
+                else:
+                    dioptrin = None
+                if dioptrin is not None:
+                    self._configure_dioptrin(
+                        dioptrin,
+                        task,
+                        pattern_unit,
+                    )
+                    pattern = _integrate_pattern_dioptrin(
+                        dioptrin.integrator,
+                        self._ensure_pyfai(task),
+                        task,
+                        backend=dioptrin,
+                    )
+                if pattern is None:
+                    image, mask = _pyfai_inputs(task)
+                    pattern = _integrate_pattern(
+                        self._ensure_pyfai(task), task, image, mask
+                    )
 
         if task.calculate_cake:
             dioptrin = (
@@ -379,26 +406,79 @@ def _can_use_dioptrin_cake(task: IntegrationTask) -> bool:
     return task.correct_solid_angle and not wraps
 
 
+def _try_fused_pattern(backend, task, num_points, image):
+    source = task.fused_hdf5_source
+    if (backend is None or source is None or task.calculate_azimuthal_std
+            or task.dioptrin_sparse_layout != "csc"
+            or not (task.dioptrin_geometry_config.get("wavelength", 0) > 0)):
+        return None
+    try:
+        import dioptrin_io_fused as dioptrin_io
+    except (ImportError, OSError):
+        return None
+    factory = getattr(dioptrin_io, "FusedHdf5Integrator", None)
+    if factory is None:
+        return None
+    key = (source.filename, source.dataset, source.identity, image.shape,
+           num_points, task.fused_num_workers)
+    source.check()
+    try:
+        if key != backend.fused_key or backend.fused is None:
+            try:
+                backend.fused = factory(
+                    source.filename, source.dataset, task.dioptrin_geometry_config,
+                    num_points, mask=backend.mask,
+                    unit=backend.unit, polarization_factor=task.polarization_factor,
+                    supersampling=task.supersampling_factor,
+                    num_workers=task.fused_num_workers,
+                )
+            except dioptrin_io.UnsupportedFusedLayout:
+                backend.fused = False
+                logger.debug("Native fused layout unsupported; using current image", exc_info=True)
+            backend.fused_key = key
+        if backend.fused is False:
+            return None
+        try:
+            result = backend.fused.integrate1d(
+                source.frame, errors=task.calculate_errors, expected_image=image)
+        except dioptrin_io.SourceImageMismatch:
+            # Editing/replacing NumPy pixels must never be bypassed by rereading.
+            logger.debug("Captured pixels differ from native source; using current image")
+            return None
+        logger.debug("Single-frame fused HDF5 integration with %s block workers", task.fused_num_workers)
+        return result
+    finally:
+        # Even an admission/mismatch fallback must not hide a changed source.
+        source.check()
+
+
 def _integrate_pattern_dioptrin(
     integrator,
     pyfai_integrator,
     task: IntegrationTask,
+    *, backend=None,
 ) -> PatternIntegrationResult | None:
     image = np.ascontiguousarray(task.image, dtype=np.float64)
     num_points = task.pattern_num_points or _calculate_num_points(
         pyfai_integrator, image.shape
     )
+    result = _try_fused_pattern(backend, task, num_points, image)
     try:
-        result = integrator.integrate1d(
-            image,
-            num_points,
-            **({"errors": True} if task.calculate_errors else {}),
-            **({"azimuthal_std": True} if task.calculate_azimuthal_std else {}),
-        )
+        if result is None:
+            result = integrator.integrate1d(
+                image,
+                num_points,
+                **({"errors": True} if task.calculate_errors else {}),
+                **({"azimuthal_std": True} if task.calculate_azimuthal_std else {}),
+            )
     except TypeError:
         # Older Dioptrin versions may lack errors or independent spread.
         return None
 
+    return _finish_pattern_dioptrin(result, task, num_points)
+
+
+def _finish_pattern_dioptrin(result, task, num_points):
     radial = np.asarray(result.radial)
     intensity = np.asarray(result.intensity)
     sigma = (
