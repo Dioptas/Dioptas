@@ -85,8 +85,9 @@ pitches. These checks establish native round trips and scoped cross-reader
 compatibility, not a repair of every older writer's state-loss behavior. The
 original Qt/Python implementation is unchanged.
 
-The separate LA Cosmic operation remains unported; it is not a geometric mask
-operation. The Cosmic Ray Mask dynamic plugin is already native. Named/nonuniform
+The separate LA Cosmic operation is now native in the
+[following stage](NATIVE_LACOSMIC_PARITY.md). The Cosmic Ray Mask dynamic plugin
+also remains native. Named/nonuniform
 and spline detector geometry, Fit2D conversion, broader format qualification and
 cross-platform native packaging remain migration work.
 

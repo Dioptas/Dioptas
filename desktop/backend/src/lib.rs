@@ -9,6 +9,7 @@ mod geometry;
 pub mod image;
 #[cfg(feature = "dioptrin")]
 mod integration;
+mod lacosmic;
 mod map_math;
 mod map_preview;
 mod mask_plugins;

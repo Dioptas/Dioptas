@@ -324,6 +324,15 @@ export function MaskPanel({
             ))}
           </div>
         </section>
+        <section className="sidebar-section">
+          <button
+            disabled={!enabled}
+            title="Add detected LA Cosmic hits to the current mask; source intensities are preserved"
+            onClick={() => edit("cosmic")}
+          >
+            Cosmic Removal
+          </button>
+        </section>
         <section className="sidebar-section mask-plugins">
           <div className="section-label">
             <span>DYNAMIC MASKING PLUGINS</span>

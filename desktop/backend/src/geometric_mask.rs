@@ -157,45 +157,88 @@ impl Session {
         self.control
             .publish(json!({"running":true,"current":0,"total":h,"label":"Applying mask"}));
         match operation {
-            "rectangle"=>{
-                let [[x0,y0],[x1,y1]]=[vertices[0],vertices[1]];
-                for r in (y0.min(y1).round_ties_even() as usize)..(y0.max(y1).round_ties_even() as usize).min(h) {
+            "rectangle" => {
+                let [[x0, y0], [x1, y1]] = [vertices[0], vertices[1]];
+                for r in (y0.min(y1).round_ties_even() as usize)
+                    ..(y0.max(y1).round_ties_even() as usize).min(h)
+                {
                     self.control.check()?;
-                    mask[r*w+x0.min(x1).round_ties_even() as usize..r*w+(x0.max(x1).round_ties_even() as usize).min(w)].fill(value);
+                    mask[r * w + x0.min(x1).round_ties_even() as usize
+                        ..r * w + (x0.max(x1).round_ties_even() as usize).min(w)]
+                        .fill(value);
                 }
             }
-            "circle"=>{
-                let [cx,cy]=vertices[0].map(|v|v as usize);
-                let radius=(vertices[1][0]-vertices[0][0]).hypot(vertices[1][1]-vertices[0][1]) as usize;
-                if radius>0 { for r in cy.saturating_sub(radius)..=(cy+radius).min(h-1) {
-                    self.control.check()?;
-                    for c in cx.saturating_sub(radius)..=(cx+radius).min(w-1) {
-                        if ((r as f64-cy as f64)/radius as f64).powi(2)+((c as f64-cx as f64)/radius as f64).powi(2)<1. {mask[r*w+c]=value;}
+            "circle" => {
+                let [cx, cy] = vertices[0].map(|v| v as usize);
+                let radius = (vertices[1][0] - vertices[0][0])
+                    .hypot(vertices[1][1] - vertices[0][1]) as usize;
+                if radius > 0 {
+                    for r in cy.saturating_sub(radius)..=(cy + radius).min(h - 1) {
+                        self.control.check()?;
+                        for c in cx.saturating_sub(radius)..=(cx + radius).min(w - 1) {
+                            if ((r as f64 - cy as f64) / radius as f64).powi(2)
+                                + ((c as f64 - cx as f64) / radius as f64).powi(2)
+                                < 1.
+                            {
+                                mask[r * w + c] = value;
+                            }
+                        }
                     }
-                }}
-            }
-            "polygon"=>polygon(&mut mask,shape,&vertices,value,&self.control)?,
-            "arc"=>polygon(&mut mask,shape,&arc(&vertices)?,value,&self.control)?,
-            "above"|"below"=>{
-                let t=finite(&args["threshold"],"Threshold",-1e30,1e30)?;
-                for (i,v) in self.scientific_values().iter().enumerate() {
-                    if i%w==0 {self.control.check()?;}
-                    if (operation=="above" && *v>t) || (operation=="below" && *v<t) {mask[i]=value;}
                 }
             }
-            "range"=>self.mask_radial_range(&mut mask,args,value)?,
-            "grow"|"shrink"=>{
-                let combine=|a:u8,b:u8|if operation=="grow"{a|b}else{a&b};
-                // Each assignment sees the preceding pass, as in MaskModel.
-                for r in (1..h).rev() {self.control.check()?; for c in 0..w {mask[r*w+c]=combine(mask[r*w+c],mask[(r-1)*w+c]);}}
-                for r in 0..h-1 {self.control.check()?; for c in 0..w {mask[r*w+c]=combine(mask[r*w+c],mask[(r+1)*w+c]);}}
-                for r in 0..h {self.control.check()?; for c in (1..w).rev() {mask[r*w+c]=combine(mask[r*w+c],mask[r*w+c-1]);}}
-                for r in 0..h {self.control.check()?; for c in 0..w-1 {mask[r*w+c]=combine(mask[r*w+c],mask[r*w+c+1]);}}
+            "polygon" => polygon(&mut mask, shape, &vertices, value, &self.control)?,
+            "arc" => polygon(&mut mask, shape, &arc(&vertices)?, value, &self.control)?,
+            "above" | "below" => {
+                let t = finite(&args["threshold"], "Threshold", -1e30, 1e30)?;
+                for (i, v) in self.scientific_values().iter().enumerate() {
+                    if i % w == 0 {
+                        self.control.check()?;
+                    }
+                    if (operation == "above" && *v > t) || (operation == "below" && *v < t) {
+                        mask[i] = value;
+                    }
+                }
             }
-            "invert"=>{for (i,v) in mask.iter_mut().enumerate(){if i%w==0{self.control.check()?;} *v=1-*v;}},
-            "clear"=>mask.fill(0),
-            "cosmic"=>return Err("The separate LA Cosmic operation is not migrated yet; the Cosmic Ray Mask plugin is available.".into()),
-            _=>return Err("Unknown mask operation.".into()),
+            "range" => self.mask_radial_range(&mut mask, args, value)?,
+            "grow" | "shrink" => {
+                let combine = |a: u8, b: u8| if operation == "grow" { a | b } else { a & b };
+                // Each assignment sees the preceding pass, as in MaskModel.
+                for r in (1..h).rev() {
+                    self.control.check()?;
+                    for c in 0..w {
+                        mask[r * w + c] = combine(mask[r * w + c], mask[(r - 1) * w + c]);
+                    }
+                }
+                for r in 0..h - 1 {
+                    self.control.check()?;
+                    for c in 0..w {
+                        mask[r * w + c] = combine(mask[r * w + c], mask[(r + 1) * w + c]);
+                    }
+                }
+                for r in 0..h {
+                    self.control.check()?;
+                    for c in (1..w).rev() {
+                        mask[r * w + c] = combine(mask[r * w + c], mask[r * w + c - 1]);
+                    }
+                }
+                for r in 0..h {
+                    self.control.check()?;
+                    for c in 0..w - 1 {
+                        mask[r * w + c] = combine(mask[r * w + c], mask[r * w + c + 1]);
+                    }
+                }
+            }
+            "invert" => {
+                for (i, v) in mask.iter_mut().enumerate() {
+                    if i % w == 0 {
+                        self.control.check()?;
+                    }
+                    *v = 1 - *v;
+                }
+            }
+            "clear" => mask.fill(0),
+            "cosmic" => self.add_lacosmic(&mut mask, shape)?,
+            _ => return Err("Unknown mask operation.".into()),
         }
         self.control.check()?;
         self.replace_mask_mode(mask, !erase);
@@ -204,6 +247,14 @@ impl Session {
         self.control.check()?;
         self.revision += 1;
         Ok(self.snapshot(false))
+    }
+    fn add_lacosmic(&self, mask: &mut [u8], shape: [usize; 2]) -> Result<(), String> {
+        let detected = crate::lacosmic::detect(&self.scientific_values(), shape, &self.control)?;
+        // Qt always adds these hits, including when the drawing mode is Unmask.
+        for (pixel, hit) in mask.iter_mut().zip(detected) {
+            *pixel |= hit;
+        }
+        Ok(())
     }
     fn mask_radial_range(&self, mask: &mut [u8], args: &Value, value: u8) -> Result<(), String> {
         if !self.settings.calibrated {
