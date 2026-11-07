@@ -96,16 +96,17 @@ Clone the repository and install the dependencies using uv::
     uv run dioptas
 
 The default branch is ``develop``. For a specific published release, check out
-its tag before running ``uv sync``, for example ``git checkout 0.12.1`` once that
-release is published. A source checkout builds Dioptas's small native extension
-and may require a C compiler; ordinary wheel installations do not.
+its tag before running ``uv sync``, for example ``git checkout 0.13.0``. A source checkout builds Dioptas's small native
+extension and may require a C compiler; ordinary wheel installations do not.
 
-The optional Dioptrin backend is pinned to 0.9.0. Install it with
+The optional native backend uses Dioptrin 0.10.0 and dioptrin-io 0.2.0.
+Their prebuilt wheels include the fused fixed-mask Eiger bridge. Install them with
 ``uv sync --extra dioptrin`` and start with ``uv run --extra dioptrin dioptas``.
 For a pip installation, use ``pip install 'dioptas[dioptrin]'``.
-Dioptrin 0.9.0 is MIT licensed and needs no activation or license key.
+Dioptrin 0.10.0 is MIT licensed and needs no activation or license key.
 pyFAI remains the default backend and works without this extra. See the
-`Dioptrin package <https://pypi.org/project/dioptrin/0.9.0/>`_.
+`Dioptrin package <https://pypi.org/project/dioptrin/0.10.0/>`_ and
+`dioptrin-io package <https://pypi.org/project/dioptrin-io/0.2.0/>`_.
 
 Batch and map integration use Dioptrin's fixed-mask mode when no dynamic mask
 plugin is enabled. With masking enabled and an active dynamic plugin, frames
@@ -113,7 +114,7 @@ are integrated individually in dynamic mode so that each frame gets a fresh
 mask and normalization. Disabling masking or the dynamic plugins restores
 the fixed-mask batch path for the next run.
 
-The Dioptrin extra also installs the pinned MIT-licensed
+For Batch and Map reading, the Dioptrin extra also installs the pinned MIT-licensed
 ``bslz4-to-sparse==0.0.22a3`` decoder on platforms with its published wheels
 (macOS Apple Silicon, supported Linux architectures, and Windows x86-64).
 macOS Intel retains the existing
@@ -134,13 +135,17 @@ stale counts; reopen the source before retrying. It is not a live/SWMR reader.
 Fast-decoder payload admission is capped at 2 GiB and eight workers; native
 integration queues, geometry and masks require additional memory.
 
-``dioptrin-io`` remains an independent Rust-only development package. Its Python
-binding is not yet available; this Qt reader interface can adopt it later.
+With Dioptrin enabled, compatible single-frame Eiger HDF5 integrations with a
+fixed mask use the fused bridge included in the dioptrin-io wheel. Parallel
+block decoding produces original display counts and the float64 1D pattern in
+one pass. Unsupported layouts or processing settings use the established path;
+dynamic masks, Batch, Map and cake processing keep their existing routes.
+The core Rust I/O library remains independent of integration mathematics.
 
 Fast 1D layout
 ~~~~~~~~~~~~~~
 
-Dioptrin 0.9.0 defaults to CSC for fast 1D integration. Select CSC or CSR in
+Dioptrin defaults to CSC for fast 1D integration. Select CSC or CSR in
 Integration Options under Sparse layout. Fixed masks cache normalization;
 dynamic masks recompute it per frame using the shared geometry weights.
 Strict arithmetic, azimuthal spread and 2D retain compatible implementations.
