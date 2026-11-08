@@ -626,9 +626,6 @@ input[aria-invalid="true"] {
 .batch-folder-label {
   font-size: var(--text-meta);
 }
-.mask-shape-grid .mask-navigate {
-  grid-column: 1 / -1;
-}
 .batch-source-note {
   color: var(--ui-muted);
   font-size: var(--text-meta);
