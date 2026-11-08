@@ -208,6 +208,9 @@ export function usePlotNavigation(
     )
       return false;
     event.preventDefault();
+    // Preventing pointer default also suppresses browser focus. Keyboard plot
+    // actions must follow the canvas that was actually clicked.
+    event.currentTarget.focus({ preventScroll: true });
     event.currentTarget.setPointerCapture(event.pointerId);
     gesture.current = {
       button: right ? "right" : "left",

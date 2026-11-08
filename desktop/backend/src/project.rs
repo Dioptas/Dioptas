@@ -113,7 +113,13 @@ impl Session {
         self.project.active_label = target.label.clone();
         self.project.configurations[index] = None;
         self.revision = revision;
-        self.inspection = None;
+        // Inspection belongs to the restored configuration, including its
+        // geometry and image generation; keep valid clicks when switching.
+        if let Some(image) = &self.image {
+            self.retain_inspection(image.shape);
+        } else {
+            self.inspection = None;
+        }
         self.rebuild_pattern()?;
         if shared_overlays_changed
             && let Some(scan) = self

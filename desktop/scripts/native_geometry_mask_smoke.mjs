@@ -149,7 +149,16 @@ for (const [name, type] of [
     ]) {
       await button(shape).click();
       for (const p of points) await click(...p);
-      if (shape === "Polygon") await page.keyboard.press("Enter");
+      if (shape === "Polygon") {
+        assert.equal(
+          await page
+            .getByTestId("detector-canvas")
+            .evaluate((el) => el === document.activeElement),
+          true,
+          "Drawing focuses the canvas before keyboard polygon completion",
+        );
+        await page.keyboard.press("Enter");
+      }
       await ready();
     }
     assert.ok((await invoke("state")).state.maskedPixels > 0);

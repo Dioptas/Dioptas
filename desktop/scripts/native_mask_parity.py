@@ -69,7 +69,10 @@ def main():
             for label, image in [("synthetic", synthetic), ("measured-CeO2", measured)]:
                 file = Path(directory) / "image.npy"
                 np.save(file, image[::-1])
-                invoke("open_image", path=str(file), defer_integration=True)
+                # Each independently generated detector fixture is a new setup.
+                loaded = invoke("open_image", path=str(file), defer_integration=True)
+                if loaded.get("imageChange"):
+                    invoke("open_image", path=str(file), defer_integration=True, reset_calibration=True)
                 shape = image.shape
                 values = dict(dist=0.14, poni1=shape[0]*0.000172*0.49,
                               poni2=shape[1]*0.000172*0.52, rot1=0.012,
@@ -140,7 +143,9 @@ def main():
             nonfinite[3, 3] = np.nan
             nonfinite[4, 4] = -np.inf
             np.save(file, nonfinite[::-1])
-            invoke("open_image", path=str(file), defer_integration=True)
+            loaded = invoke("open_image", path=str(file), defer_integration=True)
+            if loaded.get("imageChange"):
+                invoke("open_image", path=str(file), defer_integration=True, reset_calibration=True)
             for cls in [ThresholdMaskPlugin, CosmicRayMaskPlugin]:
                 plugin = cls()
                 result = invoke("mask_plugin", name=plugin.name, enabled=True, settings=plugin.get_settings(), defer_integration=True)

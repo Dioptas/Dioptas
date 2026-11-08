@@ -109,3 +109,10 @@ processor and resources and does not depend on this cache or a source checkout.
 The artifact is `desktop/src-tauri/target/debug/bundle/macos/Dioptas Desktop.app`.
 This is a local development build, not a notarized or published release.
 Headless receipts/screenshots are under `desktop/artifacts/`.
+
+## Subsequent CI qualification
+
+The native functional coverage stage publishes the pinned dependency development
+branch, adds an automatic Rust/headless/reference CI gate and 18 additional Rust
+flow tests. See `NATIVE_FUNCTIONAL_COVERAGE.md`. The local-only dependency
+limitation above describes the original consolidation, before that stage.

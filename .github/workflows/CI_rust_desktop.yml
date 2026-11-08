@@ -1,0 +1,133 @@
+name: Rust desktop
+
+on:
+  push:
+    paths: ['desktop/**', 'dioptas/**', 'pyproject.toml', 'uv.lock', '.github/workflows/CI_rust_desktop.yml']
+  pull_request:
+    paths: ['desktop/**', 'dioptas/**', 'pyproject.toml', 'uv.lock', '.github/workflows/CI_rust_desktop.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rust-desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  QT_QPA_PLATFORM: offscreen
+  HDF5_PLUGIN_PRELOAD: '::'
+
+jobs:
+  processor:
+    name: Native processor (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+      - name: Install Rust tools
+        run: rustup update stable && rustup component add clippy rustfmt llvm-tools-preview
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/backend -> target
+          key: processor-${{ runner.os }}
+      - name: Run native processor gate (no Python environment)
+        run: node desktop/scripts/check_native_desktop.mjs --processor
+      - name: Measure Rust coverage
+        if: runner.os == 'Linux'
+        working-directory: desktop/backend
+        run: |
+          mkdir -p ../artifacts/coverage
+          cargo install cargo-llvm-cov --locked --version 0.9.1
+          cargo llvm-cov --locked --all-features --lcov --output-path ../artifacts/coverage/lcov.info
+          cargo llvm-cov report --html --output-dir ../artifacts/coverage/html
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: native-processor-${{ runner.os }}
+          path: desktop/artifacts/
+
+  desktop:
+    name: Headless desktop and Tauri host
+    runs-on: macos-latest
+    timeout-minutes: 45
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '14.0'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - name: Install Rust
+        run: rustup update stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            desktop/backend -> target
+            desktop/src-tauri -> target
+          key: desktop-macos
+      - run: npm ci
+        working-directory: desktop
+      - run: npx playwright install chromium webkit
+        working-directory: desktop
+      - name: Prepare and test the native host (no application window)
+        run: node desktop/scripts/check_native_desktop.mjs --host
+      - name: Run headless UI, data flow and stdio checks
+        run: node desktop/scripts/check_native_desktop.mjs --ui
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: native-desktop-headless
+          path: desktop/artifacts/
+
+  references:
+    name: Independent numerical references
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PYTHONPATH: .
+      DIOPTAS_REFERENCE_PYTHON: ${{ github.workspace }}/.venv/bin/python
+      DIOPTAS_REQUIRE_C_EXT: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Install reference-only dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libopengl0 libxkbcommon-x11-0 libxcb-cursor0
+          python -m pip install uv
+          uv sync --frozen --python 3.13 --extra test
+      - name: Install Rust
+        run: rustup update stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/backend -> target
+          key: reference-linux
+      - name: Build Rust processor
+        run: cargo build --locked --manifest-path desktop/backend/Cargo.toml --all-features
+      - run: npm ci && npm run build && npx playwright install --with-deps chromium webkit
+        working-directory: desktop
+      - name: Compare native results with independent references
+        run: node desktop/scripts/check_native_desktop.mjs --references
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: native-numerical-references
+          path: desktop/artifacts/

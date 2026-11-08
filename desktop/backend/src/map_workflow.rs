@@ -113,41 +113,29 @@ impl Session {
         self.scan.as_mut().unwrap().selected = index;
         let mut reply = if let Some(index) = index {
             let series = self.scan.as_ref().unwrap().series.clone();
-            let mut reply = self.select_series_mode(
+            // Rebuild on the Map's actual radial grid. Converting the axis of
+            // a Q-binned curve afterward does not reproduce 2theta-bin counts.
+            let integration_unit = self.settings.unit.clone();
+            if reintegrate && !integration {
+                self.settings.unit = series.unit.clone();
+            }
+            let selection = self.select_series_mode(
                 &series,
                 index,
                 !integration && !reintegrate,
                 !integration && !reintegrate,
                 Some(&series.unit),
                 !integration,
-            )?;
+            );
+            self.settings.unit = integration_unit;
+            let mut reply = selection?;
+            reply.result["state"]["unit"] = json!(self.settings.unit);
+            reply.result["linked"] = self.linked_snapshot();
             if reintegrate && !integration {
                 if self.image.is_none() {
                     return Err(
                         "Reintegration needs the original image and a loaded calibration.".into(),
                     );
-                }
-                if let Some(raw) = &self.patterns.raw {
-                    let mut curve = raw.as_ref().clone();
-                    curve.x = Arc::new(
-                        curve
-                            .x
-                            .iter()
-                            .map(|x| {
-                                linked::convert(
-                                    *x,
-                                    &self.patterns.unit,
-                                    &series.unit,
-                                    self.settings.geometry.wavelength,
-                                )
-                            })
-                            .collect(),
-                    );
-                    self.patterns.raw = Some(Arc::new(curve));
-                    self.patterns.unit = series.unit.clone();
-                    self.rebuild_pattern()?;
-                    reply.result["pattern"] =
-                        self.pattern.as_deref().cloned().unwrap_or(Value::Null);
                 }
                 self.cake = None;
                 self.cake_values = None;

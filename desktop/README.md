@@ -67,6 +67,13 @@ session. Pattern ranges are shared across Calibration, Integration and Map,
 converting radial units and intensity scales as needed. Resizing keeps detector
 pixels square; F/right double-click still restore the fitted image view.
 
+## Native regression tests and CI
+
+The Rust desktop gate and the case-by-case inventory of all 82 legacy functional
+definitions are documented in [Native functional coverage](NATIVE_FUNCTIONAL_COVERAGE.md).
+Run `npm run test:ci-native` for processor and headless UI checks; independent
+Python reference calculations are an explicitly separate gate.
+
 ## Shared UI controls
 
 All views use the controls and surfaces in `src/ui`, including table fields,

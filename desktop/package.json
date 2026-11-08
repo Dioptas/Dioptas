@@ -55,7 +55,10 @@
     "smoke:python-reference": "node scripts/smoke.mjs",
     "test:combination:python-reference": "node scripts/combination_smoke.mjs",
     "test:image-change": "node scripts/image_change_smoke.mjs && node scripts/image_change_smoke.mjs --webkit",
-    "test:standalone-processor": "node scripts/standalone_processor_smoke.mjs"
+    "test:standalone-processor": "node scripts/standalone_processor_smoke.mjs",
+    "test:ci-native": "node scripts/check_native_desktop.mjs",
+    "test:ci-reference": "node scripts/check_native_desktop.mjs --references",
+    "test:functional-coverage": "node scripts/functional_coverage.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",

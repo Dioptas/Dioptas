@@ -1,0 +1,672 @@
+{
+  "scope": "82 source test definitions, not pytest parameterized/inherited case counts. Native rows cover scientific command semantics, not identical Qt widgets. Adapted/unsupported/platform-specific rows explicitly preserve remaining differences. Coverage is verified against existing source IDs and test evidence; numerical assertions run in the native gate. Project scientific equivalents use native format 2; legacy formats 0/1 remain outside the importer support boundary.",
+  "cases": [
+    {
+      "legacy": "test_functional_PhaseEditor.py::PhaseEditorFunctionalTest::test_correctly_displays_parameters_and_can_be_edited",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#phase_lattice_pressure_and_name_edits_reach_pattern_and_export"
+      ],
+      "note": "Native editor commands propagate lattice/name/pressure or reflection edits through export/reload. Qt widget synchronization is replaced by response-driven React state."
+    },
+    {
+      "legacy": "test_functional_PhaseEditor.py::PhaseEditorFunctionalTest::test_reflection_editing_and_saving_of_files",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#reflection_editing_add_remove_and_export_preserve_actual_peak_values"
+      ],
+      "note": "Native editor commands propagate lattice/name/pressure or reflection edits through export/reload. Qt widget synchronization is replaced by response-driven React state."
+    },
+    {
+      "legacy": "test_functional_PhaseEditor.py::PhaseEditorFunctionalTest::test_connection_between_main_gui_and_jcpds_editor_lattice_and_eos_parameter",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#phase_lattice_pressure_and_name_edits_reach_pattern_and_export"
+      ],
+      "note": "Native editor commands propagate lattice/name/pressure or reflection edits through export/reload. Qt widget synchronization is replaced by response-driven React state."
+    },
+    {
+      "legacy": "test_functional_PhaseEditor.py::PhaseEditorFunctionalTest::test_connection_between_main_gui_and_jcpds_editor_reflections",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#reflection_editing_add_remove_and_export_preserve_actual_peak_values"
+      ],
+      "note": "Native editor commands propagate lattice/name/pressure or reflection edits through export/reload. Qt widget synchronization is replaced by response-driven React state."
+    },
+    {
+      "legacy": "test_functional_PhaseEditor.py::PhaseEditorFunctionalTest::test_phase_name_difference_after_modified",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#phase_lattice_pressure_and_name_edits_reach_pattern_and_export"
+      ],
+      "note": "Native editor commands propagate lattice/name/pressure or reflection edits through export/reload. Qt widget synchronization is replaced by response-driven React state."
+    },
+    {
+      "legacy": "test_functional_PhaseEditor.py::PhaseEditorFunctionalTest::test_high_pressure_values_are_shown_in_jcpds_editor",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#phase_lattice_pressure_and_name_edits_reach_pattern_and_export"
+      ],
+      "note": "Native editor commands propagate lattice/name/pressure or reflection edits through export/reload. Qt widget synchronization is replaced by response-driven React state."
+    },
+    {
+      "legacy": "test_functional_integration.py::IntegrationFunctionalTest::test_activating_mask_mode",
+      "status": "adapted",
+      "evidence": [
+        "desktop/scripts/native_mask_smoke.mjs",
+        "desktop/backend/tests/functional_flows.rs#binning_sectors_supersampling_and_roi_reintegrate_without_replacing_pixels"
+      ],
+      "note": "Native mask mode/plugin operations and Undo/Redo are driven in Chromium and WebKit. Qt-specific ROI/mask toggle arbitration is replaced by the React mask tool workspace."
+    },
+    {
+      "legacy": "test_functional_integration.py::IntegrationFunctionalTest::test_activating_roi_mode",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#binning_sectors_supersampling_and_roi_reintegrate_without_replacing_pixels"
+      ],
+      "note": "Actual ROI changes invalidate/recompute integration; invalid bounds roll back, and clearing ROI restores the prior numerical result."
+    },
+    {
+      "legacy": "test_functional_integration.py::IntegrationFunctionalTest::test_activating_roi_mode_and_mask_mode",
+      "status": "adapted",
+      "evidence": [
+        "desktop/scripts/native_mask_smoke.mjs",
+        "desktop/backend/tests/functional_flows.rs#binning_sectors_supersampling_and_roi_reintegrate_without_replacing_pixels"
+      ],
+      "note": "Native mask mode/plugin operations and Undo/Redo are driven in Chromium and WebKit. Qt-specific ROI/mask toggle arbitration is replaced by the React mask tool workspace."
+    },
+    {
+      "legacy": "test_functional_integration.py::IntegrationFunctionalTest::test_moving_roi",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#binning_sectors_supersampling_and_roi_reintegrate_without_replacing_pixels"
+      ],
+      "note": "Actual ROI changes invalidate/recompute integration; invalid bounds roll back, and clearing ROI restores the prior numerical result."
+    },
+    {
+      "legacy": "test_functional_integration.py::IntegrationFunctionalTest::test_changing_integration_unit",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#linked_detector_and_cake_positions_retain_physical_angle_across_units"
+      ],
+      "note": "2theta/Q/d conversion is anchored to one physical angle; linked contours stay identical. Numerical export/project variants cover all three radial units. The legacy separate azimuthal-plot widget is not recreated."
+    },
+    {
+      "legacy": "test_functional_integration.py::IntegrationFunctionalTest::test_configuration_selected_changes_img_mode",
+      "status": "adapted",
+      "evidence": [
+        "desktop/scripts/native_project_smoke.mjs",
+        "desktop/backend/tests/functional_flows.rs#linked_detector_and_cake_positions_retain_physical_angle_across_units"
+      ],
+      "note": "Native configuration select/add/duplicate/remove and independent state are exercised via the UI; linked physical-coordinate semantics are covered separately. Qt per-widget view-mode restoration differs in React."
+    },
+    {
+      "legacy": "test_functional_integration.py::IntegrationFunctionalTest::test_configuration_selected_changes_green_line_position_in_image_mode",
+      "status": "adapted",
+      "evidence": [
+        "desktop/scripts/native_project_smoke.mjs",
+        "desktop/backend/tests/functional_flows.rs#linked_detector_and_cake_positions_retain_physical_angle_across_units",
+        "desktop/backend/tests/functional_flows.rs#configuration_selection_and_removal_restore_independent_maps_and_clicks"
+      ],
+      "note": "Native configuration select/add/duplicate/remove and independent state are exercised via the UI; linked physical-coordinate semantics are covered separately. Qt per-widget view-mode restoration differs in React."
+    },
+    {
+      "legacy": "test_functional_integration.py::IntegrationFunctionalTest::test_configuration_selected_changes_green_line_position_in_cake_mode",
+      "status": "adapted",
+      "evidence": [
+        "desktop/scripts/native_project_smoke.mjs",
+        "desktop/backend/tests/functional_flows.rs#linked_detector_and_cake_positions_retain_physical_angle_across_units",
+        "desktop/backend/tests/functional_flows.rs#configuration_selection_and_removal_restore_independent_maps_and_clicks"
+      ],
+      "note": "Native configuration select/add/duplicate/remove and independent state are exercised via the UI; linked physical-coordinate semantics are covered separately. Qt per-widget view-mode restoration differs in React."
+    },
+    {
+      "legacy": "test_functional_integration.py::IntegrationFunctionalTest::test_azimuthal_plot_shows_same_independent_of_unit",
+      "status": "adapted",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#linked_detector_and_cake_positions_retain_physical_angle_across_units"
+      ],
+      "note": "2theta/Q/d conversion is anchored to one physical angle; linked contours stay identical. Numerical export/project variants cover all three radial units. The legacy separate azimuthal-plot widget is not recreated."
+    },
+    {
+      "legacy": "test_functional_integration.py::BatchIntegrationFunctionalTest::test_data_is_ok",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#batch_stride_save_reload_missing_raw_and_fresh_reintegration"
+      ],
+      "note": "Actual ordered raw files, inclusive start/stop/stride, direct-vs-bulk f64 comparison, processed save/reload, missing raw sources and changed-bin fresh reintegration."
+    },
+    {
+      "legacy": "test_functional_integration.py::BatchIntegrationFunctionalTest::test_save_data",
+      "status": "adapted",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#batch_stride_save_reload_missing_raw_and_fresh_reintegration"
+      ],
+      "note": "Native processed HDF5 save, independent f64 dataset readback and reopen. Native Batch supports HDF5/CSV, not the old batch PNG/per-frame-DAT outputs."
+    },
+    {
+      "legacy": "test_functional_integration.py::BatchIntegrationFunctionalTest::test_save_load_reintegrate",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#batch_stride_save_reload_missing_raw_and_fresh_reintegration"
+      ],
+      "note": "Actual ordered raw files, inclusive start/stop/stride, direct-vs-bulk f64 comparison, processed save/reload, missing raw sources and changed-bin fresh reintegration."
+    },
+    {
+      "legacy": "test_functional_integration.py::BatchIntegrationFunctionalTest::test_integrate_with_parameters",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#batch_stride_save_reload_missing_raw_and_fresh_reintegration"
+      ],
+      "note": "Actual ordered raw files, inclusive start/stop/stride, direct-vs-bulk f64 comparison, processed save/reload, missing raw sources and changed-bin fresh reintegration."
+    },
+    {
+      "legacy": "test_functional_integration.py::BatchIntegrationFunctionalTest::test_load_missing_raw",
+      "status": "adapted",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#batch_stride_save_reload_missing_raw_and_fresh_reintegration"
+      ],
+      "note": "Stored profiles remain inspectable without raw files. Restoring the source files enables fresh reintegration. The Qt dialog for remapping an acquisition folder is outside the native equivalent."
+    },
+    {
+      "legacy": "test_functional_integration.py::BatchIntegrationFunctionalTest::test_create_waterfall",
+      "status": "unsupported",
+      "evidence": [],
+      "note": "Qt batch rectangle-to-waterfall-overlay generation is not implemented by the native Batch workspace. Ordinary overlay capture/scale is tested, but is not this feature."
+    },
+    {
+      "legacy": "test_functional_integration.py::BatchIntegrationFunctionalTest::test_show_phases",
+      "status": "adapted",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#phases_overlays_background_and_corrections_survive_a_fresh_project_owner"
+      ],
+      "note": "Phase conditions and pattern guide lines persist through an offline project round trip; batch phase metadata is also exercised by the independent series/phase gates."
+    },
+    {
+      "legacy": "test_functional_integration.py::BatchIntegrationFunctionalTest::test_change_view",
+      "status": "adapted",
+      "evidence": [
+        "desktop/scripts/native_integration_workflow_smoke.mjs"
+      ],
+      "note": "Chromium/WebKit assembled Integration and Map views use the real native owner. Qt Batch 1D/2D widget switching is superseded by the React Batch layout."
+    },
+    {
+      "legacy": "test_functional_integration.py::BatchIntegrationFunctionalTest::test_change_unit",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#linked_detector_and_cake_positions_retain_physical_angle_across_units"
+      ],
+      "note": "2theta/Q/d conversion is anchored to one physical angle; linked contours stay identical. Numerical export/project variants cover all three radial units. The legacy separate azimuthal-plot widget is not recreated."
+    },
+    {
+      "legacy": "test_functional_integration_mock.py::test_1D_integration_with_azimuth_limits",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#binning_sectors_supersampling_and_roi_reintegrate_without_replacing_pixels"
+      ],
+      "note": "Replaces mocked integration calls with actual sector/bin/supersampling changes, cake dimensions and immutable detector buffers."
+    },
+    {
+      "legacy": "test_functional_integration_mock.py::test_error_export_requests_reintegration_when_option_is_disabled",
+      "status": "adapted",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#error_export_requires_current_errors_and_does_not_overwrite_on_failure"
+      ],
+      "note": "Native export explicitly rejects missing Poisson errors and preserves an existing target; after enabling errors it exports. The old Qt confirmation dialog is not used."
+    },
+    {
+      "legacy": "test_functional_integration_mock.py::test_changing_number_of_integration_bins",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#binning_sectors_supersampling_and_roi_reintegrate_without_replacing_pixels"
+      ],
+      "note": "Replaces mocked integration calls with actual sector/bin/supersampling changes, cake dimensions and immutable detector buffers."
+    },
+    {
+      "legacy": "test_functional_integration_mock.py::test_changing_supersampling_amount_integrating_to_cake_with_mask",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#binning_sectors_supersampling_and_roi_reintegrate_without_replacing_pixels"
+      ],
+      "note": "Replaces mocked integration calls with actual sector/bin/supersampling changes, cake dimensions and immutable detector buffers."
+    },
+    {
+      "legacy": "test_functional_integration_mock.py::test_saving_image",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#image_add_average_and_staged_tiff_export_preserve_sources"
+      ],
+      "note": "Real image arithmetic and staged TIFF export; checks original stored-row values, preservation of sources and rejection of existing targets."
+    },
+    {
+      "legacy": "test_functional_integration_mock.py::test_saving_pattern",
+      "status": "adapted",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#corrected_image_to_export_and_offline_project_in_q"
+      ],
+      "note": "Five numerical pattern formats read back and uncertainty columns independently inspected; 2theta/Q/d are covered by three native cases. The old PNG figure-export check is outside this numerical-export equivalent."
+    },
+    {
+      "legacy": "test_functional_integration_mock.py::test_undocking_and_docking_img_frame",
+      "status": "unsupported",
+      "evidence": [],
+      "note": "Standalone detector-image docking is a Qt-only view action, absent from the React layout. No fabricated native success equivalent."
+    },
+    {
+      "legacy": "test_functional_integration_mock.py::test_loading_multiple_images_and_batch_integrate_them",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#image_add_average_and_staged_tiff_export_preserve_sources",
+        "desktop/backend/tests/functional_flows.rs#batch_stride_save_reload_missing_raw_and_fresh_reintegration"
+      ],
+      "note": "Real image arithmetic and staged TIFF export; checks original stored-row values, preservation of sources and rejection of existing targets."
+    },
+    {
+      "legacy": "test_functional_integration_mock.py::test_loading_multiple_images_and_batch_save_them",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#image_add_average_and_staged_tiff_export_preserve_sources"
+      ],
+      "note": "Real image arithmetic and staged TIFF export; checks original stored-row values, preservation of sources and rejection of existing targets."
+    },
+    {
+      "legacy": "test_img_plots.py::test_synchronization_of_view_range",
+      "status": "adapted",
+      "evidence": [
+        "desktop/scripts/native_geometry_mask_smoke.mjs",
+        "desktop/scripts/plot_viewport.test.mjs"
+      ],
+      "note": "Shared detector renderer/orientation is headless-tested across modes. Exact Qt view-box synchronization is superseded by shared React plot state; plot_viewport.test.mjs checks the range transformations."
+    },
+    {
+      "legacy": "test_img_plots.py::test_remove_img_background_in_view",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#corrected_image_to_export_and_offline_project_in_2theta"
+      ],
+      "note": "Independent background/flat-field count formula, processed pixels, derived integration and offline project reopen; display rendering is separately headless-tested."
+    },
+    {
+      "legacy": "test_map.py::test_map",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#map_dropped_frame_layers_selection_and_units_follow_stored_data",
+        "desktop/backend/tests/combined_workflows.rs#mask_integration_batch_map_and_multiple_configurations_share_project_state"
+      ],
+      "note": "Actual raw scan integration; independently computed layer algebra; dropped-frame blank and indices; selected raw profile, stored-unit stability, layer switch and invalid-expression rollback."
+    },
+    {
+      "legacy": "test_map.py::test_map_panel_moves_between_the_map_mode_and_its_window",
+      "status": "platform-specific",
+      "evidence": [
+        "desktop/scripts/native_map_progress_smoke.mjs"
+      ],
+      "note": "Headless detached Map data/progress is automated, but OS-level docking, close-to-dock behavior and native window management need a separately isolated Tauri window test; no Rust numerical equivalence is claimed."
+    },
+    {
+      "legacy": "test_map.py::test_selecting_a_map_point_from_the_integration_view",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/combined_workflows.rs#map_inspection_contours_survive_frame_changes_but_follow_geometry_changes"
+      ],
+      "note": "Native Map selection/reintegration retains linked physical inspection until geometry changes. Both Integration/Map renderers are additionally exercised headlessly."
+    },
+    {
+      "legacy": "test_map.py::test_map_marker_follows_images_loaded_elsewhere",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/combined_workflows.rs#map_inspection_contours_survive_frame_changes_but_follow_geometry_changes"
+      ],
+      "note": "Native Map selection/reintegration retains linked physical inspection until geometry changes. Both Integration/Map renderers are additionally exercised headlessly."
+    },
+    {
+      "legacy": "test_map.py::test_undocked_map_stays_available_in_every_mode",
+      "status": "platform-specific",
+      "evidence": [
+        "desktop/scripts/native_map_progress_smoke.mjs"
+      ],
+      "note": "Headless detached Map data/progress is automated, but OS-level docking, close-to-dock behavior and native window management need a separately isolated Tauri window test; no Rust numerical equivalence is claimed."
+    },
+    {
+      "legacy": "test_map.py::test_docking_works_from_a_mode_that_has_no_map",
+      "status": "platform-specific",
+      "evidence": [
+        "desktop/scripts/native_map_progress_smoke.mjs"
+      ],
+      "note": "Headless detached Map data/progress is automated, but OS-level docking, close-to-dock behavior and native window management need a separately isolated Tauri window test; no Rust numerical equivalence is claimed."
+    },
+    {
+      "legacy": "test_map.py::test_removing_a_configuration_updates_the_map_panel",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#map_dropped_frame_layers_selection_and_units_follow_stored_data",
+        "desktop/backend/tests/combined_workflows.rs#mask_integration_batch_map_and_multiple_configurations_share_project_state",
+        "desktop/backend/tests/functional_flows.rs#configuration_selection_and_removal_restore_independent_maps_and_clicks"
+      ],
+      "note": "Actual raw scan integration; independently computed layer algebra; dropped-frame blank and indices; selected raw profile, stored-unit stability, layer switch and invalid-expression rollback."
+    },
+    {
+      "legacy": "test_map.py::test_closing_the_map_window_docks_it_again",
+      "status": "platform-specific",
+      "evidence": [
+        "desktop/scripts/native_map_progress_smoke.mjs"
+      ],
+      "note": "Headless detached Map data/progress is automated, but OS-level docking, close-to-dock behavior and native window management need a separately isolated Tauri window test; no Rust numerical equivalence is claimed."
+    },
+    {
+      "legacy": "test_map.py::test_exploring_a_map_from_the_integration_view",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/combined_workflows.rs#map_inspection_contours_survive_frame_changes_but_follow_geometry_changes"
+      ],
+      "note": "Native Map selection/reintegration retains linked physical inspection until geometry changes. Both Integration/Map renderers are additionally exercised headlessly."
+    },
+    {
+      "legacy": "test_map.py::test_map_with_different_dimension",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#map_dropped_frame_layers_selection_and_units_follow_stored_data",
+        "desktop/backend/tests/combined_workflows.rs#mask_integration_batch_map_and_multiple_configurations_share_project_state"
+      ],
+      "note": "Actual raw scan integration; independently computed layer algebra; dropped-frame blank and indices; selected raw profile, stored-unit stability, layer switch and invalid-expression rollback."
+    },
+    {
+      "legacy": "test_map.py::test_map_with_a_dropped_frame_and_several_layers",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#map_dropped_frame_layers_selection_and_units_follow_stored_data",
+        "desktop/backend/tests/combined_workflows.rs#mask_integration_batch_map_and_multiple_configurations_share_project_state"
+      ],
+      "note": "Actual raw scan integration; independently computed layer algebra; dropped-frame blank and indices; selected raw profile, stored-unit stability, layer switch and invalid-expression rollback."
+    },
+    {
+      "legacy": "test_map.py::test_layer_can_be_switched_from_the_map_panel",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#map_dropped_frame_layers_selection_and_units_follow_stored_data",
+        "desktop/backend/tests/combined_workflows.rs#mask_integration_batch_map_and_multiple_configurations_share_project_state"
+      ],
+      "note": "Actual raw scan integration; independently computed layer algebra; dropped-frame blank and indices; selected raw profile, stored-unit stability, layer switch and invalid-expression rollback."
+    },
+    {
+      "legacy": "test_mask_save_and_load.py::test_load_save_mask_as_tiff",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#mask_file_formats_flips_and_undo_preserve_exact_detector_coordinates"
+      ],
+      "note": "NPY/TIFF-mask/EDF round trips, asymmetric pixel coordinates, explicit row flip and Undo, with real file I/O."
+    },
+    {
+      "legacy": "test_mask_save_and_load.py::test_load_save_flipped_mask_as_npy",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#mask_file_formats_flips_and_undo_preserve_exact_detector_coordinates"
+      ],
+      "note": "NPY/TIFF-mask/EDF round trips, asymmetric pixel coordinates, explicit row flip and Undo, with real file I/O."
+    },
+    {
+      "legacy": "test_mask_save_and_load.py::test_load_save_flipped_mask_as_edf",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#mask_file_formats_flips_and_undo_preserve_exact_detector_coordinates"
+      ],
+      "note": "NPY/TIFF-mask/EDF round trips, asymmetric pixel coordinates, explicit row flip and Undo, with real file I/O."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_auto_processing",
+      "status": "adapted",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#incoming_file_integration_autosaves_and_mismatch_stops_without_mutation"
+      ],
+      "note": "Native stable-file polling integrates and autosaves the new image; detector-size mismatch stops the watcher without replacing science. Project restoration of watcher preferences is intentionally not an automatic acquisition restart."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_mask",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#corrected_image_to_export_and_offline_project_in_2theta"
+      ],
+      "note": "Real image/PONI/mask/ROI, image background, flat field, supersampling and propagated errors; compare with independently calculated corrected counts, export/readback, delete all dependencies and reintegrate the reopened project."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_image_rotation",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/geometry_masks.rs#transformed_configurations_and_offline_project_caches_are_independent"
+      ],
+      "note": "Native rotations/flips, per-configuration masks and owned project caches retain the actual transformed detector samples."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_image_transformations",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/geometry_masks.rs#transformed_configurations_and_offline_project_caches_are_independent"
+      ],
+      "note": "Native rotations/flips, per-configuration masks and owned project caches retain the actual transformed detector samples."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_phases",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#phases_overlays_background_and_corrections_survive_a_fresh_project_owner"
+      ],
+      "note": "Combined cBN/OIADAC, fitted pattern background, colored/scaled overlays and phase conditions survive save/reopen in a fresh owner after removing raw/calibration files."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_overlays",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#phases_overlays_background_and_corrections_survive_a_fresh_project_owner"
+      ],
+      "note": "Combined cBN/OIADAC, fitted pattern background, colored/scaled overlays and phase conditions survive save/reopen in a fresh owner after removing raw/calibration files."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_roi",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#corrected_image_to_export_and_offline_project_in_2theta"
+      ],
+      "note": "Real image/PONI/mask/ROI, image background, flat field, supersampling and propagated errors; compare with independently calculated corrected counts, export/readback, delete all dependencies and reintegrate the reopened project."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_cbn_correction",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#phases_overlays_background_and_corrections_survive_a_fresh_project_owner"
+      ],
+      "note": "Combined cBN/OIADAC, fitted pattern background, colored/scaled overlays and phase conditions survive save/reopen in a fresh owner after removing raw/calibration files."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_oiadac_correction",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#phases_overlays_background_and_corrections_survive_a_fresh_project_owner"
+      ],
+      "note": "Combined cBN/OIADAC, fitted pattern background, colored/scaled overlays and phase conditions survive save/reopen in a fresh owner after removing raw/calibration files."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_transfer_correction",
+      "status": "unsupported",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#unsupported_legacy_corrections_fail_atomically_instead_of_becoming_noops"
+      ],
+      "note": "This correction is outside the native support boundary. A native rejection/rollback test protects against silent no-op processing; it does not claim a successful correction port."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_configuration_in_cake_mode",
+      "status": "adapted",
+      "evidence": [
+        "desktop/scripts/native_project_smoke.mjs"
+      ],
+      "note": "Native configurations and combined cakes are exercised headlessly; per-view display preferences are frontend state rather than the Qt project widget mode."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_fit_bg",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#phases_overlays_background_and_corrections_survive_a_fresh_project_owner"
+      ],
+      "note": "Combined cBN/OIADAC, fitted pattern background, colored/scaled overlays and phase conditions survive save/reopen in a fresh owner after removing raw/calibration files."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_q_and_fit_bg",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#phases_overlays_background_and_corrections_survive_a_fresh_project_owner"
+      ],
+      "note": "Combined cBN/OIADAC, fitted pattern background, colored/scaled overlays and phase conditions survive save/reopen in a fresh owner after removing raw/calibration files."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_multiple_configurations",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/combined_workflows.rs#mask_integration_batch_map_and_multiple_configurations_share_project_state"
+      ],
+      "note": "Independent native configuration bins, masks, Map, owned image pixels and pattern data survive deleting all original acquisition inputs before reopening."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_background_image",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#corrected_image_to_export_and_offline_project_in_2theta"
+      ],
+      "note": "Real image/PONI/mask/ROI, image background, flat field, supersampling and propagated errors; compare with independently calculated corrected counts, export/readback, delete all dependencies and reintegrate the reopened project."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_automatic_background_subtraction",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#phases_overlays_background_and_corrections_survive_a_fresh_project_owner"
+      ],
+      "note": "Combined cBN/OIADAC, fitted pattern background, colored/scaled overlays and phase conditions survive save/reopen in a fresh owner after removing raw/calibration files."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_save_settings_on_closing",
+      "status": "adapted",
+      "evidence": [
+        "desktop/scripts/native_project_smoke.mjs"
+      ],
+      "note": "Frontend configuration preferences survive reload; explicit .dio save/open is native. Exact Qt save-settings-on-application-close behavior is superseded by explicit project saves and browser persistence."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_file_browsing",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#batch_discovery_uses_natural_order_and_bad_input_cannot_replace_results"
+      ],
+      "note": "Native filename ordering and corrupt-source atomicity, combined with processed batch selection/reintegration."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_distortion_correction",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/detectors.rs#nexus_geometry_masks_transforms_projects_and_portable_poni_keep_owned_resources"
+      ],
+      "note": "Qualified owned detector geometry, masks, orientation/transforms, standalone PONI and source-independent project restore. Arbitrary legacy detector/project encodings are intentionally not accepted."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_series_loading",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#batch_stride_save_reload_missing_raw_and_fresh_reintegration"
+      ],
+      "note": "Raw series and processed HDF5 save/readback/reload, explicit ranges and stride, and recovery from missing raw files."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_using_predefined_detector",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/detectors.rs#nexus_geometry_masks_transforms_projects_and_portable_poni_keep_owned_resources"
+      ],
+      "note": "Qualified owned detector geometry, masks, orientation/transforms, standalone PONI and source-independent project restore. Arbitrary legacy detector/project encodings are intentionally not accepted."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_using_loaded_nexus_detector",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/detectors.rs#nexus_geometry_masks_transforms_projects_and_portable_poni_keep_owned_resources"
+      ],
+      "note": "Qualified owned detector geometry, masks, orientation/transforms, standalone PONI and source-independent project restore. Arbitrary legacy detector/project encodings are intentionally not accepted."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_using_predefined_detector_and_rotate",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/detectors.rs#nexus_geometry_masks_transforms_projects_and_portable_poni_keep_owned_resources"
+      ],
+      "note": "Qualified owned detector geometry, masks, orientation/transforms, standalone PONI and source-independent project restore. Arbitrary legacy detector/project encodings are intentionally not accepted."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_using_detector_and_calibration",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/detectors.rs#nexus_geometry_masks_transforms_projects_and_portable_poni_keep_owned_resources"
+      ],
+      "note": "Qualified owned detector geometry, masks, orientation/transforms, standalone PONI and source-independent project restore. Arbitrary legacy detector/project encodings are intentionally not accepted."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_saving_poni_detector_orientation",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/detectors.rs#nexus_geometry_masks_transforms_projects_and_portable_poni_keep_owned_resources"
+      ],
+      "note": "Qualified owned detector geometry, masks, orientation/transforms, standalone PONI and source-independent project restore. Arbitrary legacy detector/project encodings are intentionally not accepted."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_supersampling_factor",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#corrected_image_to_export_and_offline_project_in_2theta"
+      ],
+      "note": "Real image/PONI/mask/ROI, image background, flat field, supersampling and propagated errors; compare with independently calculated corrected counts, export/readback, delete all dependencies and reintegrate the reopened project."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_overlay_color_and_visibility",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#phases_overlays_background_and_corrections_survive_a_fresh_project_owner"
+      ],
+      "note": "Combined cBN/OIADAC, fitted pattern background, colored/scaled overlays and phase conditions survive save/reopen in a fresh owner after removing raw/calibration files."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_phase_color_and_visibility",
+      "status": "native",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#phases_overlays_background_and_corrections_survive_a_fresh_project_owner"
+      ],
+      "note": "Combined cBN/OIADAC, fitted pattern background, colored/scaled overlays and phase conditions survive save/reopen in a fresh owner after removing raw/calibration files."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_slab_correction",
+      "status": "unsupported",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#unsupported_legacy_corrections_fail_atomically_instead_of_becoming_noops"
+      ],
+      "note": "This correction is outside the native support boundary. A native rejection/rollback test protects against silent no-op processing; it does not claim a successful correction port."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_cylinder_correction",
+      "status": "unsupported",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#unsupported_legacy_corrections_fail_atomically_instead_of_becoming_noops"
+      ],
+      "note": "This correction is outside the native support boundary. A native rejection/rollback test protects against silent no-op processing; it does not claim a successful correction port."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_sphere_correction",
+      "status": "unsupported",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#unsupported_legacy_corrections_fail_atomically_instead_of_becoming_noops"
+      ],
+      "note": "This correction is outside the native support boundary. A native rejection/rollback test protects against silent no-op processing; it does not claim a successful correction port."
+    },
+    {
+      "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_plate_correction",
+      "status": "unsupported",
+      "evidence": [
+        "desktop/backend/tests/functional_flows.rs#unsupported_legacy_corrections_fail_atomically_instead_of_becoming_noops"
+      ],
+      "note": "This correction is outside the native support boundary. A native rejection/rollback test protects against silent no-op processing; it does not claim a successful correction port."
+    }
+  ]
+}

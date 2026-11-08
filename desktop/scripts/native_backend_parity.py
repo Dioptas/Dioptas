@@ -57,7 +57,11 @@ def main():
     results = []
 
     def compare(label, values, payload):
+        before = invoke("state", {})
         actual = invoke("open_image", payload)
+        if actual.get("imageChange"):
+            assert invoke("state", {}) == before, "Size prompt must preserve the source"
+            actual = invoke("open_image", {**payload, "reset_calibration": True})
         expected = np.ascontiguousarray(values[::-1], dtype="<f4").tobytes()
         assert buffers[actual["image"]["bufferId"]] == expected, label
         reference = raster(values[::-1], max_side=None, histogram=True)

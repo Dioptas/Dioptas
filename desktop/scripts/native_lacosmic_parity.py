@@ -27,6 +27,16 @@ def reference(data):
     return model.mask, first
 
 
+def open_fixture(native, **payload):
+    """Each LA Cosmic fixture owns its detector setup explicitly."""
+    before = native.call("state")
+    result = native.call("open_image", **payload)
+    if result.get("imageChange"):
+        assert native.call("state") == before
+        result = native.call("open_image", **payload, reset_calibration=True)
+    return result
+
+
 def main():
     rng = np.random.default_rng(731)
     fixtures = []
@@ -71,7 +81,7 @@ def main():
             else:
                 image = tmp / "input.npy"
                 np.save(image, data[::-1])
-            native.call("open_image", path=str(image))
+            open_fixture(native, path=str(image))
             native.call("mask_edit", operation="clear")
             before = native.call("state")
             expected, first = reference(data)
@@ -111,7 +121,7 @@ def main():
         data = fixtures[7][1]
         image = tmp / "session.npy"
         np.save(image, data[::-1])
-        native.call("open_image", path=str(image))
+        open_fixture(native, path=str(image))
         native.call("mask_edit", operation="clear")
         painted = native.call(
             "mask_edit", operation="rectangle", points=[[1, 1], [5, 4]]
@@ -151,7 +161,7 @@ def main():
         np.save(corrected, data[::-1])
         np.save(bg, (2.0 + x * 0.01)[::-1])
         np.save(flat, (2.0 + y * 0.01 + x * 0.02)[::-1])
-        native.call("open_image", path=str(corrected))
+        open_fixture(native, path=str(corrected))
         native.call("integration_image_background", path=str(bg), scale=0.7, offset=1.2)
         native.call("integration_flat_field", path=str(flat))
         native.call("image_transform", operation="rotate_right")
@@ -199,7 +209,7 @@ def main():
                 a = np.full((9, 11), 100.0)
                 a[4, 5] = value
                 f["frames"] = a
-            native.call("open_image", path=str(invalid), dataset="frames")
+            open_fixture(native, path=str(invalid), dataset="frames")
             baseline = native.call("state")
             result = native.invoke("mask_edit", operation="cosmic")
             assert not result["ok"], result
