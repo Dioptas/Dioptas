@@ -4,7 +4,7 @@ use crate::{control::Control, geometry::Geometry, protocol::Buffer};
 use serde_json::{Value, json};
 use std::sync::Arc;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct State {
     pub enabled: bool,
     pub settings: Value,

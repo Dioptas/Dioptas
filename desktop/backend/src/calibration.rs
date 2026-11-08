@@ -232,10 +232,11 @@ impl Default for Workflow {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(super) struct Snapshot {
     transformations: Vec<crate::transform::Transform>,
     original_pixels: Option<[f64; 2]>,
+    #[serde(with = "crate::history_transfer::optional_arc")]
     original_detector: Option<Arc<dioptrin::detector::Detector>>,
     roi: Option<[usize; 4]>,
     geometry: Geometry,
@@ -244,9 +245,11 @@ pub(super) struct Snapshot {
     polarization: f64,
     data: Calibration,
 }
-#[derive(Default, Clone)]
+#[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
 pub(super) struct History {
+    #[serde(with = "crate::history_transfer::vec_arc")]
     pub(super) undo: Vec<Arc<(String, Snapshot, Snapshot, u64)>>,
+    #[serde(with = "crate::history_transfer::vec_arc")]
     pub(super) redo: Vec<Arc<(String, Snapshot, Snapshot, u64)>>,
 }
 impl History {

@@ -195,7 +195,7 @@ Settings, calibration picks/drafts, file polling state, linked inspection and th
 current project path are restored. The original project is not overwritten and
 the handoff metadata is excluded from future project saves. New native plans and
 results are computed without triggering automatic output saves. Undo/Redo stacks
-reset at successful replacement. Host source edits still restart the whole host;
+are retained by the version-2 worker checkpoint. Host source edits still restart the whole host;
 this feature is for scientific worker updates in development, not bundled releases.
 
 Headless tests compile a small Rust launcher around the real numerical worker,
@@ -219,3 +219,23 @@ previews. Linked filename changes are enabled with **Advance filename with
 folder**; the MEC preset selects the third filename number. Turning configurations
 off disables browsing preferences. Chromium/WebKit cover disabling combination,
 retained setups, all-configuration payloads, reset, persistence and small windows.
+
+## Undo/Redo across worker replacement — 2026-11-08
+
+Version-2 development checkpoints retain mask Undo/Redo, calibration Undo/Redo and
+integration edit history in every configuration, including mixed chronological
+ordering, shared phase/overlay edits and redo branches. Current state and history
+share a binary object graph so correction planes, curves and detector maps retain
+shared ownership. Nonfinite numeric samples and exact floating-point bits survive;
+calculation/EOS caches are rebuilt instead of being copied from old kernels.
+
+The history sidecar is private to the worker handoff. Matching generations prevent
+mixed checkpoint/history files from being applied, and ordinary `.dio` saves do
+not include historical image/correction data. New workers can read version-1
+checkpoints, but those older writers cannot export history; that one-time upgrade
+starts with empty stacks. Future version-2 reloads preserve the full stacks.
+
+Tests exercise Undo/Redo before and after repeated reloads in separate
+configurations, calibration/integration ordering, branching after Undo, removed
+correction sources, global phase/overlay changes, shared-array identity, all
+floating-point bit patterns, and corruption cleanup.

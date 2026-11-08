@@ -35,6 +35,7 @@ csv = "1"
 hdf5 = { package = "hdf5-metno", version = "=0.15.1", features = ["static", "zlib", "lzf"] }
 blake3 = { version = "1", features = ["rayon"] }
 rayon = "1"
+rmp-serde = "1"
 xraydb = { version = "=0.4.1", default-features = false }
 
 # Retain runtime-dispatched ARM SHA instructions for existing project blob

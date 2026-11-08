@@ -121,7 +121,11 @@ identities/selection, linked inspection and the current project save path surviv
 The frontend refreshes results without resetting plot views or its unapplied drafts.
 Build/start/restore failures keep the old worker and its session active. Progress
 and cancellation remain available while a reload waits for an operation.
-Undo/Redo history resets after a successful worker replacement. Reload status and
+Mask, calibration and integration Undo/Redo stacks survive worker replacement,
+including their chronological order and each configuration’s redo branches.
+History data is held in a private binary sidecar with shared arrays stored once;
+it is not added to ordinary saved projects. The first update from an older
+worker that cannot export history initializes empty stacks once. Reload status and
 build errors appear in the footer and launcher log. Set `DIOPTAS_DEV_RELOAD=0` to
 disable the watcher. Generated build/staging files are excluded from UI and host
 watchers, so a scientific rebuild does not reload the window.

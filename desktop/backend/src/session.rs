@@ -63,6 +63,7 @@ type NativeGeometryCache = (Geometry, [usize; 2], dioptrin::geometry::Geometry);
 struct Settings {
     transformations: Vec<crate::transform::Transform>,
     original_pixels: Option<[f64; 2]>,
+    #[serde(with = "crate::history_transfer::optional_arc")]
     original_detector: Option<Arc<dioptrin::detector::Detector>>,
     geometry: Geometry,
     calibrated: bool,
@@ -174,9 +175,10 @@ pub struct Session {
     #[cfg(feature = "dioptrin")]
     prepared: Option<crate::integration::Prepared>,
 }
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 struct MaskSnapshot {
     mode: bool,
+    #[serde(with = "crate::history_transfer::arc")]
     user: Arc<Vec<u8>>,
     plugins: Vec<PluginState>,
 }
@@ -292,9 +294,10 @@ impl Session {
             });
         match dispatched {
             Ok(mut reply) => {
-                if self.phases != shared_before.0
-                    || self.patterns.overlays != shared_before.1
-                    || self.patterns.separation != shared_before.2
+                if request.action != "development_restore"
+                    && (self.phases != shared_before.0
+                        || self.patterns.overlays != shared_before.1
+                        || self.patterns.separation != shared_before.2)
                 {
                     self.forget_other_shared_history();
                 }
@@ -324,7 +327,10 @@ impl Session {
                     }
                 } else if !matches!(
                     request.action.as_str(),
-                    "undo_calibration" | "redo_calibration"
+                    "undo_calibration"
+                        | "redo_calibration"
+                        | "development_restore"
+                        | "configuration"
                 ) && self.calibration_history.undo.last().is_some_and(|entry| {
                     calibration_head
                         .as_ref()

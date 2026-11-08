@@ -5,7 +5,7 @@ use std::{
     path::Path,
     sync::{Arc, OnceLock},
 };
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Phase {
     pub uid: String,
     pub document: Value,
@@ -17,14 +17,17 @@ pub(crate) struct Phase {
     pub color: String,
     pub reference: Option<usize>,
     pub modified: bool,
+    #[serde(with = "crate::history_transfer::arc")]
     pub reflections: Arc<Vec<[f64; 5]>>,
     pub minimum: f64,
     pub cutoff: f64,
     pub current_volume: f64,
+    #[serde(skip)]
     pub eos_cache: Option<Arc<peritheos::Material>>,
 }
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Phases {
+    #[serde(with = "crate::history_transfer::vec_arc")]
     pub items: Vec<Arc<Phase>>,
     pub same_conditions: bool,
     pub cold_pressure: bool,

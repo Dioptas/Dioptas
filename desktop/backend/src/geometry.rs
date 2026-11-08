@@ -16,6 +16,7 @@ pub struct Geometry {
     #[serde(default)]
     pub candidates: Vec<String>,
     #[serde(default)]
+    #[serde(with = "crate::history_transfer::optional_arc")]
     pub detector: Option<std::sync::Arc<dioptrin::detector::Detector>>,
     #[serde(default)]
     pub detector_file: Option<String>,

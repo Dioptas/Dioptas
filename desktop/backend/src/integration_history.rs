@@ -1,6 +1,6 @@
 //! Current-image integration edits share chronological Undo/Redo with fits.
 use super::*;
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub(super) struct Snapshot {
     phase_bytes: usize,
     settings: Settings,
@@ -27,7 +27,7 @@ impl Snapshot {
             && self.phases == other.phases
     }
 }
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct Entry {
     before: Snapshot,
     after: Snapshot,
@@ -37,9 +37,11 @@ struct Entry {
     phases_changed: bool,
     overlays_changed: bool,
 }
-#[derive(Default, Clone)]
+#[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
 pub(super) struct IntegrationHistory {
+    #[serde(with = "crate::history_transfer::vec_arc")]
     undo: Vec<Arc<Entry>>,
+    #[serde(with = "crate::history_transfer::vec_arc")]
     redo: Vec<Arc<Entry>>,
 }
 pub(super) fn is_edit(action: &str) -> bool {

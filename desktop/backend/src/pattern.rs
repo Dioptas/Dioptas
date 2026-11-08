@@ -24,11 +24,15 @@ pub(crate) fn convert_coordinate(value: f64, from: &str, to: &str, wavelength: f
         _ => f64::NAN,
     }
 }
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Curve {
+    #[serde(with = "crate::history_transfer::arc")]
     pub x: Arc<Vec<f64>>,
+    #[serde(with = "crate::history_transfer::arc")]
     pub y: Arc<Vec<f64>>,
+    #[serde(with = "crate::history_transfer::optional_arc")]
     pub sigma: Option<Arc<Vec<f64>>>,
+    #[serde(with = "crate::history_transfer::optional_arc")]
     pub spread: Option<Arc<Vec<f64>>>,
 }
 impl Curve {
@@ -156,7 +160,7 @@ impl Curve {
         json!({"x":self.x,"y":self.y})
     }
 }
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Background {
     pub enabled: bool,
     pub smoothing: f64,
@@ -175,7 +179,7 @@ impl Default for Background {
         }
     }
 }
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Overlay {
     pub uid: String,
     pub name: String,
@@ -183,6 +187,7 @@ pub(crate) struct Overlay {
     pub color: String,
     pub scale: f64,
     pub offset: f64,
+    #[serde(with = "crate::history_transfer::arc")]
     pub data: Arc<Curve>,
 }
 impl Overlay {
@@ -201,8 +206,9 @@ impl Overlay {
         }
     }
 }
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Patterns {
+    #[serde(with = "crate::history_transfer::optional_arc")]
     pub raw: Option<Arc<Curve>>,
     pub name: String,
     pub path: Option<String>,
@@ -213,11 +219,13 @@ pub(crate) struct Patterns {
     pub background: Background,
     pub overlays: Vec<Overlay>,
     pub background_uid: Option<String>,
+    #[serde(with = "crate::history_transfer::optional_arc")]
     pub anonymous_background: Option<Arc<Curve>>,
     pub separation: f64,
     pub directory: String,
     pub file_mode: String,
     next_uid: u64,
+    #[serde(with = "crate::history_transfer::optional_arc")]
     pub extracted: Option<Arc<Curve>>,
 }
 impl Default for Patterns {

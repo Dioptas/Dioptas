@@ -2,10 +2,11 @@
 use crate::{geometry::Geometry, image::Image};
 use serde_json::{Value, json};
 use std::{path::Path, sync::Arc};
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct Plane {
     path: String,
     shape: [usize; 2],
+    #[serde(with = "crate::history_transfer::arc")]
     values: Arc<Vec<f64>>,
 }
 impl Plane {
@@ -29,7 +30,7 @@ struct Cached {
     values: Arc<Vec<f64>>,
     variance: Arc<Vec<f64>>,
 }
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Processing {
     background: Option<Plane>,
     pub scale: f64,
@@ -42,8 +43,10 @@ pub(crate) struct Processing {
     transfer_enabled: bool,
     pub background_poisson: bool,
     corrections: Value,
+    #[serde(skip)]
     cache: Option<Cached>,
     #[cfg(feature = "dioptrin")]
+    #[serde(skip)]
     sample_maps: crate::sample_absorption::Maps,
 }
 impl PartialEq for Processing {
