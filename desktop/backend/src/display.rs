@@ -1,11 +1,13 @@
 //! Full-resolution display copies; statistics always use scientific f64 values.
 use crate::protocol::Buffer;
 use serde_json::{Value, json};
+use std::{collections::HashMap, sync::Arc};
 
 #[derive(Clone)]
 pub struct Raster {
     pub metadata: Value,
     pub buffer: Buffer,
+    statistics: Option<Arc<ImageStatistics>>,
 }
 impl Raster {
     pub fn image(values: &[f64], shape: [usize; 2]) -> Self {
@@ -16,21 +18,189 @@ impl Raster {
             .collect();
         let buffer = Buffer::new(bytes);
         trace.mark("f32 conversion and SHA256");
+        let statistics = (values.len() >= 4096)
+            .then(|| ImageStatistics::new(values, shape))
+            .flatten()
+            .map(Arc::new);
+        trace.mark("shared count distribution");
         let mut metadata = base(shape, "f32le", &buffer);
-        metadata["limits"] =
-            json!(levels(values, shape, "percentile", 2.5, true).unwrap_or([0.0, 1.0]));
+        metadata["limits"] = json!(
+            statistics
+                .as_ref()
+                .and_then(|s| s.levels("percentile", 2.5, true))
+                .or_else(|| levels(values, shape, "percentile", 2.5, true))
+                .unwrap_or([0.0, 1.0])
+        );
         trace.mark("exact auto levels");
         metadata["autoLevels"] = json!({"mode":"percentile","percentile":2.5,"filter_gaps":true});
-        metadata["histogram"] = histogram(values);
+        metadata["histogram"] = statistics
+            .as_ref()
+            .map_or_else(|| histogram(values), |s| s.histogram());
         trace.mark("full pixel histogram");
-        Self { metadata, buffer }
+        Self {
+            metadata,
+            buffer,
+            statistics,
+        }
     }
     pub fn mask(values: &[u8], shape: [usize; 2]) -> Self {
         let buffer = Buffer::new(values.to_vec());
         Self {
             metadata: base(shape, "u8", &buffer),
             buffer,
+            statistics: None,
         }
+    }
+    pub fn cached_levels(&self, mode: &str, clipping: f64, filter_gaps: bool) -> Option<[f64; 2]> {
+        self.statistics
+            .as_ref()?
+            .levels(mode, clipping, filter_gaps)
+    }
+}
+
+/// Lossless counts shared by the display histogram and exact order statistics.
+/// Common detector counts use a bounded dense table; rare high/negative counts
+/// use a bounded sparse table. Fractional or high-cardinality data fall back to
+/// the general source-precision implementation rather than being approximated.
+struct ImageStatistics {
+    counts: Vec<(f64, u64)>,
+    gap: Option<f64>,
+}
+struct CountTable {
+    dense: Vec<u64>,
+    sparse: HashMap<u64, u64>,
+}
+impl CountTable {
+    fn new(values: &[f64]) -> Option<Self> {
+        let mut result = Self {
+            dense: vec![0; 65_537],
+            sparse: HashMap::new(),
+        };
+        for &value in values {
+            if !value.is_finite() {
+                continue;
+            }
+            // Preserve signed-zero behavior through the general implementation.
+            if value.trunc() != value || value.to_bits() == (-0.0f64).to_bits() {
+                return None;
+            }
+            if (-1.0..=65_535.0).contains(&value) {
+                result.dense[(value + 1.) as usize] += 1;
+            } else {
+                *result.sparse.entry(value.to_bits()).or_default() += 1;
+                if result.sparse.len() > 4096 {
+                    return None;
+                }
+            }
+        }
+        Some(result)
+    }
+}
+impl ImageStatistics {
+    fn new(values: &[f64], shape: [usize; 2]) -> Option<Self> {
+        let workers = if values.len() >= 1_000_000 {
+            std::thread::available_parallelism()
+                .map_or(1, |n| n.get())
+                .min(8)
+        } else {
+            1
+        };
+        let mut table = if workers == 1 {
+            CountTable::new(values)?
+        } else {
+            std::thread::scope(|scope| {
+                let handles: Vec<_> = values
+                    .chunks(values.len().div_ceil(workers))
+                    .map(|part| scope.spawn(move || CountTable::new(part)))
+                    .collect();
+                // Join every worker before deciding whether to use the fallback.
+                let tables: Option<Vec<_>> = handles
+                    .into_iter()
+                    .map(|handle| handle.join().unwrap())
+                    .collect();
+                let mut tables = tables?.into_iter();
+                let mut result = tables.next()?;
+                for table in tables {
+                    for (a, b) in result.dense.iter_mut().zip(table.dense) {
+                        *a += b;
+                    }
+                    for (key, count) in table.sparse {
+                        *result.sparse.entry(key).or_default() += count;
+                    }
+                }
+                Some(result)
+            })?
+        };
+        // Keep the retained cache bounded even if different workers saw disjoint
+        // sparse values. Dense and sparse domains never overlap.
+        if table.sparse.len() > 4096 {
+            return None;
+        }
+        let mut counts: Vec<_> = table
+            .dense
+            .into_iter()
+            .enumerate()
+            .filter(|(_, n)| *n != 0)
+            .map(|(index, n)| (index as f64 - 1., n))
+            .chain(
+                table
+                    .sparse
+                    .drain()
+                    .map(|(bits, n)| (f64::from_bits(bits), n)),
+            )
+            .collect();
+        counts.sort_unstable_by(|a, b| a.0.total_cmp(&b.0));
+        Some(Self {
+            counts,
+            gap: gap_value(values, shape),
+        })
+    }
+    fn levels(&self, mode: &str, clipping: f64, filter_gaps: bool) -> Option<[f64; 2]> {
+        if mode == "mean3std" {
+            return None;
+        }
+        let gap = filter_gaps.then_some(self.gap).flatten();
+        let selected = || self.counts.iter().filter(|(v, _)| Some(*v) != gap);
+        let low = selected().next()?.0;
+        let high = selected().next_back()?.0;
+        let (low, high) = if mode == "minmax" {
+            (low, high)
+        } else {
+            let count: u64 = selected().map(|(_, n)| n).sum();
+            let quantile = |p: f64| {
+                let rank = (count - 1) as f64 * p / 100.;
+                let index = rank.floor() as u64;
+                let fraction = rank - index as f64;
+                let mut cumulative = 0;
+                let mut first = None;
+                for &(value, n) in selected() {
+                    cumulative += n;
+                    if cumulative > index && first.is_none() {
+                        first = Some(value);
+                    }
+                    if cumulative > index + 1 {
+                        return first.unwrap() * (1. - fraction) + value * fraction;
+                    }
+                }
+                first.unwrap_or(high)
+            };
+            (quantile(clipping), quantile(100. - clipping))
+        };
+        Some(padded_levels(low, high))
+    }
+    fn histogram(&self) -> Value {
+        let count = self.counts.iter().map(|(_, n)| n).sum::<u64>();
+        let (low, high) = histogram_range(
+            self.counts.first().map_or(f64::INFINITY, |v| v.0),
+            self.counts.last().map_or(f64::NEG_INFINITY, |v| v.0),
+            count,
+        );
+        let mut counts = vec![0u64; 256];
+        for &(value, n) in &self.counts {
+            let index = (((value.asinh() - low) / (high - low) * 256.) as usize).min(255);
+            counts[index] += n;
+        }
+        histogram_metadata(low, high, counts, count)
     }
 }
 fn base([height, width]: [usize; 2], dtype: &str, buffer: &Buffer) -> Value {
@@ -202,37 +372,28 @@ pub fn levels(
             )
         }),
     };
-    Some([
+    Some(padded_levels(low, high))
+}
+fn padded_levels(low: f64, high: f64) -> [f64; 2] {
+    [
         low,
         if high <= low {
             low + 1.0_f64.max(low.abs() * 1e-6)
         } else {
             high
         },
-    ])
+    ]
 }
 fn histogram(values: &[f64]) -> Value {
     let mut low = f64::INFINITY;
     let mut high = f64::NEG_INFINITY;
-    let mut count = 0;
+    let mut count = 0u64;
     for value in values.iter().filter(|v| v.is_finite()) {
         low = low.min(*value);
         high = high.max(*value);
         count += 1;
     }
-    // asinh is monotone: transform the two extrema, not all pixels twice.
-    low = low.asinh();
-    high = high.asinh();
-    if count == 0 {
-        low = 0.0;
-        high = 1.0;
-    } else {
-        let padding = low.abs().max(high.abs()).max(1.0) * 1e-6;
-        if high - low < padding {
-            low -= padding;
-            high += padding;
-        }
-    }
+    let (low, high) = histogram_range(low, high, count);
     let buckets = |values: &[f64]| {
         let mut counts = vec![0_u64; 256];
         for value in values.iter().filter(|v| v.is_finite()) {
@@ -261,6 +422,23 @@ fn histogram(values: &[f64]) -> Value {
     } else {
         buckets(values)
     };
+    histogram_metadata(low, high, counts, count)
+}
+fn histogram_range(low: f64, high: f64, count: u64) -> (f64, f64) {
+    // asinh is monotone: transform the two extrema, not all pixels twice.
+    let (mut low, mut high) = (low.asinh(), high.asinh());
+    if count == 0 {
+        (0., 1.)
+    } else {
+        let padding = low.abs().max(high.abs()).max(1.) * 1e-6;
+        if high - low < padding {
+            low -= padding;
+            high += padding;
+        }
+        (low, high)
+    }
+}
+fn histogram_metadata(low: f64, high: f64, counts: Vec<u64>, count: u64) -> Value {
     let edges: Vec<_> = (0..=256)
         .map(|i| (low + (high - low) * i as f64 / 256.0).sinh())
         .collect();
@@ -270,6 +448,59 @@ fn histogram(values: &[f64]) -> Value {
 #[cfg(test)]
 mod statistics_tests {
     use super::*;
+    #[test]
+    fn shared_integer_counts_preserve_full_histogram_and_filtered_exact_levels() {
+        let shape = [96, 128];
+        for marker in [0., -1., i32::MAX as f64, u32::MAX as f64] {
+            let mut values: Vec<_> = (0..shape[0] * shape[1])
+                .map(|i| ((i * 997) % 1000) as f64 - 40.)
+                .collect();
+            for row in 0..shape[0] {
+                values[row * shape[1] + 40..row * shape[1] + 44].fill(marker);
+            }
+            values[9] = 6_383_154.;
+            values[10] = f64::NAN;
+            values[11] = f64::INFINITY;
+            let statistics = ImageStatistics::new(&values, shape).unwrap();
+            assert_eq!(statistics.histogram(), histogram(&values));
+            for filter in [false, true] {
+                assert_eq!(
+                    statistics.levels("minmax", 2.5, filter),
+                    levels(&values, shape, "minmax", 2.5, filter)
+                );
+                for percentile in [0., 0.4, 2.5, 25., 49.999999] {
+                    assert_eq!(
+                        statistics.levels("percentile", percentile, filter),
+                        levels(&values, shape, "percentile", percentile, filter)
+                    );
+                }
+            }
+        }
+        for values in [vec![120.; 4096], vec![f64::NAN; 4096]] {
+            let statistics = ImageStatistics::new(&values, [64, 64]).unwrap();
+            assert_eq!(statistics.histogram(), histogram(&values));
+            assert_eq!(
+                statistics.levels("percentile", 2.5, true),
+                levels(&values, [64, 64], "percentile", 2.5, true)
+            );
+        }
+    }
+    #[test]
+    fn parallel_counts_preserve_every_sample_and_fallback_is_bounded() {
+        let mut values: Vec<_> = (0..1_048_576).map(|i| ((i * 997) % 1024) as f64).collect();
+        values[40] = u32::MAX as f64;
+        let statistics = ImageStatistics::new(&values, [1024, 1024]).unwrap();
+        assert_eq!(statistics.histogram(), histogram(&values));
+        assert_eq!(
+            statistics.levels("percentile", 2.5, true),
+            levels(&values, [1024, 1024], "percentile", 2.5, true)
+        );
+        values[41] = 0.5;
+        assert!(ImageStatistics::new(&values, [1024, 1024]).is_none());
+        assert!(ImageStatistics::new(&[-0., 0.], [1, 2]).is_none());
+        let wide: Vec<_> = (0..4097).map(|i| i as f64 + 65_536.).collect();
+        assert!(ImageStatistics::new(&wide, [1, 4097]).is_none());
+    }
     #[test]
     fn dense_order_statistics_match_known_interpolated_quantiles_and_reject_float_data() {
         // NumPy's linear percentiles of sorted [0,0,1,1,3,5,8,10].

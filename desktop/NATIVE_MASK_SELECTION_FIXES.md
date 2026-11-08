@@ -102,3 +102,39 @@ Reproduction tools: `scripts/native_map_selection_benchmark.mjs`,
 `scripts/native_autolevel_parity.py`, and the opt-in
 `time_full_resolution_gap_extension` Rust test. Benchmark receipts are generated
 under ignored `artifacts/native-map-selection/`.
+
+## Follow-up: shared parallel display counts
+
+The next optimization replaces the separate integer Auto/histogram scans with
+one lossless count distribution. Images with at least 4,096 samples are eligible;
+images with at least one million samples use up to eight workers with private
+tables, followed by an exact integer reduction. Counts from -1 to 65,535 use a
+dense table; other integer values use a bounded sparse table. No values are
+clipped. Fractional data, signed zero, or excessive sparse cardinality retain
+the general implementation. NaN and infinities retain their previous exclusion.
+
+Exact percentiles, min/max and the existing asinh histogram are derived from
+the same counts. The asinh operation runs once per distinct intensity instead
+of once per pixel. The distribution and detected gap value stay with the raster,
+so changing percentile/minmax settings can reuse them. Mean ± 3 SD keeps the
+existing source-precision calculation. Detector modes share the same raster;
+raw/corrected/cake datasets retain independent display statistics.
+
+In a final matched run of the packaged processors on the same full 9M
+acquisition, shared statistics took 4.25 ms, exact percentile extraction 0.007 ms
+and histogram projection 0.020 ms, replacing 54.6 ms of separate work. Selection
+plus linked-guide restoration decreased from 110.0 to 60.0 ms for stored
+patterns and from 114.1 to 65.8 ms for reintegration. Eight frame selections
+again produced exactly matching patterns, image/mask identities, histograms,
+contrast limits and linked positions. These remain warm-cache backend/transfer
+measurements, excluding GUI paint. An earlier isolated source-build run measured
+60.1/63.9 ms. A preliminary run overlapped an independent Qt check; it is not
+used as the performance baseline.
+
+All 60 Rust tests passed (one optional benchmark ignored), Clippy passed, and
+the 30 comparisons against the actual Qt AutoLevel implementation still pass.
+Additional regression cases compare full histogram bins/edges and multiple
+filtered/unfiltered percentiles with the original source-precision path,
+including negative values, high outliers, NaN, infinity, constant images,
+parallel reduction and bounded fallbacks. Frontend and native host code are
+unchanged in this follow-up.

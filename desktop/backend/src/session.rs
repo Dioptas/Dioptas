@@ -982,8 +982,20 @@ impl Session {
                     }
                     _ => return Err("Choose detector, raw_detector or cake display.".into()),
                 };
+                let raster = match source {
+                    "raw_detector" => self.image_raster.as_ref(),
+                    "detector" => self
+                        .processed_raster
+                        .as_ref()
+                        .or(self.image_raster.as_ref()),
+                    "cake" => self.cake.as_ref(),
+                    _ => None,
+                };
+                let levels = raster
+                    .and_then(|raster| raster.cached_levels(mode, percentile, filter))
+                    .or_else(|| display::levels(data, shape, mode, percentile, filter));
                 return Ok(Reply::metadata(
-                    json!({"ok": true, "display": display, "levels": display::levels(data, shape, mode, percentile, filter)}),
+                    json!({"ok": true, "display": display, "levels": levels}),
                 ));
             }
             "pixel" => {

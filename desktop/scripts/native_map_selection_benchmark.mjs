@@ -22,7 +22,7 @@ for (const [label, executable] of [
   ["after", current],
 ]) {
   process.env.DIOPTAS_NATIVE_PROCESSOR = path.resolve(executable);
-  if (args.includes("--trace") && label === "after")
+  if (args.includes("--trace"))
     process.env.DIOPTAS_TRACE_FRAME = "1";
   else delete process.env.DIOPTAS_TRACE_FRAME;
   const n = nativeClient();
@@ -110,6 +110,7 @@ for (const [label, executable] of [
         ["open-image", "display preparation"],
         ["open-image", "processing masks and integration"],
         ["raster", "f32 conversion and SHA256"],
+        ["raster", "shared count distribution"],
         ["raster", "exact auto levels"],
         ["raster", "full pixel histogram"],
         ["packet", "encode response"],
