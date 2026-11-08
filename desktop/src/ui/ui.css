@@ -144,8 +144,10 @@ input[type="range"] {
   border: 0;
   background: none;
 }
-select {
+select,
+.ui-select {
   width: 100%;
+  /* Keep later generic select rules from restoring a second, native arrow. */
   -webkit-appearance: none;
   appearance: none;
 }

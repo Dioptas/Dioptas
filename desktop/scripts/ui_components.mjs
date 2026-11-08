@@ -53,6 +53,8 @@ try {
                 radius: style.borderTopLeftRadius,
                 scheme: style.colorScheme,
                 font: style.fontSize,
+                tag: element.tagName,
+                appearance: style.appearance,
               };
             }),
           );
@@ -66,6 +68,12 @@ try {
             assert.equal(style.border, "rgb(65, 72, 79)");
             assert.equal(style.radius, "5px");
             assert.equal(style.scheme, "dark");
+            if (style.tag === "SELECT")
+              assert.equal(
+                style.appearance,
+                "none",
+                "Shared dropdowns must suppress the native arrow beside the custom chevron",
+              );
           }
           return styles;
         };
