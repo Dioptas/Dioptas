@@ -16,7 +16,12 @@ export interface IntegrationState {
   autoSave: boolean;
   formats: string[];
   outputDirectory: string;
-  imageBackground: { filename: string | null; scale: number; offset: number };
+  imageBackground: {
+    filename: string | null;
+    scale: number;
+    offset: number;
+    poisson?: boolean;
+  };
   patternBackground: {
     enabled: boolean;
     smoothing: number;
@@ -24,6 +29,11 @@ export interface IntegrationState {
     order: number;
     range: [number, number] | null;
     overlay: boolean;
+  };
+  transfer?: {
+    original: string | null;
+    response: string | null;
+    enabled: boolean;
   };
   flatField: { filename: string | null; enabled: boolean };
   corrections: Record<

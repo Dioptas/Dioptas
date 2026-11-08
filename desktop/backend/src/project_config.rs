@@ -338,6 +338,16 @@ pub(super) fn load(
             &options,
         )?)?;
     }
+    if let Some((dims, values)) = array(file, "cache", &doc["native_desktop"]["source_variance"])? {
+        let image = s
+            .image
+            .as_mut()
+            .ok_or("Project variances require an image.")?;
+        if dims != image.source_shape || values.iter().any(|v| !v.is_finite() || *v < 0.0) {
+            return Err("Invalid project source variances.".into());
+        }
+        image.source_variance = Some(Arc::new(values));
+    }
     let shape = s.image.as_ref().map(|i| i.shape);
     let settings = json!({"unit":p["integration_unit"],"bins":p["integration_rad_points"],"cake_bins":p["cake_azimuth_points"],
         "use_mask":p["use_mask"],"transparent_mask":p["transparent_mask"],"polarization":cal["polarization_factor"],"poisson_errors":p["calculate_poisson_errors"],
@@ -348,7 +358,7 @@ pub(super) fn load(
     s.processing.factor = finite(&img["factor"], "Image scale factor", -1e12, 1e12)?;
     if let Some(shape) = shape {
         if let Some(drafts) = doc["native_desktop"]["correction_drafts"].as_object() {
-            for kind in ["cbn", "oiadac"] {
+            for kind in ["cbn", "oiadac", "plate", "slab"] {
                 if let Some(draft) = drafts.get(kind) {
                     s.processing.correction(&json!({"kind":kind,"enabled":draft["enabled"],"parameters":draft["parameters"]}),s.settings.calibrated)?;
                 }
@@ -390,10 +400,48 @@ pub(super) fn load(
         }
         s.processing.scale = finite(&img["background_scaling"], "Background scale", -1e12, 1e12)?;
         s.processing.offset = finite(&img["background_offset"], "Background offset", -1e12, 1e12)?;
+        if let Some(poisson) = doc["native_desktop"].get("background_poisson") {
+            s.processing
+                .background(&json!({"poisson":poisson}), source_shape)?;
+        }
+        let transfer = &doc["native_desktop"]["transfer"];
+        // Native projects retain disabled and partially loaded reference pairs.
+        // Legacy active transfer corrections own the same source planes in cache.
+        let legacy = &img["corrections"]["transfer"];
+        let matching_cache = transfer.is_object()
+            && (!legacy.is_object()
+                || ["original_filename", "response_filename"]
+                    .iter()
+                    .all(|key| legacy[key] == transfer[key]));
+        let saved = if matching_cache { transfer } else { legacy };
+        if saved.is_object() {
+            for source in ["original", "response"] {
+                let data_key = format!("{source}_data");
+                let path_key = format!("{source}_filename");
+                if let Some((dims, values)) = array(file, "cache", &saved[&data_key])? {
+                    if dims != source_shape {
+                        return Err(
+                            "Project transfer reference dimensions differ from the image.".into(),
+                        );
+                    }
+                    s.processing.restore_transfer(
+                        source,
+                        text(&saved[&path_key]),
+                        source_shape,
+                        values,
+                    )?;
+                } else if let Some(path) = saved[&path_key].as_str().filter(|p| !p.is_empty()) {
+                    s.processing
+                        .transfer(&json!({"source":source,"path":path}), source_shape)?;
+                }
+            }
+            s.processing
+                .transfer(&json!({"enabled":legacy.is_object()}), source_shape)?;
+        }
         if let Some(corrections) = img["corrections"].as_object() {
             for (name, parameters) in corrections {
                 match name.as_str() {
-                    "cbn" | "oiadac" => {
+                    "cbn" | "oiadac" | "plate" | "slab" => {
                         let mut parameters = parameters.clone();
                         if name == "cbn"
                             && let Some(value) = parameters
@@ -408,6 +456,7 @@ pub(super) fn load(
                             s.settings.calibrated,
                         )?;
                     }
+                    "transfer" => {} // Restored above, including its owned reference images.
                     "flat_field" => {
                         let flat = array(file, "cache", &doc["native_desktop"]["flat_response"])?;
                         if let Some((dims, values)) = flat {
@@ -790,7 +839,7 @@ pub(super) fn save(
     );
     let processing = s.processing.details();
     let mut corrections = json!({});
-    for kind in ["cbn", "oiadac"] {
+    for kind in ["cbn", "oiadac", "plate", "slab"] {
         if processing["corrections"][kind]["enabled"] == true {
             let mut parameters = processing["corrections"][kind]["parameters"].clone();
             if kind == "cbn"
@@ -826,6 +875,30 @@ pub(super) fn save(
         if enabled {
             corrections["flat_field"] = json!({"filename":path});
         }
+    }
+    doc["native_desktop"]["source_variance"] = if let Some(image) = image {
+        if let Some(v) = &image.source_variance {
+            put(cache, &image.source_shape, v)?
+        } else {
+            Value::Null
+        }
+    } else {
+        Value::Null
+    };
+    doc["native_desktop"]["background_poisson"] = json!(s.processing.background_poisson);
+    let mut transfer = json!({"enabled":processing["transfer"]["enabled"]});
+    for source in ["original", "response"] {
+        if let Some((path, shape, values)) = s.processing.project_transfer(source) {
+            transfer[format!("{source}_filename")] = json!(path);
+            transfer[format!("{source}_data")] = put(cache, &shape, values)?;
+        }
+    }
+    doc["native_desktop"]["transfer"] = transfer.clone();
+    if processing["transfer"]["enabled"] == true {
+        // The original format-2 reader expects scalar filenames here, not
+        // cache keys masquerading as in-memory NumPy arrays. Native owned
+        // references live in native_desktop.transfer and remain usable offline.
+        corrections["transfer"] = json!({"original_filename":transfer["original_filename"],"response_filename":transfer["response_filename"]});
     }
     doc["img"]["corrections"] = corrections;
     let pat = &s.patterns;

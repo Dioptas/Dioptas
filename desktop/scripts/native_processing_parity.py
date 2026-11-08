@@ -7,6 +7,8 @@ import numpy as np
 from pyFAI.geometry import Geometry
 from dioptas.model.util.ImgCorrection import (
     CbnCorrection,
+    PlateAbsorptionCorrection,
+    SlabAbsorptionCorrection,
     ObliqueAngleDetectorAbsorptionCorrection,
 )
 from xypattern import Pattern
@@ -70,6 +72,10 @@ def main():
                 dict(tilt=3, rotation=16, detector_thickness=44, absorption_length=120),
             ),
         ]
+        cases.extend([
+            ("plate", dict(thickness=0.3, absorption_coefficient=0.8, plate_tilt=12, plate_rotation=27)),
+            ("slab", dict(thickness=0.15, absorption_coefficient=1.2, slab_tilt=8, slab_rotation=-32)),
+        ])
         for kind, params in cases:
             r = n.call(
                 "integration_correction", kind=kind, enabled=True, parameters=params
@@ -78,6 +84,10 @@ def main():
                 ref = CbnCorrection(
                     tth_array=np.rad2deg(tth), azi_array=np.rad2deg(azi), **params
                 )
+                ref.update()
+            elif kind in ("plate", "slab"):
+                cls = PlateAbsorptionCorrection if kind == "plate" else SlabAbsorptionCorrection
+                ref = cls(tth_array=np.rad2deg(tth), azi_array=np.rad2deg(azi), **params)
                 ref.update()
             else:
                 ref = ObliqueAngleDetectorAbsorptionCorrection(
@@ -108,6 +118,28 @@ def main():
                     ),
                 )
             )
+        original_file = plane("transfer-original", 2 + cols * 0.01 + rows * 0.003)
+        response_file = plane("transfer-response", 3 + rows * 0.02)
+        n.call("integration_transfer", source="original", path=original_file)
+        n.call("integration_transfer", source="response", path=response_file)
+        r = n.call("integration_transfer", enabled=True)
+        expected *= (2 + cols * 0.01 + rows * 0.003) / (3 + rows * 0.02)
+        np.testing.assert_allclose(n.raster(r, "image"), expected.astype(np.float32), rtol=2e-7, atol=1e-5)
+        receipts.append(dict(correction="transfer", reference="independent original / response", maximumDisplayDifference=float(np.max(abs(n.raster(r, "image") - expected.astype(np.float32))))))
+        # Cross-reader coverage uses the original project and image models.
+        from dioptas.desktop.session import DesktopSession
+        project = directory / "native-corrections.dio"
+        n.call("save_project", path=str(project))
+        reference = DesktopSession()
+        loaded = reference.invoke("open_project", dict(path=str(project)))
+        assert loaded["ok"], loaded
+        np.testing.assert_allclose(reference.configuration.img_model.img_data, expected, rtol=3e-12, atol=1e-8)
+        legacy_project = directory / "legacy-corrections.dio"
+        saved = reference.invoke("save_project", dict(path=str(legacy_project)))
+        assert saved["ok"], saved
+        loaded = n.call("open_project", path=str(legacy_project))
+        np.testing.assert_array_equal(n.raster(loaded, "image"), expected.astype(np.float32))
+        receipts.append(dict(case="transfer/plate/slab native → Python reader/writer → Rust"))
         before = n.call("state")
         bad = plane("wrong-shape", np.ones((4, 7)))
         assert not n.invoke("integration_image_background", path=bad)["ok"]

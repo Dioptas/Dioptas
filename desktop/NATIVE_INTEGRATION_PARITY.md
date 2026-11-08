@@ -14,7 +14,9 @@ There is no scientific HTTP service. Dioptrin is now the default native engine.
   dynamic plugins. A finite-sector adapter clips native radial/azimuth polygons;
   it avoids the library's periodic wrapping of all pixels into a narrow sector.
 - Independent raw/processed images and histograms; image background scale/offset,
-  mean-normalized flat response and cBN/OIADAC absorption corrections. Scientific
+  mean-normalized flat response and cBN/OIADAC absorption corrections.
+  Transfer, plate/slab absorption and corrected-count errors are qualified in the
+  [correction and uncertainty ledger](NATIVE_CORRECTION_UNCERTAINTY_PARITY.md). Scientific
   buffers remain f64; display conversion to f32 does not change original counts.
 - Imported patterns, SmoothBruckner/Chebyshev backgrounds and ROI; overlays with
   capture/update, scale/offset, colors/visibility, ordering, matching and waterfall;

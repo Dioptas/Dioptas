@@ -14,7 +14,7 @@ dioptrin = []
 
 [dependencies]
 dioptrin-io = { git = "https://github.com/CPrescher/dioptrin-io", rev = "344011962df431a6a47e3a3fb727aa9c65df3131", features = ["wrappers", "hdf5", "containers", "bruker", "oxford", "raxis", "fixed", "fit2d", "kcd", "mpa", "esperanto", "mar345", "xsd"] }
-dioptrin = { git = "https://github.com/CPrescher/Dioptrin", rev = "645adc4af13c7b375e11a2244cd389c41877232d", default-features = false }
+dioptrin = { git = "https://github.com/CPrescher/Dioptrin", rev = "6ede5d0553811a41ad4511d1f5a50d955eb85156", default-features = false }
 half = "2"
 serde = { version = "1", features = ["derive", "rc"] }
 # Preserve the established ordering of plugin controls in embedded schemas.

@@ -43,14 +43,15 @@ readouts, linked guides and exports follow their actual coordinates.
 
 Combination requires calibrated images in every configuration and solid-angle
 correction. Unsupported detector/uncertainty settings fail explicitly and
-preserve the preceding scientific state. Combined Poisson errors currently
-require uncorrected, unit-factor images; other uncertainty combinations remain
-unqualified. Fractional splitting does not imply bitwise Qt full-split identity,
+preserve the preceding scientific state. Combined counting errors accept variances propagated through detector factors,
+backgrounds and supported image corrections; see the
+[correction/uncertainty ledger](NATIVE_CORRECTION_UNCERTAINTY_PARITY.md). Fractional splitting does not imply bitwise Qt full-split identity,
 especially at beam/seam and coverage boundaries.
 
 The Cargo dependency remains pinned to Dioptrin revision
-`645adc4af13c7b375e11a2244cd389c41877232d`, which combines physical-detector support
-and shared-grid multi-detector integration with validated beam-splitting fixes.
+`6ede5d0553811a41ad4511d1f5a50d955eb85156`, which combines physical-detector support
+and shared-grid multi-detector integration with validated beam-splitting fixes
+and explicit pixel-variance accumulation.
 Replacing it with the plain 0.11.0 tag would remove physical-detector support
 needed by this desktop. The Python dependency pin belongs to the explicitly
 selected compatibility/reference runtime and does not select the native engine.

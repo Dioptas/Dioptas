@@ -106,6 +106,7 @@ pub struct Image {
     pub values: Arc<Vec<f64>>,
     pub source_dtype: String,
     pub(crate) derived: bool,
+    pub(crate) source_variance: Option<Arc<Vec<f64>>>,
     pub ordinary_decodes: u64,
     pub combined: bool,
     pub parallel_pixels: bool,
@@ -124,10 +125,27 @@ impl Image {
         self.transformations = ops.to_vec();
         Ok(())
     }
-    pub fn set_derived(&mut self, values: Vec<f64>, description: &str) -> Result<(), String> {
+    pub(crate) fn input_variance(&self) -> Option<Arc<Vec<f64>>> {
+        self.source_variance.as_ref().map(|v| {
+            crate::transform::apply(
+                v,
+                self.source_shape,
+                &self.transformations,
+                &crate::control::Control::default(),
+            )
+            .expect("validated image transformations")
+        })
+    }
+    pub fn set_derived(
+        &mut self,
+        values: Vec<f64>,
+        variance: Vec<f64>,
+        description: &str,
+    ) -> Result<(), String> {
         if values.len() != self.shape[0] * self.shape[1] || values.iter().any(|v| !v.is_finite()) {
             return Err("Invalid combined detector samples.".into());
         }
+        let values_len = values.len();
         let stored = values
             .chunks_exact(self.shape[1])
             .rev()
@@ -135,6 +153,10 @@ impl Image {
             .copied()
             .collect();
         self.publish_combined(0, self.shape, PixelBuffer::F64(stored))?;
+        if variance.len() != values_len || variance.iter().any(|v| !v.is_finite() || *v < 0.0) {
+            return Err("Invalid derived image variances.".into());
+        }
+        self.source_variance = Some(Arc::new(variance));
         self.derived = true;
         self.combined = false;
         self.frames = 1;
@@ -232,6 +254,7 @@ impl Image {
             values: Arc::new(vec![]),
             source_dtype: String::new(),
             derived: false,
+            source_variance: None,
             ordinary_decodes: 0,
             combined: false,
             parallel_pixels: false,
@@ -283,6 +306,7 @@ impl Image {
             values: source_values,
             source_dtype: "F64".into(),
             derived: true,
+            source_variance: None,
             ordinary_decodes: 0,
             combined: false,
             parallel_pixels: false,
@@ -344,6 +368,7 @@ impl Image {
         let values = oriented_values(pixels, shape)?;
         self.source_dtype = format!("{:?}", pixels.pixel_type());
         self.derived = false;
+        self.source_variance = None;
         self.ordinary_decodes += 1;
         self.combined = false;
         self.parallel_pixels = false;
@@ -462,6 +487,7 @@ impl Image {
         trace.mark("typed to oriented f64");
         self.source_dtype = format!("{:?}", pixels.pixel_type());
         self.derived = false;
+        self.source_variance = None;
         self.combined_pixels = Some(Arc::new(pixels));
         self.buffer = Arc::new(FrameBuffer::default());
         self.combined = true;

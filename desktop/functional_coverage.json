@@ -492,11 +492,11 @@
     },
     {
       "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_transfer_correction",
-      "status": "unsupported",
+      "status": "native",
       "evidence": [
-        "desktop/backend/tests/functional_flows.rs#unsupported_legacy_corrections_fail_atomically_instead_of_becoming_noops"
+        "desktop/backend/tests/functional_flows.rs#transfer_plate_and_slab_project_owns_references_errors_and_disabled_drafts"
       ],
-      "note": "This correction is outside the native support boundary. A native rejection/rollback test protects against silent no-op processing; it does not claim a successful correction port."
+      "note": "Native transfer/plate/slab processing, exported counting std and active/disabled/partial reference pairs survive a fresh project owner after deleting source files. Independent Python formulas qualify correction values separately."
     },
     {
       "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_configuration_in_cake_mode",
@@ -644,11 +644,11 @@
     },
     {
       "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_slab_correction",
-      "status": "unsupported",
+      "status": "native",
       "evidence": [
-        "desktop/backend/tests/functional_flows.rs#unsupported_legacy_corrections_fail_atomically_instead_of_becoming_noops"
+        "desktop/backend/tests/functional_flows.rs#transfer_plate_and_slab_project_owns_references_errors_and_disabled_drafts"
       ],
-      "note": "This correction is outside the native support boundary. A native rejection/rollback test protects against silent no-op processing; it does not claim a successful correction port."
+      "note": "Native transfer/plate/slab processing, exported counting std and active/disabled/partial reference pairs survive a fresh project owner after deleting source files. Independent Python formulas qualify correction values separately."
     },
     {
       "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_cylinder_correction",
@@ -668,11 +668,11 @@
     },
     {
       "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_plate_correction",
-      "status": "unsupported",
+      "status": "native",
       "evidence": [
-        "desktop/backend/tests/functional_flows.rs#unsupported_legacy_corrections_fail_atomically_instead_of_becoming_noops"
+        "desktop/backend/tests/functional_flows.rs#transfer_plate_and_slab_project_owns_references_errors_and_disabled_drafts"
       ],
-      "note": "This correction is outside the native support boundary. A native rejection/rollback test protects against silent no-op processing; it does not claim a successful correction port."
+      "note": "Native transfer/plate/slab processing, exported counting std and active/disabled/partial reference pairs survive a fresh project owner after deleting source files. Independent Python formulas qualify correction values separately."
     }
   ]
 }

@@ -24,8 +24,10 @@ impl Plane {
 #[derive(Clone)]
 struct Cached {
     generation: u64,
+    factor: f64,
     geometry: Option<Geometry>,
     values: Arc<Vec<f64>>,
+    variance: Arc<Vec<f64>>,
 }
 #[derive(Clone)]
 pub(crate) struct Processing {
@@ -35,6 +37,10 @@ pub(crate) struct Processing {
     pub factor: f64,
     flat: Option<Plane>,
     flat_enabled: bool,
+    transfer_original: Option<Plane>,
+    transfer_response: Option<Plane>,
+    transfer_enabled: bool,
+    pub background_poisson: bool,
     corrections: Value,
     cache: Option<Cached>,
 }
@@ -51,6 +57,10 @@ impl PartialEq for Processing {
             && self.offset == other.offset
             && self.factor == other.factor
             && self.flat_enabled == other.flat_enabled
+            && self.transfer_enabled == other.transfer_enabled
+            && self.background_poisson == other.background_poisson
+            && same(&self.transfer_original, &other.transfer_original)
+            && same(&self.transfer_response, &other.transfer_response)
             && self.corrections == other.corrections
             && same(&self.background, &other.background)
             && same(&self.flat, &other.flat)
@@ -65,6 +75,10 @@ impl Default for Processing {
             factor: 1.0,
             flat: None,
             flat_enabled: false,
+            transfer_original: None,
+            transfer_response: None,
+            transfer_enabled: false,
+            background_poisson: true,
             corrections: serde_json::from_str(include_str!("correction_defaults.json")).unwrap(),
             cache: None,
         }
@@ -72,14 +86,25 @@ impl Default for Processing {
 }
 impl Processing {
     pub fn estimated_bytes(&self) -> usize {
-        self.cache.as_ref().map_or(0, |c| c.values.len() * 8)
+        self.cache
+            .as_ref()
+            .map_or(0, |c| (c.values.len() + c.variance.len()) * 8)
             + self.background.as_ref().map_or(0, |p| p.values.len() * 8)
             + self.flat.as_ref().map_or(0, |p| p.values.len() * 8)
+            + self
+                .transfer_original
+                .as_ref()
+                .map_or(0, |p| p.values.len() * 8)
+            + self
+                .transfer_response
+                .as_ref()
+                .map_or(0, |p| p.values.len() * 8)
     }
     pub fn active(&self) -> bool {
         self.factor != 1.0
             || self.background.is_some()
             || self.flat_enabled
+            || self.transfer_enabled
             || self
                 .corrections
                 .as_object()
@@ -101,6 +126,84 @@ impl Processing {
                 self.flat_enabled,
             )
         })
+    }
+    pub fn variance(&self) -> Option<Arc<Vec<f64>>> {
+        self.cache.as_ref().map(|c| c.variance.clone())
+    }
+    pub fn project_transfer(&self, source: &str) -> Option<(&str, [usize; 2], &[f64])> {
+        let plane = if source == "original" {
+            &self.transfer_original
+        } else {
+            &self.transfer_response
+        };
+        plane
+            .as_ref()
+            .map(|p| (p.path.as_str(), p.shape, p.values.as_slice()))
+    }
+    pub fn restore_transfer(
+        &mut self,
+        source: &str,
+        path: String,
+        shape: [usize; 2],
+        values: Vec<f64>,
+    ) -> Result<(), String> {
+        if values.len() != shape[0] * shape[1] || values.iter().any(|v| !v.is_finite() || *v <= 0.0)
+        {
+            return Err("Transfer references must contain finite, positive counts.".into());
+        }
+        let plane = Some(Plane {
+            path,
+            shape,
+            values: Arc::new(values),
+        });
+        match source {
+            "original" => self.transfer_original = plane,
+            "response" => self.transfer_response = plane,
+            _ => return Err("Unknown transfer reference.".into()),
+        }
+        self.cache = None;
+        Ok(())
+    }
+    pub fn transfer(&mut self, args: &Value, shape: [usize; 2]) -> Result<(), String> {
+        if let Some(source) = args.get("source") {
+            let source = source
+                .as_str()
+                .filter(|v| ["original", "response"].contains(v))
+                .ok_or("Choose original or response transfer reference.")?;
+            if let Some(reset) = args.get("reset") {
+                if !reset.is_boolean() {
+                    return Err("Reset must be a boolean.".into());
+                }
+                if reset == true {
+                    if source == "original" {
+                        self.transfer_original = None;
+                    } else {
+                        self.transfer_response = None;
+                    }
+                    self.transfer_enabled = false;
+                }
+            }
+            if let Some(path) = args.get("path") {
+                let plane = Plane::open(
+                    Path::new(path.as_str().ok_or("Transfer path must be a string.")?),
+                    shape,
+                )?;
+                self.restore_transfer(source, plane.path, shape, plane.values.as_ref().clone())?;
+            }
+        } else if args.get("path").is_some() || args.get("reset").is_some() {
+            return Err("Choose original or response transfer reference.".into());
+        }
+        if let Some(enabled) = args.get("enabled") {
+            let enabled = enabled
+                .as_bool()
+                .ok_or("Transfer enabled must be a boolean.")?;
+            if enabled && (self.transfer_original.is_none() || self.transfer_response.is_none()) {
+                return Err("Choose both transfer reference images first.".into());
+            }
+            self.transfer_enabled = enabled;
+        }
+        self.cache = None;
+        Ok(())
     }
     pub fn restore_background(&mut self, path: String, shape: [usize; 2], values: Vec<f64>) {
         self.background = Some(Plane {
@@ -131,13 +234,18 @@ impl Processing {
         Ok(())
     }
     pub fn details(&self) -> Value {
-        json!({"imageBackground":{"filename":self.background.as_ref().map(|p|&p.path),"scale":self.scale,"offset":self.offset},"flatField":{"filename":self.flat.as_ref().map(|p|&p.path),"enabled":self.flat_enabled},"corrections":self.corrections})
+        json!({"imageBackground":{"filename":self.background.as_ref().map(|p|&p.path),"scale":self.scale,"offset":self.offset,"poisson":self.background_poisson},"flatField":{"filename":self.flat.as_ref().map(|p|&p.path),"enabled":self.flat_enabled},"transfer":{"original":self.transfer_original.as_ref().map(|p|&p.path),"response":self.transfer_response.as_ref().map(|p|&p.path),"enabled":self.transfer_enabled},"corrections":self.corrections})
     }
     pub fn background(&mut self, args: &Value, shape: [usize; 2]) -> Result<(), String> {
         if args.get("reset").is_some_and(|v| v == true) {
             self.background = None;
         } else if let Some(path) = args.get("path").and_then(Value::as_str) {
             self.background = Some(Plane::open(Path::new(path), shape)?);
+        }
+        if let Some(v) = args.get("poisson") {
+            self.background_poisson = v
+                .as_bool()
+                .ok_or("Background counting noise must be a boolean.")?;
         }
         for (key, slot) in [("scale", &mut self.scale), ("offset", &mut self.offset)] {
             if let Some(v) = args.get(key) {
@@ -198,7 +306,7 @@ impl Processing {
     pub fn correction(&mut self, args: &Value, calibrated: bool) -> Result<(), String> {
         let kind = args["kind"]
             .as_str()
-            .filter(|v| ["cbn", "oiadac"].contains(v))
+            .filter(|v| ["cbn", "oiadac", "plate", "slab"].contains(v))
             .ok_or("Unsupported correction.")?;
         let enabled = args["enabled"]
             .as_bool()
@@ -266,7 +374,22 @@ impl Processing {
             self.flat_enabled = false;
             self.cache = None;
         }
+        if self
+            .transfer_original
+            .as_ref()
+            .is_some_and(|p| p.shape != image.source_shape)
+            || self
+                .transfer_response
+                .as_ref()
+                .is_some_and(|p| p.shape != image.source_shape)
+        {
+            self.transfer_original = None;
+            self.transfer_response = None;
+            self.transfer_enabled = false;
+            self.cache = None;
+        }
         if !self.active() {
+            self.cache = None;
             return Ok(image.values.clone());
         }
         let geometry_active = self
@@ -279,10 +402,15 @@ impl Processing {
         if let Some(c) = &self.cache
             && c.generation == generation
             && c.geometry == g
+            && c.factor == self.factor
         {
             return Ok(c.values.clone());
         }
         let mut values = image.values.as_ref().clone();
+        let mut variance: Vec<f64> = image
+            .input_variance()
+            .map(|v| v.as_ref().clone())
+            .unwrap_or_else(|| values.iter().map(|v| v.max(0.0)).collect());
         if let Some(background) = &self.background {
             let background = crate::transform::apply(
                 &background.values,
@@ -290,8 +418,11 @@ impl Processing {
                 &image.transformations,
                 &crate::control::Control::default(),
             )?;
-            for (v, b) in values.iter_mut().zip(background.iter()) {
+            for ((v, var), b) in values.iter_mut().zip(&mut variance).zip(background.iter()) {
                 *v -= self.scale * b + self.offset;
+                if self.background_poisson {
+                    *var += self.scale * self.scale * b.max(0.0);
+                }
             }
         }
         if self.flat_enabled {
@@ -302,8 +433,29 @@ impl Processing {
                 &image.transformations,
                 &crate::control::Control::default(),
             )?;
-            for (v, f) in values.iter_mut().zip(response.iter()) {
+            for ((v, var), f) in values.iter_mut().zip(&mut variance).zip(response.iter()) {
                 *v /= f;
+                *var /= f * f;
+            }
+        }
+        if self.transfer_enabled {
+            let original = self.transfer_original.as_ref().unwrap();
+            let response = self.transfer_response.as_ref().unwrap();
+            let gains: Vec<_> = original
+                .values
+                .iter()
+                .zip(response.values.iter())
+                .map(|(o, r)| o / r)
+                .collect();
+            let gains = crate::transform::apply(
+                &Arc::new(gains),
+                original.shape,
+                &image.transformations,
+                &crate::control::Control::default(),
+            )?;
+            for ((v, var), gain) in values.iter_mut().zip(&mut variance).zip(gains.iter()) {
+                *v *= gain;
+                *var *= gain * gain;
             }
         }
         #[cfg(feature = "dioptrin")]
@@ -323,19 +475,26 @@ impl Processing {
                         );
                     }
                     *v /= factor;
+                    variance[i] /= factor * factor;
                 }
             }
         }
         if self.factor != 1.0 {
-            for value in &mut values {
+            for (value, var) in values.iter_mut().zip(&mut variance) {
                 *value *= self.factor;
+                *var *= self.factor * self.factor;
             }
+        }
+        if values.iter().any(|v| !v.is_finite()) || variance.iter().any(|v| !v.is_finite()) {
+            return Err("Processing produced nonfinite intensities or variances; check correction parameters.".into());
         }
         let values = Arc::new(values);
         self.cache = Some(Cached {
             generation,
+            factor: self.factor,
             geometry: g,
             values: values.clone(),
+            variance: Arc::new(variance),
         });
         Ok(values)
     }
@@ -343,7 +502,30 @@ impl Processing {
 #[cfg(feature = "dioptrin")]
 fn absorption(kind: &str, p: &Value, tth: f64, azi: f64) -> f64 {
     let n = |key: &str| p[key].as_f64().unwrap();
-    if kind == "oiadac" {
+    if kind == "plate" || kind == "slab" {
+        let thickness = n("thickness");
+        let mu = n("absorption_coefficient");
+        if thickness == 0.0 || mu == 0.0 {
+            return 1.0;
+        }
+        let tilt = n(&format!("{kind}_tilt")).to_radians();
+        let rotation = n(&format!("{kind}_rotation")).to_radians();
+        let cosine = (tilt.cos() * tth.cos() + tilt.sin() * tth.sin() * (azi - rotation).cos())
+            .abs()
+            .max(1e-10);
+        let outgoing = mu / cosine;
+        if kind == "plate" {
+            return (-outgoing * thickness).exp();
+        }
+        let incident = mu / tilt.cos().abs().max(1e-10);
+        let difference = (outgoing - incident).abs() * thickness;
+        let ratio = if difference == 0.0 {
+            1.0
+        } else {
+            -(-difference).exp_m1() / difference
+        };
+        thickness * (-incident.min(outgoing) * thickness).exp() * ratio
+    } else if kind == "oiadac" {
         let tilt = n("tilt").to_radians();
         let rotation = n("rotation").to_radians();
         let d = n("detector_thickness");
@@ -382,5 +564,24 @@ fn absorption(kind: &str, p: &Value, tth: f64, azi: f64) -> f64 {
             0.0
         };
         (-diam / tt.cos() / n("diamond_abs_length")).exp() * (-seat / n("cbn_abs_length")).exp()
+    }
+}
+
+#[cfg(all(test, feature = "dioptrin"))]
+mod tests {
+    use super::*;
+    #[test]
+    fn slab_equal_path_limit_is_stable_and_zero_absorption_matches_reference() {
+        let mut p =
+            json!({"thickness":0.2,"absorption_coefficient":3.,"slab_tilt":0.,"slab_rotation":0.});
+        let expected = 0.2 * (-0.6f64).exp();
+        for angle in [0., 1e-10, 1e-8] {
+            assert!((absorption("slab", &p, angle, 0.5) - expected).abs() < 1e-15);
+        }
+        p["absorption_coefficient"] = json!(0.);
+        assert_eq!(absorption("slab", &p, 0.5, 0.3), 1.);
+        p["absorption_coefficient"] = json!(3.);
+        p["thickness"] = json!(0.);
+        assert_eq!(absorption("slab", &p, 0.5, 0.3), 1.);
     }
 }

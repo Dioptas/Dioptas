@@ -9,14 +9,14 @@ and writes a compact receipt under `artifacts/functional-coverage`.
 
 | Classification | Definitions | Meaning |
 | --- | ---: | --- |
-| Native scientific contract | 55 | A Rust integration test exercises the corresponding supported scientific behavior with actual native commands and data. This does not assert identical Qt widgets. |
+| Native scientific contract | 58 | A Rust integration test exercises the corresponding supported scientific behavior with actual native commands and data. This does not assert identical Qt widgets. |
 | Adapted behavior | 16 | The React/native workflow differs; evidence and the exact remaining difference are explicit in each entry. These are not counted as identical legacy UI parity. |
-| Unsupported feature | 7 | Five legacy correction types, batch rectangle-to-waterfall generation, and standalone detector-image docking are not implemented by the native workspace. Unsupported corrections have atomic rejection tests, not success claims. |
+| Unsupported feature | 4 | Cylinder/sphere corrections, batch rectangle-to-waterfall generation, and standalone detector-image docking are not implemented by the native workspace. Unsupported corrections have atomic rejection tests, not success claims. |
 | Platform-specific | 4 | Native Map window management/docking needs isolated OS-level tests. Detached data/progress is tested headlessly; native window semantics are not claimed by this CI. |
 
 ## Added native flows
 
-`backend/tests/functional_flows.rs` adds 19 tests, including:
+`backend/tests/functional_flows.rs` contains 25 tests, including:
 
 - Raw image → PONI → asymmetric mask → scaled/offset image background → flat
   field → ROI → supersampling → integration with propagated errors, separately
@@ -61,6 +61,10 @@ a canvas-focus defect: preventing pointer default left the prior tool button
 focused, so Enter could fail to complete a polygon. Accepted plot gestures now
 focus their canvas, with an explicit browser assertion before polygon completion.
 
+The [correction and uncertainty ledger](NATIVE_CORRECTION_UNCERTAINTY_PARITY.md)
+records the additional transfer/plate/slab, corrected-count variance,
+Batch/Map std storage and offline data-flow qualification.
+
 ## Gates
 
 `.github/workflows/CI_rust_desktop.yml` runs on relevant pushes, pull requests
@@ -90,7 +94,7 @@ Every gate writes per-step logs; GitHub uploads logs, numerical receipts,
 screenshots and coverage reports even when a step fails. A failing scientific
 assertion is never converted into a successful skip.
 
-The pinned Dioptrin revision `645adc4af13c7b375e11a2244cd389c41877232d` is now
+The pinned Dioptrin revision `6ede5d0553811a41ad4511d1f5a50d955eb85156` is now
 fetchable on `CPrescher/Dioptrin` branch `codex/rust-desktop-combination`.
 All four Git dependency repositories were checked with separate empty Git
 object stores; CI does not require the developer's cached local Git objects.

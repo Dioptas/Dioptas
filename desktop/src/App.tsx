@@ -645,6 +645,7 @@ export default function App() {
           "integration_correction",
           "integration_image_background",
           "integration_flat_field",
+          "integration_transfer",
         ].includes(command);
       const frameSelection =
         command === "map_select" || command === "batch_select";

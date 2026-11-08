@@ -52,9 +52,11 @@ With configuration controls enabled, Integration provides detector factors,
 combined patterns and cakes, and combined-pattern export. These run through
 Dioptrin's native shared-grid integration, with independent images, masks and
 display preferences for each configuration. Combination needs calibrated images
-and solid-angle correction. Combined Poisson errors currently require
-uncorrected, unit-factor images; other combinations fail explicitly until that
-uncertainty path is qualified.
+and solid-angle correction. Combined counting errors use independent pixel variances propagated through
+backgrounds, detector factors and image corrections. See the
+[correction and uncertainty ledger](NATIVE_CORRECTION_UNCERTAINTY_PARITY.md)
+for transfer/plate/slab controls, project ownership, full data-flow tests and
+statistical assumptions.
 
 Integration and Map use the same `RasterView` and `PatternView` renderers.
 `diffractionPlotSetup.ts` prepares their common detector mask/click properties

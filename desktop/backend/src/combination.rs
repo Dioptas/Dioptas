@@ -241,9 +241,6 @@ impl Session {
             if !owner.settings.solid_angle {
                 return Err("Combined detector results require solid-angle correction.".into());
             }
-            if self.settings.errors && owner.processing.active() {
-                return Err("Combined Poisson errors currently require uncorrected, unit-factor images. Disable Poisson errors before combining corrected images.".into());
-            }
             owner.prepare_processing()?;
             owner.refresh_masks(&self.control.clone())?;
             let image = owner
@@ -259,7 +256,12 @@ impl Session {
                 amin = amin.min(a);
                 amax = amax.max(a);
             }
-            images.push((owner.scientific_values(), image.shape));
+            let variance = owner
+                .processing
+                .variance()
+                .or_else(|| image.input_variance())
+                .unwrap_or_else(|| Arc::new(image.values.iter().map(|v| v.max(0.0)).collect()));
+            images.push((owner.scientific_values(), image.shape, variance));
             detectors.push((
                 owner.settings.geometry.clone(),
                 image.shape,
@@ -329,7 +331,7 @@ impl Session {
         let plans = self.combination_plans.as_ref().unwrap();
         let slices: Vec<_> = images
             .iter()
-            .map(|(values, shape)| (values.as_slice(), shape[0], shape[1]))
+            .map(|(values, shape, _)| (values.as_slice(), shape[0], shape[1]))
             .collect();
         let options = |range: [f64; 2]| Multi2dOptions {
             azimuthal_range: (range[0], range[1]),
@@ -337,13 +339,27 @@ impl Session {
             errors: self.settings.errors,
             normalization_factors: None,
         };
+        let variances: Vec<_> = images.iter().map(|(_, _, v)| v.as_slice()).collect();
+        let integrate = |engine: &MultiIntegrator, azimuth_bins, range| {
+            if self.settings.errors {
+                engine.integrate2d_from_slices_with_variances(
+                    &slices,
+                    &variances,
+                    plans.key.bins,
+                    azimuth_bins,
+                    &options(range),
+                )
+            } else {
+                engine.integrate2d_from_slices(
+                    &slices,
+                    plans.key.bins,
+                    azimuth_bins,
+                    &options(range),
+                )
+            }
+        };
         if self.combination.patterns {
-            let p = plans.pattern.integrate2d_from_slices(
-                &slices,
-                plans.key.bins,
-                1,
-                &options(plans.key.pattern_azimuth),
-            )?;
+            let p = integrate(&plans.pattern, 1, plans.key.pattern_azimuth)?;
             let x: Vec<_> = p
                 .radial
                 .iter()
@@ -367,12 +383,7 @@ impl Session {
             self.combination.pattern = None;
         }
         if self.combination.cakes {
-            let p = plans.cake.integrate2d_from_slices(
-                &slices,
-                plans.key.bins,
-                plans.key.cake_bins,
-                &options(plans.key.cake_azimuth),
-            )?;
+            let p = integrate(&plans.cake, plans.key.cake_bins, plans.key.cake_azimuth)?;
             let mut raster = Raster::image(&p.intensity, [plans.key.cake_bins, plans.key.bins]);
             raster.metadata["radialRange"] = json!([p.radial[0], p.radial[p.radial.len() - 1]]);
             raster.metadata["azimuthRange"] = json!([

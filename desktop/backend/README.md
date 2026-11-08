@@ -143,7 +143,12 @@ See [native integration qualification](../NATIVE_INTEGRATION_PARITY.md) for the
 implemented controls, pinned Qt/API sources, independent numerical checks, real
 Eiger timing scope and reproduction commands. `src/correction_defaults.json`
 provides the existing cBN/OIADAC parameter metadata; `processing.rs` implements
-those corrections in native f64, together with image backgrounds and flat fields.
+those corrections in native f64, together with image backgrounds, flat fields,
+transfer, plate absorption and slab self-absorption. Counting variance is
+propagated from original samples through deterministic corrections and retained
+in pattern exports, Batch/Map and projects. See the
+[correction/uncertainty qualification](../NATIVE_CORRECTION_UNCERTAINTY_PARITY.md)
+for assumptions, equations and independent evidence.
 
 ## Projects and configurations
 

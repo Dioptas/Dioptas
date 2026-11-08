@@ -10,6 +10,7 @@ import {
   BackgroundRangeFields,
 } from "./BackgroundRangeFields";
 import {
+  ProcessingToggle,
   ProcessingFile,
   ProcessingNumberField,
   ProcessingType,
@@ -43,7 +44,7 @@ export function IntegrationBackgroundControls({
   const current = useRef(source.imageBackground);
   current.current = source.imageBackground;
   const tail = useRef(Promise.resolve());
-  const editImage = (patch: Record<string, number>) => {
+  const editImage = (patch: Record<string, number | boolean>) => {
     const task = tail.current.then(() =>
       run(
         "integration_image_background",
@@ -122,6 +123,17 @@ export function IntegrationBackgroundControls({
               disabled={!source.imageBackground.filename}
               onCommit={(offset) => editImage({ offset })}
             />
+            <ProcessingToggle
+              label="Include background counting noise"
+              checked={source.imageBackground.poisson ?? true}
+              disabled={!source.imageBackground.filename}
+              onCommit={(poisson) => editImage({ poisson })}
+            />
+            <p className="integration-note">
+              Poisson errors use original sample counts. Background noise adds
+              scale² × background counts; offset and correction references are
+              treated as fixed.
+            </p>
           </div>
         ) : (
           <div className="processing-form">

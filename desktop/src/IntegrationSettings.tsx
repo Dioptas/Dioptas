@@ -237,6 +237,12 @@ export function IntegrationSettings({
             checked={draft.poissonErrors}
             onChange={(v) => set("poissonErrors", v)}
           />
+          <p className="integration-note">
+            Counting uncertainty is propagated from original counts through
+            image processing and squared integration weights. Geometry and
+            correction calibration uncertainties are excluded; split bins can be
+            correlated.
+          </p>
           <Field
             label="Polarization factor"
             value={draft.polarization}

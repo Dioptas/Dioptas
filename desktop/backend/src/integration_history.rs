@@ -53,6 +53,7 @@ pub(super) fn is_edit(action: &str) -> bool {
             | "integration_settings"
             | "integration_roi"
             | "integration_image_background"
+            | "integration_transfer"
             | "integration_flat_field"
             | "integration_correction"
             | "settings"
@@ -111,6 +112,7 @@ impl IntegrationHistory {
                 | "integration_settings"
                 | "integration_roi"
                 | "integration_image_background"
+                | "integration_transfer"
                 | "integration_flat_field"
                 | "integration_correction"
         );

@@ -768,6 +768,7 @@ impl Session {
             }
             "integration_image_background"
             | "integration_flat_field"
+            | "integration_transfer"
             | "integration_correction" => {
                 self.require_image()?;
                 let shape = self.image.as_ref().unwrap().source_shape;
@@ -775,9 +776,23 @@ impl Session {
                     "integration_image_background" => {
                         check_keys(
                             args,
-                            &["path", "reset", "scale", "offset", "defer_integration"],
+                            &[
+                                "path",
+                                "reset",
+                                "scale",
+                                "offset",
+                                "poisson",
+                                "defer_integration",
+                            ],
                         )?;
                         self.processing.background(args, shape)?;
+                    }
+                    "integration_transfer" => {
+                        check_keys(
+                            args,
+                            &["source", "path", "enabled", "reset", "defer_integration"],
+                        )?;
+                        self.processing.transfer(args, shape)?;
                     }
                     "integration_flat_field" => {
                         check_keys(args, &["path", "enabled", "reset", "defer_integration"])?;
@@ -1524,8 +1539,9 @@ impl Session {
                 let start = Instant::now();
                 let mask = self.integration_mask(image.shape);
                 let (pattern, sigma, cake, cake_values) = if include_cake {
-                    let products = self.engine.integrate(
+                    let products = self.engine.integrate_with_variance(
                         &self.scientific_values(),
+                        self.scientific_variance().as_deref().map(|v| v.as_slice()),
                         image.shape,
                         &self.settings.geometry,
                         &mask,
@@ -1539,8 +1555,9 @@ impl Session {
                         Some(Arc::new(products.cake_values)),
                     )
                 } else {
-                    let (pattern, sigma) = self.engine.integrate_pattern(
+                    let (pattern, sigma) = self.engine.integrate_pattern_with_variance(
                         &self.scientific_values(),
+                        self.scientific_variance().as_deref().map(|v| v.as_slice()),
                         image.shape,
                         &self.settings.geometry,
                         &mask,
@@ -1647,6 +1664,16 @@ impl Session {
             .cloned()
             .or_else(|| self.image.as_ref().map(|i| i.values.clone()))
             .unwrap_or_else(|| Arc::new(vec![]))
+    }
+    fn scientific_variance(&self) -> Option<Arc<Vec<f64>>> {
+        self.settings
+            .errors
+            .then(|| {
+                self.processing
+                    .variance()
+                    .or_else(|| self.image.as_ref().and_then(|i| i.input_variance()))
+            })
+            .flatten()
     }
     fn prepare_processing(&mut self) -> Result<(), String> {
         if let Some(image) = &self.image {

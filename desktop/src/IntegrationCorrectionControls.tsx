@@ -78,7 +78,14 @@ export function IntegrationCorrectionControls({
     return task;
   };
   const correction = source.corrections[tab];
-  const name = tab === "cbn" ? "cBN seat" : "detector absorption";
+  const name = (
+    {
+      cbn: "cBN seat",
+      oiadac: "detector absorption",
+      plate: "plate absorption",
+      slab: "slab self-absorption",
+    } as Record<string, string>
+  )[tab];
   const field = (key: string) => {
     const definition = correction.fields[key];
     return (
@@ -116,6 +123,9 @@ export function IntegrationCorrectionControls({
       >
         {[
           ["flat", "Flat field"],
+          ["transfer", "Transfer"],
+          ["plate", "Plate"],
+          ["slab", "Slab"],
           ["cbn", "cBN seat"],
           ["oiadac", "Detector absorption"],
         ].map(([key, label]) => (
@@ -126,7 +136,9 @@ export function IntegrationCorrectionControls({
             active={
               key === "flat"
                 ? source.flatField.enabled
-                : source.corrections[key].enabled
+                : key === "transfer"
+                  ? (source.transfer?.enabled ?? false)
+                  : (source.corrections[key]?.enabled ?? false)
             }
             onClick={() => onTabChange(key)}
           />
@@ -156,6 +168,44 @@ export function IntegrationCorrectionControls({
               Corrects pixel sensitivity using the mean-normalized flat field.
             </p>
           </div>
+        ) : tab === "transfer" ? (
+          <div className="processing-form">
+            {(["original", "response"] as const).map((sourceName) => (
+              <ProcessingFile
+                key={sourceName}
+                kind={`transfer ${sourceName}`}
+                filename={source.transfer?.[sourceName] ?? null}
+                disabled={!state.hasImage}
+                onLoad={() =>
+                  void run("integration_transfer", { source: sourceName })
+                }
+                onRemove={() =>
+                  void run("integration_transfer", {
+                    source: sourceName,
+                    reset: true,
+                  })
+                }
+              />
+            ))}
+            <ProcessingToggle
+              label="Apply transfer correction"
+              checked={source.transfer?.enabled ?? false}
+              disabled={
+                !source.transfer?.original || !source.transfer?.response
+              }
+              onCommit={(enabled) =>
+                run("integration_transfer", { enabled }, "")
+              }
+            />
+            <p className="integration-note">
+              Multiplies counts by original / response. Both references need the
+              detector’s source dimensions and finite, positive counts.
+            </p>
+          </div>
+        ) : !correction ? (
+          <p className="integration-note">
+            This correction is unavailable in the selected processor.
+          </p>
         ) : (
           <div className="processing-form">
             <ProcessingToggle
@@ -188,6 +238,15 @@ export function IntegrationCorrectionControls({
             {!state.calibrated && (
               <p className="integration-note">
                 Load an image and calibration to use this correction.
+              </p>
+            )}
+            {(tab === "plate" || tab === "slab") && (
+              <p className="integration-note">
+                {tab === "plate"
+                  ? "Absorption by a plate in the diffracted beam."
+                  : "Self-absorption integrated through a uniformly scattering slab."}{" "}
+                Tilt is relative to the incident beam; rotation is about the
+                beam.
               </p>
             )}
             {tab === "cbn" ? (

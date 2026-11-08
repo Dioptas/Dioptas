@@ -240,8 +240,8 @@ export function SettingsWorkspace({
                     Processing engine
                   </label>
                   <p>
-                    Peak searches, geometry fitting, patterns and cakes.
-                    Unsupported integration options use pyFAI.
+                    Peak searches, geometry fitting, patterns and cakes. The
+                    Rust processor reports unsupported options explicitly.
                   </p>
                 </div>
                 <Select

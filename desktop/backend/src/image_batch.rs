@@ -71,6 +71,7 @@ impl Session {
             None
         };
         let mut sum = vec![0.0; first.values.len()];
+        let mut variance = vec![0.0; sum.len()];
         let mut invalid = vec![0u8; sum.len()];
         let mut processing = self.processing.clone();
         for (i, p) in paths.iter().enumerate() {
@@ -114,8 +115,11 @@ impl Session {
                         *out |= *value;
                     }
                 }
-                for (sum, value) in sum.iter_mut().zip(image.values.iter()) {
+                for ((sum, variance), value) in
+                    sum.iter_mut().zip(&mut variance).zip(image.values.iter())
+                {
                     *sum += value;
+                    *variance += value.max(0.0);
                 }
             }
             image.check_sources()?;
@@ -152,8 +156,9 @@ impl Session {
             ));
         }
         if mode == "average" {
-            for value in &mut sum {
+            for (value, variance) in sum.iter_mut().zip(&mut variance) {
                 *value /= paths.len() as f64;
+                *variance /= (paths.len() as f64).powi(2);
             }
         }
         // Invalid detector samples have no arithmetic meaning. Retain a known
@@ -165,6 +170,7 @@ impl Session {
         }
         first.set_derived(
             sum,
+            variance,
             &format!(
                 "Derived {mode} of {} input files; source files are unchanged.",
                 paths.len()

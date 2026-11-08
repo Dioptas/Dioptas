@@ -462,7 +462,7 @@ fn unsupported_legacy_corrections_fail_atomically_instead_of_becoming_noops() {
     poni(&p);
     let mut s = prepared(&a, &p, "2th_deg");
     let before = call(&mut s, "state", json!({}));
-    for kind in ["transfer", "slab", "cylinder", "sphere", "plate"] {
+    for kind in ["cylinder", "sphere"] {
         let r = invoke(
             &mut s,
             "integration_correction",
@@ -1111,4 +1111,459 @@ fn multiple_hdf5_files_keep_dataset_frame_order_across_stride_and_map_selection(
     );
     assert_eq!(selected.result["state"]["imageName"], "detector_001.h5");
     close(&values(&selected, "y"), &expected[1]);
+}
+
+#[test]
+fn counting_variance_survives_background_transfer_factor_masks_and_units() {
+    let d = tempfile::tempdir().unwrap();
+    let a = d.path().join("a.npy");
+    let bg = d.path().join("bg.npy");
+    let original = d.path().join("original.npy");
+    let response = d.path().join("response.npy");
+    let p = d.path().join("g.poni");
+    npy(&a, [24, 32], &vec![100.; 768]);
+    npy(&bg, [24, 32], &vec![4.; 768]);
+    npy(&original, [24, 32], &vec![3.; 768]);
+    npy(&response, [24, 32], &vec![2.; 768]);
+    poni(&p);
+    for unit in ["2th_deg", "q_A^-1", "d_A"] {
+        for ss in [1, 3] {
+            let mut s = prepared(&a, &p, unit);
+            call(&mut s, "integration_roi", json!({"limits":[2,22,3,29]}));
+            let baseline = call(
+                &mut s,
+                "integration_settings",
+                json!({"poisson_errors":true,"supersampling":ss,"solid_angle":ss==1,"azimuth_range":if ss==3 {json!([-40,95])} else {Value::Null}}),
+            );
+            call(
+                &mut s,
+                "integration_image_background",
+                json!({"path":bg,"scale":3.,"offset":1000.}),
+            );
+            call(
+                &mut s,
+                "integration_transfer",
+                json!({"source":"original","path":original}),
+            );
+            call(
+                &mut s,
+                "integration_transfer",
+                json!({"source":"response","path":response}),
+            );
+            call(&mut s, "integration_transfer", json!({"enabled":true}));
+            let actual = call(&mut s, "combination_settings", json!({"factor":-2.}));
+            close(
+                &values(&actual, "y"),
+                &values(&baseline, "y")
+                    .iter()
+                    .map(|v| v * 27.36)
+                    .collect::<Vec<_>>(),
+            );
+            close(
+                &values(&actual, "sigma"),
+                &values(&baseline, "sigma")
+                    .iter()
+                    .map(|v| v * (1224f64 / 100.).sqrt())
+                    .collect::<Vec<_>>(),
+            );
+            let fixed = call(
+                &mut s,
+                "integration_image_background",
+                json!({"poisson":false}),
+            );
+            close(
+                &values(&fixed, "sigma"),
+                &values(&baseline, "sigma")
+                    .iter()
+                    .map(|v| v * 3.)
+                    .collect::<Vec<_>>(),
+            );
+            // A live factor edit must invalidate processed data as well as variance.
+            let changed = call(&mut s, "combination_settings", json!({"factor":4.}));
+            close(
+                &values(&changed, "sigma"),
+                &values(&fixed, "sigma")
+                    .iter()
+                    .map(|v| v * 2.)
+                    .collect::<Vec<_>>(),
+            );
+        }
+    }
+}
+
+#[test]
+fn transfer_plate_and_slab_project_owns_references_errors_and_disabled_drafts() {
+    let d = tempfile::tempdir().unwrap();
+    let a = d.path().join("a.npy");
+    let p = d.path().join("g.poni");
+    let original = d.path().join("o.npy");
+    let response = d.path().join("r.npy");
+    image(&a, 0.);
+    poni(&p);
+    npy(
+        &original,
+        [24, 32],
+        &(0..768)
+            .map(|i| 2. + (i % 32) as f64 / 100.)
+            .collect::<Vec<_>>(),
+    );
+    npy(&response, [24, 32], &vec![3.; 768]);
+    let mut s = prepared(&a, &p, "q_A^-1");
+    call(
+        &mut s,
+        "integration_settings",
+        json!({"poisson_errors":true}),
+    );
+    call(
+        &mut s,
+        "integration_transfer",
+        json!({"source":"original","path":original}),
+    );
+    let partial_transfer =
+        call(&mut s, "state", json!({})).result["state"]["integration"]["transfer"].clone();
+    let partial = d.path().join("partial.dio");
+    call(&mut s, "save_project", json!({"path":partial}));
+    call(
+        &mut s,
+        "integration_transfer",
+        json!({"source":"response","path":response}),
+    );
+    call(&mut s, "integration_transfer", json!({"enabled":true}));
+    for (kind, params) in [
+        (
+            "plate",
+            json!({"thickness":0.3,"absorption_coefficient":0.8,"plate_tilt":12.,"plate_rotation":27.}),
+        ),
+        (
+            "slab",
+            json!({"thickness":0.15,"absorption_coefficient":1.2,"slab_tilt":8.,"slab_rotation":-32.}),
+        ),
+    ] {
+        call(
+            &mut s,
+            "integration_correction",
+            json!({"kind":kind,"enabled":true,"parameters":params}),
+        );
+    }
+    call(
+        &mut s,
+        "image_transform",
+        json!({"operation":"rotate_right"}),
+    );
+    let before = call(&mut s, "state", json!({}));
+    let output = d.path().join("profile.xye");
+    call(&mut s, "integration_save_pattern", json!({"path":output}));
+    let exported: Vec<_> = fs::read_to_string(output)
+        .unwrap()
+        .lines()
+        .filter_map(|l| {
+            let fields: Vec<_> = l.split_whitespace().collect();
+            if fields.len() != 3 || fields[0].parse::<f64>().is_err() {
+                return None;
+            }
+            fields[2].parse::<f64>().ok()
+        })
+        .collect();
+    close(&exported, &values(&before, "sigma"));
+    let project = d.path().join("all.dio");
+    call(&mut s, "save_project", json!({"path":project}));
+    let disabled = call(&mut s, "integration_transfer", json!({"enabled":false}));
+    let disabled_project = d.path().join("disabled.dio");
+    call(&mut s, "save_project", json!({"path":disabled_project}));
+    call(&mut s, "undo_calibration", json!({}));
+    let undone = call(&mut s, "state", json!({}));
+    assert_eq!(undone.result["pattern"], before.result["pattern"]);
+    for file in [&a, &p, &original, &response] {
+        fs::remove_file(file).unwrap();
+    }
+    let mut restored = Session::new(root());
+    let actual = call(&mut restored, "open_project", json!({"path":project}));
+    assert_eq!(actual.result["pattern"], before.result["pattern"]);
+    assert_eq!(bytes(&actual, "image"), bytes(&before, "image"));
+    assert_eq!(bytes(&actual, "cake"), bytes(&before, "cake"));
+    for key in ["transfer", "corrections"] {
+        assert_eq!(
+            actual.result["state"]["integration"][key],
+            before.result["state"]["integration"][key]
+        );
+    }
+    let actual = call(
+        &mut restored,
+        "open_project",
+        json!({"path":disabled_project}),
+    );
+    assert_eq!(actual.result["pattern"], disabled.result["pattern"]);
+    let enabled = call(
+        &mut restored,
+        "integration_transfer",
+        json!({"enabled":true}),
+    );
+    assert_eq!(enabled.result["pattern"], before.result["pattern"]);
+    let partial = call(&mut restored, "open_project", json!({"path":partial}));
+    assert_eq!(
+        partial.result["state"]["integration"]["transfer"],
+        partial_transfer
+    );
+    let bad = invoke(
+        &mut restored,
+        "integration_transfer",
+        json!({"enabled":true}),
+    );
+    assert_eq!(bad.result["ok"], false);
+}
+
+#[test]
+fn corrections_reject_invalid_planes_and_extreme_absorption_atomically() {
+    let d = tempfile::tempdir().unwrap();
+    let a = d.path().join("a.npy");
+    let p = d.path().join("g.poni");
+    let bad = d.path().join("bad.npy");
+    image(&a, 0.);
+    poni(&p);
+    let mut s = prepared(&a, &p, "2th_deg");
+    let before = call(&mut s, "state", json!({}));
+    for value in [0., -1., f64::NAN, f64::INFINITY] {
+        npy(&bad, [24, 32], &vec![value; 768]);
+        let r = invoke(
+            &mut s,
+            "integration_transfer",
+            json!({"source":"original","path":bad}),
+        );
+        assert_eq!(r.result["ok"], false);
+        assert_eq!(call(&mut s, "state", json!({})).result, before.result);
+    }
+    for kind in ["plate", "slab"] {
+        let before = call(&mut s, "state", json!({}));
+        for params in [
+            json!({"thickness":-1.}),
+            json!({"absorption_coefficient":-1.}),
+            json!({"thickness":1000.,"absorption_coefficient":1e6}),
+        ] {
+            assert_eq!(
+                invoke(
+                    &mut s,
+                    "integration_correction",
+                    json!({"kind":kind,"enabled":true,"parameters":params})
+                )
+                .result["ok"],
+                false
+            );
+            assert_eq!(call(&mut s, "state", json!({})).result, before.result);
+        }
+        let zero = call(
+            &mut s,
+            "integration_correction",
+            json!({"kind":kind,"enabled":true,"parameters":{"thickness":0.}}),
+        );
+        close(&values(&zero, "y"), &values(&before, "y"));
+        call(
+            &mut s,
+            "integration_correction",
+            json!({"kind":kind,"enabled":false}),
+        );
+    }
+}
+
+#[test]
+fn combined_corrected_detector_errors_follow_gain_and_survive_project_reopen() {
+    let d = tempfile::tempdir().unwrap();
+    let a = d.path().join("a.npy");
+    let p = d.path().join("g.poni");
+    image(&a, 0.);
+    poni(&p);
+    let mut s = prepared(&a, &p, "2th_deg");
+    call(
+        &mut s,
+        "integration_settings",
+        json!({"poisson_errors":true}),
+    );
+    call(&mut s, "configuration", json!({"operation":"duplicate"}));
+    let baseline = call(
+        &mut s,
+        "combination_settings",
+        json!({"patterns":true,"cakes":true}),
+    );
+    for index in 0..2 {
+        call(
+            &mut s,
+            "configuration",
+            json!({"operation":"select","index":index}),
+        );
+        call(&mut s, "combination_settings", json!({"factor":-3.}));
+    }
+    let changed = call(&mut s, "state", json!({}));
+    close(
+        &values(&changed, "y"),
+        &values(&baseline, "y")
+            .iter()
+            .map(|v| -3. * v)
+            .collect::<Vec<_>>(),
+    );
+    close(
+        &values(&changed, "sigma"),
+        &values(&baseline, "sigma")
+            .iter()
+            .map(|v| 3. * v)
+            .collect::<Vec<_>>(),
+    );
+    let project = d.path().join("combined.dio");
+    call(&mut s, "save_project", json!({"path":project}));
+    fs::remove_file(a).unwrap();
+    fs::remove_file(p).unwrap();
+    let mut restored = Session::new(root());
+    let r = call(&mut restored, "open_project", json!({"path":project}));
+    assert_eq!(r.result["pattern"], changed.result["pattern"]);
+}
+
+#[test]
+fn averaged_images_preserve_independent_counting_variance_offline() {
+    let d = tempfile::tempdir().unwrap();
+    let a = d.path().join("a.npy");
+    let b = d.path().join("b.npy");
+    let p = d.path().join("g.poni");
+    npy(&a, [24, 32], &vec![100.; 768]);
+    npy(&b, [24, 32], &vec![100.; 768]);
+    poni(&p);
+    let mut s = prepared(&a, &p, "2th_deg");
+    let baseline = call(
+        &mut s,
+        "integration_settings",
+        json!({"poisson_errors":true}),
+    );
+    let averaged = call(
+        &mut s,
+        "open_image",
+        json!({"paths":[a,b],"batch_mode":"average"}),
+    );
+    close(&values(&averaged, "y"), &values(&baseline, "y"));
+    close(
+        &values(&averaged, "sigma"),
+        &values(&baseline, "sigma")
+            .iter()
+            .map(|v| v / 2f64.sqrt())
+            .collect::<Vec<_>>(),
+    );
+    let project = d.path().join("average.dio");
+    call(&mut s, "save_project", json!({"path":project}));
+    fs::remove_file(a).unwrap();
+    fs::remove_file(b).unwrap();
+    fs::remove_file(p).unwrap();
+    let mut restored = Session::new(root());
+    let actual = call(&mut restored, "open_project", json!({"path":project}));
+    assert_eq!(actual.result["pattern"], averaged.result["pattern"]);
+}
+
+#[test]
+fn corrected_batch_and_map_retain_counting_std_through_normalization_and_offline_storage() {
+    let d = tempfile::tempdir().unwrap();
+    let a = d.path().join("a.npy");
+    let b = d.path().join("b.npy");
+    let p = d.path().join("g.poni");
+    let original = d.path().join("original.npy");
+    let response = d.path().join("response.npy");
+    let bg = d.path().join("background.npy");
+    image(&a, 0.);
+    image(&b, 80.);
+    poni(&p);
+    npy(&original, [24, 32], &vec![3.; 768]);
+    npy(&response, [24, 32], &vec![2.; 768]);
+    npy(&bg, [24, 32], &vec![4.; 768]);
+    let mut s = prepared(&a, &p, "q_A^-1");
+    call(
+        &mut s,
+        "integration_settings",
+        json!({"poisson_errors":true}),
+    );
+    call(
+        &mut s,
+        "integration_image_background",
+        json!({"path":bg,"scale":0.7,"offset":1.2}),
+    );
+    call(
+        &mut s,
+        "integration_transfer",
+        json!({"source":"original","path":original}),
+    );
+    call(
+        &mut s,
+        "integration_transfer",
+        json!({"source":"response","path":response}),
+    );
+    call(&mut s, "integration_transfer", json!({"enabled":true}));
+    for kind in ["plate", "slab"] {
+        call(
+            &mut s,
+            "integration_correction",
+            json!({"kind":kind,"enabled":true,"parameters":{"thickness":0.3}}),
+        );
+    }
+    let mut patterns = vec![];
+    for source in [&a, &b] {
+        patterns.push(call(&mut s, "open_image", json!({"path":source})));
+    }
+    call(&mut s, "batch_load", json!({"paths":[a,b]}));
+    for (i, expected) in patterns.iter().enumerate() {
+        let actual = call(&mut s, "batch_select", json!({"index":i}));
+        close(&values(&actual, "y"), &values(expected, "y"));
+        close(&values(&actual, "sigma"), &values(expected, "sigma"));
+    }
+    let batch = d.path().join("batch.h5");
+    call(&mut s, "integration_save_batch", json!({"path":batch}));
+    let f = hdf5::File::open(&batch).unwrap();
+    let std = f
+        .dataset("processed/result/counting_std")
+        .unwrap()
+        .read_raw::<f64>()
+        .unwrap();
+    close(
+        &std,
+        &patterns
+            .iter()
+            .flat_map(|p| values(p, "sigma"))
+            .collect::<Vec<_>>(),
+    );
+    drop(f);
+    call(
+        &mut s,
+        "batch_normalize",
+        json!({"enabled":true,"start":3,"stop":44,"reference":1}),
+    );
+    let normalized = call(&mut s, "batch_select", json!({"index":1}));
+    let factor = values(&patterns[0], "y")[2..44].iter().sum::<f64>()
+        / values(&patterns[1], "y")[2..44].iter().sum::<f64>();
+    close(
+        &values(&normalized, "sigma"),
+        &values(&patterns[1], "sigma")
+            .iter()
+            .map(|v| v * factor)
+            .collect::<Vec<_>>(),
+    );
+    let normalized_batch = d.path().join("normalized.h5");
+    call(
+        &mut s,
+        "integration_save_batch",
+        json!({"path":normalized_batch}),
+    );
+    call(&mut s, "map_batch", json!({"path":batch}));
+    let project = d.path().join("scan.dio");
+    call(&mut s, "save_project", json!({"path":project}));
+    for source in [&a, &b, &p, &original, &response, &bg] {
+        fs::remove_file(source).unwrap();
+    }
+    let mut restored = Session::new(root());
+    call(&mut restored, "open_project", json!({"path":project}));
+    let selected = call(&mut restored, "batch_select", json!({"index":1}));
+    close(&values(&selected, "sigma"), &values(&normalized, "sigma"));
+    let selected = call(&mut restored, "map_select", json!({"index":1}));
+    close(&values(&selected, "sigma"), &values(&patterns[1], "sigma"));
+    call(
+        &mut restored,
+        "batch_open",
+        json!({"path":normalized_batch}),
+    );
+    let selected = call(&mut restored, "batch_select", json!({"index":1}));
+    close(&values(&selected, "sigma"), &values(&normalized, "sigma"));
+    call(&mut restored, "batch_normalize", json!({"enabled":false}));
+    let selected = call(&mut restored, "batch_select", json!({"index":1}));
+    close(&values(&selected, "sigma"), &values(&patterns[1], "sigma"));
 }

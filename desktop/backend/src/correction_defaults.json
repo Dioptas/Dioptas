@@ -96,5 +96,67 @@
         "max": 360.0
       }
     }
+  },
+  "plate": {
+    "enabled": false,
+    "parameters": {
+      "thickness": 2.0,
+      "absorption_coefficient": 1.0,
+      "plate_tilt": 0.0,
+      "plate_rotation": 0.0
+    },
+    "fields": {
+      "thickness": {
+        "label": "Thickness (mm)",
+        "min": 0,
+        "max": 1000
+      },
+      "absorption_coefficient": {
+        "label": "Absorption coefficient (mm⁻¹)",
+        "min": 0,
+        "max": 1000000.0
+      },
+      "plate_tilt": {
+        "label": "Tilt (\u00b0)",
+        "min": -89,
+        "max": 89
+      },
+      "plate_rotation": {
+        "label": "Rotation (\u00b0)",
+        "min": -360,
+        "max": 360
+      }
+    }
+  },
+  "slab": {
+    "enabled": false,
+    "parameters": {
+      "thickness": 0.1,
+      "absorption_coefficient": 1.0,
+      "slab_tilt": 0.0,
+      "slab_rotation": 0.0
+    },
+    "fields": {
+      "thickness": {
+        "label": "Thickness (mm)",
+        "min": 0,
+        "max": 1000
+      },
+      "absorption_coefficient": {
+        "label": "Absorption coefficient (mm⁻¹)",
+        "min": 0,
+        "max": 1000000.0
+      },
+      "slab_tilt": {
+        "label": "Tilt (\u00b0)",
+        "min": -89,
+        "max": 89
+      },
+      "slab_rotation": {
+        "label": "Rotation (\u00b0)",
+        "min": -360,
+        "max": 360
+      }
+    }
   }
 }

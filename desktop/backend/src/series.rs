@@ -13,6 +13,8 @@ pub(crate) struct Series {
     pub x: Arc<Vec<f64>>,
     pub raw: Arc<Vec<f64>>,
     pub data: Arc<Vec<f64>>,
+    pub sigma: Option<Arc<Vec<f64>>>,
+    pub raw_sigma: Option<Arc<Vec<f64>>>,
     pub spread: Option<Arc<Vec<f64>>>,
     pub raw_spread: Option<Arc<Vec<f64>>>,
     pub background: Option<Arc<Vec<f64>>>,
@@ -106,6 +108,21 @@ impl Series {
                 );
             }
         }
+        match (&self.sigma, &other.sigma) {
+            (Some(a), Some(b)) => {
+                let mut sigma = a.as_ref().clone();
+                sigma.extend(b.iter().copied());
+                s.sigma = Some(Arc::new(sigma));
+                s.raw_sigma = s.sigma.clone();
+            }
+            (None, None) => {}
+            _ => {
+                return Err(
+                    "Live counting uncertainty settings differ; reintegrate before appending."
+                        .into(),
+                );
+            }
+        }
         s.calibration = self.calibration.clone();
         s.mask = self.mask.clone();
         Ok(s)
@@ -160,6 +177,8 @@ impl Series {
             raster,
             calibration: String::new(),
             mask: String::new(),
+            sigma: None,
+            raw_sigma: None,
             spread: None,
             raw_spread: None,
             background: None,
@@ -205,7 +224,10 @@ impl Series {
         Ok(Curve {
             x,
             y: Arc::new(self.data[index * n..(index + 1) * n].to_vec()),
-            sigma: None,
+            sigma: self
+                .sigma
+                .as_ref()
+                .map(|v| Arc::new(v[index * n..(index + 1) * n].to_vec())),
             spread: self
                 .spread
                 .as_ref()
@@ -221,6 +243,7 @@ impl Series {
         let n = self.x.len();
         let mut data = self.raw.clone();
         let mut spread = self.raw_spread.clone();
+        let mut sigma = self.raw_sigma.clone();
         let mut background = self.raw_background.clone();
         if enabled {
             if range[0] >= range[1] || range[1] > n || reference >= self.count() {
@@ -257,6 +280,14 @@ impl Series {
                         .collect(),
                 )
             });
+            sigma = self.raw_sigma.as_ref().map(|s| {
+                Arc::new(
+                    s.iter()
+                        .enumerate()
+                        .map(|(i, v)| v * factors[i / n])
+                        .collect(),
+                )
+            });
             spread = self.raw_spread.as_ref().map(|s| {
                 Arc::new(
                     s.iter()
@@ -269,6 +300,7 @@ impl Series {
         self.raster = Raster::image(&data, [self.count(), n]);
         self.data = data;
         self.spread = spread;
+        self.sigma = sigma;
         self.background = background;
         self.normalized = enabled;
         self.normalization = range;
@@ -289,7 +321,7 @@ impl Series {
             .or_else(|_| self.profile(self.selected, &self.unit))
             .unwrap();
         let files:Vec<_>=self.paths.iter().enumerate().map(|(i,p)|json!({"path":p,"name":Path::new(p).file_name().unwrap_or_default().to_string_lossy(),"frames":self.file_counts.get(i).copied().unwrap_or_else(||self.entries.iter().filter(|e|e.path==*p).count()),"first":self.entries.iter().position(|e|e.path==*p)})).collect();
-        json!({"id":self.raster.buffer.id,"raster":self.raster.metadata,"x":curve.x,"wavelength":self.wavelength,"unit":unit,"sourceUnit":self.unit,"entries":self.entries.iter().map(|e|json!({"path":e.path,"name":if e.path.is_empty(){"Stored pattern".into()}else{Path::new(&e.path).file_name().unwrap_or_default().to_string_lossy()},"frame":e.frame+1})).collect::<Vec<_>>(),"files":files,"pattern":{"x":curve.x,"y":curve.y,"unit":unit},"selected":self.selected,"total":self.total,"canReintegrate":self.paths.iter().any(|p|!p.is_empty()&&Path::new(p).is_file()),"normalized":self.normalized,"normalizationRange":self.normalization,"normalizationReference":self.reference,"calibration":self.calibration,"mask":self.mask,"phaseLines":phases,"position":null})
+        json!({"id":self.raster.buffer.id,"raster":self.raster.metadata,"x":curve.x,"wavelength":self.wavelength,"unit":unit,"sourceUnit":self.unit,"entries":self.entries.iter().map(|e|json!({"path":e.path,"name":if e.path.is_empty(){"Stored pattern".into()}else{Path::new(&e.path).file_name().unwrap_or_default().to_string_lossy()},"frame":e.frame+1})).collect::<Vec<_>>(),"files":files,"pattern":{"x":curve.x,"y":curve.y,"sigma":curve.sigma,"unit":unit},"selected":self.selected,"total":self.total,"canReintegrate":self.paths.iter().any(|p|!p.is_empty()&&Path::new(p).is_file()),"normalized":self.normalized,"normalizationRange":self.normalization,"normalizationReference":self.reference,"calibration":self.calibration,"mask":self.mask,"phaseLines":phases,"position":null})
     }
     pub fn save(&self, path: &Path) -> Result<(), String> {
         let mut temp = tempfile::NamedTempFile::new_in(path.parent().unwrap_or(Path::new(".")))
@@ -300,16 +332,21 @@ impl Series {
         {
             use std::io::Write;
             let mut w = csv::Writer::from_writer(&mut temp);
-            w.write_record(if self.spread.is_some() {
-                vec!["radial", "frame", "intensity", "azimuthal_std"]
-            } else {
-                vec!["radial", "frame", "intensity"]
-            })
-            .map_err(|e| e.to_string())?;
+            let mut header = vec!["radial", "frame", "intensity"];
+            if self.sigma.is_some() {
+                header.push("counting_std");
+            }
+            if self.spread.is_some() {
+                header.push("azimuthal_std");
+            }
+            w.write_record(header).map_err(|e| e.to_string())?;
             for (j, &x) in self.x.iter().enumerate() {
                 for i in 0..self.count() {
                     let k = i * self.x.len() + j;
                     let mut row = vec![x.to_string(), i.to_string(), self.data[k].to_string()];
+                    if let Some(s) = &self.sigma {
+                        row.push(s[k].to_string());
+                    }
                     if let Some(s) = &self.spread {
                         row.push(s[k].to_string());
                     }
@@ -336,6 +373,14 @@ impl Series {
                 .create("binning")
                 .map_err(|e| e.to_string())?;
             string_attr(&axis, "radial_unit", &self.unit)?;
+            if let Some(sigma) = &self.sigma {
+                result
+                    .new_dataset::<f64>()
+                    .shape([self.count(), self.x.len()])
+                    .create("counting_std")
+                    .and_then(|d| d.write_raw(sigma.as_slice()))
+                    .map_err(|e| e.to_string())?;
+            }
             if let Some(spread) = &self.spread {
                 result
                     .new_dataset::<f64>()
@@ -463,6 +508,14 @@ impl Series {
                     .create("desktop_original")
                     .and_then(|d| d.write_raw(self.raw.as_slice()))
                     .map_err(|e| e.to_string())?;
+                if let Some(s) = &self.raw_sigma {
+                    result
+                        .new_dataset::<f64>()
+                        .shape([self.count(), self.x.len()])
+                        .create("desktop_original_counting_std")
+                        .and_then(|d| d.write_raw(s.as_slice()))
+                        .map_err(|e| e.to_string())?;
+                }
                 if let Some(s) = &self.raw_spread {
                     result
                         .new_dataset::<f64>()
@@ -597,6 +650,13 @@ impl Series {
         s.raw_background = s.background.clone();
         s.calibration = calibration;
         s.mask = mask;
+        if group.link_exists("counting_std") {
+            s.sigma = Some(Arc::new(read_std(
+                &group.dataset("counting_std").map_err(|e| e.to_string())?,
+                &shape,
+            )?));
+            s.raw_sigma = s.sigma.clone();
+        }
         if let Ok(spread) = group.dataset("azimuthal_std") {
             if spread.shape() != shape {
                 return Err("Azimuthal spread matrix has the wrong shape.".into());
@@ -654,6 +714,14 @@ impl Series {
                         background.read_raw::<f64>().map_err(|e| e.to_string())?,
                     ));
                 }
+                if s.sigma.is_some() {
+                    s.raw_sigma = Some(Arc::new(read_std(
+                        &group
+                            .dataset("desktop_original_counting_std")
+                            .map_err(|e| e.to_string())?,
+                        &shape,
+                    )?));
+                }
                 if let Ok(spread) = group.dataset("desktop_original_spread") {
                     if spread.shape() != shape {
                         return Err("Original spread matrix has the wrong shape.".into());
@@ -696,4 +764,15 @@ fn read_strings(d: &hdf5::Dataset) -> Result<Vec<String>, String> {
                 .map(|v| v.iter().map(|s| s.as_str().into()).collect())
         })
         .map_err(|e| e.to_string())
+}
+
+pub(crate) fn read_std(dataset: &hdf5::Dataset, shape: &[usize]) -> Result<Vec<f64>, String> {
+    if dataset.shape() != shape {
+        return Err("Counting std dimensions differ from the series.".into());
+    }
+    let values = dataset.read_raw::<f64>().map_err(|e| e.to_string())?;
+    if values.iter().any(|v| !v.is_finite() || *v < 0.0) {
+        return Err("Counting std must be finite and nonnegative.".into());
+    }
+    Ok(values)
 }

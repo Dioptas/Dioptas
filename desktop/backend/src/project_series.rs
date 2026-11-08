@@ -409,6 +409,13 @@ fn load_react_batch(g: &hdf5::Group) -> Result<Series, String> {
     }
     s.calibration = text(&meta["calibration"]);
     s.mask = text(&meta["mask"]);
+    if g.link_exists("counting_std") {
+        s.sigma = Some(Arc::new(crate::series::read_std(
+            &g.dataset("counting_std").native()?,
+            &shape,
+        )?));
+        s.raw_sigma = s.sigma.clone();
+    }
     if g.link_exists("azimuthal_std") {
         let d = g.dataset("azimuthal_std").native()?;
         if d.shape() != shape {
@@ -423,6 +430,12 @@ fn load_react_batch(g: &hdf5::Group) -> Result<Series, String> {
             return Err("Batch normalization source dimensions differ.".into());
         }
         s.raw = Arc::new(read_array(&original)?);
+        if s.sigma.is_some() {
+            s.raw_sigma = Some(Arc::new(crate::series::read_std(
+                &g.dataset("normalization_source/counting_std").native()?,
+                &shape,
+            )?));
+        }
         if g.link_exists("normalization_source/spread") {
             let d = g.dataset("normalization_source/spread").native()?;
             if d.shape() != shape {
@@ -483,6 +496,9 @@ pub(super) fn save_active_extensions(s: &Session, file: &hdf5::File) -> Result<(
         if let Some(bg) = &b.background {
             write_array(&g, "bkg", &[b.count(), b.x.len()], bg)?;
         }
+        if let Some(sigma) = &b.sigma {
+            write_array(&g, "counting_std", &[b.count(), b.x.len()], sigma)?;
+        }
         if let Some(spread) = &b.spread {
             write_array(&g, "azimuthal_std", &[b.count(), b.x.len()], spread)?;
         }
@@ -542,6 +558,9 @@ pub(super) fn save_active_extensions(s: &Session, file: &hdf5::File) -> Result<(
             write_array(&source, "data", &[b.count(), b.x.len()], &b.raw)?;
             if let Some(bg) = &b.raw_background {
                 write_array(&source, "background", &[b.count(), b.x.len()], bg)?;
+            }
+            if let Some(sigma) = &b.raw_sigma {
+                write_array(&source, "counting_std", &[b.count(), b.x.len()], sigma)?;
             }
             if let Some(spread) = &b.raw_spread {
                 write_array(&source, "spread", &[b.count(), b.x.len()], spread)?;

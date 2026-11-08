@@ -83,11 +83,11 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
         return None;
     }
     if action == "integration_image_background"
-        && (!payload["scale"].is_null() || !payload["offset"].is_null())
+        && (!payload["scale"].is_null() || !payload["offset"].is_null() || !payload["poisson"].is_null())
     {
         return None;
     }
-    if action == "integration_flat_field" && !payload["enabled"].is_null() {
+    if ["integration_flat_field", "integration_transfer"].contains(&action) && !payload["enabled"].is_null() {
         return None;
     }
     let (label, extensions, name, save): (_, &[&str], _, _) = match action {
@@ -174,7 +174,7 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
             "",
             false,
         ),
-        "integration_image_background" | "integration_flat_field" => (
+        "integration_image_background" | "integration_flat_field" | "integration_transfer" => (
             "Detector image",
             &["tif", "tiff", "edf", "cbf", "h5", "hdf5"],
             "",
@@ -646,6 +646,11 @@ mod tests {
         assert!(file_choice("integration_image_background", &json!({})).is_some());
         assert!(file_choice("integration_flat_field", &json!({"enabled": true})).is_none());
         assert!(file_choice("integration_flat_field", &json!({})).is_some());
+        assert!(file_choice("integration_transfer", &json!({"source":"original"})).is_some());
+        assert!(file_choice("integration_transfer", &json!({"source":"response"})).is_some());
+        assert!(file_choice("integration_transfer", &json!({"enabled":true})).is_none());
+        assert!(file_choice("integration_transfer", &json!({"source":"original","reset":true})).is_none());
+        assert!(file_choice("integration_image_background", &json!({"poisson":true})).is_none());
         assert!(
             file_choice("integration_save_pattern", &json!({}))
                 .unwrap()

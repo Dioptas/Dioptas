@@ -200,6 +200,7 @@ impl Plan {
     fn general_pattern(
         &mut self,
         data: &[f64],
+        supplied_variance: Option<&[f64]>,
         mask: &[u8],
         o: &Options,
     ) -> Result<dioptrin::lut::AzimuthalIntegrationResult, String> {
@@ -227,21 +228,21 @@ impl Plan {
         }
         let lut = self.general_1d.as_ref().unwrap();
         let norm = self.normalization.as_ref().unwrap();
-        let variance = o
-            .errors
+        let variance = (o.errors && supplied_variance.is_none())
             .then(|| data.iter().map(|&v| v.max(0.0)).collect::<Vec<_>>());
+        let variance = supplied_variance.or(variance.as_deref());
         if o.spread {
             Ok(dioptrin::lut::integrate1d_with_azimuthal_std(
                 data,
                 lut,
                 Some(mask),
                 norm,
-                variance.as_deref(),
+                variance,
             ))
         } else {
             let (x, y, e) = if let Some(v) = variance {
                 let (x, y, e) =
-                    dioptrin::lut::integrate1d_with_errors(data, &v, lut, Some(mask), norm);
+                    dioptrin::lut::integrate1d_with_errors(data, v, lut, Some(mask), norm);
                 (x, y, Some(e))
             } else {
                 let (x, y) = dioptrin::lut::integrate1d(data, lut, Some(mask), norm);
@@ -552,9 +553,11 @@ impl Engine {
             sigma: result.errors,
         })
     }
-    pub fn integrate_pattern(
+    #[allow(clippy::too_many_arguments)]
+    pub fn integrate_pattern_with_variance(
         &mut self,
         data: &[f64],
+        variance: Option<&[f64]>,
         shape: [usize; 2],
         p: &Parameters,
         mask: &[u8],
@@ -562,8 +565,9 @@ impl Engine {
         prepared: Option<Prepared>,
     ) -> Result<(Value, Option<Vec<f64>>), String> {
         let k = key(shape, p, mask, o, false);
-        let prepared =
-            prepared.filter(|r| *r.key == k && (!o.errors || r.sigma.is_some()) && !o.spread);
+        let prepared = prepared
+            .filter(|_| variance.is_none())
+            .filter(|r| *r.key == k && (!o.errors || r.sigma.is_some()) && !o.spread);
         let (x, y, sigma, spread) = if let Some(r) = prepared {
             self.prepared_hits += 1;
             (r.x, r.y, r.sigma, None)
@@ -577,8 +581,8 @@ impl Engine {
                     dim2: shape[1],
                 });
             }
-            if !o.solid_angle || o.azimuth.is_some() {
-                let r = plan.general_pattern(data, mask, o)?;
+            if !o.solid_angle || o.azimuth.is_some() || (o.errors && variance.is_some()) {
+                let r = plan.general_pattern(data, variance, mask, o)?;
                 (
                     r.radial,
                     r.intensity,
@@ -633,20 +637,23 @@ impl Engine {
             }
         }
         Ok((
-            json!({"x":x,"y":y,"unit":o.unit,"azimuthalStd":spread}),
+            json!({"x":x,"y":y,"unit":o.unit,"azimuthalStd":spread,"sigma":sigma}),
             sigma,
         ))
     }
-    pub fn integrate(
+    #[allow(clippy::too_many_arguments)]
+    pub fn integrate_with_variance(
         &mut self,
         data: &[f64],
+        variance: Option<&[f64]>,
         shape: [usize; 2],
         p: &Parameters,
         mask: &[u8],
         o: &Options,
         prepared: Option<Prepared>,
     ) -> Result<Products, String> {
-        let (pattern, sigma) = self.integrate_pattern(data, shape, p, mask, o, prepared)?;
+        let (pattern, sigma) =
+            self.integrate_pattern_with_variance(data, variance, shape, p, mask, o, prepared)?;
         let ck = key(shape, p, mask, o, true);
         if self.cake.as_ref().is_none_or(|plan| plan.key != ck) {
             self.cake = Some(Plan::new(ck)?);

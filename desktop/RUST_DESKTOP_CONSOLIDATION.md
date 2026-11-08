@@ -57,9 +57,9 @@ Phase/overlay grouping remains a separate design discussion.
   to mask history; Calibration/Integration use their shared scientific history.
   Both toolbar and keyboard shortcuts follow that boundary.
 
-Combination currently requires solid-angle correction. Combined Poisson errors
-require uncorrected, unit-factor images; unsupported uncertainty combinations
-fail explicitly. The qualified native detector/project/reader limits remain in
+Combination requires solid-angle correction. Combined counting errors now
+propagate through detector factors, backgrounds and supported corrections; see
+the [correction/uncertainty ledger](NATIVE_CORRECTION_UNCERTAINTY_PARITY.md). The qualified native detector/project/reader limits remain in
 `NATIVE_*_PARITY.md` and `PYTHON_REMOVAL_AUDIT.md`; this consolidation is not a
 claim of universal Qt equivalence. Compatibility Python source and independent
 reference tests remain outside the shipping runtime. A few transport/Map tests
@@ -68,7 +68,7 @@ children run with Python and PATH unavailable.
 
 ## Local dependency and portability
 
-Dioptrin is pinned to `645adc4af13c7b375e11a2244cd389c41877232d`, on local
+Dioptrin is pinned to `6ede5d0553811a41ad4511d1f5a50d955eb85156`, on local
 `codex/rust-desktop-combination` in
 `/Users/clemens/Programming/Dioptrin-rust-desktop`. It merges physical detector
 geometry (`52738685`), shared-grid integration (`7e6b73b`) and the subsequently

@@ -246,6 +246,7 @@ impl Session {
                 let mut global = 0usize;
                 let mut x = None;
                 let mut data = vec![];
+                let mut sigma = self.settings.errors.then(Vec::new);
                 let mut spread: Option<Vec<f64>> = None;
                 let mut entries = vec![];
                 let mut preview: Option<MapProgress> = None;
@@ -400,14 +401,17 @@ impl Session {
                             self.refresh_masks(&self.control.clone())?;
                             let options = self.integration_options();
                             let mask = self.integration_mask(image.shape);
-                            let (pattern, _) = self.engine.integrate_pattern(
-                                &self.scientific_values(),
-                                image.shape,
-                                &self.settings.geometry,
-                                &mask,
-                                &options,
-                                prepared,
-                            )?;
+                            let (mut pattern, sigma) =
+                                self.engine.integrate_pattern_with_variance(
+                                    &self.scientific_values(),
+                                    self.scientific_variance().as_deref().map(|v| v.as_slice()),
+                                    image.shape,
+                                    &self.settings.geometry,
+                                    &mask,
+                                    &options,
+                                    prepared,
+                                )?;
+                            pattern["sigma"] = json!(sigma);
                             pattern
                         };
                         self.control.check()?;
@@ -445,6 +449,9 @@ impl Session {
                             return Err("Processed series exceeds 64 million samples.".into());
                         }
                         data.extend(curve.y.iter().copied());
+                        if let Some(target) = &mut sigma {
+                            target.extend(curve.sigma.as_ref().ok_or("Series counting errors were not returned by the integrator.")?.iter().copied());
+                        }
                         if let Some(values) = pattern["azimuthalStd"].as_array() {
                             let target = spread.get_or_insert_with(Vec::new);
                             for v in values {
@@ -477,6 +484,8 @@ impl Session {
                     total,
                 )?;
                 series.file_counts = images.iter().map(|(_, frames, _, _)| *frames).collect();
+                series.sigma = sigma.map(Arc::new);
+                series.raw_sigma = series.sigma.clone();
                 series.spread = spread.map(Arc::new);
                 series.raw_spread = series.spread.clone();
                 series.calibration = self.settings.calibration_name.clone().unwrap_or_default();
