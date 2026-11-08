@@ -110,6 +110,7 @@
   flex: 1;
 }
 .settings-general,
+.settings-configurations,
 .settings-shortcuts {
   overflow-y: auto;
   padding: 0 3px 28px;

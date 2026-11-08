@@ -34,7 +34,7 @@ export function ConfigurationNavigationControls({
       className="configuration-navigation"
       role="group"
       aria-label="Configuration browsing"
-      title="Configure scope, numbered parts and step sizes in Settings → General → Multi-detector setups."
+      title="Configure scope, numbered parts and step sizes in Settings → Configurations."
     >
       {(["file", "folder"] as const).map((target) => (
         <div

@@ -47,9 +47,7 @@ export async function verifyDraftsAndFeedback({ page, ready, invoke, output }) {
   );
   await tab("General");
   const beforeRevision = (await invoke("state")).state.revision;
-  await page
-    .getByLabel("Processing engine", { exact: true })
-    .selectOption("pyfai");
+  await invoke("calibration_engine", { engine: "pyfai" });
   await ready();
   assert((await invoke("state")).state.revision >= beforeRevision);
   await tab("Integration");

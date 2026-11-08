@@ -117,11 +117,11 @@ export function ConfigurationCombinationControls({
           disabled={!ready || (!combination.ready && !combination.cakes)}
           title={
             combination.reason ??
-            `Combine images by merging calibrated 2D cakes from all detector configurations${combination.backends.cake ? ` · ${combination.backends.cake}` : ""}`
+            `Merge calibrated 2D cakes from all detector configurations${combination.backends.cake ? ` · ${combination.backends.cake}` : ""}`
           }
           onClick={() => update({ cakes: !combination.cakes })}
         >
-          Combine images
+          Combined cake
         </Button>
         {combination.reason && (
           <span className="configuration-reason">{combination.reason}</span>

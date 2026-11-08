@@ -28,8 +28,7 @@ See the [qualification ledger](NATIVE_INTEGRATION_PARITY.md) for measured parity
 benchmark scope and remaining detector work. Native format-2 `.dio` persistence
 and configuration select/add/duplicate/rename/remove controls are now available;
 see [project compatibility and verification](NATIVE_PROJECT_PARITY.md).
-The configuration bar is hidden by default. Enable **Settings → General →
-Multi-detector setups → Show configuration controls** to use it. This interface
+The configuration bar is hidden by default. Enable **Settings → Configurations → Show configuration controls** to use it. This interface
 preference is remembered across restarts; hiding the bar keeps all configurations
 and the active selection intact.
 The next stage adds [native rotations/flips and geometric masks](NATIVE_GEOMETRY_MASK_PARITY.md)
@@ -49,11 +48,10 @@ against a named detector; later size changes always prompt. Autoprocess stops
 on a mismatch so it cannot integrate using the wrong detector geometry.
 
 With configuration controls enabled, the top bar provides detector factors,
-**Combine patterns**, **Combine images** (calibrated 2D cakes), and combined-pattern
+**Combine patterns**, **Combined cake** (calibrated 2D cakes), and combined-pattern
 export across modes. File/folder arrows browse the active configuration or all
 configurations. Configure their scope, filename/folder number positions, step
-sizes and optional linked filename changes in **Settings → General → Multi-detector
-setups → Configuration browsing**. The MEC preset supplies the Qt convention;
+sizes and optional linked filename changes in **Settings → Configurations → Configuration browsing**. The MEC preset supplies the Qt convention;
 all rules remain customizable and persist across restarts. See
 [detector combination and browsing](DETECTOR_COMBINATION_PARITY.md).
 Combined patterns and cakes run through
@@ -193,7 +191,7 @@ Its `--dev` option still supports live frontend updates independently of Tauri.
    distortion files follow the transformation buttons, separated by a divider.
    **Load .poni** and **Enter manually** stay available as quiet footer actions;
    mask use, transparency and mask loading are directly below the detector
-   tools. The processing engine lives in **Settings → General**.
+   tools. Processing uses the native Rust/Dioptrin backend.
 3. The shared strip above the tabs shows **Ring**, **Auto advance** and **Pick peaks**.
    Previous/next buttons step through rings; the ring menu shows picked-point totals
    and supports number entry followed by Enter to jump to a ring. Clicking a

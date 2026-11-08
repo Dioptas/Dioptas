@@ -3093,13 +3093,6 @@ export default function App() {
                   map: "Map",
                 }[mode]
               }
-              patternZoom={mode === "map" ? mapPatternZoom : patternZoom}
-              onPatternZoom={
-                mode === "map" ? setMapPatternZoom : setPatternZoom
-              }
-              patternLabel={
-                mode === "map" ? "Map pattern" : "Integrated pattern"
-              }
             />
           )}
         </div>

@@ -63,7 +63,7 @@ impl Session {
         }
         #[cfg(feature = "dioptrin")]
         {
-            check_keys(args, &["source", "x", "y", "azimuth"])?;
+            check_keys(args, &["source", "x", "y", "azimuth", "unit"])?;
             self.require_image()?;
             if !self.settings.calibrated {
                 return Err("Calibrate an image before inspecting a linked position.".into());
@@ -85,12 +85,22 @@ impl Session {
                     t[0].to_degrees()
                 }
                 "cake" => {
+                    // Cakes supply their displayed coordinate, which can be Q
+                    // even when the pattern uses another unit. Omitted units
+                    // retain physical 2θ for map/frame inspection restoration.
+                    let unit = match args.get("unit") {
+                        None => "2th_deg",
+                        Some(value) => value
+                            .as_str()
+                            .filter(|v| ["2th_deg", "q_A^-1", "d_A"].contains(v))
+                            .ok_or("Unsupported cake unit.")?,
+                    };
                     if let Some(a) = args.get("azimuth") {
                         azimuth = Some(
                             (finite(a, "Azimuth", -1e12, 1e12)? + 180.0).rem_euclid(360.0) - 180.0,
                         );
                     }
-                    x
+                    convert(x, unit, "2th_deg", self.settings.geometry.wavelength)
                 }
                 "pattern" => convert(
                     x,

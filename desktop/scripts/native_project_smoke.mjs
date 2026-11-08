@@ -83,13 +83,37 @@ try {
       const closeSettings = page.getByRole("button", {
         name: "Close settings",
       });
+      const openConfigurations = async () => {
+        await settings.click();
+        assert.equal(
+          await toggle.isVisible(),
+          false,
+          "Configurations have their own Settings tab",
+        );
+        assert.equal(
+          await page
+            .getByRole("heading", { name: "Processing", exact: true })
+            .count(),
+          0,
+        );
+        assert.equal(
+          await page
+            .getByRole("heading", { name: "Pattern navigation", exact: true })
+            .count(),
+          0,
+        );
+        await page
+          .getByRole("tab", { name: "Configurations", exact: true })
+          .click();
+        assert.equal(await toggle.isVisible(), true);
+      };
       const assertBarHidden = async () => {
         assert.equal(await group.count(), 0);
         assert.equal(await page.locator(".has-configurations").count(), 0);
       };
       await page.getByTestId("detector-canvas").waitFor();
       await assertBarHidden();
-      await settings.click();
+      await openConfigurations();
       assert.equal(await toggle.isChecked(), false);
       await toggle.check();
       await page.screenshot({
@@ -185,7 +209,7 @@ try {
         })
         .waitFor();
       assert.equal((await invoke("state")).state.imagePath, originalPath);
-      await settings.click();
+      await openConfigurations();
       const browsingSettings = page.getByRole("group", {
         name: "Configuration browsing settings",
         exact: true,
@@ -260,7 +284,7 @@ try {
         exact: true,
       });
       const combineImages = group.getByRole("button", {
-        name: "Combine images",
+        name: "Combined cake",
         exact: true,
       });
       assert.equal(await combinePatterns.isVisible(), true);
@@ -404,7 +428,7 @@ try {
           )?.textContent === "Combine patterns",
       );
       await page
-        .getByRole("button", { name: "Combine images", exact: true })
+        .getByRole("button", { name: "Combined cake", exact: true })
         .click();
       await page.waitForFunction(
         () =>
@@ -440,6 +464,96 @@ try {
         await readFile(path.join(temp, `${name}-displayed.xy`), "utf8"),
         await readFile(path.join(temp, `${name}-combined.xy`), "utf8"),
       );
+      // Exercise the actual cake-click payload against the Rust child: the
+      // combined cake uses Q in Q mode; individual cakes and d-mode cakes use 2θ.
+      await page.getByRole("button", { name: "Cake", exact: true }).click();
+      for (const combinedCake of [true, false]) {
+        if (!combinedCake) {
+          await page
+            .getByRole("button", { name: "Combined cake", exact: true })
+            .click();
+          await idle();
+        }
+        for (const [label, patternUnit] of [
+          ["2θ", "2th_deg"],
+          ["Q", "q_A^-1"],
+          ["d", "d_A"],
+        ]) {
+          await page
+            .getByRole("button", { name: `Pattern unit ${label}`, exact: true })
+            .click();
+          await idle();
+          const cakeUnit =
+            combinedCake && patternUnit === "q_A^-1" ? "q_A^-1" : "2th_deg";
+          const beforeClick = await invoke("state");
+          assert.equal(beforeClick.state.unit, patternUnit);
+          assert.equal(beforeClick.cake.unit, cakeUnit);
+          const canvas = page.getByTestId("cake-canvas");
+          await canvas.press("f");
+          const dims = await canvas.evaluate((el) => ({
+            left: +el.dataset.plotLeft,
+            top: +el.dataset.plotTop,
+            width: +el.dataset.plotWidth,
+            height: +el.dataset.plotHeight,
+          }));
+          const previousCalls = calls.filter(
+            ([action]) => action === "validation_position",
+          ).length;
+          await canvas.click({
+            position: {
+              x: dims.left + 0.6 * dims.width,
+              y: dims.top + 0.55 * dims.height,
+            },
+          });
+          await page.waitForFunction(
+            () =>
+              document.querySelector('[data-testid="cake-canvas"]')?.dataset
+                .clickX != null,
+          );
+          await idle();
+          const inspected = await invoke("state");
+          const positions = calls.filter(
+            ([action]) => action === "validation_position",
+          );
+          assert.ok(
+            positions.length > previousCalls,
+            "Cake click must reach native inspection",
+          );
+          const payload = positions.at(-1)[1];
+          assert.equal(payload.unit, cakeUnit);
+          const wavelength = inspected.state.geometry.wavelength * 1e10;
+          const theta =
+            cakeUnit === "q_A^-1"
+              ? (360 / Math.PI) *
+                Math.asin((payload.x * wavelength) / (4 * Math.PI))
+              : payload.x;
+          assert.ok(Math.abs(inspected.linked.twoTheta - theta) < 1e-10);
+          assert.ok(
+            Math.abs(inspected.linked.azimuth - payload.azimuth) < 1e-10,
+          );
+          const radial =
+            patternUnit === "q_A^-1"
+              ? (4 * Math.PI * Math.sin((theta * Math.PI) / 360)) / wavelength
+              : patternUnit === "d_A"
+                ? wavelength / (2 * Math.sin((theta * Math.PI) / 360))
+                : theta;
+          assert.ok(Math.abs(inspected.linked.radial - radial) < 1e-9);
+          assert.ok(
+            Math.abs(
+              Number(await canvas.getAttribute("data-linked-position")) -
+                payload.x,
+            ) < 1e-9,
+          );
+          assert.equal(await page.getByRole("dialog").count(), 0);
+        }
+      }
+      await page
+        .getByRole("button", { name: "Combined cake", exact: true })
+        .click();
+      await page
+        .getByRole("button", { name: "Pattern unit 2θ", exact: true })
+        .click();
+      await idle();
       await page.setViewportSize({ width: 1000, height: 668 });
       await page.screenshot({
         path: path.join(artifacts, `${name}-combined-small.png`),
@@ -468,7 +582,7 @@ try {
       const configurationCalls = () =>
         calls.filter(([action]) => action === "configuration").length;
       const beforeHiding = configurationCalls();
-      await settings.click();
+      await openConfigurations();
       await toggle.uncheck();
       await closeSettings.click();
       await assertBarHidden();
@@ -478,7 +592,7 @@ try {
       await page.screenshot({
         path: path.join(artifacts, `${name}-configurations-hidden.png`),
       });
-      await settings.click();
+      await openConfigurations();
       assert.equal(await toggle.isChecked(), false);
       assert.equal(await scopeSetting.inputValue(), "all");
       for (const [label, value] of Object.entries(customRules)) {
@@ -491,7 +605,11 @@ try {
       }
       // The opt-in remains readable in the smallest supported workspace.
       await page.setViewportSize({ width: 1000, height: 668 });
+      await page.getByRole("tab", { name: "General", exact: true }).click();
       await page.getByRole("button", { name: "Larger", exact: true }).click();
+      await page
+        .getByRole("tab", { name: "Configurations", exact: true })
+        .click();
       await toggle.scrollIntoViewIfNeeded();
       const card = toggle.locator("xpath=ancestor::section[1]");
       const bounds = await card.boundingBox();
@@ -554,8 +672,11 @@ try {
         groupedFileFolderBrowsing: true,
         mecFolderBrowsing: true,
         configurableBrowsingRulesPersist: true,
+        dedicatedConfigurationsSettings: true,
+        generalOmitsProcessingAndPatternNavigation: true,
         activeAndAllBrowsingScopes: true,
         combinedPatternAndCake: true,
+        individualAndCombinedCakeClicks: ["2th_deg", "q_A^-1", "d_A"],
         combinationInConfigurationBarAcrossModes: true,
         combinedPatternExport: true,
         displayedPatternExportMatchesCombined: true,

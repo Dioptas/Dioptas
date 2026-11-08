@@ -1,12 +1,10 @@
-import { Input, Button, Select } from "./ui";
+import { Input, Button } from "./ui";
 import { ShortcutReference } from "./ShortcutReference";
 import { TabList } from "./TabList";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
-  ArrowLeftRight,
   Check,
-  Cpu,
   Keyboard,
   Layers,
   Scan,
@@ -14,7 +12,6 @@ import {
   Type,
   Terminal,
 } from "lucide-react";
-import type { ZoomMode } from "./usePlotNavigation";
 import type { State } from "./types";
 import type { IntegrationRun } from "./integration";
 import {
@@ -31,6 +28,12 @@ const categories = [
     name: "General",
     icon: SlidersHorizontal,
     description: "Make the workspace comfortable for the way you work.",
+  },
+  {
+    name: "Configurations",
+    icon: Layers,
+    description:
+      "Manage detector configurations and customize file and folder browsing.",
   },
   {
     name: "Integration",
@@ -62,9 +65,6 @@ export function SettingsWorkspace({
   onShowConfigurationControls,
   onClose,
   returnLabel,
-  patternZoom,
-  onPatternZoom,
-  patternLabel,
   customCommands,
   onCustomActionsActiveChange,
 }: {
@@ -79,15 +79,12 @@ export function SettingsWorkspace({
   onShowConfigurationControls: (show: boolean) => void;
   onClose: () => void;
   returnLabel: string;
-  patternZoom: ZoomMode;
-  onPatternZoom: (mode: ZoomMode) => void;
-  patternLabel: string;
   customCommands: CustomCommandController;
   onCustomActionsActiveChange: (active: boolean) => void;
 }) {
   const [section, setSection] = useState(0);
   useLayoutEffect(() => {
-    onCustomActionsActiveChange(open && section === 3);
+    onCustomActionsActiveChange(open && section === 4);
     return () => onCustomActionsActiveChange(false);
   }, [open, section, onCustomActionsActiveChange]);
   const tabs = useRef<HTMLDivElement>(null);
@@ -144,7 +141,7 @@ export function SettingsWorkspace({
                     <span>{name}</span>
                   </>
                 ),
-                id: `settings-tab-${index === 2 ? "shortcuts" : name.toLowerCase().replaceAll(" ", "-")}`,
+                id: `settings-tab-${index === 3 ? "shortcuts" : name.toLowerCase().replaceAll(" ", "-")}`,
                 panelId: `settings-panel-${index}`,
               }))}
             />
@@ -204,6 +201,17 @@ export function SettingsWorkspace({
                 ))}
               </div>
             </section>
+            <p className="settings-save-note">
+              <Check size={14} /> General preferences take effect immediately.
+            </p>
+          </div>
+          <div
+            id="settings-panel-1"
+            className="settings-tabpanel settings-configurations"
+            role="tabpanel"
+            aria-labelledby="settings-tab-configurations"
+            hidden={section !== 1}
+          >
             <section className="settings-card">
               <div className="settings-card-heading">
                 <Layers size={18} />
@@ -231,90 +239,13 @@ export function SettingsWorkspace({
               </div>
               <ConfigurationBrowsingSettings />
             </section>
-            <section className="settings-card">
-              <div className="settings-card-heading">
-                <Cpu size={18} />
-                <h3>Processing</h3>
-              </div>
-              <div className="settings-preference-row">
-                <div>
-                  <label htmlFor="settings-processing-engine">
-                    Processing engine
-                  </label>
-                  <p>
-                    Peak searches, geometry fitting, patterns and cakes. The
-                    Rust processor reports unsupported options explicitly.
-                  </p>
-                </div>
-                <Select
-                  id="settings-processing-engine"
-                  value={state?.calibration.engine ?? "pyfai"}
-                  disabled={!ready}
-                  onChange={(event) =>
-                    run(
-                      "calibration_engine",
-                      { engine: event.target.value },
-                      "Changing processing engine…",
-                    )
-                  }
-                >
-                  {(
-                    state?.calibration.engines ?? [
-                      { id: "pyfai", label: "pyFAI", available: true },
-                    ]
-                  ).map((engine) => (
-                    <option
-                      key={engine.id}
-                      value={engine.id}
-                      disabled={!engine.available}
-                    >
-                      {engine.label}
-                      {!engine.available ? " · not installed" : ""}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-            </section>
-            <section className="settings-card">
-              <div className="settings-card-heading">
-                <ArrowLeftRight size={18} />
-                <h3>Pattern navigation</h3>
-              </div>
-              <div className="settings-preference-row">
-                <div>
-                  <label htmlFor="settings-pattern-zoom">
-                    Pattern drag zoom
-                  </label>
-                  <p>{patternLabel}. Also available in the plot’s corner.</p>
-                </div>
-                <Select
-                  id="settings-pattern-zoom"
-                  aria-label="Pattern zoom mode"
-                  value={patternZoom}
-                  onChange={(event) =>
-                    onPatternZoom(event.target.value as ZoomMode)
-                  }
-                >
-                  <option value="rectangle">Rectangle</option>
-                  <option value="horizontal">X-range</option>
-                </Select>
-              </div>
-              <p className="settings-detail">
-                {patternZoom === "horizontal"
-                  ? "Select a radial range; both intensity limits fit the visible data. Right-click expands the radial range."
-                  : "Select both a radial range and an intensity range."}
-              </p>
-            </section>
-            <p className="settings-save-note">
-              <Check size={14} /> General preferences take effect immediately.
-            </p>
           </div>
           <div
-            id="settings-panel-1"
+            id="settings-panel-2"
             className="settings-tabpanel settings-integration"
             role="tabpanel"
             aria-labelledby="settings-tab-integration"
-            hidden={section !== 1}
+            hidden={section !== 2}
           >
             {state?.integration ? (
               <IntegrationSettings
@@ -331,21 +262,21 @@ export function SettingsWorkspace({
             )}
           </div>
           <div
-            id="settings-panel-3"
+            id="settings-panel-4"
             className="settings-tabpanel settings-custom-commands"
             role="tabpanel"
             aria-labelledby="settings-tab-custom-actions"
-            hidden={section !== 3}
+            hidden={section !== 4}
           >
             <CustomCommandSettings controller={customCommands} ready={ready} />
           </div>
           <div
             tabIndex={0}
-            id="settings-panel-2"
+            id="settings-panel-3"
             className="settings-tabpanel settings-shortcuts"
             role="tabpanel"
             aria-labelledby="settings-tab-shortcuts"
-            hidden={section !== 2}
+            hidden={section !== 3}
           >
             <ShortcutReference />
           </div>

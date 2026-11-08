@@ -202,19 +202,10 @@ try {
   await waitReady();
   if (process.argv.includes("--dioptrin")) {
     assert.equal((await invoke("state")).state.calibration.engine, "dioptrin");
-    await page.getByRole("button", { name: "Settings", exact: true }).click();
-    await page
-      .getByLabel("Processing engine", { exact: true })
-      .selectOption("pyfai");
-    await waitReady();
+    await invoke("calibration_engine", { engine: "pyfai" });
     assert.equal((await invoke("state")).state.calibration.engine, "pyfai");
-
-    await page
-      .getByLabel("Processing engine", { exact: true })
-      .selectOption("dioptrin");
-    await waitReady();
+    await invoke("calibration_engine", { engine: "dioptrin" });
     assert.equal((await invoke("state")).state.calibration.engine, "dioptrin");
-    await page.keyboard.press("Escape");
   }
   assert.equal(
     await page.getByLabel("Accent color", { exact: true }).count(),
@@ -234,41 +225,17 @@ try {
     "large",
   );
   await page.getByRole("button", { name: "Settings", exact: true }).click();
-  assert.ok(
-    (await page
-      .getByLabel("Processing engine", { exact: true })
-      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize))) >= 17,
+  assert.equal(
+    await page.getByLabel("Processing engine", { exact: true }).count(),
+    0,
   );
   assert.equal(
-    await page
-      .locator("#settings-panel-0")
-      .getByLabel("Processing engine", { exact: true })
-      .isVisible(),
-    true,
-  );
-  const engineOptions = await page
-    .getByLabel("Processing engine", { exact: true })
-    .locator("option")
-    .evaluateAll((options) =>
-      options.map((option) => ({
-        id: option.value,
-        disabled: option.disabled,
-      })),
-    );
-  assert.deepEqual(
-    engineOptions,
-    (await invoke("state")).state.calibration.engines.map((engine) => ({
-      id: engine.id,
-      disabled: !engine.available,
-    })),
+    await page.getByLabel("Pattern zoom mode", { exact: true }).count(),
+    0,
   );
   await page
     .getByRole("button", { name: "Close settings", exact: true })
     .click();
-  assert.equal(
-    await page.getByLabel("Processing engine", { exact: true }).isVisible(),
-    false,
-  );
   await setInterfaceTextSize(page, false);
   const settingsButton = page.getByRole("button", {
     name: "Settings",

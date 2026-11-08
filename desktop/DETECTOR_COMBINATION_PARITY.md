@@ -8,15 +8,15 @@ It does not use a Python wheel or fall back to Python or pyFAI for combination.
 
 ## Interface
 
-Enable **Settings → General → Multi-detector setups → Show configuration
+Enable **Settings → Configurations → Show configuration
 controls**. This existing preference remains off by default and persists across
 restarts. The shared configuration bar supports add, duplicate, rename,
 select and remove. Hiding it preserves configurations and the selection.
 
 With two or more configurations, the top-bar configuration controls include the
-selected detector's **Factor**, independent **Combine patterns** and **Combine images** switches,
+selected detector's **Factor**, independent **Combine patterns** and **Combined cake** switches,
 and **Save combined pattern**. These controls remain available across modes.
-**Combine images** merges calibrated 2D cakes in common diffraction coordinates.
+**Combined cake** merges calibrated 2D cakes in common diffraction coordinates.
 Factor commits on blur or Enter and scales that
 detector's scientific pixels before integration. Images remain independent;
 combination produces calibrated patterns/cakes, never a detector-image mosaic.
@@ -26,7 +26,7 @@ follow the stable configuration identity. Individual and combined cakes have
 separate display settings. Pending scientific drafts prevent configuration changes.
 
 The same bar provides previous/next **File** and **Folder** actions. Configure
-them under **Settings → General → Multi-detector setups → Configuration
+them under **Settings → Configurations → Configuration
 browsing**. The default scope is **Active configuration**; **All configurations**
 advances every detector from its own source, retaining calibration, masks,
 corrections and factors. Combined products are recomputed. The bar shows the
@@ -161,3 +161,22 @@ passes **104 native Rust tests** (one opt-in benchmark ignored), **75 frontend
 tests**, Clippy with warnings denied, the TypeScript/Vite build, and the headless
 Chromium/WebKit combination workflow. Settings persistence/reset, the MEC preset,
 custom payloads and small-window layouts are checked in both browsers.
+
+## Cake inspection and dedicated configuration settings — 2026-11-08
+
+The control is labeled **Combined cake**. Native `validation_position` accepts
+the cake's explicit `unit` and converts its radial coordinate into physical 2θ
+before calculating linked contours and readouts. Omitting `unit` retains physical
+2θ for existing Map/frame restoration calls. Invalid units/coordinates preserve
+the previous inspection. Individual cakes remain in 2θ; combined cakes use Q
+when the pattern uses Q and 2θ for 2θ/d patterns.
+
+Configuration visibility and browsing preferences now have their own
+**Settings → Configurations** tab. General no longer contains Processing or
+Pattern navigation; plot navigation controls remain in the plot corners.
+
+Verification passes **106 native Rust tests** (one opt-in benchmark ignored),
+**75 frontend tests**, Clippy with warnings denied, and the TypeScript/Vite build.
+Headless Chromium and WebKit exercise actual clicks on individual and combined
+cakes in all three pattern modes, physical conversion, linked guides, the new
+Configurations tab, and the absence of the removed Settings sections.

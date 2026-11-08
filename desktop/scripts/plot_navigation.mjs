@@ -168,7 +168,12 @@ export async function verifySliceContentScaling(page) {
   await checkContent();
   await drag(page, canvas, [0.25, 0.2], [0.75, 0.8]);
   const zoomed = await checkContent();
-  close(spanX(zoomed), 25, "Slice selection ignores vertical displacement", 0.1);
+  close(
+    spanX(zoomed),
+    25,
+    "Slice selection ignores vertical displacement",
+    0.1,
+  );
   await drag(page, canvas, [0.6, 0.2], [0.4, 0.8], "right");
   const panned = await checkContent();
   close(spanX(panned), spanX(zoomed), "Slice pan preserves x scale");
@@ -488,9 +493,10 @@ export async function verifyPlotNavigation(page) {
   const pattern = page.getByTestId("pattern-canvas");
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   assert.equal(
-    await page.getByLabel("Pattern zoom mode", { exact: true }).inputValue(),
-    "rectangle",
+    await page.getByLabel("Pattern zoom mode", { exact: true }).count(),
+    0,
   );
+  assert.equal(await pattern.getAttribute("data-zoom-mode"), "rectangle");
   await page
     .getByRole("button", { name: "Close settings", exact: true })
     .click();
@@ -661,12 +667,8 @@ export async function verifyPlotNavigation(page) {
       checks.push(...(await verifyCompactAxisLabels(page, id)));
     }
   }
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
-  await page
-    .getByLabel("Pattern zoom mode", { exact: true })
-    .selectOption("rectangle");
-  await page
-    .getByRole("button", { name: "Close settings", exact: true })
+  await patternControls
+    .getByRole("button", { name: "Pattern rectangle zoom", exact: true })
     .click();
   // Right navigation remains available in the peak-picking tool and never picks.
   const sidebar = await page.locator(".sidebar").boundingBox();

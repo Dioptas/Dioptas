@@ -171,7 +171,7 @@ try {
     await button("Combine patterns").getAttribute("aria-pressed"),
     "true",
   );
-  await button("Combine images").click();
+  await button("Combined cake").click();
   await ready();
   const selectedBackend = (await call("state")).state.combination.backends;
   assert.equal(

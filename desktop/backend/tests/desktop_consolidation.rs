@@ -324,3 +324,97 @@ fn variable_size_frames_use_the_same_change_confirmation() {
     assert_eq!(accepted.result["state"]["shape"], json!([16, 20]));
     assert_eq!(accepted.result["state"]["calibrated"], false);
 }
+
+#[test]
+fn individual_and_combined_cake_clicks_respect_radial_units_and_preserve_inspection_on_error() {
+    let temp = tempfile::tempdir().unwrap();
+    let source = temp.path().join("detector.tif");
+    image(&source, [24, 32], 10);
+    let mut s = Session::new(root());
+    call(&mut s, "open_image", json!({"path":source}));
+    call(
+        &mut s,
+        "manual_geometry",
+        json!({"convention":"pyfai","values":{
+            "dist":0.15,"poni1":0.0012,"poni2":0.0016,"rot1":0.,"rot2":0.,"rot3":0.,
+            "wavelength":4e-11,"pixel1":0.0001,"pixel2":0.0001,"polarization_factor":0.99
+        }}),
+    );
+    call(
+        &mut s,
+        "integration_settings",
+        json!({"bins":24,"cake_bins":12}),
+    );
+    let theta: f64 = 0.5;
+    let q = 4. * std::f64::consts::PI * (theta.to_radians() / 2.).sin() / 0.4;
+    let spacing = 2. * std::f64::consts::PI / q;
+    for combined in [false, true] {
+        if combined {
+            call(&mut s, "configuration", json!({"operation":"duplicate"}));
+            call(
+                &mut s,
+                "combination_settings",
+                json!({"cakes":true,"patterns":true}),
+            );
+        }
+        for display_unit in ["2th_deg", "q_A^-1", "d_A"] {
+            let state = call(&mut s, "settings", json!({"unit":display_unit}));
+            assert_eq!(
+                state.result["cake"]["unit"],
+                if combined && display_unit == "q_A^-1" {
+                    "q_A^-1"
+                } else {
+                    "2th_deg"
+                }
+            );
+            for (unit, x) in [("2th_deg", theta), ("q_A^-1", q), ("d_A", spacing)] {
+                let selected = call(
+                    &mut s,
+                    "validation_position",
+                    json!({"source":"cake","unit":unit,"x":x,"azimuth":393.}),
+                );
+                let linked = &selected.result["linked"];
+                assert!((linked["twoTheta"].as_f64().unwrap() - theta).abs() < 1e-12);
+                let expected = match display_unit {
+                    "q_A^-1" => q,
+                    "d_A" => spacing,
+                    _ => theta,
+                };
+                assert!((linked["radial"].as_f64().unwrap() - expected).abs() < 1e-10);
+                assert_eq!(linked["azimuth"], 33.);
+                assert!(
+                    linked["contours"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .any(|line| !line["points"].as_array().unwrap().is_empty())
+                );
+            }
+            // Map/frame restoration sends physical 2θ without a unit, even in Q/d mode.
+            let before = call(
+                &mut s,
+                "validation_position",
+                json!({"source":"cake","x":theta,"azimuth":33.}),
+            );
+            for payload in [
+                json!({"unit":"unknown","x":theta}),
+                json!({"unit":null,"x":theta}),
+                json!({"unit":"q_A^-1","x":1000.}),
+                json!({"unit":"2th_deg","x":-1.}),
+            ] {
+                let mut args = json!({"source":"cake"});
+                args.as_object_mut()
+                    .unwrap()
+                    .extend(payload.as_object().unwrap().clone());
+                assert_eq!(
+                    invoke(&mut s, "validation_position", args).result["ok"],
+                    false
+                );
+                assert_eq!(
+                    call(&mut s, "state", json!({})).result["linked"],
+                    before.result["linked"]
+                );
+            }
+        }
+    }
+}
