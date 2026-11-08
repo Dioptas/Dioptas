@@ -87,7 +87,8 @@
       "legacy": "test_functional_integration.py::IntegrationFunctionalTest::test_changing_integration_unit",
       "status": "native",
       "evidence": [
-        "desktop/backend/tests/functional_flows.rs#linked_detector_and_cake_positions_retain_physical_angle_across_units"
+        "desktop/backend/tests/functional_flows.rs#linked_detector_and_cake_positions_retain_physical_angle_across_units",
+        "desktop/backend/tests/combined_workflows.rs#mask_integration_batch_map_and_multiple_configurations_share_project_state"
       ],
       "note": "2theta/Q/d conversion is anchored to one physical angle; linked contours stay identical. Numerical export/project variants cover all three radial units. The legacy separate azimuthal-plot widget is not recreated."
     },
@@ -124,7 +125,8 @@
       "legacy": "test_functional_integration.py::IntegrationFunctionalTest::test_azimuthal_plot_shows_same_independent_of_unit",
       "status": "adapted",
       "evidence": [
-        "desktop/backend/tests/functional_flows.rs#linked_detector_and_cake_positions_retain_physical_angle_across_units"
+        "desktop/backend/tests/functional_flows.rs#linked_detector_and_cake_positions_retain_physical_angle_across_units",
+        "desktop/backend/tests/combined_workflows.rs#mask_integration_batch_map_and_multiple_configurations_share_project_state"
       ],
       "note": "2theta/Q/d conversion is anchored to one physical angle; linked contours stay identical. Numerical export/project variants cover all three radial units. The legacy separate azimuthal-plot widget is not recreated."
     },
@@ -132,7 +134,8 @@
       "legacy": "test_functional_integration.py::BatchIntegrationFunctionalTest::test_data_is_ok",
       "status": "native",
       "evidence": [
-        "desktop/backend/tests/functional_flows.rs#batch_stride_save_reload_missing_raw_and_fresh_reintegration"
+        "desktop/backend/tests/functional_flows.rs#batch_stride_save_reload_missing_raw_and_fresh_reintegration",
+        "desktop/backend/tests/functional_flows.rs#multiple_hdf5_files_keep_dataset_frame_order_across_stride_and_map_selection"
       ],
       "note": "Actual ordered raw files, inclusive start/stop/stride, direct-vs-bulk f64 comparison, processed save/reload, missing raw sources and changed-bin fresh reintegration."
     },
@@ -148,7 +151,8 @@
       "legacy": "test_functional_integration.py::BatchIntegrationFunctionalTest::test_save_load_reintegrate",
       "status": "native",
       "evidence": [
-        "desktop/backend/tests/functional_flows.rs#batch_stride_save_reload_missing_raw_and_fresh_reintegration"
+        "desktop/backend/tests/functional_flows.rs#batch_stride_save_reload_missing_raw_and_fresh_reintegration",
+        "desktop/backend/tests/functional_flows.rs#multiple_hdf5_files_keep_dataset_frame_order_across_stride_and_map_selection"
       ],
       "note": "Actual ordered raw files, inclusive start/stop/stride, direct-vs-bulk f64 comparison, processed save/reload, missing raw sources and changed-bin fresh reintegration."
     },
@@ -156,7 +160,8 @@
       "legacy": "test_functional_integration.py::BatchIntegrationFunctionalTest::test_integrate_with_parameters",
       "status": "native",
       "evidence": [
-        "desktop/backend/tests/functional_flows.rs#batch_stride_save_reload_missing_raw_and_fresh_reintegration"
+        "desktop/backend/tests/functional_flows.rs#batch_stride_save_reload_missing_raw_and_fresh_reintegration",
+        "desktop/backend/tests/functional_flows.rs#multiple_hdf5_files_keep_dataset_frame_order_across_stride_and_map_selection"
       ],
       "note": "Actual ordered raw files, inclusive start/stop/stride, direct-vs-bulk f64 comparison, processed save/reload, missing raw sources and changed-bin fresh reintegration."
     },
@@ -194,7 +199,8 @@
       "legacy": "test_functional_integration.py::BatchIntegrationFunctionalTest::test_change_unit",
       "status": "native",
       "evidence": [
-        "desktop/backend/tests/functional_flows.rs#linked_detector_and_cake_positions_retain_physical_angle_across_units"
+        "desktop/backend/tests/functional_flows.rs#linked_detector_and_cake_positions_retain_physical_angle_across_units",
+        "desktop/backend/tests/combined_workflows.rs#mask_integration_batch_map_and_multiple_configurations_share_project_state"
       ],
       "note": "2theta/Q/d conversion is anchored to one physical angle; linked contours stay identical. Numerical export/project variants cover all three radial units. The legacy separate azimuthal-plot widget is not recreated."
     },

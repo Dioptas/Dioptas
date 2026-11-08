@@ -113,6 +113,6 @@ Headless receipts/screenshots are under `desktop/artifacts/`.
 ## Subsequent CI qualification
 
 The native functional coverage stage publishes the pinned dependency development
-branch, adds an automatic Rust/headless/reference CI gate and 18 additional Rust
+branch, adds an automatic Rust/headless/reference CI gate and 19 additional Rust
 flow tests. See `NATIVE_FUNCTIONAL_COVERAGE.md`. The local-only dependency
 limitation above describes the original consolidation, before that stage.

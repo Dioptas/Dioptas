@@ -746,12 +746,12 @@ fn phases_overlays_background_and_corrections_survive_a_fresh_project_owner() {
     call(
         &mut s,
         "integration_correction",
-        json!({"kind":"cbn","enabled":true,"parameters":{"tilt":7,"tilt_rotation":31}}),
+        json!({"kind":"cbn","enabled":true,"parameters":{"tilt":7,"tilt_rotation":31,"diamond_thickness":1.9}}),
     );
     call(
         &mut s,
         "integration_correction",
-        json!({"kind":"oiadac","enabled":true,"parameters":{"tilt":3,"rotation":16}}),
+        json!({"kind":"oiadac","enabled":true,"parameters":{"tilt":3,"rotation":16,"detector_thickness":30.,"absorption_length":450.}}),
     );
     call(
         &mut s,
@@ -788,6 +788,28 @@ fn phases_overlays_background_and_corrections_survive_a_fresh_project_owner() {
         &mut s,
         "integration_phase",
         json!({"operation":"update","index":0,"pressure":20.,"temperature":500.,"color":"#445566","visible":true}),
+    );
+    // Include non-default visibility; default-true round trips cannot catch
+    // the old phase/overlay visibility persistence regressions.
+    call(
+        &mut s,
+        "integration_overlay",
+        json!({"operation":"capture"}),
+    );
+    call(
+        &mut s,
+        "integration_overlay",
+        json!({"operation":"update","index":1,"visible":false,"color":"#aabbcc"}),
+    );
+    call(
+        &mut s,
+        "integration_phase",
+        json!({"operation":"load","path":root().join("dioptas/tests/data/jcpds/au_version3.jcpds")}),
+    );
+    call(
+        &mut s,
+        "integration_phase",
+        json!({"operation":"update","index":0,"visible":false}),
     );
     let before = call(&mut s, "state", json!({}));
     assert!(
@@ -1002,4 +1024,91 @@ fn configuration_selection_and_removal_restore_independent_maps_and_clicks() {
     assert_eq!(removed.result["state"]["configurationCount"], 1);
     assert_eq!(removed.result["map"]["points"], 2);
     assert_eq!(removed.result["pattern"], reference.result["pattern"]);
+}
+
+#[test]
+fn multiple_hdf5_files_keep_dataset_frame_order_across_stride_and_map_selection() {
+    let d = tempfile::tempdir().unwrap();
+    let d = d.path();
+    let p = d.join("g.poni");
+    poni(&p);
+    let mut paths = vec![];
+    for (file_index, frames) in [(0, 3), (1, 2)] {
+        let path = d.join(format!("detector_{file_index:03}.h5"));
+        let file = hdf5::File::create(&path).unwrap();
+        let group = file.create_group("detector").unwrap();
+        let data: Vec<u16> = (0..frames * 768)
+            .map(|i| {
+                100 + (file_index * 3 + i / 768) as u16 * 40
+                    + (i % 768 / 32) as u16 * 3
+                    + (i % 32) as u16 * 2
+            })
+            .collect();
+        group
+            .new_dataset::<u16>()
+            .shape((frames, 24, 32))
+            .chunk((1, 24, 32))
+            .deflate(1)
+            .create("counts")
+            .unwrap()
+            .write_raw(&data)
+            .unwrap();
+        paths.push(path);
+    }
+    let mut s = Session::new(root());
+    call(&mut s, "open_calibration", json!({"path":p}));
+    call(
+        &mut s,
+        "integration_settings",
+        json!({"bins":48,"cake_bins":12,"unit":"q_A^-1","trim_zeros":false}),
+    );
+    call(
+        &mut s,
+        "open_image",
+        json!({"path":paths[0],"dataset":"/detector/counts"}),
+    );
+    let mut expected = vec![];
+    for (file, frame) in [(0, 1), (1, 0)] {
+        expected.push(values(
+            &call(
+                &mut s,
+                "open_image",
+                json!({"path":paths[file],"dataset":"/detector/counts","frame":frame}),
+            ),
+            "y",
+        ));
+    }
+    let batch = call(
+        &mut s,
+        "batch_load",
+        json!({"paths":paths,"start":2,"stop":5,"step":2}),
+    );
+    assert_eq!(batch.result["batch"]["total"], 5);
+    assert_eq!(
+        batch.result["batch"]["entries"][0]["path"],
+        json!(paths[0].canonicalize().unwrap())
+    );
+    assert_eq!(batch.result["batch"]["entries"][0]["frame"], 2);
+    assert_eq!(
+        batch.result["batch"]["entries"][1]["path"],
+        json!(paths[1].canonicalize().unwrap())
+    );
+    assert_eq!(batch.result["batch"]["entries"][1]["frame"], 1);
+    let output = d.join("ordered.h5");
+    call(&mut s, "integration_save_batch", json!({"path":output}));
+    let saved = hdf5::File::open(&output)
+        .unwrap()
+        .dataset("processed/result/data")
+        .unwrap()
+        .read_raw::<f64>()
+        .unwrap();
+    close(&saved, &expected.concat());
+    call(&mut s, "map_batch", json!({"path":output}));
+    let selected = call(
+        &mut s,
+        "map_select",
+        json!({"index":1,"reintegrate":true,"integration_view":true}),
+    );
+    assert_eq!(selected.result["state"]["imageName"], "detector_001.h5");
+    close(&values(&selected, "y"), &expected[1]);
 }

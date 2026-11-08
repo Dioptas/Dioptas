@@ -16,7 +16,7 @@ and writes a compact receipt under `artifacts/functional-coverage`.
 
 ## Added native flows
 
-`backend/tests/functional_flows.rs` adds 18 tests, including:
+`backend/tests/functional_flows.rs` adds 19 tests, including:
 
 - Raw image → PONI → asymmetric mask → scaled/offset image background → flat
   field → ROI → supersampling → integration with propagated errors, separately
@@ -30,6 +30,9 @@ and writes a compact receipt under `artifacts/functional-coverage`.
 - Ordered raw series → inclusive start/stop/stride → f64 processed HDF5 →
   independent dataset readback → stored-only browsing without raw files →
   restored raw inputs and fresh integration with a changed bin count.
+- Multiple compressed HDF5 files with an explicit dataset selection: a stride
+  crosses the file boundary, preserves frame/path ordering, saves f64 profiles
+  and selects/reintegrates the corresponding raw frame from Integration/Map.
 - Natural file ordering and corrupt-source rollback; reversible batch
   normalization through a saved/reopened f64 series.
 - Image add/average/staged TIFF output, independently decoded original-row
@@ -66,8 +69,8 @@ and manual dispatch, with read-only repository permissions:
 1. **Native processor, Linux and macOS:** formatting, strict Clippy, all native
    processor tests and the real processor build. No Python environment is
    installed by this gate. Linux additionally produces LCOV and HTML coverage
-   using cargo-llvm-cov. The local macOS Rust-only baseline is 14,049/19,932
-   production-source lines (70.48%, excluding test files and dependencies);
+   using cargo-llvm-cov. The local macOS Rust-only baseline is 14,087/19,932
+   production-source lines (70.68%, excluding test files and dependencies);
    headless/reference execution is additional and is not included in that
    percentage. The initial report is a baseline, not an invented
    minimum-percentage gate. The opt-in performance benchmark remains ignored.
