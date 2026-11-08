@@ -1,0 +1,20 @@
+.image-source-control {
+  min-width: 0;
+  margin-top: 5px;
+}
+.image-source-control label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+.image-source-control select {
+  min-width: 0;
+  width: 100%;
+  text-overflow: ellipsis;
+}
+.image-source-error {
+  margin-top: 5px;
+  color: var(--text-muted, #bbc1c8);
+  overflow-wrap: anywhere;
+}

@@ -46,6 +46,13 @@ through the existing controls, including per-configuration persistence and histo
 The separate [LA Cosmic action](NATIVE_LACOSMIC_PARITY.md) is now native as well,
 with Cosmic Removal in the Mask panel, two passes, Undo/Redo and cancellation.
 
+HDF5 files expose an **Image source** selector in Calibration → Image and
+Integration → Image. It lists supported scalar planes/stacks with frame counts
+and dimensions. Switching retains the current frame, clamped to a shorter source,
+and updates the image and integrated results together. Recognized Eiger/LImA/Lambda
+formats retain their automatic series option. Selected sources belong to each
+configuration and survive native project save/reopen. See [HDF5 source selection](HDF5_SOURCE_PARITY.md).
+
 Changing source image dimensions asks for **Cancel** or **Open and reset
 calibration** before changing the session, including variable-size frames within
 one file. Accepting clears detector geometry, orientation, masks, corrections,

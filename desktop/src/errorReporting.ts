@@ -104,6 +104,7 @@ export function fileOperationFailure(
     detector_file: "Couldn’t load detector",
     distortion_file: "Couldn’t load distortion correction",
     open_image: "Couldn’t load image",
+    select_image_source: "Couldn’t load image source",
     open_project: "Couldn’t load project",
     load_peaks: "Couldn’t load peaks",
     open_calibrant: "Couldn’t load calibrant",

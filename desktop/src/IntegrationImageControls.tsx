@@ -1,4 +1,5 @@
 import { Input, Button } from "./ui";
+import { ImageSourceControl } from "./ImageSourceControl";
 import { PathInput } from "./PathInput";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import type { State } from "./types";
@@ -75,6 +76,10 @@ export function IntegrationImageControls({
         onNavigate={(direction) =>
           action("next_image", { direction, step: fileStep })
         }
+      />
+      <ImageSourceControl
+        state={state}
+        onChange={(dataset) => action("select_image_source", { dataset })}
       />
       {frameControl}
       <Input

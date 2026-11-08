@@ -88,6 +88,7 @@ if (selected.has("--ui")) {
     "native_lacosmic_smoke",
     "native_file_errors_smoke",
     "image_change_smoke",
+    "hdf5_sources_smoke",
   ])
     node(script, `${script}.mjs`);
   node("image_change_webkit", "image_change_smoke.mjs", "--webkit");

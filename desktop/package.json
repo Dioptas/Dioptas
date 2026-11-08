@@ -56,6 +56,7 @@
     "test:combination": "node scripts/native_project_smoke.mjs",
     "smoke:python-reference": "node scripts/smoke.mjs",
     "test:combination:python-reference": "node scripts/combination_smoke.mjs",
+    "test:hdf5-sources": "node scripts/hdf5_sources_smoke.mjs",
     "test:image-change": "node scripts/image_change_smoke.mjs && node scripts/image_change_smoke.mjs --webkit",
     "test:standalone-processor": "node scripts/standalone_processor_smoke.mjs",
     "test:ci-native": "node scripts/check_native_desktop.mjs",

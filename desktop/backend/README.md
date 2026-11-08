@@ -67,7 +67,12 @@ reference environment is used only for migration tests.
   require a future explicit scientific interpretation and currently fail.
 - Single-source frame stepping, with immutable source checks. Shape changes reset
   incompatible masks and history, including equal-area shape changes.
-- Explicit HDF5 dataset selection through `open_image.dataset`. Recognized
+- HDF5 source discovery and the Image source UI, using the native snapshot and
+  typed reader. `select_image_source.dataset` switches within the current file,
+  retaining/clamping its frame; `open_image.dataset` remains the explicit load
+  boundary. Generic files initially use the first supported source in path order.
+  Source metadata and selection persist with each native project configuration.
+  Recognized
   Eiger/LImA/Lambda conventions use the native reader. External source graphs
   require explicit `follow_external_links: true`; no source search/relocation is
   inferred. CBF byte-offset dialect can be supplied explicitly as

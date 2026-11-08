@@ -91,6 +91,7 @@ export interface IntegrationState {
   imageDirectory: string;
   autoProcess: boolean;
   autoProcessError: string;
+  /** One-based display position, matching integration_navigation.frame. */
   frame: number;
   frames: number;
 }

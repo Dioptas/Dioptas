@@ -1,3 +1,4 @@
+import { ImageSourceControl } from "./ImageSourceControl";
 import { useBackendReload } from "./useBackendReload";
 import {
   requestedDisplayProducts,
@@ -143,6 +144,7 @@ import { LoadCalibrationButton } from "./LoadCalibrationButton";
 function clickContext(state: State | null) {
   return JSON.stringify([
     state?.imagePath,
+    state?.selectedImageSource,
     state?.configurationContext ?? state?.configurationIndex,
     state?.projectName,
     state?.integration.frame,
@@ -812,6 +814,13 @@ export default function App() {
         command === "validation_position" ||
         command === "image_levels" ||
         command === "image_batch_mode";
+      // Disabling the source selector while opening can blur it before the
+      // size-confirmation response arrives (especially in WebKit).
+      if (
+        command === "select_image_source" &&
+        document.activeElement instanceof HTMLElement
+      )
+        calibrationResetOpener.current = document.activeElement;
       if (!quiet) {
         ++progressGeneration.current;
         setProgress(undefined);
@@ -963,6 +972,7 @@ export default function App() {
             "remove_pick",
             "remove_picks",
             "open_image",
+            "select_image_source",
             "example",
             "image_transform",
             "open_project",
@@ -1637,6 +1647,7 @@ export default function App() {
       s?.unit,
       s?.configurationIndex,
       s?.imagePath,
+      s?.selectedImageSource,
       s?.integration.patternName,
       s?.projectName,
     ]);
@@ -2913,6 +2924,17 @@ export default function App() {
                                 </div>
                               )}
                             </div>
+                            <ImageSourceControl
+                              state={state}
+                              disabled={!ready}
+                              onChange={(dataset) =>
+                                void run(
+                                  "select_image_source",
+                                  { dataset },
+                                  "Opening image source…",
+                                )
+                              }
+                            />
                             {state?.imageName && (
                               <div
                                 className="setup-image-filename"
@@ -3067,7 +3089,9 @@ export default function App() {
                                 current?.projectName === state?.projectName &&
                                 current?.configurationIndex ===
                                   state?.configurationIndex &&
-                                current?.imagePath === state?.imagePath
+                                current?.imagePath === state?.imagePath &&
+                                current?.selectedImageSource ===
+                                  state?.selectedImageSource
                               );
                             })
                           }

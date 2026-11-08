@@ -161,7 +161,7 @@ optional-engine boundaries are unchanged; a portable Python bundle is pending.
 Mask, Integration and Map have scoped implementations; see
 [MASK_PARITY.md](MASK_PARITY.md), [INTEGRATION_PARITY.md](INTEGRATION_PARITY.md)
 and [MAP_PARITY.md](MAP_PARITY.md) for their coverage and limitations.
-Explicit HDF5 dataset-selection interfaces remain outside the preview.
+The native interface now provides [HDF5 source selection](HDF5_SOURCE_PARITY.md) in Calibration and Integration Image controls.
 Existing project configurations can be selected and their integrated results
 combined; see [detector combination](DETECTOR_COMBINATION_PARITY.md).
 Integration's Image tab offers incoming-folder Autoprocess;

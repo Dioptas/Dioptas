@@ -112,6 +112,9 @@ pub struct Image {
     pub parallel_pixels: bool,
     pub file_info: Arc<String>,
     pub options: Value,
+    pub sources: Vec<crate::hdf5_sources::Source>,
+    pub source_discovery_error: Option<String>,
+    pub automatic_source: bool,
 }
 impl Image {
     pub(crate) fn orient(
@@ -186,6 +189,71 @@ impl Image {
             },
             ..Default::default()
         };
+        let physical_path = input.source_path().map_err(|e| e.to_string())?;
+        let origin = input
+            .provenance()
+            .map_err(|e| e.to_string())?
+            .origin_directory;
+        let mut source_discovery_error = None;
+        let mut sources = vec![];
+        // Discovery failure must not break an otherwise supported automatic or
+        // explicitly selected image. Report it alongside the selected source.
+        let codec = if options.get("dataset").is_some() {
+            // An explicit selection must work even with conflicting convention
+            // metadata; it never falls back to a convention or another dataset.
+            dioptrin_io::hdf5::discovery::discover_snapshot(
+                physical_path,
+                hdf5_options,
+                origin.as_deref(),
+            )
+            .unwrap_or(dioptrin_io::discovery::Codec::Hdf5)
+        } else if options.get("cbf_dialect").is_some() {
+            dioptrin_io::discovery::Codec::Cbf
+        } else if follow {
+            match input.discover() {
+                Ok(detection) => detection.require_unique().map_err(|e| e.to_string())?,
+                Err(_) => dioptrin_io::hdf5::discovery::discover_snapshot(
+                    physical_path,
+                    hdf5_options,
+                    origin.as_deref(),
+                )
+                .map_err(|e| e.to_string())?,
+            }
+        } else {
+            input
+                .discover()
+                .map_err(|e| e.to_string())?
+                .require_unique()
+                .map_err(|e| e.to_string())?
+        };
+        let is_hdf5 = matches!(
+            codec,
+            dioptrin_io::discovery::Codec::Hdf5
+                | dioptrin_io::discovery::Codec::Eiger
+                | dioptrin_io::discovery::Codec::Lima
+                | dioptrin_io::discovery::Codec::Lambda
+        );
+        if is_hdf5 {
+            match crate::hdf5_sources::discover(physical_path, hdf5_options) {
+                Ok(found) => sources = found,
+                Err(error) => source_discovery_error = Some(error),
+            }
+        }
+        let mut options = options.clone();
+        if codec == dioptrin_io::discovery::Codec::Hdf5 && options.get("dataset").is_none() {
+            let first = sources.first().ok_or_else(|| {
+                source_discovery_error.clone().unwrap_or_else(|| {
+                    "No supported scalar image datasets in this HDF5 file.".into()
+                })
+            })?;
+            options["dataset"] = serde_json::json!(first.dataset);
+        }
+        let automatic_source = matches!(
+            codec,
+            dioptrin_io::discovery::Codec::Eiger
+                | dioptrin_io::discovery::Codec::Lima
+                | dioptrin_io::discovery::Codec::Lambda
+        );
         let reader = if let Some(dataset) = options.get("dataset") {
             input.read_hdf5(
                 dioptrin_io::hdf5::typed::Selection::Dataset(
@@ -207,11 +275,6 @@ impl Image {
             )
         } else {
             use dioptrin_io::{discovery::Codec, hdf5::typed::Selection};
-            let codec = input
-                .discover()
-                .map_err(|e| e.to_string())?
-                .require_unique()
-                .map_err(|e| e.to_string())?;
             match codec {
                 Codec::Eiger => input.read_hdf5(Selection::Eiger, hdf5_options, None),
                 Codec::Lima => input.read_hdf5(Selection::Lima, hdf5_options, None),
@@ -221,6 +284,16 @@ impl Image {
         }
         .map_err(|e| e.to_string())?;
         let frames = reader.frames();
+        if let Some(dataset) = options.get("dataset").and_then(Value::as_str)
+            && !sources.iter().any(|s| s.dataset == dataset)
+            && let Some(dioptrin_io::wrapped::Metadata::Hdf5(m)) = reader.metadata(0)
+        {
+            sources.push(crate::hdf5_sources::Source {
+                dataset: dataset.into(),
+                frames,
+                shape: m.shape,
+            });
+        }
         let frame = match options.get("frame") {
             None => 0,
             Some(v) => usize::try_from(v.as_u64().ok_or("frame must be a nonnegative integer.")?)
@@ -259,6 +332,9 @@ impl Image {
             combined: false,
             parallel_pixels: false,
             file_info: Arc::new(String::new()),
+            sources,
+            source_discovery_error,
+            automatic_source,
             options: Value::Object(
                 ["dataset", "follow_external_links", "cbf_dialect"]
                     .into_iter()
@@ -313,6 +389,9 @@ impl Image {
             file_info: Arc::new(
                 "Restored project pixels; original source is not reread until navigation.".into(),
             ),
+            sources: vec![],
+            source_discovery_error: None,
+            automatic_source: false,
             options,
         })
     }

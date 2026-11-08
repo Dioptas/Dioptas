@@ -338,6 +338,16 @@ pub(super) fn load(
             &options,
         )?)?;
     }
+    if let Some(image) = s.image.as_mut() {
+        if let Some(sources) = doc["native_desktop"].get("image_sources") {
+            image.sources = serde_json::from_value(sources.clone()).map_err(|e| e.to_string())?;
+        }
+        image.automatic_source = doc["native_desktop"]["automatic_image_source"]
+            .as_bool()
+            .unwrap_or(false);
+        image.source_discovery_error =
+            optional_string(&doc["native_desktop"]["image_source_error"]);
+    }
     if let Some((dims, values)) = array(file, "cache", &doc["native_desktop"]["source_variance"])? {
         let image = s
             .image
@@ -887,7 +897,7 @@ pub(super) fn save(
     }
     merge(
         &mut native,
-        &json!({"version":1,"sparse_layout":if settings.auto_layout {"auto"}else if settings.csc {"csc"}else{"csr"},"integration_method":if settings.pyfai_splitting {"pyfai_full"} else if settings.supersampling>1 {"subpixel"} else {"polygon"},"original_pixel_sizes":settings.original_pixels,"pattern_name":s.patterns.name,"correction_drafts":processing["corrections"],"label":c.label,"reader_options":image.map(|i|&i.options),"mask_filename":s.mask_filename,"image_batch_mode":s.image_batch_mode,
+        &json!({"version":1,"sparse_layout":if settings.auto_layout {"auto"}else if settings.csc {"csc"}else{"csr"},"integration_method":if settings.pyfai_splitting {"pyfai_full"} else if settings.supersampling>1 {"subpixel"} else {"polygon"},"original_pixel_sizes":settings.original_pixels,"pattern_name":s.patterns.name,"correction_drafts":processing["corrections"],"label":c.label,"reader_options":image.map(|i|&i.options),"image_sources":image.map(|i|&i.sources).cloned().unwrap_or_default(),"automatic_image_source":image.is_some_and(|i|i.automatic_source),"image_source_error":image.and_then(|i|i.source_discovery_error.as_ref()),"mask_filename":s.mask_filename,"image_batch_mode":s.image_batch_mode,
         "calibration":{"version":1,"calibrant":s.calibration.reference.name,"fit_dirty":s.calibration.dirty,"rms_degrees":s.calibration.rms,
         "custom_calibrant":s.calibration.custom.as_ref().map(|r|json!({"name":r.name,"content":r.content})),"setup_confirmed":s.calibration.confirmed,
         "workflow":s.workflow,"geometry_source":s.calibration.source}}),

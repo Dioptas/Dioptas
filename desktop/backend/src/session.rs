@@ -483,7 +483,7 @@ impl Session {
                 return Ok(Reply::metadata(
                     json!({"ok": true, "protocol": 2, "transport": "stdio", "runtime": "rust", "pid": std::process::id(), "qtApplication": false,
                 "engine": if cfg!(feature="dioptrin") { Some("dioptrin") } else { None },
-                "capabilities": ["requested-products", "image-input", "frame-navigation", "binary-rasters", "display-statistics", "mask-brush", "mask-history", "mask-plugins", "calibration-peaks", "calibration-history", "uniform-poni", "manual-pyfai-geometry", "xy-export", "project-format-2", "configuration-management", "image-transformations", "geometric-masks", "mask-lacosmic","detector-definitions","detector-orientations","distortion-splines","fit2d-geometry"]}),
+                "capabilities": ["requested-products", "image-input", "hdf5-image-sources", "frame-navigation", "binary-rasters", "display-statistics", "mask-brush", "mask-history", "mask-plugins", "calibration-peaks", "calibration-history", "uniform-poni", "manual-pyfai-geometry", "xy-export", "project-format-2", "configuration-management", "image-transformations", "geometric-masks", "mask-lacosmic","detector-definitions","detector-orientations","distortion-splines","fit2d-geometry"]}),
                 ));
             }
             "state" => return Ok(self.snapshot(true)),
@@ -523,6 +523,29 @@ impl Session {
                 self.image = None;
                 self.publish_image(candidate)?;
                 self.refresh_masks(&Control::default())?;
+            }
+            "select_image_source" => {
+                check_keys(args, &["dataset", "defer_integration"])?;
+                let dataset = args["dataset"].as_str().ok_or("Choose an image source.")?;
+                let image = self.image.as_ref().ok_or("Open an image first.")?;
+                if !(dataset.is_empty() && image.automatic_source)
+                    && !image.sources.iter().any(|s| s.dataset == dataset)
+                {
+                    return Err("This image source is not available in the current file.".into());
+                }
+                let frame = image.frame;
+                let mut options = image.options.clone();
+                options["path"] = json!(image.path);
+                options.as_object_mut().unwrap().remove("dataset");
+                if !dataset.is_empty() {
+                    options["dataset"] = json!(dataset);
+                }
+                self.control.check()?;
+                let candidate = Image::prepare(&image.path, &options)?;
+                // Qt retains the frame position, clamping to a shorter series.
+                options["frame"] = json!(frame.min(candidate.frames - 1));
+                options["defer_integration"] = json!(defer);
+                return self.dispatch("open_image", &options);
             }
             "open_image" => {
                 if let Some(reply) = self.open_image_model(args, defer)? {
@@ -1886,6 +1909,10 @@ impl Session {
         let mut result = json!({"ok": true, "backend": {"runtime": "rust", "experimental": true}, "state": {
             "supportsRequestedProducts": true,
             "revision": self.revision, "hasImage": self.image.is_some(), "imageName": name, "imagePath": image_path, "shape": shape,
+            "imageSources":self.image.as_ref().map(|i|&i.sources),
+            "selectedImageSource":self.image.as_ref().and_then(|i|i.options.get("dataset")),
+            "automaticImageSource":self.image.as_ref().is_some_and(|i|i.automatic_source),
+            "imageSourceError":self.image.as_ref().and_then(|i|i.source_discovery_error.as_ref()),
             "calibrationName": s.calibration_name, "calibrated": s.calibrated, "projectName": self.project.path.as_ref().and_then(|p|p.file_name()).map(|p|p.to_string_lossy()), "unit": s.unit,
             "bins": if s.automatic_binning {Value::Null}else{json!(s.bins)}, "useMask": s.use_mask, "transparentMask": s.transparent_mask,
             "maskedPixels": self.mask_raster.as_ref().and_then(|r|r.cached_mask_count(&self.effective_mask)).unwrap_or_else(||self.effective_mask.iter().filter(|&&v| v != 0).count()), "canUndoMask": !self.undo.is_empty(), "canRedoMask": !self.redo.is_empty(),
@@ -1902,7 +1929,7 @@ impl Session {
                 "flatField":{"filename":null,"enabled":false}, "corrections":serde_json::from_str::<Value>(include_str!("correction_defaults.json")).expect("checked correction schema"), "overlayDirectory":"", "waterfallSeparation":0, "overlays":[], "sameConditions":true,
                 "phaseColdPressure":false, "phases":[], "batchFrames":0, "patternName":name.clone().unwrap_or_default(), "patternPath":"", "patternFileIteration":"number",
                 "originalPatternColor":"#ffffff", "originalPatternVisible":true, "fileInfo":"", "fileIteration":"number", "imageDirectory":image_directory,
-                "autoProcess":false,"autoProcessError":"", "frame":self.image.as_ref().map(|i|i.frame).unwrap_or(0), "frames":self.image.as_ref().map(|i|i.frames).unwrap_or(0)
+                "autoProcess":false,"autoProcessError":"", "frame":self.image.as_ref().map(|i|i.frame+1).unwrap_or(0), "frames":self.image.as_ref().map(|i|i.frames).unwrap_or(0)
             },
             "calibration": {
                 "setupConfirmed":s.calibrated, "detectorIsCustom":g.detector.as_ref().is_none_or(|d|d.name=="Detector"), "referenceLines":[],

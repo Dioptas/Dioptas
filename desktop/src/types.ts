@@ -67,6 +67,11 @@ export interface State {
   hasImage: boolean;
   imageName: string | null;
   imagePath: string | null;
+  imageSources?:
+    { dataset: string; frames: number; shape: [number, number] }[] | null;
+  selectedImageSource?: string | null;
+  automaticImageSource?: boolean;
+  imageSourceError?: string | null;
   shape: [number, number] | null;
   calibrationName: string | null;
   calibrated: boolean;
