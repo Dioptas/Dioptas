@@ -183,6 +183,12 @@ export default function App() {
       /* Preferences are optional when local storage is unavailable. */
     }
   }, [largeText]);
+  const [showConfigurationControls, setShowConfigurationControls] = useState(
+    () => readLayoutFlag(layoutKeys.configurationControls),
+  );
+  useEffect(() => {
+    saveLayoutValue(layoutKeys.configurationControls, showConfigurationControls);
+  }, [showConfigurationControls]);
   const [showRings, setShowRings] = useState(true),
     [showNumbers, setShowNumbers] = useState(true);
   const [linked, setLinked] = useState<Response["linked"]>();
@@ -527,9 +533,13 @@ export default function App() {
       const liveBackground =
         command === "integration_background" && message === "";
       const liveMapRegion = command === "map_roi" && message === "";
-      const liveCorrection = message === "" && [
-        "integration_correction", "integration_image_background", "integration_flat_field",
-      ].includes(command);
+      const liveCorrection =
+        message === "" &&
+        [
+          "integration_correction",
+          "integration_image_background",
+          "integration_flat_field",
+        ].includes(command);
       const frameSelection =
         command === "map_select" || command === "batch_select";
       const livePhaseConditions =
@@ -835,7 +845,9 @@ export default function App() {
           mode === "integration"
             ? {
                 multiple: true,
-                batch_mode: currentState.current?.integration.imageBatchMode ?? "integrate",
+                batch_mode:
+                  currentState.current?.integration.imageBatchMode ??
+                  "integrate",
               }
             : {},
           "Opening image…",
@@ -1582,6 +1594,8 @@ export default function App() {
     handledBatchOpen.current = batchOpenRequest;
     openBatch();
   }, [batchOpenRequest]);
+  const configurationControlsVisible =
+    showConfigurationControls && !!state?.configurationLabels && !settingsOpen;
   return (
     <div className="app" data-text-size={largeText ? "large" : "normal"}>
       <div className="app-body">
@@ -1728,7 +1742,10 @@ export default function App() {
                 aria-label="Save project"
                 disabled={
                   !ready ||
-                  (!state?.configurationLabels && !state?.hasImage && !map && !batch)
+                  (!state?.configurationLabels &&
+                    !state?.hasImage &&
+                    !map &&
+                    !batch)
                 }
                 onClick={() => run("save_project", {}, "Saving project…")}
                 title={
@@ -1757,9 +1774,9 @@ export default function App() {
         </nav>
 
         <div
-          className={`workspace-stage ${state?.configurationLabels ? "has-configurations" : ""}`}
+          className={`workspace-stage ${configurationControlsVisible ? "has-configurations" : ""}`}
         >
-          {state?.configurationLabels && !settingsOpen && (
+          {configurationControlsVisible && state && (
             <ConfigurationControls state={state} ready={ready} run={run} />
           )}
           <IntegrationWorkspace
@@ -1843,14 +1860,16 @@ export default function App() {
                       </div>
                     </div>
                   )}
-                  {state && !state.configurationLabels && state.configurationCount > 1 && (
-                    <div className="info-banner">
-                      Project contains {state.configurationCount}{" "}
-                      configurations. This preview displays configuration{" "}
-                      {state.configurationIndex + 1}; all configurations are
-                      retained when saving.
-                    </div>
-                  )}
+                  {state &&
+                    !state.configurationLabels &&
+                    state.configurationCount > 1 && (
+                      <div className="info-banner">
+                        Project contains {state.configurationCount}{" "}
+                        configurations. This preview displays configuration{" "}
+                        {state.configurationIndex + 1}; all configurations are
+                        retained when saving.
+                      </div>
+                    )}
                   <div
                     className={`views-grid ${mode === "calibration" ? (calibrationStep === 3 ? "validation-views" : "image-only") : ""}`}
                   >
@@ -2197,9 +2216,11 @@ export default function App() {
                       )}
                       {mode === "integration" && batchDockVisible && (
                         <BatchDock
-                          position={linked
-                            ? { x: linked.twoTheta, unit: "2th_deg" }
-                            : localPatternClick}
+                          position={
+                            linked
+                              ? { x: linked.twoTheta, unit: "2th_deg" }
+                              : localPatternClick
+                          }
                           batch={batch}
                           calibrated={!!state?.calibrated}
                           ready={ready}
@@ -2619,18 +2640,27 @@ export default function App() {
                           runProcessing={(command, args, message, onSuccess) =>
                             run(command, args, message, onSuccess, () => {
                               const current = currentState.current;
-                              return current?.projectName === state?.projectName &&
-                                current?.configurationIndex === state?.configurationIndex &&
-                                current?.imagePath === state?.imagePath;
-                            })}
+                              return (
+                                current?.projectName === state?.projectName &&
+                                current?.configurationIndex ===
+                                  state?.configurationIndex &&
+                                current?.imagePath === state?.imagePath
+                              );
+                            })
+                          }
                           backgroundSettings={liveBackground.settings}
                           onBackgroundChange={liveBackground.change}
                           backgroundUpdating={liveBackground.updating}
                           inspectBackground={inspectBackground}
                           onInspectBackgroundChange={setInspectBackground}
-                          backgroundDefaultRange={pattern?.x.length
-                            ? [Math.min(pattern.x[0], pattern.x.at(-1)!), Math.max(pattern.x[0], pattern.x.at(-1)!)]
-                            : [0, 50]}
+                          backgroundDefaultRange={
+                            pattern?.x.length
+                              ? [
+                                  Math.min(pattern.x[0], pattern.x.at(-1)!),
+                                  Math.max(pattern.x[0], pattern.x.at(-1)!),
+                                ]
+                              : [0, 50]
+                          }
                           onOverlaySelectionChange={setSelectedOverlayUid}
                           showOriginalPattern={originalPatternVisible}
                           onShowOriginalPatternChange={(visible) => {
@@ -2762,6 +2792,8 @@ export default function App() {
               run={run}
               largeText={largeText}
               onLargeText={setLargeText}
+              showConfigurationControls={showConfigurationControls}
+              onShowConfigurationControls={setShowConfigurationControls}
               onClose={closeSettings}
               returnLabel={
                 {

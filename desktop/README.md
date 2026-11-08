@@ -23,6 +23,10 @@ See the [qualification ledger](NATIVE_INTEGRATION_PARITY.md) for measured parity
 benchmark scope and remaining detector work. Native format-2 `.dio` persistence
 and configuration select/add/duplicate/rename/remove controls are now available;
 see [project compatibility and verification](NATIVE_PROJECT_PARITY.md).
+The configuration bar is hidden by default. Enable **Settings → General →
+Multi-detector setups → Show configuration controls** to use it. This interface
+preference is remembered across restarts; hiding the bar keeps all configurations
+and the active selection intact.
 The next stage adds [native rotations/flips and geometric masks](NATIVE_GEOMETRY_MASK_PARITY.md)
 through the existing controls, including per-configuration persistence and history.
 The separate [LA Cosmic action](NATIVE_LACOSMIC_PARITY.md) is now native as well,

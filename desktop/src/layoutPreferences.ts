@@ -2,6 +2,7 @@
 export const layoutKeys = {
   imageShare: "dioptas-layout:image-share",
   controlsShare: "dioptas-layout:controls-share",
+  configurationControls: "dioptas-layout:configuration-controls",
   batchOpen: "dioptas-batch:open",
   batchDocked: "dioptas-batch:docked",
   batchHeight: "dioptas-batch:dock-height",

@@ -202,6 +202,10 @@
   flex-shrink: 0;
   background: #13161a;
 }
+.settings-preference-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
 .settings-card .settings-detail,
 .settings-detail {
   margin-top: 20px;

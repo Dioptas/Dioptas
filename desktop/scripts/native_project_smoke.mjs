@@ -52,6 +52,28 @@ try {
         pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
       );
       const group = page.getByRole("group", { name: "Project configurations" });
+      const settings = page.getByRole("button", { name: "Settings", exact: true });
+      const toggle = page.getByRole("checkbox", {
+        name: "Show configuration controls",
+      });
+      const closeSettings = page.getByRole("button", { name: "Close settings" });
+      const assertBarHidden = async () => {
+        assert.equal(await group.count(), 0);
+        assert.equal(await page.locator(".has-configurations").count(), 0);
+      };
+      await page.getByTestId("detector-canvas").waitFor();
+      await assertBarHidden();
+      await settings.click();
+      assert.equal(await toggle.isChecked(), false);
+      await toggle.check();
+      await page.screenshot({
+        path: path.join(artifacts, `${name}-configuration-settings.png`),
+      });
+      // Settings fills the workspace even with the configuration preference on.
+      await assertBarHidden();
+      await closeSettings.click();
+      await group.waitFor();
+      await page.reload();
       await group.waitFor();
       const selector = group.getByRole("combobox", {
         name: "Active configuration",
@@ -139,6 +161,45 @@ try {
       await page.screenshot({
         path: path.join(artifacts, `${name}-map-configurations.png`),
       });
+      const configurationCalls = () =>
+        calls.filter(([action]) => action === "configuration").length;
+      const beforeHiding = configurationCalls();
+      await settings.click();
+      await toggle.uncheck();
+      await closeSettings.click();
+      await assertBarHidden();
+      await page.reload();
+      await page.getByTestId("detector-canvas").waitFor();
+      await assertBarHidden();
+      await page.screenshot({
+        path: path.join(artifacts, `${name}-configurations-hidden.png`),
+      });
+      await settings.click();
+      assert.equal(await toggle.isChecked(), false);
+      // The opt-in remains readable in the smallest supported workspace.
+      await page.setViewportSize({ width: 1000, height: 668 });
+      await page.getByRole("button", { name: "Larger", exact: true }).click();
+      await toggle.scrollIntoViewIfNeeded();
+      const card = toggle.locator("xpath=ancestor::section[1]");
+      const bounds = await card.boundingBox();
+      const toggleBounds = await toggle.boundingBox();
+      assert.ok(toggleBounds.x >= bounds.x);
+      assert.ok(toggleBounds.x + toggleBounds.width <= bounds.x + bounds.width);
+      await page.screenshot({
+        path: path.join(artifacts, `${name}-configuration-settings-small.png`),
+      });
+      await toggle.check();
+      await closeSettings.click();
+      await group.waitFor();
+      assert.equal(await selector.inputValue(), "1");
+      assert.equal(await selector.locator("option").count(), 2);
+      assert.equal(configurationCalls(), beforeHiding);
+      const afterHiding = await invoke("state");
+      assert.deepEqual(
+        afterHiding.state.configurationLabels,
+        state.state.configurationLabels,
+      );
+      assert.equal(afterHiding.state.configurationIndex, 1);
       assert.deepEqual(errors, []);
       receipts.push({
         browser: name,
@@ -153,6 +214,12 @@ try {
           "open",
         ],
         configurationLabels: state.state.configurationLabels,
+        configurationPreference: {
+          hiddenByDefault: true,
+          persistedOnAndOff: true,
+          hidingPreservesSelectionAndConfigurations: true,
+          smallWindowLargeText: true,
+        },
         errors,
         commands: [...new Set(calls.map(([a]) => a))],
       });
