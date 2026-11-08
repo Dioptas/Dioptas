@@ -628,6 +628,13 @@ try {
       const card = toggle.locator("xpath=ancestor::section[1]");
       const bounds = await card.boundingBox();
       const toggleBounds = await toggle.boundingBox();
+      const enableLabel = await page
+        .locator('label[for="settings-configuration-controls"]')
+        .boundingBox();
+      assert.ok(
+        toggleBounds.x + toggleBounds.width <= enableLabel.x,
+        "Configuration enable checkbox belongs on the left",
+      );
       assert.ok(toggleBounds.x >= bounds.x);
       assert.ok(toggleBounds.x + toggleBounds.width <= bounds.x + bounds.width);
       await page.screenshot({

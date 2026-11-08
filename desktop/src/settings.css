@@ -371,3 +371,18 @@
 .configuration-controls input {
   width: 200px;
 }
+
+.settings-configuration-enable {
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 0;
+}
+.settings-configuration-enable > input[type="checkbox"] {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.settings-configuration-enable > div {
+  flex: 1;
+  min-width: 0;
+}

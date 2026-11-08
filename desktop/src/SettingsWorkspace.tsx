@@ -213,17 +213,7 @@ export function SettingsWorkspace({
             hidden={section !== 1}
           >
             <section className="settings-card">
-              <div className="settings-preference-row">
-                <div>
-                  <label htmlFor="settings-configuration-controls">
-                    Enable configurations
-                  </label>
-                  <p id="settings-configuration-description">
-                    Keep each detector’s image, calibration and processing
-                    together. Switching off retains your setups and disables
-                    combination.
-                  </p>
-                </div>
+              <div className="settings-preference-row settings-configuration-enable">
                 <Input
                   id="settings-configuration-controls"
                   type="checkbox"
@@ -234,6 +224,16 @@ export function SettingsWorkspace({
                   }
                   aria-describedby="settings-configuration-description"
                 />
+                <div>
+                  <label htmlFor="settings-configuration-controls">
+                    Enable configurations
+                  </label>
+                  <p id="settings-configuration-description">
+                    Keep each detector’s image, calibration and processing
+                    together. Switching off retains your setups and disables
+                    combination.
+                  </p>
+                </div>
               </div>
             </section>
             <ConfigurationBrowsingSettings
