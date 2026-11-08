@@ -333,3 +333,13 @@ off/on changes survive frontend reloads. Existing live Map and detached-preview
 checks pass in the same run. Frontend unit tests and TypeScript/Vite build pass.
 The complete Tauri host is rebuilt to embed the corrected frontend; copying only
 the updated processor into an older app would retain the old histogram defaults.
+
+The numerical regression was rerun against the processor and resources inside
+`Dioptas Rust Map Contrast.app`. It integrates the complete 625-frame Eiger HDF5
+acquisition and compares stored and click-to-reintegrate profiles at frames 0,
+1, 7, 250 and 624. Both warm and cold bulk HDF5 paths pass; the cold path starts
+without an open detector image or a loaded user mask. Toggling histogram gap
+filtering leaves stored/reintegrated profiles unchanged. Disabling the user-mask
+switch and reintegrating the Map still excludes detector-invalid pixels. These
+checks complement the exact explicit-mask pattern/cake comparison above and
+are recorded in `artifacts/native-mask/real-eiger-integration.json`.

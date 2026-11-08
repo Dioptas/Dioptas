@@ -14,6 +14,7 @@ def main():
     args = parser.parse_args()
     folder = args.data
     receipt = {"frames": []}
+    references = {}
     with Native() as native, tempfile.TemporaryDirectory() as temporary:
         native.call("integration_settings", bins=2000, cake_bins=90, trim_zeros=False)
         native.call("open_calibration", path=str(folder / "eiger_0000.poni"))
@@ -41,18 +42,46 @@ def main():
             pixels = native.raster(current, "rawImage")
             flagged = pixels == np.float32(np.iinfo(np.uint32).max)
             assert not np.any(flagged & (mask == 0)), frame
+            references[frame] = np.asarray(current["pattern"]["y"]).copy()
             receipt["frames"].append({"frame": frame, "invalidPixels": int(flagged.sum()), "maskedPixels": int(mask.sum())})
             # Bound this test client's retained buffers while traversing images.
             native.buffers.clear()
-        native.call("map_load", paths=[str(folder / "eiger_0000.h5")], start=1, stop=4)
-        stored = native.call("map_select", index=0, reintegrate=False)
-        rebuilt = native.call("map_select", index=0, reintegrate=True)
-        for actual in [stored, rebuilt]:
-            np.testing.assert_allclose(actual["pattern"]["y"], reference, rtol=2e-12, atol=1e-8)
+        # Map loads the complete acquisition; compare sampled stored profiles
+        # and click-to-reintegrate profiles, including the last frame.
+        native.call("map_load", paths=[str(folder / "eiger_0000.h5")])
+        for frame, expected in references.items():
+            for reintegrate in [False, True]:
+                actual = native.call("map_select", index=frame, reintegrate=reintegrate)
+                np.testing.assert_allclose(actual["pattern"]["y"], expected, rtol=2e-12, atol=1e-8)
+                native.buffers.clear()
+        # Histogram filtering is display-only: neither filter setting can
+        # change the scientific pattern or the detector-invalid exclusions.
+        for filter_gaps in [False, True]:
+            native.call("image_levels", source="detector", filter_gaps=filter_gaps)
+            for reintegrate in [False, True]:
+                actual = native.call("map_select", index=0, reintegrate=reintegrate)
+                np.testing.assert_allclose(actual["pattern"]["y"], reference, rtol=2e-12, atol=1e-8)
+                native.buffers.clear()
+        native.call("map_mask", use_mask=False, reintegrate=True)
+        actual = native.call("map_select", index=0, reintegrate=False)
+        np.testing.assert_allclose(actual["pattern"]["y"], reference, rtol=2e-12, atol=1e-8)
         receipt.update({"automaticPixels": int(auto.sum()), "medianIntensity": float(np.median(reference)),
                         "maximumIntensity": float(reference.max()), "explicitMaskExactlyMatches": True,
                         "cakeExactlyMatches": True, "userMaskDisabledStillExcludesDetectorInvalids": True,
-                        "storedAndReintegratedMapMatch": True})
+                        "storedAndReintegratedMapMatch": True,
+                        "histogramFilterDoesNotChangeMapIntegration": True,
+                        "mapUserMaskDisabledStillExcludesDetectorInvalids": True})
+    # Exercise the cold bulk HDF5 path, without a previously opened detector
+    # image or a user mask to supply the automatic exclusions.
+    with Native() as cold_map:
+        cold_map.call("integration_settings", bins=2000, cake_bins=90, trim_zeros=False)
+        cold_map.call("open_calibration", path=str(folder / "eiger_0000.poni"))
+        cold_map.call("map_load", paths=[str(folder / "eiger_0000.h5")])
+        for frame, expected in references.items():
+            actual = cold_map.call("map_select", index=frame, reintegrate=False)
+            np.testing.assert_allclose(actual["pattern"]["y"], expected, rtol=2e-12, atol=1e-8)
+            cold_map.buffers.clear()
+        receipt["coldBulkHdf5MapMatches"] = True
     with Native() as image_first:
         image_first.call("integration_settings", bins=2000, cake_bins=90, trim_zeros=False)
         image_first.call("open_image", path=str(folder / "eiger_0000.h5"))
