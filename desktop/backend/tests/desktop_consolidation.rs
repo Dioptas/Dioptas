@@ -172,6 +172,10 @@ fn native_combination_scales_raw_contributions_keeps_masks_and_roundtrips() {
     image(&a, [24, 32], 10);
     image(&b, [24, 32], 30);
     let mut s = Session::new(root());
+    let host = call(&mut s, "__host__", json!({}));
+    assert_eq!(host.result["runtime"], "rust");
+    assert_eq!(host.result["engine"], "dioptrin");
+    assert_eq!(host.result["qtApplication"], false);
     call(&mut s, "open_image", json!({"path":a}));
     geometry(&mut s);
     call(&mut s, "configuration", json!({"operation":"duplicate"}));
@@ -180,6 +184,14 @@ fn native_combination_scales_raw_contributions_keeps_masks_and_roundtrips() {
         &mut s,
         "combination_settings",
         json!({"patterns":true,"cakes":true}),
+    );
+    assert_eq!(
+        combined.result["state"]["combination"]["backends"]["pattern"],
+        "Dioptrin · native Rust"
+    );
+    assert_eq!(
+        combined.result["state"]["combination"]["backends"]["cake"],
+        "Dioptrin · native Rust"
     );
     let initial = y(&combined);
     assert!(initial.iter().any(|v| *v > 0.));
@@ -203,6 +215,24 @@ fn native_combination_scales_raw_contributions_keeps_masks_and_roundtrips() {
             .count()
             >= initial.len()
     );
+    for (action, subtract) in [
+        ("integration_save_pattern", true),
+        ("export_pattern", false),
+    ] {
+        let output = temp.path().join(format!("{action}.xy"));
+        call(
+            &mut s,
+            action,
+            json!({"path":output,"subtract_background":subtract}),
+        );
+        let exported: Vec<f64> = std::fs::read_to_string(output)
+            .unwrap()
+            .lines()
+            .filter(|line| !line.starts_with('#') && !line.is_empty())
+            .map(|line| line.split_whitespace().nth(1).unwrap().parse().unwrap())
+            .collect();
+        proportional(&exported, &y(&masked), 1.);
+    }
     let project = temp.path().join("experiment.dio");
     call(&mut s, "save_project", json!({"path":project}));
     let mut restored = Session::new(root());

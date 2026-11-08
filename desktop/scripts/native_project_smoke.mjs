@@ -33,6 +33,10 @@ try {
         assert.equal(reply.ok, true, `${action}: ${reply.error}`);
         return reply;
       };
+      const host = await invoke("__host__");
+      assert.equal(host.runtime, "rust");
+      assert.equal(host.engine, "dioptrin");
+      assert.equal(host.qtApplication, false);
       await invoke("open_image", {
         path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
       });
@@ -178,6 +182,68 @@ try {
           .count(),
         0,
       );
+      const idle = async () => {
+        await page.waitForFunction(() => !document.querySelector(".spin"));
+        await page
+          .getByRole("button", { name: "Combine patterns", exact: true })
+          .waitFor();
+        await page.waitForFunction(
+          () =>
+            !document.querySelector(".configuration-combination button")
+              ?.disabled,
+        );
+        await page.evaluate(
+          () =>
+            new Promise((resolve) =>
+              requestAnimationFrame(() => requestAnimationFrame(resolve)),
+            ),
+        );
+      };
+      // Contrast belongs to the stable native configuration identity, not to
+      // a list position that can change after add/remove/project restoration.
+      await selector.selectOption("0");
+      await idle();
+      await page
+        .getByRole("button", {
+          name: "Detector histogram settings",
+          exact: true,
+        })
+        .click();
+      await page
+        .getByRole("combobox", { name: "Image scale", exact: true })
+        .selectOption("log");
+      await page.keyboard.press("Escape");
+      const lower = page.getByRole("slider", {
+        name: "Lower intensity handle",
+        exact: true,
+      });
+      await lower.press("ArrowRight");
+      const retainedLower = await lower.getAttribute("aria-valuenow");
+      await selector.selectOption("1");
+      await idle();
+      assert.equal(
+        await page
+          .getByTestId("detector-canvas")
+          .getAttribute("data-intensity-scale"),
+        "linear",
+      );
+      await selector.selectOption("0");
+      await idle();
+      assert.equal(await lower.getAttribute("aria-valuenow"), retainedLower);
+      assert.equal(
+        await page
+          .getByTestId("detector-canvas")
+          .getAttribute("data-intensity-scale"),
+        "log",
+      );
+      assert.equal(
+        await page
+          .getByRole("button", { name: "Auto intensity", exact: true })
+          .getAttribute("aria-pressed"),
+        "false",
+      );
+      await selector.selectOption("1");
+      await idle();
       const factor = page.getByRole("spinbutton", {
         name: "Detector factor",
         exact: true,
@@ -203,6 +269,14 @@ try {
           ).length === 2,
       );
       const combined = await invoke("state");
+      assert.equal(
+        combined.state.combination.backends.pattern,
+        "Dioptrin · native Rust",
+      );
+      assert.equal(
+        combined.state.combination.backends.cake,
+        "Dioptrin · native Rust",
+      );
       assert.equal(combined.state.combination.factor, 2);
       assert.equal(combined.state.combination.patterns, true);
       assert.equal(combined.state.combination.cakes, true);
@@ -281,6 +355,10 @@ try {
       assert.deepEqual(errors, []);
       receipts.push({
         browser: name,
+        runtime: host.runtime,
+        engine: host.engine,
+        combinationBackends: combined.state.combination.backends,
+        independentConfigurationContrast: true,
         pythonInChild: false,
         projectControls: [
           "add",

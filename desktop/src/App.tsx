@@ -2106,7 +2106,9 @@ export default function App() {
                                 )?.autoActive ?? true
                               }
                               initialLevelsReady={configurationDisplays.current.has(
-                                state?.configurationIndex ?? 0,
+                                state?.configurationContext ??
+                                  state?.configurationIndex ??
+                                  0,
                               )}
                               preferences={
                                 multipleImages

@@ -1,137 +1,100 @@
-# Detector combination
+# Detector combination in the consolidated Rust desktop
 
-Implemented in the isolated `codex/detector-combination` checkout. The reference
-is Qt's `ConfigurationController`, `ConfigurationWidget` and `DioptasModel`.
+The detector-combination interface is included in `codex/rust-desktop`.
+The original interface commit `6db5c58d` was merged by `37b7dfdf`; the
+scientific commands were ported to `desktop/backend/src/combination.rs`.
+The default application uses the Rust processor and compiled Dioptrin crate.
+It does not use a Python wheel or fall back to Python or pyFAI for combination.
 
-The existing `DioptasModel.configurations` and standard `.dio` project state are
-the starting point. This work adds selection of those configurations to the
-React command boundary so factors, calibration and masks can be inspected and
-edited independently. It does not replace configuration management or add a
-second scientific implementation.
+## Interface
 
-## Workflow
+Enable **Settings → General → Multi-detector setups → Show configuration
+controls**. This existing preference remains off by default and persists across
+restarts. The shared configuration bar supports add, duplicate, rename,
+select and remove. Hiding it preserves configurations and the selection.
 
-For a project with at least two configurations, a compact bar offers the selected
-configuration, its image factor, independent Combine patterns / Combine cakes
-switches, and Save combined pattern. Factor commits on blur or Enter and uses
-`ImgModel.factor`, like Qt. It affects that detector's corrected pixels before
-integration. It does not alter another detector's pixels, geometry or mask.
+With two or more configurations, Integration adds the selected detector's
+**Factor**, independent **Combine patterns** and **Combine cakes** switches,
+and **Save combined pattern**. Factor commits on blur or Enter and scales that
+detector's scientific pixels before integration. Images remain independent;
+combination produces calibrated patterns/cakes, never a detector-image mosaic.
+Each configuration retains its image, calibration, masks, corrections and
+scientific coordinates. Detector contrast, palette, linear/log and Auto settings
+follow the stable configuration identity. Individual and combined cakes have
+separate display settings. Pending scientific drafts prevent configuration changes.
 
-The left display remains the selected detector image or the cake. Combining
-operates on calibrated diffraction coordinates, never on an image mosaic.
-Detector contrast limits, linear/log scaling, palettes and Auto preferences
-are remembered per configuration during the session; individual and combined
-cake displays have separate contrast memory. The current scientific image,
-calibration, masks, corrections and loaded project state remain in the existing
-configuration models. Calibration workflow metadata follows configuration selection.
+## Native processing
 
-Combination requires an image and calibration in every configuration. An
-incomplete configuration is identified in the bar; unavailable results are
-cleared. The controls retain the ability to turn combination off. The normal
-single-detector behavior returns when its switch is off.
+Tauri's default stdio child is `dioptas-processor`. The combination commands
+are handled by Rust `Session`; its response identifies both combination products
+as **Dioptrin · native Rust**. The native kernels are
+`dioptrin::multi::MultiIntegrator::integrate2d_from_slices` with
+`MultiNormalization::Absolute`. Signal, normalization and optional variance are
+accumulated on the shared grid before division. Pattern integration uses one
+azimuth bin of the same native API. Separate prepared pattern and cake plans
+retain warm grids, geometry, masks, units, sectors and polarization.
 
-## Scientific contract
+Each configuration supplies its own physical detector geometry, dimensions,
+corrected/scaled f64 samples, effective mask and supersampling. The selected
+configuration supplies the radial unit/binning, cake resolution, polarization
+and azimuth sectors. Coverage spans all participating detectors, including gaps.
+Patterns support 2θ, Q and d. Cakes use Q in Q mode and 2θ in 2θ/d mode;
+readouts, linked guides and exports follow their actual coordinates.
 
-The selected configuration supplies the output radial unit and bin count, cake
-azimuth bin count, polarization and solid-angle setting, as Qt does. All
-configurations supply their own corrected/scaled image, geometry, mask and ROI.
-Combined coverage spans all detectors, including gaps; overlap is accumulated
-before normalization, rather than averaging normalized patterns or cakes.
-Qt's combined path does not apply the individual 1D/cake azimuth-sector settings;
-this interface keeps that behavior.
+Combination requires calibrated images in every configuration and solid-angle
+correction. Unsupported detector/uncertainty settings fail explicitly and
+preserve the preceding scientific state. Combined Poisson errors currently
+require uncorrected, unit-factor images; other uncertainty combinations remain
+unqualified. Fractional splitting does not imply bitwise Qt full-split identity,
+especially at beam/seam and coverage boundaries.
 
-The pyFAI selection calls the existing Qt model combination methods. The desktop
-restores its explicit processing policy after Qt's cake entry point activates
-individual cakes. No background worker or scientific HTTP server is introduced.
+The Cargo dependency remains pinned to Dioptrin revision
+`645adc4af13c7b375e11a2244cd389c41877232d`, which combines physical-detector support
+and shared-grid multi-detector integration with validated beam-splitting fixes.
+Replacing it with the plain 0.11.0 tag would remove physical-detector support
+needed by this desktop. The Python dependency pin belongs to the explicitly
+selected compatibility/reference runtime and does not select the native engine.
+See [the consolidation record](RUST_DESKTOP_CONSOLIDATION.md) and
+[native detector qualification](NATIVE_DETECTOR_PARITY.md).
 
-For a compatible installed Dioptrin with `MultiIntegrator.integrate2d`, the
-Dioptrin selection uses that shared-grid API with `normalization="absolute"`.
-The adapter supplies common physical bin ranges and independent detector masks
-and geometry. Pattern combination uses one azimuth bin of the same native
-accumulation path, preserving the absolute detector normalization and fractional
-pixel weights of the new API. Legacy `MultiIntegrator.integrate1d` has a different
-relative/row-normalization contract and is not substituted silently.
+## Saving and projects
 
-Spline, curved or nonuniform detectors, detector supersampling, disabled
-solid-angle correction, and older/missing native APIs retain the existing pyFAI
-combination path. Actual backend and any fallback reason are present in state
-and combination-button tooltips. Pattern and cake integrators retain separate prepared grids and are cached by geometry,
-mask, unit and shared radial bounds and released on the processing thread.
-Dioptrin remains optional.
-
-The combined pattern uses 2θ, Q or d. Like Qt's combined model, the cake is in Q
-when the selected radial unit is Q, and in 2θ for both 2θ and d selections.
-Axis labels, live readings, physical linked clicks, phase guides, Auto intensity,
-and exported cake coordinates follow the actual cake unit. Ordinary cakes keep
-their existing 2θ convention.
-
-## Saving and persistence
-
-Save combined pattern writes the displayed combined result using the existing
-`xypattern` writer and supports Qt's XY, CHI, DAT and FXYE choices. The ordinary
-Save displayed pattern action also saves the combined result when it is shown.
-Cake PNG, TIFF, TXT and CSV saving and cake Auto levels use the displayed combined
-array rather than the selected detector's ordinary cake.
-
-Images, geometry, masks, factors and selected configuration use standard `.dio`
-state and remain readable in Qt. Combination switches and per-configuration
-calibration workflow values use the optional `react_desktop` attribute. Qt can
-ignore that attribute; saving again in Qt does not retain these desktop options.
-Per-configuration contrast memory lasts for the desktop session.
+**Save combined pattern** and the ordinary **Save displayed pattern** action
+write the displayed combined curve through the native format writer. The latter
+also uses the combined curve for the legacy `export_pattern` command while
+combination is active. Exported error columns require a qualified sigma array.
+Cake PNG/TIFF/TXT/CSV saving and Auto intensity operate on the displayed combined
+cake rather than the selected detector's ordinary cake. Native project saves
+retain configurations, selected identity, factors, masks, geometry and combination
+flags. Reopening recomputes the native result. No authored source image is changed.
 
 ## Verification
 
-`desktop/tests/test_combination.py` compares the actual Qt model against the
-command boundary for 2θ/Q/d, overlapping/disjoint coverage, unequal image shapes,
-pixel pitches, distances and rotations, factors and masks. It verifies restored
-individual results, exact preservation of geometry/masks, combined output data,
-project round trips, configuration workflow metadata, rejected invalid input,
-physical cake-click conversion, optional-engine fallback and native cache lifetime.
-The local native wheel was built from Dioptrin commit `7e6b73b` in
-`/Users/clemens/Programming/Dioptrin-multi2d`. That API is not released yet; the
-ordinary optional dependency pin is unchanged, and older installations use the
-capability-checked pyFAI fallback. Only this isolated checkout's Python
-environment was given the local wheel.
+Run from `desktop/`:
 
-With pyFAI 2026.9.0, the six 2θ/Q/d and overlapping/disjoint comparisons give:
+```sh
+npm run backend:test
+npm run backend:build
+npm run build
+npm test
+npm run test:combination
+```
 
-| Metric | Largest measured difference |
-| --- | ---: |
-| Combined pattern, relative L2 | 0.156% |
-| Cake, relative L2 over common populated bins | 0.411% |
-| Cake, relative L2 over all bins | 7.26% |
-| Different populated/empty cake bins | 20 of 4,320 |
+`backend/tests/desktop_consolidation.rs` checks the Rust/Dioptrin identity,
+raw-contribution factor ratios, independent masking, combined data/export,
+project round trips, unequal image shapes, physical geometry preservation and
+Q/d coordinates. It verifies both combined-save routes against the displayed
+numerical curve, including normal Save displayed pattern.
 
-Coverage differences are checked separately and are confined to one bin of a
-coverage boundary. The tests bound both their number and whole-array error;
-they are not silently dropped from the comparison. The counting-mode adapter
-checks matching coverage and absolute intensity scaling against pyFAI to
-`rtol=2e-6`. These fixture results do not establish universal detector accuracy
-or bitwise equivalence between full-polygon splitting implementations. The raw
-six-case report is in `desktop/artifacts/detector-combination/numerical.json`.
-The upstream report documents the algorithm differences in greater detail.
+`test:combination` runs the real Rust stdio child in headless Chromium and
+WebKit with `DIOPTAS_PYTHON=/nonexistent/python` and `PATH=/nonexistent`.
+It asserts `runtime=rust`, `engine=dioptrin`, both native combination providers,
+actual curves/cakes, factors/export, configuration persistence, independent manual
+contrast/Auto restoration and small-window controls at both text sizes.
+Receipts and screenshots are under ignored `artifacts/native-project/`.
+The browser bridge name is a test adapter; the processing child is Rust.
 
-`npm run test:combination` (add `-- --webkit` for WebKit or
-`-- --dioptrin` for the new native path) uses headless Playwright
-and real Python models. It checks independent contrast, scale, factors,
-combination switches, saving, and visible image/control bounds at 1000 × 668
-with both interface text sizes. Screenshots and reports are written under ignored
-`desktop/artifacts/detector-combination/`. No visible browser/native window is
-needed. Tauri's native file-dialog route has a Rust unit test.
-
-## Recorded checks (2026-11-08)
-
-- Full desktop suite with the existing optional Dioptrin 0.9.0 wheel: **333 passed**.
-- Final combination suite with the local shared-grid wheel: **21 passed**.
-- Backend/session/binary regression subset with that wheel: **31 passed**.
-- Frontend unit checks: **61 passed**; TypeScript and Vite build passed.
-- Rust host tests: **18 passed**, including combined-save dialog routing.
-- Headless Chromium and WebKit workflows passed, including the actual Dioptrin
-  backend, configuration contrast restoration, combined Q-cake clicks and guides,
-  saving, and both text sizes at 1000 × 668.
-
-The implementation stays on `codex/detector-combination`; the primary checkout
-and existing user previews were not changed or restarted. The worktree's parent
-commit `a814caab` captures the source already present in the primary checkout
-when this work began. It is a baseline snapshot, not part of the combination
-change. The following feature commit can be reviewed or applied separately.
+The original Python/Qt-model qualification is retained in
+`desktop/tests/test_combination.py` and the history of this document. It is an
+independent reference workflow, not a shipping runtime or silent fallback.
+The broader native/reference limits remain in the native qualification ledgers.

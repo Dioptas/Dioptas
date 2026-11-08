@@ -384,6 +384,12 @@ impl Session {
                         .clone()
                         .filter(|_| self.patterns.background.enabled)
                         .ok_or("Enable pattern background first.")?
+                } else if self.combination.patterns {
+                    Arc::new(Curve::from_json(
+                        self.combination.pattern.as_deref().ok_or(
+                            "Integrate the combined detectors before saving their pattern.",
+                        )?,
+                    )?)
                 } else if args
                     .get("subtract_background")
                     .map(|v| boolean(v, "Subtract background"))
@@ -412,7 +418,11 @@ impl Session {
                 export_curve(
                     &file,
                     &curve,
-                    &self.patterns.unit,
+                    if self.combination.patterns && action != "integration_save_background" {
+                        &self.settings.unit
+                    } else {
+                        &self.patterns.unit
+                    },
                     self.settings.geometry.wavelength,
                 )?;
                 return Ok(Some(Reply::metadata(json!({"ok":true,"savedPath":file}))));
