@@ -1,4 +1,4 @@
-# React/Tauri Python-removal audit — 2026-11-07
+# React/Tauri Python-removal audit — 2026-11-08
 
 ## Current default
 
@@ -11,8 +11,8 @@ the environment, and invalid selections or missing processors fail explicitly.
 
 The Tauri hooks build and stage `dioptas-processor` for the selected target and
 debug/release profile. `bundle.externalBin` copies it beside the host and
-includes it when bundling is enabled. This preview still has bundling disabled;
-staging a sidecar does not qualify a portable installer. After backend-source
+includes it in the standalone app. The [macOS standalone stage](NATIVE_STANDALONE_PARITY.md)
+now bundles resources and qualifies a relocated application without source/Python access. After backend-source
 edits, restart Tauri to stage the rebuilt processor. Universal macOS packaging
 is explicitly unavailable; individual architecture builds remain possible.
 
@@ -43,8 +43,8 @@ The manual geometry form's “pyFAI” label names a coordinate convention.
 | Area | Current boundary | Work or explicit scope decision |
 | --- | --- | --- |
 | Clean builds | The pinned Dioptrin detector commit `5273868599151eb536ddccca56c7fd80437a0754` is local and unpublished. This workspace has it cached. | Publish/merge the shared commit and pin a revision available to CI; no publication was performed by this task. |
-| Portable application | The sidecar is staged, but startup still uses a source-checkout root/current directory. The example image also lives in that tree. | Resolve packaged resources independently of build-machine paths; bundle examples, notices and required libraries; test with the source tree and Python absent. |
-| Native distribution | Debug macOS builds are checked here. Bundling, signing/notarization, release-profile packaging, Windows/Linux and universal macOS are unqualified. | Build and inspect complete artifacts for each supported platform. No native window was opened for this audit. |
+| Portable application | The macOS app now owns its processor, resources, examples, offline guide and notices. Release startup has no checkout fallback; a relocated sandboxed app passes. | Runtime independence is qualified within the [standalone ledger](NATIVE_STANDALONE_PARITY.md). Further platforms remain separate. |
+| Native distribution | The macOS arm64 release bundle is inspected and ad-hoc signed. One isolated packaged-window check passes. Developer ID/notarization, Windows/Linux and universal macOS remain unqualified. | Qualify the remaining distribution targets separately; this is a local artifact, not a published release. |
 | Historical projects | Native format-2 projects and multiple configurations are supported. Formats 0/1 and legacy transformed-detector projects without an owned physical model fail explicitly. | Implement a qualified importer, retain a separate conversion tool, or document the deliberate compatibility boundary before removing the old reader. |
 | Flat-detector options | Ordinary named models, orientations, splines and Fit2D are ported. Arbitrary manufacturer overrides, sensor/parallax settings and NeXus definitions embedding flat/dark corrections are outside the qualified boundary. | Qualify the flat-detector options needed by real projects. Curved detectors are not a missing Dioptas workflow or removal requirement. |
 | Reader/selection coverage | Enabled dioptrin-io readers preserve typed data, with explicit scientific rejection of complex/color input and integers outside ±2^53. Standalone JPEG/JPEG2000 and sparse reconstruction are not enabled in this consumer. Generic HDF5 dataset/external-link choices exist as command arguments, without dedicated UI controls. | Decide needed input coverage, add the selection workflow, and qualify representative files against the pinned reader. A broad upstream reader catalogue alone does not prove consumer parity. |

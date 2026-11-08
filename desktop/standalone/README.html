@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width" />
+  <title>Dioptas Desktop — Offline guide</title>
+  <style>
+    body {
+      font:
+        17px/1.6 system-ui,
+        sans-serif;
+      max-width: 850px;
+      margin: 3em auto;
+      padding: 0 1.5em;
+      color: #222;
+    }
+    h1,
+    h2 {
+      line-height: 1.2;
+    }
+    code {
+      font-size: 0.9em;
+    }
+    a {
+      color: #a54e00;
+    }
+  </style>
+  <h1>Dioptas Desktop</h1>
+  <p>
+    This application processes diffraction images locally with Rust, Dioptrin
+    and dioptrin-io. It requires no Python installation, source checkout,
+    development server or internet connection. Keep the complete application
+    together when moving it.
+  </p>
+  <h2>Start a measurement</h2>
+  <ol>
+    <li>
+      Open an image in Calibration. Check the detector assignment, pixel sizes
+      and orientation. Ambiguous detector matches remain Custom; your explicit
+      choice takes precedence.
+    </li>
+    <li>
+      Load a calibration, enter geometry manually, or select a calibrant and
+      pick diffraction peaks. Use Calibrate for a fresh fit and Refine to
+      continue a fit. Undo/Redo retains the workflow history.
+    </li>
+    <li>
+      Use Mask for manual shapes and masking plugins. Integration produces a
+      pattern and cake with the current calibration, masks and corrections.
+    </li>
+    <li>
+      Use Batch and Map for image series. Save a <code>.dio</code> project to
+      retain configurations and owned data. Explicit exports create pattern,
+      image or processed series files.
+    </li>
+  </ol>
+  <h2>Bundled examples</h2>
+  <p>
+    <a href="examples/CeO2_Pilatus1M.tif">Raw CeO₂ Pilatus image</a> ·
+    <a href="examples/CeO2_Pilatus1M.poni">Separate reference calibration</a> ·
+    <a href="examples/mo.jcpds">Molybdenum phase</a>
+  </p>
+  <p>
+    The Example action opens the raw image without applying the reference
+    calibration. Starting values are CeO₂, 0.406626 Å wavelength, 172 µm pixels
+    and 200 mm distance. They are starting inputs, not a fitted solution.
+  </p>
+  <h2>Resources and notices</h2>
+  <p>
+    Calibrants, detector definitions and scientific reference metadata are
+    embedded in the processor; inspectable copies of the applicable data and
+    notices accompany this guide. Material records retain their individual
+    sources and qualifications. Optional numerical dataset packages are not
+    included.
+  </p>
+  <p>
+    <a href="RESOURCE_MANIFEST.json">Resource hashes and provenance</a> ·
+    <a href="THIRD_PARTY_NOTICES.json">Dependency license index</a> ·
+    <a href="licenses/Dioptas-MIT.txt">Dioptas license</a>
+  </p>
+  <p>
+    Fonts use the operating system. Images, icons, lookup tables and application
+    code are bundled; the application does not download these at runtime.
+    Optional custom actions run programs chosen by you; a Python script you
+    configure still needs its own interpreter.
+  </p>
+  <h2>Compatibility</h2>
+  <p>
+    This is a migration build. Current format-2 projects are supported within
+    the native scientific boundary. Historical project formats 0/1, some legacy
+    transformed-detector projects, arbitrary Python plugins and unqualified
+    detector options fail explicitly. Keep original projects and data. Fixture
+    agreement does not certify every detector or calibration.
+  </p>
+</html>

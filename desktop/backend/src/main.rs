@@ -1,22 +1,20 @@
-use std::{
-    io,
-    path::{Path, PathBuf},
-};
+use std::{io, path::PathBuf};
 
 fn run() -> Result<(), String> {
     let mut args = std::env::args().skip(1);
-    let mut root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .to_path_buf();
+    let mut root = None;
     let mut example = false;
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--example" => example = true,
-            "--source-root" => {
-                root = PathBuf::from(args.next().ok_or("--source-root requires a directory")?)
+            "--resource-dir" | "--source-root" => {
+                if root.is_some() {
+                    return Err("Specify the resource directory once.".into());
+                }
+                root = Some(PathBuf::from(
+                    args.next()
+                        .ok_or("Resource directory argument requires a path")?,
+                ))
             }
             _ => return Err(format!("Unknown processor argument {arg}")),
         }
@@ -24,7 +22,16 @@ fn run() -> Result<(), String> {
     dioptas_backend::transport::serve(
         &mut io::stdin().lock(),
         &mut io::BufWriter::new(io::stdout()),
-        root,
+        root.unwrap_or_else(|| {
+            let executable = std::env::current_exe().expect("processor executable path");
+            let directory = executable.parent().expect("processor directory");
+            let bundled = directory.join("../Resources/dioptas");
+            if cfg!(target_os = "macos") && bundled.is_dir() {
+                bundled
+            } else {
+                directory.join("dioptas")
+            }
+        }),
         example,
     )
 }

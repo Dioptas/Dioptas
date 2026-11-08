@@ -79,8 +79,9 @@ visible native smoke tests after every small UI change. When a visible check
 is necessary, explain briefly why, use an isolated test window, and close only
 that test's windows and processes. Preserve the user's previews and work.
 
-Use standard CPython 3.13: `uv sync --python 3.13 --extra test` in your checkout,
-and `npm ci` in desktop. Never share an editable .venv or mutate another
+The default Rust app and standalone build require no Python. For independent
+Python references only, use standard CPython 3.13: `uv sync --python 3.13 --extra test`
+in your checkout. Use `npm ci` in desktop. Never share an editable .venv or mutate another
 checkout's dependencies. Build with `npm run build`; exercise real models and
 meaningful Qt parity/interaction checks, then existing calibration/browser
 regressions as appropriate. When required by the criteria above, native smoke:

@@ -525,6 +525,14 @@ impl Session {
         } else {
             Path::new(&self.files.output_directory)
         };
+        if self.root.join("RESOURCE_MANIFEST.json").is_file()
+            && directory
+                .canonicalize()
+                .map_err(|e| e.to_string())?
+                .starts_with(self.root.canonicalize().map_err(|e| e.to_string())?)
+        {
+            return Err("Choose an output folder outside the application before automatically saving patterns from its bundled examples.".into());
+        }
         for format in &self.settings.formats {
             let file = directory.join(format!("{}{}", self.patterns.name, format));
             if self.image.as_ref().is_some_and(|i| i.path == file) {

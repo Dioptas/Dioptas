@@ -175,10 +175,19 @@ impl Processor {
         )
     }
 
+    #[cfg(test)]
     pub fn start_backend(example: bool, backend: Backend) -> Result<Self, String> {
-        let root = Self::source_root();
+        Self::start_backend_at(example, backend, None)
+    }
+
+    pub fn start_backend_at(
+        example: bool,
+        backend: Backend,
+        resources: Option<&Path>,
+    ) -> Result<Self, String> {
         let mut command = match backend {
             Backend::Python => {
+                let root = Self::source_root();
                 let python = std::env::var_os("DIOPTAS_PYTHON")
                     .map(PathBuf::from)
                     .unwrap_or_else(|| {
@@ -194,6 +203,7 @@ impl Processor {
                 let mut command = Command::new(python);
                 command
                     .args(["-u", "-m", "dioptas.desktop.stdio"])
+                    .current_dir(root)
                     .env("PYTHONUNBUFFERED", "1");
                 command
             }
@@ -210,12 +220,18 @@ impl Processor {
                             .ok()
                             .and_then(|p| p.parent().map(|p| p.join(filename)));
                         sibling.filter(|p| p.is_file()).unwrap_or_else(|| {
-                            root.join("desktop/backend/target")
-                                .join(if cfg!(debug_assertions) {
-                                    "debug"
-                                } else {
-                                    "release"
-                                })
+                            #[cfg(debug_assertions)]
+                            let root = Self::source_root().join("desktop/backend/target");
+                            #[cfg(not(debug_assertions))]
+                            let root = std::env::current_exe()
+                                .unwrap_or_default()
+                                .parent()
+                                .unwrap_or(Path::new("."))
+                                .to_path_buf();
+                            root
+                                // Development keeps the source-build fallback. Packaged release
+                                // hosts never search a build machine's checkout.
+                                .join(if cfg!(debug_assertions) { "debug" } else { "" })
                                 .join(filename)
                         })
                     });
@@ -223,12 +239,19 @@ impl Processor {
                     return Err(format!("The native processor is missing at {}. Run npm run backend:prepare in desktop (add -- --release for a release host), then restart. Python was not started.", native.display()));
                 }
                 let mut command = Command::new(native);
-                command.arg("--source-root").arg(&root);
+                if let Some(resources) = resources {
+                    if !resources.join("RESOURCE_MANIFEST.json").is_file() {
+                        return Err(format!("Application resources are missing at {}. Rebuild or reinstall the complete application.", resources.display()));
+                    }
+                    command.arg("--resource-dir").arg(resources);
+                } else {
+                    #[cfg(debug_assertions)]
+                    command.arg("--source-root").arg(Self::source_root());
+                }
                 command
             }
         };
         command
-            .current_dir(root)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit());
@@ -402,6 +425,18 @@ mod tests {
             .unwrap()
             .is_some());
         assert!(processor.request("state", json!({})).is_err());
+    }
+
+    #[test]
+    fn incomplete_packaged_resources_fail_before_starting_a_processor() {
+        let error = Processor::start_backend_at(
+            false,
+            Backend::Rust,
+            Some(Path::new("/nonexistent/dioptas-resources")),
+        )
+        .err()
+        .expect("Incomplete resources must fail");
+        assert!(error.contains("Application resources are missing"));
     }
 
     #[test]

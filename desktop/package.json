@@ -41,7 +41,10 @@
     "test:native-lacosmic-transport": "node --test scripts/native_lacosmic_transport.test.mjs",
     "backend:prepare": "node scripts/prepare_native_backend.mjs",
     "tauri:python-dev": "tauri dev -- -- --backend=python",
-    "test:backend-commands": "node scripts/backend_command_audit.mjs"
+    "test:backend-commands": "node scripts/backend_command_audit.mjs",
+    "tauri:bundle": "node scripts/bundle_standalone.mjs",
+    "test:standalone-artifact": "node scripts/inspect_standalone.mjs",
+    "test:standalone-native": "node scripts/standalone_smoke.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",

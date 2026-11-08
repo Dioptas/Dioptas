@@ -19,14 +19,14 @@ from dioptas.model.util.mask_plugins import (
     ThresholdMaskPlugin, CosmicRayMaskPlugin, PowderDiffSpotMaskPlugin,
 )
 from dioptas.model.util.mask_plugins import powder_outlier
-from native_backend_parity import EXECUTABLE, ROOT, read_exact
+from native_backend_parity import PROCESSOR_ARGUMENTS, EXECUTABLE, ROOT, read_exact
 
 
 def main():
     assert powder_outlier._c_compute_binned is not None, "Build/install the reference C accelerator for this comparison"
     # Qualify the deterministic SciPy route used by the Rust implementation.
     powder_outlier._cv2 = None
-    child = subprocess.Popen([str(EXECUTABLE)], stdin=subprocess.PIPE,
+    child = subprocess.Popen([str(EXECUTABLE), *PROCESSOR_ARGUMENTS], stdin=subprocess.PIPE,
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                              env={**os.environ, "PATH": "/nonexistent", "DIOPTAS_PYTHON": "/nonexistent/python"})
     identifier = 0

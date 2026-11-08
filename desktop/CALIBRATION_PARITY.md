@@ -1,14 +1,14 @@
 # Calibration workflow comparison
 
-The optional [native Rust migration](backend/README.md) now supports measured
+The default [native Rust processor](backend/README.md) now supports measured
 peak picking, grouped edits, constraints, fresh/continued fitting, staged
 automatic Massif/Blob refinement, live progress/cancel with rollback, calibration
 Undo/Redo, standalone peak files and fitted validation plots. It also supports
-flat uniform-pixel PONI and complete manual pyFAI geometry. Native image
+qualified detector/PONI and complete manual pyFAI/Fit2D geometry. Native image
 rotations/flips/reset and their history are now covered in the
 [orientation and geometric-mask stage](NATIVE_GEOMETRY_MASK_PARITY.md). Native detector
-definitions, distortion, linked inspection and Fit2D conversion remain on the
-migration backlog. The native scope/evidence is recorded in that migration
+definitions, distortion, linked inspection and Fit2D conversion are now covered
+in [the detector ledger](NATIVE_DETECTOR_PARITY.md). The native scope/evidence is recorded in that migration
 document; the older comparison below describes the existing Python backend and
 must not be attributed wholesale to the Rust processor.
 

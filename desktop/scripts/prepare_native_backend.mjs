@@ -5,6 +5,7 @@ import { chmod, copyFile, mkdir, rename, rm } from "node:fs/promises";
 import { createInterface } from "node:readline";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { prepareStandaloneResources } from "./prepare_standalone_resources.mjs";
 
 const desktop = fileURLToPath(new URL("../", import.meta.url));
 const args = process.argv.slice(2);
@@ -45,6 +46,12 @@ console.log(
 const child = spawn(command, buildArgs, {
   cwd: desktop,
   stdio: ["ignore", "pipe", "inherit"],
+  env: {
+    ...process.env,
+    ...(target.includes("apple-darwin")
+      ? { MACOSX_DEPLOYMENT_TARGET: "14.0" }
+      : {}),
+  },
 });
 let executable;
 const lines = createInterface({ input: child.stdout });
@@ -90,3 +97,4 @@ try {
   await rm(temporary, { force: true });
 }
 console.log(`Staged ${path.relative(desktop, destination)}.`);
+await prepareStandaloneResources(target);

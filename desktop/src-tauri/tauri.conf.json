@@ -36,9 +36,15 @@
     }
   },
   "bundle": {
-    "active": false,
+    "active": true,
     "targets": ["app"],
     "icon": ["icons/icon.png"],
-    "externalBin": ["binaries/dioptas-processor"]
+    "externalBin": ["binaries/dioptas-processor"],
+    "resources": {
+      "resources/dioptas/": "dioptas/"
+    },
+    "macOS": {
+      "minimumSystemVersion": "14.0"
+    }
   }
 }

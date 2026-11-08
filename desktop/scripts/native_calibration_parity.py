@@ -12,11 +12,11 @@ from pathlib import Path
 
 import numpy as np
 from dioptas.desktop.session import DesktopSession
-from native_backend_parity import EXECUTABLE, read_exact
+from native_backend_parity import PROCESSOR_ARGUMENTS, EXECUTABLE, read_exact
 
 
 def main():
-    process = subprocess.Popen([str(EXECUTABLE)], stdin=subprocess.PIPE,
+    process = subprocess.Popen([str(EXECUTABLE), *PROCESSOR_ARGUMENTS], stdin=subprocess.PIPE,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                env={**os.environ, "PATH": "/nonexistent", "DIOPTAS_PYTHON": "/nonexistent/python"})
     identifier = 0

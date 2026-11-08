@@ -18,7 +18,10 @@ from dioptas.desktop.display import image_levels
 from dioptas.desktop.session import raster
 
 ROOT = Path(__file__).resolve().parents[2]
-EXECUTABLE = ROOT / "desktop/backend/target/debug" / ("dioptas-processor.exe" if os.name == "nt" else "dioptas-processor")
+EXECUTABLE = Path(os.environ.get("DIOPTAS_NATIVE_PROCESSOR", str(ROOT / "desktop/backend/target/debug" / ("dioptas-processor.exe" if os.name == "nt" else "dioptas-processor"))))
+PROCESSOR_ARGUMENTS = (["--resource-dir", os.environ["DIOPTAS_RESOURCE_DIR"]]
+                       if "DIOPTAS_RESOURCE_DIR" in os.environ
+                       else ["--source-root", str(ROOT)])
 
 
 def read_exact(stream, size):
@@ -33,7 +36,7 @@ def read_exact(stream, size):
 
 def main():
     environment = {**os.environ, "PATH": "/nonexistent", "DIOPTAS_PYTHON": "/nonexistent/python"}
-    process = subprocess.Popen([str(EXECUTABLE)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=environment)
+    process = subprocess.Popen([str(EXECUTABLE), *PROCESSOR_ARGUMENTS], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=environment)
     buffers = {}
     next_id = 0
 

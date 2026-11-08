@@ -8,11 +8,14 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
-EXECUTABLE = (
+EXECUTABLE = Path(os.environ.get("DIOPTAS_NATIVE_PROCESSOR", str(
     ROOT
     / "desktop/backend/target/debug"
     / ("dioptas-processor.exe" if os.name == "nt" else "dioptas-processor")
-)
+)))
+PROCESSOR_ARGUMENTS = (["--resource-dir", os.environ["DIOPTAS_RESOURCE_DIR"]]
+                       if "DIOPTAS_RESOURCE_DIR" in os.environ
+                       else ["--source-root", str(ROOT)])
 
 
 def exact(stream, size):
@@ -28,7 +31,7 @@ def exact(stream, size):
 class Native:
     def __init__(self, env=None, require_engine=True):
         self.child = subprocess.Popen(
-            [str(EXECUTABLE), "--source-root", str(ROOT)],
+            [str(EXECUTABLE), *PROCESSOR_ARGUMENTS],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,

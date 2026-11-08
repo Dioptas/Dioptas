@@ -101,13 +101,18 @@ array and calibrant angles agree; integrations continue to use the current
 scientific models. The legacy pywebview host and browser-test bridge keep their
 compatible JSON/base64 path.
 
-This is still a **source-checkout preview**, not a portable installer. The default
-processing runtime is Rust/Dioptrin and requires no Python, pyFAI, FabIO or Qt.
-The build stages a target-specific processor for Tauri to copy beside the host
-and include in future bundles. Source-root independence, distribution resources,
-notices and cross-platform packaging remain qualification work.
-`DIOPTAS_SOURCE_ROOT` overrides the checkout root and `DIOPTAS_NATIVE_PROCESSOR`
-overrides the Rust executable. A missing processor fails without a Python fallback.
+A [standalone macOS Rust application](NATIVE_STANDALONE_PARITY.md) is now available.
+`npm run tauri:bundle` builds the complete `.app` with processor, resources,
+examples, offline guide and dependency notices. Move the entire application;
+it runs without Python or a source checkout. Local bundles are ad-hoc signed,
+with no publication/notarization step. Windows/Linux and universal macOS
+packaging remain unqualified. The local native artifact and relocation checks
+are documented in that ledger.
+
+Development still supports `DIOPTAS_SOURCE_ROOT` for the Python comparison
+backend and `DIOPTAS_NATIVE_PROCESSOR` for an explicit Rust executable.
+Release Rust startup uses installed resources and a sibling processor, with
+no checkout fallback. A missing processor/resource manifest fails explicitly.
 
 For explicit compatibility comparison, use `--backend=python` or
 `DIOPTAS_BACKEND=python`; the command-line argument takes precedence. Set up that

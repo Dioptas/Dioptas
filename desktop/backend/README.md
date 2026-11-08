@@ -38,14 +38,15 @@ no backend argument. `--backend=python` explicitly selects the existing comparis
 backend. The environment alternative is `DIOPTAS_BACKEND=python`; an explicit argument takes precedence.
 Invalid backend names fail without launching a substitute.
 
-The host finds a native processor beside its executable, then this checkout's
-`desktop/backend/target/debug/dioptas-processor` (release for release hosts).
-`DIOPTAS_NATIVE_PROCESSOR` explicitly overrides the executable. Build the native
-processor with `npm run backend:prepare -- --release` for a release host. Standard
-Tauri hooks stage the matching target/profile as an external binary; Tauri copies
-it beside the host. A missing native executable produces a build instruction;
-it does not launch Python. Portable installer resources and cross-platform
-distribution qualification are still pending.
+The release host finds the Rust processor beside its executable and receives
+resources from Tauri's bundle resolver; it does not access a source checkout.
+Development builds retain an explicit source-build fallback. Native processor
+clients can pass `--resource-dir`; the older `--source-root` is reserved for
+reference/development clients. `DIOPTAS_NATIVE_PROCESSOR` overrides the executable.
+Standard Tauri hooks stage the matching target/profile as an external binary.
+Missing processors or package resource manifests fail without launching Python.
+See [standalone packaging and qualification](../NATIVE_STANDALONE_PARITY.md) for
+the local macOS artifact, resources, native links and relocation checks.
 
 HDF5 and its lossless codecs build from pinned native dependencies. Rust, a C
 compiler, CMake, and Git are build prerequisites. There is no installed Python,

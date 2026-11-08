@@ -106,6 +106,90 @@ fn actual_tiff_fixture_has_original_full_resolution() {
 }
 
 #[test]
+#[cfg(feature = "dioptrin")]
+fn packaged_resources_support_example_integration_and_project_without_a_checkout() {
+    let directory = tempfile::tempdir().unwrap();
+    let resources = directory.path().join("resources with spaces");
+    fs::create_dir_all(resources.join("examples")).unwrap();
+    for name in ["CeO2_Pilatus1M.tif", "CeO2_Pilatus1M.poni"] {
+        fs::copy(
+            root().join("dioptas/tests/data").join(name),
+            resources.join("examples").join(name),
+        )
+        .unwrap();
+    }
+    let mut session = Session::new(resources.clone());
+    let example = call(&mut session, "example", json!({}));
+    assert_eq!(example.result["state"]["exampleAvailable"], true);
+    assert_eq!(example.result["state"]["calibrated"], false);
+    assert!(
+        example.result["state"]["imagePath"]
+            .as_str()
+            .unwrap()
+            .starts_with(resources.canonicalize().unwrap().to_str().unwrap())
+    );
+    assert!(
+        example.result["state"]["calibration"]["calibrants"]
+            .as_array()
+            .unwrap()
+            .len()
+            > 10
+    );
+    call(
+        &mut session,
+        "integration_settings",
+        json!({"bins":128,"cake_bins":36}),
+    );
+    call(
+        &mut session,
+        "open_calibration",
+        json!({"path":resources.join("examples/CeO2_Pilatus1M.poni")}),
+    );
+    let integrated = call(&mut session, "integrate", json!({}));
+    assert_eq!(
+        integrated.result["pattern"]["x"].as_array().unwrap().len(),
+        128
+    );
+    fs::write(resources.join("RESOURCE_MANIFEST.json"), "{}").unwrap();
+    call(
+        &mut session,
+        "integration_autocreate",
+        json!({"enabled":true}),
+    );
+    let refused = session.invoke(&request("integrate", json!({})));
+    assert_eq!(refused.result["ok"], false);
+    assert!(
+        refused.result["error"]
+            .as_str()
+            .unwrap()
+            .contains("outside the application")
+    );
+    assert!(!resources.join("examples/CeO2_Pilatus1M.xy").exists());
+    call(
+        &mut session,
+        "integration_output_directory",
+        json!({"path":directory.path()}),
+    );
+    call(&mut session, "integrate", json!({}));
+    assert!(directory.path().join("CeO2_Pilatus1M.xy").is_file());
+    call(
+        &mut session,
+        "integration_autocreate",
+        json!({"enabled":false}),
+    );
+    let project = directory.path().join("owned.dio");
+    call(&mut session, "save_project", json!({"path":project}));
+    fs::remove_dir_all(&resources).unwrap();
+    let restored = call(&mut session, "open_project", json!({"path":project}));
+    assert_eq!(restored.result["state"]["shape"], json!([1043, 981]));
+    assert_eq!(restored.result["state"]["exampleAvailable"], false);
+    assert_eq!(
+        restored.result["pattern"]["y"],
+        integrated.result["pattern"]["y"]
+    );
+}
+
+#[test]
 fn detached_phase_refresh_preserves_detector_buffers_and_revision() {
     let mut session = Session::new(root());
     call(&mut session, "example", json!({}));

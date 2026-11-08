@@ -159,6 +159,15 @@ struct MaskSnapshot {
     plugins: Vec<PluginState>,
 }
 impl Session {
+    fn example_path(&self) -> PathBuf {
+        let packaged = self.root.join("examples/CeO2_Pilatus1M.tif");
+        if packaged.is_file() {
+            packaged
+        } else {
+            // Explicit source-root clients and reference tests retain their fixture layout.
+            self.root.join("dioptas/tests/data/CeO2_Pilatus1M.tif")
+        }
+    }
     pub fn new(root: PathBuf) -> Self {
         Self {
             root,
@@ -390,7 +399,7 @@ impl Session {
             }
             "state" => return Ok(self.snapshot(true)),
             "example" => {
-                let path = self.root.join("dioptas/tests/data/CeO2_Pilatus1M.tif");
+                let path = self.example_path();
                 let candidate = Image::open(&path, &json!({}))?;
                 let mut settings = Settings::default();
                 settings.geometry.pixel1 = 172e-6;
@@ -1504,7 +1513,7 @@ impl Session {
             "calibrationName": s.calibration_name, "calibrated": s.calibrated, "projectName": self.project.path.as_ref().and_then(|p|p.file_name()).map(|p|p.to_string_lossy()), "unit": s.unit,
             "bins": if s.automatic_binning {Value::Null}else{json!(s.bins)}, "useMask": s.use_mask, "transparentMask": s.transparent_mask,
             "maskedPixels": self.effective_mask.iter().filter(|&&v| v != 0).count(), "canUndoMask": !self.undo.is_empty(), "canRedoMask": !self.redo.is_empty(),
-            "maskDetails": {"mode": self.mask_mode, "filename": null, "plugins": self.plugins.details()}, "exampleAvailable": self.root.join("dioptas/tests/data/CeO2_Pilatus1M.tif").is_file(),
+            "maskDetails": {"mode": self.mask_mode, "filename": null, "plugins": self.plugins.details()}, "exampleAvailable": self.example_path().is_file(),
             "elapsedMs": self.elapsed_ms, "integrationDirty": self.image.is_some() && s.calibrated && self.pattern.is_none(), "configurationCount": self.project.configurations.len(), "configurationIndex": self.project.selected,
             "configurationLabels": self.project.labels(),"configurationContext":self.project.active_id,
             "geometry": {"dist":g.dist,"poni1":g.poni1,"poni2":g.poni2,"rot1":g.rot1,"rot2":g.rot2,"rot3":g.rot3,"wavelength":g.wavelength},

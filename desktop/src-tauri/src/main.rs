@@ -355,7 +355,8 @@ fn main() {
     let args: Vec<_> = std::env::args().collect();
     let pattern_benchmark = args.iter().any(|a| a == "--pattern-benchmark");
     let tooltip_smoke = args.iter().any(|a| a == "--tooltip-smoke");
-    let smoke = pattern_benchmark || tooltip_smoke || args.iter().any(|a| a == "--smoke");
+    let standalone_smoke = args.iter().any(|a| a == "--standalone-smoke");
+    let smoke = standalone_smoke || pattern_benchmark || tooltip_smoke || args.iter().any(|a| a == "--smoke");
     let batch_smoke = std::env::args().any(|arg| arg == "--batch-smoke");
     let map_smoke = args.iter().any(|a| a == "--map-smoke");
     let example = args.iter().any(|a| a == "--example");
@@ -364,12 +365,6 @@ fn main() {
         .manage(TooltipState::default())
         .manage(map_window::MapWindowState::default())
         .manage(map_window::BatchWindowState::default())
-        .manage(Host {
-            processor: Backend::requested(&args, std::env::var("DIOPTAS_BACKEND").ok().as_deref())
-                .and_then(|backend| Processor::start_backend(example, backend)).map(Arc::new),
-            smoke,
-            closing: AtomicBool::new(false),
-        })
         .invoke_handler(tauri::generate_handler![
             color_picker::prepare_color_picker,
             desktop_invoke,
@@ -385,6 +380,13 @@ fn main() {
             present_calibration_tooltip
         ])
         .setup(move |app| {
+            let resources = app.path().resource_dir()?.join("dioptas");
+            app.manage(Host {
+                processor: Backend::requested(&args, std::env::var("DIOPTAS_BACKEND").ok().as_deref())
+                    .and_then(|backend| Processor::start_backend_at(example, backend, Some(&resources))).map(Arc::new),
+                smoke,
+                closing: AtomicBool::new(false),
+            });
             color_picker::install()?;
             let window = app.get_webview_window("main").unwrap();
             if tauri::is_dev() {
@@ -425,6 +427,13 @@ fn main() {
                 && webview.label() == "main"
                 && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished)
             {
+                if standalone_smoke {
+                    let directory = std::env::var("DIOPTAS_STANDALONE_TEST_DIRECTORY").unwrap_or_default();
+                    let _ = webview.eval(format!("window.__dioptasStandaloneDirectory = {};", json!(directory)));
+                    let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
+                    let _ = webview.eval(include_str!("../../scripts/standalone_native_smoke.js"));
+                    return;
+                }
                 if batch_smoke {
                     if let Ok(stage) = std::env::var("DIOPTAS_BATCH_LAYOUT_STAGE") {
                         let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
