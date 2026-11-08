@@ -60,6 +60,9 @@ metadata; reloading an exported image starts a new input-count assumption.
   cancellation. This preserves the Python convention, including its thickness
   factor; it is not silently normalized to unit thickness.
 
+The native GUI accepts the attenuation coefficient directly. Qt's automatic
+formula/density-to-attenuation lookup through xraydb and its correction-only
+plot view are not ported in this step; no Python lookup is invoked silently.
 Thickness is in mm, attenuation in mm⁻¹ and alignment in degrees. Tilt measures
 the normal relative to the beam; rotation follows pyFAI azimuth. As in Python,
 zero thickness or zero attenuation gives unity. Path cosines are bounded by
