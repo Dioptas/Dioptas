@@ -5,8 +5,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const root = fileURLToPath(new URL("../../", import.meta.url));
-export function nativeClient() {
+export function nativeClient(options = {}) {
   const executable =
+    options.executable ??
     process.env.DIOPTAS_NATIVE_PROCESSOR ??
     path.join(
       root,
@@ -15,15 +16,19 @@ export function nativeClient() {
         ? "dioptas-processor.exe"
         : "dioptas-processor",
     );
-  const child = spawn(executable, ["--source-root", root], {
-    cwd: root,
-    stdio: ["pipe", "pipe", "pipe"],
-    env: {
-      ...process.env,
-      DIOPTAS_PYTHON: "/nonexistent/python",
-      PATH: "/nonexistent",
+  const child = spawn(
+    options.command ?? executable,
+    options.args ?? ["--source-root", root],
+    {
+      cwd: options.cwd ?? root,
+      stdio: ["pipe", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        DIOPTAS_PYTHON: "/nonexistent/python",
+        PATH: "/nonexistent",
+      },
     },
-  });
+  );
   const pending = new Map();
   const buffers = new Map();
   const diagnostics = [];

@@ -1,3 +1,4 @@
+import { Button } from "./ui";
 import { useId, useRef, useState } from "react";
 import { Check } from "lucide-react";
 import { Dialog, DialogHeader } from "./Dialog";
@@ -146,7 +147,7 @@ export function GeometryEditor({
       })}
       {!formId && (
         <>
-          <button
+          <Button
             type="button"
             className="secondary full-input"
             disabled={!ready || !activeDirty || !editor.valid(convention)}
@@ -154,17 +155,17 @@ export function GeometryEditor({
           >
             <Check size={14} />
             Apply geometry
-          </button>
+          </Button>
         </>
       )}
       {activeDirty && (
-        <button
+        <Button
           type="button"
           className="quiet full-input"
           onClick={() => reset(convention)}
         >
           Reset geometry draft
-        </button>
+        </Button>
       )}
     </>
   );

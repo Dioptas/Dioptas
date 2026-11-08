@@ -7,4 +7,4 @@ if [[ ! -x desktop/node_modules/.bin/tauri ]]; then
   exit 1
 fi
 cd desktop
-exec npm run tauri:dev -- -- -- --example "$@"
+exec npm run tauri:dev -- -- -- --example --backend=rust "$@"

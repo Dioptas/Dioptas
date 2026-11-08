@@ -1,8 +1,8 @@
+import { Button, Input, Select, Portal } from "./ui";
 import { ScientificNumberInput } from "./ScientificNumberInput";
 import { Dialog, DialogHeader } from "./Dialog";
 import { TabList } from "./TabList";
 import { useEffect, useRef, useState } from "react";
-
 import { CopyPlus, ListX, Plus, Star, Trash2 } from "lucide-react";
 import { DataTable, TableScroll } from "./DataTable";
 import type { IntegrationRun } from "./integration";
@@ -1078,7 +1078,7 @@ export function PhaseEditor({
           Edit a copy
         </Button>
         <Button
-          variant="primary"
+          className="primary"
           title={
             data.editable
               ? "Save this material"
@@ -1093,8 +1093,8 @@ export function PhaseEditor({
           onClick={() => void save("eosmat", data.canSaveCurrent)}
         >
           {data.canSaveCurrent ? "Save" : "Export .eosmat…"}
-        </button>
-        <button
+        </Button>
+        <Button
           disabled={locked || rangesDirty}
           title="Save .eosmat to retain EoS records, provenance and atomic positions"
           onClick={() => void save("eosmat")}

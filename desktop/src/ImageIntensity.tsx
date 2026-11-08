@@ -1,3 +1,4 @@
+import { Input, Select, Button, Portal } from "./ui";
 import { Dialog, DialogHeader } from "./Dialog";
 import { useEffect, useId, useRef, useState } from "react";
 
@@ -535,153 +536,157 @@ export function ImageIntensity({
           />
         </div>
       </aside>
-      {dialog &&
-        createPortal(
-          <Dialog
-            returnFocusTarget={dialogTrigger.current}
-            aria-label={`${title} display settings`}
-            className="display-settings"
-            style={{
-              left: Math.max(8, Math.min(dialog.x, window.innerWidth - 316)),
-              top: Math.max(8, Math.min(dialog.y, window.innerHeight - 530)),
-            }}
-            onDismiss={() => setDialog(null)}
-          >
-            <DialogHeader
-              title={`${title} display`}
-              closeLabel={`Close ${display} display settings`}
-              onClose={() => setDialog(null)}
-            />
-            <label>
-              Scale
-              <select
-                aria-label={label("Image scale")}
-                value={log ? "log" : "linear"}
-                onChange={(event) => {
-                  setAutoActive(false);
-                  onLog(event.target.value === "log");
-                }}
-              >
-                <option value="linear">Linear</option>
-                <option value="log">Logarithmic</option>
-              </select>
-            </label>
-            <label>
-              Auto mode
-              <select
-                aria-label={label("Auto intensity mode")}
-                value={auto.mode}
-                disabled={!ready}
-                onChange={(event) =>
-                  updateAuto({
-                    mode: event.target.value as AutoLevels["mode"],
-                  })
-                }
-              >
-                <option value="percentile">Percentile</option>
-                <option value="minmax">Min/max</option>
-                <option value="mean3std">Mean ± 3 std</option>
-              </select>
-            </label>
-            {auto.mode === "percentile" && (
+      {dialog && (
+        <Portal>
+          {
+            <Dialog
+              returnFocusTarget={dialogTrigger.current}
+              aria-label={`${title} display settings`}
+              className="display-settings"
+              style={{
+                left: Math.max(8, Math.min(dialog.x, window.innerWidth - 316)),
+                top: Math.max(8, Math.min(dialog.y, window.innerHeight - 530)),
+              }}
+              onDismiss={() => setDialog(null)}
+            >
+              <DialogHeader
+                title={`${title} display`}
+                closeLabel={`Close ${display} display settings`}
+                onClose={() => setDialog(null)}
+              />
               <label>
-                Clip each tail · %
-                <input
-                  aria-label={label("Clipping percentile")}
-                  type="number"
-                  min="0.01"
-                  max="25"
-                  step=".01"
-                  value={percentileDraft}
+                Scale
+                <Select
+                  aria-label={label("Image scale")}
+                  value={log ? "log" : "linear"}
+                  onChange={(event) => {
+                    setAutoActive(false);
+                    onLog(event.target.value === "log");
+                  }}
+                >
+                  <option value="linear">Linear</option>
+                  <option value="log">Logarithmic</option>
+                </Select>
+              </label>
+              <label>
+                Auto mode
+                <Select
+                  aria-label={label("Auto intensity mode")}
+                  value={auto.mode}
                   disabled={!ready}
-                  onChange={(event) => setPercentileDraft(event.target.value)}
-                  onBlur={commitPercentile}
+                  onChange={(event) =>
+                    updateAuto({
+                      mode: event.target.value as AutoLevels["mode"],
+                    })
+                  }
+                >
+                  <option value="percentile">Percentile</option>
+                  <option value="minmax">Min/max</option>
+                  <option value="mean3std">Mean ± 3 std</option>
+                </Select>
+              </label>
+              {auto.mode === "percentile" && (
+                <label>
+                  Clip each tail · %
+                  <Input
+                    aria-label={label("Clipping percentile")}
+                    type="number"
+                    min="0.01"
+                    max="25"
+                    step=".01"
+                    value={percentileDraft}
+                    disabled={!ready}
+                    onChange={(event) => setPercentileDraft(event.target.value)}
+                    onBlur={commitPercentile}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        commitPercentile();
+                      }
+                    }}
+                  />
+                </label>
+              )}
+              <label className="display-settings-check">
+                <Input
+                  aria-label={label("Filter detector gaps")}
+                  type="checkbox"
+                  checked={auto.filter_gaps}
+                  disabled={!ready}
+                  onChange={(event) =>
+                    updateAuto({ filter_gaps: event.target.checked })
+                  }
+                />
+                Filter gaps
+              </label>
+              <label>
+                Minimum
+                <Input
+                  aria-label={label("Minimum intensity")}
+                  type="number"
+                  step="any"
+                  value={minimumDraft}
+                  onChange={(event) => setMinimumDraft(event.target.value)}
+                  onBlur={() => commitLimit(0, minimumDraft)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter") {
                       event.preventDefault();
-                      commitPercentile();
+                      commitLimit(0, minimumDraft);
                     }
                   }}
                 />
               </label>
-            )}
-            <label className="display-settings-check">
-              <input
-                aria-label={label("Filter detector gaps")}
-                type="checkbox"
-                checked={auto.filter_gaps}
-                disabled={!ready}
-                onChange={(event) =>
-                  updateAuto({ filter_gaps: event.target.checked })
-                }
-              />
-              Filter gaps
-            </label>
-            <label>
-              Minimum
-              <input
-                aria-label={label("Minimum intensity")}
-                type="number"
-                step="any"
-                value={minimumDraft}
-                onChange={(event) => setMinimumDraft(event.target.value)}
-                onBlur={() => commitLimit(0, minimumDraft)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    commitLimit(0, minimumDraft);
+              <label>
+                Maximum
+                <Input
+                  aria-label={label("Maximum intensity")}
+                  type="number"
+                  step="any"
+                  value={maximumDraft}
+                  onChange={(event) => setMaximumDraft(event.target.value)}
+                  onBlur={() => commitLimit(1, maximumDraft)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      commitLimit(1, maximumDraft);
+                    }
+                  }}
+                />
+              </label>
+              <label>
+                Bar layout
+                <Select
+                  aria-label={label("Histogram orientation")}
+                  value={horizontal ? "horizontal" : "vertical"}
+                  onChange={(event) =>
+                    setHorizontal(event.target.value === "horizontal")
                   }
-                }}
-              />
-            </label>
-            <label>
-              Maximum
-              <input
-                aria-label={label("Maximum intensity")}
-                type="number"
-                step="any"
-                value={maximumDraft}
-                onChange={(event) => setMaximumDraft(event.target.value)}
-                onBlur={() => commitLimit(1, maximumDraft)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    commitLimit(1, maximumDraft);
+                >
+                  <option value="vertical">Vertical (right)</option>
+                  <option value="horizontal">Horizontal (top)</option>
+                </Select>
+              </label>
+              <label>
+                Bar size
+                <Select
+                  aria-label={label("Histogram size")}
+                  value={small ? "compact" : "large"}
+                  onChange={(event) =>
+                    setSmall(event.target.value === "compact")
                   }
-                }}
-              />
-            </label>
-            <label>
-              Bar layout
-              <select
-                aria-label={label("Histogram orientation")}
-                value={horizontal ? "horizontal" : "vertical"}
-                onChange={(event) =>
-                  setHorizontal(event.target.value === "horizontal")
-                }
-              >
-                <option value="vertical">Vertical (right)</option>
-                <option value="horizontal">Horizontal (top)</option>
-              </select>
-            </label>
-            <label>
-              Bar size
-              <select
-                aria-label={label("Histogram size")}
-                value={small ? "compact" : "large"}
-                onChange={(event) => setSmall(event.target.value === "compact")}
-              >
-                <option value="compact">Compact</option>
-                <option value="large">Large</option>
-              </select>
-            </label>
-            <p className="ui-display-note">
-              Intensity in source units. Display changes leave scientific data
-              unchanged.
-            </p>
-          </Dialog>,
-          document.body,
-        )}
+                >
+                  <option value="compact">Compact</option>
+                  <option value="large">Large</option>
+                </Select>
+              </label>
+              <p className="ui-display-note">
+                Intensity in source units. Display changes leave scientific data
+                unchanged.
+              </p>
+            </Dialog>
+          }
+        </Portal>
+      )}
     </>
   );
 }

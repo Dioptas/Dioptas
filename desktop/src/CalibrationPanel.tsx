@@ -1,3 +1,4 @@
+import { Input, Button } from "./ui";
 import { Dialog } from "./Dialog";
 import { TableScroll, TableActions } from "./DataTable";
 import { FolderOpen, ListX, Save, Trash2, X } from "lucide-react";

@@ -1,3 +1,4 @@
+import { Button } from "./ui";
 import type { State } from "./types";
 
 /** A blocked calculation must not leave an old curve looking current. */
@@ -15,7 +16,7 @@ export function PatternFreshness({
   return (
     <span className="pattern-pending" role="status">
       Pattern out of date
-      <button
+      <Button
         type="button"
         className="quiet"
         disabled={!ready}
@@ -24,7 +25,7 @@ export function PatternFreshness({
         onClick={onRetry}
       >
         Recalculate
-      </button>
+      </Button>
     </span>
   );
 }

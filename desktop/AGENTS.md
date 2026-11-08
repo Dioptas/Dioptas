@@ -51,19 +51,22 @@ and CALIBRATION_PARITY.md before changing its command or plot boundaries.
   user-authorized migration, processing defaults to Rust/Dioptrin over Tauri-owned
   stdio. Python is an explicitly selected comparison backend; this is not WASM.
 
-## Parallel view implementation
+## Working branch and checkouts
 
-Mask, Integration and Map are developed in separate worktrees/branches from a
-shared checkpoint. Work only in the checkout assigned to your chat. Do not edit,
-merge into or run cleanup against the primary preview or another view checkout.
-Keep mode-specific components, styling, command adapters and tests in separate
-files. Keep necessary App.tsx/types.ts/session.py routing changes small so the
-views can be combined. Do not perform unrelated shared-shell refactors.
+The cohesive development checkout is `worktrees/rust-desktop`, branch
+`codex/rust-desktop`, reached through the workspace's `Dioptas` symlink.
+Continue new desktop work here. The Qt checkout, earlier view worktrees and
+experimental `codex/desktop-scxrd` checkout are preserved separately.
+Create separate worktrees from the actual application repository when needed;
+do not create another application repository in the workspace wrapper.
 
-The primary live preview owns port 1420. Do not reuse or kill the primary
-server/window. Other user windows may contain work. If a native test is needed,
-use your own bundled test window or a temporary Tauri config with a distinct
-Vite port.
+Use the Rust processor in `backend/` for new scientific commands. Port an
+existing Python feature to Rust before exposing it in the default application;
+never silently fall back to Python. Compatibility/reference Python source stays
+available for independent qualification. See `RUST_DESKTOP_CONSOLIDATION.md`.
+
+The development server uses port 1420. Never kill or reuse another preview's
+server/window. Use headless tests on an ephemeral port or the embedded frontend.
 
 ## Shared UI components
 

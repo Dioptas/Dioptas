@@ -14,11 +14,15 @@ test(
     );
     const image = path.join(directory, "counts.npy"),
       project = path.join(directory, "session.dio");
-    execFileSync(path.join(root, ".venv/bin/python"), [
-      "-c",
-      "import sys,numpy as np; y,x=np.indices((1024,1024)); np.save(sys.argv[1],(100+x*2+y*3).astype('uint16'))",
-      image,
-    ]);
+    execFileSync(
+      process.env.DIOPTAS_REFERENCE_PYTHON ??
+        path.join(root, ".venv/bin/python"),
+      [
+        "-c",
+        "import sys,numpy as np; y,x=np.indices((1024,1024)); np.save(sys.argv[1],(100+x*2+y*3).astype('uint16'))",
+        image,
+      ],
+    );
     const native = nativeClient();
     const invoke = async (a, p = {}) => {
       const r = await native.invoke(a, p);

@@ -162,7 +162,7 @@
   height: 380px;
   padding: 12px;
   gap: 10px;
-  border: 1px solid #ffffff26;
+  border: 1px solid var(--ui-overlay-border);
   border-radius: 8px;
   background: var(--ui-raised);
   box-shadow: 0 8px 28px #0008;
@@ -286,7 +286,7 @@
   height: 440px;
   padding: 12px;
   gap: 10px;
-  border: 1px solid #ffffff26;
+  border: 1px solid var(--ui-overlay-border);
   border-radius: 8px;
   background: var(--ui-raised);
   box-shadow: 0 8px 28px #0008;

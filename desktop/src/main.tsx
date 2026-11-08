@@ -14,7 +14,6 @@ import "./surfaces.css";
 import "./navigation.css";
 import "./calibrationSetup.css";
 import "./calibrationNavigation.css";
-import "./uiTheme.css";
 
 // Keep the webview's Reload/Inspect menu out of the entire desktop interface,
 // including dialogs rendered through portals. Plot right-button gestures remain active.

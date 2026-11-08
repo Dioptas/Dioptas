@@ -175,6 +175,7 @@ export interface RingOverlay {
 export interface Response {
   configurationReset?: boolean;
   imageChange?: {
+    options?: Record<string, unknown>;
     path: string;
     frame: number;
     previousShape: [number, number];

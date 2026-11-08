@@ -1,3 +1,4 @@
+import { Button } from "./ui";
 import { FolderOpen } from "lucide-react";
 
 export function LoadCalibrationButton({
@@ -10,13 +11,13 @@ export function LoadCalibrationButton({
   label: string;
 }) {
   return (
-    <button
+    <Button
       className="plot-tool-button"
       aria-label={label}
       disabled={!ready}
       onClick={onLoad}
     >
       <FolderOpen size={15} /> Load calibration…
-    </button>
+    </Button>
   );
 }

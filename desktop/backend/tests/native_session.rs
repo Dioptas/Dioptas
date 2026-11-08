@@ -277,7 +277,7 @@ fn native_hdf5_stack_retains_integer_dtype_and_tracks_selected_frame() {
 }
 
 #[test]
-fn frame_shape_changes_reset_the_mask_even_with_the_same_number_of_pixels() {
+fn frame_shape_changes_confirm_before_reset_even_with_the_same_number_of_pixels() {
     let temp = tempfile::tempdir().unwrap();
     let path = temp.path().join("different-shapes.tif");
     {
@@ -297,7 +297,15 @@ fn frame_shape_changes_reset_the_mask_even_with_the_same_number_of_pixels() {
         "mask_stroke",
         json!({"points":[[1,1]],"radius":1}),
     );
-    let next = call(&mut session, "next_image", json!({"direction":1}));
+    let before = call(&mut session, "state", json!({}));
+    let pending = call(&mut session, "next_image", json!({"direction":1}));
+    assert_eq!(pending.result["imageChange"]["newShape"], json!([4, 3]));
+    assert_eq!(call(&mut session, "state", json!({})).result, before.result);
+    let next = call(
+        &mut session,
+        "open_image",
+        json!({"path":path,"frame":1,"reset_calibration":true}),
+    );
     assert_eq!(next.result["state"]["shape"], json!([4, 3]));
     assert_eq!(next.result["mask"]["width"], 3);
     assert_eq!(next.result["mask"]["height"], 4);

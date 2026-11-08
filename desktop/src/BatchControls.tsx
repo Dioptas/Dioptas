@@ -1,3 +1,4 @@
+import { Button, Input } from "./ui";
 import { useEffect, useId, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ScientificNumberInput } from "./ScientificNumberInput";
@@ -68,7 +69,7 @@ export function BatchControls({
     Number(maximum) !== region.maximum;
   const integration = filesView && (
     <div className="batch-action-row">
-      <button
+      <Button
         disabled={!ready || !batch?.canReintegrate || !calibrated}
         onClick={() =>
           run(
@@ -79,7 +80,7 @@ export function BatchControls({
         }
       >
         Integrate
-      </button>
+      </Button>
     </div>
   );
   const normalization = (
@@ -122,7 +123,7 @@ export function BatchControls({
             : `Enter an increasing, ${axis === "d" ? "positive" : "non-negative"} ${axis} interval.`}
         </p>
       )}
-      <button
+      <Button
         title={
           !normalizationValid
             ? "Enter a valid normalization region"
@@ -146,7 +147,7 @@ export function BatchControls({
         }
       >
         Apply normalization region
-      </button>
+      </Button>
       <p>Use the = icon beside the plot axis.</p>
     </fieldset>
   );
@@ -230,7 +231,7 @@ export function BatchControls({
       </Button>
       <label className="batch-frame-number">
         Frame · {current + 1} of {count} · {count}/{batch?.total ?? 0} loaded
-        <input
+        <Input
           aria-label="Selected batch frame"
           type="number"
           min={1}
@@ -306,7 +307,7 @@ function BatchRangeInput({
     parsed >= min &&
     parsed <= max;
   return (
-    <input
+    <Input
       {...props}
       type="number"
       min={min}

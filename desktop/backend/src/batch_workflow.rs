@@ -539,7 +539,10 @@ impl Session {
             self.settings.auto_save = false;
             // The outer selection publishes the completed state. Building an
             // intermediate open-image reply duplicates metadata and ring paths.
-            let loaded = self.open_image_model(&args, defer);
+            let loaded = self.open_image_model(&args, defer).and_then(|reply| {
+                if reply.is_some() { Err("Detector dimensions changed; open this image manually to reset calibration.".into()) }
+                else { Ok(()) }
+            });
             if loaded.is_ok() {
                 self.revision += 1;
             }

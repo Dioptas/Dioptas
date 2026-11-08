@@ -133,7 +133,7 @@
 .phase-dialog {
   color: var(--text);
   background: var(--ui-panel);
-  border: 1px solid #505257;
+  border: 1px solid var(--ui-overlay-border);
   border-radius: 5px;
   padding: 0;
   width: min(430px, calc(100vw - 32px));

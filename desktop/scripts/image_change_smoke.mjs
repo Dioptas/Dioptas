@@ -1,12 +1,11 @@
 import assert from "node:assert/strict";
-import { spawn, execFileSync } from "node:child_process";
-import { createInterface } from "node:readline";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
+import { nativeClient } from "./native_backend_client.mjs";
 import { setInterfaceTextSize } from "./plot_navigation.mjs";
 
 const desktop = fileURLToPath(new URL("../", import.meta.url));
@@ -14,50 +13,20 @@ const root = fileURLToPath(new URL("../../", import.meta.url));
 const artifacts = path.join(desktop, "artifacts/image-change");
 await mkdir(artifacts, { recursive: true });
 const temporary = await mkdtemp(path.join(tmpdir(), "dioptas-image-change-"));
-const small = path.join(temporary, "small.tif");
-const same = path.join(temporary, "same.tif");
-execFileSync(path.join(root, ".venv/bin/python"), [
-  "-c",
-  "from PIL import Image; import numpy as np; import sys; a=np.arange(96*128,dtype=np.uint16).reshape(96,128); [Image.fromarray(a).save(p) for p in sys.argv[1:]]",
-  small,
-  same,
-]);
-const host = spawn(
-  path.join(root, ".venv/bin/python"),
-  ["-u", "desktop/scripts/bridge_host.py"],
-  { cwd: root, stdio: ["pipe", "pipe", "pipe"] },
-);
-const pending = new Map();
-let nextId = 0;
-const diagnostics = [];
-host.stderr.on("data", (chunk) => diagnostics.push(chunk.toString()));
-createInterface({ input: host.stdout }).on("line", (line) => {
-  const message = JSON.parse(line);
-  const task = pending.get(message.id);
-  if (task) {
-    pending.delete(message.id);
-    clearTimeout(task.timer);
-    task.resolve(message.result);
-  }
-});
-host.on("exit", (code) => {
-  for (const task of pending.values()) {
-    clearTimeout(task.timer);
-    task.reject(new Error(`Bridge exited ${code}`));
-  }
-  pending.clear();
-});
-function invoke(action, payload = {}) {
-  return new Promise((resolve, reject) => {
-    const id = ++nextId;
-    const timer = setTimeout(() => {
-      pending.delete(id);
-      reject(new Error(`Timed out: ${action}`));
-    }, 30000);
-    pending.set(id, { resolve, reject, timer });
-    host.stdin.write(JSON.stringify({ id, action, payload }) + "\n");
-  });
-}
+const small = path.join(temporary, "small.edf");
+const same = path.join(temporary, "same.edf");
+const native = nativeClient();
+const diagnostics = native.diagnostics;
+const invoke = native.invoke;
+const header = Buffer.alloc(512, 32);
+Buffer.from(
+  "{\nHeaderID = EH:000001:000000:000000;\nImage = 1;\nByteOrder = LowByteFirst;\nDataType = UnsignedShort;\nDim_1 = 128;\nDim_2 = 96;\nSize = 24576;\n",
+).copy(header);
+Buffer.from("}\n").copy(header, 510);
+const pixels = Buffer.alloc(96 * 128 * 2);
+for (let i = 0; i < 96 * 128; i++) pixels.writeUInt16LE(i + 1, i * 2);
+for (const file of [small, same])
+  await writeFile(file, Buffer.concat([header, pixels]));
 async function call(action, payload) {
   const result = await invoke(action, payload);
   assert.ok(result.ok, result.error);
@@ -76,7 +45,7 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 let selectedImage = small;
-await page.exposeFunction("__dioptasInvoke", (action, payload = {}) => {
+await page.exposeFunction("__dioptasInvoke", async (action, payload = {}) => {
   if (action === "open_image" && !payload.path)
     payload = { ...payload, path: selectedImage };
   if (action === "open_calibration")
@@ -84,7 +53,9 @@ await page.exposeFunction("__dioptasInvoke", (action, payload = {}) => {
       ...payload,
       path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
     };
-  return invoke(action, payload);
+  const result = await invoke(action, payload);
+  if (!result.ok) console.error(action, JSON.stringify(result));
+  return native.browserResult(result);
 });
 await page.addInitScript(() => {
   window.__imageChangePending = 0;
@@ -116,6 +87,7 @@ async function ready() {
 }
 const report = { browser: browserName, headless: true, checks: [] };
 try {
+  assert.equal((await call("__host__")).runtime, "rust");
   await call("example");
   await call("open_calibration", {
     path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
@@ -130,10 +102,16 @@ try {
     await page.setViewportSize({ width: 1000, height: 668 });
     await setInterfaceTextSize(page, large);
     const footerButtons = await Promise.all(
-      ["Reset calibration", "Load .poni", "Enter manually"].map((name) => button(name).boundingBox()),
+      ["Reset calibration", "Load .poni", "Enter manually"].map((name) =>
+        button(name).boundingBox(),
+      ),
     );
-    assert.ok(footerButtons.every((box) => box && Math.abs(box.y - footerButtons[0].y) < 1),
-      "Calibration footer actions stay on one row at both text sizes");
+    assert.ok(
+      footerButtons.every(
+        (box) => box && Math.abs(box.y - footerButtons[0].y) < 1,
+      ),
+      "Calibration footer actions stay on one row at both text sizes",
+    );
     // Safari/WebKit does not focus buttons on pointer clicks. Exercise focus
     // restoration from a keyboard-focusable opener in both browser engines.
     await button("Open image").focus();
@@ -183,7 +161,7 @@ try {
   );
   await button("Open image").click();
   await button("Open and reset calibration").click();
-  await page.waitForFunction(() => document.title.includes("small.tif"));
+  await page.waitForFunction(() => document.title.includes("small.edf"));
   await ready();
   let result = await call("state");
   assert.deepEqual(result.state.shape, [96, 128]);
@@ -212,7 +190,7 @@ try {
     .click();
   selectedImage = same;
   await button("Open image").click();
-  await page.waitForFunction(() => document.title.includes("same.tif"));
+  await page.waitForFunction(() => document.title.includes("same.edf"));
   await ready();
   assert.equal(await page.getByRole("dialog").count(), 0);
   assert.equal((await call("state")).state.calibrated, true);
@@ -228,7 +206,7 @@ try {
   await ready();
   result = await call("state");
   assert.equal(result.state.calibrated, false);
-  assert.equal(result.state.imageName, "same.tif");
+  assert.equal(result.state.imageName, "same.edf");
   report.checks.push("explicit reset keeps current image");
   assert.deepEqual(errors, []);
   await writeFile(
@@ -245,8 +223,6 @@ try {
 } finally {
   await browser.close();
   await server.close();
-  const exited = new Promise((resolve) => host.once("exit", resolve));
-  host.stdin.end();
-  await exited;
+  await native.close();
   await rm(temporary, { recursive: true, force: true });
 }

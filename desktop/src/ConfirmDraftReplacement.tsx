@@ -1,3 +1,4 @@
+import { Button } from "./ui";
 import { Dialog, DialogHeader } from "./Dialog";
 
 export function ConfirmDraftReplacement({
@@ -28,12 +29,12 @@ export function ConfirmDraftReplacement({
         source.
       </p>
       <div className="ui-dialog-actions">
-        <button className="secondary" autoFocus onClick={onCancel}>
+        <Button className="secondary" autoFocus onClick={onCancel}>
           Cancel
-        </button>
-        <button className="primary" onClick={onContinue}>
+        </Button>
+        <Button className="primary" onClick={onContinue}>
           {action}
-        </button>
+        </Button>
       </div>
     </Dialog>
   );

@@ -1,3 +1,4 @@
+import { Button, Dialog as SharedDialog } from "./ui";
 import {
   useLayoutEffect,
   useRef,
@@ -69,7 +70,7 @@ export function Dialog({
   }, [autoOpen, ref, returnFocusTarget, returnFocusRef]);
   const dismiss = () => (onDismiss ? onDismiss() : ref.current?.close());
   return (
-    <dialog
+    <SharedDialog
       {...props}
       ref={ref}
       data-ui-dialog="true"
@@ -129,7 +130,7 @@ export function Dialog({
       }}
     >
       {children}
-    </dialog>
+    </SharedDialog>
   );
 }
 
@@ -155,7 +156,7 @@ export function DialogHeader({
     >
       <h2 id={titleId}>{title}</h2>
       {children}
-      <button
+      <Button
         type="button"
         className="quiet ui-dialog-close"
         aria-label={closeLabel}
@@ -163,7 +164,7 @@ export function DialogHeader({
         onClick={onClose}
       >
         <X size={17} aria-hidden="true" />
-      </button>
+      </Button>
     </header>
   );
 }

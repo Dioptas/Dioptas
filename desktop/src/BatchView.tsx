@@ -1,3 +1,4 @@
+import { Button } from "./ui";
 import { scientificValue } from "./ScientificNumberInput";
 import { TabList } from "./TabList";
 import { useEffect, useMemo, useRef, useState } from "react";

@@ -105,9 +105,11 @@ export function useConfigurationImageDisplays(input: Displays) {
     const configurationChanged =
       !!nextState &&
       !!previousState &&
-      nextState.configurationIndex !== previousState.configurationIndex;
+      (nextState.configurationContext ?? nextState.configurationIndex) !==
+        (previousState.configurationContext ??
+          previousState.configurationIndex);
     const cakeDisplayKey = (s: State) =>
-      `${s.configurationIndex}:${!!s.combination?.cakes}`;
+      `${s.configurationContext ?? s.configurationIndex}:${!!s.combination?.cakes}`;
     const cakeDisplayChanged =
       !!nextState &&
       !!previousState &&
@@ -118,14 +120,18 @@ export function useConfigurationImageDisplays(input: Displays) {
     } else if (previousState) {
       const d = currentDisplays.current;
       if (configurationChanged)
-        configurationDisplays.current.set(previousState.configurationIndex, {
-          limits: d.limits,
-          log: d.logImage,
-          palette: d.palette,
-          autoActive: detectorAutoActive.current,
-          detector: d.detectorPreferences,
-          multi: d.multiDetectorPreferences,
-        });
+        configurationDisplays.current.set(
+          previousState.configurationContext ??
+            previousState.configurationIndex,
+          {
+            limits: d.limits,
+            log: d.logImage,
+            palette: d.palette,
+            autoActive: detectorAutoActive.current,
+            detector: d.detectorPreferences,
+            multi: d.multiDetectorPreferences,
+          },
+        );
       if (cakeDisplayChanged)
         configurationCakeDisplays.current.set(cakeDisplayKey(previousState), {
           limits: d.cakeLimits,
@@ -152,7 +158,7 @@ export function useConfigurationImageDisplays(input: Displays) {
         } = latest.current;
         if (nextState && (configurationChanged || result.configurationReset)) {
           const display = configurationDisplays.current.get(
-            nextState.configurationIndex,
+            nextState.configurationContext ?? nextState.configurationIndex,
           );
           if (display) setLimits(display.limits);
           detectorAutoActive.current = display?.autoActive ?? true;

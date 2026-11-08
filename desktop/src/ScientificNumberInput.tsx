@@ -1,3 +1,4 @@
+import { Input } from "./ui";
 import type { ComponentProps } from "react";
 
 /** Compact display is not a refit or an uncertainty estimate. Exact draft text
@@ -47,7 +48,7 @@ export function ScientificNumberInput({
   const [mantissa, exponent] = display.split(" × ");
   return (
     <span className="scientific-number-input">
-      <input
+      <Input
         {...props}
         type="number"
         value={value}

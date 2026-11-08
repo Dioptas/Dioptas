@@ -19,7 +19,7 @@ fn next_id() -> u64 {
 #[derive(Clone)]
 pub(super) struct Configuration {
     id: u64,
-    state: Checkpoint,
+    pub(super) state: Checkpoint,
     document: Arc<Value>,
     source_index: Option<usize>,
     label: String,
@@ -101,7 +101,9 @@ impl Session {
         let global_patterns = self.patterns.clone();
         let revision = self.revision;
         let shared_overlays_changed = target.state.patterns.overlays != global_patterns.overlays;
+        let combination = self.combination.clone();
         self.restore_checkpoint(target.state.clone());
+        self.combination = combination;
         self.phases = phases;
         self.patterns.restore_global(&global_patterns);
         self.project.selected = index;
@@ -336,6 +338,10 @@ impl Session {
             active_id: active.id,
             archive: Some(Arc::new(archive)),
         };
+        candidate.combination.patterns = desktop["combination"]["patterns"]
+            .as_bool()
+            .unwrap_or(false);
+        candidate.combination.cakes = desktop["combination"]["cakes"].as_bool().unwrap_or(false);
         candidate.revision = self.revision;
         self.control.check()?;
         if source_identity != crate::image::FileIdentity::read(&path)? {

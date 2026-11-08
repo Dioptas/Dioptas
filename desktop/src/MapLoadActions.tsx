@@ -1,3 +1,4 @@
+import { Button } from "./ui";
 import { Folder, FolderOpen } from "lucide-react";
 import type { MapRun } from "./mapDomain";
 
@@ -15,7 +16,7 @@ export function MapLoadActions({
 }) {
   return (
     <>
-      <button
+      <Button
         className="plot-tool-button"
         aria-label={empty ? "Load images to build a map" : "Load images…"}
         title="Load detector images"
@@ -23,8 +24,8 @@ export function MapLoadActions({
         onClick={() => run("map_load", {}, "Integrating map images…")}
       >
         <FolderOpen size={15} /> Load…
-      </button>
-      <button
+      </Button>
+      <Button
         className="plot-tool-button"
         aria-label={empty ? "Folder… — build a map from a folder" : undefined}
         title="Integrate detector images from a folder"
@@ -32,7 +33,7 @@ export function MapLoadActions({
         onClick={() => run("map_folder", {}, "Integrating scan folder…")}
       >
         <Folder size={15} /> Folder…
-      </button>
+      </Button>
     </>
   );
 }

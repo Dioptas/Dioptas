@@ -1,3 +1,4 @@
+import { Input, Button } from "./ui";
 import { PathInput } from "./PathInput";
 import { useEffect, useState } from "react";
 import type { IntegrationState } from "./integration";

@@ -541,7 +541,7 @@
   overflow: auto;
   box-sizing: border-box;
   padding: 10px;
-  border: 1px solid #41484f;
+  border: 1px solid var(--ui-overlay-border);
   border-radius: 6px;
   background: var(--ui-panel);
   color: #e2e6eb;

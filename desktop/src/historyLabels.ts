@@ -33,13 +33,31 @@ export const isScientificHistoryCommand = (command: string) =>
   historyCommands.has(command);
 export const isCalibrationHistoryCommand = (command: string) =>
   isScientificHistoryCommand(command) && command.endsWith("_calibration");
+/** Native masks have their own history; calibration and integration share one.
+ * The comparison backend supplies explicit labels for its global history. */
+export const scientificHistoryAction = (
+  state: State | null,
+  mode: string,
+  redo = false,
+) => {
+  const label = redo ? state?.redoLabel : state?.undoLabel;
+  return label ?? (mode === "mask" ? "mask_edit" : undefined);
+};
 export const canTraverseScientificHistory = (
   state: State | null,
   redo = false,
-) => !!(redo ? state?.canRedoMask : state?.canUndoMask);
+  mode = "calibration",
+) => {
+  if (
+    state?.undoLabel !== undefined ||
+    state?.redoLabel !== undefined ||
+    mode === "mask"
+  )
+    return !!(redo ? state?.canRedoMask : state?.canUndoMask);
+  return !!(redo ? state?.calibration?.canRedo : state?.calibration?.canUndo);
+};
 
-/** The Python snapshot history is shared across modes. Name the actual next
- * action, rather than infer what Undo will change from the visible mode. */
+/** Name explicit history actions when supplied by the processor. */
 export function historyActionLabel(action?: string) {
   if (!action) return "scientific edit";
   if (action.startsWith("mask_") || action === "clear_mask") return "mask edit";

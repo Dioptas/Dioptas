@@ -204,30 +204,7 @@ impl Image {
             Some(v) => usize::try_from(v.as_u64().ok_or("frame must be a nonnegative integer.")?)
                 .map_err(|e| e.to_string())?,
         };
-        use dioptrin_io::wrapped::Metadata as M;
-        let shape = match reader.metadata(frame) {
-            Some(M::Hdf5(m)) => m.shape,
-            Some(M::Native(m)) => m.shape,
-            Some(M::Edf(m)) => m.shape,
-            Some(M::Cbf(m)) => m.shape,
-            Some(M::Tiff(m)) => m.shape,
-            Some(M::DetectorTiff(m)) => m.image.shape,
-            Some(M::Mar345(m)) => m.shape,
-            Some(M::Esperanto(m)) => m.shape,
-            Some(M::Fit2d(m)) => m.shape,
-            Some(M::Kcd(m)) => m.shape,
-            Some(M::Mpa(m)) => m.shape,
-            Some(M::Ge(m)) => m.shape,
-            Some(M::Pixi(m)) => m.shape,
-            Some(M::Spe(m)) => m.shape,
-            Some(M::Mrc(m)) => m.shape,
-            Some(M::Dm3(m)) => m.images[m.selected_image].shape,
-            Some(M::Bruker(m)) => m.shape,
-            Some(M::Oxford(m)) => m.shape,
-            Some(M::Raxis(m)) => m.shape,
-            Some(M::Xsd(m)) => m.shape,
-            _ => [0, 0],
-        };
+        let shape = metadata_shape(reader.metadata(frame));
         if frame >= frames {
             return Err("Frame is outside the detector series.".into());
         }
@@ -314,6 +291,19 @@ impl Image {
             ),
             options,
         })
+    }
+    pub fn frame_source_shape(&self, index: usize) -> Result<[usize; 2], String> {
+        if let Some(reader) = &self.reader {
+            let shape = metadata_shape(reader.lock().unwrap().metadata(index));
+            return Ok(if shape == [0, 0] {
+                self.source_shape
+            } else {
+                shape
+            });
+        }
+        let mut options = self.options.clone();
+        options["frame"] = serde_json::json!(index);
+        Ok(Self::prepare(&self.path, &options)?.source_shape)
     }
     pub fn read(&mut self, index: usize) -> Result<(), String> {
         if self.reader.is_none() {
@@ -815,4 +805,31 @@ pub fn scalar_values(pixels: &PixelBuffer) -> Result<Vec<f64>, String> {
             );
         }
     })
+}
+
+fn metadata_shape(metadata: Option<dioptrin_io::wrapped::Metadata<'_>>) -> [usize; 2] {
+    use dioptrin_io::wrapped::Metadata as M;
+    match metadata {
+        Some(M::Hdf5(m)) => m.shape,
+        Some(M::Native(m)) => m.shape,
+        Some(M::Edf(m)) => m.shape,
+        Some(M::Cbf(m)) => m.shape,
+        Some(M::Tiff(m)) => m.shape,
+        Some(M::DetectorTiff(m)) => m.image.shape,
+        Some(M::Mar345(m)) => m.shape,
+        Some(M::Esperanto(m)) => m.shape,
+        Some(M::Fit2d(m)) => m.shape,
+        Some(M::Kcd(m)) => m.shape,
+        Some(M::Mpa(m)) => m.shape,
+        Some(M::Ge(m)) => m.shape,
+        Some(M::Pixi(m)) => m.shape,
+        Some(M::Spe(m)) => m.shape,
+        Some(M::Mrc(m)) => m.shape,
+        Some(M::Dm3(m)) => m.images[m.selected_image].shape,
+        Some(M::Bruker(m)) => m.shape,
+        Some(M::Oxford(m)) => m.shape,
+        Some(M::Raxis(m)) => m.shape,
+        Some(M::Xsd(m)) => m.shape,
+        _ => [0, 0],
+    }
 }

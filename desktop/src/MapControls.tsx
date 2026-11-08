@@ -1,3 +1,4 @@
+import { Button, Input, Select } from "./ui";
 import { TabList } from "./TabList";
 import { TableScroll, TableActions } from "./DataTable";
 import {
@@ -183,7 +184,7 @@ export function MapControls({
                 calibrated={!!state?.calibrated}
                 run={run}
               />
-              <button
+              <Button
                 className="plot-tool-button map-live-button"
                 aria-label="Live map"
                 aria-pressed={live}
@@ -220,8 +221,8 @@ export function MapControls({
                 onClick={() => run("open_calibration")}
               >
                 <FolderOpen size={16} />
-              </button>
-              <button
+              </Button>
+              <Button
                 className="plot-tool-button map-source-icon"
                 aria-label="Reintegrate map"
                 title="Reintegrate all map images with the current settings"

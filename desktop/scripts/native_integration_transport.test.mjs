@@ -14,9 +14,12 @@ for (const compression of ["gzip", "bitshuffle-lz4"])
         path.join(tmpdir(), "dioptas-rust-jobs-"),
       );
       const source = path.join(directory, "frames.h5");
-      execFileSync(path.join(root, ".venv/bin/python"), [
-        "-c",
-        `import sys,os
+      execFileSync(
+        process.env.DIOPTAS_REFERENCE_PYTHON ??
+          path.join(root, ".venv/bin/python"),
+        [
+          "-c",
+          `import sys,os
 os.environ['HDF5_PLUGIN_PRELOAD']='::'
 import numpy as np,h5py,bitshuffle,struct
 y,x=np.indices((384,448));frame=(100+x*2+y*3).astype('uint16')
@@ -29,9 +32,10 @@ with h5py.File(sys.argv[1],'w') as f:
   data=struct.pack('>QI',frame.nbytes,4096)+bitshuffle.compress_lz4(frame,block_size=2048).tobytes()
   for i in range(512):d.id.write_direct_chunk((i,0,0),data)
 `,
-        source,
-        compression,
-      ]);
+          source,
+          compression,
+        ],
+      );
       const native = nativeClient();
       const invoke = async (a, p = {}) => {
         const r = await native.invoke(a, p);

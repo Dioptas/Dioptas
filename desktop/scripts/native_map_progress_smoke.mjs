@@ -10,9 +10,11 @@ const artifacts = path.join(root, "desktop/artifacts/native-map-progress");
 await mkdir(artifacts, { recursive: true });
 const temp = await mkdtemp(path.join(os.tmpdir(), "dioptas-map-progress-"));
 const source = path.join(temp, "scan.h5");
-execFileSync(path.join(root, ".venv/bin/python"), [
-  "-c",
-  `import sys,os,struct
+execFileSync(
+  process.env.DIOPTAS_REFERENCE_PYTHON ?? path.join(root, ".venv/bin/python"),
+  [
+    "-c",
+    `import sys,os,struct
 os.environ['HDF5_PLUGIN_PRELOAD']='::'
 import numpy as np,h5py,bitshuffle
 y,x=np.indices((384,448));frame=(100+x*2+y*3).astype('uint16')
@@ -21,8 +23,9 @@ with h5py.File(sys.argv[1],'w') as f:
  data=struct.pack('>QI',frame.nbytes,4096)+bitshuffle.compress_lz4(frame,block_size=2048).tobytes()
  for i in range(2048):d.id.write_direct_chunk((i,0,0),data)
 `,
-  source,
-]);
+    source,
+  ],
+);
 const receipts = [];
 try {
   for (const [name, type] of [

@@ -20,9 +20,9 @@
     "tauri:smoke": "node scripts/tauri_smoke.mjs",
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
-    "smoke": "node scripts/smoke.mjs",
+    "smoke": "node scripts/native_backend_smoke.mjs",
     "format": "prettier --write src 'scripts/*.{mjs,js}' vite.config.ts src-tauri/*.json src-tauri/capabilities/*.json",
-    "test": "node --test scripts/overlay_color_scales.test.mjs scripts/plot_ticks.test.mjs scripts/raster_transfer.test.mjs scripts/phase_line_scaling.test.mjs scripts/readout_numbers.test.mjs scripts/radial_readout.test.mjs scripts/pattern_samples.test.mjs scripts/phase_command_queue.test.mjs scripts/phase_author_search.test.mjs scripts/prepare_detector_image.test.mjs scripts/map_pattern.test.mjs scripts/linked_position.test.mjs scripts/plot_viewport.test.mjs scripts/batch_display.test.mjs scripts/error_reporting.test.mjs scripts/ui_components.test.mjs",
+    "test": "node --test scripts/overlay_color_scales.test.mjs scripts/plot_ticks.test.mjs scripts/raster_transfer.test.mjs scripts/phase_line_scaling.test.mjs scripts/readout_numbers.test.mjs scripts/radial_readout.test.mjs scripts/pattern_samples.test.mjs scripts/phase_command_queue.test.mjs scripts/phase_author_search.test.mjs scripts/prepare_detector_image.test.mjs scripts/map_pattern.test.mjs scripts/linked_position.test.mjs scripts/plot_viewport.test.mjs scripts/batch_display.test.mjs scripts/error_reporting.test.mjs scripts/ui_components.test.mjs scripts/history_labels.test.mjs",
     "test:detector-redraw": "node scripts/detector_redraw_smoke.mjs",
     "test:rendering": "node scripts/rendering_smoke.mjs",
     "test:integration-processing": "node scripts/integration_processing_smoke.mjs",
@@ -51,7 +51,11 @@
     "test:ui-audit:baseline": "node scripts/ui_audit_baseline.mjs",
     "report:ui-audit": "node scripts/ui_audit_report.mjs",
     "test:ui-components": "node scripts/ui_components.mjs",
-    "test:combination": "node scripts/combination_smoke.mjs"
+    "test:combination": "node scripts/native_project_smoke.mjs",
+    "smoke:python-reference": "node scripts/smoke.mjs",
+    "test:combination:python-reference": "node scripts/combination_smoke.mjs",
+    "test:image-change": "node scripts/image_change_smoke.mjs && node scripts/image_change_smoke.mjs --webkit",
+    "test:standalone-processor": "node scripts/standalone_processor_smoke.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",

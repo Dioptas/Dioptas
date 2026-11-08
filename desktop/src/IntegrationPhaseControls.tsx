@@ -1,3 +1,4 @@
+import { Button, Input, Select, Portal } from "./ui";
 import { Dialog, DialogHeader } from "./Dialog";
 import { PhaseDatabase } from "./PhaseDatabase";
 import { isTauri } from "@tauri-apps/api/core";
@@ -685,25 +686,28 @@ function PhaseDialog({
   wide?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
-  return createPortal(
-    <Dialog
-      onDismiss={onClose}
-      dialogRef={ref}
-      className={`phase-dialog${wide ? " phase-dialog-wide" : ""}`}
-      aria-label={title}
-      onCancel={(e) => {
-        e.preventDefault();
-        onClose();
-      }}
-    >
-      <DialogHeader
-        title={title}
-        closeLabel={`Close ${title}`}
-        onClose={onClose}
-      />
-      {children}
-    </Dialog>,
-    document.querySelector(".app") || document.body,
+  return (
+    <Portal>
+      {
+        <Dialog
+          onDismiss={onClose}
+          dialogRef={ref}
+          className={`phase-dialog${wide ? " phase-dialog-wide" : ""}`}
+          aria-label={title}
+          onCancel={(e) => {
+            e.preventDefault();
+            onClose();
+          }}
+        >
+          <DialogHeader
+            title={title}
+            closeLabel={`Close ${title}`}
+            onClose={onClose}
+          />
+          {children}
+        </Dialog>
+      }
+    </Portal>
   );
 }
 

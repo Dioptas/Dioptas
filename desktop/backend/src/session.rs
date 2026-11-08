@@ -14,12 +14,16 @@ mod batch_workflow;
 mod calibration;
 #[path = "checkpoint.rs"]
 mod checkpoint;
+#[path = "combination.rs"]
+mod combination;
 #[path = "file_workflow.rs"]
 mod file_workflow;
 #[path = "geometric_mask.rs"]
 mod geometric_mask;
 #[path = "image_batch.rs"]
 mod image_batch;
+#[path = "image_change.rs"]
+mod image_change;
 #[path = "image_transform.rs"]
 mod image_transform;
 #[path = "integration_history.rs"]
@@ -120,6 +124,9 @@ pub struct Session {
     root: PathBuf,
     settings: Settings,
     project: project::Project,
+    combination: combination::State,
+    #[cfg(feature = "dioptrin")]
+    combination_plans: Option<combination::Plans>,
     image: Option<Image>,
     image_raster: Option<Raster>,
     processed_raster: Option<Raster>,
@@ -188,6 +195,9 @@ impl Session {
             root,
             settings: Settings::default(),
             project: project::Project::default(),
+            combination: Default::default(),
+            #[cfg(feature = "dioptrin")]
+            combination_plans: None,
             image: None,
             image_raster: None,
             processed_raster: None,
@@ -274,7 +284,13 @@ impl Session {
         )
         .then(|| self.calibration_snapshot());
         let calibration_head = self.calibration_history.undo.last().cloned();
-        match self.dispatch(&request.action, &request.payload) {
+        let dispatched = self
+            .dispatch(&request.action, &request.payload)
+            .and_then(|mut reply| {
+                self.update_combination_reply(&mut reply, &request.action, &request.payload)?;
+                Ok(reply)
+            });
+        match dispatched {
             Ok(mut reply) => {
                 if self.phases != shared_before.0
                     || self.patterns.overlays != shared_before.1
@@ -367,6 +383,9 @@ impl Session {
         }
     }
     fn dispatch(&mut self, action: &str, args: &Value) -> Result<Reply, String> {
+        if let Some(reply) = self.combination_command(action, args)? {
+            return Ok(reply);
+        }
         if let Some(reply) = self.project_command(action, args)? {
             return Ok(reply);
         }
@@ -451,7 +470,20 @@ impl Session {
                 self.publish_image(candidate)?;
                 self.refresh_masks(&Control::default())?;
             }
-            "open_image" => self.open_image_model(args, defer)?,
+            "open_image" => {
+                if let Some(reply) = self.open_image_model(args, defer)? {
+                    return Ok(reply);
+                }
+            }
+            "reset_calibration" => {
+                check_keys(args, &[])?;
+                self.reset_detector_state()?;
+                self.calculate(defer)?;
+                self.revision += 1;
+                let mut reply = self.snapshot(true);
+                reply.result["calibrationReset"] = json!(true);
+                return Ok(reply);
+            }
             "next_image" => {
                 check_keys(args, &["direction", "step", "defer_integration"])?;
                 let direction = args
@@ -492,6 +524,13 @@ impl Session {
                     )?;
                     let mut options = image.options.clone();
                     options["path"] = json!(target);
+                    options["defer_integration"] = json!(defer);
+                    return self.dispatch("open_image", &options);
+                }
+                if image.frame_source_shape(index as usize)? != image.source_shape {
+                    let mut options = image.options.clone();
+                    options["path"] = json!(image.path);
+                    options["frame"] = json!(index);
                     options["defer_integration"] = json!(defer);
                     return self.dispatch("open_image", &options);
                 }
@@ -881,7 +920,7 @@ impl Session {
                         )
                     }
                     "cake" => {
-                        let Some(data) = self.cake_values.as_ref() else {
+                        let Some(data) = self.displayed_cake_values() else {
                             return Ok(Reply::metadata(
                                 json!({"ok":true,"display":"cake","levels":null}),
                             ));
@@ -907,7 +946,7 @@ impl Session {
                         .processed_raster
                         .as_ref()
                         .or(self.image_raster.as_ref()),
-                    "cake" => self.cake.as_ref(),
+                    "cake" => self.displayed_cake(),
                     _ => None,
                 };
                 let levels = raster
@@ -1072,7 +1111,11 @@ impl Session {
             Err("Open an image first.".into())
         }
     }
-    pub(super) fn open_image_model(&mut self, args: &Value, defer: bool) -> Result<(), String> {
+    pub(super) fn open_image_model(
+        &mut self,
+        args: &Value,
+        defer: bool,
+    ) -> Result<Option<Reply>, String> {
         check_keys(
             args,
             &[
@@ -1087,6 +1130,7 @@ impl Session {
                 "multiple",
                 "batch_mode",
                 "output_directory",
+                "reset_calibration",
             ],
         )?;
         let file = path(args)?;
@@ -1101,6 +1145,12 @@ impl Session {
             crate::frame_trace::FrameTrace::new("open-image", args["frame"].as_u64().unwrap_or(0));
         let mut image = Image::prepare(&file, args)?;
         trace.mark("metadata");
+        if let Some(reply) = self.image_change(&image, args)? {
+            return Ok(Some(reply));
+        }
+        if args["reset_calibration"].as_bool() == Some(true) {
+            self.reset_detector_state()?;
+        }
         self.assign_image_detector(&image)?;
 
         image.orient(&self.settings.transformations, &self.control)?;
@@ -1146,7 +1196,13 @@ impl Session {
                 .map_or(Ok(false), |v| boolean(v, "Pattern only"))?,
         )?;
         trace.mark("processing masks and integration");
-        Ok(())
+        if args["reset_calibration"].as_bool() == Some(true) {
+            self.revision += 1;
+            let mut reply = self.snapshot(true);
+            reply.result["calibrationReset"] = json!(true);
+            return Ok(Some(reply));
+        }
+        Ok(None)
     }
     fn assign_image_detector(&mut self, image: &Image) -> Result<(), String> {
         if self.settings.geometry.auto_assign

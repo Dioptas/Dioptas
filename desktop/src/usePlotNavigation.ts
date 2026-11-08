@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import type { PointerEvent, KeyboardEvent, RefObject } from "react";
 import type { PlotViewport } from "./plotViewport";
 

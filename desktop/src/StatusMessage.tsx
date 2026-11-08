@@ -1,3 +1,4 @@
+import { Button } from "./ui";
 import { useState, useRef } from "react";
 import { Dialog, DialogHeader } from "./Dialog";
 
@@ -26,7 +27,7 @@ export function StatusMessage({
         {error ?? ""}
       </span>
       {error && (
-        <button
+        <Button
           ref={detailsButton}
           className="quiet status-action"
           aria-label="View error details"
@@ -37,7 +38,7 @@ export function StatusMessage({
           }}
         >
           Details
-        </button>
+        </Button>
       )}
       {details && error && (
         <Dialog
@@ -55,7 +56,7 @@ export function StatusMessage({
             {error}
           </pre>
           <div className="ui-dialog-actions">
-            <button
+            <Button
               className="secondary"
               onClick={async () => {
                 try {
@@ -68,10 +69,10 @@ export function StatusMessage({
               }}
             >
               {copied ? "Copied" : "Copy error"}
-            </button>
-            <button className="primary" onClick={() => setDetails(false)}>
+            </Button>
+            <Button className="primary" onClick={() => setDetails(false)}>
               Close
-            </button>
+            </Button>
           </div>
           {copyFailed && (
             <p className="ui-display-note" role="status">

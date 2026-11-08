@@ -108,9 +108,9 @@ input[type="radio"] {
   margin: 0;
   padding: 0;
   flex-shrink: 0;
-  border: 1px solid #626c77;
+  border: 1px solid var(--ui-choice-border);
   border-radius: 4px;
-  background: #171c22 center / 100% 100% no-repeat;
+  background: var(--ui-choice-background) center / 100% 100% no-repeat;
 }
 input[type="radio"] {
   width: 17px;
@@ -121,8 +121,8 @@ input[type="radio"] {
 input[type="checkbox"]:checked,
 input[type="checkbox"]:indeterminate,
 input[type="radio"]:checked {
-  border-color: #626c77;
-  background-color: #343b43;
+  border-color: var(--ui-choice-border);
+  background-color: var(--ui-choice-background);
 }
 input[type="checkbox"]:checked {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m3.5 8 3 3 6-6' fill='none' stroke='%23e3e7eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -1018,8 +1018,8 @@ h2 {
 .help-dialog {
   width: 420px;
   padding: 22px;
-  background: #18212a;
-  border: 1px solid #3c4c5b;
+  background: var(--ui-overlay-background);
+  border: 1px solid var(--ui-overlay-border);
   border-radius: 12px;
   box-shadow: 0 20px 100px #0008;
 }

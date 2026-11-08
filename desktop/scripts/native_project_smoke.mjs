@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
@@ -24,6 +24,11 @@ try {
         calls.push([action, payload]);
         if (["save_project", "open_project"].includes(action) && !payload.path)
           payload = { ...payload, path: project };
+        if (action === "save_combined_pattern")
+          payload = {
+            ...payload,
+            path: path.join(temp, `${name}-combined.xy`),
+          };
         const reply = await native.invoke(action, payload);
         assert.equal(reply.ok, true, `${action}: ${reply.error}`);
         return reply;
@@ -52,11 +57,16 @@ try {
         pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
       );
       const group = page.getByRole("group", { name: "Project configurations" });
-      const settings = page.getByRole("button", { name: "Settings", exact: true });
+      const settings = page.getByRole("button", {
+        name: "Settings",
+        exact: true,
+      });
       const toggle = page.getByRole("checkbox", {
         name: "Show configuration controls",
       });
-      const closeSettings = page.getByRole("button", { name: "Close settings" });
+      const closeSettings = page.getByRole("button", {
+        name: "Close settings",
+      });
       const assertBarHidden = async () => {
         assert.equal(await group.count(), 0);
         assert.equal(await page.locator(".has-configurations").count(), 0);
@@ -156,6 +166,74 @@ try {
       ]);
       assert.equal(state.state.configurationIndex, 1);
       assert.equal(state.pattern.x.length, 128);
+      assert.equal(
+        await page
+          .getByRole("combobox", { name: "Active configuration", exact: true })
+          .count(),
+        1,
+      );
+      assert.equal(
+        await page
+          .getByRole("combobox", { name: "Configuration", exact: true })
+          .count(),
+        0,
+      );
+      const factor = page.getByRole("spinbutton", {
+        name: "Detector factor",
+        exact: true,
+      });
+      await factor.fill("2");
+      await factor.press("Enter");
+      await page
+        .getByRole("button", { name: "Combine patterns", exact: true })
+        .click();
+      await page.waitForFunction(
+        () =>
+          document.querySelector(
+            '.configuration-combination button[aria-pressed="true"]',
+          )?.textContent === "Combine patterns",
+      );
+      await page
+        .getByRole("button", { name: "Combine cakes", exact: true })
+        .click();
+      await page.waitForFunction(
+        () =>
+          document.querySelectorAll(
+            '.configuration-combination button[aria-pressed="true"]',
+          ).length === 2,
+      );
+      const combined = await invoke("state");
+      assert.equal(combined.state.combination.factor, 2);
+      assert.equal(combined.state.combination.patterns, true);
+      assert.equal(combined.state.combination.cakes, true);
+      assert.equal(combined.pattern.y.length, 128);
+      await page
+        .getByRole("button", { name: "Save combined pattern", exact: true })
+        .click();
+      await page.waitForFunction(() => !document.querySelector(".spin"));
+      assert.ok(
+        (await stat(path.join(temp, `${name}-combined.xy`))).size > 100,
+      );
+      await page.setViewportSize({ width: 1000, height: 668 });
+      await page.screenshot({
+        path: path.join(artifacts, `${name}-combined-small.png`),
+      });
+      const toolbar = await page
+        .locator(".configuration-toolbar")
+        .boundingBox();
+      for (const element of await page
+        .locator(
+          ".configuration-toolbar button, .configuration-toolbar input, .configuration-toolbar select",
+        )
+        .all()) {
+        const b = await element.boundingBox();
+        assert.ok(
+          b &&
+            b.x >= toolbar.x &&
+            b.x + b.width <= toolbar.x + toolbar.width + 1,
+        );
+      }
+      await page.setViewportSize({ width: 1500, height: 1000 });
       await page.getByRole("button", { name: "Map", exact: true }).click();
       await group.waitFor();
       await page.screenshot({
@@ -213,6 +291,9 @@ try {
           "save",
           "open",
         ],
+        combinedPatternAndCake: true,
+        combinedPatternExport: true,
+        singleConfigurationSelector: true,
         configurationLabels: state.state.configurationLabels,
         configurationPreference: {
           hiddenByDefault: true,

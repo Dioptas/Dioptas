@@ -24,6 +24,9 @@ impl Session {
             .map(|i| i.options.clone())
             .unwrap_or(json!({}));
         let mut first = Image::open(Path::new(&paths[0]), &options)?;
+        if mode != "save" && self.image_change(&first, &json!({}))?.is_some() {
+            return Err("Combined images must match the current detector dimensions. Open one image first to change the detector setup and reset calibration.".into());
+        }
         self.assign_image_detector(&first)?;
         let shape = first.shape;
         let output = if mode == "save" {

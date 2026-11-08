@@ -1,3 +1,9 @@
+import { usePlotZoomPreference } from "./usePlotZoomPreference";
+import {
+  CalibrationResetDialog,
+  type CalibrationResetRequest,
+} from "./CalibrationResetDialog";
+import { Button, Select, Input } from "./ui";
 import { useDraftReplacement } from "./useDraftReplacement";
 import { useCalibrationFitDraft } from "./useCalibrationFitDraft";
 import { IntegrationModeIcon } from "./ModeIcons";
@@ -9,6 +15,7 @@ import { scientificValue } from "./ScientificNumberInput";
 import {
   historyActionLabel,
   scientificHistoryCommand,
+  scientificHistoryAction,
   isScientificHistoryCommand,
   isCalibrationHistoryCommand,
   canTraverseScientificHistory,
@@ -32,6 +39,7 @@ import {
   useState,
 } from "react";
 import {
+  RotateCcw,
   CircleHelp,
   ArrowUpRight,
   FileImage,
@@ -45,7 +53,6 @@ import {
 } from "lucide-react";
 import { connect, updateWindowTitle } from "./bridge";
 import { fileOperationFailure, recordAction } from "./errorReporting";
-import { IntegrationModeIcon, MapModeIcon, MaskModeIcon } from "./ModeIcons";
 import { SettingsWorkspace } from "./SettingsWorkspace";
 import { useCustomCommands } from "./customCommands";
 import { CustomCommandButtons } from "./CustomCommandButtons";
@@ -139,19 +146,6 @@ function clickContext(state: State | null) {
   ]);
 }
 
-function clickContext(state: State | null) {
-  return JSON.stringify([
-    state?.imagePath,
-    state?.configurationIndex,
-    state?.projectName,
-    state?.integration.frame,
-    state?.integration.patternName,
-    state?.calibration.transformations,
-    state?.geometry,
-    state?.shape,
-  ]);
-}
-
 export default function App() {
   const [plotViews] = useState(createPlotViews);
   const detectorExport = useRef<RasterExport>(null);
@@ -218,7 +212,10 @@ export default function App() {
     () => readLayoutFlag(layoutKeys.configurationControls),
   );
   useEffect(() => {
-    saveLayoutValue(layoutKeys.configurationControls, showConfigurationControls);
+    saveLayoutValue(
+      layoutKeys.configurationControls,
+      showConfigurationControls,
+    );
   }, [showConfigurationControls]);
   const [showRings, setShowRings] = useState(true),
     [showNumbers, setShowNumbers] = useState(true);
@@ -424,6 +421,7 @@ export default function App() {
   const [resetKey, setResetKey] = useState(0);
   const [calibrationResetRequest, setCalibrationResetRequest] =
     useState<CalibrationResetRequest>();
+  const calibrationResetOpener = useRef<HTMLElement | null>(null);
   const [pixel, setPixel] = useState<NonNullable<Response["pixel"]> | null>(
     null,
   );
@@ -481,6 +479,8 @@ export default function App() {
       if ("mapWarning" in result) setMapWarning(result.mapWarning ?? null);
       if (result.state) {
         if (result.calibrationReset) {
+          resetFitDraft(result.state.calibration);
+          resetGeometryDraft(result.state.calibration);
           setMode("calibration");
           setCalibrationStep(0);
           setSelectedPicks([]);
@@ -627,9 +627,11 @@ export default function App() {
         })
       )
         return;
-      const historyLabel = command.startsWith("redo")
-        ? currentState.current?.redoLabel
-        : currentState.current?.undoLabel;
+      const historyLabel = scientificHistoryAction(
+        currentState.current,
+        activeMode.current,
+        command.startsWith("redo"),
+      );
       const overlayEditing =
         (command === "integration_overlay" && args.operation !== "load") ||
         (isScientificHistoryCommand(command) &&
@@ -766,6 +768,11 @@ export default function App() {
               : args,
         );
         if (result.imageChange) {
+          if (
+            document.activeElement instanceof HTMLElement &&
+            document.activeElement !== document.body
+          )
+            calibrationResetOpener.current = document.activeElement;
           setCalibrationResetRequest(result.imageChange);
           return;
         }
@@ -1024,13 +1031,17 @@ export default function App() {
         );
       } else if (mod && key === "z") {
         event.preventDefault();
-        if (!canTraverseScientificHistory(currentState.current, event.shiftKey))
+        if (
+          !canTraverseScientificHistory(
+            currentState.current,
+            event.shiftKey,
+            mode,
+          )
+        )
           return;
         void run(
           scientificHistoryCommand(
-            event.shiftKey
-              ? currentState.current?.redoLabel
-              : currentState.current?.undoLabel,
+            scientificHistoryAction(currentState.current, mode, event.shiftKey),
             event.shiftKey,
           ),
           {},
@@ -1038,9 +1049,13 @@ export default function App() {
         );
       } else if (mod && key === "y") {
         event.preventDefault();
-        if (!canTraverseScientificHistory(currentState.current, true)) return;
+        if (!canTraverseScientificHistory(currentState.current, true, mode))
+          return;
         void run(
-          scientificHistoryCommand(currentState.current?.redoLabel, true),
+          scientificHistoryCommand(
+            scientificHistoryAction(currentState.current, mode, true),
+            true,
+          ),
           {},
           "Restoring previous state…",
         );
@@ -1766,12 +1781,18 @@ export default function App() {
   const configurationControlsVisible =
     showConfigurationControls && !!state?.configurationLabels && !settingsOpen;
   return (
-    <div className="app" data-text-size={largeText ? "large" : "normal"}
+    <div
+      className="app"
+      data-text-size={largeText ? "large" : "normal"}
       onClickCapture={(event) => {
-        if (calibrationResetRequest || !(event.target instanceof Element)) return;
-        const control = event.target.closest<HTMLElement>("button, input, select");
+        if (calibrationResetRequest || !(event.target instanceof Element))
+          return;
+        const control = event.target.closest<HTMLElement>(
+          "button, input, select",
+        );
         if (control) calibrationResetOpener.current = control;
-      }}>
+      }}
+    >
       <div className="app-body">
         <nav className="mode-navigation" aria-label="Workspace modes">
           <WorkspaceModeButtons
@@ -1789,6 +1810,7 @@ export default function App() {
             />
             <HistoryControls
               state={state}
+              mode={mode}
               ready={ready}
               customActive={customHistoryActive}
               custom={customCommands}
@@ -1830,18 +1852,18 @@ export default function App() {
                 <Save size={20} />
               </Button>
             </div>
-            <button
+            <Button
               className="workspace-nav navigation-help"
               aria-label="Keyboard shortcuts and gestures"
               title="Keyboard shortcuts and gestures"
               onClick={() => setShortcutHelpOpen(true)}
             >
               <CircleHelp size={20} />
-            </button>
+            </Button>
             {shortcutHelpOpen && (
               <ShortcutHelp onClose={() => setShortcutHelpOpen(false)} />
             )}
-            <button
+            <Button
               className={`workspace-nav navigation-settings ${settingsOpen ? "workspace-active" : ""}`}
               onClick={() => {
                 clearPlot();
@@ -1861,7 +1883,32 @@ export default function App() {
           className={`workspace-stage ${configurationControlsVisible ? "has-configurations" : ""}`}
         >
           {configurationControlsVisible && state && (
-            <ConfigurationControls state={state} ready={ready} run={run} />
+            <div className="configuration-toolbar">
+              <ConfigurationControls
+                state={state}
+                ready={
+                  ready &&
+                  !setupDirty &&
+                  !geometryDirty &&
+                  !fitEditor.dirty &&
+                  !integrationDraft.dirty
+                }
+                run={run}
+              />
+              <ConfigurationCombinationControls
+                state={state}
+                ready={
+                  ready &&
+                  !setupDirty &&
+                  !geometryDirty &&
+                  !fitEditor.dirty &&
+                  !integrationDraft.dirty
+                }
+                run={run}
+                integration={mode === "integration"}
+                showSelector={false}
+              />
+            </div>
           )}
           <IntegrationWorkspace
             concealed={settingsOpen}
@@ -2050,10 +2097,12 @@ export default function App() {
                               }}
                             />
                             <ImageIntensity
-                              key={`detector-${state?.configurationIndex}`}
+                              key={`detector-${state?.configurationContext ?? state?.configurationIndex}`}
                               initialAutoActive={
                                 configurationDisplays.current.get(
-                                  state?.configurationIndex ?? 0,
+                                  state?.configurationContext ??
+                                    state?.configurationIndex ??
+                                    0,
                                 )?.autoActive ?? true
                               }
                               initialLevelsReady={configurationDisplays.current.has(
@@ -2242,14 +2291,14 @@ export default function App() {
                                 resetKey={resetKey}
                               />
                               <ImageIntensity
-                                key={`cake-${state?.configurationIndex}-${!!state?.combination?.cakes}`}
+                                key={`cake-${state?.configurationContext ?? state?.configurationIndex}-${!!state?.combination?.cakes}`}
                                 initialAutoActive={
                                   configurationCakeDisplays.current.get(
-                                    `${state?.configurationIndex}:${!!state?.combination?.cakes}`,
+                                    `${state?.configurationContext ?? state?.configurationIndex}:${!!state?.combination?.cakes}`,
                                   )?.autoActive ?? true
                                 }
                                 initialLevelsReady={configurationCakeDisplays.current.has(
-                                  `${state?.configurationIndex}:${!!state?.combination?.cakes}`,
+                                  `${state?.configurationContext ?? state?.configurationIndex}:${!!state?.combination?.cakes}`,
                                 )}
                                 preferences={cakePreferences}
                                 onPreferences={setCakePreferences}
@@ -2720,7 +2769,7 @@ export default function App() {
                               <section className="calibration-validation-reference">
                                 <label className="calibration-field-row">
                                   <span>Calibrant</span>
-                                  <select
+                                  <Select
                                     aria-label="Validation calibrant"
                                     disabled={!ready}
                                     value={
@@ -2739,9 +2788,9 @@ export default function App() {
                                         <option key={name}>{name}</option>
                                       ),
                                     )}
-                                  </select>
+                                  </Select>
                                 </label>
-                                <button
+                                <Button
                                   className="icon-button"
                                   aria-label="Load custom validation reference"
                                   title="Load custom reference spacings"
@@ -2755,7 +2804,7 @@ export default function App() {
                                   }
                                 >
                                   <FolderOpen size={16} />
-                                </button>
+                                </Button>
                               </section>
                             </>
                           )}
@@ -2936,8 +2985,14 @@ export default function App() {
                           variant="quiet"
                           aria-label="Reset calibration"
                           title="Reset calibration and detector setup; keep the image"
-                          disabled={!ready || !state?.hasImage}
-                          onClick={() => setCalibrationResetRequest("reset")}
+                          disabled={
+                            !ready || (!state?.hasImage && !state?.calibrated)
+                          }
+                          onClick={(event) => {
+                            calibrationResetOpener.current =
+                              event.currentTarget;
+                            setCalibrationResetRequest("reset");
+                          }}
                         >
                           <RotateCcw size={14} />
                         </Button>
@@ -2970,6 +3025,33 @@ export default function App() {
             )}
           </IntegrationWorkspace>
           {draftReplacement.dialog}
+          {calibrationResetRequest && (
+            <CalibrationResetDialog
+              request={calibrationResetRequest}
+              onCancel={() => {
+                setCalibrationResetRequest(undefined);
+                const opener = calibrationResetOpener.current;
+                requestAnimationFrame(() => opener?.focus());
+              }}
+              onConfirm={() => {
+                const request = calibrationResetRequest;
+                setCalibrationResetRequest(undefined);
+                if (request === "reset")
+                  void run("reset_calibration", {}, "Resetting calibration…");
+                else
+                  void run(
+                    "open_image",
+                    {
+                      ...request.options,
+                      path: request.path,
+                      frame: request.frame,
+                      reset_calibration: true,
+                    },
+                    "Opening image and resetting calibration…",
+                  );
+              }}
+            />
+          )}
           {manualGeometryOpen && (
             <ManualGeometryDialog
               editor={geometryDraft}

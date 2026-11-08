@@ -31,6 +31,14 @@ impl Default for Files {
         }
     }
 }
+impl Files {
+    pub(super) fn stop_autoprocess(&mut self) {
+        self.auto_process = false;
+        self.auto_error.clear();
+        self.queue.clear();
+        self.pending.clear();
+    }
+}
 pub(super) fn image_file(path: &Path) -> bool {
     let name = path
         .file_name()
@@ -318,6 +326,15 @@ impl Session {
                 options["path"] = json!(path);
                 options["frame"] = json!(0);
                 match self.dispatch("open_image", &options) {
+                    Ok(reply) if reply.result["imageChange"].is_object() => {
+                        self.restore_checkpoint(checkpoint);
+                        self.files.stop_autoprocess();
+                        self.files.auto_error = format!(
+                            "{}: detector dimensions changed. Autoprocess stopped; open the image manually to reset calibration.",
+                            path.file_name().unwrap_or_default().to_string_lossy()
+                        );
+                        return Ok(Some(self.snapshot(false)));
+                    }
                     Ok(reply) => {
                         self.files.auto_error.clear();
                         return Ok(Some(reply));
@@ -423,14 +440,14 @@ impl Session {
                             (self.scientific_values(), self.image.as_ref().unwrap().shape)
                         } else {
                             (
-                                self.cake_values.clone().ok_or(
+                                self.displayed_cake_values().cloned().ok_or(
                                     "Integrate a calibrated image before saving its cake.",
                                 )?,
                                 [
-                                    self.cake.as_ref().unwrap().metadata["height"]
+                                    self.displayed_cake().unwrap().metadata["height"]
                                         .as_u64()
                                         .unwrap() as usize,
-                                    self.cake.as_ref().unwrap().metadata["width"]
+                                    self.displayed_cake().unwrap().metadata["width"]
                                         .as_u64()
                                         .unwrap() as usize,
                                 ],
@@ -463,10 +480,9 @@ impl Session {
                     }
                     "csv" | "txt" if source == "cake" => {
                         let cake = self
-                            .cake
-                            .as_ref()
+                            .displayed_cake()
                             .ok_or("Integrate a calibrated image before saving its cake.")?;
-                        let data = self.cake_values.as_ref().unwrap();
+                        let data = self.displayed_cake_values().unwrap();
                         let w = cake.metadata["width"].as_u64().unwrap() as usize;
                         let h = cake.metadata["height"].as_u64().unwrap() as usize;
                         let rr = &cake.metadata["radialRange"];

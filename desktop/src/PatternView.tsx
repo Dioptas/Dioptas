@@ -3,6 +3,7 @@ import { usePlotTypography } from "./usePlotTypography";
 import { WebGLPattern, type PatternCurve } from "./WebGLPattern";
 import { IntegrationPhaseLegend } from "./IntegrationPhaseLegend";
 import {
+  useCallback,
   useEffect,
   useId,
   useMemo,

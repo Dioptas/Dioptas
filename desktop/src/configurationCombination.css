@@ -47,3 +47,20 @@
 .workspace-stage:has(> .configuration-combination) {
   flex-direction: column;
 }
+
+.configuration-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  flex: 0 0 auto;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+.configuration-toolbar .configuration-controls {
+  flex: 1 1 560px;
+  border-bottom: 0;
+}
+.configuration-toolbar .configuration-combination {
+  flex: 1 1 auto;
+  border-bottom: 0;
+  justify-content: flex-end;
+}

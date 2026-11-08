@@ -127,8 +127,8 @@
   max-width: calc(100vw - 32px);
   padding: 4px;
   color: var(--ui-text);
-  background: #20262d;
-  border: 1px solid #414b56;
+  background: var(--ui-overlay-background);
+  border: 1px solid var(--ui-overlay-border);
   border-radius: 8px;
   box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
 }

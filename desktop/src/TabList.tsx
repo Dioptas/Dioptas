@@ -1,3 +1,4 @@
+import { Button } from "./ui";
 import { useId, type ReactNode } from "react";
 
 export type TabOption<T extends string | number> = {
@@ -39,7 +40,7 @@ export function TabList<T extends string | number>({
       aria-orientation={orientation}
     >
       {options.map((option, index) => (
-        <button
+        <Button
           key={option.value}
           type="button"
           role="tab"
@@ -83,7 +84,7 @@ export function TabList<T extends string | number>({
           }}
         >
           {option.label}
-        </button>
+        </Button>
       ))}
     </div>
   );

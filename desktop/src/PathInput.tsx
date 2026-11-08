@@ -1,3 +1,4 @@
+import { Input } from "./ui";
 import { useLayoutEffect, useRef, useState, type ComponentProps } from "react";
 
 /** Long directories reveal their useful tail, with a visible clipping cue. */
@@ -24,7 +25,7 @@ export function PathInput({
   }, []);
   return (
     <span className="path-input">
-      <input
+      <Input
         {...props}
         ref={input}
         value={value}

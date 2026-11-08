@@ -1,8 +1,10 @@
+import { Button } from "./ui";
 import { Undo2, Redo2 } from "lucide-react";
 import {
   canTraverseScientificHistory,
   historyActionLabel,
   scientificHistoryCommand,
+  scientificHistoryAction,
 } from "./historyLabels";
 import type { State } from "./types";
 import type { CustomCommandController } from "./customCommands";
@@ -10,12 +12,14 @@ import type { CustomCommandController } from "./customCommands";
 /** One history action contract for the shared scientific and custom-action contexts. */
 export function HistoryControls({
   state,
+  mode,
   ready,
   customActive,
   custom,
   run,
 }: {
   state: State | null;
+  mode: string;
   ready: boolean;
   customActive: boolean;
   custom: CustomCommandController;
@@ -33,16 +37,16 @@ export function HistoryControls({
           ? redo
             ? custom.redoLabel
             : custom.undoLabel
-          : historyActionLabel(redo ? state?.redoLabel : state?.undoLabel);
+          : historyActionLabel(scientificHistoryAction(state, mode, redo));
         const available = customActive
           ? redo
             ? custom.canRedo
             : custom.canUndo
-          : canTraverseScientificHistory(state, redo);
+          : canTraverseScientificHistory(state, redo, mode);
         const shortcut = redo ? "⇧⌘/Ctrl+Z" : "⌘/Ctrl+Z";
         const Icon = redo ? Redo2 : Undo2;
         return (
-          <button
+          <Button
             key={name}
             className="workspace-nav"
             aria-label={name}
@@ -59,14 +63,14 @@ export function HistoryControls({
               else
                 void run(
                   scientificHistoryCommand(
-                    redo ? state?.redoLabel : state?.undoLabel,
+                    scientificHistoryAction(state, mode, redo),
                     redo,
                   ),
                 );
             }}
           >
             <Icon size={18} />
-          </button>
+          </Button>
         );
       })}
     </div>

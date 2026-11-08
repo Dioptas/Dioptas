@@ -1,3 +1,4 @@
+import { Button, TextArea, Dialog } from "./ui";
 import { useLayoutEffect, useRef, useState } from "react";
 import "./operationErrorDialog.css";
 
@@ -35,7 +36,7 @@ export function OperationErrorDialog({
     "Open the matching detector image first.",
   );
   return (
-    <dialog
+    <Dialog
       ref={dialog}
       className="operation-error-dialog"
       aria-labelledby="operation-error-title"
@@ -64,7 +65,7 @@ export function OperationErrorDialog({
           {failure.report ? "Error report and recent steps" : "Details"}
         </summary>
         {failure.report ? (
-          <textarea
+          <TextArea
             ref={report}
             aria-label="Error report"
             readOnly
@@ -82,11 +83,11 @@ export function OperationErrorDialog({
       )}
       <footer>
         {failure.report && (
-          <button type="button" onClick={() => void copy()}>
+          <Button type="button" onClick={() => void copy()}>
             {copied ? "Copied" : "Copy error report"}
-          </button>
+          </Button>
         )}
-        <button
+        <Button
           ref={confirm}
           type="button"
           className="primary"
@@ -94,8 +95,8 @@ export function OperationErrorDialog({
           onClick={onClose}
         >
           OK
-        </button>
+        </Button>
       </footer>
-    </dialog>
+    </Dialog>
   );
 }

@@ -1,3 +1,4 @@
+import { Button } from "./ui";
 import { Crosshair } from "lucide-react";
 import { IntegrationModeIcon, MapModeIcon, MaskModeIcon } from "./ModeIcons";
 export type WorkspaceMode = "calibration" | "mask" | "integration" | "map";
@@ -29,7 +30,7 @@ export function WorkspaceModeButtons({
   return (
     <>
       {modes.map((item) => (
-        <button
+        <Button
           key={item.value}
           className={`workspace-nav ${mode === item.value ? "workspace-active" : ""}`}
           aria-label={item.name}
@@ -39,7 +40,7 @@ export function WorkspaceModeButtons({
         >
           {item.icon}
           <span>{item.label}</span>
-        </button>
+        </Button>
       ))}
     </>
   );

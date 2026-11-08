@@ -1,3 +1,4 @@
+import { Input, Button, Select } from "./ui";
 import { ShortcutReference } from "./ShortcutReference";
 import { TabList } from "./TabList";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -217,7 +218,7 @@ export function SettingsWorkspace({
                     images, calibrations and processing settings.
                   </p>
                 </div>
-                <input
+                <Input
                   id="settings-configuration-controls"
                   type="checkbox"
                   checked={showConfigurationControls}

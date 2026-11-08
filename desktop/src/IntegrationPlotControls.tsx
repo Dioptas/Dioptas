@@ -1,3 +1,4 @@
+import { Button, Input } from "./ui";
 import { scientificValue } from "./ScientificNumberInput";
 import { geometrySourceLabel } from "./GeometryProvenance";
 import { PatternFreshness } from "./PatternFreshness";
@@ -226,8 +227,8 @@ export function IntegrationPatternActions({
         }
       >
         <Save size={15} />
-      </button>
-      <button
+      </Button>
+      <Button
         aria-label="As Overlay"
         title="Capture displayed pattern as an overlay"
         disabled={!ready || !hasPattern}
@@ -237,8 +238,8 @@ export function IntegrationPatternActions({
       >
         <Layers size={15} aria-hidden="true" />
         <span className="plot-toolbar-label">As Overlay</span>
-      </button>
-      <button
+      </Button>
+      <Button
         aria-label="As Bkg"
         title="Capture displayed pattern as background"
         disabled={!ready || !hasPattern}
@@ -248,13 +249,13 @@ export function IntegrationPatternActions({
       >
         <ImageMinus size={15} aria-hidden="true" />
         <span className="plot-toolbar-label">As Bkg</span>
-      </button>
+      </Button>
       <PatternFreshness
         state={state}
         ready={ready}
         onRetry={() => void run("integrate")}
       />
-      <button
+      <Button
         className="integration-calibration-button"
         aria-label={
           state?.calibrated
@@ -267,7 +268,7 @@ export function IntegrationPatternActions({
       >
         <FolderOpen size={15} aria-hidden="true" />
         <span className="integration-calibration-name">{calibrationName}</span>
-      </button>
+      </Button>
     </div>
   );
 }

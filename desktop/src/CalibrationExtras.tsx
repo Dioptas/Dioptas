@@ -1,3 +1,4 @@
+import { Input, Select, Button } from "./ui";
 import { useEffect, useState, Fragment } from "react";
 import {
   FolderOpen,
@@ -135,7 +136,7 @@ export function CalibrationExtras({
           {c?.detectorOrientation !== undefined && (
             <label className="field-label">
               Detector orientation
-              <select
+              <Select
                 aria-label="Detector orientation"
                 value={c?.detectorOrientation ?? 3}
                 disabled={!ready}
@@ -150,7 +151,7 @@ export function CalibrationExtras({
                 <option value={1}>Top left</option>
                 <option value={2}>Top right</option>
                 <option value={4}>Bottom left</option>
-              </select>
+              </Select>
             </label>
           )}
           <hr className="calibration-tool-divider" />
@@ -273,7 +274,7 @@ export function CalibrationExtras({
                       }}
                     />
                     <span className="calibration-unit">{unit}</span>
-                    <input
+                    <Input
                       aria-label={`Refine ${label.toLowerCase()}`}
                       title="Checked: refine this parameter. Unchecked: hold it fixed."
                       type="checkbox"

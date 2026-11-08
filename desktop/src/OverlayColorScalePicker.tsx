@@ -1,3 +1,4 @@
+import { Button, Input } from "./ui";
 import { Dialog, DialogHeader } from "./Dialog";
 import { Palette } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -41,7 +42,7 @@ export function OverlayColorScalePicker({
         onClick={open}
       >
         <Palette size={16} aria-hidden="true" />
-      </button>
+      </Button>
       <Dialog
         autoOpen={false}
         dialogRef={dialog}

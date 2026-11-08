@@ -1,9 +1,14 @@
-# Dioptas React / Tauri desktop preview
+# Dioptas Rust desktop development
 
 An experimental React/Tauri desktop interface for Dioptas with Calibration,
 Mask, Integration and Map modes, plus a linked Batch window. It lives beside the existing Qt application
 and uses its scientific models and file formats. It is not a complete
 replacement yet.
+
+The consolidated development branch is `codex/rust-desktop`. New desktop work
+uses this checkout; the single-crystal experiment stays separate. See the
+[consolidation record](RUST_DESKTOP_CONSOLIDATION.md) for included branches and
+verification.
 
 The default [Rust backend](backend/README.md) runs the
 image → peak picking/fitting or loaded/manual geometry → integration workflow without Python, using
@@ -31,6 +36,25 @@ The next stage adds [native rotations/flips and geometric masks](NATIVE_GEOMETRY
 through the existing controls, including per-configuration persistence and history.
 The separate [LA Cosmic action](NATIVE_LACOSMIC_PARITY.md) is now native as well,
 with Cosmic Removal in the Mask panel, two passes, Undo/Redo and cancellation.
+
+Changing source image dimensions asks for **Cancel** or **Open and reset
+calibration** before changing the session, including variable-size frames within
+one file. Accepting clears detector geometry, orientation, masks, corrections,
+picks and stale integration results, then opens Calibration at Image. It retains
+phase and overlay references. **Reset calibration** beside Load .poni performs
+the same detector reset while keeping the current image. Same-size images retain
+calibration; a physical detector change with identical dimensions still requires
+an explicit reset. Manufacturer-supported binning can resolve the first image
+against a named detector; later size changes always prompt. Autoprocess stops
+on a mismatch so it cannot integrate using the wrong detector geometry.
+
+With configuration controls enabled, Integration provides detector factors,
+combined patterns and cakes, and combined-pattern export. These run through
+Dioptrin's native shared-grid integration, with independent images, masks and
+display preferences for each configuration. Combination needs calibrated images
+and solid-angle correction. Combined Poisson errors currently require
+uncorrected, unit-factor images; other combinations fail explicitly until that
+uncertainty path is qualified.
 
 Integration and Map use the same `RasterView` and `PatternView` renderers.
 `diffractionPlotSetup.ts` prepares their common detector mask/click properties

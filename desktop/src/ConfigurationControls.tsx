@@ -1,3 +1,4 @@
+import { Button, Input, Select } from "./ui";
 import { useEffect, useState } from "react";
 import type { State } from "./types";
 
@@ -34,7 +35,7 @@ export function ConfigurationControls({
     >
       <label>
         Configuration{" "}
-        <select
+        <Select
           aria-label="Active configuration"
           disabled={!ready || editing}
           value={state.configurationIndex}
@@ -45,7 +46,7 @@ export function ConfigurationControls({
               {name}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
       {editing ? (
         <form
@@ -55,37 +56,37 @@ export function ConfigurationControls({
             setEditing(false);
           }}
         >
-          <input
+          <Input
             aria-label="Configuration name"
             value={name}
             maxLength={250}
             onChange={(e) => setName(e.target.value)}
             autoFocus
           />
-          <button disabled={!ready || !name.trim()} type="submit">
+          <Button disabled={!ready || !name.trim()} type="submit">
             Apply
-          </button>
-          <button type="button" onClick={() => setEditing(false)}>
+          </Button>
+          <Button type="button" onClick={() => setEditing(false)}>
             Cancel
-          </button>
+          </Button>
         </form>
       ) : (
         <>
-          <button
+          <Button
             disabled={!ready}
             onClick={() => action("add")}
             title="Start with the current processed image and calibration, using default settings"
           >
             Add
-          </button>
-          <button
+          </Button>
+          <Button
             disabled={!ready}
             onClick={() => action("duplicate")}
             title="Copy this configuration, including its masks and processing settings"
           >
             Duplicate
-          </button>
-          <button
+          </Button>
+          <Button
             disabled={!ready}
             onClick={() => {
               setName(label);
@@ -93,14 +94,14 @@ export function ConfigurationControls({
             }}
           >
             Rename
-          </button>
-          <button
+          </Button>
+          <Button
             disabled={!ready || labels.length < 2}
             onClick={() => action("remove")}
             title="Remove the selected configuration"
           >
             Remove
-          </button>
+          </Button>
         </>
       )}
     </div>

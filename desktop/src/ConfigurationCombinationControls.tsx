@@ -11,11 +11,13 @@ export function ConfigurationCombinationControls({
   ready,
   run,
   integration,
+  showSelector = true,
 }: {
   state: State | null;
   ready: boolean;
   run: IntegrationRun;
   integration: boolean;
+  showSelector?: boolean;
 }) {
   const combination = state?.combination;
   const [factor, setFactor] = useState(String(combination?.factor ?? 1));
@@ -24,6 +26,7 @@ export function ConfigurationCombinationControls({
     [combination?.factor, state?.configurationIndex],
   );
   if (!state || !combination || state.configurationCount < 2) return null;
+  if (!integration && !showSelector) return null;
   const update = (args: Record<string, unknown>) =>
     void run("combination_settings", args, "Combining detectors…");
   const commit = () => {
@@ -38,28 +41,30 @@ export function ConfigurationCombinationControls({
       role="group"
       aria-label="Detector configurations"
     >
-      <label className="configuration-choice">
-        Configuration
-        <Select
-          aria-label="Configuration"
-          value={state.configurationIndex}
-          disabled={!ready}
-          onChange={(e) =>
-            void run(
-              "configuration_select",
-              { index: Number(e.target.value) },
-              "Switching detector…",
-            )
-          }
-        >
-          {combination.configurations.map((c) => (
-            <option key={c.index} value={c.index}>
-              {c.index + 1}
-              {c.imageName ? ` · ${c.imageName}` : ""}
-            </option>
-          ))}
-        </Select>
-      </label>
+      {showSelector && (
+        <label className="configuration-choice">
+          Configuration
+          <Select
+            aria-label="Configuration"
+            value={state.configurationIndex}
+            disabled={!ready}
+            onChange={(e) =>
+              void run(
+                "configuration_select",
+                { index: Number(e.target.value) },
+                "Switching detector…",
+              )
+            }
+          >
+            {combination.configurations.map((c) => (
+              <option key={c.index} value={c.index}>
+                {c.index + 1}
+                {c.imageName ? ` · ${c.imageName}` : ""}
+              </option>
+            ))}
+          </Select>
+        </label>
+      )}
       {integration && (
         <>
           <label className="configuration-factor">

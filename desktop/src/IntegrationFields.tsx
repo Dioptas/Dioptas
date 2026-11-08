@@ -1,3 +1,4 @@
+import { Input } from "./ui";
 import { useEffect, useState, useRef, type ReactNode } from "react";
 import "./integrationNumericFields.css";
 
@@ -40,7 +41,7 @@ export function Field({
       className={`field-label integration-number-field${unit ? " integration-number-with-unit" : ""}`}
     >
       <span>{name}</span>
-      <input
+      <Input
         ref={input}
         aria-label={label}
         required

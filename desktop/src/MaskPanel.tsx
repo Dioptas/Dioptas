@@ -179,13 +179,13 @@ export function MaskPanel({
             ))}
           </div>
           <div className="mask-grid mask-shape-grid">
-            <button
+            <Button
               className="mask-navigate"
               aria-pressed={tools.shape === "navigate"}
               onClick={() => tools.setShape("navigate")}
             >
               Navigate
-            </button>
+            </Button>
             {(
               [
                 ["circle", "Circle"],
@@ -333,13 +333,13 @@ export function MaskPanel({
           </div>
         </section>
         <section className="sidebar-section">
-          <button
+          <Button
             disabled={!enabled}
             title="Add detected LA Cosmic hits to the current mask; source intensities are preserved"
             onClick={() => edit("cosmic")}
           >
             Cosmic Removal
-          </button>
+          </Button>
         </section>
         <section className="sidebar-section mask-plugins">
           <div className="section-label">

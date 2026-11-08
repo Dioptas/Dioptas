@@ -104,7 +104,7 @@ pub(super) fn save_overlays(
     Ok(())
 }
 pub(super) fn desktop_metadata(s: &Session) -> Value {
-    json!({"version":1,"calibrant":s.calibration.reference.name,"fit_dirty":s.calibration.dirty,"rms_degrees":s.calibration.rms,
+    json!({"version":1,"combination":{"patterns":s.combination.patterns,"cakes":s.combination.cakes},"calibrant":s.calibration.reference.name,"fit_dirty":s.calibration.dirty,"rms_degrees":s.calibration.rms,
         "custom_calibrant":s.calibration.custom.as_ref().map(|r|json!({"name":r.name,"content":r.content})),"setup_confirmed":s.calibration.confirmed,
         "workflow":s.workflow,"geometry_source":s.calibration.source})
 }

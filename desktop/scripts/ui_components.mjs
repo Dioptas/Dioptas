@@ -47,6 +47,7 @@ try {
               return {
                 label: element.getAttribute("aria-label"),
                 type: element.type,
+                disabled: element.disabled,
                 background: style.backgroundColor,
                 border: style.borderTopColor,
                 radius: style.borderTopLeftRadius,
@@ -59,7 +60,7 @@ try {
           for (const style of styles) {
             assert.equal(
               style.background,
-              "rgb(20, 23, 27)",
+              style.disabled ? "rgb(32, 34, 38)" : "rgb(20, 23, 27)",
               JSON.stringify(style),
             );
             assert.equal(style.border, "rgb(65, 72, 79)");
@@ -102,7 +103,7 @@ try {
           await page
             .getByLabel("Ref target")
             .evaluate((el) => getComputedStyle(el).outlineColor),
-          "rgb(255, 149, 0)",
+          "rgb(135, 147, 159)",
         );
         await page
           .getByRole("button", { name: "Open popup", exact: true })

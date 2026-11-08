@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import type { ZoomMode } from "./usePlotNavigation";
 
 /** Remember the navigation tool independently of a plot's current axis range. */
-export function usePlotZoomPreference(plot: "pattern" | "cake" | "map-pattern") {
+export function usePlotZoomPreference(
+  plot: "pattern" | "cake" | "map-pattern",
+) {
   const key = `dioptas-plot-zoom-v1:${plot}`;
   const [mode, setMode] = useState<ZoomMode>(() => {
     try {

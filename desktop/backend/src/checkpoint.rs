@@ -12,6 +12,7 @@ macro_rules! checkpoint {
     }
 }
 checkpoint! {
+    combination:combination::State,
     settings:Settings,image:Option<Image>,image_raster:Option<Raster>,mask:Arc<Vec<u8>>,
     mask_filename:Option<String>, mask_mode:bool,
     processed_raster:Option<Raster>,processed_values:Option<Arc<Vec<f64>>>,scientific_generation:u64,processing:crate::processing::Processing,

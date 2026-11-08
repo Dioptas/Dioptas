@@ -1,3 +1,4 @@
+import { Button, Input, Portal, Popover } from "./ui";
 import { Dialog } from "./Dialog";
 import {
   DataTable,
@@ -6,7 +7,6 @@ import {
   TableActions,
 } from "./DataTable";
 import { useCallback, useEffect, useRef, useState } from "react";
-
 import type { KeyboardEvent as RowKeyEvent } from "react";
 import { ORIGINAL_PATTERN_UID } from "./integration";
 import {
@@ -556,30 +556,32 @@ export function IntegrationOverlayControls({
           </Button>
         </div>
       </Dialog>
-      {menu &&
-        createPortal(
-          <div
-            className="qt-overlay-menu"
-            role="menu"
-            style={{
-              left: Math.max(0, Math.min(menu.x, window.innerWidth - 180)),
-              top: Math.max(0, Math.min(menu.y, window.innerHeight - 45)),
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            <Button
-              role="menuitem"
-              autoFocus
-              onClick={() => {
-                const row = overlays.findIndex((o) => o.uid === menu.uid);
-                setMenu(null);
-                menuTrigger.current?.focus();
-                if (row >= 0) action("match_intensity", { index: row });
+      {menu && (
+        <Portal>
+          {
+            <Popover
+              className="qt-overlay-menu"
+              role="menu"
+              style={{
+                left: Math.max(0, Math.min(menu.x, window.innerWidth - 180)),
+                top: Math.max(0, Math.min(menu.y, window.innerHeight - 45)),
               }}
+              onPointerDown={(e) => e.stopPropagation()}
             >
-              Match intensity
-            </Button>
-          </Popover>
+              <Button
+                role="menuitem"
+                autoFocus
+                onClick={() => {
+                  const row = overlays.findIndex((o) => o.uid === menu.uid);
+                  setMenu(null);
+                  menuTrigger.current?.focus();
+                  if (row >= 0) action("match_intensity", { index: row });
+                }}
+              >
+                Match intensity
+              </Button>
+            </Popover>
+          }
         </Portal>
       )}
     </div>
