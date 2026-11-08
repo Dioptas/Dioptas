@@ -621,6 +621,16 @@ choosers cover pattern/background/phase files and output/input folders. See
 [Integration parity and limitations](INTEGRATION_PARITY.md) for the implemented
 controls, scientific qualifications, tests and shared contracts.
 
+## Combined detector results
+
+Projects with multiple detector configurations expose a configuration selector,
+a factor for the selected detector, independent **Combine patterns** and
+**Combine cakes** switches, and **Save combined pattern**. Detector images,
+calibrations, masks and contrast settings remain independent. Combined cakes
+can also be saved through the existing image/cake toolbar. See
+[detector combination](DETECTOR_COMBINATION_PARITY.md) for backend selection,
+coordinate conventions, persistence, validation and limitations.
+
 ## Optional processing engine
 
 **The desktop prefers Dioptrin when installed and compatible, and otherwise
@@ -732,15 +742,15 @@ transport tests verify cancellation bypass even when every request worker is bus
   pywebview host also needs a supported renderer if used there.
 - The frontend offers seeded calibration plus staged automatic ring refinement,
   not Dioptrin's full automatic calibration/ring-identification workflow.
-- Full uncertainty diagnostics, explicit HDF5 dataset selection, and
-  configuration switching do not yet have frontend controls. Integration's
+- Full uncertainty diagnostics and explicit HDF5 dataset selection
+  do not yet have frontend controls. Integration's
   Image tab now offers editable filenames/directories, a native folder chooser
   and Autoprocess for incoming stable images while Integration is open.
   Integration also exposes backgrounds, selected corrections, phases/overlays
   and pattern saving/autocreate; its remaining Qt scope is
   listed in [INTEGRATION_PARITY.md](INTEGRATION_PARITY.md).
-  Existing `.dio` configurations are retained;
-  only the selected configuration is displayed.
+  Existing `.dio` configurations can be selected and their integrated results combined;
+  each detector image is displayed independently.
 - Project saves use standard `.dio` data and an optional `react_desktop` HDF5
   attribute for workflow options, selected calibrant (including custom d-spacing
   text), setup confirmation and fit diagnostics. Qt Dioptas can

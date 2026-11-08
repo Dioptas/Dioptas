@@ -148,11 +148,13 @@ optional-engine boundaries are unchanged; a portable Python bundle is pending.
 Mask, Integration and Map have scoped implementations; see
 [MASK_PARITY.md](MASK_PARITY.md), [INTEGRATION_PARITY.md](INTEGRATION_PARITY.md)
 and [MAP_PARITY.md](MAP_PARITY.md) for their coverage and limitations.
-Configuration switching and explicit HDF5 dataset-selection interfaces remain
-outside the preview. Integration's Image tab offers incoming-folder Autoprocess;
-see INTEGRATION_PARITY.md for its scope. Project configurations are preserved,
-but only the selected one is
-displayed. There is no new uncertainty estimator or geometry-identifiability
+Explicit HDF5 dataset-selection interfaces remain outside the preview.
+Existing project configurations can be selected and their integrated results
+combined; see [detector combination](DETECTOR_COMBINATION_PARITY.md).
+Integration's Image tab offers incoming-folder Autoprocess;
+see INTEGRATION_PARITY.md for its scope. Detector images remain independent
+when integrated patterns or cakes are combined. There is no new uncertainty
+estimator or geometry-identifiability
 diagnostic. The native host now supports Tauri/WKWebView, with a local stdio
 process using the existing Python scientific runtime. The earlier pywebview host
 remains for comparison. There is no WASM implementation or portable bundled

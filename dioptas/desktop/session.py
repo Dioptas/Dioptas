@@ -38,6 +38,7 @@ from .map import MapWorkflow
 from .custom_commands import CustomCommands, CustomCommandWorkflow
 from .batch import BatchWorkflow
 from .image_change import ImageChangeWorkflow
+from .combination import CombinationWorkflow
 
 logger = logging.getLogger(__name__)
 UNITS = {"2th_deg", "q_A^-1", "d_A"}
@@ -115,7 +116,7 @@ def _finite_number(value: Any, name: str, low: float, high: float) -> float:
     return number
 
 
-class DesktopSession(ImageChangeWorkflow, MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, MapWorkflow, CustomCommandWorkflow, BatchWorkflow):
+class DesktopSession(CombinationWorkflow, ImageChangeWorkflow, MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, MapWorkflow, CustomCommandWorkflow, BatchWorkflow):
     """One scientific session. A native window can supply its file picker."""
 
     def __init__(self, choose_file=None, *, binary_images=False, engine="auto"):
@@ -143,6 +144,7 @@ class DesktopSession(ImageChangeWorkflow, MaskWorkflow, CalibrationWorkflow, Int
         self._rings = []
         self._init_workflow()
         self._set_calibrant()
+        self._init_combination()
 
     def _calibrant_path(self):
         if (
@@ -179,6 +181,8 @@ class DesktopSession(ImageChangeWorkflow, MaskWorkflow, CalibrationWorkflow, Int
     def close(self):
         """Release native resources on the session's processing thread."""
         self._release_native_integrators(self._model)
+        self._native_combination = None
+        self._native_combination_key = None
 
     @staticmethod
     def _disable_automatic_processing(model):
@@ -253,6 +257,7 @@ class DesktopSession(ImageChangeWorkflow, MaskWorkflow, CalibrationWorkflow, Int
             "manual_geometry": self._manual_geometry,
             "validation_position": self._validation_position,
         }
+        handlers.update(self._combination_commands())
         handlers.update(self._integration_handlers())
         handlers.update(self._map_commands())
         handlers.update(self._batch_commands())
@@ -272,6 +277,8 @@ class DesktopSession(ImageChangeWorkflow, MaskWorkflow, CalibrationWorkflow, Int
                     "integration_phase_state",
                     "integration_phase_guides",
                     "integration_phase_editor",
+                    "configuration_select",
+                    "save_combined_pattern",
                     "state",
                     "custom_command",
                     "pixel",
@@ -363,6 +370,7 @@ class DesktopSession(ImageChangeWorkflow, MaskWorkflow, CalibrationWorkflow, Int
                 "integrationDirty": self._integration_dirty,
                 "configurationCount": len(self._model.configurations),
                 "configurationIndex": self._model.configuration_ind,
+                "combination": self._combination_state(),
                 "geometry": {
                     key: float(getattr(calibration.pattern_geometry, key))
                     for key in (
@@ -441,6 +449,7 @@ class DesktopSession(ImageChangeWorkflow, MaskWorkflow, CalibrationWorkflow, Int
             )
         self.close()
         self._model = self._new_model()
+        self._init_combination()
         self.configuration.calibration_model.use_dioptrin = (
             self._engine.id == "dioptrin"
         )
@@ -466,7 +475,7 @@ class DesktopSession(ImageChangeWorkflow, MaskWorkflow, CalibrationWorkflow, Int
         self.configuration.img_model.load(str(image))
         self._has_image = True
         self._calculate()
-        return self._snapshot(include_image=True)
+        return {**self._snapshot(include_image=True), "configurationReset": True}
 
     def _open_image(self, path=None, directory=None, paths=None, multiple=False, batch_mode=None, output_directory=None, reset_calibration=False, frame=1):
         if multiple and paths is None and path is None and self._choose_file:
@@ -529,6 +538,11 @@ class DesktopSession(ImageChangeWorkflow, MaskWorkflow, CalibrationWorkflow, Int
             candidate.calibration_model.create_cake_geometry()
         self.close()
         self._model = candidate
+        self._init_combination()
+        combination = metadata.get("combination", {})
+        self._combine_patterns = combination.get("patterns") is True
+        self._combine_cakes = combination.get("cakes") is True
+        self._configuration_workflows = combination.get("workflows", {})
         self._integration_auto_save = False
         self._integration_reset_autoprocess()
         name = metadata.get("calibrant")
@@ -558,7 +572,7 @@ class DesktopSession(ImageChangeWorkflow, MaskWorkflow, CalibrationWorkflow, Int
         self._restore_map_normalization(path)
         self._restore_batch_project(path)
         self._calculate()
-        return self._snapshot(include_image=True)
+        return {**self._snapshot(include_image=True), "configurationReset": True}
 
     def _save_project(self, path=None):
         path = self._path(path, "project", save=True)
@@ -568,6 +582,7 @@ class DesktopSession(ImageChangeWorkflow, MaskWorkflow, CalibrationWorkflow, Int
             path += ".dio"
         # Keep the ordinary .dio state intact and add a small optional UI
         # document. Older Qt readers ignore this attribute. Publish atomically.
+        self._remember_configuration_workflow()
         descriptor, temporary = tempfile.mkstemp(
             prefix=".dioptas-desktop-", suffix=".dio", dir=Path(path).parent
         )
@@ -580,6 +595,8 @@ class DesktopSession(ImageChangeWorkflow, MaskWorkflow, CalibrationWorkflow, Int
                 project.attrs["react_desktop"] = json.dumps(
                     {
                         "version": 1,
+                        "combination": {"patterns": self._combine_patterns, "cakes": self._combine_cakes,
+                                        "workflows": self._configuration_workflows},
                         "calibrant": self._calibrant_name,
                         "fit_dirty": self._fit_dirty,
                         "rms_degrees": self._fit_rms,
@@ -602,6 +619,8 @@ class DesktopSession(ImageChangeWorkflow, MaskWorkflow, CalibrationWorkflow, Int
         return {**self._state(), "savedPath": path}
 
     def _export_pattern(self, path=None):
+        if self._combine_patterns:
+            return self._save_combined_pattern(path=path)
         if self._pattern is None or not self._pattern["x"]:
             raise ValueError("Integrate an image before exporting a pattern.")
         path = self._path(path, "pattern", save=True)
@@ -644,6 +663,8 @@ class DesktopSession(ImageChangeWorkflow, MaskWorkflow, CalibrationWorkflow, Int
     def _calculate(self):
         self._revision += 1
         self._pattern = self._cake = None
+        self._combined_pattern = self._combined_cake_data = None
+        self._combination_backend = {}
         self._rings = []
         self._elapsed = None
         c = self.configuration
@@ -662,22 +683,18 @@ class DesktopSession(ImageChangeWorkflow, MaskWorkflow, CalibrationWorkflow, Int
         if result is None:
             raise RuntimeError("Integration did not return a pattern.")
         x, y = result
-        self._refresh_integration_pattern()
         self._integration_calculate_cake()
-        calibration = c.calibration_model
-        self._cake = {
-            **self._raster(calibration.cake_img, max_side=None, histogram=True),
-            "radialRange": [
-                float(calibration.cake_tth[0]),
-                float(calibration.cake_tth[-1]),
-            ],
-            "azimuthRange": [
-                float(calibration.cake_azi[0]),
-                float(calibration.cake_azi[-1]),
-            ],
-            # Configuration.integrate_image_2d deliberately uses 2theta.
-            "unit": "2th_deg",
-        }
+        self._calculate_combination()
+        self._refresh_integration_pattern()
+        cake_arrays = self._cake_arrays()
+        if cake_arrays is not None:
+            data, radial, azimuth, unit = cake_arrays
+            self._cake = {
+                **self._raster(data, max_side=None, histogram=True),
+                "radialRange": [float(radial[0]), float(radial[-1])],
+                "azimuthRange": [float(azimuth[0]), float(azimuth[-1])],
+                "unit": unit,
+            }
         self._update_rings()
         self._elapsed = round((time.perf_counter() - start) * 1000)
         self._integration_dirty = False
@@ -720,6 +737,8 @@ class DesktopSession(ImageChangeWorkflow, MaskWorkflow, CalibrationWorkflow, Int
         # Construct and validate first, so a missing or incompatible dependency cannot
         # replace a functioning pyFAI session or silently change the engine.
         selected = make_engine(engine)
+        self._native_combination = None
+        self._native_combination_key = None
         self._engine = selected
         self.configuration.calibration_model.use_dioptrin = selected.id == "dioptrin"
         if self.configuration.calibration_model.is_calibrated:
@@ -978,7 +997,7 @@ class DesktopSession(ImageChangeWorkflow, MaskWorkflow, CalibrationWorkflow, Int
         if not self._has_image or (source == "cake" and self._cake is None):
             return {"levels": None, "display": source}
         data = (
-            self.configuration.calibration_model.cake_img
+            self._cake_arrays()[0]
             if source == "cake"
             else self.configuration.img_model.raw_img_data if source == "raw_detector"
             else self.configuration.img_model.img_data

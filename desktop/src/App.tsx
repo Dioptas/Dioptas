@@ -94,6 +94,8 @@ import {
 } from "./useImageDisplayPreferences";
 import { prepareDetectorImage } from "./prepareDetectorImage";
 import { colorMaps } from "./colorMaps";
+import { useConfigurationImageDisplays } from "./useConfigurationImageDisplays";
+import { ConfigurationCombinationControls } from "./ConfigurationCombinationControls";
 import { IntegrationView } from "./IntegrationView";
 import {
   IntegrationImageControls,
@@ -323,6 +325,32 @@ export default function App() {
   );
   const [multiDetectorPreferences, setMultiDetectorPreferences] =
     useImageDisplayPreferences("multi-detector", "horizontal");
+  const {
+    detectorAutoActive,
+    cakeAutoActive,
+    configurationDisplays,
+    configurationCakeDisplays,
+    beginConfigurationDisplay,
+  } = useConfigurationImageDisplays({
+    limits,
+    logImage,
+    palette,
+    detectorPreferences,
+    multiDetectorPreferences,
+    cakeLimits,
+    cakeLog,
+    cakePalette,
+    cakePreferences,
+    setLimits,
+    setLogImage,
+    setPalette,
+    setDetectorPreferences,
+    setMultiDetectorPreferences,
+    setCakeLimits,
+    setCakeLog,
+    setCakePalette,
+    setCakePreferences,
+  });
   const multipleImages = mode === "integration" || calibrationStep === 3;
   const detectorDisplay = useRef({ name: "detector", filterGaps: true });
   detectorDisplay.current = {
@@ -359,6 +387,10 @@ export default function App() {
         throw new Error(
           result.error || "The operation could not be completed.",
         );
+      const configurationDisplay = beginConfigurationDisplay(
+        result,
+        currentState.current,
+      );
       if ("batch" in result) setBatch(result.batch ?? null);
       if (result.batchPhaseLines !== undefined)
         setBatch((b) => (b ? { ...b, phaseLines: result.batchPhaseLines } : b));
@@ -461,7 +493,8 @@ export default function App() {
         setImage(result.image);
         // Recovery and state refreshes can resend the same detector image.
         // Only a changed source should replace the user's contrast limits.
-        if (sourceChanged)
+        if (sourceChanged) {
+          detectorAutoActive.current = true;
           setLimits(
             activeMode.current === "integration" &&
               !correctedImageRef.current &&
@@ -469,6 +502,7 @@ export default function App() {
               ? result.rawImage.limits
               : result.image.limits,
           );
+        }
         if (resetImageView) setResetKey((k) => k + 1);
       }
       if (result.levels)
@@ -500,6 +534,11 @@ export default function App() {
         )
           setCakeLimits(result.cake.limits);
         cakeSource.current = result.cake ?? null;
+      }
+      configurationDisplay.restore();
+      if (configurationDisplay.configurationChanged) {
+        setSelectedPicks([]);
+        setPhaseGuides([]);
       }
       if (result.savedPath || result.savedPaths?.length) {
         setNotice(
@@ -1060,12 +1099,15 @@ export default function App() {
     if (azi < low || azi > high) return null;
     return {
       x:
-        ((linked.twoTheta - view.radialRange[0]) /
+        ((radialValues(linked.twoTheta, "2th_deg", state?.geometry.wavelength)[
+          view.unit
+        ]! -
+          view.radialRange[0]) /
           (view.radialRange[1] - view.radialRange[0])) *
         view.fullWidth,
       y: ((azi - low) / (high - low)) * view.fullHeight,
     };
-  }, [linked, displayedCake, cake]);
+  }, [linked, displayedCake, cake, state?.geometry.wavelength]);
   const clickPositionReading =
     clickedReading && linked && state
       ? {
@@ -1772,6 +1814,14 @@ export default function App() {
         </nav>
 
         <div className="workspace-stage">
+          {!settingsOpen && (
+            <ConfigurationCombinationControls
+              state={state}
+              ready={ready && !setupDirty && !geometryDirty && !fitDraftDirty}
+              run={run}
+              integration={mode === "integration"}
+            />
+          )}
           <IntegrationWorkspace
             concealed={settingsOpen}
             active={mode === "integration"}
@@ -1850,14 +1900,6 @@ export default function App() {
                           Numbers
                         </label>
                       </div>
-                    </div>
-                  )}
-                  {state && state.configurationCount > 1 && (
-                    <div className="info-banner">
-                      Project contains {state.configurationCount}{" "}
-                      configurations. This preview displays configuration{" "}
-                      {state.configurationIndex + 1}; all configurations are
-                      retained when saving.
                     </div>
                   )}
                   <div
@@ -1950,6 +1992,15 @@ export default function App() {
                               }}
                             />
                             <ImageIntensity
+                              key={`detector-${state?.configurationIndex}`}
+                              initialAutoActive={
+                                configurationDisplays.current.get(
+                                  state?.configurationIndex ?? 0,
+                                )?.autoActive ?? true
+                              }
+                              initialLevelsReady={configurationDisplays.current.has(
+                                state?.configurationIndex ?? 0,
+                              )}
                               preferences={
                                 multipleImages
                                   ? multiDetectorPreferences
@@ -1968,8 +2019,9 @@ export default function App() {
                                   : image
                               }
                               ready={ready}
-                              onAuto={(settings) =>
-                                run(
+                              onAuto={(settings) => {
+                                detectorAutoActive.current = true;
+                                return run(
                                   "image_levels",
                                   {
                                     ...settings,
@@ -1979,12 +2031,18 @@ export default function App() {
                                         : "detector",
                                   },
                                   "Updating intensity range…",
-                                )
-                              }
+                                );
+                              }}
                               limits={limits}
-                              onLimits={setLimits}
+                              onLimits={(value) => {
+                                detectorAutoActive.current = false;
+                                setLimits(value);
+                              }}
                               log={logImage}
-                              onLog={setLogImage}
+                              onLog={(value) => {
+                                detectorAutoActive.current = false;
+                                setLogImage(value);
+                              }}
                               palette={palette}
                               onPalette={setPalette}
                             />
@@ -2065,7 +2123,13 @@ export default function App() {
                                 }
                                 linkedPosition={
                                   mode === "integration"
-                                    ? linked?.twoTheta
+                                    ? linked
+                                      ? (radialValues(
+                                          linked.twoTheta,
+                                          "2th_deg",
+                                          state?.geometry.wavelength,
+                                        )[cake.unit] ?? undefined)
+                                      : undefined
                                     : undefined
                                 }
                                 clickedPoint={
@@ -2076,7 +2140,17 @@ export default function App() {
                                     ? displayedRing
                                     : undefined
                                 }
-                                calibrantLines={cakeCalibrantLines}
+                                calibrantLines={cakeCalibrantLines?.map(
+                                  (line) => ({
+                                    ...line,
+                                    twoTheta:
+                                      radialValues(
+                                        line.twoTheta,
+                                        "2th_deg",
+                                        state?.geometry.wavelength,
+                                      )[cake.unit] ?? NaN,
+                                  }),
+                                )}
                                 showNumbers={
                                   mode === "calibration" && showNumbers
                                 }
@@ -2097,6 +2171,7 @@ export default function App() {
                                   );
                                   void run("validation_position", {
                                     source: "cake",
+                                    unit: cake.unit,
                                     ...coords,
                                   });
                                 }}
@@ -2109,22 +2184,38 @@ export default function App() {
                                 resetKey={resetKey}
                               />
                               <ImageIntensity
+                                key={`cake-${state?.configurationIndex}-${!!state?.combination?.cakes}`}
+                                initialAutoActive={
+                                  configurationCakeDisplays.current.get(
+                                    `${state?.configurationIndex}:${!!state?.combination?.cakes}`,
+                                  )?.autoActive ?? true
+                                }
+                                initialLevelsReady={configurationCakeDisplays.current.has(
+                                  `${state?.configurationIndex}:${!!state?.combination?.cakes}`,
+                                )}
                                 preferences={cakePreferences}
                                 onPreferences={setCakePreferences}
                                 display="cake"
                                 raster={cake}
                                 ready={ready}
-                                onAuto={(settings) =>
-                                  run(
+                                onAuto={(settings) => {
+                                  cakeAutoActive.current = true;
+                                  return run(
                                     "image_levels",
                                     { ...settings, source: "cake" },
                                     "Updating cake intensity…",
-                                  )
-                                }
+                                  );
+                                }}
                                 limits={cakeLimits}
-                                onLimits={setCakeLimits}
+                                onLimits={(value) => {
+                                  cakeAutoActive.current = false;
+                                  setCakeLimits(value);
+                                }}
                                 log={cakeLog}
-                                onLog={setCakeLog}
+                                onLog={(value) => {
+                                  cakeAutoActive.current = false;
+                                  setCakeLog(value);
+                                }}
                                 palette={cakePalette}
                                 onPalette={setCakePalette}
                               />

@@ -1,0 +1,49 @@
+.configuration-combination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+  background: #202225;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+.configuration-combination label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+}
+.configuration-combination .configuration-choice {
+  margin-right: auto;
+  min-width: 0;
+}
+.configuration-choice select {
+  min-width: 85px;
+  max-width: 260px;
+  width: 23vw;
+}
+.configuration-factor input {
+  width: 78px;
+  min-width: 0;
+}
+.configuration-combination button {
+  min-height: 30px;
+  white-space: nowrap;
+}
+.configuration-combination button[aria-pressed="true"] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.configuration-combination .configuration-save {
+  padding: 5px 8px;
+}
+.configuration-reason {
+  color: #c0c4c9;
+  font-size: var(--text-small);
+  width: 100%;
+}
+.workspace-stage:has(> .configuration-combination) {
+  flex-direction: column;
+}

@@ -21,7 +21,8 @@
     "benchmark:pattern": "node scripts/pattern_benchmark.mjs",
     "benchmark:pattern:native": "node scripts/pattern_native_benchmark.mjs",
     "test:pattern-quality": "node scripts/pattern_quality.mjs",
-    "test:ui-components": "node scripts/ui_components.mjs"
+    "test:ui-components": "node scripts/ui_components.mjs",
+    "test:combination": "node scripts/combination_smoke.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",

@@ -86,6 +86,20 @@ export interface State {
   integrationDirty: boolean;
   configurationCount: number;
   configurationIndex: number;
+  combination?: {
+    patterns: boolean;
+    cakes: boolean;
+    ready: boolean;
+    reason: string | null;
+    factor: number;
+    configurations: {
+      index: number;
+      imageName: string;
+      calibrated: boolean;
+      factor: number;
+    }[];
+    backends: Record<string, string>;
+  };
   geometry: {
     dist: number;
     poni1: number;
@@ -154,6 +168,7 @@ export interface RingOverlay {
   points: number[][];
 }
 export interface Response {
+  configurationReset?: boolean;
   imageChange?: {
     path: string;
     frame: number;

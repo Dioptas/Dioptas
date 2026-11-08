@@ -229,7 +229,7 @@ class IntegrationWorkflow(PhaseWorkflow):
             "phaseColdPressure": self._model.phase_model.params.dac_thermal_pressure_enabled,
             "batchFrames": int(c.batch_model.n_img or 0),
             "imageBatchMode": getattr(self, "_image_batch_mode", "integrate"),
-            "patternName": c.pattern_model.pattern.name,
+            "patternName": "Combined pattern" if self._combine_patterns else c.pattern_model.pattern.name,
             "originalPatternColor": c.pattern_model.params.color,
             "originalPatternVisible": c.pattern_model.params.visible,
             "patternPath": c.pattern_model.pattern_filename if c.pattern_model.pattern_source == "file" else "",
@@ -252,6 +252,9 @@ class IntegrationWorkflow(PhaseWorkflow):
 
     def _refresh_integration_pattern(self):
         """Use PatternModel's displayed (background-subtracted) data, like Qt."""
+        if self._combine_patterns:
+            self._pattern = self._combined_pattern_display()
+            return
         c = self.configuration
         unit = c.pattern_model.unit or c.integration_unit
         x, y = c.pattern_model.pattern.data
@@ -827,6 +830,8 @@ class IntegrationWorkflow(PhaseWorkflow):
         return self._snapshot()
 
     def _integration_save_pattern(self, path=None, subtract_background=False):
+        if self._combine_patterns:
+            return self._save_combined_pattern(path=path)
         if self._pattern is None or not self._pattern["x"]:
             raise ValueError("Load or integrate a pattern first.")
         path = self._path(path, "pattern", save=True)
