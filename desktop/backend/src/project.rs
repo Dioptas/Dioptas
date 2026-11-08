@@ -6,6 +6,8 @@ use checkpoint::Checkpoint;
 mod config;
 #[path = "project_io.rs"]
 mod io;
+#[path = "project/navigation.rs"]
+mod navigation;
 #[path = "project_phases.rs"]
 mod phase;
 #[path = "project_series.rs"]
@@ -143,6 +145,7 @@ impl Session {
         args: &Value,
     ) -> Result<Option<Reply>, String> {
         match action {
+            "configuration_navigation" => self.navigate_configurations(args).map(Some),
             "save_project" => {
                 check_keys(args, &["path"])?;
                 let mut file = path(args)?.to_path_buf();

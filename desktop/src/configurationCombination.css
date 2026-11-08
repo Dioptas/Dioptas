@@ -58,9 +58,16 @@
 .configuration-toolbar .configuration-controls {
   flex: 1 1 560px;
   border-bottom: 0;
+  justify-content: flex-start;
+  min-width: 0;
 }
-.configuration-toolbar .configuration-combination {
-  flex: 1 1 auto;
-  border-bottom: 0;
+.configuration-controls .configuration-combination {
+  flex: 1 1 390px;
+  padding: 0;
+  border: 0;
+  background: transparent;
   justify-content: flex-end;
+}
+.configuration-controls .configuration-factor input {
+  width: 78px;
 }

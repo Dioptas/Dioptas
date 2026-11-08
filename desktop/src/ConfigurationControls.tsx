@@ -1,6 +1,9 @@
 import { Button, Input, Select } from "./ui";
 import { useEffect, useState } from "react";
 import type { State } from "./types";
+import type { IntegrationRun } from "./integration";
+import { ConfigurationNavigationControls } from "./ConfigurationNavigationControls";
+import { ConfigurationCombinationControls } from "./ConfigurationCombinationControls";
 
 export function ConfigurationControls({
   state,
@@ -9,11 +12,7 @@ export function ConfigurationControls({
 }: {
   state: State;
   ready: boolean;
-  run: (
-    command: string,
-    args?: Record<string, unknown>,
-    message?: string,
-  ) => unknown;
+  run: IntegrationRun;
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
@@ -104,6 +103,13 @@ export function ConfigurationControls({
           </Button>
         </>
       )}
+      <ConfigurationNavigationControls ready={ready} run={run} />
+      <ConfigurationCombinationControls
+        state={state}
+        ready={ready}
+        run={run}
+        showSelector={false}
+      />
     </div>
   );
 }

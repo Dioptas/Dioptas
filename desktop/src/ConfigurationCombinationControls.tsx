@@ -10,13 +10,11 @@ export function ConfigurationCombinationControls({
   state,
   ready,
   run,
-  integration,
   showSelector = true,
 }: {
   state: State | null;
   ready: boolean;
   run: IntegrationRun;
-  integration: boolean;
   showSelector?: boolean;
 }) {
   const combination = state?.combination;
@@ -26,7 +24,6 @@ export function ConfigurationCombinationControls({
     [combination?.factor, state?.configurationIndex],
   );
   if (!state || !combination || state.configurationCount < 2) return null;
-  if (!integration && !showSelector) return null;
   const update = (args: Record<string, unknown>) =>
     void run("combination_settings", args, "Combining detectors…");
   const commit = () => {
@@ -65,73 +62,71 @@ export function ConfigurationCombinationControls({
           </Select>
         </label>
       )}
-      {integration && (
-        <>
-          <label className="configuration-factor">
-            Factor
-            <Input
-              aria-label="Detector factor"
-              type="number"
-              step="any"
-              value={factor}
-              disabled={!ready}
-              onChange={(e) => setFactor(e.target.value)}
-              onBlur={commit}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") e.currentTarget.blur();
-                if (e.key === "Escape") setFactor(String(combination.factor));
-              }}
-            />
-          </label>
-          <Button
-            aria-pressed={combination.patterns}
-            disabled={!ready || (!combination.ready && !combination.patterns)}
-            title={
-              combination.reason ??
-              `Combine integrated patterns from all detector configurations${combination.backends.pattern ? ` · ${combination.backends.pattern}` : ""}`
-            }
-            onClick={() => update({ patterns: !combination.patterns })}
-          >
-            Combine patterns
-          </Button>
-          <Button
-            aria-label="Save combined pattern"
-            title="Save combined pattern"
-            className="configuration-save"
-            disabled={
-              !ready ||
-              !combination.ready ||
-              !combination.patterns ||
-              state.integrationDirty
-            }
-            onClick={() =>
-              void run(
-                "save_combined_pattern",
-                {
-                  suggested_name: `${state.imageName?.replace(/\.[^.]+$/, "") || "pattern"}_combined.xy`,
-                },
-                "Saving combined pattern…",
-              )
-            }
-          >
-            <Save size={17} />
-          </Button>
-          <Button
-            aria-pressed={combination.cakes}
-            disabled={!ready || (!combination.ready && !combination.cakes)}
-            title={
-              combination.reason ??
-              `Combine calibrated cakes from all detector configurations${combination.backends.cake ? ` · ${combination.backends.cake}` : ""}`
-            }
-            onClick={() => update({ cakes: !combination.cakes })}
-          >
-            Combine cakes
-          </Button>
-          {combination.reason && (
-            <span className="configuration-reason">{combination.reason}</span>
-          )}
-        </>
-      )}
+      <>
+        <label className="configuration-factor">
+          Factor
+          <Input
+            aria-label="Detector factor"
+            type="number"
+            step="any"
+            value={factor}
+            disabled={!ready}
+            onChange={(e) => setFactor(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+              if (e.key === "Escape") setFactor(String(combination.factor));
+            }}
+          />
+        </label>
+        <Button
+          aria-pressed={combination.patterns}
+          disabled={!ready || (!combination.ready && !combination.patterns)}
+          title={
+            combination.reason ??
+            `Combine integrated patterns from all detector configurations${combination.backends.pattern ? ` · ${combination.backends.pattern}` : ""}`
+          }
+          onClick={() => update({ patterns: !combination.patterns })}
+        >
+          Combine patterns
+        </Button>
+        <Button
+          aria-label="Save combined pattern"
+          title="Save combined pattern"
+          className="configuration-save"
+          disabled={
+            !ready ||
+            !combination.ready ||
+            !combination.patterns ||
+            state.integrationDirty
+          }
+          onClick={() =>
+            void run(
+              "save_combined_pattern",
+              {
+                suggested_name: `${state.imageName?.replace(/\.[^.]+$/, "") || "pattern"}_combined.xy`,
+              },
+              "Saving combined pattern…",
+            )
+          }
+        >
+          <Save size={17} />
+        </Button>
+        <Button
+          aria-pressed={combination.cakes}
+          disabled={!ready || (!combination.ready && !combination.cakes)}
+          title={
+            combination.reason ??
+            `Combine images by merging calibrated 2D cakes from all detector configurations${combination.backends.cake ? ` · ${combination.backends.cake}` : ""}`
+          }
+          onClick={() => update({ cakes: !combination.cakes })}
+        >
+          Combine images
+        </Button>
+        {combination.reason && (
+          <span className="configuration-reason">{combination.reason}</span>
+        )}
+      </>
     </div>
   );
 }

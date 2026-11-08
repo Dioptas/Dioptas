@@ -168,6 +168,138 @@ try {
           document.querySelector('[aria-label="Active configuration"]')
             ?.value === "1",
       );
+      const browsing = group.getByRole("group", {
+        name: "Configuration browsing",
+        exact: true,
+      });
+      const originalPath = (await invoke("state")).state.imagePath;
+      await browsing
+        .getByRole("button", {
+          name: "Next files in active configuration",
+          exact: true,
+        })
+        .click();
+      await page
+        .getByText("No matching files for configuration browsing", {
+          exact: true,
+        })
+        .waitFor();
+      assert.equal((await invoke("state")).state.imagePath, originalPath);
+      await settings.click();
+      const browsingSettings = page.getByRole("group", {
+        name: "Configuration browsing settings",
+        exact: true,
+      });
+      const scopeSetting = browsingSettings.getByRole("combobox", {
+        name: "Apply configuration browsing to",
+      });
+      assert.equal(await scopeSetting.inputValue(), "active");
+      await browsingSettings
+        .getByRole("button", { name: "Use MEC preset", exact: true })
+        .click();
+      assert.equal(await scopeSetting.inputValue(), "all");
+      assert.equal(
+        await browsingSettings
+          .getByRole("spinbutton", {
+            name: "Filename number with folder",
+            exact: true,
+          })
+          .inputValue(),
+        "3",
+      );
+      const customRules = {
+        "Image filename number": "2",
+        "File step": "3",
+        "Folder path number": "2",
+        "Folder step": "2",
+        "Filename number with folder": "2",
+        "Filename step with folder": "5",
+      };
+      for (const [label, value] of Object.entries(customRules)) {
+        await browsingSettings
+          .getByRole("spinbutton", { name: label, exact: true })
+          .fill(value);
+      }
+      const fileStep = browsingSettings.getByRole("spinbutton", {
+        name: "File step",
+        exact: true,
+      });
+      await fileStep.fill("0");
+      await fileStep.blur();
+      assert.equal(await fileStep.inputValue(), "3");
+      await browsingSettings.scrollIntoViewIfNeeded();
+      await page.screenshot({
+        path: path.join(artifacts, `${name}-browsing-settings.png`),
+      });
+      await closeSettings.click();
+      await browsing
+        .getByRole("button", {
+          name: "Next folders in all configurations",
+          exact: true,
+        })
+        .click();
+      await page.waitForFunction(() => !document.querySelector(".spin"));
+      const folderCall = calls.findLast(
+        ([action]) => action === "configuration_navigation",
+      );
+      assert.deepEqual(folderCall[1], {
+        target: "folder",
+        direction: 1,
+        scope: "all",
+        number_position: 2,
+        step: 2,
+        folder_number_position: 2,
+        folder_filename_position: 2,
+        folder_filename_step: 5,
+      });
+      assert.equal((await invoke("state")).state.imagePath, originalPath);
+      // Combining is a configuration setting, including before Integration
+      // and while a different workspace mode is selected.
+      const combinePatterns = group.getByRole("button", {
+        name: "Combine patterns",
+        exact: true,
+      });
+      const combineImages = group.getByRole("button", {
+        name: "Combine images",
+        exact: true,
+      });
+      assert.equal(await combinePatterns.isVisible(), true);
+      assert.equal(await combineImages.isVisible(), true);
+      assert.match(
+        await combineImages.getAttribute("title"),
+        /calibrated 2D cakes/,
+      );
+      await combinePatterns.click();
+      await page.waitForFunction(() => !document.querySelector(".spin"));
+      await combineImages.click();
+      await page.waitForFunction(
+        () =>
+          document.querySelectorAll(
+            '.configuration-combination button[aria-pressed="true"]',
+          ).length === 2,
+      );
+      const fromConfigurationBar = await invoke("state");
+      assert.equal(fromConfigurationBar.state.combination.patterns, true);
+      assert.equal(fromConfigurationBar.state.combination.cakes, true);
+      assert.ok(fromConfigurationBar.pattern && fromConfigurationBar.cake);
+      await page.screenshot({
+        path: path.join(
+          artifacts,
+          `${name}-configuration-combination-calibration.png`,
+        ),
+      });
+      await page.getByRole("button", { name: "Mask", exact: true }).click();
+      assert.equal(await combinePatterns.getAttribute("aria-pressed"), "true");
+      assert.equal(await combineImages.getAttribute("aria-pressed"), "true");
+      await combinePatterns.click();
+      await page.waitForFunction(() => !document.querySelector(".spin"));
+      await combineImages.click();
+      await page.waitForFunction(
+        () =>
+          document.querySelectorAll(
+            '.configuration-combination button[aria-pressed="true"]',
+          ).length === 0,
+      );
       await page
         .getByRole("button", { name: "Integration", exact: true })
         .click();
@@ -272,7 +404,7 @@ try {
           )?.textContent === "Combine patterns",
       );
       await page
-        .getByRole("button", { name: "Combine cakes", exact: true })
+        .getByRole("button", { name: "Combine images", exact: true })
         .click();
       await page.waitForFunction(
         () =>
@@ -348,6 +480,15 @@ try {
       });
       await settings.click();
       assert.equal(await toggle.isChecked(), false);
+      assert.equal(await scopeSetting.inputValue(), "all");
+      for (const [label, value] of Object.entries(customRules)) {
+        assert.equal(
+          await browsingSettings
+            .getByRole("spinbutton", { name: label, exact: true })
+            .inputValue(),
+          value,
+        );
+      }
       // The opt-in remains readable in the smallest supported workspace.
       await page.setViewportSize({ width: 1000, height: 668 });
       await page.getByRole("button", { name: "Larger", exact: true }).click();
@@ -360,6 +501,27 @@ try {
       await page.screenshot({
         path: path.join(artifacts, `${name}-configuration-settings-small.png`),
       });
+      const folderFilename = browsingSettings.getByRole("spinbutton", {
+        name: "Filename number with folder",
+        exact: true,
+      });
+      await folderFilename.scrollIntoViewIfNeeded();
+      const settingsOverflow = await browsingSettings.evaluate((el) =>
+        [...el.querySelectorAll("input,select,button")].some((control) => {
+          const a = control.getBoundingClientRect(),
+            b = el.getBoundingClientRect();
+          return a.left < b.left - 1 || a.right > b.right + 1;
+        }),
+      );
+      assert.equal(settingsOverflow, false);
+      await page.screenshot({
+        path: path.join(artifacts, `${name}-browsing-settings-small.png`),
+      });
+      await browsingSettings
+        .getByRole("button", { name: "Reset browsing", exact: true })
+        .click();
+      assert.equal(await scopeSetting.inputValue(), "active");
+      assert.equal(await folderFilename.inputValue(), "0");
       await toggle.check();
       await closeSettings.click();
       await group.waitFor();
@@ -389,7 +551,12 @@ try {
           "save",
           "open",
         ],
+        groupedFileFolderBrowsing: true,
+        mecFolderBrowsing: true,
+        configurableBrowsingRulesPersist: true,
+        activeAndAllBrowsingScopes: true,
         combinedPatternAndCake: true,
+        combinationInConfigurationBarAcrossModes: true,
         combinedPatternExport: true,
         displayedPatternExportMatchesCombined: true,
         singleConfigurationSelector: true,

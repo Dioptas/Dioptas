@@ -1,0 +1,49 @@
+.configuration-navigation,
+.configuration-navigation-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+}
+.configuration-navigation {
+  gap: 12px;
+}
+.configuration-navigation-group > button {
+  padding: 4px;
+  min-width: 26px;
+}
+.configuration-browsing-scope {
+  color: var(--ui-muted);
+  font-size: var(--text-meta);
+}
+.configuration-browsing-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 20px;
+  margin-top: 18px;
+  border-top: 1px solid #ffffff12;
+}
+.configuration-browsing-settings h4 {
+  margin: 0;
+  font-size: var(--text-body);
+}
+.configuration-browsing-presets,
+.configuration-browsing-fields {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.configuration-browsing-settings label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.configuration-browsing-fields input {
+  width: 140px;
+}
+.configuration-browsing-presets select {
+  max-width: 100%;
+}

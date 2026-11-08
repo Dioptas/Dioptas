@@ -23,6 +23,7 @@ import {
 } from "./IntegrationSettings";
 import "./settings.css";
 import { CustomCommandSettings } from "./CustomCommandSettings";
+import { ConfigurationBrowsingSettings } from "./ConfigurationBrowsingSettings";
 import type { CustomCommandController } from "./customCommands";
 
 const categories = [
@@ -228,6 +229,7 @@ export function SettingsWorkspace({
                   aria-describedby="settings-configuration-description"
                 />
               </div>
+              <ConfigurationBrowsingSettings />
             </section>
             <section className="settings-card">
               <div className="settings-card-heading">

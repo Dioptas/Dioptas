@@ -13,15 +13,43 @@ controls**. This existing preference remains off by default and persists across
 restarts. The shared configuration bar supports add, duplicate, rename,
 select and remove. Hiding it preserves configurations and the selection.
 
-With two or more configurations, Integration adds the selected detector's
-**Factor**, independent **Combine patterns** and **Combine cakes** switches,
-and **Save combined pattern**. Factor commits on blur or Enter and scales that
+With two or more configurations, the top-bar configuration controls include the
+selected detector's **Factor**, independent **Combine patterns** and **Combine images** switches,
+and **Save combined pattern**. These controls remain available across modes.
+**Combine images** merges calibrated 2D cakes in common diffraction coordinates.
+Factor commits on blur or Enter and scales that
 detector's scientific pixels before integration. Images remain independent;
 combination produces calibrated patterns/cakes, never a detector-image mosaic.
 Each configuration retains its image, calibration, masks, corrections and
 scientific coordinates. Detector contrast, palette, linear/log and Auto settings
 follow the stable configuration identity. Individual and combined cakes have
 separate display settings. Pending scientific drafts prevent configuration changes.
+
+The same bar provides previous/next **File** and **Folder** actions. Configure
+them under **Settings → General → Multi-detector setups → Configuration
+browsing**. The default scope is **Active configuration**; **All configurations**
+advances every detector from its own source, retaining calibration, masks,
+corrections and factors. Combined products are recomputed. The bar shows the
+current scope. The existing Image panel's individual browsing controls remain
+independent of these configuration-bar rules.
+
+File and folder rules independently select a numbered part, counting from the
+right, and a positive step size. Number 1 means the last number, 2 the preceding
+number, and 0 tries numeric groups from right to left. Folder numbering counts
+across the directory path. File browsing respects each configuration's name/time
+ordering; time ordering uses the configured step instead of filename numbering.
+Folder browsing normally retains the filename. **Filename number with folder**
+can additionally advance any selected filename number, using its own step; 0
+leaves the filename unchanged. **Use MEC preset** selects all configurations,
+automatic folder numbering, and the third filename number with unit steps,
+matching the Qt convention. Every rule remains editable after applying the
+preset. **Reset browsing** restores active-only browsing and default rules.
+Preferences persist across restarts.
+
+Configurations without a matching file remain in place and are reported in the
+status notice. An unreadable file or detector-dimension change rolls back the
+entire grouped action. A dimension change must first be opened and explicitly
+reset for that detector. The active configuration remains selected.
 
 ## Native processing
 
@@ -116,3 +144,14 @@ Receipts for the isolated integration checkpoint are copied to
 `artifacts/detector-combination-integration/` in the consolidated checkout.
 Concurrent, uncommitted correction/uncertainty work was preserved and was not
 included in this checkpoint's test results. No preview was closed or restarted.
+
+## Configuration toolbar and grouped browsing — 2026-11-08
+
+`backend/tests/configuration_navigation.rs` covers grouped files, filename
+position, numbered folders, MEC, custom folder/filename steps, active-only scope,
+retained detector state, combined-result updates, project persistence, missing
+matches, invalid rules, and atomic rollback on bad data or changed dimensions.
+The browser check exercises settings, the MEC preset, custom rules, persistence
+and reset through the real Rust child, and checks the compact toolbar/settings
+at both text sizes. Combination controls are exercised from Calibration and Mask
+as well as Integration. Processing remains Python-free in these checks.

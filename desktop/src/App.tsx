@@ -114,7 +114,6 @@ import {
 import { prepareDetectorImage } from "./prepareDetectorImage";
 import { colorMaps } from "./colorMaps";
 import { useConfigurationImageDisplays } from "./useConfigurationImageDisplays";
-import { ConfigurationCombinationControls } from "./ConfigurationCombinationControls";
 import { IntegrationView } from "./IntegrationView";
 import {
   IntegrationImageControls,
@@ -592,6 +591,14 @@ export default function App() {
         setSelectedPicks([]);
         setPhaseGuides([]);
       }
+      if (result.configurationNavigation) {
+        const { advanced, skipped } = result.configurationNavigation;
+        setNotice(
+          advanced.length
+            ? `Advanced ${advanced.length} configuration${advanced.length === 1 ? "" : "s"}${skipped.length ? ` · ${skipped.length} without a matching file` : ""}`
+            : "No matching files for configuration browsing",
+        );
+      }
       if (result.savedPath || result.savedPaths?.length) {
         setNotice(
           result.savedPaths?.length
@@ -762,7 +769,15 @@ export default function App() {
         const selectedPosition = currentLinked.current;
         let result = await bridge.current(
           command,
-          commandMode === "mask" && canDeferIntegration.current
+          commandMode === "mask" &&
+            canDeferIntegration.current &&
+            ![
+              "configuration",
+              "configuration_select",
+              "combination_settings",
+              "configuration_navigation",
+              "save_combined_pattern",
+            ].includes(command)
             ? { ...args, defer_integration: true }
             : command === "map_select"
               ? { ...args, integration_view: commandMode === "integration" }
@@ -1895,19 +1910,6 @@ export default function App() {
                   !integrationDraft.dirty
                 }
                 run={run}
-              />
-              <ConfigurationCombinationControls
-                state={state}
-                ready={
-                  ready &&
-                  !setupDirty &&
-                  !geometryDirty &&
-                  !fitEditor.dirty &&
-                  !integrationDraft.dirty
-                }
-                run={run}
-                integration={mode === "integration"}
-                showSelector={false}
               />
             </div>
           )}
