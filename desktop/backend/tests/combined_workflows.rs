@@ -222,3 +222,58 @@ fn mask_integration_batch_map_and_multiple_configurations_share_project_state() 
     assert_eq!(sample.result["state"]["bins"], 32);
     assert_eq!(sample.result["state"]["useMask"], false);
 }
+
+#[test]
+fn map_inspection_contours_survive_frame_changes_but_follow_geometry_changes() {
+    let mut session = Session::new(root());
+    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/combined-counts.h5");
+    let geometry = json!({"dist":0.2,"poni1":0.0032,"poni2":0.004,"rot1":0.,"rot2":0.,"rot3":0.,"pixel1":0.0001,"pixel2":0.0001,"wavelength":4e-11,"polarization_factor":0.});
+    call(
+        &mut session,
+        "manual_geometry",
+        json!({"convention":"pyfai","values":geometry}),
+    );
+    call(
+        &mut session,
+        "integration_settings",
+        json!({"bins":48,"cake_bins":12}),
+    );
+    call(
+        &mut session,
+        "open_image",
+        json!({"path":source,"dataset":"/counts"}),
+    );
+    call(&mut session, "map_load", json!({"paths":[source]}));
+    let before = call(
+        &mut session,
+        "validation_position",
+        json!({"source":"cake","x":0.5,"azimuth":15.}),
+    );
+    call(
+        &mut session,
+        "map_select",
+        json!({"index":1,"reintegrate":true}),
+    );
+    let after = call(
+        &mut session,
+        "validation_position",
+        json!({"source":"cake","x":0.5,"azimuth":15.}),
+    );
+    assert_eq!(after.result["linked"], before.result["linked"]);
+    let mut changed = geometry;
+    changed["dist"] = json!(0.3);
+    call(
+        &mut session,
+        "manual_geometry",
+        json!({"convention":"pyfai","values":changed}),
+    );
+    let recalculated = call(
+        &mut session,
+        "validation_position",
+        json!({"source":"cake","x":0.5,"azimuth":15.}),
+    );
+    assert_ne!(
+        recalculated.result["linked"]["contours"],
+        before.result["linked"]["contours"]
+    );
+}

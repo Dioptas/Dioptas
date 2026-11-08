@@ -134,7 +134,7 @@ def main():
             settings=dict(above_value=600),
         )
         dynamic = n.call("open_image", path=str(path), dataset="frames")
-        assert dynamic["nativeSource"]["loadPath"] == "native-reader"
+        assert dynamic["nativeSource"]["loadPath"] == "parallel-hdf5"
         n.call("mask_plugin", name="Threshold Mask", enabled=False)
         n.call("integration_roi", limits=None)
         before = n.call("state")

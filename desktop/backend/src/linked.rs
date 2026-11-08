@@ -6,6 +6,13 @@ pub(super) struct Inspection {
     generation: u64,
     value: Arc<Value>,
 }
+#[derive(Clone)]
+pub(super) struct ContourCache {
+    geometry: Geometry,
+    shape: [usize; 2],
+    two_theta: f64,
+    value: Value,
+}
 pub(super) fn convert(value: f64, from: &str, to: &str, wavelength: f64) -> f64 {
     crate::pattern::convert_coordinate(value, from, to, wavelength)
 }
@@ -76,11 +83,32 @@ impl Session {
                 _ => return Err("Unknown validation view.".into()),
             };
             finite(&json!(tth), "2θ position", 0.0, 180.0)?;
-            let contours = crate::peak_search::full_contours(
-                &native.calc_tth_all(),
-                image.shape,
-                tth.to_radians(),
-            );
+            let cached = self.inspection_contour.borrow();
+            let hit = cached
+                .as_ref()
+                .filter(|c| {
+                    c.geometry == self.settings.geometry
+                        && c.shape == image.shape
+                        && c.two_theta == tth
+                })
+                .map(|c| c.value.clone());
+            drop(cached);
+            let contours = if let Some(value) = hit {
+                value
+            } else {
+                let value = crate::peak_search::full_contours(
+                    &native.calc_tth_all(),
+                    image.shape,
+                    tth.to_radians(),
+                );
+                *self.inspection_contour.borrow_mut() = Some(ContourCache {
+                    geometry: self.settings.geometry.clone(),
+                    shape: image.shape,
+                    two_theta: tth,
+                    value: value.clone(),
+                });
+                value
+            };
             if let Some(azimuth) = azimuth
                 && image_point.is_null()
             {

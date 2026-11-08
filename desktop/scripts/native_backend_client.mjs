@@ -27,7 +27,10 @@ export function nativeClient() {
   const pending = new Map();
   const buffers = new Map();
   const diagnostics = [];
-  let input = Buffer.alloc(0),
+  let input = Buffer.alloc(4),
+    filled = 0,
+    packetHeader = null,
+    readingHeader = false,
     nextId = 0;
   child.stderr.on("data", (bytes) => diagnostics.push(bytes.toString()));
   function fail(error) {
@@ -41,33 +44,67 @@ export function nativeClient() {
   child.on("exit", (code) =>
     fail(new Error(`Native processor exited ${code}: ${diagnostics.join("")}`)),
   );
+  function finishPacket(bytes) {
+    let offset = 0;
+    for (const buffer of packetHeader.buffers) {
+      buffers.set(
+        buffer.id,
+        Buffer.from(bytes.subarray(offset, offset + buffer.length)),
+      );
+      offset += buffer.length;
+    }
+    const id = packetHeader.id;
+    const task = pending.get(id);
+    const result = packetHeader.result;
+    packetHeader = null;
+    input = Buffer.alloc(4);
+    filled = 0;
+    readingHeader = false;
+    if (task) {
+      clearTimeout(task.timer);
+      pending.delete(id);
+      task.resolve(result);
+    }
+  }
+  // Fill each header/payload once. Repeated Buffer.concat copies a 40-MB
+  // detector packet hundreds of times and distorts 9M browser benchmarks.
   child.stdout.on("data", (bytes) => {
-    input = Buffer.concat([input, bytes]);
     try {
-      while (input.length >= 4) {
-        const length = input.readUInt32LE(0);
-        if (length > 256 * 1024 * 1024)
-          throw new Error("Oversized native header");
-        if (input.length < 4 + length) return;
-        const header = JSON.parse(input.subarray(4, 4 + length));
-        const size = header.buffers.reduce((sum, b) => sum + b.length, 0);
-        if (size > 1024 * 1024 * 1024)
-          throw new Error("Oversized native buffers");
-        if (input.length < 4 + length + size) return;
-        let offset = 4 + length;
-        for (const buffer of header.buffers) {
-          buffers.set(
-            buffer.id,
-            Buffer.from(input.subarray(offset, offset + buffer.length)),
-          );
-          offset += buffer.length;
+      let offset = 0;
+      while (offset < bytes.length) {
+        const take = Math.min(input.length - filled, bytes.length - offset);
+        bytes.copy(input, filled, offset, offset + take);
+        filled += take;
+        offset += take;
+        if (filled !== input.length) continue;
+        if (packetHeader) {
+          finishPacket(input);
+          continue;
         }
-        input = input.subarray(offset);
-        const task = pending.get(header.id);
-        if (task) {
-          clearTimeout(task.timer);
-          pending.delete(header.id);
-          task.resolve(header.result);
+        if (readingHeader) {
+          packetHeader = JSON.parse(input);
+          const size = packetHeader.buffers.reduce(
+            (sum, b) => sum + b.length,
+            0,
+          );
+          if (
+            !Number.isSafeInteger(size) ||
+            size < 0 ||
+            size > 1024 * 1024 * 1024
+          )
+            throw Error("Oversized native buffers");
+          if (size === 0) finishPacket(Buffer.alloc(0));
+          else {
+            input = Buffer.allocUnsafe(size);
+            filled = 0;
+          }
+        } else {
+          const length = input.readUInt32LE(0);
+          if (length === 0 || length > 256 * 1024 * 1024)
+            throw Error("Oversized native header");
+          input = Buffer.allocUnsafe(length);
+          filled = 0;
+          readingHeader = true;
         }
       }
     } catch (error) {

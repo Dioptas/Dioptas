@@ -94,3 +94,30 @@ test("failed or missing-image selections do not calculate levels, and level erro
     /Image statistics failed/,
   );
 });
+
+test("native source-precision levels with matching Auto settings need no second scan", async () => {
+  const native = {
+    ok: true,
+    image: { ...image, autoLevels: auto, limits: [12.123456789, 45.987654321] },
+  };
+  const result = await prepareDetectorImage(
+    () => {
+      throw Error("Duplicate source scan");
+    },
+    native,
+    null,
+    auto,
+  );
+  assert.equal(result, native);
+  let calls = 0;
+  await prepareDetectorImage(
+    async () => {
+      calls++;
+      return { ok: true, levels: [20, 30] };
+    },
+    native,
+    null,
+    { ...auto, percentile: 10 },
+  );
+  assert.equal(calls, 1);
+});

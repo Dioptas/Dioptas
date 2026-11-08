@@ -4,7 +4,9 @@
 mod contours;
 pub mod control;
 mod custom_actions;
+mod detector_mask;
 pub mod display;
+mod frame_trace;
 mod geometry;
 pub mod image;
 #[cfg(feature = "dioptrin")]

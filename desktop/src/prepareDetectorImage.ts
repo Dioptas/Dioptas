@@ -21,6 +21,14 @@ export async function prepareDetectorImage(
       previous.height === raster.height)
   )
     return result;
+  // Native rasters already carry their exact source-precision default levels.
+  if (
+    raster.autoLevels &&
+    raster.autoLevels.mode === auto.mode &&
+    raster.autoLevels.percentile === auto.percentile &&
+    raster.autoLevels.filter_gaps === auto.filter_gaps
+  )
+    return result;
   const levels = await invoke("image_levels", {
     ...auto,
     source: raw ? "raw_detector" : "detector",

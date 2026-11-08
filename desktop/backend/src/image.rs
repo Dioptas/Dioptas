@@ -25,6 +25,7 @@ pub struct Image {
     pub source_dtype: String,
     pub ordinary_decodes: u64,
     pub combined: bool,
+    pub parallel_pixels: bool,
     pub file_info: Arc<String>,
     pub options: Value,
 }
@@ -171,6 +172,7 @@ impl Image {
             source_dtype: String::new(),
             ordinary_decodes: 0,
             combined: false,
+            parallel_pixels: false,
             file_info: Arc::new(String::new()),
             options: Value::Object(
                 ["dataset", "follow_external_links", "cbf_dialect"]
@@ -220,6 +222,7 @@ impl Image {
             source_dtype: "F64".into(),
             ordinary_decodes: 0,
             combined: false,
+            parallel_pixels: false,
             file_info: Arc::new(
                 "Restored project pixels; original source is not reread until navigation.".into(),
             ),
@@ -273,6 +276,8 @@ impl Image {
         self.source_dtype = format!("{:?}", pixels.pixel_type());
         self.ordinary_decodes += 1;
         self.combined = false;
+        self.parallel_pixels = false;
+        self.parallel_pixels = false;
         self.buffer = Arc::new(candidate);
         self.combined_pixels = None;
         self.source_values = Arc::new(values);
@@ -392,6 +397,7 @@ impl Image {
         self.combined_pixels = Some(Arc::new(pixels));
         self.buffer = Arc::new(FrameBuffer::default());
         self.combined = true;
+        self.parallel_pixels = false;
         self.source_values = Arc::new(values);
         self.source_shape = shape;
         let ops = self.transformations.clone();
@@ -445,6 +451,7 @@ impl Image {
             for base in [
                 "/entry/instrument/detector",
                 "/entry/instrument/detector/detectorSpecific",
+                "/entry_0000/instrument/eiger/detector_information",
             ] {
                 for key in ["description", "detector_model", "model"] {
                     if let Some(dataset) = metadata_dataset(&file, &format!("{base}/{key}"))
@@ -468,6 +475,16 @@ impl Image {
             };
             if let (Some(y), Some(x)) = (number("y_pixel_size"), number("x_pixel_size")) {
                 pixels = Some([y, x]);
+            }
+            if pixels.is_none() {
+                let base = "/entry_0000/instrument/eiger/detector_information/pixel_size";
+                if let (Some(y), Some(x)) = (
+                    metadata_dataset(&file, &format!("{base}/ysize")),
+                    metadata_dataset(&file, &format!("{base}/xsize")),
+                ) && let (Ok(y), Ok(x)) = (y.read_scalar::<f64>(), x.read_scalar::<f64>())
+                {
+                    pixels = Some([y, x]);
+                }
             }
         }
         // Acquisition headers include generation/readout labels that are not

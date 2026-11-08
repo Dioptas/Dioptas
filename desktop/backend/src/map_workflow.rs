@@ -113,12 +113,13 @@ impl Session {
         self.scan.as_mut().unwrap().selected = index;
         let mut reply = if let Some(index) = index {
             let series = self.scan.as_ref().unwrap().series.clone();
-            let mut reply = self.select_series(
+            let mut reply = self.select_series_mode(
                 &series,
                 index,
                 !integration && !reintegrate,
                 !integration && !reintegrate,
                 Some(&series.unit),
+                !integration,
             )?;
             if reintegrate && !integration {
                 if self.image.is_none() {

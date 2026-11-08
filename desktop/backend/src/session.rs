@@ -39,7 +39,14 @@ use calibration::{Calibration, History, Workflow};
 #[cfg(feature = "dioptrin")]
 use std::time::Instant;
 
-type DetectorMaskCache = (Arc<dioptrin::detector::Detector>, [usize; 2], Arc<Vec<u8>>);
+type DetectorMaskSource = (PathBuf, Option<crate::image::FileIdentity>, String, Value);
+struct DetectorMaskCache {
+    detector: Arc<dioptrin::detector::Detector>,
+    shape: [usize; 2],
+    source: Option<DetectorMaskSource>,
+    probe_frame: Option<usize>,
+    mask: Arc<Vec<u8>>,
+}
 #[cfg(feature = "dioptrin")]
 type NativeGeometryCache = (Geometry, [usize; 2], dioptrin::geometry::Geometry);
 #[derive(Clone, PartialEq)]
@@ -122,6 +129,7 @@ pub struct Session {
     files: file_workflow::Files,
     integration_history: integration_history::IntegrationHistory,
     inspection: Option<linked::Inspection>,
+    inspection_contour: std::cell::RefCell<Option<linked::ContourCache>>,
     mask: Arc<Vec<u8>>,
     mask_filename: Option<String>,
     mask_mode: bool,
@@ -188,6 +196,7 @@ impl Session {
             files: Default::default(),
             integration_history: Default::default(),
             inspection: None,
+            inspection_contour: Default::default(),
             mask: Arc::new(vec![]),
             mask_filename: None,
             mask_mode: true,
@@ -445,6 +454,7 @@ impl Session {
                         "cbf_dialect",
                         "defer_integration",
                         "directory",
+                        "pattern_only",
                         "multiple",
                         "batch_mode",
                         "output_directory",
@@ -458,7 +468,12 @@ impl Session {
                 } else {
                     file.to_path_buf()
                 };
+                let mut trace = crate::frame_trace::FrameTrace::new(
+                    "open-image",
+                    args["frame"].as_u64().unwrap_or(0),
+                );
                 let mut image = Image::prepare(&file, args)?;
+                trace.mark("metadata");
                 if self.settings.geometry.auto_assign
                     && !self.settings.calibrated
                     && self.settings.transformations.is_empty()
@@ -499,16 +514,27 @@ impl Session {
                 };
                 #[cfg(feature = "dioptrin")]
                 if prepared.is_none() {
-                    image.read(image.frame)?;
+                    let frame = image.frame;
+                    if !self.engine.load_pixels(&mut image, frame, &self.control)? {
+                        image.read(frame)?;
+                    }
                 }
                 #[cfg(not(feature = "dioptrin"))]
                 image.read(image.frame)?;
+                trace.mark("decode and warm-plan handoff");
                 self.publish_image(image)?;
+                trace.mark("display preparation");
                 #[cfg(feature = "dioptrin")]
                 {
                     self.prepared = prepared;
                 }
-                self.calculate(defer)?;
+                self.calculate_products(
+                    defer,
+                    !args
+                        .get("pattern_only")
+                        .map_or(Ok(false), |v| boolean(v, "Pattern only"))?,
+                )?;
+                trace.mark("processing masks and integration");
             }
             "next_image" => {
                 check_keys(args, &["direction", "step", "defer_integration"])?;
@@ -569,7 +595,11 @@ impl Session {
                         } else {
                             None
                         };
-                    if self.prepared.is_none() {
+                    if self.prepared.is_none()
+                        && !self
+                            .engine
+                            .load_pixels(image, index as usize, &self.control)?
+                    {
                         image.read(index as usize)?;
                     }
                 }
@@ -1195,18 +1225,62 @@ impl Session {
         Ok(g)
     }
     fn physical_mask(&self, shape: [usize; 2]) -> Result<Option<Arc<Vec<u8>>>, String> {
+        self.physical_mask_for(shape, self.image.as_ref())
+    }
+    fn physical_mask_for(
+        &self,
+        shape: [usize; 2],
+        image: Option<&Image>,
+    ) -> Result<Option<Arc<Vec<u8>>>, String> {
         let Some(d) = &self.settings.geometry.detector else {
             return Ok(None);
         };
         let mut cache = self.detector_mask.borrow_mut();
-        if let Some((detector, size, mask)) = cache.as_ref()
-            && *size == shape
-            && Arc::ptr_eq(d, detector)
+        let source = image
+            .filter(|i| i.shape == shape && d.name.starts_with("Eiger"))
+            .map(|i| {
+                (
+                    i.path.clone(),
+                    crate::image::FileIdentity::read(&i.path).ok(),
+                    i.source_dtype.clone(),
+                    i.options.clone(),
+                )
+            });
+        if let Some(entry) = cache.as_ref()
+            && entry.shape == shape
+            && Arc::ptr_eq(d, &entry.detector)
+            && entry.source == source
+            && entry
+                .probe_frame
+                .is_none_or(|frame| image.is_some_and(|i| i.frame == frame))
         {
-            return Ok(Some(mask.clone()));
+            return Ok(Some(entry.mask.clone()));
         }
-        let values = Arc::new(d.builtin_mask(shape)?);
-        *cache = Some((d.clone(), shape, values.clone()));
+        let mut values = d.builtin_mask(shape)?;
+        let established = if source.is_some()
+            && let Some(image) = image
+        {
+            crate::detector_mask::extend_gaps(
+                &mut values,
+                &image.values,
+                shape,
+                &image.source_dtype,
+            )
+        } else {
+            true
+        };
+        let values = Arc::new(values);
+        *cache = Some(DetectorMaskCache {
+            detector: d.clone(),
+            shape,
+            source,
+            probe_frame: if established {
+                None
+            } else {
+                image.map(|i| i.frame)
+            },
+            mask: values.clone(),
+        });
         Ok(Some(values))
     }
     fn refresh_masks(&mut self, control: &Control) -> Result<(), String> {
@@ -1315,6 +1389,9 @@ impl Session {
         Ok(self.snapshot(false))
     }
     fn calculate(&mut self, defer: bool) -> Result<(), String> {
+        self.calculate_products(defer, true)
+    }
+    fn calculate_products(&mut self, defer: bool, include_cake: bool) -> Result<(), String> {
         self.control.check()?;
         if let Some(image) = &self.image {
             self.settings.geometry.sync_shape(image.shape)?;
@@ -1345,17 +1422,35 @@ impl Session {
             {
                 let start = Instant::now();
                 let mask = self.integration_mask(image.shape);
-                let products = self.engine.integrate(
-                    &self.scientific_values(),
-                    image.shape,
-                    &self.settings.geometry,
-                    &mask,
-                    &self.integration_options(),
-                    self.prepared.take(),
-                )?;
+                let (pattern, sigma, cake, cake_values) = if include_cake {
+                    let products = self.engine.integrate(
+                        &self.scientific_values(),
+                        image.shape,
+                        &self.settings.geometry,
+                        &mask,
+                        &self.integration_options(),
+                        self.prepared.take(),
+                    )?;
+                    (
+                        products.pattern,
+                        products.sigma,
+                        Some(products.cake),
+                        Some(Arc::new(products.cake_values)),
+                    )
+                } else {
+                    let (pattern, sigma) = self.engine.integrate_pattern(
+                        &self.scientific_values(),
+                        image.shape,
+                        &self.settings.geometry,
+                        &mask,
+                        &self.integration_options(),
+                        self.prepared.take(),
+                    )?;
+                    (pattern, sigma, None, None)
+                };
                 self.control.check()?;
-                let mut raw = crate::pattern::Curve::from_json(&products.pattern)?;
-                raw.sigma = products.sigma.as_ref().map(|s| Arc::new(s.clone()));
+                let mut raw = crate::pattern::Curve::from_json(&pattern)?;
+                raw.sigma = sigma.as_ref().map(|s| Arc::new(s.clone()));
                 self.patterns.ingest(
                     raw,
                     &self.settings.unit,
@@ -1377,9 +1472,9 @@ impl Session {
                     false,
                 );
                 self.rebuild_pattern()?;
-                self.cake = Some(products.cake);
-                self.cake_values = Some(Arc::new(products.cake_values));
-                self.sigma = products.sigma;
+                self.cake = cake;
+                self.cake_values = cake_values;
+                self.sigma = sigma;
                 self.elapsed_ms = Some(start.elapsed().as_secs_f64() * 1000.0);
                 self.auto_save()?;
             }
@@ -1584,7 +1679,7 @@ impl Session {
             result["rings"] = self.calibration_rings();
         }
         if let Some(image) = &self.image {
-            result["nativeSource"] = json!({"dtype":image.source_dtype,"storedOrientationPreserved":true,"scientificRowOrder":"bottom-up","frame":image.frame,"frames":image.frames,"ordinaryDecodes":image.ordinary_decodes,"loadPath":if image.combined{"combined-hdf5"}else{"native-reader"}});
+            result["nativeSource"] = json!({"dtype":image.source_dtype,"storedOrientationPreserved":true,"scientificRowOrder":"bottom-up","frame":image.frame,"frames":image.frames,"ordinaryDecodes":image.ordinary_decodes,"loadPath":if image.parallel_pixels{"parallel-hdf5"}else if image.combined{"combined-hdf5"}else{"native-reader"}});
         }
         if include_image && let Some(raster) = &self.image_raster {
             result["rawImage"] = raster.metadata.clone();
@@ -1678,4 +1773,62 @@ pub(crate) fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     temp.persist(path).map_err(|e| e.to_string())?;
     Ok(())
+}
+
+#[cfg(test)]
+mod detector_mask_cache_tests {
+    use super::*;
+    #[test]
+    fn source_gap_mask_is_reused_across_frames_and_invalidated_for_new_sources() {
+        let mut session = Session::new(PathBuf::new());
+        session
+            .settings
+            .geometry
+            .select_detector("Eiger2 CdTe 500k")
+            .unwrap();
+        let [h, w] = [256, 514];
+        let mut data = vec![120.; h * w];
+        for r in 0..h {
+            for c in 254..260 {
+                data[r * w + c] = 0.;
+            }
+        }
+        session.image = Some(
+            Image::from_cached(
+                PathBuf::from("unavailable-source.h5"),
+                0,
+                3,
+                [h, w],
+                data,
+                json!({}),
+            )
+            .unwrap(),
+        );
+        let first = session.physical_mask([h, w]).unwrap().unwrap();
+        session.image.as_mut().unwrap().frame = 1;
+        let second = session.physical_mask([h, w]).unwrap().unwrap();
+        assert!(Arc::ptr_eq(&first, &second));
+        session.image.as_mut().unwrap().path = PathBuf::from("another-source.h5");
+        let changed = session.physical_mask([h, w]).unwrap().unwrap();
+        assert!(!Arc::ptr_eq(&first, &changed));
+        assert_eq!(first.as_ref(), changed.as_ref());
+        let bright = session.image.as_ref().unwrap().values.clone();
+        let image = session.image.as_mut().unwrap();
+        image.path = PathBuf::from("initially-dark.h5");
+        image.frame = 0;
+        image.values = Arc::new(vec![0.; h * w]);
+        let dark = session.physical_mask([h, w]).unwrap().unwrap();
+        let image = session.image.as_mut().unwrap();
+        image.frame = 1;
+        image.values = bright;
+        let learned = session.physical_mask([h, w]).unwrap().unwrap();
+        assert!(
+            learned.iter().filter(|&&v| v != 0).count() > dark.iter().filter(|&&v| v != 0).count()
+        );
+        session.image.as_mut().unwrap().frame = 2;
+        assert!(Arc::ptr_eq(
+            &learned,
+            &session.physical_mask([h, w]).unwrap().unwrap()
+        ));
+    }
 }

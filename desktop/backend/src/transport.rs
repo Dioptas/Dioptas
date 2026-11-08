@@ -61,14 +61,18 @@ pub fn serve(
     let closing = AtomicBool::new(false);
     let active: Mutex<Option<Arc<Control>>> = Mutex::new(None);
     let write = |id, reply: Reply, known: &[String]| -> Result<(), String> {
+        let mut trace = crate::frame_trace::FrameTrace::new("packet", id);
         let packet = reply.encode(id, known)?;
+        trace.mark("encode response");
         let mut stream = output
             .lock()
             .map_err(|_| "Processing output lock failed.")?;
-        stream
+        let result = stream
             .write_all(&packet)
             .and_then(|_| stream.flush())
-            .map_err(|e| e.to_string())
+            .map_err(|e| e.to_string());
+        trace.mark("write and flush");
+        result
     };
     thread::scope(|scope| {
         let (sender, receiver) = mpsc::sync_channel::<(Request, Arc<Control>)>(16);

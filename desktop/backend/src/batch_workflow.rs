@@ -270,15 +270,61 @@ impl Session {
                     }
                     let static_mask = if !self.processing.active() && !bulk_options.dynamic_mask {
                         self.settings.geometry.sync_shape(image.shape)?;
-                        let mut mask = self.integration_mask(image.shape);
-                        // When no current image exists, the freshly allocated user mask
-                        // has not yet had the detector's intrinsic mask merged into it.
-                        if let Some(built) = self.physical_mask(image.shape)? {
+                        let matching = self.image.as_ref().is_some_and(|i| {
+                            i.path == image.path && i.shape == image.shape && !i.values.is_empty()
+                        });
+                        if self
+                            .settings
+                            .geometry
+                            .detector
+                            .as_ref()
+                            .is_some_and(|d| d.name.starts_with("Eiger"))
+                            && !matching
+                            && !self.engine.load_pixels(&mut image, 0, &self.control)?
+                        {
+                            image.read(0)?;
+                        }
+                        let basis = if matching {
+                            self.image.as_ref()
+                        } else {
+                            Some(&image)
+                        };
+                        let mut mask = if self.settings.use_mask
+                            && self.mask.len() == image.shape[0] * image.shape[1]
+                        {
+                            self.mask.as_ref().clone()
+                        } else {
+                            vec![0; image.shape[0] * image.shape[1]]
+                        };
+                        if let Some(built) = self.physical_mask_for(image.shape, basis)? {
                             for (value, detector) in mask.iter_mut().zip(built.iter()) {
                                 *value |= *detector;
                             }
                         }
-                        Some(mask)
+                        if let Some([r0, r1, c0, c1]) = self.settings.roi {
+                            for r in 0..image.shape[0] {
+                                for c in 0..image.shape[1] {
+                                    if r < r0 || r >= r1 || c < c0 || c >= c1 {
+                                        mask[r * image.shape[1] + c] = 1;
+                                    }
+                                }
+                            }
+                        }
+                        // A dark first exposure cannot establish acquisition
+                        // margins; use per-frame refresh until evidence exists.
+                        if self.detector_mask.borrow().as_ref().is_some_and(|entry| {
+                            entry.probe_frame.is_some()
+                                && self
+                                    .settings
+                                    .geometry
+                                    .detector
+                                    .as_ref()
+                                    .is_some_and(|d| std::sync::Arc::ptr_eq(d, &entry.detector))
+                        }) {
+                            None
+                        } else {
+                            Some(mask)
+                        }
                     } else {
                         None
                     };
@@ -340,6 +386,7 @@ impl Session {
                             };
                             if prepared.is_none()
                                 && (image.frame != frame || image.values.is_empty())
+                                && !self.engine.load_pixels(&mut image, frame, &self.control)?
                             {
                                 image.read(frame)?;
                             }
@@ -460,6 +507,17 @@ impl Session {
         stored: bool,
         stored_unit: Option<&str>,
     ) -> Result<Reply, String> {
+        self.select_series_mode(series, index, defer, stored, stored_unit, false)
+    }
+    pub(super) fn select_series_mode(
+        &mut self,
+        series: &Series,
+        index: usize,
+        defer: bool,
+        stored: bool,
+        stored_unit: Option<&str>,
+        pattern_only: bool,
+    ) -> Result<Reply, String> {
         let entry = series
             .entries
             .get(index)
@@ -476,6 +534,7 @@ impl Session {
             args["path"] = json!(entry.path);
             args["frame"] = json!(entry.frame);
             args["defer_integration"] = json!(defer);
+            args["pattern_only"] = json!(pattern_only);
             let auto = self.settings.auto_save;
             self.settings.auto_save = false;
             let loaded = self.dispatch("open_image", &args);

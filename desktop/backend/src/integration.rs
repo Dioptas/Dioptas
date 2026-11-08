@@ -94,6 +94,8 @@ pub struct Engine {
     pattern_builds: u64,
     cake_builds: u64,
     combined_decodes: u64,
+    parallel_pixel_decodes: u64,
+    last_pixel_decode_ms: f64,
     prepared_hits: u64,
     resident_calls: u64,
     pattern_only_decodes: u64,
@@ -256,7 +258,7 @@ impl Plan {
 }
 impl Engine {
     pub fn diagnostics(&self) -> Value {
-        json!({"patternPlanBuilds":self.pattern_builds,"cakePlanBuilds":self.cake_builds,"combinedDecodes":self.combined_decodes,"preparedHits":self.prepared_hits,"residentIntegrations":self.resident_calls,"patternOnlyDecodes":self.pattern_only_decodes})
+        json!({"patternPlanBuilds":self.pattern_builds,"cakePlanBuilds":self.cake_builds,"combinedDecodes":self.combined_decodes,"preparedHits":self.prepared_hits,"residentIntegrations":self.resident_calls,"patternOnlyDecodes":self.pattern_only_decodes,"parallelPixelDecodes":self.parallel_pixel_decodes,"lastPixelDecodeMs":self.last_pixel_decode_ms})
     }
     fn pattern_plan(&mut self, k: Key) -> Result<&mut Plan, String> {
         if self.pattern.as_ref().is_none_or(|p| p.key != k) {
@@ -301,6 +303,88 @@ impl Engine {
             &plan.options,
         )
         .map(|(pattern, _)| pattern)
+    }
+
+    /// Parallel input is independent of calibration and integration. Stored Map
+    /// patterns, corrections and uncalibrated image browsing use this too.
+    pub fn load_pixels(
+        &mut self,
+        image: &mut Image,
+        index: usize,
+        c: &Control,
+    ) -> Result<bool, String> {
+        let started = std::time::Instant::now();
+        let Some(mut source) = image.combined_source(index)? else {
+            return Ok(false);
+        };
+        let frame = source.frame;
+        source.frame = 0;
+        if self.raw.as_ref().is_none_or(|raw| raw.source != source) {
+            let reader =
+                match RawReader::open_snapshot(&source.path, &source.dataset, Limits::default()) {
+                    Ok(reader) => reader,
+                    Err(_) => {
+                        image.check_sources()?;
+                        return Ok(false);
+                    }
+                };
+            self.raw = Some(RawSource {
+                source: source.clone(),
+                reader,
+                buffer: ParallelBlockBuffer::default(),
+            });
+        }
+        let raw = self.raw.as_mut().unwrap();
+        let kind = raw.reader.pixel_type();
+        let allocate = |n| match kind {
+            PixelType::U16 => PixelBuffer::U16(Vec::with_capacity(n)),
+            PixelType::U32 => PixelBuffer::U32(Vec::with_capacity(n)),
+            _ => unreachable!(),
+        };
+        let workers = std::env::var("DIOPTAS_INTEGRATION_THREADS")
+            .ok()
+            .and_then(|v| v.parse::<usize>().ok())
+            .unwrap_or(8)
+            .clamp(1, 256);
+        let parts = raw
+            .reader
+            .fold_frame_blocks(
+                frame,
+                &mut raw.buffer,
+                PipelineOptions {
+                    workers,
+                    memory_bytes: 256 * 1024 * 1024,
+                },
+                |_, range| {
+                    c.check().map_err(dioptrin_io::hdf5::Error::from)?;
+                    Ok(allocate(range.len()))
+                },
+                |out, _, block| {
+                    c.check().map_err(dioptrin_io::hdf5::Error::from)?;
+                    match (out, block) {
+                        (PixelBuffer::U16(out), PixelBlock::U16(v)) => out.extend_from_slice(v),
+                        (PixelBuffer::U32(out), PixelBlock::U32(v)) => out.extend_from_slice(v),
+                        _ => unreachable!(),
+                    }
+                    Ok(())
+                },
+            )
+            .map_err(|e| e.to_string())?;
+        let mut pixels = allocate(source.shape[0] * source.shape[1]);
+        for part in parts {
+            match (&mut pixels, part) {
+                (PixelBuffer::U16(out), PixelBuffer::U16(v)) => out.extend(v),
+                (PixelBuffer::U32(out), PixelBuffer::U32(v)) => out.extend(v),
+                _ => unreachable!(),
+            }
+        }
+        image.check_sources()?;
+        c.check()?;
+        image.publish_combined(index, source.shape, pixels)?;
+        image.parallel_pixels = true;
+        self.parallel_pixel_decodes += 1;
+        self.last_pixel_decode_ms = started.elapsed().as_secs_f64() * 1000.;
+        Ok(true)
     }
 
     pub fn prepare_combined_series(
