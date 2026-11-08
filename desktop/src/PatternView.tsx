@@ -1,4 +1,3 @@
-import { legendPlacement, legendSampleIndices } from "./legendPlacement";
 import { usePlotTypography } from "./usePlotTypography";
 import { WebGLPattern, type PatternCurve } from "./WebGLPattern";
 import { IntegrationPhaseLegend } from "./IntegrationPhaseLegend";
@@ -403,107 +402,6 @@ export function PatternView({
   });
   const { xMin: xmin, xMax: xmax, yMin: ymin, yMax: ymax } = navigation.view;
   const yspan = ymax - ymin;
-  // Choose on data/layout changes and Fit. Keep the corner fixed while panning
-  // or moving cursors/ROIs so the legend does not chase the user's pointer.
-  const legendNames =
-    overlayLegend?.map((entry) => entry.name).join("\n") ?? "";
-  const legendAnchor = useMemo(() => {
-    if (!overlayLegend?.length)
-      return { left: left + w - 8, top: top + 5, align: "right" as const };
-    const legendWidth = Math.min(
-      w * 0.7,
-      Math.max(...overlayLegend.map((entry) => entry.name.length)) *
-        typography.size *
-        0.58,
-    );
-    const legendHeight = Math.min(
-      h * 0.5,
-      overlayLegend.length * typography.size * 1.35,
-    );
-    const points: { x: number; y: number; weight: number }[] = [];
-    for (const curve of visibleCurves) {
-      const [start, end] = visibleSamples(curve.x, xmin, xmax, false);
-      for (const i of legendSampleIndices(curve.x, curve.y, start, end)) {
-        const x = curve.x[i],
-          y = curve.y[i];
-        if (
-          !Number.isFinite(x) ||
-          y === null ||
-          !Number.isFinite(y) ||
-          (log && y <= 0)
-        )
-          continue;
-        points.push({
-          x: left + ((x - xmin) / (xmax - xmin)) * w,
-          y: top + h - ((transform(y) - ymin) / yspan) * h,
-          weight:
-            0.05 +
-            20 *
-              Math.pow(
-                Math.abs(
-                  transform(y) -
-                    Math.max(ymin, Math.min(ymax, log ? ymin : transform(0))),
-                ) / yspan,
-                2,
-              ),
-        });
-      }
-    }
-    const obstacles = [];
-    if (referenceLines.length)
-      obstacles.push({
-        left: left + 10,
-        top: top + 3,
-        width: w * 0.35,
-        height: Math.min(
-          h * 0.45,
-          new Set(referenceLines.map((line) => line.phaseIndex ?? line.name))
-            .size *
-            typography.size *
-            1.35,
-        ),
-      });
-    if (linkedPosition !== undefined)
-      obstacles.push({
-        left: left + ((linkedPosition - xmin) / (xmax - xmin)) * w - 8,
-        top,
-        width: 24,
-        height: 26,
-      });
-    for (const region of regions)
-      obstacles.push({
-        left: left + ((region.min - xmin) / (xmax - xmin)) * w,
-        top,
-        width: Math.max(30, region.name.length * typography.size * 0.6),
-        height: 24,
-      });
-    return legendPlacement(
-      { left, top, width: w, height: h },
-      legendWidth,
-      legendHeight,
-      points,
-      obstacles,
-    );
-  }, [
-    pattern.x,
-    pattern.y,
-    curves,
-    referenceLines,
-    showPattern,
-    legendNames,
-    w,
-    h,
-    left,
-    top,
-    log,
-    sqrt,
-    typography.size,
-    autoRange ? xmin : null,
-    autoRange ? xmax : null,
-    autoRange ? ymin : null,
-    autoRange ? ymax : null,
-  ]);
-
   const regionAt = (x: number) => {
     const tolerance = ((xmax - xmin) * 9) / w;
     return [...regions]
@@ -1387,9 +1285,9 @@ export function PatternView({
       {overlayLegend && (
         <OverlayPlotLegend
           entries={overlayLegend}
-          left={legendAnchor.left}
-          top={legendAnchor.top}
-          align={legendAnchor.align}
+          left={left + w - 8}
+          top={top + 5}
+          align="right"
           bounds={{ left, top, width: w, height: h }}
           width={w * 0.7}
           height={h * 0.5}
