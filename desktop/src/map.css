@@ -556,15 +556,6 @@
   justify-content: space-between;
   margin-bottom: 6px;
 }
-.map-settings-dialog h3 {
-  margin: 0;
-  font-size: var(--text-small);
-}
-.app .map-settings-dialog .map-settings-close {
-  width: 24px;
-  min-height: 24px;
-  padding: 3px;
-}
 .map-settings-dialog input:not([type="checkbox"]),
 .map-settings-dialog select {
   min-width: 0;

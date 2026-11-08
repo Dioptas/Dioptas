@@ -25,6 +25,7 @@ preview replaces the complete application. The original Qt interface is unchange
 | --- | --- |
 | Image → Pick rings → Calibrate → Validate | Image / Peaks / Fit / Validate tabs below a shared Ring / Auto advance / Pick peaks strip; fixed fit/apply action, no Back/Next; image alone until Validate |
 | Load image; previous/next image | Compact Open image button with adjacent previous/next arrows, using the existing file iterator |
+| Change detector/image dimensions | A source-size change offers Cancel or Open and reset calibration before changing the session; Reset calibration beside Load .poni keeps the current image while clearing detector-dependent state. Autoprocess stops on a mismatch; PONIs with explicit dimensions are checked in either loading order. Legacy PONIs without dimensions bind to the first image. |
 | ±90° rotation; horizontal/vertical flip; reset | Visible labelled buttons in Image & detector; detector and image transformations stay aligned; stale peaks are cleared |
 | Custom/predefined detector; detector file/reset | Experiment setup and Image & detector; loaded detector pixel pitches cannot be edited as custom pixels |
 | Distortion spline load/reset | Image & detector |

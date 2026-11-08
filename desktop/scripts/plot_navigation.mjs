@@ -501,7 +501,7 @@ export async function verifyPlotNavigation(page) {
     ["", ""],
     "Plot zoom selectors stay icon-only alongside Qt pattern-name legends",
   );
-  // Exercise the complete app cascade, including buttons.css selected styles.
+  // Exercise the complete app cascade, including the shared button selected styles.
   for (const name of ["Pattern rectangle zoom", "Pattern X-range zoom"]) {
     const button = patternControls.getByRole("button", { name, exact: true });
     await page.mouse.move(0, 0);

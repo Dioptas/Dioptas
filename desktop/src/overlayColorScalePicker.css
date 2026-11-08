@@ -31,16 +31,6 @@
   justify-content: space-between;
   gap: 8px;
 }
-.overlay-color-scale-heading h2 {
-  font-size: inherit;
-  margin: 0;
-}
-.overlay-color-scale-heading button {
-  min-height: 24px;
-  padding: 3px;
-  display: grid;
-  place-items: center;
-}
 .overlay-color-scale-reverse {
   display: flex;
   align-items: center;

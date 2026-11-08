@@ -178,13 +178,6 @@
   justify-content: space-between;
   gap: 12px;
 }
-.manual-geometry-heading h2 {
-  font-size: var(--text-body);
-  margin: 0;
-}
-.manual-geometry-heading button {
-  padding: 5px 9px;
-}
 .calibration-task-panel .calibration-panel .panel-heading {
   flex-wrap: wrap;
   gap: 5px;

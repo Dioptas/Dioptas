@@ -1753,7 +1753,12 @@ export default function App() {
   const configurationControlsVisible =
     showConfigurationControls && !!state?.configurationLabels && !settingsOpen;
   return (
-    <div className="app" data-text-size={largeText ? "large" : "normal"}>
+    <div className="app" data-text-size={largeText ? "large" : "normal"}
+      onClickCapture={(event) => {
+        if (calibrationResetRequest || !(event.target instanceof Element)) return;
+        const control = event.target.closest<HTMLElement>("button, input, select");
+        if (control) calibrationResetOpener.current = control;
+      }}>
       <div className="app-body">
         <nav className="mode-navigation" aria-label="Workspace modes">
           <WorkspaceModeButtons

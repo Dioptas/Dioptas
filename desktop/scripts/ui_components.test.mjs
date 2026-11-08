@@ -48,6 +48,36 @@ test("all desktop controls and floating surfaces use the shared components", asy
         bypasses.push(`${path.basename(filename)}: use Portal from ./ui`);
       if (node.type !== "JSXOpeningElement") return;
       const name = node.name.name;
+      if (
+        [
+          "Input",
+          "Select",
+          "TextArea",
+          "Button",
+          "Dialog",
+          "DialogPanel",
+          "Popover",
+          "Tooltip",
+        ].includes(name)
+      ) {
+        const style = node.attributes.find(
+          (attribute) => attribute.name?.name === "style",
+        )?.value?.expression;
+        if (style?.type === "ObjectExpression") {
+          for (const property of style.properties) {
+            if (
+              ["background", "backgroundColor", "borderColor"].includes(
+                property.key?.name,
+              ) &&
+              typeof property.value?.value === "string" &&
+              /#[\da-f]{3,8}/i.test(property.value.value)
+            )
+              bypasses.push(
+                `${path.basename(filename)}:${property.loc.start.line}: inline control color`,
+              );
+          }
+        }
+      }
       const role = node.attributes.find(
         (attribute) =>
           attribute.type === "JSXAttribute" && attribute.name.name === "role",

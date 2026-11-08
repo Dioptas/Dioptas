@@ -43,6 +43,13 @@ session. Pattern ranges are shared across Calibration, Integration and Map,
 converting radial units and intensity scales as needed. Resizing keeps detector
 pixels square; F/right double-click still restore the fitted image view.
 
+## Shared UI controls
+
+All views use the controls and surfaces in `src/ui`, including table fields,
+popup menus and detached windows. The shared stylesheet owns their neutral
+palette and interaction states. See [UI_COMPONENTS.md](UI_COMPONENTS.md) for
+component usage and the checks that prevent new per-view control themes.
+
 ## Run this checkout
 
 Install Node/npm, Rust, a C/C++ compiler, CMake and Git, then:
@@ -206,6 +213,39 @@ resolution (no display decimation). Zoom therefore resolves the original
 detector pixels; calculations, brush edits and pixel readouts also use original
 resolution. Display payloads use float32; scientific arrays retain their source
 precision independently of the display buffers.
+
+## Changing detector or image dimensions
+
+Opening an image with different source dimensions first offers **Cancel** or
+**Open and reset calibration**. Cancel preserves the current image, geometry,
+mask, background, corrections and history. Accepting opens the new image without
+calibration and returns to Calibration → Image. It clears detector geometry,
+pixel setup, distortion, picked peaks, masks (including enabled mask plugins),
+image background/corrections and the previous integration/cake. Image orientation
+returns to its original state. Load a matching `.poni` or check the detector/pixel
+sizes and calibrate again. Wavelength/distance start values, integration
+preferences, overlays and phases remain available; automatic saving and
+Autoprocess turn off.
+
+The small **Reset calibration** icon beside **Load .poni** offers the same reset
+while retaining the current image. Use it when changing detectors even if the
+new detector has the same dimensions. Ordinary same-size image loads preserve
+the current calibration, mask and image processing. Rotation is accounted for
+when comparing source dimensions.
+
+Previous/next image and frame navigation use the same compatibility check.
+Autoprocess stops with a message on a size change instead of silently applying
+the old geometry. When a PONI declares detector dimensions, incompatible image
+loads prompt even if no image was previously loaded; loading that PONI onto an
+incompatible current image is refused. Legacy/custom PONIs without dimensions
+cannot establish the expected image size, so their first image establishes it.
+Equal dimensions alone cannot establish that a calibration belongs to a detector.
+
+`desktop/tests/test_image_change.py` covers both scientific engines. Run
+`node scripts/image_change_smoke.mjs` from `desktop/` for the real-model headless
+workflow, or add `--webkit`. It checks confirmation, cancellation/Escape and
+focus restoration, reset/reload, ordinary same-size switching and compact layout
+at both text sizes. Evidence is written to `desktop/artifacts/image-change/`.
 
 ## Custom actions
 
@@ -674,6 +714,26 @@ names the PONI parameter convention; it does not select a Python runtime.
 The explicit Python compatibility backend retains its old engine selector and
 optional Dioptrin bindings (`uv sync --python 3.13 --extra dioptrin`). Its
 fallback rules and support boundary belong to that backend only.
+
+Dioptrin uses full pixel splitting; the usual pyFAI `csr` path uses bounding-box
+splitting. Their bin grids and peak heights can therefore differ. The measured
+CeO2 fixture is checked against pyFAI `full_csr`, including Poisson std and mask
+edits, with relative-L2 regression limits of 0.3% for patterns, 0.6% for Poisson
+std and 0.5% for cakes. These are scoped fixture checks, not universal accuracy
+claims or bitwise parity. Unsupported integration options (including disabled
+solid-angle correction and 1D azimuth sectors) use pyFAI. Spline, nonuniform and
+curved detectors also retain pyFAI integration.
+
+For separate cold/repeated-image timings with no, static and changing masks:
+
+```sh
+.venv/bin/python desktop/scripts/dioptrin_benchmark.py
+```
+
+The report is written to `desktop/artifacts/dioptrin-benchmark.json`. It covers
+model calls with each desktop engine's own splitting method, excluding file
+IO, IPC and rendering. Native objects are created, used and explicitly released
+on the processing thread, including when logs retain an old model.
 
 Dioptrin uses full pixel splitting; the usual pyFAI `csr` path uses bounding-box
 splitting. Their bin grids and peak heights can therefore differ. The measured

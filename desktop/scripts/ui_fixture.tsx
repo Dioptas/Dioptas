@@ -12,6 +12,8 @@ import {
   Popover,
   Portal,
 } from "../src/ui";
+import { ImageIntensity } from "../src/ImageIntensity";
+import type { Raster, ImageDisplayPreferences, Palette } from "../src/types";
 import { EditorNumber } from "../src/PhaseEditorFields";
 import { DataTable } from "../src/DataTable";
 import "../src/style.css";
@@ -83,10 +85,57 @@ function Fields({ name }: { name: string }) {
     </div>
   );
 }
+const raster: Raster = {
+  width: 2,
+  height: 2,
+  fullWidth: 2,
+  fullHeight: 2,
+  step: 1,
+  dtype: "f32le",
+  data: new Float32Array([0, 25, 50, 100]).buffer,
+  limits: [0, 100],
+  histogram: { edges: [0, 50, 100], counts: [2, 2], finitePixels: 4 },
+};
+function Histogram() {
+  const [limits, setLimits] = useState<[number, number]>([0, 100]);
+  const [log, setLog] = useState(false);
+  const [palette, setPalette] = useState<Palette>("grey");
+  const [preferences, setPreferences] = useState<ImageDisplayPreferences>({
+    size: "compact",
+    orientation: "horizontal",
+    auto: { mode: "percentile", percentile: 0.1, filter_gaps: true },
+  });
+  return (
+    <div
+      style={{
+        position: "fixed",
+        left: 24,
+        bottom: 24,
+        width: 300,
+        height: 80,
+      }}
+    >
+      <ImageIntensity
+        raster={raster}
+        limits={limits}
+        onLimits={setLimits}
+        log={log}
+        onLog={setLog}
+        palette={palette}
+        onPalette={setPalette}
+        onAuto={() => {}}
+        ready
+        preferences={preferences}
+        onPreferences={setPreferences}
+      />
+    </div>
+  );
+}
 function Fixture({ large = false }: { large?: boolean }) {
   const [dialog, setDialog] = useState(false),
     [nested, setNested] = useState(false),
     [popup, setPopup] = useState(false);
+  const [histogram, setHistogram] = useState(false);
   const [number, setNumber] = useState<number | null>(2);
   const dialogRef = useRef<HTMLDialogElement>(null),
     inputRef = useRef<HTMLInputElement>(null);
@@ -95,6 +144,7 @@ function Fixture({ large = false }: { large?: boolean }) {
       <main className="ui-fixture">
         <div className="ui-fixture-actions">
           <Button onClick={() => setDialog(true)}>Open dialog</Button>
+          <Button onClick={() => setHistogram(true)}>Show histogram</Button>
           <Button onClick={() => setPopup(!popup)}>Open popup</Button>
           <Button onClick={() => inputRef.current?.focus()}>
             Focus input ref
@@ -183,6 +233,7 @@ function Fixture({ large = false }: { large?: boolean }) {
           <Button>Submit native form</Button>
         </form>
       </main>
+      {histogram && <Histogram />}
       {popup && (
         <Portal>
           <Popover

@@ -81,9 +81,6 @@
   height: var(--table-control-height);
   min-height: var(--table-control-height);
   padding: 1px 3px;
-  border: 1px solid var(--table-control-border);
-  border-radius: var(--table-control-radius);
-  background-color: var(--table-control-background);
   color: inherit;
   font-size: inherit;
   line-height: 1.1;

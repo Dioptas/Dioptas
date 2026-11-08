@@ -2265,13 +2265,10 @@ input[type="checkbox"] {
   outline: 2px solid var(--ui-focus);
   outline-offset: 2px;
 }
-.display-settings-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-}
 .display-settings {
   position: fixed;
+  inset: auto;
+  margin: 0;
   width: 300px;
   max-height: calc(100dvh - 16px);
   overflow-y: auto;

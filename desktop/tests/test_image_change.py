@@ -4,6 +4,7 @@ import importlib.util
 from pathlib import Path
 
 import numpy as np
+import h5py
 import pytest
 from PIL import Image
 
@@ -32,6 +33,7 @@ def experiment(request, tmp_path):
     call(session, "mask_stroke", points=[[20, 30]], radius=3)
     call(session, "integration_image_background", path=str(tmp_path / "same.tif"))
     call(session, "integration_image_background", scale=0.1)
+    call(session, "pick_peak", x=20, y=30, ring=1, automatic=False)
     yield session
     session.close()
 
@@ -109,12 +111,15 @@ def test_same_size_preserves_geometry_mask_background_and_orientation(experiment
 def test_explicit_reset_keeps_raw_image_and_original_orientation(experiment):
     s = experiment
     raw = s.configuration.img_model.untransformed_raw_img_data.copy()
+    s.configuration.img_model.factor = 2.0
     call(s, "image_transform", operation="rotate_right")
     result = call(s, "reset_calibration")
     assert result["state"]["hasImage"]
     assert result["state"]["shape"] == [96, 128]
     assert not result["state"]["calibrated"]
+    assert s.configuration.img_model.factor == 1.0
     assert result["state"]["calibration"]["transformations"] == []
+    assert s.configuration.calibration_model.detector.shape == raw.shape
     np.testing.assert_array_equal(s.configuration.img_model.img_data, raw)
 
 
@@ -167,3 +172,29 @@ def test_autoprocess_stops_without_replacing_session(experiment, tmp_path, monke
     assert state["imagePath"] == before["imagePath"]
     assert state["geometry"] == before["geometry"]
     assert state["maskedPixels"] == before["maskedPixels"]
+
+
+def test_multiframe_navigation_and_cancel_keep_the_reader(experiment, tmp_path):
+    s = experiment
+    series = tmp_path / "series.h5"
+    with h5py.File(series, "w") as f:
+        f["entry/data/data"] = np.stack([np.full((96, 128), i, dtype=np.float32) for i in (1, 2, 3)])
+    call(s, "open_image", path=str(series))
+    call(s, "integration_navigation", frame=2)
+    image = s.configuration.img_model
+    np.testing.assert_array_equal(image.raw_img_data, 2)
+    loader = image.loader
+    call(s, "open_image", path=str(tmp_path / "image_002.tif"))
+    assert image.loader is loader and image.series_pos == 2
+    call(s, "integration_navigation", frame=3)
+    np.testing.assert_array_equal(image.raw_img_data, 3)
+
+
+@pytest.mark.parametrize("mode", ["add", "average"])
+def test_combining_new_detector_images_cannot_bypass_size_guard(experiment, tmp_path, mode):
+    s = experiment
+    before = call(s, "state")
+    path = str(tmp_path / "image_002.tif")
+    result = s.invoke("open_image", {"paths": [path, path], "batch_mode": mode})
+    assert not result["ok"] and "detector dimensions" in result["error"]
+    assert call(s, "state") == before

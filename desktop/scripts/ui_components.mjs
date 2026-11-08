@@ -1,17 +1,29 @@
 import assert from "node:assert/strict";
-import { mkdir, writeFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-import { createServer } from "vite";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build } from "vite";
+import react from "@vitejs/plugin-react";
+import { viteSingleFile } from "vite-plugin-singlefile";
 import { chromium, webkit } from "playwright";
 
 const desktop = fileURLToPath(new URL("../", import.meta.url));
 const artifacts = new URL("../artifacts/ui-components/", import.meta.url);
 await mkdir(artifacts, { recursive: true });
-const server = await createServer({
+// Bundle like the desktop host, including static stylesheet loading.
+const bundle = await mkdtemp(path.join(tmpdir(), "dioptas-ui-components-"));
+await build({
+  configFile: false,
   root: desktop,
-  server: { host: "127.0.0.1", port: 0 },
+  plugins: [react(), viteSingleFile()],
+  logLevel: "error",
+  build: {
+    outDir: bundle,
+    emptyOutDir: true,
+    rollupOptions: { input: path.join(desktop, "scripts/ui_fixture.html") },
+  },
 });
-await server.listen();
 const reports = [];
 try {
   for (const [name, engine] of Object.entries({ chromium, webkit })) {
@@ -22,7 +34,9 @@ try {
       });
       const errors = [];
       page.on("pageerror", (error) => errors.push(error.message));
-      await page.goto(`${server.resolvedUrls.local[0]}scripts/ui_fixture.html`);
+      await page.goto(
+        pathToFileURL(path.join(bundle, "scripts/ui_fixture.html")).href,
+      );
       await page.waitForFunction(() => window.uiFixture);
       for (const large of [false, true]) {
         await page.evaluate((large) => window.uiFixture.render(large), large);
@@ -31,7 +45,8 @@ try {
             elements.map((element) => {
               const style = getComputedStyle(element);
               return {
-                label: element.getAttribute("aria-label"), type: element.type,
+                label: element.getAttribute("aria-label"),
+                type: element.type,
                 background: style.backgroundColor,
                 border: style.borderTopColor,
                 radius: style.borderTopLeftRadius,
@@ -42,7 +57,11 @@ try {
           );
           assert.ok(styles.length);
           for (const style of styles) {
-            assert.equal(style.background, "rgb(20, 23, 27)", JSON.stringify(style));
+            assert.equal(
+              style.background,
+              "rgb(20, 23, 27)",
+              JSON.stringify(style),
+            );
             assert.equal(style.border, "rgb(65, 72, 79)");
             assert.equal(style.radius, "5px");
             assert.equal(style.scheme, "dark");
@@ -99,7 +118,10 @@ try {
         await popup.getByRole("button", { name: "Close popup" }).click();
         await page
           .getByRole("button", { name: "Open dialog", exact: true })
-          .click();
+          .focus();
+        await page
+          .getByRole("button", { name: "Open dialog", exact: true })
+          .press("Enter");
         const dialog = page.getByRole("dialog", {
           name: "Fixture dialog",
           exact: true,
@@ -117,7 +139,10 @@ try {
         );
         await dialog
           .getByRole("button", { name: "Open nested dialog" })
-          .click();
+          .focus();
+        await dialog
+          .getByRole("button", { name: "Open nested dialog" })
+          .press("Enter");
         assert.equal(
           await page
             .getByLabel("Nested autofocus")
@@ -158,8 +183,21 @@ try {
         );
         await page
           .getByRole("button", { name: "Open dialog", exact: true })
-          .click();
+          .focus();
+        await page
+          .getByRole("button", { name: "Open dialog", exact: true })
+          .press("Enter");
         await page.mouse.click(2, 2);
+        await dialog.waitFor({ state: "detached" });
+        await page
+          .getByRole("button", { name: "Open dialog", exact: true })
+          .focus();
+        await page
+          .getByRole("button", { name: "Open dialog", exact: true })
+          .press("Enter");
+        await dialog
+          .getByRole("button", { name: "Imperative close", exact: true })
+          .click();
         await dialog.waitFor({ state: "detached" });
         const submissions = await page.evaluate(
           () => window.uiFixture.report.submits,
@@ -188,6 +226,50 @@ try {
             .evaluate((el) => getComputedStyle(el).backgroundColor),
           "rgba(0, 0, 0, 0)",
         );
+        await page
+          .getByRole("button", { name: "Show histogram", exact: true })
+          .click();
+        await page
+          .getByRole("button", {
+            name: "Detector histogram settings",
+            exact: true,
+          })
+          .click();
+        const histogram = page.getByRole("dialog", {
+          name: "Detector display settings",
+          exact: true,
+        });
+        assert.equal(await histogram.evaluate((el) => el.tagName), "DIALOG");
+        await neutral(
+          histogram.locator('input:not([type="checkbox"]), select'),
+        );
+        await histogram
+          .getByLabel("Image scale", { exact: true })
+          .selectOption("log");
+        assert.equal(
+          await histogram
+            .getByLabel("Image scale", { exact: true })
+            .inputValue(),
+          "log",
+        );
+        await page.screenshot({
+          path: fileURLToPath(
+            new URL(
+              `${name}-histogram-${large ? "large" : "normal"}.png`,
+              artifacts,
+            ),
+          ),
+        });
+        await page.keyboard.press("Escape");
+        await histogram.waitFor({ state: "detached" });
+        await page
+          .getByRole("button", {
+            name: "Detector histogram settings",
+            exact: true,
+          })
+          .click();
+        await page.mouse.click(2, 2);
+        await histogram.waitFor({ state: "detached" });
       }
       assert.deepEqual(errors, []);
       reports.push({
@@ -204,6 +286,7 @@ try {
           "Escape/backdrop dismissal and restored focus",
           "scientific draft validation/commit/cancel",
           "transparent plot selectors",
+          "native histogram settings dialog, display edits, Escape and backdrop dismissal",
         ],
       });
       console.log(
@@ -218,5 +301,5 @@ try {
     JSON.stringify(reports, null, 2),
   );
 } finally {
-  await server.close();
+  await rm(bundle, { recursive: true, force: true });
 }

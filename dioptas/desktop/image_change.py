@@ -23,6 +23,15 @@ class ImageChangeWorkflow:
                 shape = shape[::-1]
         return shape
 
+    def _expected_image_shape(self):
+        if self._has_image:
+            return self._source_image_shape()
+        expected = getattr(self, "_calibration_image_shape", None)
+        calibration = self.configuration.calibration_model
+        if expected is None and calibration.detector_mode != DetectorModes.CUSTOM:
+            expected = calibration.detector.max_shape
+        return tuple(expected) if expected else None
+
     @staticmethod
     def _poni_shape(path):
         """Legacy/custom PONIs may carry pitches but no detector dimensions."""
@@ -42,13 +51,7 @@ class ImageChangeWorkflow:
         decoded = reader.get_image_data(path, frame - 1)
         shape = tuple(decoded["img_data"].shape)
         image = self.configuration.img_model
-        previous = (
-            self._source_image_shape()
-            if self._has_image else getattr(self, "_calibration_image_shape", None)
-        )
-        calibration = self.configuration.calibration_model
-        if previous is None and calibration.detector_mode != DetectorModes.CUSTOM:
-            previous = calibration.detector.max_shape
+        previous = self._expected_image_shape()
         if previous and shape != previous and not reset_calibration:
             return {
                 "cancelled": True,
@@ -110,8 +113,13 @@ class ImageChangeWorkflow:
         image.transfer_correction.reset()
         image.flat_field_correction.reset()
         image.reset_background()
+        image.background_scaling = 1.0
+        image.background_offset = 0.0
+        image.factor = 1.0
         image.reset_transformations(img_changed=False)
         image._sync_correction_params()
+        calibration.update_detector_shape()
+        calibration._sync_calibration_params()
         mask = configuration.mask_model
         mask.roi = None
         mask.filename = ""
