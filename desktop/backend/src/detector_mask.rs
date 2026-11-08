@@ -1,6 +1,6 @@
 //! Acquisition gap margins can be wider than the generic detector catalogue.
-//! Infer only long, nearly uniform sentinel strips adjoining known gap bands;
-//! zero-valued individual pixels and dark images are not generic bad pixels.
+//! Infer structural margins and acquisition dummy codes corroborated by known
+//! gaps. Zero-valued interior pixels and high measured counts remain valid.
 pub(crate) fn extend_gaps(mask: &mut [u8], image: &[f64], [h, w]: [usize; 2], dtype: &str) -> bool {
     if h == 0 || w == 0 || mask.len() != h * w || image.len() != mask.len() {
         return false;
@@ -41,6 +41,11 @@ pub(crate) fn extend_gaps(mask: &mut [u8], image: &[f64], [h, w]: [usize; 2], dt
     if !rows.iter().any(|&v| v) && !cols.iter().any(|&v| v) {
         return true;
     }
+    // Nonzero dummy codes used uniformly in known gaps also identify invalid
+    // pixels elsewhere in an acquisition's detector mask. A structural strip
+    // alone misses isolated bad-pixel regions (including the 9M Eiger fixture).
+    let markers = confirmed_markers(image, [h, w], dtype, &rows, &cols);
+    let flag = |value| flag(value) || markers.contains(&value);
     let mut established = true;
     for &(r0, r1) in &blocks_r {
         for &(c0, c1) in &blocks_c {
@@ -81,7 +86,91 @@ pub(crate) fn extend_gaps(mask: &mut [u8], image: &[f64], [h, w]: [usize; 2], dt
             }
         }
     }
+    if !markers.is_empty() {
+        let mark = |mask: &mut [u8], image: &[f64]| {
+            for (out, value) in mask.iter_mut().zip(image) {
+                if markers.contains(value) {
+                    *out = 1;
+                }
+            }
+        };
+        if image.len() >= 1_000_000 {
+            let workers = std::thread::available_parallelism()
+                .map_or(1, |n| n.get())
+                .min(8);
+            let chunk = image.len().div_ceil(workers);
+            std::thread::scope(|scope| {
+                for (out, data) in mask.chunks_mut(chunk).zip(image.chunks(chunk)) {
+                    let mark = &mark;
+                    scope.spawn(move || mark(out, data));
+                }
+            });
+        } else {
+            mark(mask, image);
+        }
+    }
     established
+}
+
+fn confirmed_markers(
+    image: &[f64],
+    [h, w]: [usize; 2],
+    dtype: &str,
+    rows: &[bool],
+    cols: &[bool],
+) -> Vec<f64> {
+    fn centers(gaps: &[bool]) -> Vec<usize> {
+        let (mut result, mut i) = (vec![], 0);
+        while i < gaps.len() {
+            if !gaps[i] {
+                i += 1;
+                continue;
+            }
+            let start = i;
+            while i < gaps.len() && gaps[i] {
+                i += 1;
+            }
+            result.push((start + i) / 2);
+        }
+        result
+    }
+    let candidates = match dtype {
+        "U16" => vec![-1., u16::MAX as f64],
+        "I16" => vec![-1., i16::MAX as f64],
+        "U32" => vec![-1., i32::MAX as f64, u32::MAX as f64],
+        "I32" => vec![-1., i32::MAX as f64],
+        // Project caches preserve the source samples as f64.
+        "F64" => vec![
+            -1.,
+            i16::MAX as f64,
+            u16::MAX as f64,
+            i32::MAX as f64,
+            u32::MAX as f64,
+        ],
+        _ => vec![],
+    };
+    let row_centers = centers(rows);
+    let col_centers = centers(cols);
+    let mut result = vec![];
+    for candidate in candidates {
+        let row = row_centers.iter().copied().any(|r| {
+            image[r * w..(r + 1) * w]
+                .iter()
+                .filter(|&&v| v == candidate)
+                .count()
+                * 100
+                >= w * 99
+        });
+        let col = !row
+            && col_centers
+                .iter()
+                .copied()
+                .any(|c| (0..h).filter(|&r| image[r * w + c] == candidate).count() * 100 >= h * 99);
+        if row || col {
+            result.push(candidate);
+        }
+    }
+    result
 }
 
 #[cfg(test)]
@@ -111,6 +200,8 @@ mod tests {
             }
             data[10 * w + 10] = 0.;
             data[9 * w + 10] = i32::MAX as f64;
+            data[8 * w + 10] = 6_000_000.;
+            data[7 * w + 10] = -1.;
             let mut mask = base.clone();
             extend_gaps(&mut mask, &data, [h, w], "I32");
             for r in 57..68 {
@@ -120,7 +211,9 @@ mod tests {
                 assert!(mask[r * w + 75..r * w + 85].iter().all(|&v| v == 1));
             }
             assert_eq!(mask[10 * w + 10], 0);
-            assert_eq!(mask[9 * w + 10], 0);
+            assert_eq!(mask[9 * w + 10], u8::from(value == i32::MAX as f64));
+            assert_eq!(mask[8 * w + 10], 0);
+            assert_eq!(mask[7 * w + 10], u8::from(value == -1.));
         }
         let mut mask = base.clone();
         extend_gaps(&mut mask, &vec![0.; h * w], [h, w], "I32");

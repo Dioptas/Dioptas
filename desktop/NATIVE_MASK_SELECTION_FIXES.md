@@ -281,3 +281,40 @@ The final packaged repeat measured 33.15 → 28.92 ms for stored selection and
 comparisons passed, excluding only elapsed time, as did all byte/numerical
 comparisons. The new standalone bundle passed resource, signature-integrity,
 deployment-target and native-dependency inspection. No user window was restarted.
+
+## Correction: acquisition invalid pixels outside structural gap strips
+
+The earlier structural-margin qualification did not establish complete automatic
+acquisition masking. A user report reproduced a scientifically bad pattern even
+though the displayed red mask was applied: 15,160 detector invalid-marker pixels
+remained outside the structural mask. Their large values dominated integration.
+The existing tests checked the displayed gap bands but missed this numerical case.
+
+Automatic Eiger acquisition masks now corroborate nonzero dummy codes against
+nearly uniform complete bands in the known detector gaps. Matching invalid values
+are then included throughout the acquisition mask, including disconnected bad-pixel
+regions. Zero is still extended only at structural boundaries; valid interior
+zeros and ordinary large counts are retained. Recognized codes include minus one
+and the supported integer-type maxima; f64 project caches retain recognition of
+those original source markers. The inferred mask remains cached per detector,
+shape and unchanged source file, as in the existing acquisition-mask workflow.
+
+For the actual `eiger_0000.h5` fixture the marker is uint32 maximum (4,294,967,295),
+whereas the adjacent TIFF uses int32 maximum. Automatic masking now includes all
+887,556 marker pixels, compared with 872,396 previously. The median integrated
+intensity changes from 9,429,614 to 228.846 counts. The automatic pattern and cake
+exactly match an explicitly loaded mask with the same exclusions. The supplied
+`eiger_0000.mask` has 32 additional custom exclusions; it remains a distinct mask,
+and ordinary large measured counts are not automatically discarded.
+
+New regression coverage explicitly compares automatic and manually selected
+invalid-pixel exclusions in the pattern and cake, including Poisson errors and
+the user-mask switch off. Synthetic max/minus-one/zero fills retain valid interior
+zeros and large measured values, and persist through Map and project operations.
+`scripts/native_detector_gap_integration_check.py` validates the real 9M data on
+frames 0, 1, 7, 250 and 624 and compares stored/reintegrated Map profiles. This is
+sampling of the real acquisition, not a universal claim about frame-varying dummy
+locations. All 65 Rust tests, Clippy and native transport checks pass.
+
+The histogram option was confirmed by the user to be correct after restarting.
+Display preferences and histogram code were left unchanged for this correction.

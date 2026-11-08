@@ -37,7 +37,7 @@ fn eiger_gap_margins_follow_source_flags_and_survive_projects_and_series() {
     call(
         &mut session,
         "integration_settings",
-        json!({"bins":48,"cake_bins":12,"trim_zeros":false}),
+        json!({"bins":48,"cake_bins":12,"trim_zeros":false,"poisson_errors":true}),
     );
     call(
         &mut session,
@@ -60,6 +60,8 @@ fn eiger_gap_margins_follow_source_flags_and_survive_projects_and_series() {
             }
         }
         raw[40 * w + 40] = 0;
+        raw[40 * w + 50] = flag;
+        raw[42 * w + 50] = 6_000_000;
         {
             let f = hdf5::File::create(&path).unwrap();
             f.new_dataset::<i32>()
@@ -85,6 +87,39 @@ fn eiger_gap_margins_follow_source_flags_and_survive_projects_and_series() {
             0,
             "valid zero inside a module must survive"
         );
+        let point = [(h - 1 - 40), 50];
+        assert_eq!(mask[point[0] * w + point[1]], u8::from(flag != 0));
+        assert_eq!(
+            mask[(h - 1 - 42) * w + 50],
+            0,
+            "high measured counts are preserved"
+        );
+        if flag != 0 {
+            // Explicitly masking the known invalid pixel must not change its
+            // exclusion, normalization, pattern or cake.
+            let explicit = call(
+                &mut session,
+                "mask_edit",
+                json!({"operation":"rectangle","points":[[point[1],point[0]],[point[1]+1,point[0]+1]]}),
+            );
+            assert_eq!(opened.result["pattern"], explicit.result["pattern"]);
+            assert_eq!(bytes(&opened, "cake"), bytes(&explicit, "cake"));
+            let disabled = call(
+                &mut session,
+                "integration_settings",
+                json!({"use_mask":false}),
+            );
+            assert_eq!(
+                opened.result["pattern"], disabled.result["pattern"],
+                "intrinsic detector invalids do not depend on the optional user mask"
+            );
+            call(
+                &mut session,
+                "integration_settings",
+                json!({"use_mask":true}),
+            );
+            call(&mut session, "clear_mask", json!({}));
+        }
         sources.push(path);
     }
     call(&mut session, "map_load", json!({"paths":sources}));
