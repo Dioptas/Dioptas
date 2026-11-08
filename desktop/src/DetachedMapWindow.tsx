@@ -178,14 +178,14 @@ export function DetachedMapWindow() {
           reintegrate={reintegrate && status.calibrated && !map?.normalized}
           reportPlot={readout.report}
           actions={
-            <button
+            <Button
               className="plot-tool-button map-icon-button"
               aria-label="Dock map"
               onClick={() => channel.current?.send({ type: "dock" })}
               title="Return the map to Map mode in the main window"
             >
               <PanelLeftClose size={16} />
-            </button>
+            </Button>
           }
         />
       </div>

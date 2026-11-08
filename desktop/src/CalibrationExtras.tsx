@@ -116,7 +116,7 @@ export function CalibrationExtras({
                 ],
               ] as const
             ).map(([operation, label, Icon, text]) => (
-              <button
+              <Button
                 type="button"
                 key={operation}
                 className={operation === "reset" ? "quiet" : "secondary"}
@@ -129,7 +129,7 @@ export function CalibrationExtras({
               >
                 <Icon size={15} />
                 {text}
-              </button>
+              </Button>
             ))}
           </div>
           {c?.detectorOrientation !== undefined && (
@@ -155,7 +155,7 @@ export function CalibrationExtras({
           )}
           <hr className="calibration-tool-divider" />
           <div className="file-actions">
-            <button
+            <Button
               type="button"
               disabled={!ready}
               title={c?.detectorFile ?? "Load detector definition"}
@@ -165,18 +165,18 @@ export function CalibrationExtras({
             >
               <FolderOpen size={14} />
               Detector file
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="quiet"
+              variant="quiet"
               disabled={!ready || !c?.detectorFile}
               onClick={() => run("detector_file", { reset: true })}
             >
               Reset
-            </button>
+            </Button>
           </div>
           <div className="file-actions">
-            <button
+            <Button
               type="button"
               disabled={!ready}
               title={c?.distortionFile ?? "Load distortion spline"}
@@ -186,15 +186,15 @@ export function CalibrationExtras({
             >
               <FolderOpen size={14} />
               Distortion spline
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="quiet"
+              variant="quiet"
               disabled={!ready || !c?.distortionFile}
               onClick={() => run("distortion_file", { reset: true })}
             >
               Reset
-            </button>
+            </Button>
           </div>
         </section>
       )}
@@ -209,7 +209,7 @@ export function CalibrationExtras({
             </p>
             <div className="calibration-field-row calibration-calibrant-row">
               <label htmlFor="calibration-calibrant">Calibrant</label>
-              <select
+              <Select
                 id="calibration-calibrant"
                 aria-label="Calibration calibrant"
                 disabled={!ready}
@@ -225,8 +225,8 @@ export function CalibrationExtras({
                 {(c?.calibrants ?? ["CeO2"]).map((name) => (
                   <option key={name}>{name}</option>
                 ))}
-              </select>
-              <button
+              </Select>
+              <Button
                 type="button"
                 className="icon-button"
                 aria-label="Load custom calibrant…"
@@ -237,7 +237,7 @@ export function CalibrationExtras({
                 }
               >
                 <FolderOpen size={16} />
-              </button>
+              </Button>
             </div>
             <div className="constraint-heading">
               <span>Parameter</span>
@@ -399,7 +399,7 @@ export function CalibrationExtras({
           >
             <h3 className="calibration-fit-heading">Refinement</h3>
             <label className="check-row">
-              <input
+              <Input
                 aria-label="Automatic refinement"
                 type="checkbox"
                 disabled={!ready}
@@ -416,7 +416,7 @@ export function CalibrationExtras({
                   <label htmlFor="refinement-algorithm">
                     Peak-search algorithm
                   </label>
-                  <select
+                  <Select
                     id="refinement-algorithm"
                     aria-label="Refinement peak-search algorithm"
                     value={workflow.algorithm}
@@ -425,7 +425,7 @@ export function CalibrationExtras({
                   >
                     <option>Massif</option>
                     <option>Blob</option>
-                  </select>
+                  </Select>
                 </div>
                 {(
                   [
@@ -440,7 +440,7 @@ export function CalibrationExtras({
                     key={key}
                   >
                     <label htmlFor={`refinement-${key}`}>{label}</label>
-                    <input
+                    <Input
                       id={`refinement-${key}`}
                       className="full-input"
                       aria-label={label}
@@ -492,7 +492,7 @@ export function CalibrationExtras({
         >
           <div className="calibration-mask-row">
             <label className="check-row">
-              <input
+              <Input
                 aria-label="Use mask"
                 type="checkbox"
                 checked={state?.useMask ?? false}
@@ -507,7 +507,7 @@ export function CalibrationExtras({
               />
               Use mask
             </label>
-            <button
+            <Button
               type="button"
               className="icon-button"
               aria-label="Load mask"
@@ -516,10 +516,10 @@ export function CalibrationExtras({
               onClick={() => run("mask_file", {}, "Loading mask…")}
             >
               <FolderOpen size={16} />
-            </button>
+            </Button>
           </div>
           <label className="check-row">
-            <input
+            <Input
               aria-label="Transparent"
               type="checkbox"
               checked={state?.transparentMask ?? false}

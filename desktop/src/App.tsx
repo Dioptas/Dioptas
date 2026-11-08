@@ -106,6 +106,8 @@ import {
 } from "./useImageDisplayPreferences";
 import { prepareDetectorImage } from "./prepareDetectorImage";
 import { colorMaps } from "./colorMaps";
+import { useConfigurationImageDisplays } from "./useConfigurationImageDisplays";
+import { ConfigurationCombinationControls } from "./ConfigurationCombinationControls";
 import { IntegrationView } from "./IntegrationView";
 import {
   IntegrationImageControls,
@@ -225,8 +227,8 @@ export default function App() {
   });
   const [progress, setProgress] = useState<Response["progress"]>();
   const progressGeneration = useRef(0);
-  const [patternZoom, setPatternZoom] = useState<ZoomMode>("rectangle");
-  const [cakeZoom, setCakeZoom] = useState<ZoomMode>("rectangle");
+  const [patternZoom, setPatternZoom] = usePlotZoomPreference("pattern");
+  const [cakeZoom, setCakeZoom] = usePlotZoomPreference("cake");
   const [setupDirty, setSetupDirty] = useState(false);
   const [setupValid, setSetupValid] = useState(true);
   const [mode, setMode] = useState<
@@ -257,7 +259,8 @@ export default function App() {
     text: string;
     cancel: () => void;
   } | null>(null);
-  const [mapPatternZoom, setMapPatternZoom] = useState<ZoomMode>("rectangle");
+  const [mapPatternZoom, setMapPatternZoom] =
+    usePlotZoomPreference("map-pattern");
   const [batch, setBatch] = useState<BatchData | null>(null);
   const [batchDockVisible, setBatchDockVisible] = useState(
     () =>
@@ -362,6 +365,32 @@ export default function App() {
   );
   const [multiDetectorPreferences, setMultiDetectorPreferences] =
     useImageDisplayPreferences("multi-detector", "horizontal");
+  const {
+    detectorAutoActive,
+    cakeAutoActive,
+    configurationDisplays,
+    configurationCakeDisplays,
+    beginConfigurationDisplay,
+  } = useConfigurationImageDisplays({
+    limits,
+    logImage,
+    palette,
+    detectorPreferences,
+    multiDetectorPreferences,
+    cakeLimits,
+    cakeLog,
+    cakePalette,
+    cakePreferences,
+    setLimits,
+    setLogImage,
+    setPalette,
+    setDetectorPreferences,
+    setMultiDetectorPreferences,
+    setCakeLimits,
+    setCakeLog,
+    setCakePalette,
+    setCakePreferences,
+  });
   const multipleImages = mode === "integration" || calibrationStep === 3;
   const detectorDisplay = useRef({ name: "detector", filterGaps: true });
   detectorDisplay.current = {
@@ -380,6 +409,8 @@ export default function App() {
     if (!colorMaps[cakePalette]) setCakePalette("grey");
   }, [palette, cakePalette]);
   const [resetKey, setResetKey] = useState(0);
+  const [calibrationResetRequest, setCalibrationResetRequest] =
+    useState<CalibrationResetRequest>();
   const [pixel, setPixel] = useState<NonNullable<Response["pixel"]> | null>(
     null,
   );
@@ -395,6 +426,10 @@ export default function App() {
         throw new Error(
           result.error || "The operation could not be completed.",
         );
+      const configurationDisplay = beginConfigurationDisplay(
+        result,
+        currentState.current,
+      );
       if ("batch" in result) setBatch(result.batch ?? null);
       if (result.batchPhaseLines !== undefined)
         setBatch((b) => (b ? { ...b, phaseLines: result.batchPhaseLines } : b));
@@ -432,6 +467,12 @@ export default function App() {
       if ("map" in result) setMap(result.map ?? null);
       if ("mapWarning" in result) setMapWarning(result.mapWarning ?? null);
       if (result.state) {
+        if (result.calibrationReset) {
+          setMode("calibration");
+          setCalibrationStep(0);
+          setSelectedPicks([]);
+          setPhaseGuides([]);
+        }
         if (retainClick)
           retainedClickContext.current = clickContext(result.state);
         currentState.current = result.state;
@@ -491,7 +532,8 @@ export default function App() {
         setImage(result.image);
         // Recovery and state refreshes can resend the same detector image.
         // Only a changed source should replace the user's contrast limits.
-        if (sourceChanged)
+        if (sourceChanged) {
+          detectorAutoActive.current = true;
           setLimits(
             activeMode.current === "integration" &&
               !correctedImageRef.current &&
@@ -499,6 +541,7 @@ export default function App() {
               ? result.rawImage.limits
               : result.image.limits,
           );
+        }
         if (resetImageView) setResetKey((k) => k + 1);
       }
       if (result.levels)
@@ -530,6 +573,11 @@ export default function App() {
         )
           setCakeLimits(result.cake.limits);
         cakeSource.current = result.cake ?? null;
+      }
+      configurationDisplay.restore();
+      if (configurationDisplay.configurationChanged) {
+        setSelectedPicks([]);
+        setPhaseGuides([]);
       }
       if (result.savedPath || result.savedPaths?.length) {
         setNotice(
@@ -704,6 +752,10 @@ export default function App() {
               ? { ...args, integration_view: commandMode === "integration" }
               : args,
         );
+        if (result.imageChange) {
+          setCalibrationResetRequest(result.imageChange);
+          return;
+        }
         // Stored-only map projects can be inspected even when their raw files are unavailable.
         if (
           command === "map_select" &&
@@ -1158,12 +1210,15 @@ export default function App() {
     if (azi < low || azi > high) return null;
     return {
       x:
-        ((linked.twoTheta - view.radialRange[0]) /
+        ((radialValues(linked.twoTheta, "2th_deg", state?.geometry.wavelength)[
+          view.unit
+        ]! -
+          view.radialRange[0]) /
           (view.radialRange[1] - view.radialRange[0])) *
         view.fullWidth,
       y: ((azi - low) / (high - low)) * view.fullHeight,
     };
-  }, [linked, displayedCake, cake]);
+  }, [linked, displayedCake, cake, state?.geometry.wavelength]);
   const clickPositionReading =
     clickedReading && linked && state
       ? {
@@ -1727,7 +1782,7 @@ export default function App() {
                   {state.projectName}
                 </div>
               )}
-              <button
+              <Button
                 className="workspace-nav project-action"
                 aria-label="Open project"
                 title="Open project"
@@ -1735,8 +1790,8 @@ export default function App() {
                 onClick={() => run("open_project", {}, "Opening project…")}
               >
                 <FolderOpen size={20} />
-              </button>
-              <button
+              </Button>
+              <Button
                 className="workspace-nav project-action"
                 aria-label="Save project"
                 disabled={
@@ -1755,7 +1810,7 @@ export default function App() {
                 title={`${state?.projectName ? `Save ${state.projectName}` : "Save project"} · ⌘/Ctrl+S${geometryDirty || fitEditor.dirty || integrationDraft.dirty ? " · Saves applied options; unapplied drafts stay in this session" : ""}`}
               >
                 <Save size={20} />
-              </button>
+              </Button>
             </div>
             <button
               className="workspace-nav navigation-help"
@@ -1780,7 +1835,7 @@ export default function App() {
               title="Settings"
             >
               <Settings size={20} />
-            </button>
+            </Button>
           </div>
         </nav>
 
@@ -1856,7 +1911,7 @@ export default function App() {
                       )}
                       <div className="image-overlay-controls">
                         <label>
-                          <input
+                          <Input
                             aria-label="Show calibrant lines"
                             type="checkbox"
                             checked={showRings}
@@ -1865,7 +1920,7 @@ export default function App() {
                           Calibrant lines
                         </label>
                         <label>
-                          <input
+                          <Input
                             aria-label="Show ring numbers"
                             type="checkbox"
                             checked={showNumbers}
@@ -1977,6 +2032,15 @@ export default function App() {
                               }}
                             />
                             <ImageIntensity
+                              key={`detector-${state?.configurationIndex}`}
+                              initialAutoActive={
+                                configurationDisplays.current.get(
+                                  state?.configurationIndex ?? 0,
+                                )?.autoActive ?? true
+                              }
+                              initialLevelsReady={configurationDisplays.current.has(
+                                state?.configurationIndex ?? 0,
+                              )}
                               preferences={
                                 multipleImages
                                   ? multiDetectorPreferences
@@ -1995,8 +2059,9 @@ export default function App() {
                                   : image
                               }
                               ready={ready}
-                              onAuto={(settings) =>
-                                run(
+                              onAuto={(settings) => {
+                                detectorAutoActive.current = true;
+                                return run(
                                   "image_levels",
                                   {
                                     ...settings,
@@ -2006,12 +2071,18 @@ export default function App() {
                                         : "detector",
                                   },
                                   "Updating intensity range…",
-                                )
-                              }
+                                );
+                              }}
                               limits={limits}
-                              onLimits={setLimits}
+                              onLimits={(value) => {
+                                detectorAutoActive.current = false;
+                                setLimits(value);
+                              }}
                               log={logImage}
-                              onLog={setLogImage}
+                              onLog={(value) => {
+                                detectorAutoActive.current = false;
+                                setLogImage(value);
+                              }}
                               palette={palette}
                               onPalette={setPalette}
                             />
@@ -2037,8 +2108,8 @@ export default function App() {
                                 </>
                               )}
                             </p>
-                            <button
-                              className="primary"
+                            <Button
+                              variant="primary"
                               disabled={!ready}
                               onClick={() =>
                                 run("open_image", {}, "Opening detector image…")
@@ -2046,9 +2117,9 @@ export default function App() {
                             >
                               <Plus size={15} />
                               Open detector image
-                            </button>
+                            </Button>
                             {state?.exampleAvailable && (
-                              <button
+                              <Button
                                 className="text-button"
                                 disabled={!ready}
                                 onClick={() =>
@@ -2061,7 +2132,7 @@ export default function App() {
                               >
                                 Explore example
                                 <ArrowUpRight size={14} />
-                              </button>
+                              </Button>
                             )}
                           </div>
                         )}
@@ -2092,7 +2163,13 @@ export default function App() {
                                 }
                                 linkedPosition={
                                   mode === "integration"
-                                    ? linked?.twoTheta
+                                    ? linked
+                                      ? (radialValues(
+                                          linked.twoTheta,
+                                          "2th_deg",
+                                          state?.geometry.wavelength,
+                                        )[cake.unit] ?? undefined)
+                                      : undefined
                                     : undefined
                                 }
                                 clickedPoint={
@@ -2103,7 +2180,17 @@ export default function App() {
                                     ? displayedRing
                                     : undefined
                                 }
-                                calibrantLines={cakeCalibrantLines}
+                                calibrantLines={cakeCalibrantLines?.map(
+                                  (line) => ({
+                                    ...line,
+                                    twoTheta:
+                                      radialValues(
+                                        line.twoTheta,
+                                        "2th_deg",
+                                        state?.geometry.wavelength,
+                                      )[cake.unit] ?? NaN,
+                                  }),
+                                )}
                                 showNumbers={
                                   mode === "calibration" && showNumbers
                                 }
@@ -2124,6 +2211,7 @@ export default function App() {
                                   );
                                   void run("validation_position", {
                                     source: "cake",
+                                    unit: cake.unit,
                                     ...coords,
                                   });
                                 }}
@@ -2136,22 +2224,38 @@ export default function App() {
                                 resetKey={resetKey}
                               />
                               <ImageIntensity
+                                key={`cake-${state?.configurationIndex}-${!!state?.combination?.cakes}`}
+                                initialAutoActive={
+                                  configurationCakeDisplays.current.get(
+                                    `${state?.configurationIndex}:${!!state?.combination?.cakes}`,
+                                  )?.autoActive ?? true
+                                }
+                                initialLevelsReady={configurationCakeDisplays.current.has(
+                                  `${state?.configurationIndex}:${!!state?.combination?.cakes}`,
+                                )}
                                 preferences={cakePreferences}
                                 onPreferences={setCakePreferences}
                                 display="cake"
                                 raster={cake}
                                 ready={ready}
-                                onAuto={(settings) =>
-                                  run(
+                                onAuto={(settings) => {
+                                  cakeAutoActive.current = true;
+                                  return run(
                                     "image_levels",
                                     { ...settings, source: "cake" },
                                     "Updating cake intensity…",
-                                  )
-                                }
+                                  );
+                                }}
                                 limits={cakeLimits}
-                                onLimits={setCakeLimits}
+                                onLimits={(value) => {
+                                  cakeAutoActive.current = false;
+                                  setCakeLimits(value);
+                                }}
                                 log={cakeLog}
-                                onLog={setCakeLog}
+                                onLog={(value) => {
+                                  cakeAutoActive.current = false;
+                                  setCakeLog(value);
+                                }}
                                 palette={cakePalette}
                                 onPalette={setCakePalette}
                               />
@@ -2479,8 +2583,9 @@ export default function App() {
                         <>
                           <section className="sidebar-section setup-image-source">
                             <div className="setup-image-row">
-                              <button
-                                className="secondary setup-open-image"
+                              <Button
+                                variant="secondary"
+                                className="setup-open-image"
                                 disabled={!ready}
                                 onClick={() =>
                                   run(
@@ -2495,11 +2600,11 @@ export default function App() {
                               >
                                 <FolderOpen size={14} />
                                 Open image
-                              </button>
+                              </Button>
                               {state?.hasImage && (
                                 <div className="setup-image-navigation">
-                                  <button
-                                    className="secondary"
+                                  <Button
+                                    variant="secondary"
                                     title="Previous image"
                                     aria-label="Previous image"
                                     disabled={!ready}
@@ -2512,9 +2617,9 @@ export default function App() {
                                     }
                                   >
                                     ←
-                                  </button>
-                                  <button
-                                    className="secondary"
+                                  </Button>
+                                  <Button
+                                    variant="secondary"
                                     title="Next image"
                                     aria-label="Next image"
                                     disabled={!ready}
@@ -2527,7 +2632,7 @@ export default function App() {
                                     }
                                   >
                                     →
-                                  </button>
+                                  </Button>
                                 </div>
                               )}
                             </div>
@@ -2540,7 +2645,7 @@ export default function App() {
                               </div>
                             )}
                             {state?.exampleAvailable && !state?.hasImage && (
-                              <button
+                              <Button
                                 className="example-link"
                                 disabled={!ready}
                                 onClick={() =>
@@ -2554,7 +2659,7 @@ export default function App() {
                                 <Sparkles size={12} />
                                 Try the CeO₂ example
                                 <ArrowUpRight size={12} />
-                              </button>
+                              </Button>
                             )}
                           </section>
                         </>
@@ -2729,7 +2834,7 @@ export default function App() {
                     {calibrationStep >= 2 && (
                       <div className="calibration-main-action">
                         {calibrationStep === 3 && geometryDirty && (
-                          <button
+                          <Button
                             type="submit"
                             form="validation-geometry-form"
                             className="primary calibration-apply-geometry"
@@ -2745,10 +2850,11 @@ export default function App() {
                             }
                           >
                             Apply geometry
-                          </button>
+                          </Button>
                         )}
-                        <button
-                          className="primary fit-button"
+                        <Button
+                          variant="primary"
+                          className="fit-button"
                           title={`Start a fresh geometry from the current peaks and start values.${!fitReady ? ` ${fitBlocker}` : ""}`}
                           disabled={!fitReady}
                           onClick={() =>
@@ -2760,9 +2866,9 @@ export default function App() {
                           }
                         >
                           Calibrate
-                        </button>
-                        <button
-                          className="secondary"
+                        </Button>
+                        <Button
+                          variant="secondary"
                           title={`Adjust the existing geometry using the current peaks.${!state?.calibrated ? " Calibrate or load a geometry first." : !fitReady ? ` ${fitBlocker}` : ""}`}
                           disabled={!fitReady || !state?.calibrated}
                           onClick={() =>
@@ -2774,12 +2880,13 @@ export default function App() {
                           }
                         >
                           Refine
-                        </button>
+                        </Button>
                       </div>
                     )}
                     <div className="calibration-general-actions">
-                      <button
-                        className="secondary calibration-save"
+                      <Button
+                        variant="secondary"
+                        className="calibration-save"
                         aria-label="Save .poni calibration"
                         disabled={!canSaveCalibration}
                         title={
@@ -2805,10 +2912,19 @@ export default function App() {
                       >
                         <Save size={15} />
                         Save .poni
-                      </button>
+                      </Button>
                       <div className="calibration-secondary-actions">
-                        <button
-                          className="quiet"
+                        <Button
+                          variant="quiet"
+                          aria-label="Reset calibration"
+                          title="Reset calibration and detector setup; keep the image"
+                          disabled={!ready || !state?.hasImage}
+                          onClick={() => setCalibrationResetRequest("reset")}
+                        >
+                          <RotateCcw size={14} />
+                        </Button>
+                        <Button
+                          variant="quiet"
                           disabled={!ready}
                           onClick={() =>
                             run(
@@ -2820,14 +2936,14 @@ export default function App() {
                         >
                           <FolderOpen size={14} />
                           Load .poni
-                        </button>
-                        <button
-                          className="quiet"
+                        </Button>
+                        <Button
+                          variant="quiet"
                           disabled={!ready}
                           onClick={() => setManualGeometryOpen(true)}
                         >
                           Enter manually
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -2935,25 +3051,28 @@ export default function App() {
             )}
             <StatusMessage error={error} message={statusMessage} />
             {error && (
-              <button
-                className="secondary status-action"
+              <Button
+                variant="secondary"
+                className="status-action"
                 aria-label="Dismiss error"
                 onClick={() => setError(null)}
               >
                 ×
-              </button>
+              </Button>
             )}
             {maskSelection && (
-              <button
-                className="secondary status-action"
+              <Button
+                variant="secondary"
+                className="status-action"
                 onClick={maskSelection.cancel}
               >
                 Cancel selection
-              </button>
+              </Button>
             )}
             {progress?.running && (
-              <button
-                className="secondary status-action"
+              <Button
+                variant="secondary"
+                className="status-action"
                 onClick={() => {
                   void bridge.current?.("cancel_refinement");
                 }}
@@ -2965,7 +3084,7 @@ export default function App() {
                     : mode === "mask"
                       ? "Cancel mask processing"
                       : "Cancel refinement"}
-              </button>
+              </Button>
             )}
           </div>
         </footer>

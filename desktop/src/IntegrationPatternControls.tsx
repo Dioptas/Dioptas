@@ -61,7 +61,7 @@ export function IntegrationPatternControls({
           action("integration_open_pattern", { direction, step })
         }
       />
-      <input
+      <Input
         className="integration-file-path"
         aria-label="Pattern filename"
         value={fileDraft}
@@ -95,13 +95,13 @@ export function IntegrationPatternControls({
           placeholder="Pattern directory"
           spellCheck={false}
         />
-        <button
+        <Button
           aria-label="Choose pattern folder"
           title="Choose pattern folder"
           onClick={() => action("integration_output_directory")}
         >
           …
-        </button>
+        </Button>
       </div>
       <div className="integration-pattern-types">
         <span>Pattern types:</span>

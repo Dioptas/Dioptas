@@ -32,7 +32,7 @@ export function OverlayColorScalePicker({
   };
   return (
     <>
-      <button
+      <Button
         ref={button}
         className="qt-overlay-color-scale-button"
         aria-label="Color overlays by scale"
@@ -56,7 +56,7 @@ export function OverlayColorScalePicker({
           onClose={() => dialog.current?.close()}
         />
         <label className="overlay-color-scale-reverse">
-          <input
+          <Input
             type="checkbox"
             checked={reverse}
             onChange={(event) => setReverse(event.target.checked)}
@@ -65,7 +65,7 @@ export function OverlayColorScalePicker({
         </label>
         <div className="overlay-color-scale-options">
           {scales.map((name) => (
-            <button
+            <Button
               key={name}
               aria-label={`Apply ${colorMaps[name].label} to overlays`}
               onClick={() => {
@@ -86,7 +86,7 @@ export function OverlayColorScalePicker({
                   background: `linear-gradient(to right, ${overlayScaleColors(colorMaps[name].colors, 32, reverse).join(", ")})`,
                 }}
               />
-            </button>
+            </Button>
           ))}
         </div>
         <p>

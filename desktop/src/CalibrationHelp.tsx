@@ -1,5 +1,6 @@
+import { Button, Portal, Tooltip } from "./ui";
 import { useId, useLayoutEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+
 import { CircleHelp } from "lucide-react";
 import { isTauri } from "@tauri-apps/api/core";
 import { nativeTooltipCommand } from "./NativeCalibrationTooltip";
@@ -107,7 +108,7 @@ export function CalibrationHelp({
 
   return (
     <>
-      <button
+      <Button
         ref={button}
         type="button"
         className="icon-button calibration-help-button"
@@ -120,10 +121,10 @@ export function CalibrationHelp({
         onClick={show}
       >
         <CircleHelp size={15} aria-hidden="true" />
-      </button>
-      {open &&
-        createPortal(
-          <div
+      </Button>
+      {open && (
+        <Portal>
+          <Tooltip
             ref={tooltip}
             id={id}
             role="tooltip"
@@ -135,9 +136,9 @@ export function CalibrationHelp({
             onMouseLeave={hide}
           >
             {text}
-          </div>,
-          document.querySelector(".app") ?? document.body,
-        )}
+          </Tooltip>
+        </Portal>
+      )}
     </>
   );
 }

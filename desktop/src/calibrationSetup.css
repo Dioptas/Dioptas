@@ -172,9 +172,6 @@
   border-radius: 8px;
   padding: 18px;
 }
-.manual-geometry-dialog::backdrop {
-  background: #0009;
-}
 .manual-geometry-heading {
   display: flex;
   align-items: center;

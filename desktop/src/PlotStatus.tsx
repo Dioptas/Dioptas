@@ -88,7 +88,7 @@ export function cakeReading(
   const fields: PlotField[] = [
     ...radialFields(
       coords.x,
-      "2th_deg",
+      cake.unit,
       wavelength,
       ((point.xResolution ?? 1) / cake.fullWidth) *
         (cake.radialRange[1] - cake.radialRange[0]),

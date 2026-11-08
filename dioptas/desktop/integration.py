@@ -229,7 +229,7 @@ class IntegrationWorkflow(PhaseWorkflow):
             "phaseColdPressure": self._model.phase_model.params.dac_thermal_pressure_enabled,
             "batchFrames": int(c.batch_model.n_img or 0),
             "imageBatchMode": getattr(self, "_image_batch_mode", "integrate"),
-            "patternName": c.pattern_model.pattern.name,
+            "patternName": "Combined pattern" if self._combine_patterns else c.pattern_model.pattern.name,
             "originalPatternColor": c.pattern_model.params.color,
             "originalPatternVisible": c.pattern_model.params.visible,
             "patternPath": c.pattern_model.pattern_filename if c.pattern_model.pattern_source == "file" else "",
@@ -252,6 +252,9 @@ class IntegrationWorkflow(PhaseWorkflow):
 
     def _refresh_integration_pattern(self):
         """Use PatternModel's displayed (background-subtracted) data, like Qt."""
+        if self._combine_patterns:
+            self._pattern = self._combined_pattern_display()
+            return
         c = self.configuration
         unit = c.pattern_model.unit or c.integration_unit
         x, y = c.pattern_model.pattern.data
@@ -582,6 +585,13 @@ class IntegrationWorkflow(PhaseWorkflow):
         path = self._integration_incoming.popleft()
         try:
             result = self._open_image(path=path)
+            if result.get("imageChange"):
+                self._integration_auto_process = False
+                self._integration_auto_process_error = (
+                    f"{Path(path).name}: detector dimensions changed. "
+                    "Autoprocess stopped; open this image manually to reset the calibration."
+                )
+                return self._state()
             self._integration_image_loaded()
         except Exception as exc:
             # A bad image must not block the remaining acquisition queue.
@@ -600,9 +610,11 @@ class IntegrationWorkflow(PhaseWorkflow):
             if not self._has_image:
                 raise ValueError("Open an image first.")
             frame = finite(frame, "Frame", 1, image.series_max, True)
-            image.load_series_img(frame)
-            self.configuration.calibration_model.clear_peaks()
-            self._fit_rms = None
+            if frame != image.series_pos:
+                result = self._open_checked_image(image.filename, frame=frame)
+                if not result.get("cancelled"):
+                    self._integration_image_loaded()
+                return result
             self._calculate()
             self._integration_image_loaded()
             return self._snapshot(include_image=True)
@@ -818,7 +830,9 @@ class IntegrationWorkflow(PhaseWorkflow):
         return self._snapshot()
 
     def _integration_save_pattern(self, path=None, subtract_background=False):
-        if self._pattern is None:
+        if self._combine_patterns:
+            return self._save_combined_pattern(path=path)
+        if self._pattern is None or not self._pattern["x"]:
             raise ValueError("Load or integrate a pattern first.")
         path = self._path(path, "pattern", save=True)
         if path is None:

@@ -140,6 +140,12 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
             },
             true,
         ),
+        "save_combined_pattern" => (
+            "Combined diffraction pattern",
+            &["xy", "chi", "dat", "fxye"],
+            "combined.xy",
+            true,
+        ),
         "integration_save_pattern" => (
             "Diffraction pattern",
             &["xy", "xye", "chi", "dat", "fxye"],
@@ -588,6 +594,14 @@ mod tests {
         ));
         assert!(!folder_choice("open_image", &json!({})));
         assert!(file_choice("open_image", &json!({"directory": "/tmp/images"})).is_some());
+    }
+
+    #[test]
+    fn combined_pattern_save_uses_native_pattern_dialog() {
+        let choice = file_choice("save_combined_pattern", &json!({})).unwrap();
+        assert!(choice.save);
+        assert_eq!(choice.extensions, &["xy", "chi", "dat", "fxye"]);
+        assert!(file_choice("save_combined_pattern", &json!({"path": "/tmp/combined.xy"})).is_none());
     }
 
     #[test]

@@ -1,3 +1,4 @@
+import { Button, Input, Select } from "./ui";
 import { Fragment, useEffect, useId, useState } from "react";
 import { FolderOpen, Plus, Save, Settings, Stamp } from "lucide-react";
 import type { State, Unit } from "./types";
@@ -42,7 +43,7 @@ function PluginSettings({
             )}
           </div>
           {spec.type === "bool" ? (
-            <input
+            <Input
               id={`${id}-${key}`}
               type="checkbox"
               aria-label={`${plugin.name}: ${spec.label ?? key}`}
@@ -54,7 +55,7 @@ function PluginSettings({
               }}
             />
           ) : spec.type === "choice" ? (
-            <select
+            <Select
               id={`${id}-${key}`}
               aria-label={`${plugin.name}: ${spec.label ?? key}`}
               disabled={!ready}
@@ -67,9 +68,9 @@ function PluginSettings({
               {spec.choices?.map((v) => (
                 <option key={v}>{v}</option>
               ))}
-            </select>
+            </Select>
           ) : (
-            <input
+            <Input
               id={`${id}-${key}`}
               aria-label={`${plugin.name}: ${spec.label ?? key}`}
               type={spec.type === "str" ? "text" : "number"}
@@ -108,7 +109,7 @@ function PluginSettings({
         </div>
       ))}
       <div className="mask-grid">
-        <button
+        <Button
           disabled={!ready}
           // Reset directly without first committing the focused field's draft.
           onMouseDown={(e) => e.preventDefault()}
@@ -124,7 +125,7 @@ function PluginSettings({
           }}
         >
           Defaults
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -167,7 +168,7 @@ export function MaskPanel({
           >
             {[false, true].map((erase) => (
               <label className="check-line" key={String(erase)}>
-                <input
+                <Input
                   type="radio"
                   name="mask-mode"
                   checked={tools.erase === erase}
@@ -195,7 +196,7 @@ export function MaskPanel({
               ] as const
             ).map(([shape, label]) => (
               <Fragment key={shape}>
-                <button
+                <Button
                   disabled={!enabled}
                   className={tools.shape === shape ? "active" : ""}
                   aria-pressed={tools.shape === shape}
@@ -204,13 +205,13 @@ export function MaskPanel({
                   }
                 >
                   {label}
-                </button>
+                </Button>
                 {shape === "point" && (
                   <label
                     className="mask-point-diameter"
                     title="Point diameter in source pixels"
                   >
-                    <input
+                    <Input
                       aria-label="Mask point diameter"
                       className="numeric-stepper"
                       type="number"
@@ -235,26 +236,26 @@ export function MaskPanel({
         </section>
         <section className="sidebar-section">
           <div className="mask-grid">
-            <button
+            <Button
               disabled={!enabled || above.trim() === ""}
               onClick={() => edit("above", { threshold: Number(above) })}
             >
               Above Thresh
-            </button>
-            <input
+            </Button>
+            <Input
               aria-label="Above threshold counts"
               placeholder="counts"
               type="number"
               value={above}
               onChange={(e) => setAbove(e.target.value)}
             />
-            <button
+            <Button
               disabled={!enabled || below.trim() === ""}
               onClick={() => edit("below", { threshold: Number(below) })}
             >
               Below Thresh
-            </button>
-            <input
+            </Button>
+            <Input
               aria-label="Below threshold counts"
               placeholder="counts"
               type="number"
@@ -266,7 +267,7 @@ export function MaskPanel({
         <section className="sidebar-section">
           <div className="mask-setting">
             <span>Range</span>
-            <select
+            <Select
               aria-label="Mask radial unit"
               value={unit}
               onChange={(e) => {
@@ -278,10 +279,10 @@ export function MaskPanel({
               <option value="2th_deg">2θ (°)</option>
               <option value="q_A^-1">q (Å⁻¹)</option>
               <option value="d_A">d (Å)</option>
-            </select>
+            </Select>
           </div>
           <div className="mask-grid">
-            <input
+            <Input
               aria-label="Mask range minimum"
               placeholder="min"
               type="number"
@@ -289,7 +290,7 @@ export function MaskPanel({
               value={lower}
               onChange={(e) => setLower(e.target.value)}
             />
-            <input
+            <Input
               aria-label="Mask range maximum"
               placeholder="max"
               type="number"
@@ -298,7 +299,7 @@ export function MaskPanel({
               onChange={(e) => setUpper(e.target.value)}
             />
             {[false, true].map((outside) => (
-              <button
+              <Button
                 key={String(outside)}
                 disabled={!enabled || !state?.calibrated || (!lower && !upper)}
                 onClick={() =>
@@ -311,7 +312,7 @@ export function MaskPanel({
                 }
               >
                 {outside ? "Outside" : "Inside"}
-              </button>
+              </Button>
             ))}
           </div>
           {!state?.calibrated && (
@@ -321,13 +322,13 @@ export function MaskPanel({
         <section className="sidebar-section">
           <div className="mask-grid">
             {["grow", "shrink", "invert", "clear"].map((action) => (
-              <button
+              <Button
                 key={action}
                 disabled={!enabled}
                 onClick={() => edit(action)}
               >
                 {action[0].toUpperCase() + action.slice(1)}
-              </button>
+              </Button>
             ))}
           </div>
         </section>
@@ -352,7 +353,7 @@ export function MaskPanel({
             <div key={plugin.name} className="mask-plugin-row">
               <div className="mask-plugin-heading">
                 <label className="check-line">
-                  <input
+                  <Input
                     type="checkbox"
                     disabled={!enabled}
                     checked={plugin.enabled}
@@ -373,7 +374,7 @@ export function MaskPanel({
                     "Configure this plugin with the settings button. Enable it to include its calculated mask; Imprint copies the current result into the user mask."
                   }
                 />
-                <button
+                <Button
                   className="mask-plugin-icon-button"
                   aria-label={`${plugin.name} settings`}
                   title={`${plugin.name} settings`}
@@ -388,8 +389,8 @@ export function MaskPanel({
                   }
                 >
                   <Settings size={16} aria-hidden="true" />
-                </button>
-                <button
+                </Button>
+                <Button
                   className="mask-plugin-icon-button"
                   aria-label={`Imprint ${plugin.name}`}
                   title={`Imprint ${plugin.name}`}
@@ -403,7 +404,7 @@ export function MaskPanel({
                   }
                 >
                   <Stamp size={16} aria-hidden="true" />
-                </button>
+                </Button>
               </div>
               {Object.keys(plugin.schema).length > 0 && (
                 <div
@@ -418,7 +419,7 @@ export function MaskPanel({
         </section>
         <section className="sidebar-section">
           <label className="check-line">
-            <input
+            <Input
               type="checkbox"
               checked={state?.transparentMask ?? false}
               disabled={!enabled}
@@ -431,7 +432,7 @@ export function MaskPanel({
         </section>
       </div>
       <div className="mask-file-actions">
-        <button
+        <Button
           aria-label="Load Mask"
           title="Load mask"
           disabled={!enabled}
@@ -440,8 +441,8 @@ export function MaskPanel({
           }
         >
           <FolderOpen size={18} aria-hidden="true" />
-        </button>
-        <button
+        </Button>
+        <Button
           aria-label="Add Mask"
           title="Add mask"
           disabled={!enabled}
@@ -450,8 +451,8 @@ export function MaskPanel({
           }
         >
           <Plus size={18} aria-hidden="true" />
-        </button>
-        <button
+        </Button>
+        <Button
           aria-label="Save Mask"
           title="Save mask"
           disabled={!enabled}
@@ -460,7 +461,7 @@ export function MaskPanel({
           }
         >
           <Save size={18} aria-hidden="true" />
-        </button>
+        </Button>
       </div>
     </div>
   );

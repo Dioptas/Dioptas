@@ -1,3 +1,4 @@
+import { Input } from "./ui";
 import { useEffect, useRef, useState } from "react";
 
 export function BackgroundNumberField({
@@ -31,7 +32,7 @@ export function BackgroundNumberField({
   return (
     <label className="field-label">
       {!hideLabel && label}
-      <input
+      <Input
         ref={input}
         aria-label={label}
         title={String(value)}

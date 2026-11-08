@@ -31,6 +31,7 @@ import {
   RANGE_SELECTION_COLOR,
 } from "./drawRangeSelection";
 import {
+  isPlotSecondaryGesture,
   usePlotNavigation,
   usePlotWheel,
   type ZoomMode,
@@ -329,17 +330,8 @@ export function PatternView({
       high,
     ];
   }, [visibleCurves, log, sqrt]);
-  const navigation = usePlotNavigation(
-    {
-      xMin: fitXMin,
-      xMax: Math.max(fitXMin + 1e-12, fitXMax),
-      yMin: fitYMin,
-      yMax: fitYMax,
-    },
-    { left, top, width: w, height: h },
-    false,
-    zoomMode,
-    (xMin, xMax) => {
+  const horizontalYRange = useCallback(
+    (xMin: number, xMax: number): [number, number] => {
       let min = Infinity,
         max = -Infinity;
       for (const curve of visibleCurves) {
@@ -363,6 +355,19 @@ export function PatternView({
       }
       return min === Infinity ? [fitYMin, fitYMax] : paddedExtent([min, max]);
     },
+    [visibleCurves, log, sqrt, fitYMin, fitYMax],
+  );
+  const navigation = usePlotNavigation(
+    {
+      xMin: fitXMin,
+      xMax: Math.max(fitXMin + 1e-12, fitXMax),
+      yMin: fitYMin,
+      yMax: fitYMax,
+    },
+    { left, top, width: w, height: h },
+    false,
+    zoomMode,
+    horizontalYRange,
     viewport,
   );
   const previousAutoRange = useRef<
@@ -1258,7 +1263,7 @@ export function PatternView({
           if (
             editRegions &&
             e.button === 0 &&
-            !e.ctrlKey &&
+            !isPlotSecondaryGesture(e) &&
             onRegionChange &&
             point.x >= left &&
             point.x <= left + w &&

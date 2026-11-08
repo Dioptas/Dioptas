@@ -79,7 +79,7 @@ export function Check({
 }) {
   return (
     <label className="check-row">
-      <input
+      <Input
         aria-label={label}
         type="checkbox"
         checked={checked}

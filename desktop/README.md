@@ -457,6 +457,11 @@ screenshots are written to `desktop/artifacts/`.
 
 ## Layout and plot interaction
 
+Ctrl+left click and Command+left click provide the right-button gestures in
+image, cake and pattern views: click to zoom out 2×, double-click to restore the
+full view, and drag to pan. These gestures also work over editable ROIs and
+while peak picking or mask painting is active.
+
 Calibration peak lists, Integration Phase/Overlay tables and material/reflection
 tables share `DataTable`, `TableScroll` and `TableActions` from
 `src/DataTable.tsx`. Header colors, compact row and field sizing, numeric
@@ -576,7 +581,8 @@ All current plots (detector, cake, integrated pattern) share these controls:
 - **Wheel:** zoom the plot under the pointer; the event is captured so the
   surrounding workspace does not scroll or jump.
 - **Left drag:** zoom in using the selected zoom mode.
-- **Right drag:** pan both axes. Ctrl + left drag also pans.
+- **Right drag:** pan both axes in Rectangle mode, or horizontally in X-range
+  mode. Ctrl + left drag also pans.
 - **Right click:** zoom out one step (2× range). X-range mode expands only
   the horizontal range, refitting both pattern intensity limits to visible data
   with a small margin and preserving the cake's current azimuth limits.
@@ -594,8 +600,12 @@ Both buttons have transparent backgrounds and a subtle rectangular background on
 on hover; the selected icon is orange and the other icon is neutral. X-range selection fits the pattern's
 minimum and maximum intensity to the visible data instead of forcing a zero
 baseline; the cake keeps its current azimuth range. Wheel zoom follows the selected
-mode too. Settings also offers the pattern choice, independently for the main
-pattern and Map pattern.
+mode too. In X-range mode, the pattern intensity limits continuously follow the
+visible data during panning and data updates; the cake's azimuth limits stay
+fixed. Settings also offers the pattern choice, independently for the main
+pattern and Map pattern. Rectangle/X-range choices are saved independently for
+the cake, main pattern, Map pattern and Batch plot and restored after restarting
+the app.
 
 When Pick peaks is enabled, a stationary left click picks peaks in any
 calibration tab. A left drag zooms
@@ -664,6 +674,26 @@ names the PONI parameter convention; it does not select a Python runtime.
 The explicit Python compatibility backend retains its old engine selector and
 optional Dioptrin bindings (`uv sync --python 3.13 --extra dioptrin`). Its
 fallback rules and support boundary belong to that backend only.
+
+Dioptrin uses full pixel splitting; the usual pyFAI `csr` path uses bounding-box
+splitting. Their bin grids and peak heights can therefore differ. The measured
+CeO2 fixture is checked against pyFAI `full_csr`, including Poisson std and mask
+edits, with relative-L2 regression limits of 0.3% for patterns, 0.6% for Poisson
+std and 0.5% for cakes. These are scoped fixture checks, not universal accuracy
+claims or bitwise parity. Unsupported integration options (including disabled
+solid-angle correction and 1D azimuth sectors) use pyFAI. Spline, nonuniform and
+curved detectors also retain pyFAI integration.
+
+For separate cold/repeated-image timings with no, static and changing masks:
+
+```sh
+.venv/bin/python desktop/scripts/dioptrin_benchmark.py
+```
+
+The report is written to `desktop/artifacts/dioptrin-benchmark.json`. It covers
+model calls with each desktop engine's own splitting method, excluding file
+IO, IPC and rendering. Native objects are created, used and explicitly released
+on the processing thread, including when logs retain an old model.
 
 ## Development and verification
 

@@ -195,15 +195,15 @@ export function BatchControls({
   );
   const navigation = (
     <div className="batch-navigation-row">
-      <button
+      <Button
         aria-label="Previous batch frame"
         title="Previous frame"
         disabled={!ready || !count || current - step < start}
         onClick={() => select(current - step)}
       >
         <ChevronLeft size={15} />
-      </button>
-      <input
+      </Button>
+      <Input
         className="batch-frame-slider"
         aria-label="Batch frame slider"
         type="range"
@@ -218,7 +218,7 @@ export function BatchControls({
             select(Number(e.currentTarget.value) - 1);
         }}
       />
-      <button
+      <Button
         aria-label="Next batch frame"
         title="Next frame"
         disabled={
@@ -227,7 +227,7 @@ export function BatchControls({
         onClick={() => select(current + step)}
       >
         <ChevronRight size={15} />
-      </button>
+      </Button>
       <label className="batch-frame-number">
         Frame · {current + 1} of {count} · {count}/{batch?.total ?? 0} loaded
         <input

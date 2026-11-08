@@ -1,3 +1,4 @@
+import { Button, Input, Popover } from "./ui";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
@@ -139,7 +140,7 @@ export function CalibrationRingControls({
               event.stopPropagation();
           }}
         >
-          <button
+          <Button
             type="button"
             aria-label="Previous calibrant ring"
             title="Previous ring"
@@ -147,8 +148,8 @@ export function CalibrationRingControls({
             onClick={() => onRingChange(previousRing!)}
           >
             <ChevronLeft size={16} aria-hidden="true" />
-          </button>
-          <button
+          </Button>
+          <Button
             ref={trigger}
             type="button"
             className="calibration-ring-trigger"
@@ -169,8 +170,8 @@ export function CalibrationRingControls({
           >
             <span>Ring {ring}</span>
             <ChevronDown size={12} aria-hidden="true" />
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             aria-label="Next calibrant ring"
             title="Next ring"
@@ -178,10 +179,10 @@ export function CalibrationRingControls({
             onClick={() => onRingChange(nextRing!)}
           >
             <ChevronRight size={16} aria-hidden="true" />
-          </button>
+          </Button>
         </div>
         {open && enabled && (
-          <div className="calibration-ring-menu">
+          <Popover className="calibration-ring-menu">
             <div className="calibration-ring-menu-heading" aria-hidden="true">
               <span>Ring</span>
               <span>Picked points</span>
@@ -217,7 +218,7 @@ export function CalibrationRingControls({
                 );
               })}
             </div>
-          </div>
+          </Popover>
         )}
       </div>
       <div className="calibration-picking-options">
@@ -225,7 +226,7 @@ export function CalibrationRingControls({
           className="calibration-picking-switch"
           title="Advance to the next ring after each pick"
         >
-          <input
+          <Input
             ref={autoAdvance}
             type="checkbox"
             aria-label="Automatically advance ring number"
@@ -236,7 +237,7 @@ export function CalibrationRingControls({
           Auto advance
         </label>
         <label className="calibration-picking-switch">
-          <input
+          <Input
             type="checkbox"
             aria-label="Pick peaks"
             checked={picking}

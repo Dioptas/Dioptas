@@ -1,3 +1,4 @@
+import { Button, Input } from "./ui";
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import type { EditorData, EditorEdit } from "./phaseEditorTypes";
@@ -96,7 +97,7 @@ export function PhaseEditorRanges({
                 : label.replace(" temperature", " T")}
             </span>
             {[0, 1].map((bound) => (
-              <input
+              <Input
                 key={bound}
                 type="number"
                 step="any"
@@ -114,7 +115,7 @@ export function PhaseEditorRanges({
               />
             ))}
             <span className="pe-unit">{unit}</span>
-            <button
+            <Button
               type="button"
               disabled={disabled || draft[key].every((value) => !value)}
               aria-label={`Clear ${label.toLowerCase()} range`}
@@ -125,7 +126,7 @@ export function PhaseEditorRanges({
               }}
             >
               <X aria-hidden="true" />
-            </button>
+            </Button>
           </div>
         ))}
         {error && (
@@ -135,10 +136,10 @@ export function PhaseEditorRanges({
         )}
         {data.eosEditable && (
           <div className="pe-range-actions">
-            <button type="submit" disabled={disabled || !dirty}>
+            <Button type="submit" disabled={disabled || !dirty}>
               Apply ranges
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               disabled={disabled || !dirty}
               onClick={() => {
@@ -147,7 +148,7 @@ export function PhaseEditorRanges({
               }}
             >
               Reset range edits
-            </button>
+            </Button>
           </div>
         )}
       </form>

@@ -76,7 +76,7 @@ export function IntegrationImageControls({
         }
       />
       {frameControl}
-      <input
+      <Input
         className="integration-file-path"
         aria-label="Image filename"
         value={fileDraft}
@@ -109,13 +109,13 @@ export function IntegrationImageControls({
           placeholder="Image directory"
           spellCheck={false}
         />
-        <button
+        <Button
           aria-label="Choose image folder"
           title="Choose image folder"
           onClick={() => action("integration_image_directory")}
         >
           …
-        </button>
+        </Button>
       </div>
       <div
         className="integration-image-batch-modes"
@@ -136,7 +136,7 @@ export function IntegrationImageControls({
               }[mode]
             }
           >
-            <input
+            <Input
               type="radio"
               name={`${infoId}-batch-mode`}
               aria-label={`Batch mode ${mode}`}
@@ -148,15 +148,15 @@ export function IntegrationImageControls({
         ))}
       </div>
       <div className="integration-file-actions">
-        <button
+        <Button
           type="button"
           aria-expanded={infoOpen}
           aria-controls={infoId}
           onClick={() => setInfoOpen((open) => !open)}
         >
           File Info
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           aria-label="Batch view…"
           aria-pressed={batchOpen}
@@ -170,7 +170,7 @@ export function IntegrationImageControls({
           onClick={onOpenBatch}
         >
           Batch…
-        </button>
+        </Button>
       </div>
       <div className="integration-image-info" hidden={!infoOpen}>
         <pre id={infoId}>{source.fileInfo || path || "No file loaded"}</pre>

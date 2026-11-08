@@ -158,7 +158,7 @@ export function IntegrationSettings({
         <Group title="Integration" open>
           <label className="field-label">
             Radial coordinate
-            <select
+            <Select
               aria-label="Radial coordinate"
               value={unit}
               onChange={(e) => setUnit(e.target.value as State["unit"])}
@@ -166,7 +166,7 @@ export function IntegrationSettings({
               <option value="2th_deg">2θ · degrees</option>
               <option value="q_A^-1">Q · Å⁻¹</option>
               <option value="d_A">d · Å</option>
-            </select>
+            </Select>
           </label>
           <Check
             label="Automatic radial binning"
@@ -253,7 +253,7 @@ export function IntegrationSettings({
         </p>
         <button type="submit" className="primary" disabled={!ready || !dirty}>
           Apply integration options
-        </button>
+        </Button>
       </div>
     </form>
   );

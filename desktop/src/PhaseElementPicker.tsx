@@ -79,45 +79,63 @@ export function PhaseElementPicker({
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          choose(text);
+          e.stopPropagation();
+          onClose();
         }}
       >
-        <input
-          autoFocus
-          aria-label="Element symbol"
-          placeholder="Symbol, e.g. Fe"
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            setError("");
-          }}
+        <DialogHeader
+          title="Choose element"
+          closeLabel="Close element picker"
+          onClose={onClose}
         />
-        <div className="pe-periodic-table">
-          {rows.flatMap((row, r) =>
-            row
-              .filter(([, s]) => s !== ".")
-              .map(([c, symbol]) => {
-                const element = elements.find((e) => e.symbol === symbol);
-                return (
-                  <button
-                    key={String(symbol)}
-                    type="button"
-                    disabled={!element?.enabled}
-                    aria-label={`Choose ${element?.name || symbol}`}
-                    aria-pressed={
-                      text.toLowerCase() === String(symbol).toLowerCase()
-                    }
-                    title={`${element?.number} · ${element?.name}${!element?.enabled ? " · no scattering data" : ""}`}
-                    style={{
-                      gridColumn: Number(c) + 1,
-                      gridRow: r + 1 + (r >= 7 ? 1 : 0),
-                    }}
-                    onClick={() => choose(String(symbol))}
-                  >
-                    {String(symbol)}
-                  </button>
-                );
-              }),
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            choose(text);
+          }}
+        >
+          <Input
+            autoFocus
+            aria-label="Element symbol"
+            placeholder="Symbol, e.g. Fe"
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              setError("");
+            }}
+          />
+          <div className="pe-periodic-table">
+            {rows.flatMap((row, r) =>
+              row
+                .filter(([, s]) => s !== ".")
+                .map(([c, symbol]) => {
+                  const element = elements.find((e) => e.symbol === symbol);
+                  return (
+                    <Button
+                      key={String(symbol)}
+                      type="button"
+                      disabled={!element?.enabled}
+                      aria-label={`Choose ${element?.name || symbol}`}
+                      aria-pressed={
+                        text.toLowerCase() === String(symbol).toLowerCase()
+                      }
+                      title={`${element?.number} · ${element?.name}${!element?.enabled ? " · no scattering data" : ""}`}
+                      style={{
+                        gridColumn: Number(c) + 1,
+                        gridRow: r + 1 + (r >= 7 ? 1 : 0),
+                      }}
+                      onClick={() => choose(String(symbol))}
+                    >
+                      {String(symbol)}
+                    </Button>
+                  );
+                }),
+            )}
+          </div>
+          {error && (
+            <p className="pe-edit-error" role="alert">
+              {error}
+            </p>
           )}
         </div>
         {error && (

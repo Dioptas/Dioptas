@@ -197,12 +197,12 @@ export function MapControls({
                 onClick={() => onLive(!live)}
               >
                 <Radio size={15} /> Live
-              </button>
+              </Button>
               <label
                 className="check-row map-follow"
                 title="Select the newest point as scan images arrive"
               >
-                <input
+                <Input
                   type="checkbox"
                   aria-label="Follow newest map point"
                   checked={follow}
@@ -212,7 +212,7 @@ export function MapControls({
                 Follow
               </label>
               <span className="map-source-spacer" />
-              <button
+              <Button
                 className="plot-tool-button map-source-icon"
                 aria-label="Load map calibration"
                 title={`Load calibration…${state?.calibrationName ? ` · ${state.calibrationName}` : ""}`}
@@ -231,7 +231,7 @@ export function MapControls({
                 }
               >
                 <RefreshCw size={15} />
-              </button>
+              </Button>
             </div>
           </section>
         )}
@@ -249,15 +249,15 @@ export function MapControls({
                       role="group"
                       aria-label="Move points"
                     >
-                      <button
+                      <Button
                         aria-label="Move up"
                         title="Move up · Alt+↑"
                         disabled={!ready || selected == null || selected === 0}
                         onClick={() => arrange("move", { offset: -1 })}
                       >
                         <ArrowUp size={16} />
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         aria-label="Move down"
                         title="Move down · Alt+↓"
                         disabled={
@@ -268,22 +268,22 @@ export function MapControls({
                         onClick={() => arrange("move", { offset: 1 })}
                       >
                         <ArrowDown size={16} />
-                      </button>
+                      </Button>
                     </div>
                     <div
                       className="map-point-action-group"
                       role="group"
                       aria-label="Blank cells and filename numbering"
                     >
-                      <button
+                      <Button
                         aria-label="Insert blank"
                         title="Insert blank cell before selection"
                         disabled={!ready || selected == null}
                         onClick={() => arrange("insert")}
                       >
                         <PlusSquare size={16} />
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         aria-label="Remove blank"
                         title="Remove selected blank cell"
                         disabled={
@@ -297,22 +297,22 @@ export function MapControls({
                         onClick={() => arrange("remove")}
                       >
                         <MinusSquare size={16} />
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         aria-label="Check filename numbering"
                         title="Check filename numbering and insert blank cells for missing scan numbers"
                         disabled={!ready}
                         onClick={() => run("map_arrange", { op: "gaps" })}
                       >
                         <ListOrdered size={16} />
-                      </button>
+                      </Button>
                     </div>
                     <div
                       className="map-point-action-group map-point-exclusion"
                       role="group"
                       aria-label="Point inclusion"
                     >
-                      <button
+                      <Button
                         aria-label={
                           map.selected != null &&
                           map.excluded.includes(map.selected)
@@ -334,9 +334,9 @@ export function MapControls({
                         ) : (
                           <Ban size={16} />
                         )}
-                      </button>
+                      </Button>
                     </div>
-                    <button
+                    <Button
                       className="map-point-settings"
                       ref={settingsTrigger}
                       aria-label="Map settings"
@@ -346,7 +346,7 @@ export function MapControls({
                       onClick={() => setSettingsOpen(true)}
                     >
                       <Settings size={16} />
-                    </button>
+                    </Button>
                   </TableActions>
                   <TableScroll
                     className="map-file-list data-list"
@@ -364,7 +364,7 @@ export function MapControls({
                         const slot = page * 100 + offset,
                           point = map.slots[slot];
                         return (
-                          <button
+                          <Button
                             role="option"
                             aria-selected={selected === slot}
                             disabled={!ready}
@@ -439,30 +439,30 @@ export function MapControls({
                                 ? "— Blank cell"
                                 : label || "Raw source unavailable"}
                             </span>
-                          </button>
+                          </Button>
                         );
                       })}
                   </TableScroll>
                 </div>
                 {map.labels.length > 100 && (
                   <div className="map-pagination">
-                    <button
+                    <Button
                       disabled={page === 0}
                       onClick={() => setPage((p) => p - 1)}
                     >
                       Previous 100
-                    </button>
+                    </Button>
                     <span>
                       {page * 100 + 1}–
                       {Math.min((page + 1) * 100, map.labels.length)} /{" "}
                       {map.labels.length}
                     </span>
-                    <button
+                    <Button
                       disabled={(page + 1) * 100 >= map.labels.length}
                       onClick={() => setPage((p) => p + 1)}
                     >
                       Next 100
-                    </button>
+                    </Button>
                   </div>
                 )}
               </section>
@@ -482,7 +482,7 @@ export function MapControls({
               <section className="sidebar-section">
                 <label className="field-label">
                   Fits exactly
-                  <select
+                  <Select
                     aria-label="Map grid preset"
                     value={JSON.stringify(map.dimension)}
                     disabled={!ready}
@@ -501,12 +501,12 @@ export function MapControls({
                           {d.join(" × ")}
                         </option>
                       ))}
-                  </select>
+                  </Select>
                 </label>
                 <div className="map-field-pair">
                   <label className="field-label">
                     Rows
-                    <input
+                    <Input
                       aria-label="Map rows"
                       type="number"
                       min="1"
@@ -523,7 +523,7 @@ export function MapControls({
                   </label>
                   <label className="field-label">
                     Columns
-                    <input
+                    <Input
                       aria-label="Map columns"
                       type="number"
                       min="1"
@@ -558,7 +558,7 @@ export function MapControls({
                   ] as const
                 ).map(([key, label]) => (
                   <label className="check-row" key={key}>
-                    <input
+                    <Input
                       disabled={!ready}
                       type="checkbox"
                       checked={map[key]}

@@ -1,3 +1,4 @@
+import { Tooltip } from "./ui";
 import { useEffect, useLayoutEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -36,13 +37,13 @@ export function NativeCalibrationTooltip() {
   }, [content]);
 
   return content ? (
-    <div
+    <Tooltip
       role="tooltip"
       className="calibration-help-tooltip native-tooltip-content"
       style={{ width: content.width, fontSize: content.fontSize }}
     >
       {content.text}
-    </div>
+    </Tooltip>
   ) : null;
 }
 

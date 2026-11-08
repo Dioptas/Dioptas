@@ -8,10 +8,13 @@ engine; importing or running this module does not require it.
 from __future__ import annotations
 
 import importlib.util
+import logging
 from pathlib import Path
 from typing import Protocol
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 class CalibrationEngine(Protocol):
@@ -71,6 +74,8 @@ class DioptrinEngine:
                 "Install the optional engine: uv sync --python 3.13 --extra desktop --extra dioptrin"
             ) from exc
         for name in (
+            "Integrator",
+            "Calibrant",
             "find_peaks_massif",
             "refine",
             "estimate_ring_center",
@@ -80,7 +85,6 @@ class DioptrinEngine:
                 raise ValueError(
                     "This Dioptrin installation does not provide the required calibration API."
                 )
-        dioptrin.validate_license()
         self.native = dioptrin
 
     def find_peaks(self, calibration, image, x, y, ring):
@@ -165,6 +169,13 @@ class DioptrinEngine:
 
 
 def make_engine(name: str) -> CalibrationEngine:
+    if name == "auto":
+        if importlib.util.find_spec("dioptrin") is not None:
+            try:
+                return DioptrinEngine()
+            except Exception:
+                logger.warning("Dioptrin could not be initialized; using pyFAI", exc_info=True)
+        return PyFAIEngine()
     if name == "pyfai":
         return PyFAIEngine()
     if name == "dioptrin":

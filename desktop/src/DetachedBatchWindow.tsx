@@ -162,17 +162,17 @@ export function DetachedBatchWindow() {
           }
         />
         {status.progress?.running && (
-          <button onClick={() => run("cancel_refinement")}>
+          <Button onClick={() => run("cancel_refinement")}>
             Cancel processing
-          </button>
+          </Button>
         )}
         {error && (
-          <button
+          <Button
             aria-label="Dismiss batch error"
             onClick={() => setError(null)}
           >
             ×
-          </button>
+          </Button>
         )}
       </footer>
     </div>

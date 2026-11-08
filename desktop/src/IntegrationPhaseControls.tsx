@@ -5,7 +5,7 @@ import { openNativePhaseEditor } from "./phaseEditorWindow";
 import type { EditorData } from "./phaseEditorTypes";
 import { DataTable, TableScroll, TableActions } from "./DataTable";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+
 import { Database, FolderOpen, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import type { IntegrationRun, IntegrationState } from "./integration";
 import type {
@@ -190,7 +190,7 @@ export function IntegrationPhaseControls({
           <thead>
             <tr>
               <th>
-                <button
+                <Button
                   className="phase-show-all"
                   aria-label="Toggle all phase visibility"
                   disabled={!source.phases.length}
@@ -202,7 +202,7 @@ export function IntegrationPhaseControls({
                   }
                 >
                   ✓
-                </button>
+                </Button>
               </th>
               <th aria-label="Color" />
               <th>Name</th>
@@ -266,7 +266,7 @@ export function IntegrationPhaseControls({
                 tabIndex={index === selected ? 0 : -1}
               >
                 <td>
-                  <input
+                  <Input
                     type="checkbox"
                     aria-label={`Show phase ${index + 1}`}
                     checked={p.visible}
@@ -276,7 +276,7 @@ export function IntegrationPhaseControls({
                   />
                 </td>
                 <td>
-                  <input
+                  <Input
                     type="color"
                     aria-label={`Phase ${index + 1} color`}
                     value={p.color}
@@ -335,7 +335,7 @@ export function IntegrationPhaseControls({
                   </div>
                 </td>
                 <td>
-                  <select
+                  <Select
                     aria-label={`Phase ${index + 1} reference`}
                     title={
                       p.referenceDetails[p.reference]?.detail ||
@@ -365,7 +365,7 @@ export function IntegrationPhaseControls({
                         {ref}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </td>
               </tr>
             ))}
@@ -417,7 +417,7 @@ export function IntegrationPhaseControls({
             className="phase-apply-all"
             title="Whether individual changes in P or T are applied to all other phases"
           >
-            <input
+            <Input
               type="checkbox"
               aria-label="Apply conditions to all phases"
               checked={source.sameConditions}
@@ -430,7 +430,7 @@ export function IntegrationPhaseControls({
           <hr />
         </div>
         <div className="phase-list-actions">
-          <button
+          <Button
             disabled={
               !source.phases.length || source.phases.some((p) => !p.fileBacked)
             }
@@ -448,8 +448,8 @@ export function IntegrationPhaseControls({
             }
           >
             Save List
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() =>
               void run(
                 "integration_phase_list",
@@ -459,7 +459,7 @@ export function IntegrationPhaseControls({
             }
           >
             Load List
-          </button>
+          </Button>
         </div>
       </div>
       {importFiles && (
@@ -508,7 +508,7 @@ function PhaseIcon({
   children: ReactNode;
 }) {
   return (
-    <button
+    <Button
       type="button"
       aria-label={label}
       title={title}
@@ -516,7 +516,7 @@ function PhaseIcon({
       onClick={onClick}
     >
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -630,7 +630,7 @@ export function PhaseNumber({
   };
   useSpinBoxWheel(input, increment);
   return (
-    <input
+    <Input
       ref={input}
       className="numeric-stepper"
       type="number"
@@ -747,16 +747,16 @@ function PhaseImportDialog({
         </label>
       </div>
       <footer>
-        <button onClick={onClose}>Cancel</button>
-        <button
-          className="primary"
+        <Button onClick={onClose}>Cancel</Button>
+        <Button
+          variant="primary"
           disabled={!ready}
           onClick={() =>
             onLoad({ intensity_cutoff: cutoff, minimum_d_spacing: spacing })
           }
         >
           OK
-        </button>
+        </Button>
       </footer>
     </PhaseDialog>
   );

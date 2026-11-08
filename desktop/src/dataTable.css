@@ -92,6 +92,9 @@
 .app .data-table-grid input[type="number"] {
   text-align: right;
 }
+.app .data-table select.ui-select:not([multiple]):not([size]) {
+  padding-right: 26px;
+}
 .app .data-table input[readonly] {
   background: transparent;
   border-color: transparent;

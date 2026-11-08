@@ -6,7 +6,7 @@ import {
   TableActions,
 } from "./DataTable";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+
 import type { KeyboardEvent as RowKeyEvent } from "react";
 import { ORIGINAL_PATTERN_UID } from "./integration";
 import {
@@ -194,7 +194,7 @@ export function IntegrationOverlayControls({
         aria-label="Overlay actions"
       >
         <div className="qt-overlay-action-pair">
-          <button
+          <Button
             title="Loads Overlay(s) from file(s)"
             aria-label="Add overlay files"
             onClick={() =>
@@ -202,21 +202,21 @@ export function IntegrationOverlayControls({
             }
           >
             <FolderOpen size={17} />
-          </button>
-          <button
+          </Button>
+          <Button
             title="Removes currently selected overlay"
             aria-label="Delete selected overlay"
             disabled={!selected}
             onClick={() => action("remove", { index })}
           >
             <Trash2 size={16} />
-          </button>
+          </Button>
         </div>
         <div className="qt-overlay-clear-group">
           <div className="qt-overlay-spacer" />
           <hr />
           <div className="qt-overlay-spacer" />
-          <button
+          <Button
             ref={clearButton}
             title="Clear all overlays"
             aria-label="Clear overlays"
@@ -228,28 +228,28 @@ export function IntegrationOverlayControls({
             }}
           >
             <ListX size={18} aria-hidden="true" />
-          </button>
+          </Button>
           <div className="qt-overlay-spacer" />
           <hr />
           <div className="qt-overlay-spacer" />
         </div>
         <div className="qt-overlay-action-pair">
-          <button
+          <Button
             title="Move selected overlay up"
             aria-label="Move overlay up"
             disabled={index < 1}
             onClick={() => move(-1)}
           >
             <ArrowUp size={17} />
-          </button>
-          <button
+          </Button>
+          <Button
             title="Move selected overlay down"
             aria-label="Move overlay down"
             disabled={index < 0 || index >= overlays.length - 1}
             onClick={() => move(1)}
           >
             <ArrowDown size={17} />
-          </button>
+          </Button>
         </div>
       </TableActions>
       <div className="qt-overlay-table-region">
@@ -262,7 +262,7 @@ export function IntegrationOverlayControls({
           <thead ref={tableHead}>
             <tr>
               <th>
-                <button
+                <Button
                   className="qt-overlay-show-all"
                   aria-label="Toggle all overlays"
                   title="Show or hide all overlays"
@@ -274,7 +274,7 @@ export function IntegrationOverlayControls({
                   }
                 >
                   ✓
-                </button>
+                </Button>
               </th>
               <th aria-label="Color">
                 <OverlayColorScalePicker
@@ -299,7 +299,7 @@ export function IntegrationOverlayControls({
                 onKeyDown={navigateRows}
               >
                 <td>
-                  <input
+                  <Input
                     type="checkbox"
                     aria-label="Original pattern"
                     checked={showOriginal}
@@ -309,7 +309,7 @@ export function IntegrationOverlayControls({
                   />
                 </td>
                 <td>
-                  <input
+                  <Input
                     type="color"
                     aria-label="Original pattern color"
                     title="Original pattern color"
@@ -387,7 +387,7 @@ export function IntegrationOverlayControls({
                 tabIndex={overlay.uid === selectedUid ? 0 : -1}
               >
                 <td>
-                  <input
+                  <Input
                     type="checkbox"
                     aria-label={`Show overlay ${row + 1}`}
                     checked={overlay.visible}
@@ -400,7 +400,7 @@ export function IntegrationOverlayControls({
                   />
                 </td>
                 <td>
-                  <input
+                  <Input
                     type="color"
                     aria-label={`Overlay ${row + 1} color`}
                     value={overlay.color}
@@ -481,21 +481,21 @@ export function IntegrationOverlayControls({
           </label>
           <hr />
           <div className="qt-overlay-waterfall-actions">
-            <button
+            <Button
               title="Apply waterfall separation"
               disabled={!overlays.length}
               onClick={() => action("waterfall")}
             >
               Waterfall
-            </button>
-            <button
+            </Button>
+            <Button
               aria-label="Reset"
               title="Reset waterfall separation"
               disabled={!overlays.length}
               onClick={() => action("reset_offsets")}
             >
               <RotateCcw size={16} aria-hidden="true" />
-            </button>
+            </Button>
           </div>
           <label title="Waterfall separation">
             <span>Spacing</span>
@@ -513,14 +513,14 @@ export function IntegrationOverlayControls({
           </label>
         </TableScroll>
         <div className="qt-overlay-background-action">
-          <button
+          <Button
             title="Set selected overlay as background"
             aria-pressed={selected?.background ?? false}
             disabled={!selected}
             onClick={() => action("background", { index })}
           >
             As Bkg
-          </button>
+          </Button>
         </div>
       </div>
       <Dialog
@@ -536,14 +536,14 @@ export function IntegrationOverlayControls({
           This will remove all loaded overlays.
         </p>
         <div className="clear-peaks-dialog-actions">
-          <button
+          <Button
             type="button"
             autoFocus
             onClick={() => clearDialog.current?.close()}
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             className="clear-peaks-confirm"
             disabled={!overlays.length}
@@ -553,7 +553,7 @@ export function IntegrationOverlayControls({
             }}
           >
             Clear all
-          </button>
+          </Button>
         </div>
       </Dialog>
       {menu &&
@@ -567,7 +567,7 @@ export function IntegrationOverlayControls({
             }}
             onPointerDown={(e) => e.stopPropagation()}
           >
-            <button
+            <Button
               role="menuitem"
               autoFocus
               onClick={() => {
@@ -578,10 +578,10 @@ export function IntegrationOverlayControls({
               }}
             >
               Match intensity
-            </button>
-          </div>,
-          document.body,
-        )}
+            </Button>
+          </Popover>
+        </Portal>
+      )}
     </div>
   );
 }
@@ -599,7 +599,7 @@ function OverlayName({
   const [draft, setDraft] = useState(name);
   useEffect(() => setDraft(name), [name]);
   return (
-    <input
+    <Input
       aria-label={label}
       title={name}
       value={draft}
@@ -712,7 +712,7 @@ function OverlayNumber({
     else setDraft(String(value));
   };
   return (
-    <input
+    <Input
       ref={input}
       className="numeric-stepper"
       type="number"

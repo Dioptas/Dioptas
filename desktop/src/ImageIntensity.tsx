@@ -1,6 +1,6 @@
 import { Dialog, DialogHeader } from "./Dialog";
 import { useEffect, useId, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+
 import { Settings } from "lucide-react";
 import type {
   Palette,
@@ -505,7 +505,7 @@ export function ImageIntensity({
         </div>
         <div className="intensity-basic-controls">
           <div className="intensity-actions">
-            <button
+            <Button
               aria-label={label("Auto intensity")}
               aria-pressed={autoActive}
               disabled={!ready}
@@ -513,8 +513,8 @@ export function ImageIntensity({
               onClick={() => applyAuto(auto)}
             >
               Auto
-            </button>
-            <button
+            </Button>
+            <Button
               aria-label={`${title} histogram settings`}
               aria-haspopup="dialog"
               aria-expanded={!!dialog}
@@ -525,7 +525,7 @@ export function ImageIntensity({
               }}
             >
               <Settings size={16} aria-hidden="true" />
-            </button>
+            </Button>
           </div>
           <ColorMapPicker
             ref={colorMapPicker}

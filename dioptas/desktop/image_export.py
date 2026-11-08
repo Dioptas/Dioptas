@@ -19,9 +19,9 @@ def save_image(session, path=None, source="image", png_data=None, suggested_name
         raise ValueError("Choose the detector image or cake to save.")
     if not session._has_image:
         raise ValueError("Open an image before saving it.")
-    calibration = session.configuration.calibration_model
     if source == "cake" and session._cake is None:
         raise ValueError("Integrate a calibrated image before saving its cake.")
+    cake_arrays = session._cake_arrays() if source == "cake" else None
     path = session._path(path, f"{source}_export", save=True)
     if path is None:
         return {"cancelled": True}
@@ -46,7 +46,7 @@ def save_image(session, path=None, source="image", png_data=None, suggested_name
         data = (
             session.configuration.img_model.img_data
             if source == "image"
-            else calibration.cake_img
+            else cake_arrays[0]
         )
         # Match Qt ImageController.save_img: corrected scientific data, int32,
         # flipped to the saved image's top-origin row convention.
@@ -55,12 +55,12 @@ def save_image(session, path=None, source="image", png_data=None, suggested_name
         delimiter = "," if suffix == ".csv" else " "
         with open(path, "w") as output:
             np.savetxt(
-                output, np.insert(calibration.cake_tth, 0, 0)[None],
+                output, np.insert(cake_arrays[1], 0, 0)[None],
                 fmt="%.3f", delimiter=delimiter,
             )
             np.savetxt(
-                output, np.column_stack((calibration.cake_azi, calibration.cake_img)),
-                fmt=["%.2f"] + ["%.0f"] * calibration.cake_img.shape[1],
+                output, np.column_stack((cake_arrays[2], cake_arrays[0])),
+                fmt=["%.2f"] + ["%.0f"] * cake_arrays[0].shape[1],
                 delimiter=delimiter,
             )
     else:

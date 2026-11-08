@@ -1,3 +1,4 @@
+import { Button, Input } from "./ui";
 import { useEffect, useState } from "react";
 import { DataTable, TableScroll } from "./DataTable";
 import { EditorNumber, TextEdit } from "./PhaseEditorFields";
@@ -74,7 +75,7 @@ export function PhaseEditorStructure({
               No. {structure.spaceGroupNumber ?? "—"}
             </output>
           </span>
-          <input
+          <Input
             aria-label="Space group"
             list="pe-space-groups"
             placeholder="Symbol or number"
@@ -100,7 +101,7 @@ export function PhaseEditorStructure({
             <option key={g.number} value={`${g.number} — ${g.symbol}`} />
           ))}
         </datalist>
-        <button
+        <Button
           disabled={
             locked ||
             !data.editable ||
@@ -110,7 +111,7 @@ export function PhaseEditorStructure({
           onClick={() => void applyGroup()}
         >
           Apply group
-        </button>
+        </Button>
       </div>
       {structure.assumption && (
         <p className="pe-note">Assumed structure: {structure.assumption}</p>
@@ -137,7 +138,7 @@ export function PhaseEditorStructure({
             {structure.sites.map((site, row) => (
               <tr key={row} aria-selected={selected.includes(row)}>
                 <td>
-                  <input
+                  <Input
                     type="checkbox"
                     aria-label={`Select atomic site ${row + 1}`}
                     checked={selected.includes(row)}
@@ -167,14 +168,14 @@ export function PhaseEditorStructure({
                             })
                           }
                         />
-                        <button
+                        <Button
                           type="button"
                           disabled={locked || !data.editable}
                           aria-label={`Choose element for site ${row + 1}`}
                           onClick={() => setPickElement(row)}
                         >
                           …
-                        </button>
+                        </Button>
                       </span>
                     ) : [
                         "x",
@@ -224,13 +225,13 @@ export function PhaseEditorStructure({
         </DataTable>
       </TableScroll>
       <div className="pe-record-actions">
-        <button
+        <Button
           disabled={locked || !data.editable || !structure.spaceGroup}
           onClick={() => setAdding(!adding)}
         >
           Add atomic site…
-        </button>
-        <button
+        </Button>
+        <Button
           disabled={
             locked ||
             !data.editable ||
@@ -243,7 +244,7 @@ export function PhaseEditorStructure({
           }}
         >
           Remove selected sites
-        </button>
+        </Button>
       </div>
       {adding && (
         <form
@@ -283,7 +284,7 @@ export function PhaseEditorStructure({
             {Object.entries(newSite).map(([key, value]) => (
               <label key={key}>
                 {key === "occupancy" ? "Occ." : key}
-                <input
+                <Input
                   aria-label={`New site ${key}`}
                   autoFocus={key === "element"}
                   inputMode={key === "element" ? "text" : "decimal"}
@@ -293,22 +294,22 @@ export function PhaseEditorStructure({
                   }
                 />
                 {key === "element" && (
-                  <button
+                  <Button
                     type="button"
                     aria-label="Choose new site element"
                     onClick={() => setPickElement("new")}
                   >
                     …
-                  </button>
+                  </Button>
                 )}
               </label>
             ))}
           </div>
           {error && <p className="pe-edit-error">{error}</p>}
-          <button type="button" onClick={() => setAdding(false)}>
+          <Button type="button" onClick={() => setAdding(false)}>
             Cancel site
-          </button>
-          <button disabled={locked}>Add site</button>
+          </Button>
+          <Button disabled={locked}>Add site</Button>
         </form>
       )}
       {pickElement !== null && (

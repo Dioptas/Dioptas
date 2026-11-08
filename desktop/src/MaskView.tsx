@@ -1,3 +1,4 @@
+import { Button } from "./ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   detectorViewport,
@@ -242,9 +243,9 @@ export function MaskView({
       ) : (
         <div className="empty-view">
           <h3>Open a detector image</h3>
-          <button disabled={!ready} onClick={() => void run("open_image")}>
+          <Button disabled={!ready} onClick={() => void run("open_image")}>
             Open detector image
-          </button>
+          </Button>
         </div>
       )}
     </section>

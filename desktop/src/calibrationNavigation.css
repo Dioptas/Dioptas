@@ -106,7 +106,6 @@
   min-width: 24px;
   min-height: 32px;
   padding: 4px 2px;
-  border-radius: 5px;
 }
 .app .calibration-ring-navigation .calibration-ring-trigger {
   flex: 1;
@@ -227,7 +226,7 @@
 }
 .calibration-secondary-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 28px repeat(2, minmax(0, 1fr));
   gap: 5px;
   margin-top: 4px;
 }

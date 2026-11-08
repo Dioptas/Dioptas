@@ -79,8 +79,9 @@ preview replaces the complete application. The original Qt interface is unchange
   model and Qt application were not modified.
 - Cake coordinates remain actual 2θ even when the pattern uses Q or d, following
   the existing synchronous configuration API.
-- PyFAI is the default, including when Dioptrin is installed. No server is started
-  by the desktop host. The optional native adapter currently requires a flat,
+- The desktop prefers installed, compatible Dioptrin (pinned to 0.9.0), with
+  pyFAI as the startup fallback and an explicit Settings choice. No server is started
+  by the desktop host. The optional native calibration adapter currently requires a flat,
   uniformly sampled detector without a distortion spline.
 
 The Export pattern button has been removed as requested; the underlying export
@@ -159,11 +160,13 @@ optional-engine boundaries are unchanged; a portable Python bundle is pending.
 Mask, Integration and Map have scoped implementations; see
 [MASK_PARITY.md](MASK_PARITY.md), [INTEGRATION_PARITY.md](INTEGRATION_PARITY.md)
 and [MAP_PARITY.md](MAP_PARITY.md) for their coverage and limitations.
-Configuration switching and explicit HDF5 dataset-selection interfaces remain
-outside the preview. Integration's Image tab offers incoming-folder Autoprocess;
-see INTEGRATION_PARITY.md for its scope. Project configurations are preserved,
-but only the selected one is
-displayed. There is no new uncertainty estimator or geometry-identifiability
+Explicit HDF5 dataset-selection interfaces remain outside the preview.
+Existing project configurations can be selected and their integrated results
+combined; see [detector combination](DETECTOR_COMBINATION_PARITY.md).
+Integration's Image tab offers incoming-folder Autoprocess;
+see INTEGRATION_PARITY.md for its scope. Detector images remain independent
+when integrated patterns or cakes are combined. There is no new uncertainty
+estimator or geometry-identifiability
 diagnostic. The native host now supports Tauri/WKWebView, with a local stdio
 process using the existing Python scientific runtime. The earlier pywebview host
 remains for comparison. There is no WASM implementation or portable bundled

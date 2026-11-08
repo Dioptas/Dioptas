@@ -35,12 +35,12 @@ export function PhaseEditorConfirm({
       <h3>{title}</h3>
       <p>{detail}</p>
       <footer>
-        <button autoFocus onClick={onCancel}>
+        <Button autoFocus onClick={onCancel}>
           Cancel
-        </button>
-        <button className="primary" onClick={onConfirm}>
+        </Button>
+        <Button variant="primary" onClick={onConfirm}>
           {action}
-        </button>
+        </Button>
       </footer>
     </Dialog>
   );

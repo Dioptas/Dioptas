@@ -45,6 +45,9 @@ class DesktopBridge:
         return self._session.invoke(action, arguments)
 
     def _release(self):
+        close = getattr(self._session, "close", None)
+        if close is not None:
+            close()
         self._session = None
         # Shared models contain signal/history cycles. Release those native
         # objects here too, before the owning processing thread exits.

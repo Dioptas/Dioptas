@@ -1,3 +1,4 @@
+import { Input, Select } from "./ui";
 import { useEffect, useState, type ReactNode } from "react";
 import type { Calibration, Response } from "./types";
 
@@ -103,7 +104,7 @@ export function CalibrationControls({
               <label className="field-label" htmlFor="detector">
                 Detector
               </label>
-              <select
+              <Select
                 id="detector"
                 title={c?.detectorFile ?? undefined}
                 value={c?.detectorFile ? "__file__" : (c?.detector ?? "Custom")}
@@ -124,7 +125,7 @@ export function CalibrationControls({
                 {(c?.detectors ?? ["Custom"]).map((name) => (
                   <option key={name}>{name}</option>
                 ))}
-              </select>
+              </Select>
             </div>
           </div>
           {c?.detectorAssignment && (
@@ -138,7 +139,7 @@ export function CalibrationControls({
           <div className="setup-pair">
             <label className="field-label">
               Pixel width · µm
-              <input
+              <Input
                 aria-label="Pixel width in micrometres"
                 type="number"
                 required
@@ -156,7 +157,7 @@ export function CalibrationControls({
             </label>
             <label className="field-label">
               Pixel height · µm
-              <input
+              <Input
                 aria-label="Pixel height in micrometres"
                 type="number"
                 required

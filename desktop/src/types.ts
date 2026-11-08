@@ -88,6 +88,20 @@ export interface State {
   configurationIndex: number;
   configurationLabels?: string[];
   configurationContext?: number;
+  combination?: {
+    patterns: boolean;
+    cakes: boolean;
+    ready: boolean;
+    reason: string | null;
+    factor: number;
+    configurations: {
+      index: number;
+      imageName: string;
+      calibrated: boolean;
+      factor: number;
+    }[];
+    backends: Record<string, string>;
+  };
   geometry: {
     dist: number;
     poni1: number;
@@ -159,6 +173,14 @@ export interface RingOverlay {
   points: number[][];
 }
 export interface Response {
+  configurationReset?: boolean;
+  imageChange?: {
+    path: string;
+    frame: number;
+    previousShape: [number, number];
+    newShape: [number, number];
+  };
+  calibrationReset?: boolean;
   savedPaths?: string[];
   clearImage?: boolean;
   customCommands?: import("./customCommands").CustomCommand[];

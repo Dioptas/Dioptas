@@ -63,8 +63,168 @@ async function restore(page, canvas) {
   await settle(page);
 }
 
+export async function verifyModifiedPlotNavigation(page, canvas) {
+  const id = await canvas.getAttribute("data-testid");
+  const horizontal =
+    (await canvas.getAttribute("data-zoom-mode")) === "horizontal";
+  await restore(page, canvas);
+  const fit = await read(canvas);
+  const p = await point(canvas, 0.5, 0.5);
+  for (const modifier of ["Control", "Meta"]) {
+    await page.mouse.move(p.x, p.y);
+    await page.mouse.wheel(0, -1000);
+    await settle(page);
+    const zoomed = await read(canvas);
+    assert.ok(spanX(zoomed) < spanX(fit) / 3);
+    await page.keyboard.down(modifier);
+    try {
+      await drag(page, canvas, [0.5, 0.5], [0.55, 0.55]);
+      const panned = await read(canvas);
+      close(spanX(panned), spanX(zoomed), `${id}: ${modifier}-drag x scale`);
+      assert.ok(panned.xMin < zoomed.xMin, `${id}: ${modifier}-drag pans x`);
+      if (horizontal) {
+        await drag(page, canvas, [0.5, 0.4], [0.5, 0.6]);
+        assert.deepEqual(
+          await read(canvas),
+          panned,
+          `${id}: slice mode ignores vertical pan`,
+        );
+      } else {
+        close(spanY(panned), spanY(zoomed), `${id}: ${modifier}-drag y scale`);
+        assert.ok(panned.yMin > zoomed.yMin, `${id}: ${modifier}-drag pans y`);
+      }
+      await page.mouse.click(p.x, p.y);
+      await settle(page);
+      const single = await read(canvas);
+      close(
+        spanX(single),
+        spanX(panned) * 2,
+        `${id}: ${modifier}-click unzooms`,
+      );
+      // A pan separates the single click from the following double-click.
+      await drag(page, canvas, [0.5, 0.5], [0.55, 0.55]);
+      await page.mouse.dblclick(p.x, p.y);
+      await settle(page);
+      assert.deepEqual(
+        await read(canvas),
+        fit,
+        `${id}: ${modifier}-double-click restores the complete fitted view`,
+      );
+    } finally {
+      await page.keyboard.up(modifier);
+    }
+  }
+  return `${id}: Ctrl/Command click unzoom, double-click fit and drag pan`;
+}
+
 export async function verifyCakeMarginNavigation(page) {
   return verifyRectangleMarginNavigation(page, "cake-canvas");
+}
+
+/** Isolated rendering fixture: verify slice navigation against known content. */
+export async function verifySliceContentScaling(page) {
+  await page.evaluate(() => {
+    window.sliceRange = { xMin: 20, xMax: 70, yMin: -500, yMax: 1e5 };
+    const x = Array.from({ length: 101 }, (_, i) => i);
+    window.sliceProps = {
+      pattern: { x, y: x.map((v) => 10 + v * v), unit: "2th_deg" },
+      curves: [{ x, y: x.map((v) => 100 + v * 2), color: "#fff" }],
+      log: false,
+      zoomMode: "horizontal",
+      autoRange: false,
+      onAutoRange: () => {},
+      viewport: {
+        key: "slice-test",
+        read: () => window.sliceRange,
+        write: (range) => {
+          window.sliceRange = range;
+        },
+      },
+    };
+    window.paint(window.fixture.PatternView, window.sliceProps);
+  });
+  await settle(page);
+  const canvas = page.getByTestId("pattern-canvas");
+  const checkContent = async () => {
+    const view = await read(canvas);
+    const expected = await page.evaluate(({ xMin, xMax }) => {
+      const props = window.sliceProps;
+      const values = [props.pattern, ...props.curves].flatMap((curve) =>
+        curve.y
+          .filter((y, i) => curve.x[i] >= xMin && curve.x[i] <= xMax)
+          .map((y) =>
+            props.log ? Math.log10(y) : props.sqrt ? Math.sqrt(y) : y,
+          ),
+      );
+      const low = Math.min(...values),
+        high = Math.max(...values);
+      const padding = (high - low) * 0.04;
+      return { yMin: low - padding, yMax: high + padding };
+    }, view);
+    close(view.yMin, expected.yMin, "Slice fits the visible content minimum");
+    close(view.yMax, expected.yMax, "Slice fits the visible content maximum");
+    return view;
+  };
+  await checkContent();
+  await drag(page, canvas, [0.25, 0.2], [0.75, 0.8]);
+  const zoomed = await checkContent();
+  close(spanX(zoomed), 25, "Slice selection ignores vertical displacement", 0.1);
+  await drag(page, canvas, [0.6, 0.2], [0.4, 0.8], "right");
+  const panned = await checkContent();
+  close(spanX(panned), spanX(zoomed), "Slice pan preserves x scale");
+  assert.ok(panned.xMin > zoomed.xMin);
+  await drag(page, canvas, [0.5, 0.2], [0.5, 0.8], "right");
+  assert.deepEqual(
+    await read(canvas),
+    panned,
+    "Slice ignores vertical-only pan",
+  );
+  for (const scale of ["linear", "log", "sqrt"]) {
+    await page.evaluate((scale) => {
+      const props = window.sliceProps;
+      props.pattern = {
+        ...props.pattern,
+        y: props.pattern.y.map((v) => v * 2),
+      };
+      props.log = scale === "log";
+      props.sqrt = scale === "sqrt";
+      window.paint(window.fixture.PatternView, props);
+    }, scale);
+    await settle(page);
+    const updated = await checkContent();
+    close(
+      updated.xMin,
+      panned.xMin,
+      "Data/scale updates preserve slice x minimum",
+    );
+    close(
+      updated.xMax,
+      panned.xMax,
+      "Data/scale updates preserve slice x maximum",
+    );
+  }
+  await page.evaluate(() =>
+    window.paint(window.fixture.RasterView, {
+      ...window.rasterProps,
+      raster: {
+        ...window.rasterProps.raster,
+        radialRange: [0, 100],
+        azimuthRange: [-180, 180],
+        unit: "2th_deg",
+      },
+      cake: true,
+      zoomMode: "horizontal",
+    }),
+  );
+  await settle(page);
+  const cake = page.getByTestId("cake-canvas");
+  const fit = await read(cake);
+  await drag(page, cake, [0.25, 0.2], [0.75, 0.8]);
+  await drag(page, cake, [0.6, 0.2], [0.4, 0.8], "right");
+  const cakePan = await read(cake);
+  close(cakePan.yMin, fit.yMin, "Slice cake pan preserves azimuth minimum");
+  close(cakePan.yMax, fit.yMax, "Slice cake pan preserves azimuth maximum");
+  return "Slice drags and pans only horizontally; pattern y follows visible curves and data/scale updates; cake azimuth stays fixed";
 }
 
 async function verifyRectangleMarginNavigation(page, id) {
@@ -495,6 +655,7 @@ export async function verifyPlotNavigation(page) {
     checks.push(
       `${id}: rectangle zoom, right pan, single unzoom / double full fit`,
     );
+    checks.push(await verifyModifiedPlotNavigation(page, canvas));
     if (id === "cake-canvas" || id === "pattern-canvas") {
       checks.push(...(await verifyRectangleMarginNavigation(page, id)));
       checks.push(...(await verifyCompactAxisLabels(page, id)));

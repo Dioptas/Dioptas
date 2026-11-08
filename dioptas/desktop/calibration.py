@@ -337,14 +337,7 @@ class CalibrationWorkflow:
         if direction not in (-1, 1):
             raise ValueError("Image direction must be -1 or 1.")
         step = int(finite(step, "File step", 1, 100000))
-        image = self.configuration.img_model
-        (image.load_next_file if direction == 1 else image.load_previous_file)(
-            step=step
-        )
-        self.configuration.calibration_model.clear_peaks()
-        self._fit_rms = None
-        self._calculate()
-        return self._snapshot(include_image=True)
+        return self._checked_next_image(direction, step)
 
     def _detector_file(self, path=None, reset=False):
         c = self.configuration.calibration_model
@@ -558,7 +551,7 @@ class CalibrationWorkflow:
             ),
         }
 
-    def _validation_position(self, source, x, y=None, azimuth=None):
+    def _validation_position(self, source, x, y=None, azimuth=None, unit="2th_deg"):
         c = self.configuration.calibration_model
         if not c.is_calibrated or not self._has_image:
             raise ValueError("Calibrate an image before inspecting a linked position.")
@@ -589,7 +582,9 @@ class CalibrationWorkflow:
             )
             image_point = {"x": col, "y": row}
         elif source == "cake":
-            tth = x
+            if unit not in {"2th_deg", "q_A^-1", "d_A"}:
+                raise ValueError("Unsupported cake unit.")
+            tth = float(convert_units(x, c.pattern_geometry.wavelength, unit, "2th_deg"))
             if azimuth is not None:
                 azi = ((finite(azimuth, "Azimuth") + 180) % 360) - 180
         elif source == "pattern":

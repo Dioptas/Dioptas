@@ -201,12 +201,19 @@ try {
   await page.goto("file://" + path.join(root, "dioptas/desktop/ui/index.html"));
   await waitReady();
   if (process.argv.includes("--dioptrin")) {
+    assert.equal((await invoke("state")).state.calibration.engine, "dioptrin");
     await page.getByRole("button", { name: "Settings", exact: true }).click();
+    await page
+      .getByLabel("Processing engine", { exact: true })
+      .selectOption("pyfai");
+    await waitReady();
+    assert.equal((await invoke("state")).state.calibration.engine, "pyfai");
 
     await page
       .getByLabel("Processing engine", { exact: true })
       .selectOption("dioptrin");
     await waitReady();
+    assert.equal((await invoke("state")).state.calibration.engine, "dioptrin");
     await page.keyboard.press("Escape");
   }
   assert.equal(

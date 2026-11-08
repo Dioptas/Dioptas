@@ -313,10 +313,11 @@ def test_empty_automatic_search_restores_picked_peaks(fitted, monkeypatch, resta
 
 
 @pytest.mark.parametrize("restart", [False, True])
-def test_cancellation_is_readable_without_session_lock(fitted, monkeypatch, restart):
-    c = fitted.configuration.calibration_model
-    points = c.params.peak_selections
-    geometry = c.get_pyFAI_config()
+def test_cancellation_is_readable_without_session_lock(restart):
+    from dioptas.desktop.bridge import DesktopBridge
+
+    processor = DesktopBridge()
+    patch = pytest.MonkeyPatch()
     entered = threading.Event()
     release = threading.Event()
 
@@ -324,26 +325,46 @@ def test_cancellation_is_readable_without_session_lock(fitted, monkeypatch, rest
         entered.set()
         assert release.wait(5)
 
-    monkeypatch.setattr(c, "search_peaks_on_ring", search)
-    result = {}
-    worker = threading.Thread(
-        target=lambda: result.update(fitted.invoke("calibrate", {"automatic": True, "restart": restart}))
-    )
-    worker.start()
-    assert entered.wait(5)
-    progress = fitted.invoke("progress")["progress"]
-    assert progress["running"]
-    assert progress["calibration"]["activeRing"] == 1
-    assert progress["calibration"]["rings"]
-    assert fitted.invoke("cancel_refinement")["ok"]
-    release.set()
-    worker.join(5)
-    assert not worker.is_alive()
-    assert not result["ok"] and "cancelled" in result["error"]
-    assert c.params.peak_selections == points
-    assert c.is_calibrated
-    assert c.get_pyFAI_config() == geometry
-    assert "calibration" not in fitted.invoke("progress")["progress"]
+    def install_search():
+        c = processor._session.configuration.calibration_model
+        patch.setattr(c, "search_peaks_on_ring", search)
+        return c.params.peak_selections, c.get_pyFAI_config()
+
+    try:
+        call(processor, "example")
+        for x, y, ring in SEEDS:
+            call(processor, "pick_peak", x=x, y=y, ring=ring)
+        call(processor, "calibrate", automatic=False)
+        points, geometry = processor._worker.submit(install_search).result()
+        result = {}
+        worker = threading.Thread(
+            target=lambda: result.update(processor.invoke("calibrate", {"automatic": True, "restart": restart}))
+        )
+        worker.start()
+        assert entered.wait(5)
+        progress = processor.invoke("progress")["progress"]
+        assert progress["running"]
+        assert progress["calibration"]["activeRing"] == 1
+        assert progress["calibration"]["rings"]
+        assert processor.invoke("cancel_refinement")["ok"]
+        release.set()
+        worker.join(10)
+        assert not worker.is_alive()
+        assert not result["ok"] and "cancelled" in result["error"]
+
+        def restored():
+            c = processor._session.configuration.calibration_model
+            assert c.params.peak_selections == points
+            assert c.is_calibrated
+            assert c.get_pyFAI_config() == geometry
+
+        processor._worker.submit(restored).result()
+        assert "calibration" not in processor.invoke("progress")["progress"]
+    finally:
+        release.set()
+        # Undo on the owner thread before releasing native geometry objects.
+        processor._worker.submit(patch.undo).result()
+        processor.close()
 
 
 def test_custom_calibrant_is_owned_and_survives_project_reopen(session, tmp_path):

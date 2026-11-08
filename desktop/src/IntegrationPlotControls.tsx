@@ -24,7 +24,7 @@ export function PlotToggle({
   children: ReactNode;
 }) {
   return (
-    <button
+    <Button
       className="plot-tool-button"
       type="button"
       aria-label={label}
@@ -34,7 +34,7 @@ export function PlotToggle({
       onClick={onClick}
     >
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -77,7 +77,7 @@ export function IntegrationImageControls({
       role="group"
       aria-label="Integration image controls"
     >
-      <button
+      <Button
         className="plot-tool-button"
         type="button"
         aria-label="Save image"
@@ -92,7 +92,7 @@ export function IntegrationImageControls({
         onClick={onSaveImage}
       >
         <Save size={15} />
-      </button>
+      </Button>
       <PlotToggle
         label="Image region of interest"
         title="Restrict integration to a detector region; drag inside to move it or drag an edge or corner to resize"
@@ -107,21 +107,21 @@ export function IntegrationImageControls({
         role="group"
         aria-label="Integration display"
       >
-        <button
+        <Button
           className="plot-tool-button integration-display-switch"
           type="button"
           title={value === "image" ? "Show cake" : "Show image"}
           onClick={() => onChange(value === "image" ? "cake" : "image")}
         >
           {value === "image" ? "Cake" : "Image"}
-        </button>
+        </Button>
       </div>
       <span className="plot-tool-divider" />
       <label
         className="check-row"
         title="Use the detector mask for integration and show it on the image"
       >
-        <input
+        <Input
           aria-label="Apply detector mask"
           type="checkbox"
           checked={!!state?.useMask}
@@ -136,7 +136,7 @@ export function IntegrationImageControls({
         className="check-row"
         title="Show masked pixels through a transparent mask"
       >
-        <input
+        <Input
           aria-label="Integration transparent mask"
           type="checkbox"
           checked={!!state?.transparentMask}
@@ -176,7 +176,7 @@ export function IntegrationImageControls({
       >
         <span className="plot-tool-divider" aria-hidden="true" />
         χ
-        <input
+        <Input
           aria-label="Cake azimuth shift"
           type="range"
           min={-180}
@@ -215,7 +215,7 @@ export function IntegrationPatternActions({
       role="group"
       aria-label="Pattern actions"
     >
-      <button
+      <Button
         aria-label="Save pattern"
         title="Save displayed pattern"
         disabled={!ready || !hasPattern}

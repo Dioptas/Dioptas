@@ -113,7 +113,7 @@ export function CalibrationPanel({
       <div className="calibration-panel-body">
         <fieldset className="peak-search-options">
           <label className="check-row">
-            <input
+            <Input
               type="radio"
               name="peak-search"
               disabled={!ready}
@@ -124,7 +124,7 @@ export function CalibrationPanel({
             Automatic peak search
           </label>
           <label className="check-row">
-            <input
+            <Input
               type="radio"
               name="peak-search"
               disabled={!ready}
@@ -136,7 +136,7 @@ export function CalibrationPanel({
           </label>
           <label className="search-size">
             Search size
-            <input
+            <Input
               aria-label="Single-peak search size"
               className="numeric-stepper"
               type="number"
@@ -162,7 +162,7 @@ export function CalibrationPanel({
             role="group"
             aria-label="Peak selection actions"
           >
-            <button
+            <Button
               className="icon-button"
               aria-label="Load picked peaks"
               title="Load picked peaks (replaces current groups; Undo restores them)"
@@ -170,8 +170,8 @@ export function CalibrationPanel({
               onClick={() => run("load_peaks", {}, "Loading picked peaks…")}
             >
               <FolderOpen size={17} aria-hidden="true" />
-            </button>
-            <button
+            </Button>
+            <Button
               className="icon-button"
               aria-label="Save picked peaks"
               title="Save all picked peak groups"
@@ -179,8 +179,8 @@ export function CalibrationPanel({
               onClick={() => run("save_peaks", {}, "Saving picked peaks…")}
             >
               <Save size={17} aria-hidden="true" />
-            </button>
-            <button
+            </Button>
+            <Button
               className="icon-button peak-delete-selected"
               aria-label="Delete selected"
               title="Delete selected groups"
@@ -191,8 +191,8 @@ export function CalibrationPanel({
               }}
             >
               <Trash2 size={17} aria-hidden="true" />
-            </button>
-            <button
+            </Button>
+            <Button
               ref={clearButton}
               className="icon-button peak-clear-all"
               aria-label="Clear calibration peaks"
@@ -204,7 +204,7 @@ export function CalibrationPanel({
               }}
             >
               <ListX size={18} aria-hidden="true" />
-            </button>
+            </Button>
           </TableActions>
         </div>
         <TableScroll
@@ -214,7 +214,7 @@ export function CalibrationPanel({
           aria-label="Picked peak groups"
         >
           <div className="peak-table-headers data-table-header">
-            <input
+            <Input
               ref={selectAll}
               type="checkbox"
               aria-label="Select all peak groups"
@@ -262,7 +262,7 @@ export function CalibrationPanel({
                   }
                 }}
               >
-                <input
+                <Input
                   type="checkbox"
                   aria-label={`Select peak group ${index + 1}`}
                   disabled={!ready}
@@ -276,7 +276,7 @@ export function CalibrationPanel({
                     if (e.target.checked) onRingChange(pick.ring);
                   }}
                 />
-                <input
+                <Input
                   className="ring-input"
                   aria-label={`Ring assignment ${index + 1}`}
                   type="number"
@@ -312,14 +312,14 @@ export function CalibrationPanel({
                     0,
                   )}
                 </span>
-                <button
+                <Button
                   className="icon-button"
                   disabled={!ready}
                   aria-label={`Remove selection ${index + 1}`}
                   onClick={() => run("remove_pick", { index })}
                 >
                   <X size={12} />
-                </button>
+                </Button>
               </div>
             ))
           ) : (
@@ -345,14 +345,14 @@ export function CalibrationPanel({
           This will remove all picked peak groups.
         </p>
         <div className="clear-peaks-dialog-actions">
-          <button
+          <Button
             type="button"
             autoFocus
             onClick={() => clearDialog.current?.close()}
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             className="clear-peaks-confirm"
             disabled={!ready || !groupCount}
@@ -362,7 +362,7 @@ export function CalibrationPanel({
             }}
           >
             Clear all
-          </button>
+          </Button>
         </div>
       </Dialog>
     </section>

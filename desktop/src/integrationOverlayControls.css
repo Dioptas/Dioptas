@@ -23,7 +23,6 @@
 .qt-overlay-controls button {
   flex-shrink: 0;
   padding: 3px 5px;
-  border-radius: 3px;
 }
 .qt-overlay-actions button {
   display: grid;
@@ -195,7 +194,6 @@
   font-size: inherit;
   min-height: 30px;
   padding: 5px 6px;
-  border-radius: 5px;
 }
 .qt-overlay-waterfall-actions {
   display: flex;
@@ -236,8 +234,6 @@
   z-index: 50;
   background: var(--ui-raised);
   padding: 4px;
-  border: 1px solid #62676d;
-  box-shadow: 0 3px 12px #0008;
 }
 .qt-overlay-menu button {
   white-space: nowrap;

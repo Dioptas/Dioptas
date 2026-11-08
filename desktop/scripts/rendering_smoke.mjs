@@ -4,6 +4,10 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
+import {
+  verifyModifiedPlotNavigation,
+  verifySliceContentScaling,
+} from "./plot_navigation.mjs";
 
 const desktop = fileURLToPath(new URL("../", import.meta.url));
 await mkdir(new URL("../artifacts/", import.meta.url), { recursive: true });
@@ -257,6 +261,35 @@ try {
     zoomed: +el.dataset.viewXMax - +el.dataset.viewXMin < 64,
   }));
   assert.ok(report.navigation.squarePixels && report.navigation.zoomed);
+  report.modifiedNavigation = [];
+  // Modified navigation must bypass picking, mask painting, ROI editing and
+  // the image's ordinary double-click action (e.g. opening file information).
+  for (const tool of ["pick", "mask", "roi"]) {
+    await page.evaluate((tool) => {
+      window.navigationActions = [];
+      const record = (name) => () => window.navigationActions.push(name);
+      window.paint(window.fixture.RasterView, {
+        ...window.rasterProps,
+        tool: tool === "roi" ? "pan" : tool,
+        onPick: record("pick"),
+        onInspect: record("inspect"),
+        onStroke: record("stroke"),
+        onImageDoubleClick: record("double-click"),
+        ...(tool === "roi"
+          ? { roi: [0, 32, 0, 64], onRoiChange: record("roi") }
+          : {}),
+      });
+    }, tool);
+    await settle();
+    report.modifiedNavigation.push(
+      `${tool}: ${await verifyModifiedPlotNavigation(page, detector)}`,
+    );
+    assert.deepEqual(await page.evaluate(() => window.navigationActions), []);
+  }
+  await page.evaluate(() =>
+    window.paint(window.fixture.RasterView, window.rasterProps),
+  );
+  await settle();
   report.export = await page.evaluate(() => {
     const png = window.rasterProps.exportRef.current.png();
     if (!png.startsWith("iVBOR")) throw Error("Invalid image export");
@@ -418,7 +451,34 @@ try {
     JSON.stringify(report.pattern),
   );
   await page.screenshot({ path: `${desktop}artifacts/optimized-pattern.png` });
+  for (const zoomMode of ["rectangle", "horizontal"]) {
+    await page.evaluate((zoomMode) => {
+      window.navigationActions = [];
+      const record = (name) => () => window.navigationActions.push(name);
+      window.paint(window.fixture.PatternView, {
+        ...window.plotProps,
+        zoomMode,
+        editRegions: true,
+        regions: [{ name: "test", min: 0, max: 100, color: "#ff9500" }],
+        onRegionChange: record("region"),
+        onRegionDragStart: record("region-start"),
+        onRegionSelect: record("region-select"),
+        onInspect: record("inspect"),
+        onPick: record("pick"),
+        onAutoRange: (enabled) => {
+          window.navigationAutoRange = enabled;
+        },
+      });
+    }, zoomMode);
+    await settle();
+    report.modifiedNavigation.push(
+      `${zoomMode}: ${await verifyModifiedPlotNavigation(page, page.getByTestId("pattern-canvas"))}`,
+    );
+    assert.deepEqual(await page.evaluate(() => window.navigationActions), []);
+    assert.equal(await page.evaluate(() => window.navigationAutoRange), true);
+  }
   if (baselineRef) report.baselinePattern = await benchmark(true);
+  report.sliceNavigation = await verifySliceContentScaling(page);
   assert.deepEqual(errors, []);
   await writeFile(
     `${desktop}artifacts/rendering-${process.argv.includes("--webkit") ? "webkit" : "chromium"}.json`,
