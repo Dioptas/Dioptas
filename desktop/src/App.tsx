@@ -139,6 +139,19 @@ function clickContext(state: State | null) {
   ]);
 }
 
+function clickContext(state: State | null) {
+  return JSON.stringify([
+    state?.imagePath,
+    state?.configurationIndex,
+    state?.projectName,
+    state?.integration.frame,
+    state?.integration.patternName,
+    state?.calibration.transformations,
+    state?.geometry,
+    state?.shape,
+  ]);
+}
+
 export default function App() {
   const [plotViews] = useState(createPlotViews);
   const detectorExport = useRef<RasterExport>(null);
