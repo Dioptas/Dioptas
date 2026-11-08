@@ -166,48 +166,6 @@ pub(super) fn neighbor(path: &Path, mode: &str, step: i64) -> Result<Option<Path
     Ok(Some(entries[target as usize].1.clone()))
 }
 
-#[cfg(test)]
-mod navigation_tests {
-    use super::*;
-    #[test]
-    fn time_order_filters_entries_preserves_steps_and_finds_new_arrivals() {
-        let temp = tempfile::tempdir().unwrap();
-        let directory = temp.path().canonicalize().unwrap();
-        let first = directory.join("a.tif");
-        let second = directory.join("b.tif");
-        std::fs::write(&first, b"first").unwrap();
-        std::fs::write(directory.join(".hidden.tif"), b"hidden").unwrap();
-        std::fs::write(directory.join("other.edf"), b"other").unwrap();
-        std::fs::create_dir(directory.join("subfolder.tif")).unwrap();
-        assert_eq!(neighbor(&first, "time", 1).unwrap(), None);
-        std::fs::write(&second, b"second").unwrap();
-        assert_eq!(neighbor(&first, "time", 1).unwrap(), Some(second.clone()));
-        assert_eq!(neighbor(&second, "time", -1).unwrap(), Some(first.clone()));
-        assert_eq!(neighbor(&first, "time", 2).unwrap(), None);
-        assert_eq!(neighbor(&first, "time", -1).unwrap(), None);
-    }
-    #[test]
-    #[cfg(unix)]
-    fn time_order_resolves_directory_and_file_symlinks() {
-        use std::os::unix::fs::symlink;
-        let temp = tempfile::tempdir().unwrap();
-        let directory = temp.path().canonicalize().unwrap();
-        let source = directory.join("source");
-        std::fs::create_dir(&source).unwrap();
-        let target = directory.join("outside.tif");
-        std::fs::write(&target, b"target").unwrap();
-        let first = source.join("a.tif");
-        symlink(&target, &first).unwrap();
-        let second = source.join("b.tif");
-        std::fs::write(&second, b"next").unwrap();
-        symlink(source, directory.join("alias")).unwrap();
-        symlink(directory.join("absent"), directory.join("alias/broken.tif")).unwrap();
-        assert_eq!(
-            neighbor(&directory.join("alias/a.tif"), "time", 1).unwrap(),
-            Some(second)
-        );
-    }
-}
 impl Files {
     fn scan(&self) -> Result<BTreeSet<PathBuf>, String> {
         let mut paths = BTreeSet::new();
@@ -664,4 +622,47 @@ pub(super) fn save_png(file: &Path, value: &Value) -> Result<(), String> {
     reader.next_frame(&mut output).map_err(|e| e.to_string())?;
     reader.finish().map_err(|e| e.to_string())?;
     atomic_write(file, &bytes)
+}
+
+#[cfg(test)]
+mod navigation_tests {
+    use super::*;
+    #[test]
+    fn time_order_filters_entries_preserves_steps_and_finds_new_arrivals() {
+        let temp = tempfile::tempdir().unwrap();
+        let directory = temp.path().canonicalize().unwrap();
+        let first = directory.join("a.tif");
+        let second = directory.join("b.tif");
+        std::fs::write(&first, b"first").unwrap();
+        std::fs::write(directory.join(".hidden.tif"), b"hidden").unwrap();
+        std::fs::write(directory.join("other.edf"), b"other").unwrap();
+        std::fs::create_dir(directory.join("subfolder.tif")).unwrap();
+        assert_eq!(neighbor(&first, "time", 1).unwrap(), None);
+        std::fs::write(&second, b"second").unwrap();
+        assert_eq!(neighbor(&first, "time", 1).unwrap(), Some(second.clone()));
+        assert_eq!(neighbor(&second, "time", -1).unwrap(), Some(first.clone()));
+        assert_eq!(neighbor(&first, "time", 2).unwrap(), None);
+        assert_eq!(neighbor(&first, "time", -1).unwrap(), None);
+    }
+    #[test]
+    #[cfg(unix)]
+    fn time_order_resolves_directory_and_file_symlinks() {
+        use std::os::unix::fs::symlink;
+        let temp = tempfile::tempdir().unwrap();
+        let directory = temp.path().canonicalize().unwrap();
+        let source = directory.join("source");
+        std::fs::create_dir(&source).unwrap();
+        let target = directory.join("outside.tif");
+        std::fs::write(&target, b"target").unwrap();
+        let first = source.join("a.tif");
+        symlink(&target, &first).unwrap();
+        let second = source.join("b.tif");
+        std::fs::write(&second, b"next").unwrap();
+        symlink(source, directory.join("alias")).unwrap();
+        symlink(directory.join("absent"), directory.join("alias/broken.tif")).unwrap();
+        assert_eq!(
+            neighbor(&directory.join("alias/a.tif"), "time", 1).unwrap(),
+            Some(second)
+        );
+    }
 }
