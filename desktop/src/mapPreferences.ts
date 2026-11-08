@@ -71,7 +71,7 @@ export function useMapDisplay(raster: Raster | null, name: string) {
   const [prefs, setPrefs] = useImageDisplayPreferences(
     name,
     "horizontal",
-    false,
+    name !== "map",
   );
   return {
     limits,

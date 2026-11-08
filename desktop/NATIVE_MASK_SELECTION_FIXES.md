@@ -318,3 +318,18 @@ locations. All 65 Rust tests, Clippy and native transport checks pass.
 
 The histogram option was confirmed by the user to be correct after restarting.
 Display preferences and histogram code were left unchanged for this correction.
+
+## Correction: Map detector histogram defaults on restart
+
+The Map detector used a separate display-preference hook that explicitly passed
+`false` for gap filtering, unlike the Mask workspace. Its initial source-precision
+contrast preparation also selected `false` based on Map mode. Both defaults now
+enable gap filtering for detector images. The Map heatmap keeps its independent
+unfiltered default, and an explicitly saved user choice is still remembered.
+
+Fresh-profile headless Chromium/WebKit regressions check that the Map detector
+checkbox starts checked, the map heatmap remains independent, and deliberate
+off/on changes survive frontend reloads. Existing live Map and detached-preview
+checks pass in the same run. Frontend unit tests and TypeScript/Vite build pass.
+The complete Tauri host is rebuilt to embed the corrected frontend; copying only
+the updated processor into an older app would retain the old histogram defaults.

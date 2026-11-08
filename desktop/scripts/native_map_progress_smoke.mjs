@@ -115,6 +115,57 @@ try {
       await ready();
       await page.getByRole("button", { name: "Map", exact: true }).click();
       await page.getByTestId("scan-map").waitFor();
+      // Fresh detector views filter gaps; the map heatmap keeps its separate
+      // default. An intentional change must survive a page/app restart.
+      const detectorSettings = () =>
+        page.getByRole("button", {
+          name: "Detector histogram settings",
+          exact: true,
+        });
+      const gapFilter = () =>
+        page.getByRole("checkbox", {
+          name: "Filter detector gaps",
+          exact: true,
+        });
+      await detectorSettings().click();
+      assert.equal(await gapFilter().isChecked(), true);
+      await page.waitForFunction(
+        () =>
+          JSON.parse(
+            localStorage.getItem("dioptas-auto-levels-v1:map") || "null",
+          )?.filter_gaps === false,
+      );
+      await gapFilter().uncheck();
+      await page.waitForFunction(
+        () =>
+          JSON.parse(
+            localStorage.getItem("dioptas-auto-levels-v1:map-detector") ||
+              "null",
+          )?.filter_gaps === false,
+      );
+      await page.keyboard.press("Escape");
+      await page.reload();
+      await page.getByTestId("detector-canvas").waitFor();
+      await ready();
+      await page.getByRole("button", { name: "Map", exact: true }).click();
+      await detectorSettings().click();
+      assert.equal(await gapFilter().isChecked(), false);
+      await gapFilter().check();
+      await page.waitForFunction(
+        () =>
+          JSON.parse(
+            localStorage.getItem("dioptas-auto-levels-v1:map-detector") ||
+              "null",
+          )?.filter_gaps === true,
+      );
+      await page.keyboard.press("Escape");
+      await page.reload();
+      await page.getByTestId("detector-canvas").waitFor();
+      await ready();
+      await page.getByRole("button", { name: "Map", exact: true }).click();
+      await detectorSettings().click();
+      assert.equal(await gapFilter().isChecked(), true);
+      await page.keyboard.press("Escape");
       await page
         .getByRole("button", { name: "Load images…", exact: true })
         .click();

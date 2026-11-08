@@ -332,7 +332,7 @@ export default function App() {
           : multipleImages
             ? "multi-detector"
             : "detector",
-    filterGaps: mode !== "map",
+    filterGaps: true,
   };
   useEffect(() => {
     if (!colorMaps[palette]) setPalette("grey");
