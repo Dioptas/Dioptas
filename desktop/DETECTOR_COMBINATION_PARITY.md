@@ -155,3 +155,9 @@ The browser check exercises settings, the MEC preset, custom rules, persistence
 and reset through the real Rust child, and checks the compact toolbar/settings
 at both text sizes. Combination controls are exercised from Calibration and Mask
 as well as Integration. Processing remains Python-free in these checks.
+
+The final checkpoint includes the consolidated correction/variance work and
+passes **104 native Rust tests** (one opt-in benchmark ignored), **75 frontend
+tests**, Clippy with warnings denied, the TypeScript/Vite build, and the headless
+Chromium/WebKit combination workflow. Settings persistence/reset, the MEC preset,
+custom payloads and small-window layouts are checked in both browsers.

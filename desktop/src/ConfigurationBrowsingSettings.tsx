@@ -1,5 +1,5 @@
 import { Button, Input, Select } from "./ui";
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import {
   defaultBrowsing,
   mecBrowsing,
@@ -20,7 +20,7 @@ function BrowsingNumber({
   onChange: (next: number) => void;
 }) {
   const [text, setText] = useState(String(value));
-  useEffect(() => setText(String(value)), [value]);
+  useLayoutEffect(() => setText(String(value)), [value]);
   const min = number ? 0 : 1;
   const max = number ? 100 : 1000000;
   return (

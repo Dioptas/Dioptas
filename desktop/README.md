@@ -48,8 +48,15 @@ an explicit reset. Manufacturer-supported binning can resolve the first image
 against a named detector; later size changes always prompt. Autoprocess stops
 on a mismatch so it cannot integrate using the wrong detector geometry.
 
-With configuration controls enabled, Integration provides detector factors,
-combined patterns and cakes, and combined-pattern export. These run through
+With configuration controls enabled, the top bar provides detector factors,
+**Combine patterns**, **Combine images** (calibrated 2D cakes), and combined-pattern
+export across modes. File/folder arrows browse the active configuration or all
+configurations. Configure their scope, filename/folder number positions, step
+sizes and optional linked filename changes in **Settings → General → Multi-detector
+setups → Configuration browsing**. The MEC preset supplies the Qt convention;
+all rules remain customizable and persist across restarts. See
+[detector combination and browsing](DETECTOR_COMBINATION_PARITY.md).
+Combined patterns and cakes run through
 Dioptrin's native shared-grid integration, with independent images, masks and
 display preferences for each configuration. Combination needs calibrated images
 and solid-angle correction. Combined counting errors use independent pixel variances propagated through
