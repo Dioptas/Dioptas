@@ -12,12 +12,10 @@ pub struct Raster {
 impl Raster {
     pub fn image(values: &[f64], shape: [usize; 2]) -> Self {
         let mut trace = crate::frame_trace::FrameTrace::new("raster", values.len() as u64);
-        let bytes = values
-            .iter()
-            .flat_map(|&v| (v as f32).to_le_bytes())
-            .collect();
+        let bytes = display_bytes(values);
+        trace.mark("f32 conversion");
         let buffer = Buffer::new(bytes);
-        trace.mark("f32 conversion and SHA256");
+        trace.mark("buffer fingerprint and shared storage");
         let statistics = (values.len() >= 4096)
             .then(|| ImageStatistics::new(values, shape))
             .flatten()
@@ -43,8 +41,8 @@ impl Raster {
             statistics,
         }
     }
-    pub fn mask(values: &[u8], shape: [usize; 2]) -> Self {
-        let buffer = Buffer::new(values.to_vec());
+    pub fn shared_mask(values: Arc<Vec<u8>>, shape: [usize; 2]) -> Self {
+        let buffer = Buffer::shared(values);
         Self {
             metadata: base(shape, "u8", &buffer),
             buffer,
@@ -56,6 +54,29 @@ impl Raster {
             .as_ref()?
             .levels(mode, clipping, filter_gaps)
     }
+}
+
+fn display_bytes(values: &[f64]) -> Vec<u8> {
+    let mut bytes = vec![0; values.len() * 4];
+    let convert = |source: &[f64], target: &mut [u8]| {
+        for (value, out) in source.iter().zip(target.as_chunks_mut::<4>().0) {
+            out.copy_from_slice(&(*value as f32).to_le_bytes());
+        }
+    };
+    if values.len() >= 1_000_000 {
+        let workers = std::thread::available_parallelism()
+            .map_or(1, |n| n.get())
+            .min(8);
+        let chunk = values.len().div_ceil(workers);
+        std::thread::scope(|scope| {
+            for (source, target) in values.chunks(chunk).zip(bytes.chunks_mut(chunk * 4)) {
+                scope.spawn(move || convert(source, target));
+            }
+        });
+    } else {
+        convert(values, &mut bytes);
+    }
+    bytes
 }
 
 /// Lossless counts shared by the display histogram and exact order statistics.
@@ -448,6 +469,32 @@ fn histogram_metadata(low: f64, high: f64, counts: Vec<u64>, count: u64) -> Valu
 #[cfg(test)]
 mod statistics_tests {
     use super::*;
+    #[test]
+    fn parallel_display_conversion_preserves_scalar_bytes_including_nonfinite_samples() {
+        let mut values: Vec<_> = (0..1_000_013)
+            .map(|i| (i as f64 - 500_000.) / 7. + 1e-12)
+            .collect();
+        let special = [
+            0.,
+            -0.,
+            f64::INFINITY,
+            f64::NEG_INFINITY,
+            f64::NAN,
+            f64::from_bits(0x7ff123456789abcd),
+            f64::MIN_POSITIVE,
+            f64::MAX,
+            i32::MAX as f64,
+            16_777_217.,
+        ];
+        for (index, value) in special.into_iter().enumerate() {
+            values[index * 100_000] = value;
+        }
+        let expected: Vec<_> = values
+            .iter()
+            .flat_map(|&v| (v as f32).to_le_bytes())
+            .collect();
+        assert_eq!(display_bytes(&values), expected);
+    }
     #[test]
     fn shared_integer_counts_preserve_full_histogram_and_filtered_exact_levels() {
         let shape = [96, 128];

@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use sha2::{Digest, Sha256};
-use std::{collections::HashSet, sync::Arc};
+use std::{
+    collections::HashSet,
+    sync::{Arc, OnceLock},
+};
 
 pub const MAX_REQUEST_BYTES: usize = 16 * 1024 * 1024;
 
@@ -34,13 +36,42 @@ impl Request {
 #[derive(Clone)]
 pub struct Buffer {
     pub id: String,
-    pub bytes: Arc<[u8]>,
+    pub bytes: Arc<Vec<u8>>,
 }
 impl Buffer {
     pub fn new(bytes: Vec<u8>) -> Self {
+        Self::shared(Arc::new(bytes))
+    }
+    pub fn shared(bytes: Arc<Vec<u8>>) -> Self {
+        // These opaque IDs identify live display bytes, independently of the
+        // SHA256 identities stored in .dio project files.
+        let mut hash = blake3::Hasher::new();
+        if bytes.len() >= 1_000_000 {
+            static POOL: OnceLock<Option<rayon::ThreadPool>> = OnceLock::new();
+            let pool = POOL.get_or_init(|| {
+                rayon::ThreadPoolBuilder::new()
+                    .num_threads(
+                        std::thread::available_parallelism()
+                            .map_or(1, |n| n.get())
+                            .min(8),
+                    )
+                    .thread_name(|i| format!("display-hash-{i}"))
+                    .build()
+                    .ok()
+            });
+            if let Some(pool) = pool {
+                pool.install(|| {
+                    hash.update_rayon(bytes.as_slice());
+                });
+            } else {
+                hash.update(bytes.as_slice());
+            }
+        } else {
+            hash.update(bytes.as_slice());
+        }
         Self {
-            id: format!("{:x}", Sha256::digest(&bytes)),
-            bytes: bytes.into(),
+            id: format!("b3:{}", hash.finalize().to_hex()),
+            bytes,
         }
     }
 }

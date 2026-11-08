@@ -3,6 +3,7 @@ use super::*;
 #[derive(Clone)]
 pub(super) struct Inspection {
     geometry: Geometry,
+    shape: [usize; 2],
     generation: u64,
     value: Arc<Value>,
 }
@@ -12,12 +13,29 @@ pub(super) struct ContourCache {
     shape: [usize; 2],
     two_theta: f64,
     value: Value,
+    projection: Option<(f64, Value)>,
+}
+pub(super) struct FieldCache {
+    geometry: Geometry,
+    shape: [usize; 2],
+    value: Arc<crate::contours::IndexedField>,
 }
 pub(super) fn convert(value: f64, from: &str, to: &str, wavelength: f64) -> f64 {
     crate::pattern::convert_coordinate(value, from, to, wavelength)
 }
 
 impl Session {
+    pub(super) fn retain_inspection(&mut self, shape: [usize; 2]) {
+        if let Some(inspection) = self.inspection.as_mut()
+            && self.settings.calibrated
+            && inspection.geometry == self.settings.geometry
+            && inspection.shape == shape
+        {
+            inspection.generation = self.image_generation;
+        } else {
+            self.inspection = None;
+        }
+    }
     pub(super) fn linked_snapshot(&self) -> Value {
         let Some(i) = &self.inspection else {
             return Value::Null;
@@ -96,60 +114,91 @@ impl Session {
             let contours = if let Some(value) = hit {
                 value
             } else {
-                let value = crate::peak_search::full_contours(
-                    &native.calc_tth_all(),
-                    image.shape,
-                    tth.to_radians(),
-                );
+                let cached = self.inspection_field.borrow();
+                let field = cached
+                    .as_ref()
+                    .filter(|c| c.geometry == self.settings.geometry && c.shape == image.shape)
+                    .map(|c| c.value.clone());
+                drop(cached);
+                let field = field.unwrap_or_else(|| {
+                    let value = Arc::new(crate::contours::IndexedField::new(
+                        native.calc_tth_all(),
+                        image.shape,
+                    ));
+                    *self.inspection_field.borrow_mut() = Some(FieldCache {
+                        geometry: self.settings.geometry.clone(),
+                        shape: image.shape,
+                        value: value.clone(),
+                    });
+                    value
+                });
+                let value = field.contour(tth.to_radians());
                 *self.inspection_contour.borrow_mut() = Some(ContourCache {
                     geometry: self.settings.geometry.clone(),
                     shape: image.shape,
                     two_theta: tth,
                     value: value.clone(),
+                    projection: None,
                 });
                 value
             };
             if let Some(azimuth) = azimuth
                 && image_point.is_null()
             {
-                let points: Vec<[f64; 2]> = contours
-                    .as_array()
-                    .unwrap()
-                    .iter()
-                    .flat_map(|p| {
-                        p["points"]
-                            .as_array()
-                            .unwrap()
-                            .iter()
-                            .map(|v| [v[0].as_f64().unwrap(), v[1].as_f64().unwrap()])
-                    })
-                    .collect();
-                if !points.is_empty() {
-                    let rows: Vec<_> = points.iter().map(|p| p[1]).collect();
-                    let cols: Vec<_> = points.iter().map(|p| p[0]).collect();
-                    let angles = native.calc_azimuth(&rows, &cols);
-                    let closest = angles
+                let projection = self
+                    .inspection_contour
+                    .borrow()
+                    .as_ref()
+                    .and_then(|c| c.projection.as_ref())
+                    .filter(|(a, _)| *a == azimuth)
+                    .map(|(_, p)| p.clone());
+                if let Some(point) = projection {
+                    image_point = point;
+                } else {
+                    let points: Vec<[f64; 2]> = contours
+                        .as_array()
+                        .unwrap()
                         .iter()
-                        .enumerate()
-                        .map(|(i, &a)| {
-                            (
-                                i,
-                                ((a - azimuth.to_radians() + std::f64::consts::PI)
-                                    .rem_euclid(std::f64::consts::TAU)
-                                    - std::f64::consts::PI)
-                                    .abs(),
-                            )
+                        .flat_map(|p| {
+                            p["points"]
+                                .as_array()
+                                .unwrap()
+                                .iter()
+                                .map(|v| [v[0].as_f64().unwrap(), v[1].as_f64().unwrap()])
                         })
-                        .min_by(|a, b| a.1.total_cmp(&b.1))
-                        .unwrap();
-                    if closest.1 < 1f64.to_radians() {
-                        image_point = json!({"x":points[closest.0][0],"y":points[closest.0][1]});
+                        .collect();
+                    if !points.is_empty() {
+                        let rows: Vec<_> = points.iter().map(|p| p[1]).collect();
+                        let cols: Vec<_> = points.iter().map(|p| p[0]).collect();
+                        let angles = native.calc_azimuth(&rows, &cols);
+                        let closest = angles
+                            .iter()
+                            .enumerate()
+                            .map(|(i, &a)| {
+                                (
+                                    i,
+                                    ((a - azimuth.to_radians() + std::f64::consts::PI)
+                                        .rem_euclid(std::f64::consts::TAU)
+                                        - std::f64::consts::PI)
+                                        .abs(),
+                                )
+                            })
+                            .min_by(|a, b| a.1.total_cmp(&b.1))
+                            .unwrap();
+                        if closest.1 < 1f64.to_radians() {
+                            image_point =
+                                json!({"x":points[closest.0][0],"y":points[closest.0][1]});
+                        }
+                    }
+                    if let Some(cache) = self.inspection_contour.borrow_mut().as_mut() {
+                        cache.projection = Some((azimuth, image_point.clone()));
                     }
                 }
             }
             let linked = json!({"twoTheta":tth,"radial":convert(tth,"2th_deg",&self.settings.unit,self.settings.geometry.wavelength),"contours":contours,"azimuth":azimuth,"imagePoint":image_point});
             self.inspection = Some(Inspection {
                 geometry: self.settings.geometry.clone(),
+                shape: image.shape,
                 generation: self.image_generation,
                 value: Arc::new(linked.clone()),
             });

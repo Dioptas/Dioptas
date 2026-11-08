@@ -231,7 +231,4 @@ pub fn contours(angles: &[f64], shape: [usize; 2], targets: &[(usize, f64)]) -> 
         shape[0].max(shape[1]).div_ceil(450).max(1),
     )
 }
-pub fn full_contours(angles: &[f64], shape: [usize; 2], target: f64) -> serde_json::Value {
-    contours_at_step(angles, shape, &[(0, target)], 1)
-}
 use crate::contours::contours_at_step;

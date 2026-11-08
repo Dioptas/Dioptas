@@ -130,6 +130,7 @@ pub struct Session {
     integration_history: integration_history::IntegrationHistory,
     inspection: Option<linked::Inspection>,
     inspection_contour: std::cell::RefCell<Option<linked::ContourCache>>,
+    inspection_field: std::cell::RefCell<Option<linked::FieldCache>>,
     mask: Arc<Vec<u8>>,
     mask_filename: Option<String>,
     mask_mode: bool,
@@ -197,6 +198,7 @@ impl Session {
             integration_history: Default::default(),
             inspection: None,
             inspection_contour: Default::default(),
+            inspection_field: Default::default(),
             mask: Arc::new(vec![]),
             mask_filename: None,
             mask_mode: true,
@@ -606,13 +608,16 @@ impl Session {
                 #[cfg(not(feature = "dioptrin"))]
                 image.read(index as usize)?;
                 self.image_generation += 1;
+                // A new intensity frame does not change the physical click.
+                let shape = image.shape;
                 if image.shape != previous_shape {
                     self.mask = Arc::new(vec![0; image.values.len()]);
                     self.undo.clear();
                     self.redo.clear();
-                    self.mask_raster = Some(Raster::mask(&self.mask, image.shape));
+                    self.mask_raster = None;
                 }
                 self.image_raster = Some(Raster::image(&image.values, image.shape));
+                self.retain_inspection(shape);
                 self.calibration.picks.clear();
                 self.calibration.rms = None;
                 self.calibration_history = History::default();
@@ -1155,7 +1160,6 @@ impl Session {
     }
     fn publish_image(&mut self, mut image: Image) -> Result<(), String> {
         image.orient(&self.settings.transformations, &self.control)?;
-        self.inspection = None;
         self.integration_history = Default::default();
         self.files.image_directory = image
             .path
@@ -1168,6 +1172,7 @@ impl Session {
             self.prepared = None;
         }
         self.image_generation += 1;
+        self.retain_inspection(image.shape);
         self.processed_values = None;
         self.processed_raster = None;
         self.calibration.picks.clear();
@@ -1184,7 +1189,16 @@ impl Session {
             self.undo.clear();
             self.redo.clear();
         }
-        self.mask_raster = Some(Raster::mask(&self.mask, image.shape));
+        // calculate_products refreshes the effective mask before publishing the
+        // reply. Retain a same-shape mask for comparison instead of hashing an
+        // intermediate user-only mask that would immediately be replaced.
+        if self
+            .image
+            .as_ref()
+            .is_none_or(|old| old.shape != image.shape)
+        {
+            self.mask_raster = None;
+        }
         self.image = Some(image);
         self.pattern = None;
         self.cake = None;
@@ -1315,8 +1329,15 @@ impl Session {
                 }
             }
             self.plugins = plugins;
-            self.mask_raster = Some(Raster::mask(&combined, image.shape));
-            self.effective_mask = Arc::new(combined);
+            let combined = Arc::new(combined);
+            if self.mask_raster.as_ref().is_none_or(|raster| {
+                raster.metadata["width"].as_u64() != Some(image.shape[1] as u64)
+                    || raster.metadata["height"].as_u64() != Some(image.shape[0] as u64)
+                    || raster.buffer.bytes.as_slice() != combined.as_slice()
+            }) {
+                self.mask_raster = Some(Raster::shared_mask(combined.clone(), image.shape));
+            }
+            self.effective_mask = combined;
         }
         Ok(())
     }

@@ -1,6 +1,7 @@
 // Optional local 9M benchmark. Scientific packets use the real Rust binary
 // protocol; no browser/base64 adapter is included in the measured interval.
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { nativeClient, root } from "./native_backend_client.mjs";
@@ -22,8 +23,7 @@ for (const [label, executable] of [
   ["after", current],
 ]) {
   process.env.DIOPTAS_NATIVE_PROCESSOR = path.resolve(executable);
-  if (args.includes("--trace"))
-    process.env.DIOPTAS_TRACE_FRAME = "1";
+  if (args.includes("--trace")) process.env.DIOPTAS_TRACE_FRAME = "1";
   else delete process.env.DIOPTAS_TRACE_FRAME;
   const n = nativeClient();
   let requestId = 0;
@@ -46,7 +46,11 @@ for (const [label, executable] of [
     });
     await invoke("mask_file", { path: path.join(folder, "eiger_0000.mask") });
     await invoke("map_load", { paths: [path.join(folder, "eiger_0000.h5")] });
-    await invoke("validation_position", { source: "cake", x: 5, azimuth: 15 });
+    const firstGuide = await invoke("validation_position", {
+      source: "cake",
+      x: 5,
+      azimuth: 15,
+    });
     n.diagnostics.length = 0;
     const rows = [];
     science[label] = [];
@@ -55,11 +59,15 @@ for (const [label, executable] of [
         ? [12, 202, 390, 604]
         : [11, 201, 389, 603]) {
         const selected = await invoke("map_select", { index, reintegrate });
-        const linked = await invoke("validation_position", {
-          source: "cake",
-          x: 5,
-          azimuth: 15,
-        });
+        // Same policy as the frontend's restoreMapPosition: a valid retained
+        // inspection needs no second processor request.
+        const linked = selected.r.linked
+          ? { r: selected.r, ms: 0 }
+          : await invoke("validation_position", {
+              source: "cake",
+              x: 5,
+              azimuth: 15,
+            });
         rows.push({
           index,
           requestId: selected.id,
@@ -70,14 +78,40 @@ for (const [label, executable] of [
         });
         science[label].push({
           pattern: selected.r.pattern,
-          imageId: selected.r.image.bufferId,
-          maskId: selected.r.mask.bufferId,
+          // Cache IDs are opaque and may use different algorithms across builds.
+          // Independently compare the actual wire bytes with the same digest.
+          imageBytesSha256: createHash("sha256")
+            .update(n.buffers.get(selected.r.image.bufferId))
+            .digest("hex"),
+          maskBytesSha256: createHash("sha256")
+            .update(n.buffers.get(selected.r.mask.bufferId))
+            .digest("hex"),
           histogram: selected.r.image.histogram,
           limits: selected.r.image.limits,
           linked: linked.r.linked,
         });
       }
     const median = (v) => v.sort((a, b) => a - b)[Math.floor(v.length / 2)];
+    const guideRows = [];
+    for (const x of [3.5, 4, 4.5, 5.5, 6, 7.5, 9, 12]) {
+      const selected = await invoke("validation_position", {
+        source: "cake",
+        x,
+        azimuth: 15,
+      });
+      guideRows.push({ x, ms: selected.ms });
+      science[label].push({ guidePosition: x, linked: selected.r.linked });
+    }
+    const repeatedGuideMs = [];
+    for (let i = 0; i < 4; ++i) {
+      const repeated = await invoke("validation_position", {
+        source: "cake",
+        x: 12,
+        azimuth: 15,
+      });
+      repeatedGuideMs.push(repeated.ms);
+      science[label].push({ repeatedGuide: i, linked: repeated.r.linked });
+    }
     receipt[label] = {
       rows,
       medianStoredMs: median(
@@ -88,6 +122,12 @@ for (const [label, executable] of [
       ),
       diagnostics: (await invoke("integration_diagnostics")).r
         .integrationDiagnostics,
+      guides: {
+        firstRequestMs: firstGuide.ms,
+        medianNewPositionMs: median(guideRows.map((r) => r.ms)),
+        medianRepeatedPositionMs: median(repeatedGuideMs),
+        rows: guideRows,
+      },
     };
     await new Promise((resolve) => setImmediate(resolve));
     const traces = n.diagnostics
@@ -110,6 +150,9 @@ for (const [label, executable] of [
         ["open-image", "display preparation"],
         ["open-image", "processing masks and integration"],
         ["raster", "f32 conversion and SHA256"],
+        ["raster", "f32 conversion"],
+        ["raster", "SHA256 and shared storage"],
+        ["raster", "buffer fingerprint and shared storage"],
         ["raster", "shared count distribution"],
         ["raster", "exact auto levels"],
         ["raster", "full pixel histogram"],

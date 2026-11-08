@@ -33,9 +33,11 @@ base64 = "0.22"
 png = "0.18"
 csv = "1"
 hdf5 = { package = "hdf5-metno", version = "=0.15.1", features = ["static", "zlib", "lzf"] }
+blake3 = { version = "1", features = ["rayon"] }
+rayon = "1"
 
-# Enable RustCrypto's runtime-dispatched ARM SHA instructions for full-resolution
-# buffer identities; the portable fallback and digest bytes are unchanged.
+# Retain runtime-dispatched ARM SHA instructions for existing project blob
+# identities; live display buffers use an independent parallel fingerprint.
 [target.'cfg(target_arch = "aarch64")'.dependencies]
 sha2 = { version = "0.10", features = ["asm"] }
 

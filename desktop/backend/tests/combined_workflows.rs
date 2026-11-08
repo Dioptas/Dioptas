@@ -249,11 +249,17 @@ fn map_inspection_contours_survive_frame_changes_but_follow_geometry_changes() {
         "validation_position",
         json!({"source":"cake","x":0.5,"azimuth":15.}),
     );
-    call(
+    let selected = call(
         &mut session,
         "map_select",
         json!({"index":1,"reintegrate":true}),
     );
+    assert_eq!(
+        selected.result["linked"], before.result["linked"],
+        "unchanged geometry must retain inspection without a restore request"
+    );
+    let integrated = call(&mut session, "integrate", json!({}));
+    assert_eq!(integrated.result["linked"], before.result["linked"]);
     let after = call(
         &mut session,
         "validation_position",

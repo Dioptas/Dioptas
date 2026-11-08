@@ -138,3 +138,64 @@ filtered/unfiltered percentiles with the original source-precision path,
 including negative values, high outliers, NaN, infinity, constant images,
 parallel reduction and bounded fallbacks. Frontend and native host code are
 unchanged in this follow-up.
+
+## Follow-up: display copies and linked geometry
+
+A split trace isolated roughly 15 ms in the live buffer SHA256 fingerprint,
+even after parallel pixel conversion. Display buffers now use namespaced BLAKE3
+IDs with a private pool of at most eight workers, and retain their existing Vec
+allocation through Arc rather than copying it into an Arc slice. Project blob
+SHA256 identities and format-2 project compatibility are unchanged. BLAKE3's
+parallel API is documented at <https://docs.rs/blake3/latest/blake3/struct.Hasher.html#method.update_rayon>.
+The wire contract treats buffer IDs as opaque strings and still identifies the
+complete immutable byte content. Full-resolution float32 conversion is also
+parallel; source scientific values remain f64 and unchanged.
+
+Frame loading no longer builds/hashes a temporary user-only mask before replacing
+it with the effective mask. Equal effective mask bytes and dimensions retain the
+existing display buffer; changed masks share their immutable allocation with the
+effective scientific mask. Pixel-by-pixel comparisons, rather than assumptions
+about frame number or detector identity, determine whether masks can be reused.
+
+An inspection now survives image/frame changes when calibration geometry and
+shape agree. Map replies retain this inspection, allowing the existing frontend
+to skip its restore request. Reintegration does not recalculate a stationary
+click. Calibration/detector/shape/orientation changes still invalidate the result.
+
+For a newly selected angle, one full-resolution angle field and conservative
+64-cell row-strip bounds are cached per geometry and shape. Strips that cannot
+cross the target are skipped; cell order, saddle rules, interpolation and final
+coordinates are unchanged. This is an exact search reduction, unlike the existing
+coarse display sampling of phase rings. Azimuth projections can also be reused.
+The cache holds one geometry field, approximately 81 MB plus 2.6 MB of bounds on
+the tested Eiger; it does not retain fields for every loaded frame or angle.
+
+In an isolated matched source-build benchmark, stored Map selection decreased
+from 60.4 to 37.1 ms, and reintegration from 64.4 to 39.4 ms. Frame changes needed
+zero additional inspection requests. Median new-angle inspection decreased from
+163.9 to 4.17 ms with a warm geometry cache. The first inspection still builds
+the cache: 87.3 ms in that run, versus 161.2 ms before. Results exclude GUI paint.
+
+The benchmark now follows the frontend's actual restore policy and compares
+image/mask wire bytes using an independent SHA256 digest, because cache IDs
+intentionally differ across hash algorithms. Patterns, every tested image/mask
+byte, histogram bins/edges, limits, and all new/repeated linked coordinates match
+the prior build. Source-build stage medians were 9.82 ms for decode/plan handoff,
+0.86 ms for display conversion, 2.38 ms for the buffer fingerprint, 4.60 ms for
+shared statistics, 1.11 ms for mask/processing, and 9.26 ms for packet encode/write.
+Stages are measured separately; their medians need not sum exactly to the total.
+
+All 62 Rust tests and 63 frontend tests passed, as did Clippy and integration
+transport cancellation/source-mutation tests. Headless Chromium/WebKit Map and
+detached-preview checks passed. Regression checks cover exact indexed contours
+on partial strips, saddles and nonfinite holes, byte-exact parallel display
+conversion (including signed zero and NaN), retained inspection during Map
+selection/reintegration and geometry-dependent invalidation.
+
+The final standalone processor repeat confirmed 61.4 → 37.3 ms for stored
+selection, 64.5 → 39.8 ms for reintegration, and 161.2 → 4.26 ms for new guide
+positions. First-guide cache construction took 88.5 ms. Exact byte/numerical
+comparisons passed again. All seven Tauri processor tests passed, including
+round-trip buffers and cached-buffer omission with the new opaque IDs. The new
+bundle's resource manifest, ad-hoc signature, macOS 14 deployment targets and
+system-only dynamic dependencies passed inspection; no visible app was launched.

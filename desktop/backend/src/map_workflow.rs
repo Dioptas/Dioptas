@@ -172,7 +172,6 @@ impl Session {
             self.cake_values = None;
             reply.result["cake"] = Value::Null;
             reply.result["rings"] = json!([]);
-            reply.result["linked"] = Value::Null;
         }
         reply.result["mapWarning"] = reply.result["batchWarning"].clone();
         self.attach_map(&mut reply);
