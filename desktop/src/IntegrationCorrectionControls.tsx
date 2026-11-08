@@ -1,6 +1,7 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Input, Select } from "./ui";
 import type { State } from "./types";
-import type { IntegrationRun } from "./integration";
+import type { CorrectionMaterial, IntegrationRun } from "./integration";
 import {
   ProcessingToggle,
   ProcessingFile,
@@ -49,7 +50,11 @@ export function IntegrationCorrectionControls({
   // Tab/Enter edits cannot overwrite a preceding parameter with a stale value.
   const edit = (
     kind: string,
-    patch: { enabled?: boolean; parameters?: Record<string, number> },
+    patch: {
+      enabled?: boolean;
+      parameters?: Record<string, number>;
+      material?: Partial<CorrectionMaterial>;
+    },
   ) => {
     const task = tail.current.then(() => {
       const correction = current.current[kind];
@@ -59,6 +64,9 @@ export function IntegrationCorrectionControls({
           kind,
           enabled: patch.enabled ?? correction.enabled,
           parameters: { ...correction.parameters, ...patch.parameters },
+          ...(patch.material
+            ? { material: { ...correction.material, ...patch.material } }
+            : {}),
         },
         "",
         (response) => {
@@ -87,6 +95,12 @@ export function IntegrationCorrectionControls({
     } as Record<string, string>
   )[tab];
   const field = (key: string) => {
+    if (
+      key === "absorption_coefficient" &&
+      correction.material?.mode === "formula" &&
+      !correction.enabled
+    )
+      return null;
     const definition = correction.fields[key];
     return (
       <ProcessingNumberField
@@ -99,7 +113,12 @@ export function IntegrationCorrectionControls({
         }
         min={definition.min}
         max={definition.max}
-        disabled={!state.hasImage || switching === tab}
+        disabled={
+          !state.hasImage ||
+          switching === tab ||
+          (key === "absorption_coefficient" &&
+            correction.material?.mode === "formula")
+        }
         onCommit={async (value) => {
           if (correction.enabled)
             await edit(tab, { parameters: { [key]: value } });
@@ -240,6 +259,14 @@ export function IntegrationCorrectionControls({
                 Load an image and calibration to use this correction.
               </p>
             )}
+            {(tab === "plate" || tab === "slab") && correction.material && (
+              <MaterialControls
+                key={`material-${tab}`}
+                material={correction.material}
+                disabled={!state.hasImage || switching === tab}
+                onCommit={(material) => edit(tab, { material })}
+              />
+            )}
             {(tab === "plate" || tab === "slab") && (
               <p className="integration-note">
                 {tab === "plate"
@@ -270,6 +297,76 @@ export function IntegrationCorrectionControls({
           </div>
         )}
       </div>
+    </>
+  );
+}
+
+function MaterialControls({
+  material,
+  disabled,
+  onCommit,
+}: {
+  material: CorrectionMaterial;
+  disabled: boolean;
+  onCommit: (patch: Partial<CorrectionMaterial>) => Promise<void>;
+}) {
+  const [formula, setFormula] = useState(material.formula);
+  useEffect(() => setFormula(material.formula), [material.formula]);
+  return (
+    <>
+      <label className="field-label processing-material-input">
+        <span>Attenuation source</span>
+        <Select
+          aria-label="Attenuation source"
+          value={material.mode}
+          disabled={disabled}
+          onChange={(e) =>
+            void onCommit({
+              mode: e.currentTarget.value as CorrectionMaterial["mode"],
+            })
+          }
+        >
+          <option value="manual">Enter μ</option>
+          <option value="formula">Formula</option>
+        </Select>
+      </label>
+      {material.mode === "formula" && (
+        <>
+          <label className="field-label processing-material-input">
+            <span>Formula or material</span>
+            <Input
+              aria-label="Formula or material"
+              value={formula}
+              disabled={disabled}
+              maxLength={256}
+              onChange={(e) => setFormula(e.currentTarget.value)}
+              onBlur={() => {
+                if (formula.trim() !== material.formula)
+                  void onCommit({ formula: formula.trim() });
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  setFormula(material.formula);
+                }
+              }}
+            />
+          </label>
+          <ProcessingNumberField
+            label="Density (g/cm³)"
+            value={material.density}
+            min={0}
+            max={100000}
+            disabled={disabled}
+            onCommit={(density) => onCommit({ density })}
+          />
+          <p className="integration-note">
+            μ follows the calibration wavelength. Density 0 uses the material
+            database; enable to calculate.
+          </p>
+        </>
+      )}
     </>
   );
 }

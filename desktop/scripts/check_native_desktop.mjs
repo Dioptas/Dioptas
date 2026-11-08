@@ -112,6 +112,7 @@ if (selected.has("--references")) {
     "integration_core",
     "processing",
     "uncertainty",
+    "material",
     "series",
     "phase",
     "io_history",

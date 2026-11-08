@@ -179,3 +179,8 @@
 .processing-pane[hidden] {
   display: none;
 }
+
+.integration-controls .processing-form .processing-material-input {
+  width: min(100%, 300px);
+  grid-template-columns: minmax(0, 1fr) 114px;
+}

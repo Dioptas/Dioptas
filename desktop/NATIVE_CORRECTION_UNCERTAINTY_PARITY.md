@@ -60,9 +60,19 @@ metadata; reloading an exported image starts a new input-count assumption.
   cancellation. This preserves the Python convention, including its thickness
   factor; it is not silently normalized to unit thickness.
 
-The native GUI accepts the attenuation coefficient directly. Qt's automatic
-formula/density-to-attenuation lookup through xraydb and its correction-only
-plot view are not ported in this step; no Python lookup is invoked silently.
+The native GUI supports direct attenuation entry or formula/material and density
+lookup using Rust `xraydb` 0.4.1. Formula-derived μ follows the calibration
+wavelength and uses total Elam attenuation, matching Python XrayDB. Density 0
+uses the material database. Energies outside 100–800,000 eV fail explicitly.
+The correction-only plot view remains outside this step; no Python lookup is
+invoked silently.
+
+The full embedded database is disabled. The app embeds only 329,526 bytes
+(about 322 KiB) of element properties and Elam photoabsorption/scattering data,
+retaining all 98 Elam elements without Chantler, fluorescence, or duplicate
+Waasmaier–Kirfel tables. The dataset is loaded once without file/network access.
+[Subset provenance and regeneration](backend/data/README.md) record exact hashes,
+versions, and source attribution; projects also record the data fingerprint.
 Thickness is in mm, attenuation in mm⁻¹ and alignment in degrees. Tilt measures
 the normal relative to the beam; rotation follows pyFAI azimuth. As in Python,
 zero thickness or zero attenuation gives unity. Path cosines are bounded by
@@ -78,7 +88,7 @@ remain in source order and follow rotations/flips together with the image.
 
 Native format-2 projects own both transfer reference planes, including disabled
 and partially loaded pairs, analytical parameter drafts, background-noise
-policy and derived-image source variances. Reopening and recalculating works
+policy, formula/material/density/source selection and derived-image source variances. Reopening and recalculating works
 after the source files have been deleted. Enabled transfer metadata retains
 the scalar filename layout expected by the original Python reader; native
 cached arrays are stored separately. A changed legacy reference filename takes
@@ -112,8 +122,13 @@ All checks run through the existing native CI gate:
   std differs by less than `4e-13` on this synthetic fixture. Independent
   Gauss–Legendre quadrature checks the slab depth integral near equal incident
   and outgoing paths, where the original subtraction formula loses precision.
+- `scripts/native_material_parity.py`: 84 independent XrayDB comparisons across
+  both correction types, six materials/formulas, seven energies, a near-edge
+  pair, grouped/fractional formulas and named-material density. Formula mode is
+  compared against explicit μ through intensities and propagated std. Invalid
+  materials, density and out-of-range energy preserve the preceding state.
 - `scripts/native_corrections_smoke.mjs`: headless Chromium/WebKit controls,
-  transfer loading, draft commit/enable, project reopening and panel layouts at
+  transfer loading, draft commit/enable, formula/density lookup, project reopening and panel layouts at
   1440 and 1100 px. Receipts/screenshots are under `artifacts/native-corrections`.
 - Dioptrin tests: explicit variance agrees with the independently implemented
   Poisson path for counting, polygon splitting and supersampling; a hand-built

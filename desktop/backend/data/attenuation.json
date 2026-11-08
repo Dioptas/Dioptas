@@ -1,0 +1,19 @@
+{
+  "crate_version": "0.4.1",
+  "data_license": "CC0-1.0 (XrayDB)",
+  "elements": 118,
+  "encoding": "xraydb-data 0.4.1 postcard; all retained f64 values unchanged",
+  "full_postcard_sha256": "e53ed91fd44427cf9fe8c8c733f36d2084c96f8ec505ffcf5263fd819f1408db",
+  "photoabsorption_rows": 98,
+  "retained_tables": [
+    "version",
+    "elements",
+    "photoabsorption",
+    "scattering"
+  ],
+  "scattering_rows": 98,
+  "source": "https://github.com/Ameyanagi/xraydb-rs",
+  "subset_bytes": 329526,
+  "subset_sha256": "a8e21d21474b777cddf89a542fc69d223f80aab5a5d6e19a0b381ca5ed3de1d1",
+  "upstream_data_version": "1.0"
+}

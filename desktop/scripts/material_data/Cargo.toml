@@ -1,0 +1,15 @@
+[package]
+name = "dioptas-material-data"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# Isolated generation tool: its full database is never enabled in the processor.
+[workspace]
+
+[dependencies]
+xraydb = "=0.4.1"
+xraydb-data = "=0.4.1"
+postcard = { version = "1", features = ["alloc"] }
+serde_json = "1"
+sha2 = "0.10"

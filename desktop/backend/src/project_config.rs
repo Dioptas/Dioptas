@@ -360,7 +360,11 @@ pub(super) fn load(
         if let Some(drafts) = doc["native_desktop"]["correction_drafts"].as_object() {
             for kind in ["cbn", "oiadac", "plate", "slab"] {
                 if let Some(draft) = drafts.get(kind) {
-                    s.processing.correction(&json!({"kind":kind,"enabled":draft["enabled"],"parameters":draft["parameters"]}),s.settings.calibrated)?;
+                    let mut args = json!({"kind":kind,"enabled":draft["enabled"],"parameters":draft["parameters"]});
+                    if let Some(material) = draft.get("material") {
+                        args["material"] = material.clone();
+                    }
+                    s.processing.correction(&args, s.settings.calibrated)?;
                 }
             }
         }
@@ -866,6 +870,8 @@ pub(super) fn save(
     let mut physical = serde_json::to_value(owned).map_err(|e| e.to_string())?;
     physical["detector"] = encode_detector(g.detector.as_deref(), payloads)?;
     native["physical_geometry"] = physical;
+    native["attenuation_data"] = serde_json::from_str(include_str!("../data/attenuation.json"))
+        .map_err(|e| e.to_string())?;
     native["original_detector"] = encode_detector(settings.original_detector.as_deref(), payloads)?;
     doc["native_desktop"] = native;
     if let Some((path, shape, values, enabled)) = s.processing.project_flat() {

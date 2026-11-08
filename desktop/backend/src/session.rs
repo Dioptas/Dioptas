@@ -801,7 +801,13 @@ impl Session {
                     _ => {
                         check_keys(
                             args,
-                            &["kind", "enabled", "parameters", "defer_integration"],
+                            &[
+                                "kind",
+                                "enabled",
+                                "parameters",
+                                "material",
+                                "defer_integration",
+                            ],
                         )?;
                         self.processing.correction(args, self.settings.calibrated)?;
                     }

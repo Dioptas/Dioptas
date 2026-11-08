@@ -1,6 +1,11 @@
 import type { Response } from "./types";
 import type { PhaseReference } from "./integrationPhase";
 /** Integration-only command/state contract; shared mask and calibration stay owned by Session. */
+export type CorrectionMaterial = {
+  mode: "manual" | "formula";
+  formula: string;
+  density: number;
+};
 export interface IntegrationState {
   roi: [number, number, number, number] | null;
   automaticBinning: boolean;
@@ -41,6 +46,7 @@ export interface IntegrationState {
     {
       enabled: boolean;
       parameters: Record<string, number>;
+      material?: CorrectionMaterial;
       fields: Record<string, { label: string; min: number; max: number }>;
     }
   >;

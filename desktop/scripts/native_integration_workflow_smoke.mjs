@@ -92,13 +92,10 @@ try {
       await dialog
         .getByRole("searchbox", { name: "Search materials" })
         .fill("gold");
-      await page.waitForTimeout(500);
-      assert.ok(
-        await dialog
-          .getByRole("table", { name: "Database materials" })
-          .getByText("Gold", { exact: true })
-          .count(),
-      );
+      await dialog
+        .getByRole("table", { name: "Database materials" })
+        .getByText("Gold", { exact: true })
+        .waitFor({ state: "visible" });
       await page.screenshot({
         path: path.join(artifacts, `${name}-native-catalog.png`),
       });

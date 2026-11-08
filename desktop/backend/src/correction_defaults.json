@@ -112,7 +112,7 @@
         "max": 1000
       },
       "absorption_coefficient": {
-        "label": "Absorption coefficient (mm⁻¹)",
+        "label": "Absorption coefficient (mm\u207b\u00b9)",
         "min": 0,
         "max": 1000000.0
       },
@@ -126,6 +126,11 @@
         "min": -360,
         "max": 360
       }
+    },
+    "material": {
+      "mode": "manual",
+      "formula": "C",
+      "density": 3.51
     }
   },
   "slab": {
@@ -143,7 +148,7 @@
         "max": 1000
       },
       "absorption_coefficient": {
-        "label": "Absorption coefficient (mm⁻¹)",
+        "label": "Absorption coefficient (mm\u207b\u00b9)",
         "min": 0,
         "max": 1000000.0
       },
@@ -157,6 +162,11 @@
         "min": -360,
         "max": 360
       }
+    },
+    "material": {
+      "mode": "manual",
+      "formula": "CeO2",
+      "density": 7.22
     }
   }
 }

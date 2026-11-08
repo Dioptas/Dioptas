@@ -167,5 +167,29 @@
       "sha256": "5e834fe9788c524210deda859c46a550ffa5aa0cba9ea0572f0d81120e97c008",
       "url": "https://raw.githubusercontent.com/tauri-apps/tauri/59b63ab500da9859f12d8888c3298bc29bba0b92/LICENSE.spdx"
     }
+  ],
+  "xraydb@0.4.1": [
+    {
+      "file": "ameyanagi-xraydb-rs-c07d4cf0c719-LICENSE-MIT",
+      "sha256": "74c52648e6feb213da8cab51f7ecd1d75075b69940c031474f351d7c15b6974a",
+      "url": "https://raw.githubusercontent.com/Ameyanagi/xraydb-rs/c07d4cf0c71977587a36320be72c50dde12bda2d/LICENSE-MIT"
+    },
+    {
+      "file": "ameyanagi-xraydb-rs-c07d4cf0c719-LICENSE-APACHE",
+      "sha256": "4ef94be6b45f27bdf9783232691b00ff96273a43ee11e19ca14128a1a0274070",
+      "url": "https://raw.githubusercontent.com/Ameyanagi/xraydb-rs/c07d4cf0c71977587a36320be72c50dde12bda2d/LICENSE-APACHE"
+    }
+  ],
+  "xraydb-data@0.4.1": [
+    {
+      "file": "ameyanagi-xraydb-rs-c07d4cf0c719-LICENSE-MIT",
+      "sha256": "74c52648e6feb213da8cab51f7ecd1d75075b69940c031474f351d7c15b6974a",
+      "url": "https://raw.githubusercontent.com/Ameyanagi/xraydb-rs/c07d4cf0c71977587a36320be72c50dde12bda2d/LICENSE-MIT"
+    },
+    {
+      "file": "ameyanagi-xraydb-rs-c07d4cf0c719-LICENSE-APACHE",
+      "sha256": "4ef94be6b45f27bdf9783232691b00ff96273a43ee11e19ca14128a1a0274070",
+      "url": "https://raw.githubusercontent.com/Ameyanagi/xraydb-rs/c07d4cf0c71977587a36320be72c50dde12bda2d/LICENSE-APACHE"
+    }
   ]
 }

@@ -335,6 +335,21 @@ impl Processing {
                 entry["parameters"][key] = json!(v);
             }
         }
+        if let Some(patch) = args.get("material") {
+            if !["plate", "slab"].contains(&kind) {
+                return Err("Material lookup is available for plate and slab absorption.".into());
+            }
+            let patch = patch
+                .as_object()
+                .ok_or("Material settings must be an object.")?;
+            for (key, value) in patch {
+                if !["mode", "formula", "density"].contains(&key.as_str()) {
+                    return Err("Unknown material setting.".into());
+                }
+                entry["material"][key] = value.clone();
+            }
+            validate_material(&entry["material"])?;
+        }
         if kind == "cbn"
             && entry["parameters"]["small_cbn_seat_radius"].as_f64()
                 > entry["parameters"]["large_cbn_seat_radius"].as_f64()
@@ -391,6 +406,13 @@ impl Processing {
         if !self.active() {
             self.cache = None;
             return Ok(image.values.clone());
+        }
+        for kind in ["plate", "slab"] {
+            let entry = &mut self.corrections[kind];
+            if entry["enabled"] == true && entry["material"]["mode"] == "formula" {
+                let mu = material_mu(&entry["material"], geometry.wavelength)?;
+                entry["parameters"]["absorption_coefficient"] = json!(mu);
+            }
         }
         let geometry_active = self
             .corrections
@@ -498,6 +520,53 @@ impl Processing {
         });
         Ok(values)
     }
+}
+fn validate_material(material: &Value) -> Result<(), String> {
+    if !material["mode"]
+        .as_str()
+        .is_some_and(|v| ["manual", "formula"].contains(&v))
+    {
+        return Err("Choose manual attenuation or formula and density.".into());
+    }
+    if !material["formula"]
+        .as_str()
+        .is_some_and(|v| !v.trim().is_empty() && v.len() <= 256)
+    {
+        return Err("Enter a material formula or name (up to 256 characters).".into());
+    }
+    if !material["density"]
+        .as_f64()
+        .is_some_and(|v| v.is_finite() && (0.0..=100_000.).contains(&v))
+    {
+        return Err("Density must be finite and between 0 and 100000 g/cm³; zero uses the material database.".into());
+    }
+    Ok(())
+}
+fn material_mu(material: &Value, wavelength: f64) -> Result<f64, String> {
+    validate_material(material)?;
+    let energy = (6.626_070_15e-34 * 299_792_458. / 1.602_176_634e-19) / wavelength;
+    let (low, high) = xraydb::XrayDb::elam_energy_range();
+    if !energy.is_finite() || !(low..=high).contains(&energy) {
+        return Err(format!(
+            "Material attenuation requires photon energy from {low} to {high} eV; check the calibration wavelength."
+        ));
+    }
+    let db = xraydb::XrayDb::load_uncompressed(include_bytes!("../data/attenuation.bin"))
+        .map_err(|e| format!("Could not load embedded X-ray reference data: {e}"))?;
+    let density = material["density"].as_f64().unwrap();
+    let mu = db
+        .material_mu_named_at(
+            material["formula"].as_str().unwrap().trim(),
+            energy,
+            xraydb::CrossSectionKind::Total,
+            (density > 0.).then_some(density),
+        )
+        .map_err(|e| format!("Material attenuation: {e}"))?
+        / 10.;
+    if !mu.is_finite() || !(0.0..=1e6).contains(&mu) {
+        return Err("Calculated material attenuation is outside the supported range.".into());
+    }
+    Ok(mu)
 }
 #[cfg(feature = "dioptrin")]
 fn absorption(kind: &str, p: &Value, tth: f64, azi: f64) -> f64 {

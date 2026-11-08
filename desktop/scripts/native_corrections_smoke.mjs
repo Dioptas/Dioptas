@@ -173,6 +173,23 @@ try {
         );
       }
       await page
+        .getByLabel("Attenuation source", { exact: true })
+        .selectOption("formula");
+      await wait(
+        (s) => s.integration.corrections.slab.material.mode === "formula",
+      );
+      const formula = page.getByLabel("Formula or material", { exact: true });
+      await formula.fill("SiO2");
+      await formula.press("Enter");
+      const density = page.getByLabel("Density (g/cm³)", { exact: true });
+      await density.fill("2.2");
+      await density.press("Enter");
+      await wait(
+        (s) =>
+          s.integration.corrections.slab.material.formula === "SiO2" &&
+          s.integration.corrections.slab.material.density === 2.2,
+      );
+      await page
         .getByRole("button", { name: "Save project", exact: true })
         .click();
       await page.waitForFunction(() =>
@@ -195,6 +212,14 @@ try {
         await page.setViewportSize({ width, height: 900 });
         for (const label of ["Transfer", "Plate", "Slab"]) {
           await type(label).click();
+          assert.equal(
+            await page
+              .locator(".integration-tab-corrections")
+              .getByRole("checkbox")
+              .count(),
+            1,
+            `${label}: one apply control after navigation/reopening`,
+          );
           const sizes = await page
             .locator(".integration-tab-corrections")
             .evaluate((el) => ({

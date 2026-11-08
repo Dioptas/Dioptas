@@ -1567,3 +1567,67 @@ fn corrected_batch_and_map_retain_counting_std_through_normalization_and_offline
     let selected = call(&mut restored, "batch_select", json!({"index":1}));
     close(&values(&selected, "sigma"), &values(&patterns[1], "sigma"));
 }
+
+#[test]
+fn formula_attenuation_tracks_wavelength_and_retains_material_settings_offline() {
+    let d = tempfile::tempdir().unwrap();
+    let a = d.path().join("a.npy");
+    let p = d.path().join("g.poni");
+    image(&a, 0.);
+    poni(&p);
+    let mut s = prepared(&a, &p, "2th_deg");
+    call(
+        &mut s,
+        "integration_settings",
+        json!({"poisson_errors":true}),
+    );
+    let first = call(
+        &mut s,
+        "integration_correction",
+        json!({"kind":"plate","enabled":true,"parameters":{"thickness":0.01},"material":{"mode":"formula","formula":"SiO2","density":2.2}}),
+    );
+    let mu = |r: &Reply| {
+        r.result["state"]["integration"]["corrections"]["plate"]["parameters"]["absorption_coefficient"].as_f64().unwrap()
+    };
+    let first_mu = mu(&first);
+    assert!(first_mu > 0.);
+    let geometry = json!({"dist":0.13,"poni1":0.0012,"poni2":0.0016,"rot1":0.008,"rot2":-0.013,"rot3":0.02,"pixel1":0.0001,"pixel2":0.0001,"wavelength":1e-10,"polarization_factor":0.965});
+    let changed = call(
+        &mut s,
+        "manual_geometry",
+        json!({"convention":"pyfai","values":geometry}),
+    );
+    assert!(mu(&changed) > first_mu);
+    call(
+        &mut s,
+        "integration_correction",
+        json!({"kind":"slab","enabled":true,"parameters":{"thickness":0.01},"material":{"mode":"formula","formula":"kapton","density":0.}}),
+    );
+    let before = call(&mut s, "state", json!({}));
+    let project = d.path().join("materials.dio");
+    call(&mut s, "save_project", json!({"path":project}));
+    let disabled = call(
+        &mut s,
+        "integration_correction",
+        json!({"kind":"plate","enabled":false}),
+    );
+    let draft = d.path().join("disabled.dio");
+    call(&mut s, "save_project", json!({"path":draft}));
+    fs::remove_file(a).unwrap();
+    fs::remove_file(p).unwrap();
+    let mut restored = Session::new(root());
+    let actual = call(&mut restored, "open_project", json!({"path":project}));
+    assert_eq!(actual.result["pattern"], before.result["pattern"]);
+    assert_eq!(
+        actual.result["state"]["integration"]["corrections"],
+        before.result["state"]["integration"]["corrections"]
+    );
+    let actual = call(&mut restored, "open_project", json!({"path":draft}));
+    assert_eq!(actual.result["pattern"], disabled.result["pattern"]);
+    let actual = call(
+        &mut restored,
+        "integration_correction",
+        json!({"kind":"plate","enabled":true}),
+    );
+    assert_eq!(actual.result["pattern"], before.result["pattern"]);
+}

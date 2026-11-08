@@ -16,7 +16,7 @@ and writes a compact receipt under `artifacts/functional-coverage`.
 
 ## Added native flows
 
-`backend/tests/functional_flows.rs` contains 25 tests, including:
+`backend/tests/functional_flows.rs` contains 26 tests, including:
 
 - Raw image → PONI → asymmetric mask → scaled/offset image background → flat
   field → ROI → supersampling → integration with propagated errors, separately

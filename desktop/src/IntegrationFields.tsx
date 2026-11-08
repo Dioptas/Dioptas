@@ -4,7 +4,7 @@ import "./integrationNumericFields.css";
 
 /** Separate only known unit suffixes; ranges and other parenthetical labels stay intact. */
 export function splitNumericLabel(label: string) {
-  const suffix = label.match(/\s+\((mm|mm⁻¹|µm|°|GPa|K|Å|Å⁻¹|Å³|%)\)$/);
+  const suffix = label.match(/\s+\((mm|mm⁻¹|g\/cm³|µm|°|GPa|K|Å|Å⁻¹|Å³|%)\)$/);
   return {
     name: suffix ? label.slice(0, suffix.index) : label,
     unit: suffix?.[1],
