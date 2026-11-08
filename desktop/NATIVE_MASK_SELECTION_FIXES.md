@@ -239,3 +239,45 @@ packet encoding plus write/flush was 9.76 → 8.44 ms. Exact output comparisons
 passed again. The bundle's manifest, signature integrity, macOS 14 deployment
 targets and system-only dynamic dependencies passed inspection. The existing
 user app and earlier artifacts were left unchanged.
+
+## Follow-up: avoid discarded selection metadata
+
+Map/Batch selection previously dispatched a complete open-image command and
+discarded its UI response before constructing the final selection response.
+The shared open-image model operation is now called directly inside the existing
+rollback boundary. Public loading still uses that same model operation. Revision
+increments, source validation, processing, masks and integration are preserved.
+
+Map selection also omits calibration-ring display paths that its response already
+cleared, and avoids attaching identical Map metadata twice. Calibration and
+Integration responses retain their ring products. Angular reference data in
+the calibration controls is retained in every mode.
+
+The immutable mask display buffer now owns its masked-pixel count. Equal masks
+share that owner with the effective mask, so normal UI snapshots do not recount
+the full detector. Cached counts are used only for the identical Arc allocation;
+temporary bulk masks with a different owner retain the exact counting fallback.
+The count and buffer are replaced together on mask changes and restored together
+through checkpoints. One duplicate retained mask allocation is also eliminated.
+
+A first timing repeat was inconsistent while another CPU-intensive job was
+running. That job was preserved. Normal and reversed benchmark order then both
+showed a gain: stored selection medians were 32.79 → 29.10 ms and 34.24 → 28.09 ms;
+reintegration was 36.30 → 32.00 ms and 36.78 → 31.75 ms. Pooling the same eight
+frame samples per mode across both runs gives 33.62 → 28.28 ms for stored patterns
+and 36.65 → 31.86 ms for reintegration. These are warm-cache backend/transfer
+measurements under background load, excluding screen painting. Results are
+reported as ranges rather than a precise idle-machine guarantee.
+
+All 65 Rust tests passed and Clippy passed with warnings denied. Headless
+Chromium/WebKit integration workflows, live Map/detached previews and native
+transport cancellation/source-mutation checks passed. Image/mask bytes, patterns,
+histograms, limits and linked coordinates remained exact in both benchmark
+orders. The benchmark additionally checks complete UI state (apart from elapsed
+time), Map metadata and ring products against the previous build.
+
+The final packaged repeat measured 33.15 → 28.92 ms for stored selection and
+37.75 → 33.59 ms for reintegration. Full workflow-state and Map-metadata
+comparisons passed, excluding only elapsed time, as did all byte/numerical
+comparisons. The new standalone bundle passed resource, signature-integrity,
+deployment-target and native-dependency inspection. No user window was restarted.

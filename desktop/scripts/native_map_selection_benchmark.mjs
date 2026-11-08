@@ -78,6 +78,9 @@ for (const [label, executable] of [
         });
         science[label].push({
           pattern: selected.r.pattern,
+          state: { ...selected.r.state, elapsedMs: null },
+          map: selected.r.map,
+          rings: selected.r.rings,
           // Cache IDs are opaque and may use different algorithms across builds.
           // Independently compare the actual wire bytes with the same digest.
           imageBytesSha256: createHash("sha256")
@@ -160,6 +163,10 @@ for (const [label, executable] of [
         ["raster", "full pixel histogram"],
         ["packet", "encode response"],
         ["packet", "write and flush"],
+        ["snapshot", "base state"],
+        ["snapshot", "processing and calibration metadata"],
+        ["snapshot", "ring display metadata"],
+        ["snapshot", "display buffers and series metadata"],
       ]) {
         const values = collect(
           stage,
@@ -182,6 +189,7 @@ if (baseline) {
   assert.deepEqual(science.after, science.before);
   receipt.science = {
     exactPatternsImagesMasksHistogramsAndLinkedPositions: true,
+    exactWorkflowStateAndMapMetadata: true,
   };
 }
 const output = path.join(root, "desktop/artifacts/native-map-selection");

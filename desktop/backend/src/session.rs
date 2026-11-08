@@ -445,99 +445,7 @@ impl Session {
                 self.publish_image(candidate)?;
                 self.refresh_masks(&Control::default())?;
             }
-            "open_image" => {
-                check_keys(
-                    args,
-                    &[
-                        "path",
-                        "frame",
-                        "dataset",
-                        "follow_external_links",
-                        "cbf_dialect",
-                        "defer_integration",
-                        "directory",
-                        "pattern_only",
-                        "multiple",
-                        "batch_mode",
-                        "output_directory",
-                    ],
-                )?;
-                let file = path(args)?;
-                let file = if !file.is_absolute() {
-                    args["directory"]
-                        .as_str()
-                        .map_or_else(|| file.to_path_buf(), |d| Path::new(d).join(file))
-                } else {
-                    file.to_path_buf()
-                };
-                let mut trace = crate::frame_trace::FrameTrace::new(
-                    "open-image",
-                    args["frame"].as_u64().unwrap_or(0),
-                );
-                let mut image = Image::prepare(&file, args)?;
-                trace.mark("metadata");
-                if self.settings.geometry.auto_assign
-                    && !self.settings.calibrated
-                    && self.settings.transformations.is_empty()
-                {
-                    let (description, pixels) = image.detector_hints();
-                    let found =
-                        dioptrin::detector::identify(image.source_shape, pixels, &description);
-                    let g = &mut self.settings.geometry;
-                    if let Some(d) = found.selected {
-                        d.binning(image.source_shape)?;
-                        [g.pixel1, g.pixel2] = d.effective_pixels(image.source_shape);
-                        g.detector = Some(Arc::new(d));
-                    }
-                    g.auto_assign = false;
-                    g.assignment = Some(found.reason);
-                    g.candidates = found.candidates;
-                }
-
-                image.orient(&self.settings.transformations, &self.control)?;
-                self.settings.geometry.sync_shape(image.shape)?;
-                #[cfg(feature = "dioptrin")]
-                let prepared = if self.settings.calibrated && !defer && !self.processing.active() {
-                    let options = self.integration_options();
-                    let load_mask = image
-                        .combined_source(image.frame)?
-                        .map(|source| self.integration_mask(source.shape))
-                        .unwrap_or_default();
-                    self.engine.load_combined(
-                        &mut image,
-                        args.get("frame").and_then(Value::as_u64).unwrap_or(0) as usize,
-                        &self.settings.geometry,
-                        &load_mask,
-                        &options,
-                        &self.control,
-                    )?
-                } else {
-                    None
-                };
-                #[cfg(feature = "dioptrin")]
-                if prepared.is_none() {
-                    let frame = image.frame;
-                    if !self.engine.load_pixels(&mut image, frame, &self.control)? {
-                        image.read(frame)?;
-                    }
-                }
-                #[cfg(not(feature = "dioptrin"))]
-                image.read(image.frame)?;
-                trace.mark("decode and warm-plan handoff");
-                self.publish_image(image)?;
-                trace.mark("display preparation");
-                #[cfg(feature = "dioptrin")]
-                {
-                    self.prepared = prepared;
-                }
-                self.calculate_products(
-                    defer,
-                    !args
-                        .get("pattern_only")
-                        .map_or(Ok(false), |v| boolean(v, "Pattern only"))?,
-                )?;
-                trace.mark("processing masks and integration");
-            }
+            "open_image" => self.open_image_model(args, defer)?,
             "next_image" => {
                 check_keys(args, &["direction", "step", "defer_integration"])?;
                 let direction = args
@@ -1158,6 +1066,97 @@ impl Session {
             Err("Open an image first.".into())
         }
     }
+    pub(super) fn open_image_model(&mut self, args: &Value, defer: bool) -> Result<(), String> {
+        check_keys(
+            args,
+            &[
+                "path",
+                "frame",
+                "dataset",
+                "follow_external_links",
+                "cbf_dialect",
+                "defer_integration",
+                "directory",
+                "pattern_only",
+                "multiple",
+                "batch_mode",
+                "output_directory",
+            ],
+        )?;
+        let file = path(args)?;
+        let file = if !file.is_absolute() {
+            args["directory"]
+                .as_str()
+                .map_or_else(|| file.to_path_buf(), |d| Path::new(d).join(file))
+        } else {
+            file.to_path_buf()
+        };
+        let mut trace =
+            crate::frame_trace::FrameTrace::new("open-image", args["frame"].as_u64().unwrap_or(0));
+        let mut image = Image::prepare(&file, args)?;
+        trace.mark("metadata");
+        if self.settings.geometry.auto_assign
+            && !self.settings.calibrated
+            && self.settings.transformations.is_empty()
+        {
+            let (description, pixels) = image.detector_hints();
+            let found = dioptrin::detector::identify(image.source_shape, pixels, &description);
+            let g = &mut self.settings.geometry;
+            if let Some(d) = found.selected {
+                d.binning(image.source_shape)?;
+                [g.pixel1, g.pixel2] = d.effective_pixels(image.source_shape);
+                g.detector = Some(Arc::new(d));
+            }
+            g.auto_assign = false;
+            g.assignment = Some(found.reason);
+            g.candidates = found.candidates;
+        }
+
+        image.orient(&self.settings.transformations, &self.control)?;
+        self.settings.geometry.sync_shape(image.shape)?;
+        #[cfg(feature = "dioptrin")]
+        let prepared = if self.settings.calibrated && !defer && !self.processing.active() {
+            let options = self.integration_options();
+            let load_mask = image
+                .combined_source(image.frame)?
+                .map(|source| self.integration_mask(source.shape))
+                .unwrap_or_default();
+            self.engine.load_combined(
+                &mut image,
+                args.get("frame").and_then(Value::as_u64).unwrap_or(0) as usize,
+                &self.settings.geometry,
+                &load_mask,
+                &options,
+                &self.control,
+            )?
+        } else {
+            None
+        };
+        #[cfg(feature = "dioptrin")]
+        if prepared.is_none() {
+            let frame = image.frame;
+            if !self.engine.load_pixels(&mut image, frame, &self.control)? {
+                image.read(frame)?;
+            }
+        }
+        #[cfg(not(feature = "dioptrin"))]
+        image.read(image.frame)?;
+        trace.mark("decode and warm-plan handoff");
+        self.publish_image(image)?;
+        trace.mark("display preparation");
+        #[cfg(feature = "dioptrin")]
+        {
+            self.prepared = prepared;
+        }
+        self.calculate_products(
+            defer,
+            !args
+                .get("pattern_only")
+                .map_or(Ok(false), |v| boolean(v, "Pattern only"))?,
+        )?;
+        trace.mark("processing masks and integration");
+        Ok(())
+    }
     fn publish_image(&mut self, mut image: Image) -> Result<(), String> {
         image.orient(&self.settings.transformations, &self.control)?;
         self.integration_history = Default::default();
@@ -1337,7 +1336,9 @@ impl Session {
             }) {
                 self.mask_raster = Some(Raster::shared_mask(combined.clone(), image.shape));
             }
-            self.effective_mask = combined;
+            // Equal masks share the same immutable owner as the display/count
+            // cache; temporary bulk-workflow masks still use the count fallback.
+            self.effective_mask = self.mask_raster.as_ref().unwrap().buffer.bytes.clone();
         }
         Ok(())
     }
@@ -1608,6 +1609,13 @@ impl Session {
         self.settings.geometry.automatic_bins(image.shape)
     }
     fn snapshot(&self, include_image: bool) -> Reply {
+        self.snapshot_products(include_image, true)
+    }
+    fn snapshot_products(&self, include_image: bool, include_rings: bool) -> Reply {
+        let mut trace = crate::frame_trace::FrameTrace::new(
+            "snapshot",
+            self.image.as_ref().map_or(0, |i| i.frame as u64),
+        );
         let s = &self.settings;
         let g = &s.geometry;
         let shape = self.image.as_ref().map(|i| i.shape);
@@ -1652,7 +1660,7 @@ impl Session {
             "revision": self.revision, "hasImage": self.image.is_some(), "imageName": name, "imagePath": image_path, "shape": shape,
             "calibrationName": s.calibration_name, "calibrated": s.calibrated, "projectName": self.project.path.as_ref().and_then(|p|p.file_name()).map(|p|p.to_string_lossy()), "unit": s.unit,
             "bins": if s.automatic_binning {Value::Null}else{json!(s.bins)}, "useMask": s.use_mask, "transparentMask": s.transparent_mask,
-            "maskedPixels": self.effective_mask.iter().filter(|&&v| v != 0).count(), "canUndoMask": !self.undo.is_empty(), "canRedoMask": !self.redo.is_empty(),
+            "maskedPixels": self.mask_raster.as_ref().and_then(|r|r.cached_mask_count(&self.effective_mask)).unwrap_or_else(||self.effective_mask.iter().filter(|&&v| v != 0).count()), "canUndoMask": !self.undo.is_empty(), "canRedoMask": !self.redo.is_empty(),
             "maskDetails": {"mode": self.mask_mode, "filename": null, "plugins": self.plugins.details()}, "exampleAvailable": self.example_path().is_file(),
             "elapsedMs": self.elapsed_ms, "integrationDirty": self.image.is_some() && s.calibrated && self.pattern.is_none(), "configurationCount": self.project.configurations.len(), "configurationIndex": self.project.selected,
             "configurationLabels": self.project.labels(),"configurationContext":self.project.active_id,
@@ -1677,6 +1685,7 @@ impl Session {
                 "distance":g.dist*1000.0,"wavelength":g.wavelength*1e10,"fitTilts":true,"fitDirty":false,"rmsDegrees":null,"saved":false,"picks":[],"rings":[]
             }
         }, "pattern":self.pattern, "cake":null, "rings":[], "linked":null, "batch":null, "map":null});
+        trace.mark("base state");
         let mut buffers = Vec::new();
         for (key, value) in self.patterns.details().as_object().unwrap() {
             result["state"]["integration"][key] = value.clone();
@@ -1707,10 +1716,14 @@ impl Session {
         for (key, value) in self.calibration_payload().as_object().unwrap() {
             result["state"]["calibration"][key] = value.clone();
         }
+        trace.mark("processing and calibration metadata");
         #[cfg(feature = "dioptrin")]
-        if self.settings.calibrated {
+        if self.settings.calibrated && include_rings {
             result["rings"] = self.calibration_rings();
         }
+        #[cfg(not(feature = "dioptrin"))]
+        let _ = include_rings;
+        trace.mark("ring display metadata");
         if let Some(image) = &self.image {
             result["nativeSource"] = json!({"dtype":image.source_dtype,"storedOrientationPreserved":true,"scientificRowOrder":"bottom-up","frame":image.frame,"frames":image.frames,"ordinaryDecodes":image.ordinary_decodes,"loadPath":if image.parallel_pixels{"parallel-hdf5"}else if image.combined{"combined-hdf5"}else{"native-reader"}});
         }
@@ -1732,6 +1745,7 @@ impl Session {
         let mut reply = Reply { result, buffers };
         self.attach_batch(&mut reply);
         self.attach_map(&mut reply);
+        trace.mark("display buffers and series metadata");
         reply
     }
 }

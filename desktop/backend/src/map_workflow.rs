@@ -174,7 +174,7 @@ impl Session {
             reply.result["rings"] = json!([]);
         }
         reply.result["mapWarning"] = reply.result["batchWarning"].clone();
-        self.attach_map(&mut reply);
+        // Both selection branches already produced a snapshot of this scan.
         Ok(reply)
     }
     pub(super) fn map_command(

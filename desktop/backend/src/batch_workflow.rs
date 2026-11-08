@@ -537,7 +537,12 @@ impl Session {
             args["pattern_only"] = json!(pattern_only);
             let auto = self.settings.auto_save;
             self.settings.auto_save = false;
-            let loaded = self.dispatch("open_image", &args);
+            // The outer selection publishes the completed state. Building an
+            // intermediate open-image reply duplicates metadata and ring paths.
+            let loaded = self.open_image_model(&args, defer);
+            if loaded.is_ok() {
+                self.revision += 1;
+            }
             self.settings.auto_save = auto;
             if let Err(error) = loaded {
                 self.restore_checkpoint(checkpoint);
@@ -582,7 +587,7 @@ impl Session {
             self.rebuild_pattern()?;
         }
         self.revision += 1;
-        let mut reply = self.snapshot(self.image.is_some());
+        let mut reply = self.snapshot_products(self.image.is_some(), !pattern_only);
         reply.result["clearImage"] = json!(self.image.is_none());
         reply.result["batchWarning"] = warning;
         Ok(reply)

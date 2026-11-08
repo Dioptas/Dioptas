@@ -8,6 +8,7 @@ pub struct Raster {
     pub metadata: Value,
     pub buffer: Buffer,
     statistics: Option<Arc<ImageStatistics>>,
+    masked_pixels: Option<usize>,
 }
 impl Raster {
     pub fn image(values: &[f64], shape: [usize; 2]) -> Self {
@@ -39,15 +40,23 @@ impl Raster {
             metadata,
             buffer,
             statistics,
+            masked_pixels: None,
         }
     }
     pub fn shared_mask(values: Arc<Vec<u8>>, shape: [usize; 2]) -> Self {
+        let masked_pixels = Some(values.iter().filter(|&&v| v != 0).count());
         let buffer = Buffer::shared(values);
         Self {
             metadata: base(shape, "u8", &buffer),
             buffer,
             statistics: None,
+            masked_pixels,
         }
+    }
+    pub fn cached_mask_count(&self, values: &Arc<Vec<u8>>) -> Option<usize> {
+        Arc::ptr_eq(&self.buffer.bytes, values)
+            .then_some(self.masked_pixels)
+            .flatten()
     }
     pub fn cached_levels(&self, mode: &str, clipping: f64, filter_gaps: bool) -> Option<[f64; 2]> {
         self.statistics
