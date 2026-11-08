@@ -952,8 +952,9 @@ try {
         "Compact Map has no permanent summary block; color limits remain available in histogram settings at both text sizes",
       );
       await page.setViewportSize({ width: 1440, height: 1000 });
-      await click("Keyboard shortcuts and gestures");
-      await capture("shortcut-help");
+      await click("Settings");
+      await tab("Keyboard shortcuts");
+      await capture("settings-shortcuts");
       await page.keyboard.press("Escape");
       const { verifyDraftsAndFeedback } =
         await import("./ui_audit_feedback.mjs");

@@ -313,16 +313,17 @@ export async function verifyShortcuts({ page, ready, invoke }) {
     false,
     "Typing P in an input does not enable picking",
   );
-  await click("Keyboard shortcuts and gestures");
+  await click("Settings");
+  await page.getByRole("tab", { name: "Keyboard shortcuts", exact: true }).click();
   await page.keyboard.press("b");
   assert.equal(
     await button("Calibration").getAttribute("aria-pressed"),
     "true",
-    "Dialog prevents background mode shortcuts",
+    "Shortcut settings prevent background mode shortcuts",
   );
   await page.keyboard.press("Escape");
   checks.push(
-    "Button Enter, field typing, Settings, and modal shortcuts stay in their own context",
+    "Button Enter, field typing, and Settings shortcuts stay in their own context",
   );
   return checks;
 }

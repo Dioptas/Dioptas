@@ -22,7 +22,6 @@ import {
   canTraverseScientificHistory,
 } from "./historyLabels";
 import { useIntegrationSettingsDraft } from "./IntegrationSettings";
-import { ShortcutHelp } from "./ShortcutReference";
 import { GeometryProvenance } from "./GeometryProvenance";
 import { StatusMessage } from "./StatusMessage";
 import {
@@ -41,7 +40,6 @@ import {
 } from "react";
 import {
   RotateCcw,
-  CircleHelp,
   ArrowUpRight,
   FileImage,
   FolderOpen,
@@ -190,7 +188,6 @@ export default function App() {
       /* Keep the session preference when local storage is unavailable. */
     }
   }, [validationConvention]);
-  const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false);
   const [manualGeometryOpen, setManualGeometryOpen] = useState(false);
   const [selectedPicks, setSelectedPicks] = useState<number[]>([]);
   const [advancedDirty, setAdvancedDirty] = useState(false);
@@ -1882,17 +1879,6 @@ export default function App() {
                 <Save size={20} />
               </Button>
             </div>
-            <Button
-              className="workspace-nav navigation-help"
-              aria-label="Keyboard shortcuts and gestures"
-              title="Keyboard shortcuts and gestures"
-              onClick={() => setShortcutHelpOpen(true)}
-            >
-              <CircleHelp size={20} />
-            </Button>
-            {shortcutHelpOpen && (
-              <ShortcutHelp onClose={() => setShortcutHelpOpen(false)} />
-            )}
             <Button
               className={`workspace-nav navigation-settings ${settingsOpen ? "workspace-active" : ""}`}
               onClick={() => {
