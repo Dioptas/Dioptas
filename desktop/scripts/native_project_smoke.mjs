@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, rm, writeFile, stat } from "node:fs/promises";
+import {
+  mkdtemp,
+  mkdir,
+  rm,
+  writeFile,
+  stat,
+  readFile,
+} from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
@@ -28,6 +35,11 @@ try {
           payload = {
             ...payload,
             path: path.join(temp, `${name}-combined.xy`),
+          };
+        if (action === "integration_save_pattern")
+          payload = {
+            ...payload,
+            path: path.join(temp, `${name}-displayed.xy`),
           };
         const reply = await native.invoke(action, payload);
         assert.equal(reply.ok, true, `${action}: ${reply.error}`);
@@ -288,6 +300,14 @@ try {
       assert.ok(
         (await stat(path.join(temp, `${name}-combined.xy`))).size > 100,
       );
+      await page
+        .getByRole("button", { name: "Save pattern", exact: true })
+        .click();
+      await page.waitForFunction(() => !document.querySelector(".spin"));
+      assert.equal(
+        await readFile(path.join(temp, `${name}-displayed.xy`), "utf8"),
+        await readFile(path.join(temp, `${name}-combined.xy`), "utf8"),
+      );
       await page.setViewportSize({ width: 1000, height: 668 });
       await page.screenshot({
         path: path.join(artifacts, `${name}-combined-small.png`),
@@ -371,6 +391,7 @@ try {
         ],
         combinedPatternAndCake: true,
         combinedPatternExport: true,
+        displayedPatternExportMatchesCombined: true,
         singleConfigurationSelector: true,
         configurationLabels: state.state.configurationLabels,
         configurationPreference: {

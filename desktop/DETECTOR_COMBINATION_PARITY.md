@@ -98,3 +98,20 @@ The original Python/Qt-model qualification is retained in
 `desktop/tests/test_combination.py` and the history of this document. It is an
 independent reference workflow, not a shipping runtime or silent fallback.
 The broader native/reference limits remain in the native qualification ledgers.
+
+## Consolidated integration check — 2026-11-08
+
+The integrated checkpoint passes **90 native Rust tests** (one opt-in benchmark
+ignored), **75 frontend tests**, the TypeScript/Vite build, and headless
+Chromium/WebKit with Python and PATH unavailable in the processing child.
+Both combined-pattern save and ordinary Save displayed pattern produce the
+same scientific output. Detector contrast and Auto restoration are checked by
+switching native configuration identities after project save/open.
+
+This check found and corrected two consolidation regressions: the detector
+intensity mount used the configuration list index instead of its stable identity,
+and ordinary Save displayed pattern still selected the individual detector curve.
+Receipts for the isolated integration checkpoint are copied to
+`artifacts/detector-combination-integration/` in the consolidated checkout.
+Concurrent, uncommitted correction/uncertainty work was preserved and was not
+included in this checkpoint's test results. No preview was closed or restarted.
