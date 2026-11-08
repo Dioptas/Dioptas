@@ -173,6 +173,7 @@ export interface RingOverlay {
   points: number[][];
 }
 export interface Response {
+  imageUnavailable?: boolean;
   configurationNavigation?: { advanced: number[]; skipped: number[] };
   configurationReset?: boolean;
   imageChange?: {

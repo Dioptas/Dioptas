@@ -113,9 +113,9 @@ pub(super) fn numbered(path: &Path, step: i64) -> Option<PathBuf> {
     }
     None
 }
-pub(super) fn neighbor(path: &Path, mode: &str, step: i64) -> Result<PathBuf, String> {
+pub(super) fn neighbor(path: &Path, mode: &str, step: i64) -> Result<Option<PathBuf>, String> {
     if mode != "time" {
-        return numbered(path, step).ok_or_else(|| "No further numbered file.".into());
+        return Ok(numbered(path, step));
     }
     let mut entries = Vec::new();
     for entry in
@@ -147,9 +147,9 @@ pub(super) fn neighbor(path: &Path, mode: &str, step: i64) -> Result<PathBuf, St
         .ok_or("Current file is not in its source directory.")?;
     let target = i as i64 + step;
     if target < 0 || target >= entries.len() as i64 {
-        return Err("No further file in time order.".into());
+        return Ok(None);
     }
-    Ok(entries[target as usize].1.clone())
+    Ok(Some(entries[target as usize].1.clone()))
 }
 impl Files {
     fn scan(&self) -> Result<BTreeSet<PathBuf>, String> {

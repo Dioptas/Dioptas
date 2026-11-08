@@ -263,17 +263,71 @@ fn native_hdf5_stack_retains_integer_dtype_and_tracks_selected_frame() {
         call(&mut session, "pixel", json!({"x":0,"y":0})).result["pixel"]["value"],
         20.0
     );
-    assert_eq!(
-        session
-            .invoke(&request("next_image", json!({"direction":1})))
-            .result["ok"],
-        false
-    );
+    let before = call(&mut session, "state", json!({}));
+    let end = call(&mut session, "next_image", json!({"direction":1}));
+    assert_eq!(end.result, json!({"ok":true,"imageUnavailable":true}));
+    assert!(end.buffers.is_empty());
+    assert_eq!(call(&mut session, "state", json!({})).result, before.result);
     let back = call(&mut session, "next_image", json!({"direction":-1}));
     assert_eq!(
         first.result["image"]["bufferId"],
         back.result["image"]["bufferId"]
     );
+}
+
+#[test]
+fn image_file_boundaries_are_noops_and_later_arrivals_remain_browsable() {
+    for mode in ["number", "time"] {
+        let temp = tempfile::tempdir().unwrap();
+        let directory = temp.path().canonicalize().unwrap();
+        let first = directory.join("scan_001.npy");
+        npy(&first, &[3, 4], &[1.; 12]);
+        let mut session = Session::new(root());
+        call(&mut session, "open_image", json!({"path":first}));
+        call(&mut session, "integration_navigation", json!({"mode":mode}));
+        call(
+            &mut session,
+            "mask_stroke",
+            json!({"points":[[1,1]],"radius":1}),
+        );
+        let before = call(&mut session, "state", json!({}));
+        for direction in [-1, 1, 1] {
+            let end = call(&mut session, "next_image", json!({"direction":direction}));
+            assert_eq!(
+                end.result,
+                json!({"ok":true,"imageUnavailable":true}),
+                "{mode}"
+            );
+            assert!(end.buffers.is_empty());
+            assert_eq!(call(&mut session, "state", json!({})).result, before.result);
+        }
+        let second = directory.join("scan_002.npy");
+        npy(&second, &[3, 4], &[2.; 12]);
+        let next = call(&mut session, "next_image", json!({"direction":1}));
+        assert_eq!(next.result["state"]["imagePath"], json!(second));
+        assert_ne!(
+            next.result["image"]["bufferId"],
+            before.result["image"]["bufferId"]
+        );
+        assert_eq!(
+            next.result["state"]["maskedPixels"],
+            before.result["state"]["maskedPixels"]
+        );
+        let end = call(&mut session, "next_image", json!({"direction":1,"step":2}));
+        assert_eq!(end.result, json!({"ok":true,"imageUnavailable":true}));
+        assert_eq!(call(&mut session, "state", json!({})).result, next.result);
+        let back = call(&mut session, "next_image", json!({"direction":-1}));
+        assert_eq!(back.result["state"]["imagePath"], json!(first));
+        // An existing but unreadable neighbor is still a real loading error.
+        let before_failure = call(&mut session, "state", json!({}));
+        fs::write(&second, b"incomplete acquisition").unwrap();
+        let failed = session.invoke(&request("next_image", json!({"direction":1})));
+        assert_eq!(failed.result["ok"], false);
+        assert_eq!(
+            call(&mut session, "state", json!({})).result,
+            before_failure.result
+        );
+    }
 }
 
 #[test]

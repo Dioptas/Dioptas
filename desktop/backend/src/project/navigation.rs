@@ -168,11 +168,7 @@ impl Session {
                     filename_step,
                 )
             } else if state.files.image_mode == "time" {
-                match file_workflow::neighbor(&image.path, "time", step) {
-                    Ok(file) => Some(file),
-                    Err(error) if error == "No further file in time order." => None,
-                    Err(error) => return Err(error),
-                }
+                file_workflow::neighbor(&image.path, "time", step)?
             } else {
                 next_file(&image.path, step, position)
             };

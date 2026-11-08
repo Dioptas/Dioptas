@@ -93,13 +93,11 @@ fn configurations_and_owned_project_pixels_survive_without_sources() {
     );
     assert_eq!(r.result["state"]["bins"], 75);
     assert_eq!(r.result["state"]["useMask"], false);
-    // A failed source navigation keeps the restored pixels and controls intact.
+    // With no neighboring source file, navigation quietly retains the owned pixels and controls.
     let before = call(&mut restored, "state", json!({})).result;
     assert_eq!(
-        restored
-            .invoke(&request("next_image", json!({"direction":1})))
-            .result["ok"],
-        false
+        call(&mut restored, "next_image", json!({"direction":1})).result,
+        json!({"ok":true,"imageUnavailable":true})
     );
     assert_eq!(call(&mut restored, "state", json!({})).result, before);
 }

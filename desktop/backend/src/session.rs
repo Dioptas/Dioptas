@@ -517,11 +517,16 @@ impl Session {
                     )
                     .ok_or("Frame step exceeds range.")?;
                 if index < 0 || index >= image.frames as i64 {
-                    let target = file_workflow::neighbor(
+                    let Some(target) = file_workflow::neighbor(
                         &image.path,
                         &self.files.image_mode,
                         direction.signum() * step as i64,
-                    )?;
+                    )?
+                    else {
+                        // At the current end of acquisition, leave all session state
+                        // intact. A later click must still look for newly arrived files.
+                        return Ok(Reply::metadata(json!({"ok":true,"imageUnavailable":true})));
+                    };
                     let mut options = image.options.clone();
                     options["path"] = json!(target);
                     options["defer_integration"] = json!(defer);
@@ -867,6 +872,11 @@ impl Session {
                         &self.patterns.file_mode,
                         direction * step as i64,
                     )?
+                    .ok_or(if self.patterns.file_mode == "time" {
+                        "No further file in time order."
+                    } else {
+                        "No further numbered file."
+                    })?
                 } else {
                     path(args)?.to_path_buf()
                 };

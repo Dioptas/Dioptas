@@ -739,6 +739,7 @@ export default function App() {
         command === "integration_phase_state" ||
         command === "integration_phase_guides" ||
         command === "integration_autoprocess_poll" ||
+        command === "next_image" ||
         frameSelection ||
         command === "validation_position" ||
         command === "image_levels" ||
@@ -825,6 +826,14 @@ export default function App() {
           raw,
         );
         apply(result, true, retainMapClick);
+        if (command === "next_image" && result.ok)
+          setNotice(
+            result.imageUnavailable
+              ? Number(args.direction ?? 1) < 0
+                ? "No previous image available"
+                : "No new image available"
+              : null,
+          );
         if (!result.cancelled && result.state) {
           if (["open_project", "example"].includes(command))
             resetIntegrationDraft(result.state);
