@@ -1,0 +1,78 @@
+I score the current UI at **8.34 / 10**: 208.5 points across the 25 categories, each weighted 4%. That is up from 8.20 in my prior review. All ten earlier findings are fixed in the current source and screenshots. I found one new low-severity defect and one minor one. Nothing I found blocks routine work, and none of your listed design choices raised or lowered a score.
+
+## What I checked
+- **Rubric:** `desktop/UI_DESIGN_RUBRIC.json`, all 25 categories with their scoring anchors. I did not open `UI_DESIGN_REVIEW.json`, `UI_PEER_REVIEW.txt` or any Codex score.
+- **Source:** `BatchControls.tsx`, `LoadCalibrationButton.tsx`, `MapLoadActions.tsx`, `IntegrationPlotControls.tsx:195-399`, `MapControls.tsx:195-244`, `MapView.tsx:400-603`, `BatchHeatmap.tsx` (axis description and Normalize toggle), the disabled-state rules in `uiTheme.css`, `style.css` and `map.css`, and the batch command filter in `dioptas/desktop/session.py:285`.
+- **Browser evidence:**
+  - All 8 PNGs you named.
+  - `after/report.json`: `completed: true`, no failure.
+  - Neither browser report nor the two `batch-smoke*.json` files contains a failure. Both smoke files report `ok: true`.
+  - I only looked at targeted parts of the large JSON files.
+- **Native evidence:** I did not inspect it again, so it remains limited to the earlier campaign as you describe. I ran no tests or builds, so the 29 passing Python tests are your report.
+
+## Prior findings, checked against the current tree
+All ten are fixed:
+1. The calibration action's accessible name now includes the visible geometry name (`IntegrationPlotControls.tsx:259-263`).
+2. The empty Map pattern now says "Build a map…" when no map exists (`MapView.tsx:497-499`).
+3. Both calibration actions use the FolderOpen icon (`LoadCalibrationButton.tsx:19`).
+4. "Folder…" has an icon, and its accessible name starts with the visible word (`MapLoadActions.tsx:29-34`).
+5. The Min/Max values now sit close to their labels (`batch-normalization.png`).
+6. Start/Stop/Step have a "Frame range" legend (`BatchControls.tsx:262-265`).
+7. Apply is only enabled when the limits are valid and changed (`:126-128`).
+8. The error message is linked to both fields through a unique `useId` (`:37`, `:97-119`).
+9. Map gutter controls are disabled when there is no pattern (`MapView.tsx:539-592`).
+10. The unit now reads "Search width Δ2θ (°)" (`calibration-fit.png`).
+
+## Remaining defects (confirmed)
+| # | Severity | Evidence | Fix |
+|---|---|---|---|
+| A | Low (readability, maintainability) | Labels of disabled checkboxes stay at full brightness. Only the checkbox square is dimmed (`style.css:136-139`). Map's display controls have their own dimming rule (`map.css:675-677`), but nothing else does. You can see it in `map-calibration-required.png` and `map-build-empty.png`: "Follow" (`MapControls.tsx:201-213`, `disabled={!live…}`) looks checked and active next to a dimmed "Live". | Add one shared rule in `uiTheme.css` near line 130: `label:has(> input:disabled) { opacity: .5; }`. Then remove the copy in `map.css:675`. |
+| B | Minor (typography) | The Frame range labels end in colons ("Start:", "Stop:", "Step:", `BatchControls.tsx:149,163,177`). In the same panel, "Minimum 2θ (°)" has none, and the Calibration labels have none. | Remove the colons in Batch Options. Integration's "Batch mode:" could be aligned the same way. |
+
+## Optional suggestions (not defects)
+- **Map vs. Integration gutter:** with no pattern, Map now disables Log, √, AA and A. Integration keeps the same local display toggles enabled (`IntegrationPlotControls.tsx:342-396`), which lets you set them ahead of time. You could keep those four enabled in Map and disable only the controls that need data (unit conversion, ROI, edit windows).
+- **Repeated message:** with no calibration, Map says it three times: in the empty state, in the task-panel note (`MapControls.tsx:236-240`) and in the status bar. The task-panel note could go.
+- **Legend placement:** in `batch-normalization-compact-large.png` the movable legend sits on top of the green trace. It could start in the corner with the least data. Moving legends is your choice, so this is a starting-position suggestion only.
+- **Disabled Apply:** a tooltip on the greyed-out Apply button, such as "Limits unchanged", would say why it is disabled.
+- **Batch heatmap axis:** the vertical axis has no visible "Frame" label. It is covered by the accessible description, the hover readout and "Frame 1 of 6", which fits your no-extra-labels choice.
+
+## Scores
+| Category | Score | Category | Score |
+|---|---|---|---|
+| Scientific context | 8.5 | Consistency | 8.0 |
+| Precision/units | 8.5 | Reuse | 8.5 |
+| Visualization | 8.0 | Dialogs | 8.5 |
+| Inspection | 8.5 | Keyboard | 8.5 |
+| Workflow | 8.5 | Accessibility | 8.0 |
+| Navigation | 8.5 | Feedback | 8.5 |
+| Learnability | 8.0 | Validation | 8.5 |
+| Cognitive load | 8.5 | Recovery | 8.5 |
+| Typography | 8.0 | Reversibility | 8.0 |
+| Readability | 8.0 | Responsive layout | 8.5 |
+| Spacing | 8.5 | Responsiveness | 8.0 |
+| Hierarchy | 8.5 | Settings/files | 8.5 |
+| | | Maintainability | 8.5 |
+
+**Arithmetic mean:** (17 × 8.5 + 8 × 8.0) / 25 = 208.5 / 25 = **8.34**
+
+**Changes since last time:**
+- **Up:** Learnability, Cognitive load, Spacing, Consistency, Accessibility and Feedback, because the earlier findings are fixed.
+- **Still 8.0:**
+  - **Readability and Consistency:** defect A, and the gutter difference between modes.
+  - **Typography:** defect B.
+  - **Visualization:** the legend can overlap data at compact sizes.
+  - **Learnability:** Normalize and Options are still icon controls explained by tooltips.
+  - **Accessibility:** no screen-reader testing yet.
+  - **Responsiveness:** native display timing is unmeasured.
+- **Reversibility:** batch commands are excluded from Undo (`session.py:285`), and turning Normalize off restores the original data exactly. I did not check whether the Undo tooltip names the next operation, so a user may not realise Undo will skip a normalization change.
+- **Dialogs and Keyboard:** carried over from the prior review. I did not inspect them again this pass.
+
+## Gaps in evidence (not defects)
+These have not been tested:
+- a human screen-reader study
+- native display timing and the native colour picker
+- Windows/Linux packaging
+- monitors with mixed DPI
+- whether every later UI change works natively (native evidence comes from the earlier campaign)
+
+The orange-selection/gray-focus result and the latest refinements are confirmed only in the browser reports.

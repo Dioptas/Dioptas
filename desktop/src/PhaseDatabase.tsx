@@ -1,3 +1,5 @@
+import { TabList } from "./TabList";
+import { Dialog, DialogHeader } from "./Dialog";
 import { matchesRecordAuthor, recordAuthors } from "./phaseAuthorSearch";
 import { Star } from "lucide-react";
 import {
@@ -166,12 +168,7 @@ export function PhaseDatabase({
   const materialTable = useRef<HTMLTableElement>(null);
   const recordTable = useRef<HTMLTableElement>(null);
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
-    dialog.current?.showModal();
     search.current?.focus();
-    return () => {
-      previous?.focus();
-    };
   }, []);
   useEffect(() => {
     const q = query.trim();
@@ -428,8 +425,9 @@ export function PhaseDatabase({
         ? "No favourites yet. Choose All or search, select a material and mark its star."
         : "No materials in this view.";
   return createPortal(
-    <dialog
-      ref={dialog}
+    <Dialog
+      onDismiss={onClose}
+      dialogRef={dialog}
       className="phase-dialog phase-database-dialog"
       aria-label="EoS Material Database"
       onCancel={(e) => {
@@ -450,12 +448,11 @@ export function PhaseDatabase({
         }
       }}
     >
-      <header>
-        <h2>EoS Material Database</h2>
-        <button aria-label="Close EoS Material Database" onClick={onClose}>
-          ×
-        </button>
-      </header>
+      <DialogHeader
+        title="EoS Material Database"
+        closeLabel="Close EoS Material Database"
+        onClose={onClose}
+      />
       <div className="phase-database-body">
         <div className="phase-database-search">
           <input
@@ -479,44 +476,16 @@ export function PhaseDatabase({
           />
         </div>
         <div className="phase-database-tools">
-          <div role="tablist" aria-label="Material views">
-            {views.map((name, i) => (
-              <button
-                key={name}
-                role="tab"
-                tabIndex={view === name ? 0 : -1}
-                aria-selected={view === name}
-                onClick={() => {
-                  setView(name);
-                  setMaterialSort(null);
-                  if (beforeSearch.current !== null)
-                    beforeSearch.current = name;
-                }}
-                onKeyDown={(e) => {
-                  if (
-                    !["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)
-                  )
-                    return;
-                  e.preventDefault();
-                  const next =
-                    e.key === "Home"
-                      ? 0
-                      : e.key === "End"
-                        ? 2
-                        : (i + (e.key === "ArrowRight" ? 1 : 2)) % 3;
-                  setView(views[next]);
-                  setMaterialSort(null);
-                  if (beforeSearch.current !== null)
-                    beforeSearch.current = views[next];
-                  (
-                    e.currentTarget.parentElement?.children[next] as HTMLElement
-                  )?.focus();
-                }}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
+          <TabList
+            label="Material views"
+            value={view}
+            options={views.map((name) => ({ value: name, label: name }))}
+            onChange={(name) => {
+              setView(name);
+              setMaterialSort(null);
+              if (beforeSearch.current !== null) beforeSearch.current = name;
+            }}
+          />
           {materialSort && (
             <button
               className="phase-database-sort-reset"
@@ -532,6 +501,8 @@ export function PhaseDatabase({
           )}
           <span
             className="phase-database-result-count"
+            role="status"
+            aria-live="polite"
             aria-label="Material result count"
           >
             {pending
@@ -859,7 +830,7 @@ export function PhaseDatabase({
           Load as Phase
         </button>
       </footer>
-    </dialog>,
+    </Dialog>,
     document.querySelector(".app") || document.body,
   );
 }

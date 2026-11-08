@@ -255,17 +255,17 @@ For a motor-position lookup, arguments might be:
 The input buttons insert placeholders; **Current input values** shows what
 they will receive. Available inputs are:
 
-| Placeholder | Value |
-| --- | --- |
-| `{image_path}` | Current detector file's full path |
-| `{frame_index}` | Current frame, starting at 0 |
-| `{frame_number}` | Current frame, starting at 1 (Qt's series position convention) |
-| `{dataset}` | Selected HDF5 image source, when present |
-| `{calibration_path}` | Loaded or last saved `.poni` path |
-| `{project_path}` | Current saved `.dio` project path |
-| `{wavelength_angstrom}` | Current calibrated wavelength in Å |
-| `{image_name}` | Detector filename including extension |
-| `{image_directory}` | Folder containing the detector file |
+| Placeholder             | Value                                                          |
+| ----------------------- | -------------------------------------------------------------- |
+| `{image_path}`          | Current detector file's full path                              |
+| `{frame_index}`         | Current frame, starting at 0                                   |
+| `{frame_number}`        | Current frame, starting at 1 (Qt's series position convention) |
+| `{dataset}`             | Selected HDF5 image source, when present                       |
+| `{calibration_path}`    | Loaded or last saved `.poni` path                              |
+| `{project_path}`        | Current saved `.dio` project path                              |
+| `{wavelength_angstrom}` | Current calibrated wavelength in Å                             |
+| `{image_name}`          | Detector filename including extension                          |
+| `{image_directory}`     | Folder containing the detector file                            |
 
 A button is disabled when an input it needs is unavailable. Manually entered
 geometry has no calibration path until saved. A loaded or previously saved
@@ -367,6 +367,7 @@ Save map data writes text/TIFF, PNG saves the map viewport, and Save project
 retains the scientific map, windows, colors and layout. See [Map parity](MAP_PARITY.md) for
 validation and remaining limitations, including detached windows and growing
 HDF5 datasets.
+
 ## Batch image series
 
 Integration → Image offers Qt's Integrate, Add, Average and Save choices for
@@ -399,7 +400,9 @@ The renderer comparison is described in
 [PATTERN_WEBGL_BENCHMARK.md](PATTERN_WEBGL_BENCHMARK.md). It covers ordinary and
 large-pattern navigation, CPU drawing cost, frame cadence, upload behavior and
 curve geometry. WebGL is the default; `VITE_DIOPTAS_PATTERN_RENDERER=canvas2d`
-selects the Canvas renderer for diagnostics and comparisons.
+selects the Canvas renderer for diagnostics and comparisons. The headless
+`npm run benchmark:pattern` now also defaults to WebGL; pass `-- --canvas2d`
+for an explicit fallback benchmark. Headless GPU timing is not a native GPU benchmark.
 
 ## Image and pattern rendering
 
@@ -766,7 +769,6 @@ are reaped. The earlier Map-branch calibration-smoke timeout remains a
 historical result in [Map parity](MAP_PARITY.md); it did not reproduce in
 the combined native check.
 
-
 On macOS with CPython 3.13.5, checks cover the real CeO2 image workflow,
 individual fixed/free constraints, wavelength refinement, peak editing/history,
 orientation, manual geometry and PONI output, custom calibrant ownership/project
@@ -826,10 +828,10 @@ alternating switches were measured after warming each path. The final
 image_001 integrated patterns agreed exactly.
 
 | Complete switch, including repaint settling | Median |
-| --- | ---: |
-| Tauri, binary transfer and display caches | 160 ms |
-| Qt/Python, normal asynchronous processing | 166 ms |
-| Qt/Python, synchronous processing | 172 ms |
+| ------------------------------------------- | -----: |
+| Tauri, binary transfer and display caches   | 160 ms |
+| Qt/Python, normal asynchronous processing   | 166 ms |
+| Qt/Python, synchronous processing           | 172 ms |
 
 Qt's asynchronous detector plot finished painting at a median 73 ms, while
 integration completed at 130 ms. The settled endpoint adds two 16-ms Qt waits;
@@ -853,3 +855,124 @@ uses the native report's client dimensions when
 `artifacts/qt-comparison-native.json` is available (`--native-report` overrides
 its path). Reports distinguish slot return, image-item paint, complete
 viewport paint, integration completion and settling time.
+
+## Shared interface and design audit
+
+`TabList` owns task-tab keyboard navigation across the modes, settings and phase
+editors. `Dialog` / `DialogHeader` own native modal focus, dismissal and headers;
+nonmodal color and action menus retain their own list/menu interactions.
+`ScientificNumberInput` formats a visual preview while keeping the exact input
+value. `usePlotTypography` carries the Standard/Larger preference into canvas
+labels and axes, and `GeometryProvenance`, `PatternFreshness` and
+`StatusMessage` share scientific context and feedback. Chrome tokens live in
+`uiTheme.css`; scientific palettes remain independent. Integration options are
+kept as a session draft and applied together, including the radial coordinate.
+The model's shared history action determines Undo/Redo routing and labels.
+Manual geometry keeps full-precision drafts, allows convention comparisons and
+requires applying/resetting a pending draft before editing the other convention.
+
+From `desktop`, run `npm run test:ui-audit` for the real-model Chromium review,
+or `node scripts/ui_audit.mjs --stage=webkit --webkit` for WebKit. The audit loads
+CeO2, performs an independent peak-seeded fit, loads the reference PONI separately,
+and exercises the measured map fixtures and a six-frame series derived from
+CeO2. It captures modes, settings, editors, dialogs and compact/large-text layouts,
+checks keyboard and error/draft behavior, canvas text scaling and anchored popup
+bounds, and records axe violations separately
+from checks requiring manual review. Results go to `artifacts/ui-audit`.
+`npm run test:ui-audit:baseline` builds the historical frontend at `b418d66b`
+without resetting this checkout; `-- --ref=REV` selects another baseline.
+These are headless browser checks, not OS-dialog or formal accessibility certification.
+
+`npm run report:ui-audit` assembles the dated rubric, raw reviews and matched
+screenshots into `artifacts/ui-audit/index.html`. The audit alone opts into a
+fixed peak-search random seed, so its measured-point fits match across the
+before/after and browser comparisons.
+
+The fixed 25-category definitions and equal weights are in `UI_DESIGN_RUBRIC.json`.
+`UI_DESIGN_REVIEW.json` records separate Codex and Claude ratings, evidence,
+source revisions and limits. `UI_PEER_REVIEW.txt` retains the independent review
+and its follow-up addendum verbatim. The current Codex mean is 9.472/10 (9.5 to
+one decimal); Claude's independent mean is 9.02/10. These are scoped design
+judgments, not scientific accuracy, production readiness or accessibility
+certification. Subsequent fixes do not imply a new peer score.
+
+## Shared interface behavior
+
+Resting text inputs use quiet recessed fills without pale outlines; focus and
+invalid states stay visible. Focus outlines use neutral gray, including inputs and scientific plots. Selected
+tabs, table rows, toggles and settings choices retain orange; focus and active
+selection remain distinct. Text sizes and states share theme tokens.
+`Dialog`, `TabList`, `HistoryControls`, `WorkspaceModeButtons`, `LayoutDivider`
+and the scientific value/status/provenance components centralize common policy.
+
+Pattern and phase legends stay inside the data viewport, with no reserved
+header. `PlotLegend` provides bounded dragging and keyboard movement, a small
+dark background behind names, a glyph halo and full names on focus/hover.
+Placement samples bucket extrema and weights peaks above dense baseline samples;
+it avoids existing cursor/ROI/phase labels when data or layout changes, then
+stays stable during exploration. Explicit moves stay fixed through data changes.
+A four-pixel drag threshold prevents focus clicks with hand jitter from pinning
+a legend; arrow keys pin it and Home/Escape restores the default.
+
+`geometryDraft` and `useCalibrationFitDraft` own exact session drafts. Modes,
+Settings, dialog dismissal and Undo retain deliberate edits; untouched fields
+rebase to the applied model. Apply consumes the geometry draft, and Calibrate
+consumes the fit draft. `useDraftReplacement` names affected drafts and asks
+before intentionally loading replacement settings. Projects and PONI exports
+save applied values; pending option drafts remain in the session.
+
+Fit starting values are explicitly separate from current geometry. Fit and
+manual PONI display in mm; manual pyFAI commands still use SI meters. Exact
+bounds govern shared validation, while concise error previews identify units
+and mark approximate values. Frame positions are one-based, bounded integers;
+Batch indices remain explicitly zero-based. Compact Batch toolbars wrap and
+keep their window actions reachable. `PathInput` reveals long directory tails
+with a clipping cue while retaining native editing.
+
+A focused pattern supports Alt+Left/Right and Alt+Home/End to inspect actual
+visible samples without panning or editing the model. The existing readout and
+a polite accessible reading expose the values. Descending d spacing, invalid
+coordinates and scaled overlays are covered. Documented app/plot/legend/divider
+shortcuts have explicit scopes and are exercised against the actual handlers.
+
+## Evidence and remaining limits
+
+The current checks include 65 frontend unit tests, 17 Rust tests, and 58 captured
+views plus 39 behavior checks in each of Chromium and WebKit. Batch and pattern controls are checked against clipping ancestors and pointer hit
+targets, and their headers must fit one row. Each engine inspects 465 resting
+field appearances across captured states, including scientific tables. ARIA snapshots and raw axe
+violations/incomplete findings accompany screenshots. Explicit failures and
+UI-build hashes prevent incomplete or stale runs being published as current.
+
+Focused regressions are available with `node scripts/ui_audit.mjs --stage=polish
+--focus=polish` and `node scripts/ui_audit.mjs --stage=peer-check --focus=peer`.
+The full audit includes both. A synthetic three-frame HDF5 fixture verifies
+frame navigation; TIFF fixtures follow the existing first-page PIL path. Gold
+phase/editor fixtures are not specimen identifications. The original screenshot
+baseline is `b418d66b`; the earlier 9.1 checkpoint is `876e0651`.
+
+Native macOS qualification now passes: six Batch detach/dock cycles with changing
+bounds; four application-launch stages for floating/closed/docked/collapsed state,
+splitters and native bounds; Map docking and a full application restart; measured
+CeO2 calibration, WebGL detector/cake/pattern rendering, masking, phase/database
+editing, exports and project round trips. Native open, save and batch chooser
+cancellation preserves scientific state. All four native help popups retain main
+window focus, including screen-edge placement and Escape/blur dismissal.
+
+The original failed runs remain in `artifacts/ui-audit/native/`; they are historical
+failures, not rewritten passes. Current reports, commands and scope are described
+in [Native verification](NATIVE_VERIFICATION.md). Native screenshots are actual
+window captures, distinct from the browser screenshots. Native tests use private
+WebKit stores and disposable preference files; restart stages intentionally share
+their own store. Screen readers, colour-panel interaction, Windows/Linux packaging,
+portable Python distribution and native display-latency measurement remain outside
+this qualification.
+
+Retina WebGL results in `artifacts/ui-audit/performance/` retain both WebKit's
+reported Apple GPU result and Chromium's slower SwiftShader wide-pan result.
+The provenance file identifies the measured source and its limits. These are
+headless browser measurements, not native GPU/display-latency certification.
+
+The scan map uses its existing histogram/settings and Layer/ROI controls for scale and calculation context. The redundant permanent summary/color-key block below the map is removed in both main and detached Map views; a concise accessible description retains context without taking plot space.
+
+Batch follows the same layout as Map: the redundant permanent intensity/source-units/color-key row below the heatmap is removed in both docked and detached views. Its histogram and display settings own the scale controls, with accessible context on the series. The now-unused `ColorScaleLegend` component and styles have been removed.

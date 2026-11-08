@@ -5,6 +5,22 @@
   const stage = window.__batchLayoutStage;
   let childReady = false;
   let existingWindowRaised = false;
+  let placement = null;
+  const bounds = async () => {
+    const size = await invoke("plugin:window|inner_size", {
+      label: "batch-window",
+    });
+    const scale = await invoke("plugin:window|scale_factor", {
+      label: "batch-window",
+    });
+    return {
+      width: size.width / scale,
+      height: size.height / scale,
+      position: await invoke("plugin:window|outer_position", {
+        label: "batch-window",
+      }),
+    };
+  };
   const events = [];
   const check = (value, message) => {
     if (!value) throw Error(message);
@@ -13,7 +29,7 @@
     for (let i = 0; i < 250; i++) {
       if (await fn()) return;
       const alert = document.querySelector('[role="alert"]');
-      if (alert) throw Error(alert.textContent);
+      if (alert?.textContent.trim()) throw Error(alert.textContent);
       await new Promise((resolve) => setTimeout(resolve, 40));
     }
     throw Error(message);
@@ -89,6 +105,21 @@
         "Batch window duplicated",
       );
       existingWindowRaised = true;
+      await invoke("plugin:window|set_size", {
+        label: "batch-window",
+        value: { Logical: { width: 860, height: 620 } },
+      });
+      await invoke("plugin:window|set_position", {
+        label: "batch-window",
+        value: { Logical: { x: 120, y: 100 } },
+      });
+      await wait(async () => {
+        const b = await bounds();
+        return b.width === 860 && b.height === 620;
+      }, "Batch did not resize");
+      await new Promise((r) => setTimeout(r, 100));
+      placement = await bounds();
+
       check(
         read("dioptas-batch:open") === "true" &&
           read("dioptas-batch:docked") === "false",
@@ -114,6 +145,12 @@
         read("dioptas-batch:open") === "true",
         "Quitting changed open state",
       );
+      await wait(async () => {
+        const b = await bounds();
+        return b.width === 860 && b.height === 620;
+      }, "Batch size was not restored after quitting");
+      placement = await bounds();
+
       // A native close, rather than the Dock/Hide React actions.
       await invoke("close_batch_window");
       await wait(
@@ -210,6 +247,7 @@
         processingPid: host.pid,
         childReady,
         existingWindowRaised,
+        placement,
         open: read("dioptas-batch:open"),
         docked: read("dioptas-batch:docked"),
       },

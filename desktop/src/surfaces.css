@@ -1,10 +1,10 @@
 /* Quiet material and broad tonal variation on the application chrome. */
 .app {
   --surface-grain: url("./assets/surface-grain.svg");
-  background: #111519;
+  background: var(--ui-workspace);
 }
 .app main {
-  background: #111519;
+  background: var(--ui-workspace);
 }
 /* Plot margins, headings and histograms share the central workspace surface. */
 .app main .panel,
@@ -20,7 +20,7 @@
 }
 .app .mode-navigation,
 .app .sidebar {
-  background-color: #191d22;
+  background-color: var(--ui-panel);
   background-image:
     var(--surface-grain),
     linear-gradient(
@@ -39,7 +39,7 @@
 }
 .app .task-navigation,
 .app .app-status {
-  background-color: #191d22;
+  background-color: var(--ui-panel);
   background-image: var(--surface-grain);
 }
 .app .task-navigation {

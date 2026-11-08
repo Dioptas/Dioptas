@@ -1,3 +1,4 @@
+import { Dialog, DialogHeader } from "./Dialog";
 import { PhaseDatabase } from "./PhaseDatabase";
 import { isTauri } from "@tauri-apps/api/core";
 import { openNativePhaseEditor } from "./phaseEditorWindow";
@@ -684,12 +685,10 @@ function PhaseDialog({
   wide?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    ref.current?.showModal();
-  }, []);
   return createPortal(
-    <dialog
-      ref={ref}
+    <Dialog
+      onDismiss={onClose}
+      dialogRef={ref}
       className={`phase-dialog${wide ? " phase-dialog-wide" : ""}`}
       aria-label={title}
       onCancel={(e) => {
@@ -697,14 +696,13 @@ function PhaseDialog({
         onClose();
       }}
     >
-      <header>
-        <h2>{title}</h2>
-        <button type="button" aria-label={`Close ${title}`} onClick={onClose}>
-          ×
-        </button>
-      </header>
+      <DialogHeader
+        title={title}
+        closeLabel={`Close ${title}`}
+        onClose={onClose}
+      />
       {children}
-    </dialog>,
+    </Dialog>,
     document.querySelector(".app") || document.body,
   );
 }

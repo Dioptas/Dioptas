@@ -1,3 +1,5 @@
+import { ShortcutReference } from "./ShortcutReference";
+import { TabList } from "./TabList";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -14,7 +16,10 @@ import {
 import type { ZoomMode } from "./usePlotNavigation";
 import type { State } from "./types";
 import type { IntegrationRun } from "./integration";
-import { IntegrationSettings } from "./IntegrationSettings";
+import {
+  IntegrationSettings,
+  type IntegrationSettingsDraft,
+} from "./IntegrationSettings";
 import "./settings.css";
 import { CustomCommandSettings } from "./CustomCommandSettings";
 import type { CustomCommandController } from "./customCommands";
@@ -43,40 +48,9 @@ const categories = [
   },
 ] as const;
 
-const shortcuts = [
-  {
-    title: "Files & editing",
-    rows: [
-      ["Open detector image", "⌘ / Ctrl + O"],
-      ["Save project · save mask in Mask mode", "⌘ / Ctrl + S"],
-      ["Undo scientific edit · action edit in Custom actions", "⌘ / Ctrl + Z"],
-      ["Redo edit", "⌘ / Ctrl + Shift + Z"],
-    ],
-  },
-  {
-    title: "Tools & navigation",
-    rows: [
-      ["Pick calibration rings", "P"],
-      ["Mask brush / eraser", "B / E"],
-      ["Navigate in Mask mode", "V"],
-      ["Restore detector view", "F"],
-      ["Integrate calibrated image", "Enter"],
-      ["Return from Settings", "Esc"],
-    ],
-  },
-  {
-    title: "Plot gestures",
-    rows: [
-      ["Zoom under pointer", "Scroll"],
-      ["Zoom selection", "Left drag"],
-      ["Pan", "Right drag"],
-      ["Zoom out one step", "Right click"],
-      ["Restore fitted view", "Right double-click"],
-    ],
-  },
-];
-
 export function SettingsWorkspace({
+  integrationDraft,
+  open = true,
   state,
   ready,
   run,
@@ -92,6 +66,8 @@ export function SettingsWorkspace({
   customCommands,
   onCustomActionsActiveChange,
 }: {
+  integrationDraft: IntegrationSettingsDraft;
+  open?: boolean;
   state: State | null;
   ready: boolean;
   run: IntegrationRun;
@@ -109,15 +85,19 @@ export function SettingsWorkspace({
 }) {
   const [section, setSection] = useState(0);
   useLayoutEffect(() => {
-    onCustomActionsActiveChange(section === 3);
+    onCustomActionsActiveChange(open && section === 3);
     return () => onCustomActionsActiveChange(false);
-  }, [section, onCustomActionsActiveChange]);
+  }, [open, section, onCustomActionsActiveChange]);
   const tabs = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    tabs.current
-      ?.querySelector<HTMLButtonElement>("[aria-selected=true]")
-      ?.focus();
+    if (!open) return;
+    setSection(0);
+    tabs.current?.querySelector<HTMLButtonElement>('[role="tab"]')?.focus();
     const key = (event: KeyboardEvent) => {
+      const target =
+        event.target instanceof Element ? event.target : document.body;
+      if (event.defaultPrevented || target.closest('dialog, [role="dialog"]'))
+        return;
       if (event.key === "Escape") {
         event.preventDefault();
         onClose();
@@ -125,10 +105,11 @@ export function SettingsWorkspace({
     };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
-  }, [onClose]);
+  }, [open, onClose]);
 
   return (
     <section
+      hidden={!open}
       id="settings-workspace"
       className="settings-workspace"
       aria-labelledby="settings-title"
@@ -145,45 +126,25 @@ export function SettingsWorkspace({
       </header>
       <div className="settings-layout">
         <div className="settings-category-column">
-          <div
-            ref={tabs}
-            className="settings-categories"
-            role="tablist"
-            aria-label="Settings categories"
-            aria-orientation="vertical"
-          >
-            {categories.map(({ name, icon: Icon }, index) => (
-              <button
-                key={name}
-                id={`settings-tab-${index === 2 ? "shortcuts" : name.toLowerCase().replaceAll(" ", "-")}`}
-                role="tab"
-                aria-selected={section === index}
-                aria-controls={`settings-panel-${index}`}
-                tabIndex={section === index ? 0 : -1}
-                onClick={() => setSection(index)}
-                onKeyDown={(event) => {
-                  const next =
-                    event.key === "ArrowDown"
-                      ? (index + 1) % categories.length
-                      : event.key === "ArrowUp"
-                        ? (index + categories.length - 1) % categories.length
-                        : event.key === "Home"
-                          ? 0
-                          : event.key === "End"
-                            ? categories.length - 1
-                            : null;
-                  if (next === null) return;
-                  event.preventDefault();
-                  setSection(next);
-                  tabs.current
-                    ?.querySelectorAll<HTMLButtonElement>("button")
-                    [next]?.focus();
-                }}
-              >
-                <Icon size={18} />
-                <span>{name}</span>
-              </button>
-            ))}
+          <div ref={tabs}>
+            <TabList
+              className="settings-categories"
+              label="Settings categories"
+              orientation="vertical"
+              value={section}
+              onChange={setSection}
+              options={categories.map(({ name, icon: Icon }, index) => ({
+                value: index,
+                label: (
+                  <>
+                    <Icon size={18} />
+                    <span>{name}</span>
+                  </>
+                ),
+                id: `settings-tab-${index === 2 ? "shortcuts" : name.toLowerCase().replaceAll(" ", "-")}`,
+                panelId: `settings-panel-${index}`,
+              }))}
+            />
           </div>
           <p className="settings-navigation-note">
             Return to your work at any time using the modes on the left.
@@ -349,7 +310,12 @@ export function SettingsWorkspace({
             hidden={section !== 1}
           >
             {state?.integration ? (
-              <IntegrationSettings state={state} ready={ready} run={run} />
+              <IntegrationSettings
+                editor={integrationDraft}
+                state={state}
+                ready={ready}
+                run={run}
+              />
             ) : (
               <p className="settings-detail">
                 Integration options will be available when the workspace is
@@ -367,23 +333,14 @@ export function SettingsWorkspace({
             <CustomCommandSettings controller={customCommands} ready={ready} />
           </div>
           <div
+            tabIndex={0}
             id="settings-panel-2"
             className="settings-tabpanel settings-shortcuts"
             role="tabpanel"
             aria-labelledby="settings-tab-shortcuts"
             hidden={section !== 2}
           >
-            {shortcuts.map(({ title, rows }) => (
-              <section className="settings-card" key={title}>
-                <h3>{title}</h3>
-                {rows.map(([label, key]) => (
-                  <div className="settings-shortcut" key={label}>
-                    <span>{label}</span>
-                    <kbd>{key}</kbd>
-                  </div>
-                ))}
-              </section>
-            ))}
+            <ShortcutReference />
           </div>
         </div>
       </div>

@@ -76,7 +76,7 @@ export function installPatternBenchmark(element: HTMLElement) {
       render(props);
     },
     async run({
-      backend = "canvas2d",
+      backend = "webgl2",
       cases,
       frames = 90,
       caseName,

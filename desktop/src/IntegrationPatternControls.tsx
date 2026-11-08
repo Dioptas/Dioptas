@@ -1,3 +1,4 @@
+import { PathInput } from "./PathInput";
 import { useEffect, useState } from "react";
 import type { IntegrationState } from "./integration";
 import { Check } from "./IntegrationFields";
@@ -77,7 +78,7 @@ export function IntegrationPatternControls({
         spellCheck={false}
       />
       <div className="integration-file-directory">
-        <input
+        <PathInput
           className="integration-file-path"
           aria-label="Pattern directory"
           value={directoryDraft}

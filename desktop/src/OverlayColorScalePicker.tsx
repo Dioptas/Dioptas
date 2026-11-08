@@ -1,4 +1,5 @@
-import { Palette, X } from "lucide-react";
+import { Dialog, DialogHeader } from "./Dialog";
+import { Palette } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { colorMaps } from "./colorMaps";
 import { overlayScaleColors } from "./overlayColorScales";
@@ -41,31 +42,19 @@ export function OverlayColorScalePicker({
       >
         <Palette size={16} aria-hidden="true" />
       </button>
-      <dialog
-        ref={dialog}
+      <Dialog
+        autoOpen={false}
+        dialogRef={dialog}
+        returnFocusRef={button}
         className="overlay-color-scale-dialog"
         aria-labelledby="overlay-color-scale-title"
-        onClick={(event) => {
-          if (event.target !== event.currentTarget) return;
-          const box = event.currentTarget.getBoundingClientRect();
-          if (
-            event.clientX < box.left ||
-            event.clientX > box.right ||
-            event.clientY < box.top ||
-            event.clientY > box.bottom
-          )
-            event.currentTarget.close();
-        }}
       >
-        <div className="overlay-color-scale-heading">
-          <h2 id="overlay-color-scale-title">Overlay color scale</h2>
-          <button
-            aria-label="Close color scales"
-            onClick={() => dialog.current?.close()}
-          >
-            <X size={16} />
-          </button>
-        </div>
+        <DialogHeader
+          title="Overlay color scale"
+          titleId="overlay-color-scale-title"
+          closeLabel="Close color scales"
+          onClose={() => dialog.current?.close()}
+        />
         <label className="overlay-color-scale-reverse">
           <input
             type="checkbox"
@@ -104,7 +93,7 @@ export function OverlayColorScalePicker({
           Dark endpoints are trimmed for visibility. Applies in table order;
           Undo restores the previous colors.
         </p>
-      </dialog>
+      </Dialog>
     </>
   );
 }

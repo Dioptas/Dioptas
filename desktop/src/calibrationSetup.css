@@ -167,7 +167,7 @@
   max-height: calc(100vh - 48px);
   overflow-y: auto;
   color: inherit;
-  background: #232323;
+  background: var(--ui-raised);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 18px;
@@ -310,12 +310,12 @@
 .calibration-task-panel
   :is(.peak-list, .calibration-fit-controls)::-webkit-scrollbar {
   width: 10px;
-  background: #151b22;
+  background: var(--ui-input);
 }
 .calibration-task-panel
   :is(.peak-list, .calibration-fit-controls)::-webkit-scrollbar-thumb {
   min-height: 28px;
-  border: 2px solid #151b22;
+  border: 2px solid var(--ui-input);
   border-radius: 6px;
   background: #65707c;
 }
@@ -325,7 +325,7 @@
 }
 @supports not selector(::-webkit-scrollbar) {
   .calibration-task-panel :is(.peak-list, .calibration-fit-controls) {
-    scrollbar-color: #65707c #151b22;
+    scrollbar-color: #65707c var(--ui-input);
   }
 }
 .calibration-task-panel .peak-table-headers {
@@ -353,7 +353,7 @@
   width: 30px;
   height: 30px;
   padding: 5px;
-  color: #b5bfc9;
+  color: var(--ui-muted);
 }
 .app .peak-table-actions .peak-clear-all {
   margin-left: 5px;
@@ -385,7 +385,7 @@
   overflow-y: auto;
   padding: 16px;
   color: inherit;
-  background: #232323;
+  background: var(--ui-raised);
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 8px 24px #0006;
@@ -413,7 +413,7 @@
   border-radius: 6px;
 }
 .app .clear-peaks-dialog-actions button:focus {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ui-focus);
   outline-offset: -2px;
 }
 .app .clear-peaks-dialog-actions .clear-peaks-confirm {
@@ -584,13 +584,14 @@
   color: var(--accent);
 }
 .calibration-help-tooltip {
+  pointer-events: none;
   position: fixed;
   z-index: 1000;
   width: min(320px, calc(100vw - 24px));
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: #292d32;
+  background: var(--ui-raised);
   color: #e2e6ea;
   box-shadow: 0 4px 16px #0006;
   font-size: var(--text-small);
@@ -600,11 +601,16 @@
 
 .native-calibration-tooltip,
 .native-calibration-tooltip body {
-  background: #292d32;
+  background: var(--ui-raised);
   overflow: hidden;
 }
 .native-tooltip-content {
   position: static;
   border-radius: 0;
   box-shadow: none;
+}
+
+.geometry-field-error,
+.constraint-error {
+  grid-column: 1 / -1;
 }

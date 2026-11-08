@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { nativeTestProfile } from "./native_test_profile.mjs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
@@ -7,12 +8,14 @@ const desktop = fileURLToPath(new URL("../", import.meta.url));
 const artifacts = new URL("../artifacts/", import.meta.url);
 await mkdir(artifacts, { recursive: true });
 const config = new URL("batch-layout-config.json", artifacts);
+const profile = await nativeTestProfile("batch-layout");
 await writeFile(
   config,
   JSON.stringify({
-    identifier: `org.dioptas.desktop.batch-layout-${process.pid}-${Date.now()}`,
+    ...profile.config,
     productName: "Dioptas Batch Layout Check",
     app: {
+      ...profile.config.app,
       security: {
         capabilities: [
           "desktop",
@@ -29,6 +32,11 @@ await writeFile(
               "core:window:allow-set-focus",
               "core:window:allow-is-focused",
               "core:window:allow-get-all-windows",
+              "core:window:allow-set-size",
+              "core:window:allow-set-position",
+              "core:window:allow-inner-size",
+              "core:window:allow-outer-position",
+              "core:window:allow-scale-factor",
             ],
           },
         ],
@@ -63,14 +71,16 @@ for (const stage of ["seed", "floating", "closed", "docked"]) {
     ["--smoke", "--batch-smoke"],
     {
       cwd: desktop,
-      env: { ...process.env, DIOPTAS_BATCH_LAYOUT_STAGE: stage },
+      env: { ...profile.env, DIOPTAS_BATCH_LAYOUT_STAGE: stage },
       stdio: ["ignore", "pipe", "pipe"],
     },
   );
   for (const stream of [p.stdout, p.stderr])
     createInterface({ input: stream }).on("line", (line) => {
-      if (line.startsWith('{"tauriSmoke":'))
-        report = JSON.parse(line).tauriSmoke;
+      if (line.startsWith('{"tauriSmoke":')) {
+        const value = JSON.parse(line).tauriSmoke;
+        if (value.stage !== "diagnostic") report = value;
+      }
       console.log(line);
     });
   const code = await new Promise((resolve, reject) => {
@@ -90,6 +100,11 @@ for (const stage of ["seed", "floating", "closed", "docked"]) {
   assert.throws(() => process.kill(report.processingPid, 0), { code: "ESRCH" });
   reports.push({ ...report, processingReaped: true });
 }
+assert.deepEqual(
+  reports[1].placement,
+  reports[0].placement,
+  "Batch native bounds did not survive an application restart",
+);
 await writeFile(
   new URL("tauri-batch-layout.json", artifacts),
   JSON.stringify({ ok: true, reports }, null, 2),

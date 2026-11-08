@@ -1,3 +1,4 @@
+import { LayoutDivider } from "./LayoutDivider";
 import {
   useEffect,
   useMemo,
@@ -23,7 +24,6 @@ import { useMapDisplay, useMapPreference } from "./mapPreferences";
 import { ScanMapPanel } from "./ScanMapPanel";
 import { useLiveMapRegion } from "./useLiveMapRegion";
 import {
-  number,
   type Pattern,
   type Raster,
   type Response,
@@ -358,60 +358,27 @@ export function MapView({
     </section>
   );
   const divider = (vertical: boolean) => (
-    <div
+    <LayoutDivider
       className={`map-divider ${vertical ? "map-column-divider" : "map-row-divider"}`}
-      role="separator"
-      aria-label={vertical ? "Map panel width" : "Detector and pattern heights"}
-      aria-orientation={vertical ? "vertical" : "horizontal"}
-      aria-valuenow={Math.round(vertical ? share : upperShare)}
-      aria-valuemin={vertical ? 22 : 25}
-      aria-valuemax={vertical ? 65 : 70}
-      tabIndex={0}
-      onPointerDown={(e) => {
-        if (e.button === 0) {
-          e.preventDefault();
-          e.currentTarget.setPointerCapture(e.pointerId);
-        }
+      label={vertical ? "Map panel width" : "Detector and pattern heights"}
+      orientation={vertical ? "vertical" : "horizontal"}
+      value={vertical ? share : upperShare}
+      min={vertical ? 22 : 25}
+      max={vertical ? 65 : 70}
+      defaultValue={vertical ? 36 : 44}
+      step={3}
+      onChange={vertical ? setShare : setUpperShare}
+      pointerValue={(event) => {
+        const box = layout.current?.getBoundingClientRect();
+        return !box
+          ? null
+          : vertical
+            ? ((event.clientX - box.left) / box.width) * 100
+            : ((event.clientY - box.top) / box.height) * 100;
       }}
-      onPointerMove={(e) => {
-        if (!e.currentTarget.hasPointerCapture(e.pointerId) || !layout.current)
-          return;
-        const b = layout.current.getBoundingClientRect();
-        if (vertical)
-          setShare(
-            Math.max(22, Math.min(65, ((e.clientX - b.left) / b.width) * 100)),
-          );
-        else
-          setUpperShare(
-            Math.max(25, Math.min(70, ((e.clientY - b.top) / b.height) * 100)),
-          );
-      }}
-      onPointerUp={(e) => {
-        if (e.currentTarget.hasPointerCapture(e.pointerId))
-          e.currentTarget.releasePointerCapture(e.pointerId);
-      }}
-      onDoubleClick={() => (vertical ? setShare(36) : setUpperShare(44))}
-      onKeyDown={(e) => {
-        const lower = vertical ? "ArrowLeft" : "ArrowUp",
-          higher = vertical ? "ArrowRight" : "ArrowDown";
-        if (e.key !== lower && e.key !== higher && e.key !== "Home") return;
-        e.preventDefault();
-        const delta = e.key === lower ? -3 : 3;
-        if (vertical)
-          setShare(
-            e.key === "Home" ? 36 : Math.max(22, Math.min(65, share + delta)),
-          );
-        else
-          setUpperShare(
-            e.key === "Home"
-              ? 44
-              : Math.max(25, Math.min(70, upperShare + delta)),
-          );
-      }}
-    >
-      <span />
-    </div>
+    />
   );
+
   return (
     <>
       <div
@@ -541,8 +508,9 @@ export function MapView({
               />
             ) : (
               <div className="empty-pattern">
-                Select a filled map cell to inspect its stored diffraction
-                pattern.
+                {map
+                  ? "Select a filled map cell to inspect its stored diffraction pattern."
+                  : "Build a map to inspect its diffraction patterns."}
               </div>
             )}
             <div
@@ -582,6 +550,7 @@ export function MapView({
                   aria-label="Show pattern windows"
                   title="Show pattern windows"
                   aria-pressed={showRegions}
+                  disabled={!pattern}
                   onClick={() => setShowRegions((v) => !v)}
                 >
                   ROI
@@ -591,7 +560,7 @@ export function MapView({
                   aria-label="Edit windows"
                   title="Edit pattern windows by dragging; turn off to zoom inside windows"
                   aria-pressed={editRegions}
-                  disabled={!showRegions}
+                  disabled={!pattern || !showRegions}
                   onClick={() => setEditRegions((v) => !v)}
                 >
                   <MoveHorizontal size={15} />
@@ -602,6 +571,7 @@ export function MapView({
                   className="plot-tool-button"
                   aria-label="Logarithmic map pattern intensity"
                   aria-pressed={scale === "log"}
+                  disabled={!pattern}
                   title="Logarithmic intensity"
                   onClick={() => setScale(scale === "log" ? "linear" : "log")}
                 >
@@ -611,6 +581,7 @@ export function MapView({
                   className="plot-tool-button"
                   aria-label="Square root map pattern intensity"
                   aria-pressed={scale === "sqrt"}
+                  disabled={!pattern}
                   title="Square-root intensity"
                   onClick={() => setScale(scale === "sqrt" ? "linear" : "sqrt")}
                 >
@@ -622,6 +593,7 @@ export function MapView({
                 aria-label="Antialias map pattern"
                 title="Antialiased pattern lines"
                 aria-pressed={antialias}
+                disabled={!pattern}
                 onClick={() => setAntialias((v) => !v)}
               >
                 AA
@@ -631,6 +603,7 @@ export function MapView({
                 aria-label="Map pattern auto range"
                 title="Fit axes when the selected pattern changes"
                 aria-pressed={autoRange}
+                disabled={!pattern}
                 onClick={() => setAutoRange((v) => !v)}
               >
                 A

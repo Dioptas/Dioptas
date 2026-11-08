@@ -1,7 +1,12 @@
+import { Equal } from "lucide-react";
+import { PlotToggle } from "./IntegrationPlotControls";
+import { usePlotTypography } from "./usePlotTypography";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { BatchData } from "./batchDomain";
 import { decodeRaster } from "./rasterTransfer";
 import { unitLabel, type Pattern } from "./types";
+import { batchNormalizationRegion } from "./batchDisplay";
+import { scientificValue } from "./ScientificNumberInput";
 import { radialFields, radialValues } from "./radialReadout";
 import { intensityValue } from "./readoutNumbers";
 import type { PatternPosition } from "./linkedPosition";
@@ -37,6 +42,7 @@ export function BatchHeatmap({
   palette,
   ready,
   onSelect,
+  onNormalize,
   reportPlot,
 }: {
   batch: BatchData;
@@ -52,18 +58,23 @@ export function BatchHeatmap({
   ready: boolean;
   onSelect: (index: number, position?: PatternPosition) => void;
   reportPlot: ReportPlot;
+  onNormalize: () => void;
 }) {
   const host = useRef<HTMLDivElement>(null),
     canvas = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ width: 600, height: 400 });
   const rows = batch.entries.length,
     cols = batch.x.length;
-  const left = Math.max(36, String(Math.max(0, rows - 1)).length * 8 + 12);
+  const typography = usePlotTypography(host);
+  const left = Math.max(
+    28 * typography.scale,
+    String(rows).length * 8 * typography.scale + 12,
+  );
   const bounds = {
     left,
     top: 12,
     width: Math.max(1, size.width - left - 18),
-    height: Math.max(1, size.height - 58),
+    height: Math.max(1, size.height - 58 * typography.scale),
   };
   const nav = usePlotNavigation(
     { xMin: 0, xMax: cols, yMin: 0, yMax: rows },
@@ -73,6 +84,7 @@ export function BatchHeatmap({
     undefined,
     viewport,
   );
+  const normalizationRegion = batchNormalizationRegion(batch);
   const values = useMemo(() => decodeRaster(batch.raster), [batch.raster.data]);
   const coloredValues = useMemo(
     () =>
@@ -215,8 +227,8 @@ export function BatchHeatmap({
     ctx.strokeStyle = "#65717d";
     ctx.lineWidth = 1;
     ctx.strokeRect(bounds.left, bounds.top, bounds.width, bounds.height);
-    ctx.font = "13px ui-monospace, SFMono-Regular, monospace";
-    ctx.fillStyle = "#7e8994";
+    ctx.font = typography.mono;
+    ctx.fillStyle = typography.muted;
     ctx.textAlign = "center";
     const a = radial(v.xMin),
       b = radial(v.xMax);
@@ -229,26 +241,31 @@ export function BatchHeatmap({
       const bin = batchRadialBin(tick.value, batch.x);
       if (bin != null) ctx.fillText(tick.label, px(bin), size.height - 26);
     }
-    ctx.fillStyle = "#929ca7";
+    ctx.fillStyle = typography.muted;
     ctx.fillText(
       unitLabel(batch.unit),
       bounds.left + bounds.width / 2,
       size.height - 6,
     );
-    ctx.fillStyle = "#7e8994";
+    ctx.fillStyle = typography.muted;
     ctx.textAlign = "right";
     const stride = Math.max(
       1,
       Math.ceil((v.yMax - v.yMin) / Math.max(1, bounds.height / 42)),
     );
+    const frameTicks: number[] = [];
     for (
       let i = Math.max(0, Math.floor(v.yMin));
       i < Math.min(rows, Math.ceil(v.yMax));
       i += stride
     ) {
-      ctx.fillText(String(i), bounds.left - 9, py(i + 0.5) + 4);
+      frameTicks.push(i + 1);
+      ctx.fillText(String(i + 1), bounds.left - 9, py(i + 0.5) + 4);
     }
+    c.dataset.frameTicks = JSON.stringify(frameTicks);
   }, [
+    typography.muted,
+    typography.mono,
     size,
     bitmap,
     nav.view,
@@ -288,6 +305,11 @@ export function BatchHeatmap({
       <canvas
         ref={canvas}
         data-testid="batch-heatmap"
+        data-plot-font-size={typography.size}
+        data-plot-left={bounds.left}
+        data-plot-top={bounds.top}
+        data-plot-width={bounds.width}
+        data-plot-height={bounds.height}
         data-unit={batch.unit}
         data-intensity-scale={log ? "log" : sqrt ? "sqrt" : "linear"}
         data-zoom-mode={zoomMode}
@@ -306,11 +328,12 @@ export function BatchHeatmap({
         data-view-y-min={nav.view.yMin}
         data-view-y-max={nav.view.yMax}
         aria-label="Batch intensity overview"
+        aria-description="Vertical axis: frame number, starting at 1."
         tabIndex={0}
         onContextMenu={(e) => e.preventDefault()}
         onPointerDown={(e) => {
           e.currentTarget.focus();
-          nav.onPointerDown(e);
+          nav.onPointerDown(e, true, true);
         }}
         onPointerMove={(e) => {
           nav.onPointerMove(e);
@@ -320,7 +343,11 @@ export function BatchHeatmap({
             return;
           }
           const fields = [
-            { label: "Frame", value: String(p.index), kind: "pixel" as const },
+            {
+              label: "Frame",
+              value: String(p.index + 1),
+              kind: "pixel" as const,
+            },
             {
               label: "I",
               value: intensityValue(values[p.index * cols + p.bin]),
@@ -373,6 +400,23 @@ export function BatchHeatmap({
           }
         }}
       />
+      <div className="batch-normalize-toggle">
+        <PlotToggle
+          label="Normalize batch"
+          title={
+            batch.normalized
+              ? "Restore original batch intensities"
+              : normalizationRegion
+                ? `Normalize over ${scientificValue(normalizationRegion.minimum)}–${scientificValue(normalizationRegion.maximum)} ${unitLabel(batch.unit)}; edit the region in Options`
+                : "Set a normalization region in Options"
+          }
+          pressed={batch.normalized}
+          disabled={!ready || (!batch.normalized && !batch.normalizationRegion)}
+          onClick={onNormalize}
+        >
+          <Equal size={15} aria-hidden="true" />
+        </PlotToggle>
+      </div>
       <PlotZoomControls
         mode={zoomMode}
         onChange={onZoomMode}

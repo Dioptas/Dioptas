@@ -1,7 +1,22 @@
+import { legendPlacement, legendSampleIndices } from "./legendPlacement";
+import { usePlotTypography } from "./usePlotTypography";
 import { WebGLPattern, type PatternCurve } from "./WebGLPattern";
 import { IntegrationPhaseLegend } from "./IntegrationPhaseLegend";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { nearestSample, visibleSamples } from "./patternSamples";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
+import { scientificValue } from "./ScientificNumberInput";
+import {
+  nearestSample,
+  visibleSamples,
+  sampleInspectionOrder,
+  type InspectionDirection,
+} from "./patternSamples";
 import type { PlotViewport } from "./plotViewport";
 import type { Pattern } from "./types";
 import type { PatternHover } from "./plotReadout";
@@ -183,6 +198,7 @@ export function PatternView({
       gpu.current = null;
     };
   }, [curveRenderer]);
+  const typography = usePlotTypography(container);
   const [size, setSize] = useState({ width: 900, height: 230 });
   const [left, setLeft] = useState(76);
   const [axisAnnotation, setAxisAnnotation] = useState(false);
@@ -210,6 +226,28 @@ export function PatternView({
   } | null>(null);
   const [hover, setHover] = useState<number | null>(null);
   const [hoverY, setHoverY] = useState<number>(0);
+  const inspectionId = useId();
+  const [keyboardSample, setKeyboardSample] = useState<{
+    index: number;
+    x: number;
+    y: number;
+    name: string;
+    sourceX: number[];
+    sourceY: (number | null)[];
+  } | null>(null);
+  const inspectedCurve = showPattern
+    ? pattern
+    : (curves.find((curve) => curve.selected) ?? curves[0]);
+  const inspected =
+    keyboardSample &&
+    keyboardSample.sourceX === inspectedCurve?.x &&
+    keyboardSample.sourceY === inspectedCurve?.y
+      ? keyboardSample
+      : null;
+  useEffect(() => {
+    setKeyboardSample(null);
+  }, [inspectedCurve?.x, inspectedCurve?.y, pattern.unit]);
+
   const regionKey = JSON.stringify(regions);
   const cancelRegionDrag = (restore = false) => {
     const dragging = !!regionDrag.current;
@@ -252,10 +290,10 @@ export function PatternView({
     log,
     sqrt,
   ]);
-  // Integration tools sit against the plot; reserve headroom only for an exponent.
+  // Reserve space for exponents only; legends float inside the data view.
   const right = compact ? 0 : 32,
-    top = compact && !axisAnnotation ? 6 : 18,
-    bottom = 52;
+    top = (compact && !axisAnnotation ? 6 : 18) * typography.scale,
+    bottom = 52 * typography.scale;
   const w = Math.max(1, size.width - left - right),
     h = Math.max(1, size.height - top - bottom);
   const visibleCurves = useMemo(
@@ -333,7 +371,8 @@ export function PatternView({
   useEffect(() => {
     const previous = previousAutoRange.current;
     const managed = !!onAutoRange;
-    const toggled = previous?.managed && managed && previous.value !== autoRange;
+    const toggled =
+      previous?.managed && managed && previous.value !== autoRange;
     previousAutoRange.current = { value: autoRange, managed };
     if (navigating.current || (regionDrag.current && onRegionInput)) return;
     if (viewport) {
@@ -349,11 +388,116 @@ export function PatternView({
     else if (onAutoRange) navigation.hold();
   }, [pattern, autoRange, showPattern, viewport?.key]);
   usePlotWheel(canvas, (event) => {
+    if (keyboardSample) {
+      setKeyboardSample(null);
+      setHover(null);
+    }
     onAutoRange?.(false);
     navigation.onWheel(event);
   });
   const { xMin: xmin, xMax: xmax, yMin: ymin, yMax: ymax } = navigation.view;
   const yspan = ymax - ymin;
+  // Choose on data/layout changes and Fit. Keep the corner fixed while panning
+  // or moving cursors/ROIs so the legend does not chase the user's pointer.
+  const legendNames =
+    overlayLegend?.map((entry) => entry.name).join("\n") ?? "";
+  const legendAnchor = useMemo(() => {
+    if (!overlayLegend?.length)
+      return { left: left + w - 8, top: top + 5, align: "right" as const };
+    const legendWidth = Math.min(
+      w * 0.7,
+      Math.max(...overlayLegend.map((entry) => entry.name.length)) *
+        typography.size *
+        0.58,
+    );
+    const legendHeight = Math.min(
+      h * 0.5,
+      overlayLegend.length * typography.size * 1.35,
+    );
+    const points: { x: number; y: number; weight: number }[] = [];
+    for (const curve of visibleCurves) {
+      const [start, end] = visibleSamples(curve.x, xmin, xmax, false);
+      for (const i of legendSampleIndices(curve.x, curve.y, start, end)) {
+        const x = curve.x[i],
+          y = curve.y[i];
+        if (
+          !Number.isFinite(x) ||
+          y === null ||
+          !Number.isFinite(y) ||
+          (log && y <= 0)
+        )
+          continue;
+        points.push({
+          x: left + ((x - xmin) / (xmax - xmin)) * w,
+          y: top + h - ((transform(y) - ymin) / yspan) * h,
+          weight:
+            0.05 +
+            20 *
+              Math.pow(
+                Math.abs(
+                  transform(y) -
+                    Math.max(ymin, Math.min(ymax, log ? ymin : transform(0))),
+                ) / yspan,
+                2,
+              ),
+        });
+      }
+    }
+    const obstacles = [];
+    if (referenceLines.length)
+      obstacles.push({
+        left: left + 10,
+        top: top + 3,
+        width: w * 0.35,
+        height: Math.min(
+          h * 0.45,
+          new Set(referenceLines.map((line) => line.phaseIndex ?? line.name))
+            .size *
+            typography.size *
+            1.35,
+        ),
+      });
+    if (linkedPosition !== undefined)
+      obstacles.push({
+        left: left + ((linkedPosition - xmin) / (xmax - xmin)) * w - 8,
+        top,
+        width: 24,
+        height: 26,
+      });
+    for (const region of regions)
+      obstacles.push({
+        left: left + ((region.min - xmin) / (xmax - xmin)) * w,
+        top,
+        width: Math.max(30, region.name.length * typography.size * 0.6),
+        height: 24,
+      });
+    return legendPlacement(
+      { left, top, width: w, height: h },
+      legendWidth,
+      legendHeight,
+      points,
+      obstacles,
+    );
+  }, [
+    pattern.x,
+    pattern.y,
+    curves,
+    referenceLines,
+    showPattern,
+    legendNames,
+    w,
+    h,
+    left,
+    top,
+    log,
+    sqrt,
+    typography.size,
+    autoRange ? xmin : null,
+    autoRange ? xmax : null,
+    autoRange ? ymin : null,
+    autoRange ? ymax : null,
+  ]);
+
   const regionAt = (x: number) => {
     const tolerance = ((xmax - xmin) * 9) / w;
     return [...regions]
@@ -443,8 +587,8 @@ export function PatternView({
     context.scale(dpr, dpr);
     context.lineWidth = 1;
     context.setLineDash([]);
-    context.font = "13px ui-monospace, SFMono-Regular, monospace";
-    const intervalsY = Math.max(1, Math.floor(h / 48));
+    context.font = typography.mono;
+    const intervalsY = Math.max(1, Math.floor(h / (48 * typography.scale)));
     const inverse = (v: number) => Math.max(0, v) ** 2;
     const yAxis = log
       ? { ticks: logTicks(ymin, ymax, intervalsY), annotation: null }
@@ -490,7 +634,7 @@ export function PatternView({
       context.moveTo(left, y);
       context.lineTo(size.width - right, y);
       context.stroke();
-      context.fillStyle = "#7e8994";
+      context.fillStyle = typography.muted;
       context.textAlign = "right";
       context.fillText(tick.label, left - 10, y);
       context.strokeStyle = "#65717d";
@@ -511,7 +655,7 @@ export function PatternView({
       context.moveTo(x, top + h);
       context.lineTo(x, top + h + 4);
       context.stroke();
-      context.fillStyle = "#7e8994";
+      context.fillStyle = typography.muted;
       context.textAlign = "center";
       const halfLabel = context.measureText(tick.label).width / 2;
       context.fillText(
@@ -529,7 +673,7 @@ export function PatternView({
     context.textBaseline = "alphabetic";
     if (yAxis.annotation) {
       context.textAlign = "left";
-      context.fillStyle = "#7e8994";
+      context.fillStyle = typography.muted;
       context.fillText(yAxis.annotation, left, top - 6);
     }
     context.save();
@@ -595,6 +739,8 @@ export function PatternView({
     context.clip();
     // Reuse curve pixels when only the cursor, selection or editable region changes.
     const curveKey = [
+      typography.muted,
+      typography.mono,
       gpuVersion,
       curveRenderer,
       pattern,
@@ -765,6 +911,7 @@ export function PatternView({
         );
         curveContext.stroke();
       }
+      const ringLabelBoxes: { left: number; right: number; row: number }[] = [];
       for (const reference of calibrantLines) {
         const x = left + ((reference.x - xmin) / (xmax - xmin)) * w;
         if (x < left || x > left + w) continue;
@@ -777,7 +924,25 @@ export function PatternView({
         curveContext.stroke();
         if (showNumbers) {
           curveContext.fillStyle = "#ff4040";
-          curveContext.fillText(String(reference.ring), x + 4, top + 14);
+          const text = String(reference.ring),
+            width = curveContext.measureText(text).width;
+          const labelX = Math.max(
+            left + 2,
+            Math.min(x + 4, left + w - width - 2),
+          );
+          const row = Array.from({ length: 4 }, (_, i) => i).find(
+            (row) =>
+              !ringLabelBoxes.some(
+                (box) =>
+                  box.row === row &&
+                  labelX < box.right + 5 &&
+                  labelX + width > box.left - 5,
+              ),
+          );
+          if (row !== undefined) {
+            ringLabelBoxes.push({ left: labelX, right: labelX + width, row });
+            curveContext.fillText(text, labelX, top + 14 + row * 16);
+          }
         }
       }
       curveContext.restore();
@@ -840,7 +1005,7 @@ export function PatternView({
       context.setLineDash([]);
     }
     context.restore();
-    context.fillStyle = "#929ca7";
+    context.fillStyle = typography.muted;
     context.textAlign = "center";
     context.fillText(unitLabel(pattern.unit), left + w / 2, size.height - 8);
     context.save();
@@ -858,6 +1023,8 @@ export function PatternView({
       uploadBytes: gpu.current?.stats.uploadBytes,
     });
   }, [
+    typography.muted,
+    typography.mono,
     gpuVersion,
     curveRenderer,
     pattern,
@@ -888,6 +1055,59 @@ export function PatternView({
     top,
     right,
   ]);
+  const inspectByKeyboard = (event: ReactKeyboardEvent<HTMLCanvasElement>) => {
+    if (
+      !event.altKey ||
+      event.metaKey ||
+      event.ctrlKey ||
+      !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
+    )
+      return false;
+    event.preventDefault();
+    event.stopPropagation();
+    if (!inspectedCurve) return true;
+    const actions: Record<string, InspectionDirection> = {
+      ArrowLeft: "previous",
+      ArrowRight: "next",
+      Home: "first",
+      End: "last",
+    };
+    for (const index of sampleInspectionOrder(
+      inspectedCurve.x,
+      xmin,
+      xmax,
+      inspected?.index ?? null,
+      actions[event.key],
+    )) {
+      const x = inspectedCurve.x[index],
+        y = inspectedCurve.y[index];
+      if (
+        !Number.isFinite(x) ||
+        y == null ||
+        !Number.isFinite(y) ||
+        (log && y <= 0)
+      )
+        continue;
+      const transformed = transform(y);
+      if (transformed < ymin || transformed > ymax) continue;
+      setKeyboardSample({
+        index,
+        x,
+        y,
+        name: showPattern
+          ? (overlayLegend?.[0]?.name ?? "Original pattern")
+          : "name" in inspectedCurve && typeof inspectedCurve.name === "string"
+            ? inspectedCurve.name
+            : "Overlay",
+        sourceX: inspectedCurve.x,
+        sourceY: inspectedCurve.y,
+      });
+      setHover(left + ((x - xmin) / (xmax - xmin)) * w);
+      setHoverY(top + h - ((transformed - ymin) / yspan) * h);
+      break;
+    }
+    return true;
+  };
   const xvalue =
     hover === null ? null : xmin + ((hover - left) / w) * (xmax - xmin);
   const mouseValue = (y: number) =>
@@ -908,19 +1128,30 @@ export function PatternView({
   const nearest = xvalue === null ? -1 : nearestSample(pattern.x, xvalue);
   useEffect(() => {
     onHover?.(
-      nearest >= 0
+      inspected
         ? {
-            x: xvalue!,
-            y: pattern.y[nearest],
-            mouseY,
+            x: inspected.x,
+            y: inspected.y,
+            mouseY: inspected.y,
             xResolution,
             yResolution,
             unit: pattern.unit,
-            hint: hoverHint,
+            hint: `${inspected.name} · sample ${inspected.index + 1} of ${inspected.sourceX.length}`,
           }
-        : null,
+        : nearest >= 0
+          ? {
+              x: xvalue!,
+              y: pattern.y[nearest],
+              mouseY,
+              xResolution,
+              yResolution,
+              unit: pattern.unit,
+              hint: hoverHint,
+            }
+          : null,
     );
   }, [
+    inspected,
     nearest,
     xvalue,
     mouseY,
@@ -932,7 +1163,12 @@ export function PatternView({
   ]);
   return (
     <div ref={container} className="pattern-container">
-      <IntegrationPhaseLegend lines={referenceLines} left={left} />
+      <IntegrationPhaseLegend
+        lines={referenceLines}
+        left={left}
+        top={top + 5}
+        bounds={{ left, top, width: w, height: h }}
+      />
       <canvas
         ref={backdrop}
         className="pattern-background-layer"
@@ -951,11 +1187,44 @@ export function PatternView({
       />
       <canvas
         ref={canvas}
-        tabIndex={-1}
+        tabIndex={0}
+        onKeyDown={(event) => {
+          if (inspectByKeyboard(event)) return;
+          if (
+            [
+              "ArrowLeft",
+              "ArrowRight",
+              "ArrowUp",
+              "ArrowDown",
+              "Home",
+              "f",
+              "F",
+              "+",
+              "-",
+              "=",
+            ].includes(event.key) &&
+            keyboardSample
+          ) {
+            setKeyboardSample(null);
+            setHover(null);
+          }
+          navigation.onKeyDown(event);
+        }}
+        onBlur={() => {
+          if (keyboardSample) {
+            setKeyboardSample(null);
+            setHover(null);
+          }
+        }}
+        aria-describedby={inspectionId}
+        aria-description="Alt+Left or Right inspects plotted samples without changing the view. Alt+Home or End selects the first or last visible sample."
+        data-keyboard-sample={inspected?.index}
+        data-keyboard-x={inspected?.x}
+        data-keyboard-y={inspected?.y}
         data-testid="pattern-canvas"
         data-curve-renderer={activeRenderer}
         data-requested-curve-renderer={curveRenderer}
-        aria-label={`Integrated diffraction pattern; left-drag ${zoomMode} zoom, right-drag pan, right-click zoom out`}
+        aria-label={`Integrated diffraction pattern; left-drag ${zoomMode} zoom, right-drag pan, right-click zoom out; keyboard arrows pan, +/- zoom, F restores view`}
         style={{ width: "100%", height: "100%", cursor: regionCursor }}
         data-regions={JSON.stringify(
           regions.map((r) =>
@@ -965,6 +1234,7 @@ export function PatternView({
         data-edit-regions={editRegions}
         data-region-updating={regionsUpdating}
         data-intensity-scale={log ? "log" : sqrt ? "sqrt" : "linear"}
+        data-plot-font-size={typography.size}
         data-antialias={antialias}
         data-auto-range={autoRange}
         data-curve-count={curves.length}
@@ -1031,6 +1301,7 @@ export function PatternView({
           );
         }}
         onPointerMove={(e) => {
+          if (keyboardSample) setKeyboardSample(null);
           const drag = regionDrag.current;
           if (drag) {
             updateRegionDrag(navigation.screen(e));
@@ -1096,12 +1367,25 @@ export function PatternView({
         }}
         onPointerLeave={() => setHover(null)}
       />
+      <span
+        className="visually-hidden plot-keyboard-reading"
+        id={inspectionId}
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {inspected
+          ? `${inspected.name}, sample ${inspected.index + 1} of ${inspected.sourceX.length}. ${unitLabel(pattern.unit)} ${scientificValue(inspected.x, 8)}. Intensity ${scientificValue(inspected.y, 8)} a.u.`
+          : ""}
+      </span>
       {overlayLegend && (
         <OverlayPlotLegend
           entries={overlayLegend}
-          left={left + w - 10}
-          top={top + 5}
-          width={w * 0.6}
+          left={legendAnchor.left}
+          top={legendAnchor.top}
+          align={legendAnchor.align}
+          bounds={{ left, top, width: w, height: h }}
+          width={w * 0.7}
           height={h * 0.5}
         />
       )}

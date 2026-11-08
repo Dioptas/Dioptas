@@ -1,0 +1,29 @@
+.plot-legend {
+  position: absolute;
+  touch-action: none;
+  user-select: none;
+  cursor: move;
+  overflow: auto;
+  overscroll-behavior: contain;
+  font-size: var(--text-meta);
+  line-height: 1.35;
+  z-index: 1;
+  background: var(--ui-workspace);
+  padding: 2px 4px;
+  border-radius: 3px;
+  text-shadow:
+    -1px 0 var(--ui-workspace),
+    1px 0 var(--ui-workspace),
+    0 -1px var(--ui-workspace),
+    0 1px var(--ui-workspace);
+}
+.plot-legend > div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plot-legend:is(:hover, :focus) > div {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

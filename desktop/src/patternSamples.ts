@@ -51,12 +51,19 @@ export function visibleSamples(
 export function nearestSample(x: number[], value: number) {
   if (!x.length) return -1;
   const direction = order(x);
-  if (!direction)
-    return x.reduce(
-      (best, v, i) =>
-        Math.abs(v - value) < Math.abs(x[best] - value) ? i : best,
-      0,
-    );
+  if (!direction) {
+    let best = -1,
+      distance = Infinity;
+    for (let i = 0; i < x.length; i++) {
+      if (!Number.isFinite(x[i])) continue;
+      const delta = Math.abs(x[i] - value);
+      if (delta < distance) {
+        best = i;
+        distance = delta;
+      }
+    }
+    return best;
+  }
   const right = bound(x, value, direction, false);
   if (!right) return 0;
   if (right === x.length) return bound(x, x[x.length - 1], direction, false);
@@ -65,4 +72,70 @@ export function nearestSample(x: number[], value: number) {
       ? right
       : right - 1;
   return bound(x, x[best], direction, false);
+}
+
+const orderedIndices = new WeakMap<number[], number[]>();
+export type InspectionDirection = "previous" | "next" | "first" | "last";
+
+/** Read-only sample traversal follows increasing visual x, including descending
+ * d-spacing and imperfect/unsorted input files. Source arrays are never sorted. */
+export function* sampleInspectionOrder(
+  x: number[],
+  min: number,
+  max: number,
+  current: number | null,
+  action: InspectionDirection,
+): Generator<number> {
+  const direction = order(x);
+  if (direction) {
+    const [start, end] = visibleSamples(x, min, max, false);
+    if (start >= end) return;
+    const step =
+      (action === "previous" || action === "last" ? -1 : 1) * direction;
+    const base =
+      current !== null && current >= start && current < end
+        ? current
+        : nearestSample(x, (min + max) / 2);
+    const index =
+      action === "first"
+        ? direction > 0
+          ? start
+          : end - 1
+        : action === "last"
+          ? direction > 0
+            ? end - 1
+            : start
+          : Math.max(start, Math.min(end - 1, base + step));
+    for (let i = index; i >= start && i < end; i += step) yield i;
+    return;
+  }
+  let sorted = orderedIndices.get(x);
+  if (!sorted) {
+    sorted = x
+      .map((_, i) => i)
+      .filter((i) => Number.isFinite(x[i]))
+      .sort((a, b) => x[a] - x[b] || a - b);
+    orderedIndices.set(x, sorted);
+  }
+  const visible = sorted.filter((i) => x[i] >= min && x[i] <= max);
+  if (!visible.length) return;
+  const step = action === "previous" || action === "last" ? -1 : 1;
+  let base = current === null ? -1 : visible.indexOf(current);
+  if (base < 0)
+    base = visible.reduce(
+      (best, index, position) =>
+        Math.abs(x[index] - (min + max) / 2) <
+        Math.abs(x[visible[best]] - (min + max) / 2)
+          ? position
+          : best,
+      0,
+    );
+  const position =
+    action === "first"
+      ? 0
+      : action === "last"
+        ? visible.length - 1
+        : Math.max(0, Math.min(visible.length - 1, base + step));
+  for (let i = position; i >= 0 && i < visible.length; i += step)
+    yield visible[i];
 }

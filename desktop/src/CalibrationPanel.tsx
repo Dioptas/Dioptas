@@ -1,3 +1,4 @@
+import { Dialog } from "./Dialog";
 import { TableScroll, TableActions } from "./DataTable";
 import { FolderOpen, ListX, Save, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
@@ -331,22 +332,13 @@ export function CalibrationPanel({
           )}
         </TableScroll>
       </div>
-      <dialog
-        ref={clearDialog}
+      <Dialog
+        autoOpen={false}
+        dialogRef={clearDialog}
+        returnFocusRef={clearButton}
         className="clear-peaks-dialog"
         aria-labelledby="clear-peaks-title"
         aria-describedby="clear-peaks-description"
-        onClick={(event) => {
-          if (event.target !== event.currentTarget) return;
-          const bounds = event.currentTarget.getBoundingClientRect();
-          if (
-            event.clientX < bounds.left ||
-            event.clientX > bounds.right ||
-            event.clientY < bounds.top ||
-            event.clientY > bounds.bottom
-          )
-            event.currentTarget.close();
-        }}
       >
         <h2 id="clear-peaks-title">Clear all peaks?</h2>
         <p id="clear-peaks-description">
@@ -372,7 +364,7 @@ export function CalibrationPanel({
             Clear all
           </button>
         </div>
-      </dialog>
+      </Dialog>
     </section>
   );
 }

@@ -1,6 +1,9 @@
+import { scientificValue } from "./ScientificNumberInput";
+import { geometrySourceLabel } from "./GeometryProvenance";
+import { PatternFreshness } from "./PatternFreshness";
 import { useMemo, type ReactNode } from "react";
 import { decodeRaster } from "./rasterTransfer";
-import { Save } from "lucide-react";
+import { FolderOpen, ImageMinus, Layers, Save } from "lucide-react";
 import type { Cake, State, Unit } from "./types";
 import type { IntegrationRun } from "./integration";
 import type { BackgroundSettings } from "./useLiveBackground";
@@ -198,9 +201,17 @@ export function IntegrationPatternActions({
   run: IntegrationRun;
 }) {
   const hasPattern = !!state?.integration.patternName;
+  const source = state?.calibrated
+    ? geometrySourceLabel(state.calibration.geometrySource)
+    : "No calibration";
+  const calibrationName = state?.calibrated
+    ? state.calibrationName && state.calibrationName !== "current"
+      ? state.calibrationName.split(/[\\/]/).at(-1)
+      : source
+    : "Load calibration…";
   return (
     <div
-      className="integration-pattern-actions"
+      className="integration-pattern-actions plot-toolbar"
       role="group"
       aria-label="Pattern actions"
     >
@@ -217,37 +228,45 @@ export function IntegrationPatternActions({
         <Save size={15} />
       </button>
       <button
+        aria-label="As Overlay"
+        title="Capture displayed pattern as an overlay"
         disabled={!ready || !hasPattern}
         onClick={() =>
           void run("integration_overlay", { operation: "capture" })
         }
       >
-        As Overlay
+        <Layers size={15} aria-hidden="true" />
+        <span className="plot-toolbar-label">As Overlay</span>
       </button>
       <button
+        aria-label="As Bkg"
+        title="Capture displayed pattern as background"
         disabled={!ready || !hasPattern}
         onClick={() =>
           void run("integration_overlay", { operation: "capture_background" })
         }
       >
-        As Bkg
+        <ImageMinus size={15} aria-hidden="true" />
+        <span className="plot-toolbar-label">As Bkg</span>
       </button>
-      <span
-        className="integration-pattern-calibration"
-        title={`${state?.calibrationName ?? "No calibration"} · wavelength`}
-      >
-        λ{" "}
-        {state?.calibrated
-          ? (state.geometry.wavelength * 1e10).toFixed(5)
-          : "—"}{" "}
-        Å
-      </span>
+      <PatternFreshness
+        state={state}
+        ready={ready}
+        onRetry={() => void run("integrate")}
+      />
       <button
+        className="integration-calibration-button"
+        aria-label={
+          state?.calibrated
+            ? `Load calibration… (${calibrationName})`
+            : "Load calibration…"
+        }
         disabled={!ready}
-        title={state?.calibrationName ?? "Load a PONI calibration"}
+        title={`Load a PONI calibration\n${source}${state?.calibrated ? ` · ${state.calibrationName ?? "current"}\nλ ${scientificValue(state.geometry.wavelength * 1e10)} Å` : ""}`}
         onClick={() => void run("open_calibration")}
       >
-        Load calibration…
+        <FolderOpen size={15} aria-hidden="true" />
+        <span className="integration-calibration-name">{calibrationName}</span>
       </button>
     </div>
   );

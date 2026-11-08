@@ -162,6 +162,17 @@ const checkBatchLayout = async (p) => {
     .locator(".batch-overview-image > .image-intensity")
     .boundingBox();
   const plot = await p.getByTestId("batch-heatmap").boundingBox();
+  const view = await p.locator(".batch-2d-view").boundingBox();
+  const image = await p.locator(".batch-overview-image").boundingBox();
+  const optionsLocator = p.locator(".batch-2d-view > .batch-options");
+  const options = (await optionsLocator.count())
+    ? await optionsLocator.boundingBox()
+    : null;
+  assert(
+    image.width >= view.width - (options?.width ?? 0) - 8,
+    "Batch plot uses the available dock width; its color legend must not steal a column",
+  );
+
   assert(
     histogram.x + histogram.width <= plot.x + 1,
     JSON.stringify({ histogram, plot }),
@@ -323,7 +334,7 @@ try {
     // Last frame is six times brighter and must be at the top.
     return brightness(0.5 / 6) > brightness(5.5 / 6) * 1.1;
   });
-  // Acquisition order runs upwards: bottom is frame zero, top is the last.
+  // Acquisition order runs upwards: bottom displays frame 1, top the last.
   await child.mouse.click(b.x + 100, b.y + 12 + ((b.height - 58) * 5.5) / 6);
   await selected(child, 1);
   await canvas.press("ArrowUp");
@@ -424,7 +435,44 @@ try {
   };
   await dragZoom("rectangle");
   await dragZoom("horizontal");
-  // Qt Files/2D grouping, normalization popup, and bottom range navigation.
+  // Cake and Batch both accept zooms beginning in the canvas axis margins.
+  for (const mode of ["rectangle", "horizontal"]) {
+    await click(
+      child,
+      `Batch ${mode === "rectangle" ? "rectangle" : "X-range"} zoom`,
+    );
+    const before = await readRange(child);
+    const bounds = await canvas.evaluate((c) => ({
+      left: +c.dataset.plotLeft,
+      top: +c.dataset.plotTop,
+      width: +c.dataset.plotWidth,
+      height: +c.dataset.plotHeight,
+    }));
+    // A click, or a drag remaining in the left gutter, must stay inert.
+    await child.mouse.click(b.x + 3, b.y + bounds.top + 30);
+    await child.mouse.move(b.x + 3, b.y + bounds.top + 20);
+    await child.mouse.down();
+    await child.mouse.move(b.x + 3, b.y + bounds.top + 70, { steps: 4 });
+    await child.mouse.up();
+    sameRange(await readRange(child), before);
+    await child.mouse.move(b.x + 3, b.y + 3);
+    await child.mouse.down();
+    await child.mouse.move(
+      b.x + bounds.left + bounds.width / 2,
+      b.y + bounds.top + bounds.height / 2,
+      { steps: 5 },
+    );
+    await child.mouse.up();
+    const after = await readRange(child);
+    assert(after[1] - after[0] < before[1] - before[0]);
+    if (mode === "rectangle")
+      assert(after[3] - after[2] < before[3] - before[2]);
+    else sameRange(after.slice(2), before.slice(2));
+    await selected(child, 5);
+    await canvas.press("f");
+    sameRange(await readRange(child), before);
+  }
+  // Files/2D/Options grouping and normalization directly beside the plot axis.
   await child.getByRole("tab", { name: "Files", exact: true }).click();
   assert.equal(
     await child
@@ -438,28 +486,26 @@ try {
       .count(),
     1,
   );
-  await click(child, "Select batch file 2");
+  await click(child, "Select batch file 3");
   await selected(child, 3);
   await child.getByRole("tab", { name: "2D", exact: true }).click();
   assert.equal(await canvas.getAttribute("data-zoom-mode"), "horizontal");
-  await click(child, "Normalization settings");
-  const dialog = child.getByRole("dialog", {
-    name: "Normalization settings",
-    exact: true,
-  });
-  await dialog.getByLabel("First normalization bin", { exact: true }).fill("0");
-  await dialog.getByLabel("Last normalization bin", { exact: true }).fill("99");
-  await dialog
-    .getByLabel("Normalization reference frame", { exact: true })
-    .fill("1");
-  await click(child, "Apply");
+  await child.getByRole("tab", { name: "Options", exact: true }).click();
+  assert(await child.getByRole("button", { name: "Apply normalization region", exact: true }).isDisabled());
+  const maximumAngle = child.getByLabel("Normalization maximum 2θ", { exact: true });
+  await maximumAngle.fill("-1");
+  const errorId = await maximumAngle.getAttribute("aria-describedby");
+  assert(errorId);
+  assert((await child.locator(`[id="${errorId}"]`).innerText()).includes("2θ"));
+  assert(await child.getByRole("button", { name: "Apply normalization region", exact: true }).isDisabled());
+  await child.getByLabel("Normalization minimum 2θ", { exact: true }).fill("0");
+  await child
+    .getByLabel("Normalization maximum 2θ", { exact: true })
+    .fill("180");
+  await click(child, "Apply normalization region");
   await child.waitForTimeout(100);
   await ready();
-  await click(child, "Normalization settings");
-  await dialog
-    .getByLabel("First normalization bin", { exact: true })
-    .fill("20");
-  await click(child, "Cancel");
+  await child.getByRole("tab", { name: "2D", exact: true }).click();
   await click(child, "Normalize batch");
   await child.waitForFunction(
     () =>
@@ -468,7 +514,12 @@ try {
         ?.getAttribute("aria-pressed") === "true",
   );
   assert.equal((await invoke("state")).batch.normalized, true);
-  assert.deepEqual((await invoke("state")).batch.normalizationRange, [0, 100]);
+  const normalizedBatch = (await invoke("state")).batch;
+  assert.deepEqual(normalizedBatch.normalizationRange, [
+    0,
+    normalizedBatch.x.length,
+  ]);
+  assert.equal((await invoke("state")).batch.normalizationReference, 0);
   await click(child, "Normalize batch");
   await child.waitForFunction(
     () =>
@@ -486,6 +537,57 @@ try {
   );
   assert.equal((await invoke("state")).pattern.unit, "q_A^-1");
   await ready();
+  await child.getByRole("tab", { name: "Options", exact: true }).click();
+  await child
+    .getByLabel("Normalization minimum Q", { exact: true })
+    .fill("0.5");
+  await child
+    .getByLabel("Normalization maximum Q", { exact: true })
+    .fill("1.5");
+  await click(child, "Apply normalization region");
+  // Companion mutations cross postMessage before entering the main queue.
+  // Wait for the real processor result rather than treating an idle main view
+  // before message delivery as command completion.
+  const applyDeadline = Date.now() + 10000;
+  while ((await invoke("state")).batch.normalizationRegion.unit !== "q_A^-1") {
+    assert(
+      Date.now() < applyDeadline,
+      "Q normalization settings reach the processor",
+    );
+    await child.waitForTimeout(30);
+  }
+  await ready();
+  assert.deepEqual((await invoke("state")).batch.normalizationRegion, {
+    minimum: 0.5,
+    maximum: 1.5,
+    unit: "q_A^-1",
+  });
+  await child.screenshot({
+    path: path.join(artifacts, "batch-normalization-q.png"),
+  });
+  await child.getByRole("tab", { name: "2D", exact: true }).click();
+  await click(child, "Batch unit d");
+  await child.waitForFunction(
+    () =>
+      document
+        .querySelector('[aria-label="Batch unit d"]')
+        ?.getAttribute("aria-pressed") === "true",
+  );
+  await ready();
+  await child.getByRole("tab", { name: "Options", exact: true }).click();
+  const minimumD = Number(
+    await child
+      .getByLabel("Normalization minimum d", { exact: true })
+      .inputValue(),
+  );
+  const maximumD = Number(
+    await child
+      .getByLabel("Normalization maximum d", { exact: true })
+      .inputValue(),
+  );
+  assert(Math.abs(minimumD - (2 * Math.PI) / 1.5) < 1e-12);
+  assert(Math.abs(maximumD - (2 * Math.PI) / 0.5) < 1e-12);
+  await child.getByRole("tab", { name: "2D", exact: true }).click();
   await click(child, "Batch unit 2θ");
   await child.waitForFunction(
     () =>
@@ -539,7 +641,7 @@ try {
   await child.waitForFunction(() =>
     document
       .querySelector(".batch-frame-number")
-      ?.textContent.includes("(3/6)"),
+      ?.textContent.includes("3/6 loaded"),
   );
   await selected(child, 1);
   assert.equal((await invoke("state")).batch.entries.length, 3);
@@ -594,7 +696,7 @@ try {
     await dock
       .getByRole("button", { name: "Normalize batch", exact: true })
       .isVisible(),
-    false,
+    true,
   );
   sameRange(await readRange(page), range);
   // Phase edits must update an already docked batch without a snapshot reload.
@@ -639,7 +741,7 @@ try {
   );
   assert(
     await dock
-      .getByRole("button", { name: "Normalize batch", exact: true })
+      .getByLabel("Normalization minimum 2θ", { exact: true })
       .isVisible(),
   );
   await dock.getByLabel("Batch frame step", { exact: true }).fill("2");

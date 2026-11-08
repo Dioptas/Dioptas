@@ -5,16 +5,13 @@
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  color: #dce2e7;
+  color: var(--ui-text);
   background: #101419;
   font-synthesis: none;
   font-size: var(--text-small);
   font-weight: 400;
-  --text-meta: 13px;
-  --text-small: 14px;
-  --text-body: 15px;
-  --border: #29313a;
-  --muted: #7f8b98;
+  --border: var(--ui-divider);
+  --muted: var(--ui-muted);
   /* Original Dioptas orange, shared by flat actions and interface accents. */
   --dioptas-orange: #ff9500;
   --accent: var(--dioptas-orange);
@@ -66,13 +63,13 @@ button:not(:disabled):hover {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ui-focus);
   outline-offset: 3px;
 }
 input:not([type="checkbox"]):not([type="radio"]):focus-visible,
 select:focus-visible {
-  border-color: var(--accent);
-  outline: 1px solid var(--accent);
+  border-color: var(--ui-focus);
+  outline: 1px solid var(--ui-focus);
   outline-offset: -1px;
 }
 button svg {
@@ -80,9 +77,9 @@ button svg {
 }
 input,
 select {
-  color: #dce2e7;
-  background: #11171d;
-  border: 1px solid #333d48;
+  color: var(--ui-text);
+  background: var(--ui-input);
+  border: 1px solid var(--ui-field-edge);
   border-radius: 5px;
   padding: 9px 10px;
   min-width: 0;
@@ -174,7 +171,7 @@ button.secondary {
   background: #1d252e;
   border-color: #3b4652;
   padding: 9px 13px;
-  color: #dce2e7;
+  color: var(--ui-text);
 }
 button.quiet {
   padding: 8px 10px;
@@ -508,7 +505,7 @@ button.quiet {
   margin-top: 8px;
 }
 .levels-inputs > span {
-  color: #566270;
+  color: var(--ui-muted);
   margin-bottom: 8px;
 }
 .levels-inputs label {
@@ -518,7 +515,7 @@ button.quiet {
 .levels-inputs label > span {
   display: block;
   font-size: var(--text-small);
-  color: #627382;
+  color: var(--ui-muted);
   letter-spacing: 1px;
   margin: 3px 0 5px;
 }
@@ -581,7 +578,7 @@ main {
 }
 h1 {
   margin: 0;
-  font-size: 25px;
+  font-size: var(--text-display);
   font-weight: 550;
   letter-spacing: -0.7px;
 }
@@ -830,10 +827,10 @@ h2 {
   border: 0;
   border-radius: 1px;
   background: transparent;
-  color: #606b76;
+  color: var(--ui-muted);
 }
 .plot-zoom-button:not(:disabled):hover {
-  color: #dce2e7;
+  color: var(--ui-text);
   background: #ffffff0a;
 }
 .plot-zoom-button[aria-pressed="true"],
@@ -886,7 +883,7 @@ h2 {
   margin-bottom: 7px;
 }
 .empty-view h3 {
-  font-size: 15px;
+  font-size: var(--text-body);
   font-weight: 450;
   color: #c8d2da;
   letter-spacing: -0.2px;
@@ -919,12 +916,15 @@ h2 {
   align-items: center;
   justify-content: center;
   gap: 14px;
-  color: #627786;
+  flex-wrap: wrap;
+  align-content: center;
+  padding: 14px;
+  color: var(--ui-muted);
   font-size: var(--text-small);
   flex: 1;
 }
 .empty-pattern > svg {
-  color: #6e807e;
+  color: var(--ui-muted);
 }
 .app-status {
   height: 30px;
@@ -944,7 +944,7 @@ h2 {
   gap: 8px;
 }
 .app-status > div:last-child {
-  color: #687c8c;
+  color: var(--ui-muted);
   font-size: var(--text-small);
 }
 .ready-dot {
@@ -984,7 +984,7 @@ h2 {
   flex: 1;
 }
 .error-banner > button {
-  font-size: 17px;
+  font-size: var(--text-heading);
 }
 .info-banner {
   border-color: #bb9d5d55;
@@ -1032,7 +1032,7 @@ h2 {
   background: none;
 }
 .help-dialog h2 {
-  font-size: 17px;
+  font-size: var(--text-heading);
   letter-spacing: -0.3px;
 }
 .help-dialog > p {
@@ -1717,9 +1717,6 @@ input[type="checkbox"] {
   font-size: var(--text-body);
 }
 .app[data-text-size="large"] {
-  --text-meta: 14px;
-  --text-small: 16px;
-  --text-body: 17px;
 }
 .app[data-text-size="large"] .sidebar {
   width: 322px;
@@ -1816,8 +1813,10 @@ input[type="checkbox"] {
 .intensity-histogram[data-active-target="max"] {
   cursor: ns-resize;
 }
-.image-intensity[data-orientation="horizontal"] .intensity-histogram[data-active-target="min"],
-.image-intensity[data-orientation="horizontal"] .intensity-histogram[data-active-target="max"] {
+.image-intensity[data-orientation="horizontal"]
+  .intensity-histogram[data-active-target="min"],
+.image-intensity[data-orientation="horizontal"]
+  .intensity-histogram[data-active-target="max"] {
   cursor: ew-resize;
 }
 .intensity-histogram[data-active-target="window"] {
@@ -1924,7 +1923,7 @@ input[type="checkbox"] {
 }
 .current-ring-control input {
   width: 74px;
-  font-size: 20px;
+  font-size: var(--text-section);
   color: var(--dioptas-orange);
   font-weight: 650;
   text-align: right;
@@ -1997,7 +1996,7 @@ input[type="checkbox"] {
   white-space: nowrap;
 }
 .picking-ring strong {
-  font-size: 17px;
+  font-size: var(--text-heading);
 }
 .detector-readout {
   min-height: 35px;
@@ -2194,7 +2193,7 @@ input[type="checkbox"] {
   min-height: 25px;
   padding: 1px 3px;
   border: 1px solid #3b4652;
-  font-size: 15px;
+  font-size: var(--text-body);
 }
 .intensity-expanded {
   display: flex;
@@ -2302,7 +2301,7 @@ input[type="checkbox"] {
   outline: none;
 }
 .intensity-colour-bar:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ui-focus);
   outline-offset: 2px;
 }
 .display-settings-backdrop {
@@ -2331,7 +2330,7 @@ input[type="checkbox"] {
 .display-settings-heading button {
   width: 28px;
   height: 28px;
-  font-size: 21px;
+  font-size: var(--text-control-symbol);
 }
 .display-settings > label {
   display: grid;

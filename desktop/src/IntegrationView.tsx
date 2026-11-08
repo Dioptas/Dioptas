@@ -1,3 +1,5 @@
+import { CommitNumberField } from "./CommitNumberField";
+import { TabList } from "./TabList";
 import { useEffect, useState } from "react";
 import type { State } from "./types";
 import type { IntegrationRun } from "./integration";
@@ -67,63 +69,24 @@ export function IntegrationView({
     void run(command, args, "Updating integration…");
   return (
     <div className="integration-controls">
-      <div
+      <TabList
         className="integration-tabs calibration-workflow-tabs"
-        role="tablist"
-        aria-label="Integration controls"
-      >
-        {[
+        label="Integration controls"
+        value={tab}
+        onChange={setTab}
+        options={[
           "Image",
           "Pattern",
           "Overlay",
           "Phase",
           "Background",
           "Corrections",
-        ].map((name) => (
-          <button
-            key={name}
-            role="tab"
-            aria-selected={tab === name}
-            aria-controls="integration-tabpanel"
-            tabIndex={tab === name ? 0 : -1}
-            onKeyDown={(event) => {
-              const names = [
-                "Image",
-                "Pattern",
-                "Overlay",
-                "Phase",
-                "Background",
-                "Corrections",
-              ];
-              if (
-                ["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
-              ) {
-                event.preventDefault();
-                const next =
-                  event.key === "Home"
-                    ? names[0]
-                    : event.key === "End"
-                      ? names[names.length - 1]
-                      : names[
-                          (names.indexOf(tab) +
-                            (event.key === "ArrowLeft" ? -1 : 1) +
-                            names.length) %
-                            names.length
-                        ];
-                setTab(next);
-                (
-                  event.currentTarget.parentElement?.children[
-                    names.indexOf(next)
-                  ] as HTMLButtonElement
-                )?.focus();
-              }
-            }}
-            onClick={() => setTab(name)}
-          >
-            {name}
-          </button>
-        ))}
-      </div>
+        ].map((name) => ({
+          value: name,
+          label: name,
+          panelId: "integration-tabpanel",
+        }))}
+      />
       <fieldset
         disabled={!ready}
         className={`integration-fieldset integration-tab-${tab.toLowerCase()}`}
@@ -143,8 +106,11 @@ export function IntegrationView({
             action={action}
             frameControl={
               source.frames > 1 && (
-                <CommitField
-                  label={`Frame (1–${source.frames})`}
+                <CommitNumberField
+                  label={`Frame position (1–${source.frames})`}
+                  min={1}
+                  max={source.frames}
+                  integer
                   value={source.frame}
                   onCommit={(frame) =>
                     action("integration_navigation", { frame })
@@ -204,34 +170,5 @@ export function IntegrationView({
         />
       </fieldset>
     </div>
-  );
-}
-function CommitField({
-  label,
-  value,
-  onCommit,
-}: {
-  label: string;
-  value: number;
-  onCommit: (value: number) => void;
-}) {
-  const [draft, setDraft] = useState(value);
-  useEffect(() => setDraft(value), [value]);
-  return (
-    <label className="field-label integration-number-field">
-      <span>{label}</span>
-      <input
-        aria-label={label}
-        type="number"
-        value={draft}
-        onChange={(e) => setDraft(Number(e.target.value))}
-        onBlur={() => {
-          if (draft !== value) onCommit(draft);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") e.currentTarget.blur();
-        }}
-      />
-    </label>
   );
 }

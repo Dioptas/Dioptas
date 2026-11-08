@@ -178,6 +178,13 @@ export function MaskPanel({
             ))}
           </div>
           <div className="mask-grid mask-shape-grid">
+            <button
+              className="mask-navigate"
+              aria-pressed={tools.shape === "navigate"}
+              onClick={() => tools.setShape("navigate")}
+            >
+              Navigate
+            </button>
             {(
               [
                 ["circle", "Circle"],
@@ -335,7 +342,7 @@ export function MaskPanel({
         </section>
         <section className="sidebar-section mask-plugins">
           <div className="section-label">
-            <span>DYNAMIC MASKING PLUGINS</span>
+            <span>Dynamic masking plugins</span>
             <CalibrationHelp
               label="Dynamic masking plugins"
               text="Enabled plugins recalculate their mask for every image using its pixel intensities, the chosen settings and, where needed, calibration. The masked pixels can therefore change from image to image. Changing a setting also recalculates the current mask."

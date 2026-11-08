@@ -1,14 +1,21 @@
-import { useEffect, useState, useRef, Fragment } from "react";
+import { useEffect, useState, Fragment } from "react";
 import {
-  Check,
   FolderOpen,
   RotateCcw,
   RotateCw,
   FlipHorizontal,
   FlipVertical,
 } from "lucide-react";
-import type { Calibration, State } from "./types";
+import type { State } from "./types";
 import { CalibrationHelp, calibrationHelp } from "./CalibrationHelp";
+
+import { ScientificNumberInput } from "./ScientificNumberInput";
+import { numericDraftError } from "./numericDraft";
+import {
+  fitParameterLimits,
+  fitEnergyLimits,
+  type CalibrationFitEditor,
+} from "./useCalibrationFitDraft";
 
 type Run = (
   command: string,
@@ -24,10 +31,6 @@ const fields = [
   ["poni1", "PONI 1", "mm"],
   ["poni2", "PONI 2", "mm"],
 ] as const;
-export type CalibrationFitDraft = {
-  parameters: Calibration["parameters"];
-  polarization: number;
-};
 
 export function CalibrationExtras({
   state,
@@ -35,7 +38,7 @@ export function CalibrationExtras({
   run,
   step,
   onDirtyChange,
-  onFitDraftChange,
+  fitEditor,
   imageToolsOnly = false,
   hideImageTools = false,
 }: {
@@ -44,29 +47,22 @@ export function CalibrationExtras({
   run: Run;
   step: number;
   onDirtyChange: (value: boolean) => void;
-  onFitDraftChange?: (draft: CalibrationFitDraft | null) => void;
+  fitEditor?: CalibrationFitEditor;
   imageToolsOnly?: boolean;
   hideImageTools?: boolean;
 }) {
   const c = state?.calibration;
-  const [parameters, setParameters] = useState<Calibration["parameters"]>(
-    c?.parameters ?? {},
-  );
-  const [polarization, setPolarization] = useState(
-    String(c?.polarization ?? 0.99),
-  );
-
-  useEffect(() => {
-    if (c) {
-      setParameters(c.parameters);
-      setPolarization(String(c.polarization));
-    }
-  }, [JSON.stringify(c?.parameters), c?.polarization]);
-
-  useEffect(() => {
-    onFitDraftChange?.({ parameters, polarization: Number(polarization) });
-  }, [parameters, polarization, onFitDraftChange]);
-  useEffect(() => () => onFitDraftChange?.(null), [onFitDraftChange]);
+  const {
+    parameters = c?.parameters ?? {},
+    parameterSettings = c?.parameters ?? {},
+    parameterText = {},
+    setParameterText,
+    setParameters,
+    energyText = null,
+    setEnergyText,
+    polarization = String(c?.polarization ?? 0.99),
+    setPolarization,
+  } = fitEditor ?? {};
   const [refinementDraft, setRefinementDraft] = useState<
     Record<string, string>
   >({});
@@ -202,10 +198,15 @@ export function CalibrationExtras({
           </div>
         </section>
       )}
-      {step === 2 && (
+      {step === 2 && fitEditor && (
         <div className="calibration-fit-controls">
           <section className="calibration-fit-page" aria-label="Fit parameters">
-            <h3 className="calibration-fit-heading">Parameters</h3>
+            <h3 className="calibration-fit-heading">Starting values</h3>
+            <p className="control-note">
+              Seeds for the next fit; they do not change the current geometry
+              until you calibrate. Checked parameters are refined; the others
+              stay fixed.
+            </p>
             <div className="calibration-field-row calibration-calibrant-row">
               <label htmlFor="calibration-calibrant">Calibrant</label>
               <select
@@ -240,99 +241,157 @@ export function CalibrationExtras({
             </div>
             <div className="constraint-heading">
               <span>Parameter</span>
-              <span>Value</span>
+              <span>Start value</span>
               <span title="Checked parameters are refined; unchecked parameters stay fixed at their entered value.">
                 Fit
               </span>
             </div>
-            {fields.map(([key, label, unit]) => (
-              <Fragment key={key}>
-                <div className="constraint-row">
-                  <label htmlFor={`constraint-${key}`}>{label}</label>
-                  <input
-                    id={`constraint-${key}`}
-                    aria-label={`${label} constraint value`}
-                    type="number"
-                    step="any"
-                    disabled={!ready}
-                    value={parameters[key]?.value ?? ""}
-                    onChange={(e) => {
-                      setParameters((p) => ({
-                        ...p,
-                        [key]: { ...p[key], value: Number(e.target.value) },
-                      }));
-                    }}
-                  />
-                  <span className="calibration-unit">{unit}</span>
-                  <input
-                    aria-label={`Refine ${label.toLowerCase()}`}
-                    title="Checked: refine this parameter. Unchecked: hold it fixed."
-                    type="checkbox"
-                    disabled={!ready}
-                    checked={parameters[key]?.refine ?? true}
-                    onChange={(e) => {
-                      setParameters((p) => ({
-                        ...p,
-                        [key]: { ...p[key], refine: e.target.checked },
-                      }));
-                    }}
-                  />
-                </div>
-                {key === "wavelength" && (
-                  <>
-                    <div className="constraint-row calibration-auxiliary-row">
-                      <label htmlFor="fit-energy">Energy</label>
-                      <input
-                        id="fit-energy"
-                        aria-label="Fit energy in kiloelectronvolts"
-                        type="number"
-                        step="any"
-                        min="0"
-                        disabled={!ready}
-                        value={
-                          parameters.wavelength?.value > 0
-                            ? Number(
-                                (
-                                  12.39841984332 / parameters.wavelength.value
-                                ).toFixed(4),
-                              )
-                            : ""
-                        }
-                        onChange={(e) => {
-                          const value = Number(e.target.value);
-                          if (value > 0)
-                            setParameters((p) => ({
+            {fields.map(([key, label, unit]) => {
+              const text =
+                parameterText[key] ??
+                String(parameterSettings[key]?.value ?? "");
+              const error = numericDraftError(text, fitParameterLimits(key));
+              return (
+                <Fragment key={key}>
+                  <div className="constraint-row">
+                    <label htmlFor={`constraint-${key}`}>{label}</label>
+                    <ScientificNumberInput
+                      id={`constraint-${key}`}
+                      aria-label={`${label} constraint value`}
+                      step="any"
+                      min={fitParameterLimits(key).min}
+                      max={fitParameterLimits(key).max}
+                      disabled={!ready}
+                      value={text}
+                      aria-invalid={error ? true : undefined}
+                      aria-describedby={
+                        error ? `constraint-${key}-error` : undefined
+                      }
+                      onValueChange={(value) => {
+                        setParameterText?.((p) => ({ ...p, [key]: value }));
+                        if (key === "wavelength") setEnergyText?.(null);
+                      }}
+                    />
+                    <span className="calibration-unit">{unit}</span>
+                    <input
+                      aria-label={`Refine ${label.toLowerCase()}`}
+                      title="Checked: refine this parameter. Unchecked: hold it fixed."
+                      type="checkbox"
+                      disabled={!ready}
+                      checked={parameters[key]?.refine ?? true}
+                      onChange={(e) => {
+                        setParameters?.((p) => ({
+                          ...p,
+                          [key]: { ...p[key], refine: e.target.checked },
+                        }));
+                      }}
+                    />
+                    {error && (
+                      <span
+                        className="ui-field-error constraint-error"
+                        id={`constraint-${key}-error`}
+                      >
+                        {error}
+                      </span>
+                    )}
+                  </div>
+                  {key === "wavelength" && (
+                    <>
+                      <div className="constraint-row calibration-auxiliary-row">
+                        <label htmlFor="fit-energy">Energy</label>
+                        <ScientificNumberInput
+                          id="fit-energy"
+                          aria-label="Fit energy in kiloelectronvolts"
+                          step="any"
+                          disabled={!ready}
+                          value={
+                            energyText ??
+                            (parameters.wavelength?.value > 0
+                              ? String(
+                                  12.39841984332 / parameters.wavelength.value,
+                                )
+                              : "")
+                          }
+                          aria-invalid={
+                            energyText !== null &&
+                            numericDraftError(energyText, fitEnergyLimits)
+                              ? true
+                              : undefined
+                          }
+                          aria-describedby={
+                            energyText !== null &&
+                            numericDraftError(energyText, fitEnergyLimits)
+                              ? "fit-energy-error"
+                              : undefined
+                          }
+                          onValueChange={(value) => {
+                            setEnergyText?.(value);
+                            setParameterText?.((p) => ({
                               ...p,
-                              wavelength: {
-                                ...p.wavelength,
-                                value: 12.39841984332 / value,
-                              },
+                              wavelength: numericDraftError(
+                                value,
+                                fitEnergyLimits,
+                              )
+                                ? ""
+                                : String(12.39841984332 / Number(value)),
                             }));
-                        }}
-                      />
-                      <span className="calibration-unit">keV</span>
-                    </div>
-                    <div className="constraint-row calibration-auxiliary-row">
-                      <label htmlFor="fit-polarization">Polarization</label>
-                      <input
-                        id="fit-polarization"
-                        className="full-input"
-                        aria-label="Polarization factor"
-                        type="number"
-                        step=".01"
-                        min="-1"
-                        max="1"
-                        value={polarization}
-                        disabled={!ready}
-                        onChange={(e) => {
-                          setPolarization(e.target.value);
-                        }}
-                      />
-                    </div>
-                  </>
-                )}
-              </Fragment>
-            ))}
+                          }}
+                        />
+                        <span className="calibration-unit">keV</span>
+                        {energyText !== null &&
+                          numericDraftError(energyText, fitEnergyLimits) && (
+                            <span
+                              className="ui-field-error constraint-error"
+                              id="fit-energy-error"
+                            >
+                              {numericDraftError(energyText, fitEnergyLimits)}
+                            </span>
+                          )}
+                      </div>
+                      <div className="constraint-row calibration-auxiliary-row">
+                        <label htmlFor="fit-polarization">Polarization</label>
+                        <ScientificNumberInput
+                          id="fit-polarization"
+                          className="full-input"
+                          aria-label="Polarization factor"
+                          type="number"
+                          step=".01"
+                          min="-1"
+                          max="1"
+                          value={polarization}
+                          disabled={!ready}
+                          aria-invalid={
+                            numericDraftError(polarization, { min: -1, max: 1 })
+                              ? true
+                              : undefined
+                          }
+                          aria-describedby={
+                            numericDraftError(polarization, { min: -1, max: 1 })
+                              ? "fit-polarization-error"
+                              : undefined
+                          }
+                          onValueChange={setPolarization}
+                        />
+                        {numericDraftError(polarization, {
+                          min: -1,
+                          max: 1,
+                        }) && (
+                          <span
+                            className="ui-field-error constraint-error"
+                            id="fit-polarization-error"
+                          >
+                            {numericDraftError(polarization, {
+                              min: -1,
+                              max: 1,
+                            })}
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </Fragment>
+              );
+            })}
           </section>
           <section
             className="calibration-fit-page calibration-refinement-section"
@@ -370,7 +429,7 @@ export function CalibrationExtras({
                 </div>
                 {(
                   [
-                    ["deltaTth", "Search width Δ2θ · °"],
+                    ["deltaTth", "Search width Δ2θ (°)"],
                     ["meanFactor", "Intensity mean factor"],
                     ["intensityLimit", "Upper intensity limit"],
                     ["numberOfRings", "Number of rings"],
@@ -477,233 +536,4 @@ export function CalibrationExtras({
   );
 }
 
-const pyfaiFields = [
-  ["dist", "Distance", "mm", 1000],
-  ["poni1", "PONI 1", "m", 1],
-  ["poni2", "PONI 2", "m", 1],
-  ["rot1", "Rotation 1", "rad", 1],
-  ["rot2", "Rotation 2", "rad", 1],
-  ["rot3", "Rotation 3", "rad", 1],
-  ["pixel1", "Pixel height", "µm", 1e6],
-  ["pixel2", "Pixel width", "µm", 1e6],
-  ["wavelength", "Wavelength", "Å", 1e10],
-  ["polarization_factor", "Polarization", "", 1],
-] as const;
-const fit2dFields = [
-  ["directDist", "Direct distance", "mm", 1],
-  ["centerX", "Center x", "pixels", 1],
-  ["centerY", "Center y", "pixels", 1],
-  ["tilt", "Tilt", "°", 1],
-  ["tiltPlanRotation", "Tilt rotation", "°", 1],
-  ["pixelX", "Pixel width", "µm", 1],
-  ["pixelY", "Pixel height", "µm", 1],
-  ["wavelength", "Wavelength", "Å", 1e10],
-  ["polarization_factor", "Polarization", "", 1],
-] as const;
-export function GeometryEditor({
-  calibration: c,
-  ready,
-  run,
-  open = false,
-  embedded = false,
-  onDirtyChange,
-  formId,
-  convention: savedConvention,
-  onConventionChange,
-}: {
-  calibration?: Calibration;
-  ready: boolean;
-  run: Run;
-  open?: boolean;
-  embedded?: boolean;
-  formId?: string;
-  convention?: "pyfai" | "fit2d";
-  onConventionChange?: (convention: "pyfai" | "fit2d") => void;
-  onDirtyChange?: (dirty: boolean) => void;
-}) {
-  const [localConvention, setLocalConvention] = useState<"pyfai" | "fit2d">(
-    "pyfai",
-  );
-  const convention = savedConvention ?? localConvention;
-  const setConvention = (value: "pyfai" | "fit2d") => {
-    setLocalConvention(value);
-    onConventionChange?.(value);
-  };
-  const [drafts, setDrafts] = useState<
-    Record<"pyfai" | "fit2d", Record<string, string>>
-  >({ pyfai: {}, fit2d: {} });
-  const fields = convention === "pyfai" ? pyfaiFields : fit2dFields;
-  const draft = drafts[convention];
-  useEffect(() => {
-    const valuesFor = (name: "pyfai" | "fit2d") =>
-      Object.fromEntries(
-        (name === "pyfai" ? pyfaiFields : fit2dFields).map(
-          ([key, , , factor]) => [
-            key,
-            String(Number(((c?.[name]?.[key] ?? 0) * factor).toPrecision(10))),
-          ],
-        ),
-      );
-    setDrafts({ pyfai: valuesFor("pyfai"), fit2d: valuesFor("fit2d") });
-  }, [JSON.stringify(c?.pyfai), JSON.stringify(c?.fit2d)]);
-  const dirty = (["pyfai", "fit2d"] as const).some((name) =>
-    (name === "pyfai" ? pyfaiFields : fit2dFields).some(([key, , , factor]) => {
-      const value = (c?.[name]?.[key] ?? 0) * factor;
-      const text = drafts[name][key];
-      return (
-        text !== undefined &&
-        (text === "" ||
-          !Number.isFinite(Number(text)) ||
-          Math.abs(Number(text) - value) >
-            Math.max(1e-10, Math.abs(value) * 1e-9))
-      );
-    }),
-  );
-  useEffect(() => {
-    onDirtyChange?.(dirty);
-  }, [dirty, onDirtyChange]);
-  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
-  const applyGeometry = () =>
-    run(
-      "manual_geometry",
-      {
-        convention,
-        values: Object.fromEntries(
-          fields.map(([key, , , factor]) => [key, Number(draft[key]) / factor]),
-        ),
-      },
-      "Applying geometry…",
-    );
-  const content = (
-    <>
-      <div
-        className="geometry-tabs"
-        role="tablist"
-        aria-label="Geometry convention"
-      >
-        {(["pyfai", "fit2d"] as const).map((value) => (
-          <button
-            type="button"
-            key={value}
-            role="tab"
-            aria-selected={convention === value}
-            tabIndex={convention === value ? 0 : -1}
-            onKeyDown={(event) => {
-              if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-                event.preventDefault();
-                setConvention(value === "pyfai" ? "fit2d" : "pyfai");
-                event.currentTarget.parentElement
-                  ?.querySelectorAll<HTMLButtonElement>("button")
-                  [value === "pyfai" ? 1 : 0]?.focus();
-              }
-            }}
-            onClick={() => setConvention(value)}
-          >
-            {value === "pyfai" ? "pyFAI" : "Fit2D"}
-          </button>
-        ))}
-      </div>
-      {dirty && !formId && (
-        <p className="control-note">Apply geometry to continue.</p>
-      )}
-      {fields.map(([key, label, unit]) => (
-        <label className="geometry-field" key={key}>
-          <span>{label}</span>
-          <input
-            aria-label={`Manual ${label.toLowerCase()}`}
-            required
-            type="number"
-            step="any"
-            disabled={!ready}
-            title={draft[key] ?? ""}
-            value={draft[key] ?? ""}
-            onChange={(e) =>
-              setDrafts((values) => ({
-                ...values,
-                [convention]: { ...values[convention], [key]: e.target.value },
-              }))
-            }
-          />
-          <span className="calibration-unit">{unit}</span>
-        </label>
-      ))}
-      {!formId && (
-        <button
-          type="button"
-          className="secondary full-input"
-          disabled={
-            !ready ||
-            fields.some(
-              ([key]) =>
-                draft[key] === "" || !Number.isFinite(Number(draft[key])),
-            )
-          }
-          onClick={applyGeometry}
-        >
-          <Check size={14} />
-          Apply geometry
-        </button>
-      )}
-    </>
-  );
-  return embedded ? (
-    <section className="geometry-editor">
-      {formId ? (
-        <form
-          id={formId}
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (ready) applyGeometry();
-          }}
-        >
-          {content}
-        </form>
-      ) : (
-        content
-      )}
-    </section>
-  ) : (
-    <details className="compact-section" open={open}>
-      <summary>Manual geometry · pyFAI / Fit2D</summary>
-      {content}
-    </details>
-  );
-}
-
-export function ManualGeometryDialog({
-  calibration,
-  ready,
-  run,
-  onClose,
-}: {
-  calibration?: Calibration;
-  ready: boolean;
-  run: Run;
-  onClose: () => void;
-}) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    dialog.current?.showModal();
-  }, []);
-  return (
-    <dialog ref={dialog} className="manual-geometry-dialog" onClose={onClose}>
-      <div className="manual-geometry-heading">
-        <h2>Enter calibration manually</h2>
-        <button
-          type="button"
-          autoFocus
-          onClick={() => dialog.current?.close()}
-          aria-label="Close manual geometry"
-        >
-          Close
-        </button>
-      </div>
-      <GeometryEditor
-        calibration={calibration}
-        ready={ready}
-        run={run}
-        embedded
-      />
-    </dialog>
-  );
-}
+export { GeometryEditor, ManualGeometryDialog } from "./GeometryEditor";

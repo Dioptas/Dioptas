@@ -1,3 +1,4 @@
+import { TabList } from "./TabList";
 const sections = [
   ["Image", "Image & setup"],
   ["Peaks", "Pick rings"],
@@ -15,53 +16,20 @@ export function CalibrationWorkflowTabs({
   onChange: (index: number) => void;
 }) {
   return (
-    <div
+    <TabList
       className="calibration-workflow-tabs"
-      role="tablist"
-      aria-label="Calibration sections"
-    >
-      {sections.map(([label, description], index) => (
-        <button
-          key={label}
-          type="button"
-          id={`calibration-section-${index}`}
-          role="tab"
-          aria-label={`Step ${index + 1}: ${description}`}
-          aria-controls="calibration-task-content"
-          aria-selected={active === index}
-          title={description}
-          tabIndex={active === index ? 0 : -1}
-          disabled={disabled[index]}
-          onClick={() => onChange(index)}
-          onKeyDown={(event) => {
-            if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key))
-              return;
-            event.preventDefault();
-            const enabled = sections.flatMap((_, i) =>
-              disabled[i] ? [] : [i],
-            );
-            const position = enabled.indexOf(index);
-            const next =
-              event.key === "Home"
-                ? enabled[0]
-                : event.key === "End"
-                  ? enabled[enabled.length - 1]
-                  : enabled[
-                      (position +
-                        (event.key === "ArrowLeft" ? -1 : 1) +
-                        enabled.length) %
-                        enabled.length
-                    ];
-            if (next === undefined) return;
-            onChange(next);
-            event.currentTarget.parentElement
-              ?.querySelectorAll<HTMLButtonElement>("button")
-              [next]?.focus();
-          }}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
+      label="Calibration sections"
+      value={active}
+      onChange={onChange}
+      options={sections.map(([label, description], index) => ({
+        value: index,
+        label,
+        name: `Step ${index + 1}: ${description}`,
+        id: `calibration-section-${index}`,
+        panelId: "calibration-task-content",
+        title: description,
+        disabled: disabled[index],
+      }))}
+    />
   );
 }

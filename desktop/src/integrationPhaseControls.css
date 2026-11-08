@@ -135,7 +135,7 @@
 }
 .phase-dialog {
   color: var(--text);
-  background: #202225;
+  background: var(--ui-panel);
   border: 1px solid #505257;
   border-radius: 5px;
   padding: 0;
@@ -174,7 +174,7 @@
   flex: 1;
 }
 .phase-dialog header button {
-  font-size: 19px;
+  font-size: var(--text-control-symbol);
   padding: 2px 9px;
 }
 .phase-dialog footer {

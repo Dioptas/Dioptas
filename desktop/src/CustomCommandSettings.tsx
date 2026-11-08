@@ -317,6 +317,7 @@ export function CustomCommandSettings({
             </label>
             <div
               className="custom-command-label-preview"
+              role="group"
               style={{ width: previewWidth }}
               aria-label="Sidebar button preview"
               title={draft.name || "Button name"}
@@ -376,6 +377,7 @@ export function CustomCommandSettings({
           )}
           <div
             className="custom-command-inputs"
+            role="group"
             aria-label="Available action inputs"
           >
             {commandInputs.map(([key, label, description]) => (

@@ -1,3 +1,4 @@
+import { StatusMessage } from "./StatusMessage";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isTauri } from "@tauri-apps/api/core";
 import { connect } from "./bridge";
@@ -145,20 +146,21 @@ export function DetachedBatchWindow() {
           {readout.reading ? (
             <ReadingFields reading={readout.reading} />
           ) : batch ? (
-            `Frame ${batch.selected} · ${batch.entries[batch.selected]?.name}`
+            `Frame ${batch.selected + 1} of ${batch.entries.length} · ${batch.entries[batch.selected]?.name}`
           ) : (
             "Load a series to inspect it in Integration."
           )}
         </span>
-        <span role={error || status.error ? "alert" : undefined}>
-          {error ||
-            status.error ||
-            (status.progress?.running
+        <StatusMessage
+          error={error || status.error || null}
+          message={
+            status.progress?.running
               ? `${status.progress.label ?? "Processing"} ${status.progress.current} / ${status.progress.total}`
               : !status.ready
                 ? "Processing…"
-                : "")}
-        </span>
+                : ""
+          }
+        />
         {status.progress?.running && (
           <button onClick={() => run("cancel_refinement")}>
             Cancel processing

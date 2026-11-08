@@ -34,6 +34,17 @@ export async function preparePatternBaseline() {
       "    setLeft(Math.max(64, Math.ceil(tickWidth) + 44));",
       "    const nextLeft = Math.max(64, Math.ceil(tickWidth) + 44);\n    if(nextLeft !== left) setLeft(nextLeft);",
     );
+  // Adapt historical legend calls to the shared positioning contract. The
+  // historical curve renderer and geometry remain unchanged.
+  source = source
+    .replaceAll(
+      "<IntegrationPhaseLegend",
+      "<IntegrationPhaseLegend bounds={{left,top,width:w,height:h}}",
+    )
+    .replaceAll(
+      "<OverlayPlotLegend",
+      "<OverlayPlotLegend bounds={{left,top,width:w,height:h}}",
+    );
   const end = source.indexOf(
     "  }, [\n    pattern,",
     source.indexOf("const curveKey"),

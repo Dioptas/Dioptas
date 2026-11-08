@@ -4,6 +4,11 @@
   window.__batchSmokeRunning = true;
   const call = window.__dioptasNativeCall,
     invoke = window.__TAURI_INTERNALS__.invoke;
+  const trace = (stage, details = {}) =>
+    invoke("plugin:event|emit", {
+      event: "native-smoke-diagnostic",
+      payload: { window: "main", stage, ...details },
+    });
   const delay = (ms = 70) => new Promise((r) => setTimeout(r, ms));
   const check = (v, m) => {
     if (!v) throw Error(m);
@@ -12,7 +17,7 @@
     for (let i = 0; i < 600; i++) {
       if (await fn()) return;
       const e = document.querySelector('[role="alert"]');
-      if (e) throw Error(e.textContent);
+      if (e?.textContent.trim()) throw Error(e.textContent);
       await delay();
     }
     throw Error(message);
@@ -32,14 +37,20 @@
     b.click();
   };
   try {
+    await trace("batch-main-start");
     await ready();
+    await trace("batch-main-ready");
     const host = await call("__host__");
     check(
       host.ok && !host.qtApplication && host.tcpListeners === 0,
       "Wrong processing boundary",
     );
     let state = await call("state");
-    if (!sessionStorage.getItem("batch-smoke-loaded")) {
+    await trace("batch-main-state", {
+      hasBatch: !!state.batch,
+      loaded: sessionStorage.getItem("batch-smoke-loaded"),
+    });
+    if (!sessionStorage.getItem("batch-smoke-loaded") || !state.batch) {
       check(
         (
           await call("open_calibration", {
@@ -69,7 +80,18 @@
     );
     localStorage.setItem("dioptas-batch:docked", "false");
     let resolveReport;
-    const next = () => new Promise((r) => (resolveReport = r));
+    const next = () =>
+      new Promise((resolve, reject) => {
+        const timeout = setTimeout(
+          () =>
+            reject(Error("Timed out waiting for the Batch companion report")),
+          50000,
+        );
+        resolveReport = (report) => {
+          clearTimeout(timeout);
+          resolve(report);
+        };
+      });
     const handler = window.__TAURI_INTERNALS__.transformCallback((e) =>
       resolveReport?.(e.payload),
     );
@@ -79,6 +101,7 @@
       handler,
     });
     const firstPromise = next();
+    await trace("batch-opening-companion");
     click("Batch view…");
     const first = await firstPromise;
     check(first.ok, first.error);
@@ -101,6 +124,7 @@
     const dock = document.querySelector(".batch-dock").getBoundingClientRect(),
       image = document.querySelector(".detector-panel").getBoundingClientRect();
     check(dock.y >= image.bottom - 1, "Dock is not below image");
+    await window.__dioptasCaptureNative("batch-docked");
     const secondPromise = next();
     click("Detach batch");
     const second = await secondPromise;
@@ -108,7 +132,7 @@
     check(
       Math.abs(second.initial.width - first.placed.width) < 2 &&
         Math.abs(second.initial.height - first.placed.height) < 2,
-      "Batch window size was not remembered",
+      `Batch window size was not remembered: ${JSON.stringify({ first: first.placed, second: second.initial })}`,
     );
     check(
       Math.abs(second.initial.position.x - first.placed.position.x) < 2 &&
@@ -124,6 +148,37 @@
       state.batch.selected === second.selected && state.cake,
       "Reopened selection lost cake",
     );
+    const placements = [first, second];
+    for (let cycle = 0; cycle < 4; cycle++) {
+      const previous = placements.at(-1).placed;
+      const completion = next();
+      click("Detach batch");
+      const reopened = await completion;
+      check(reopened.ok, reopened.error);
+      check(
+        Math.abs(reopened.initial.width - previous.width) < 2 &&
+          Math.abs(reopened.initial.height - previous.height) < 2,
+        `Batch size changed in reopen cycle ${cycle}: ${JSON.stringify({ previous, initial: reopened.initial })}`,
+      );
+      check(
+        Math.abs(reopened.initial.position.x - previous.position.x) < 2 &&
+          Math.abs(reopened.initial.position.y - previous.position.y) < 2,
+        `Batch position changed in reopen cycle ${cycle}`,
+      );
+      await wait(
+        () => document.querySelector(".batch-dock"),
+        "Repeated dock failed",
+      );
+      await ready();
+      const selected = await call("state");
+      check(
+        selected.batch.selected === reopened.selected &&
+          selected.cake &&
+          selected.pattern,
+        "Repeated reopen lost linked selection",
+      );
+      placements.push(reopened);
+    }
     const output = state.state.imagePath.replace(
       /dioptas\/tests\/data\/.+$/,
       "desktop/artifacts/native-batch.h5",
@@ -146,6 +201,8 @@
         binaryBatch: true,
         queueRestricted: true,
         placementRestored: true,
+        reopenCycles: placements.length,
+        placements,
         batchPatterns: 5,
         savedPath: output,
       },

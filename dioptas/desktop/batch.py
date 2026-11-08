@@ -69,16 +69,105 @@ class BatchWorkflow(ImageBatchWorkflow):
         self.configuration.integration_unit = unit
         return {**self._batch_select(self._batch_index()), **self._batch_snapshot()}
 
-    def _batch_normalization_settings(self, start, stop, reference):
+    @staticmethod
+    def _batch_normalization_axis(b, unit):
+        """Use the stored series geometry, independent of the live calibration."""
+        x = np.asarray(b.binning, dtype=float)
+        if b.integration_unit == unit:
+            return x
+        if {b.integration_unit, unit} == {"q_A^-1", "d_A"}:
+            with np.errstate(invalid="ignore", divide="ignore"):
+                return 2 * np.pi / x
+        wavelength = getattr(b, "_desktop_wavelength", None)
+        if wavelength is None or not np.isfinite(wavelength) or wavelength <= 0:
+            return None
+        from dioptas.model.util.calc import convert_units
+
+        with np.errstate(invalid="ignore", divide="ignore"):
+            return np.asarray(convert_units(x, wavelength, b.integration_unit, unit))
+
+    def _batch_normalization_region(self, b):
+        definition = getattr(b, "_desktop_normalization_region", None)
+        if definition is not None:
+            return dict(definition)
+        axis = self._batch_normalization_axis(b, b.integration_unit)
+        if axis is None or not len(axis):
+            return None
+        start, stop = b.normalization_range
+        start = max(0, min(int(start), len(axis) - 1))
+        stop = max(1, min(int(stop), len(axis)))
+        if stop <= start:
+            start, stop = 0, len(axis)
+        # Bin edges make the initial displayed region select exactly the same
+        # samples as the model's existing half-open interval, including d axes.
+        if len(axis) > 1:
+            edges = np.concatenate((
+                [axis[0] - (axis[1] - axis[0]) / 2],
+                (axis[:-1] + axis[1:]) / 2,
+                [axis[-1] + (axis[-1] - axis[-2]) / 2],
+            ))
+        else:
+            edges = np.array([axis[0] - .5, axis[0] + .5])
+        low, high = edges[start], edges[stop]
+        if not np.isfinite([low, high]).all():
+            return None
+        lower = np.nextafter(0., 1.) if b.integration_unit == "d_A" else 0.
+        upper = 180. if b.integration_unit == "2th_deg" else np.inf
+        low, high = max(lower, float(min(low, high))), min(upper, float(max(low, high)))
+        if low >= high:
+            return None
+        return {"minimum": low, "maximum": high, "unit": b.integration_unit}
+
+    @staticmethod
+    def _batch_normalization_bins(b, minimum, maximum, unit="2th_deg"):
+        from .integration import finite
+
+        if unit not in {"2th_deg", "q_A^-1", "d_A"}:
+            raise ValueError("Choose a supported normalization unit.")
+        if isinstance(minimum, (bool, np.bool_)) or isinstance(maximum, (bool, np.bool_)):
+            raise ValueError("Choose numeric normalization limits.")
+        upper = 180 if unit == "2th_deg" else np.inf
+        low = finite(minimum, "Normalization minimum", 0, upper)
+        high = finite(maximum, "Normalization maximum", 0, upper)
+        if low >= high or (unit == "d_A" and low <= 0):
+            raise ValueError("Choose increasing normalization limits; d spacing must be positive.")
+        axis = BatchWorkflow._batch_normalization_axis(b, unit)
+        if axis is None:
+            raise ValueError("This stored batch has no recorded wavelength for the requested normalization unit.")
+        indices = np.flatnonzero(np.isfinite(axis) & (axis >= low) & (axis <= high))
+        if not len(indices):
+            raise ValueError("The normalization region contains no stored pattern samples.")
+        if np.any(np.diff(indices) != 1):
+            raise ValueError("The normalization region must select contiguous stored samples.")
+        interval = int(indices[0]), int(indices[-1]) + 1
+        return interval, {"minimum": low, "maximum": high, "unit": unit}
+
+    def _batch_normalization_settings(
+        self, start=None, stop=None, reference=None,
+        minimum=None, maximum=None, unit="2th_deg",
+    ):
         b = self._require_batch()
-        if any(isinstance(v, bool) or int(v) != v for v in (start, stop, reference)) or not 0 <= start <= stop < len(b.binning) or not 0 <= reference < len(b.data):
-            raise ValueError("Choose inclusive normalization bins and a reference frame within the batch.")
+        reference = b.normalization_reference if reference is None else reference
+        if (isinstance(reference, bool) or int(reference) != reference
+                or not 0 <= reference < len(b.data)):
+            raise ValueError("Choose a reference frame within the batch.")
+        if minimum is not None or maximum is not None:
+            if minimum is None or maximum is None:
+                raise ValueError("Choose both normalization limits.")
+            interval, definition = self._batch_normalization_bins(b, minimum, maximum, unit)
+        else:
+            if (start is None or stop is None
+                    or any(isinstance(v, bool) or int(v) != v for v in (start, stop))
+                    or not 0 <= start <= stop < len(b.binning)):
+                raise ValueError("Choose inclusive normalization bins within the batch.")
+            interval, definition = (int(start), int(stop)+1), None
         if b.normalization_enabled:
-            b.normalize((int(start), int(stop)+1), int(reference))
-            return {**self._batch_select(self._batch_index()), **self._batch_snapshot()}
-        b.normalization_range = (int(start), int(stop)+1)
-        b.normalization_reference = int(reference)
-        return {**self._state(), **self._batch_snapshot()}
+            b.normalize(interval, int(reference))
+        else:
+            b.normalization_range, b.normalization_reference = interval, int(reference)
+        b._desktop_normalization_region = definition
+        state = self._batch_select(self._batch_index()) if b.normalization_enabled else self._state()
+        return {**state, **self._batch_snapshot()}
 
     def _require_batch(self):
         b = self.configuration.batch_model
@@ -130,6 +219,8 @@ class BatchWorkflow(ImageBatchWorkflow):
                 "normalized": bool(b.normalization_enabled),
                 "normalizationRange": list(b.normalization_range),
                 "normalizationReference": int(b.normalization_reference),
+                "normalizationRegion": self._batch_normalization_region(b),
+                "normalizationReferenceName": entries[b.normalization_reference]["name"] if 0 <= b.normalization_reference < len(entries) else "reference frame",
                 "calibration": b.used_calibration,
                 "phaseLines": self._pattern_reference_data("d_A")["phaseLines"],
                 "position": (
@@ -341,11 +432,21 @@ class BatchWorkflow(ImageBatchWorkflow):
                 if "processed/result" in f
                 else None
             )
+            region_json = f["processed/result"].attrs.get("desktop_normalization_region") if "processed/result" in f else None
+            reference = f["processed/result"].attrs.get("desktop_normalization_reference", 0) if "processed/result" in f else 0
         b._desktop_wavelength = (
             float(value)
             if value is not None and np.isfinite(value) and value > 0
             else None
         )
+        if region_json is not None:
+            import json
+            region = json.loads(region_json)
+            interval, definition = self._batch_normalization_bins(b, **region)
+            if isinstance(reference, (bool, np.bool_)) or int(reference) != reference or not 0 <= reference < len(b.data):
+                raise ValueError("The stored normalization reference is invalid.")
+            b.normalization_range, b.normalization_reference = interval, int(reference)
+            b._desktop_normalization_region = definition
         # Imported series remain browsable even if their original files moved.
         b.raw_available = False
         b.configuration = self.configuration
@@ -424,15 +525,25 @@ class BatchWorkflow(ImageBatchWorkflow):
             "batchWarning": warning,
         }
 
-    def _batch_normalize(self, enabled=True, start=1, stop=None, reference=1):
+    def _batch_normalize(self, enabled=True, start=None, stop=None, reference=None):
         b = self._require_batch()
         if enabled:
-            stop = len(b.binning) if stop is None else stop
-            if any(
-                isinstance(v, bool) or int(v) != v for v in (start, stop, reference)
-            ):
-                raise ValueError("Normalization bins and reference must be integers.")
-            b.normalize((int(start) - 1, int(stop)), int(reference) - 1)
+            if start is None and stop is None and reference is None:
+                definition = self._batch_normalization_region(b)
+                if definition is None:
+                    b.normalize()
+                else:
+                    interval, definition = self._batch_normalization_bins(b, **definition)
+                    b.normalize(interval)
+                    b._desktop_normalization_region = definition
+            else:
+                start = 1 if start is None else start
+                stop = len(b.binning) if stop is None else stop
+                reference = 1 if reference is None else reference
+                if any(isinstance(v, bool) or int(v) != v for v in (start, stop, reference)):
+                    raise ValueError("Normalization bins and reference must be integers.")
+                b.normalize((int(start)-1, int(stop)), int(reference)-1)
+                b._desktop_normalization_region = None
         else:
             b.restore_normalization()
         return {**self._batch_select(self._batch_index()), **self._batch_snapshot()}
@@ -478,6 +589,11 @@ class BatchWorkflow(ImageBatchWorkflow):
                         f["processed/result"].attrs["desktop_wavelength_m"] = (
                             b._desktop_wavelength
                         )
+                    region = getattr(b, "_desktop_normalization_region", None)
+                    if region is not None:
+                        import json
+                        f["processed/result"].attrs["desktop_normalization_region"] = json.dumps(region)
+                        f["processed/result"].attrs["desktop_normalization_reference"] = b.normalization_reference
                     f["processed/result"].attrs["desktop_normalized"] = bool(
                         b.normalization_enabled
                     )
@@ -523,6 +639,7 @@ class BatchWorkflow(ImageBatchWorkflow):
                 "normalized": bool(b.normalization_enabled),
                 "normalization_range": list(b.normalization_range),
                 "normalization_reference": int(b.normalization_reference),
+                "normalization_region": getattr(b, "_desktop_normalization_region", None),
             }
         )
         if b.normalization_enabled:
@@ -574,6 +691,12 @@ class BatchWorkflow(ImageBatchWorkflow):
                 tuple(meta["normalization_range"]),
                 meta["normalization_reference"],
             )
+            region = meta.get("normalization_region")
+            if region is not None:
+                interval, definition = self._batch_normalization_bins(b, **region)
+                if interval != b.normalization_range:
+                    raise ValueError("Stored normalization region does not match the saved samples.")
+                b._desktop_normalization_region = definition
             if meta["normalized"]:
                 source = group["normalization_source"]
                 b._normalization_source = tuple(

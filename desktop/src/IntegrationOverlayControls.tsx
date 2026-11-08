@@ -1,3 +1,4 @@
+import { Dialog } from "./Dialog";
 import {
   DataTable,
   TableBodyScroll,
@@ -53,6 +54,7 @@ export function IntegrationOverlayControls({
   );
   const [scaleStep, setScaleStep] = useState(retained.scaleStep);
   const [offsetStep, setOffsetStep] = useState(retained.offsetStep);
+  const menuTrigger = useRef<HTMLTableRowElement | null>(null);
   const [menu, setMenu] = useState<{
     uid: string;
     x: number;
@@ -138,7 +140,14 @@ export function IntegrationOverlayControls({
     if (!menu) return;
     const close = () => setMenu(null);
     const key = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
+      if (e.key === "Escape" || e.key === "Tab") {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        close();
+        menuTrigger.current?.focus();
+      }
     };
     document.addEventListener("pointerdown", close);
     document.addEventListener("keydown", key);
@@ -321,6 +330,7 @@ export function IntegrationOverlayControls({
                 <td>
                   <span
                     className="qt-overlay-fixed-value"
+                    role="group"
                     aria-label="Original pattern scale"
                     title="Original scale is fixed"
                   >
@@ -330,6 +340,7 @@ export function IntegrationOverlayControls({
                 <td>
                   <span
                     className="qt-overlay-fixed-value"
+                    role="group"
                     aria-label="Original pattern offset"
                     title="Original offset is fixed"
                   >
@@ -353,6 +364,7 @@ export function IntegrationOverlayControls({
                 onContextMenu={(e) => {
                   e.preventDefault();
                   select(overlay.uid);
+                  menuTrigger.current = e.currentTarget;
                   setMenu({ uid: overlay.uid, x: e.clientX, y: e.clientY });
                 }}
                 onKeyDown={(e) => {
@@ -364,6 +376,7 @@ export function IntegrationOverlayControls({
                     e.preventDefault();
                     const box = e.currentTarget.getBoundingClientRect();
                     select(overlay.uid);
+                    menuTrigger.current = e.currentTarget;
                     setMenu({
                       uid: overlay.uid,
                       x: box.left + 30,
@@ -510,22 +523,13 @@ export function IntegrationOverlayControls({
           </button>
         </div>
       </div>
-      <dialog
-        ref={clearDialog}
+      <Dialog
+        autoOpen={false}
+        dialogRef={clearDialog}
+        returnFocusRef={clearButton}
         className="clear-peaks-dialog"
         aria-labelledby="clear-overlays-title"
         aria-describedby="clear-overlays-description"
-        onClick={(event) => {
-          if (event.target !== event.currentTarget) return;
-          const bounds = event.currentTarget.getBoundingClientRect();
-          if (
-            event.clientX < bounds.left ||
-            event.clientX > bounds.right ||
-            event.clientY < bounds.top ||
-            event.clientY > bounds.bottom
-          )
-            event.currentTarget.close();
-        }}
       >
         <h2 id="clear-overlays-title">Clear all overlays?</h2>
         <p id="clear-overlays-description">
@@ -551,7 +555,7 @@ export function IntegrationOverlayControls({
             Clear all
           </button>
         </div>
-      </dialog>
+      </Dialog>
       {menu &&
         createPortal(
           <div
@@ -569,6 +573,7 @@ export function IntegrationOverlayControls({
               onClick={() => {
                 const row = overlays.findIndex((o) => o.uid === menu.uid);
                 setMenu(null);
+                menuTrigger.current?.focus();
                 if (row >= 0) action("match_intensity", { index: row });
               }}
             >

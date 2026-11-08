@@ -17,7 +17,7 @@
   border-bottom: 2px solid transparent;
   border-radius: 0;
   background: transparent;
-  color: #aeb7c1;
+  color: var(--ui-muted);
   font-size: var(--text-small);
   font-weight: 500;
   box-shadow: none;
@@ -127,7 +127,7 @@
   width: 238px;
   max-width: calc(100vw - 32px);
   padding: 4px;
-  color: #dce2e7;
+  color: var(--ui-text);
   background: #20262d;
   border: 1px solid #414b56;
   border-radius: 8px;
@@ -152,15 +152,15 @@
   overscroll-behavior-y: contain;
   scrollbar-gutter: stable;
   scrollbar-width: auto;
-  scrollbar-color: #65707c #151b22;
+  scrollbar-color: #65707c var(--ui-input);
   outline: none;
 }
 .calibration-ring-options::-webkit-scrollbar {
   width: 10px;
-  background: #151b22;
+  background: var(--ui-input);
 }
 .calibration-ring-options::-webkit-scrollbar-thumb {
-  border: 2px solid #151b22;
+  border: 2px solid var(--ui-input);
   border-radius: 6px;
   background: #65707c;
 }
@@ -178,7 +178,7 @@
   background: rgb(255 149 0 / 15%);
 }
 .calibration-ring-options:focus-visible [data-active="true"] {
-  outline: 1px solid var(--accent);
+  outline: 1px solid var(--ui-focus);
   outline-offset: -1px;
 }
 .calibration-ring-point-count {
@@ -191,7 +191,7 @@
   background: rgb(255 149 0 / 10%);
 }
 .calibration-task-panel .peak-row:focus-visible {
-  outline: 1px solid var(--accent);
+  outline: 1px solid var(--ui-focus);
   outline-offset: -1px;
 }
 .calibration-picking-switch {
@@ -235,7 +235,7 @@
   min-width: 0;
   padding: 5px 0;
   font-size: var(--text-small);
-  color: #aeb7c1;
+  color: var(--ui-muted);
   white-space: nowrap;
 }
 
@@ -254,11 +254,11 @@
 }
 .calibration-task-panel .sidebar-scroll::-webkit-scrollbar {
   width: 10px;
-  background: #151b22;
+  background: var(--ui-input);
 }
 .calibration-task-panel .sidebar-scroll::-webkit-scrollbar-thumb {
   min-height: 28px;
-  border: 2px solid #151b22;
+  border: 2px solid var(--ui-input);
   border-radius: 6px;
   background: #65707c;
 }
@@ -267,6 +267,6 @@
 }
 @supports not selector(::-webkit-scrollbar) {
   .calibration-task-panel .sidebar-scroll {
-    scrollbar-color: #65707c #151b22;
+    scrollbar-color: #65707c var(--ui-input);
   }
 }

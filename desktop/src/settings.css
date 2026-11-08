@@ -14,7 +14,7 @@
   display: flex;
   flex-direction: column;
   background: #14171b;
-  color: #dce2e7;
+  color: var(--ui-text);
   overflow: hidden;
 }
 .settings-header {
@@ -27,7 +27,7 @@
   border-bottom: 1px solid #ffffff0d;
 }
 .settings-header h1 {
-  font-size: 22px;
+  font-size: var(--text-title);
   font-weight: 600;
   letter-spacing: -0.5px;
   margin: 0;
@@ -87,7 +87,7 @@
   margin-bottom: 24px;
 }
 .settings-section-heading h2 {
-  font-size: 20px;
+  font-size: var(--text-section);
   font-weight: 550;
   letter-spacing: -0.3px;
   margin: 0 0 8px;
@@ -120,7 +120,7 @@
 }
 .settings-card {
   padding: 24px;
-  background: #1b1f24;
+  background: var(--ui-panel);
   border: 1px solid #ffffff0e;
   border-radius: 12px;
   flex-shrink: 0;
@@ -137,7 +137,7 @@
   margin-bottom: 10px;
 }
 .settings-card-heading > svg {
-  color: #9ca6b0;
+  color: var(--ui-muted);
 }
 .settings-size-options {
   display: grid;
@@ -163,7 +163,7 @@
   align-items: baseline;
   gap: 14px;
   height: 42px;
-  color: #dce2e7;
+  color: var(--ui-text);
   font-size: 28px;
   line-height: 42px;
 }
@@ -172,7 +172,7 @@
 }
 .settings-type-sample > span {
   font-size: 14px;
-  color: #9ca6b0;
+  color: var(--ui-muted);
   white-space: nowrap;
 }
 .settings-type-sample.is-large > span {
@@ -200,7 +200,7 @@
 .settings-preference-row select {
   width: 170px;
   flex-shrink: 0;
-  background: #13161a;
+  background: var(--ui-input);
 }
 .settings-preference-row input[type="checkbox"] {
   width: 18px;
@@ -247,7 +247,7 @@
   border: 1px solid #ffffff0e;
   border-radius: 12px;
   padding: 18px 20px;
-  background: #1b1f24;
+  background: var(--ui-panel);
   min-width: 0;
 }
 .settings-integration .integration-group:first-child {
@@ -305,7 +305,7 @@
   font-size: var(--text-small);
 }
 .settings-shortcut kbd {
-  background: #13161a;
+  background: var(--ui-input);
   border: 1px solid #ffffff18;
   border-radius: 5px;
   padding: 5px 9px;

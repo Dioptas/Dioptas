@@ -1,7 +1,11 @@
+import { scientificValue } from "./ScientificNumberInput";
+import { unitLabel } from "./types";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Save } from "lucide-react";
 import { RasterView } from "./RasterView";
 import { ImageIntensity } from "./ImageIntensity";
+import { MapLoadActions } from "./MapLoadActions";
+import { LoadCalibrationButton } from "./LoadCalibrationButton";
 import { useMapDisplay, useMapPreference } from "./mapPreferences";
 import { number, type Raster, type Response } from "./types";
 import type { MapData, MapRun } from "./mapDomain";
@@ -134,8 +138,23 @@ export function ScanMapPanel({
         </div>
       </section>
     );
+  const activeRoi = map?.rois.find((roi) => roi.name === map.active);
+  const scaleDetail =
+    map && activeRoi
+      ? `${scientificValue(activeRoi.min, 5)}–${scientificValue(activeRoi.max, 5)} ${unitLabel(map.unit)} · ${activeRoi.reduction}${map.normalized ? " · normalized" : ""}`
+      : map
+        ? `Expression values${map.normalized ? " · normalized" : ""}`
+        : undefined;
   return (
-    <section className="map-scan-panel" aria-label="Scan map">
+    <section
+      className="map-scan-panel"
+      aria-label="Scan map"
+      aria-description={
+        map
+          ? `Layer ${map.active}. ${scanRaster?.fullHeight} by ${scanRaster?.fullWidth} grid. ${scaleDetail ?? ""}. Display limits ${scientificValue(display.limits[0])} to ${scientificValue(display.limits[1])}, ${display.log ? "logarithmic" : "linear"}.`
+          : undefined
+      }
+    >
       {map && scanRaster ? (
         <div className="detector-workspace map-raster" data-testid="scan-map">
           <RasterView
@@ -197,21 +216,33 @@ export function ScanMapPanel({
         </div>
       ) : (
         <div className="empty-view">
-          <h3>{allowLoad ? "Load a scan" : "No map loaded"}</h3>
+          <h3>{allowLoad ? "Build a map" : "No map loaded"}</h3>
           <p>
             {allowLoad
-              ? "Integrate detector images or open a processed batch."
-              : "Load a scan from Map mode in the main window."}
+              ? calibrated
+                ? "Build a map from detector images or a folder."
+                : "Load a calibration to build a map from detector images."
+              : "Build a map in Map mode in the main window."}
           </p>
-          {allowLoad && (
-            <button
-              disabled={!ready || !calibrated}
-              className="primary"
-              onClick={() => run("map_load", {}, "Integrating map…")}
-            >
-              Load images…
-            </button>
-          )}
+          {allowLoad &&
+            (calibrated ? (
+              <div className="integration-image-tools">
+                <MapLoadActions
+                  ready={ready}
+                  calibrated={calibrated}
+                  run={run}
+                  empty
+                />
+              </div>
+            ) : (
+              <LoadCalibrationButton
+                ready={ready}
+                label="Load calibration to build a map"
+                onLoad={() =>
+                  void run("open_calibration", {}, "Loading calibration…")
+                }
+              />
+            ))}
         </div>
       )}
       <div className="integration-image-tools map-display-controls">

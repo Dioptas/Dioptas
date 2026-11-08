@@ -1,3 +1,4 @@
+import { TabList } from "./TabList";
 import { TableScroll, TableActions } from "./DataTable";
 import {
   ArrowUp,
@@ -6,14 +7,14 @@ import {
   MinusSquare,
   Ban,
   CircleCheck,
-  FolderOpen,
   RefreshCw,
   Radio,
-  Crosshair,
+  FolderOpen,
   ListOrdered,
   Settings,
 } from "lucide-react";
 import { MapLayers } from "./MapLayers";
+import { MapLoadActions } from "./MapLoadActions";
 import { MapSettingsDialog } from "./MapSettingsDialog";
 import {
   useEffect,
@@ -146,22 +147,23 @@ export function MapControls({
     run("map_arrange", { op, slot: selected, index: map?.selected, ...args });
   return (
     <div className="map-controls">
-      <div className="map-tabs" role="tablist" aria-label="Map controls">
-        {[...(imageTab ? ["Image"] : []), "Points", "Layers", "Grid"].map(
-          (t) => (
-            <button
-              key={t}
-              role="tab"
-              id={`map-tab-${t}`}
-              aria-selected={tab === t}
-              aria-controls="map-tab-content"
-              onClick={() => setTab(t)}
-            >
-              {t}
-            </button>
-          ),
-        )}
-      </div>
+      <TabList
+        className="map-tabs"
+        label="Map controls"
+        value={tab}
+        onChange={setTab}
+        options={[
+          ...(imageTab ? ["Image"] : []),
+          "Points",
+          "Layers",
+          "Grid",
+        ].map((t) => ({
+          value: t,
+          label: t,
+          id: `map-tab-${t}`,
+          panelId: "map-tab-content",
+        }))}
+      />
       <TableScroll
         id="map-tab-content"
         className={`map-tab-content ${tab === "Image" ? "map-image-tab" : tab === "Points" ? "map-points-tab" : ""}`}
@@ -176,25 +178,11 @@ export function MapControls({
               role="group"
               aria-label="Map scan controls"
             >
-              <button
-                className="plot-tool-button"
-                aria-label="Load images…"
-                title="Load detector images"
-                disabled={!ready || !state?.calibrated}
-                onClick={() => run("map_load", {}, "Integrating map images…")}
-              >
-                <FolderOpen size={15} /> Load…
-              </button>
-              <button
-                className="plot-tool-button"
-                title="Integrate detector images from a folder"
-                disabled={!ready || !state?.calibrated}
-                onClick={() =>
-                  run("map_folder", {}, "Integrating scan folder…")
-                }
-              >
-                Folder…
-              </button>
+              <MapLoadActions
+                ready={ready}
+                calibrated={!!state?.calibrated}
+                run={run}
+              />
               <button
                 className="plot-tool-button map-live-button"
                 aria-label="Live map"
@@ -231,7 +219,7 @@ export function MapControls({
                 disabled={!ready}
                 onClick={() => run("open_calibration")}
               >
-                <Crosshair size={16} />
+                <FolderOpen size={16} />
               </button>
               <button
                 className="plot-tool-button map-source-icon"
@@ -245,11 +233,6 @@ export function MapControls({
                 <RefreshCw size={15} />
               </button>
             </div>
-            {!state?.calibrated && (
-              <p className="map-note">
-                Load a calibration to integrate images.
-              </p>
-            )}
           </section>
         )}
         {map && (

@@ -66,7 +66,7 @@
 .mask-controls button,
 .mask-controls input,
 .mask-controls select {
-  font-size: 14px;
+  font-size: var(--text-small);
 }
 .mask-controls button {
   min-height: var(--mask-control-height);
@@ -82,7 +82,7 @@
 .app[data-text-size="large"] .mask-controls button,
 .app[data-text-size="large"] .mask-controls input,
 .app[data-text-size="large"] .mask-controls select {
-  font-size: 17px;
+  font-size: var(--text-body);
 }
 .mask-setting {
   display: grid;
@@ -92,7 +92,7 @@
 }
 .mask-help {
   color: var(--muted, #9b9da1);
-  font-size: 13px;
+  font-size: var(--text-meta);
   line-height: 1.55;
   margin: 0;
 }
@@ -147,7 +147,7 @@
   background: #232429ed;
   border: 1px solid #ffffff20;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: var(--text-meta);
 }
 
 .mask-controls .check-line,
@@ -170,5 +170,5 @@
 }
 .mask-point-diameter span {
   color: var(--muted, #9b9da1);
-  font-size: 14px;
+  font-size: var(--text-small);
 }

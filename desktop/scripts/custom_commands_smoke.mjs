@@ -103,7 +103,7 @@ const ready = () =>
     () =>
       !window.__pendingCommands &&
       !document.querySelector('.custom-command-settings[aria-busy="true"]') &&
-      !document.querySelector('.app-status [role="alert"]'),
+      !document.querySelector('.app-status [role="alert"]')?.textContent.trim(),
   );
 const button = (name) => page.getByRole("button", { name, exact: true });
 const panel = () =>

@@ -116,7 +116,7 @@
   flex-shrink: 0;
   padding: 4px 2px;
   gap: 4px;
-  background: #151b22;
+  background: var(--ui-input);
   border: 1px solid var(--border);
   border-radius: 6px;
   color: var(--muted);
@@ -164,7 +164,7 @@
   gap: 10px;
   border: 1px solid #ffffff26;
   border-radius: 8px;
-  background: #20252b;
+  background: var(--ui-raised);
   box-shadow: 0 8px 28px #0008;
 }
 .custom-command-icon-popup > input {
@@ -216,8 +216,8 @@
   min-height: 100px;
   padding: 10px;
   color: var(--text);
-  background: #13161a;
-  border: 1px solid var(--border);
+  background: var(--ui-input);
+  border: 1px solid var(--ui-field-edge);
   border-radius: 5px;
   font-size: var(--text-small);
   line-height: 1.5;
@@ -243,7 +243,7 @@
   overflow: auto;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  background: #13161a;
+  background: var(--ui-input);
   padding: 10px;
 }
 .custom-command-output details {
@@ -288,7 +288,7 @@
   gap: 10px;
   border: 1px solid #ffffff26;
   border-radius: 8px;
-  background: #20252b;
+  background: var(--ui-raised);
   box-shadow: 0 8px 28px #0008;
 }
 .custom-command-menu-heading {

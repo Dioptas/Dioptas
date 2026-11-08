@@ -1,3 +1,5 @@
+import { scientificValue } from "./ScientificNumberInput";
+import { TabList } from "./TabList";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronDown,
@@ -6,6 +8,8 @@ import {
   ChevronUp,
   ExternalLink,
   FolderOpen,
+  ChartNoAxesColumn,
+  Unlink,
   PanelBottomClose,
   Save,
   Settings2,
@@ -40,8 +44,10 @@ export function BatchView({
   onDetach,
   onDock,
   onHide,
+  activeImagePath,
 }: {
   batch: BatchData | null;
+  activeImagePath?: string | null;
   position?: import("./linkedPosition").PatternPosition;
   calibrated: boolean;
   ready: boolean;
@@ -87,7 +93,7 @@ export function BatchView({
     Math.max(0, (batch?.entries.length ?? 1) - 1),
   ]);
   useEffect(() => {
-    if (batch) setTab((tab) => (docked && tab === "Options" ? tab : "2D"));
+    if (batch) setTab((tab) => (tab === "Options" ? tab : "2D"));
   }, [batch?.id]);
   const select = (
     index: number,
@@ -99,12 +105,12 @@ export function BatchView({
       "Loading batch frame…",
     );
   const folder = batch?.files[0]?.path.replace(/[\\/][^\\/]*$/, "") ?? "";
-  const folderLabel =
-    folder
-      .split(/[\\/]+/)
-      .filter(Boolean)
-      .slice(-3)
-      .join("/") || "Batch";
+  const folderLabel = folder
+    ? `…/${folder
+        .split(/[\\/]+/)
+        .filter(Boolean)
+        .at(-1)}`
+    : "Batch";
   const auto = async () => {
     const r = await request("batch_levels", { ...prefs.auto });
     if (r?.batchLevels) display.update({ limits: r.batchLevels, auto: true });
@@ -189,8 +195,13 @@ export function BatchView({
       data-selected-frame={batch?.selected ?? ""}
       aria-busy={!ready}
       aria-label="Batch series"
+      aria-description={
+        batch
+          ? `Intensity display limits ${scientificValue(display.limits[0])} to ${scientificValue(display.limits[1])}, ${shownLog ? "logarithmic" : shownSqrt ? "square root" : "linear"}.`
+          : undefined
+      }
     >
-      <header className="batch-series-toolbar">
+      <header className="batch-series-toolbar plot-toolbar">
         <div
           className="batch-file-toolbar"
           role="toolbar"
@@ -240,37 +251,45 @@ export function BatchView({
         <span className="batch-folder-label" title={folder}>
           <span>{folderLabel}</span>
         </span>
+        {activeImagePath &&
+          batch &&
+          batch.entries[batch.selected]?.path !== activeImagePath && (
+            <span
+              className="batch-source-note"
+              title="This series differs from the detector image currently displayed. Select a batch frame to inspect its source."
+            >
+              <Unlink size={14} aria-hidden="true" />
+              <span className="plot-toolbar-label">Separate series</span>
+            </span>
+          )}
         {docked && batch && (
           <span
             className="batch-position"
+            role="group"
             aria-label="Selected batch frame"
-            title={`Frame ${batch.selected}; ${batch.entries.length} frames numbered 0–${batch.entries.length - 1} · ${batch.entries[batch.selected]?.name}`}
+            title={`Frame ${batch.selected + 1} of ${batch.entries.length} · ${batch.entries[batch.selected]?.name}`}
           >
-            {batch.selected} / {batch.entries.length - 1}
+            <span className="plot-toolbar-label">
+              Frame {batch.selected + 1} of {batch.entries.length}
+            </span>
+            <span className="batch-position-compact" aria-hidden="true">
+              {batch.selected + 1}/{batch.entries.length}
+            </span>
           </span>
         )}
-        <div
+        <TabList
           className="batch-view-tabs calibration-workflow-tabs"
-          role="tablist"
-          aria-label="Batch view"
-        >
-          {(docked
-            ? (["Files", "2D", "Options"] as const)
-            : (["Files", "2D"] as const)
-          ).map((name) => (
-            <button
-              role="tab"
-              aria-label={name}
-              title={name === "Options" ? "Options" : undefined}
-              aria-selected={tab === name}
-              key={name}
-              disabled={name !== "Files" && !batch}
-              onClick={() => setTab(name)}
-            >
-              {name === "Options" ? <Settings2 size={15} /> : name}
-            </button>
-          ))}
-        </div>
+          label="Batch view"
+          value={tab}
+          onChange={setTab}
+          options={(["Files", "2D", "Options"] as const).map((name) => ({
+            value: name,
+            name,
+            label: name === "Options" ? <Settings2 size={15} /> : name,
+            title: name === "Options" ? "Options" : undefined,
+            disabled: name !== "Files" && !batch,
+          }))}
+        />
         <PlotToggle
           label="Show batch phases"
           title="Show phase lines on the batch overview"
@@ -278,7 +297,8 @@ export function BatchView({
           disabled={!batch?.phaseLines?.length}
           onClick={() => display.update({ phases: !display.phases })}
         >
-          Phases
+          <ChartNoAxesColumn size={15} aria-hidden="true" />
+          <span className="plot-toolbar-label">Phases</span>
         </PlotToggle>
         <div className="batch-window-actions">
           {onCollapse && (
@@ -328,14 +348,6 @@ export function BatchView({
             role="tabpanel"
             aria-label="Batch files"
           >
-            <dl className="batch-file-metadata">
-              <dt>Calibration File:</dt>
-              <dd title={batch?.calibration ?? ""}>
-                {batch?.calibration || "none loaded"}
-              </dd>
-              <dt>Mask File:</dt>
-              <dd title={batch?.mask ?? ""}>{batch?.mask || "none loaded"}</dd>
-            </dl>
             {batch ? (
               <TableScroll className="batch-file-list">
                 <DataTable aria-label="Raw batch files">
@@ -356,7 +368,7 @@ export function BatchView({
                         <td>
                           <button
                             disabled={!ready || file.first === null}
-                            aria-label={`Select batch file ${i}`}
+                            aria-label={`Select batch file ${i + 1}`}
                             title={file.path}
                             onClick={() => select(file.first!)}
                           >
@@ -398,43 +410,54 @@ export function BatchView({
               role="tabpanel"
               aria-label="Batch 2D view"
             >
-              <div className="batch-overview-image detector-workspace">
-                <ImageIntensity
-                  raster={batch.raster}
-                  limits={display.limits}
-                  onLimits={(limits) => display.update({ limits, auto: false })}
-                  log={shownLog}
-                  mirrored
-                  onLog={(log) =>
-                    linkedDisplay
-                      ? linkedDisplay.onScale(log ? "log" : "linear")
-                      : display.update({ log, sqrt: false, auto: false })
-                  }
-                  palette={display.palette}
-                  onPalette={(palette) => display.update({ palette })}
-                  preferences={prefs}
-                  onPreferences={setPrefs}
-                  ready={ready}
-                  display="batch"
-                  initialLevelsReady={display.initialized}
-                  initialAutoActive={display.auto}
-                  onAuto={auto}
-                />
-                <BatchHeatmap
-                  position={position ?? batch?.position ?? undefined}
-                  phaseLines={display.phases ? batch?.phaseLines : undefined}
-                  batch={shownBatch!}
-                  limits={display.limits}
-                  log={shownLog}
-                  sqrt={shownSqrt}
-                  palette={display.palette}
-                  viewport={display.viewport}
-                  zoomMode={display.zoomMode}
-                  onZoomMode={(zoomMode) => display.update({ zoomMode })}
-                  ready={ready}
-                  onSelect={select}
-                  reportPlot={reportPlot}
-                />
+              <div className="batch-overview-column">
+                <div className="batch-overview-image detector-workspace">
+                  <ImageIntensity
+                    raster={batch.raster}
+                    limits={display.limits}
+                    onLimits={(limits) =>
+                      display.update({ limits, auto: false })
+                    }
+                    log={shownLog}
+                    mirrored
+                    onLog={(log) =>
+                      linkedDisplay
+                        ? linkedDisplay.onScale(log ? "log" : "linear")
+                        : display.update({ log, sqrt: false, auto: false })
+                    }
+                    palette={display.palette}
+                    onPalette={(palette) => display.update({ palette })}
+                    preferences={prefs}
+                    onPreferences={setPrefs}
+                    ready={ready}
+                    display="batch"
+                    initialLevelsReady={display.initialized}
+                    initialAutoActive={display.auto}
+                    onAuto={auto}
+                  />
+                  <BatchHeatmap
+                    position={position ?? batch?.position ?? undefined}
+                    phaseLines={display.phases ? batch?.phaseLines : undefined}
+                    batch={shownBatch!}
+                    limits={display.limits}
+                    log={shownLog}
+                    sqrt={shownSqrt}
+                    palette={display.palette}
+                    viewport={display.viewport}
+                    zoomMode={display.zoomMode}
+                    onZoomMode={(zoomMode) => display.update({ zoomMode })}
+                    ready={ready}
+                    onSelect={select}
+                    onNormalize={() =>
+                      run(
+                        "batch_normalize",
+                        { enabled: !batch.normalized },
+                        "Updating normalization…",
+                      )
+                    }
+                    reportPlot={reportPlot}
+                  />
+                </div>
               </div>
               {!linkedDisplay && plotOptions}
             </div>
@@ -445,12 +468,11 @@ export function BatchView({
         <BatchControls
           docked={docked}
           optionsVisible={tab === "Options"}
-          batch={batch}
+          batch={shownBatch}
           ready={ready}
           calibrated={calibrated}
           filesView={tab === "Files"}
           run={run}
-          onAutoScale={auto}
           onRange={onRange}
         />
       )}
