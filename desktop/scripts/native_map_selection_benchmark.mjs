@@ -147,6 +147,8 @@ for (const [label, executable] of [
       for (const [stage, name] of [
         ["open-image", "metadata"],
         ["open-image", "decode and warm-plan handoff"],
+        ["source-publish", "typed to oriented f64"],
+        ["source-publish", "publish metadata"],
         ["open-image", "display preparation"],
         ["open-image", "processing masks and integration"],
         ["raster", "f32 conversion and SHA256"],

@@ -17,6 +17,83 @@ pub struct Request {
     #[serde(default, rename = "cachedBuffers")]
     pub cached_buffers: Vec<String>,
 }
+
+#[cfg(test)]
+mod packet_write_tests {
+    use super::*;
+    use std::io::{self, IoSlice, Write};
+    struct ShortWriter {
+        bytes: Vec<u8>,
+        calls: usize,
+    }
+    impl Write for ShortWriter {
+        fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+            self.write_vectored(&[IoSlice::new(bytes)])
+        }
+        fn write_vectored(&mut self, parts: &[IoSlice<'_>]) -> io::Result<usize> {
+            self.calls += 1;
+            if self.calls.is_multiple_of(5) {
+                return Err(io::ErrorKind::Interrupted.into());
+            }
+            let mut remaining = 7;
+            let mut written = 0;
+            for part in parts {
+                let take = remaining.min(part.len());
+                self.bytes.extend_from_slice(&part[..take]);
+                remaining -= take;
+                written += take;
+                if remaining == 0 {
+                    break;
+                }
+            }
+            Ok(written)
+        }
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+    #[test]
+    fn streamed_packets_preserve_framing_bytes_duplicates_and_cache_omission() {
+        let first = Buffer::new(vec![0, 10, 13, 255, 0, 1, 2]);
+        let second = Buffer::new((0..255).collect());
+        let empty = Buffer::new(vec![]);
+        let reply = Reply {
+            result: json!({"ok":true,"name":"α detector"}),
+            buffers: vec![first.clone(), second.clone(), first.clone(), empty],
+        };
+        for known in [
+            vec![],
+            vec![first.id.clone()],
+            vec![first.id.clone(), second.id.clone()],
+        ] {
+            let mut out = ShortWriter {
+                bytes: vec![],
+                calls: 0,
+            };
+            reply
+                .packet_parts(42, &known)
+                .unwrap()
+                .write_to(&mut out)
+                .unwrap();
+            let size = u32::from_le_bytes(out.bytes[..4].try_into().unwrap()) as usize;
+            let header: Value = serde_json::from_slice(&out.bytes[4..4 + size]).unwrap();
+            assert_eq!(header["id"], 42);
+            assert_eq!(header["result"], reply.result);
+            let mut expected = vec![];
+            for entry in header["buffers"].as_array().unwrap() {
+                let b = reply
+                    .buffers
+                    .iter()
+                    .find(|b| b.id == entry["id"].as_str().unwrap())
+                    .unwrap();
+                assert!(!known.contains(&b.id));
+                expected.extend_from_slice(&b.bytes);
+            }
+            assert_eq!(&out.bytes[4 + size..], expected);
+            assert_eq!(out.bytes, reply.encode(42, &known).unwrap());
+        }
+    }
+}
 fn empty_object() -> Value {
     json!({})
 }
@@ -80,6 +157,38 @@ pub struct Reply {
     pub result: Value,
     pub buffers: Vec<Buffer>,
 }
+pub(crate) struct PacketParts<'a> {
+    pub header: Vec<u8>,
+    pub buffers: Vec<&'a Buffer>,
+}
+impl PacketParts<'_> {
+    pub fn write_to(&self, output: &mut impl std::io::Write) -> std::io::Result<()> {
+        use std::io::{Error, ErrorKind, IoSlice};
+        let mut slices: Vec<_> = std::iter::once(IoSlice::new(&self.header))
+            .chain(
+                self.buffers
+                    .iter()
+                    .filter(|b| !b.bytes.is_empty())
+                    .map(|b| IoSlice::new(&b.bytes)),
+            )
+            .collect();
+        let mut remaining = slices.as_mut_slice();
+        while !remaining.is_empty() {
+            match output.write_vectored(remaining) {
+                Ok(0) => {
+                    return Err(Error::new(
+                        ErrorKind::WriteZero,
+                        "Could not write processing packet",
+                    ));
+                }
+                Ok(n) => IoSlice::advance_slices(&mut remaining, n),
+                Err(e) if e.kind() == ErrorKind::Interrupted => continue,
+                Err(e) => return Err(e),
+            }
+        }
+        Ok(())
+    }
+}
 impl Reply {
     pub fn metadata(result: Value) -> Self {
         Self {
@@ -92,7 +201,11 @@ impl Reply {
     }
     /// The Python processor and Tauri IPC use this same wire format. Buffer IDs
     /// hash immutable display bytes; scientific sample storage is separate.
-    pub fn encode(&self, id: u64, known: &[String]) -> Result<Vec<u8>, String> {
+    pub(crate) fn packet_parts(
+        &self,
+        id: u64,
+        known: &[String],
+    ) -> Result<PacketParts<'_>, String> {
         #[derive(Serialize)]
         struct Entry<'a> {
             id: &'a str,
@@ -113,9 +226,17 @@ impl Reply {
         let length = u32::try_from(header.len()).map_err(|_| "Oversized response header")?;
         let mut result = length.to_le_bytes().to_vec();
         result.extend_from_slice(&header);
-        for buffer in buffers {
-            result.extend_from_slice(&buffer.bytes);
-        }
+        Ok(PacketParts {
+            header: result,
+            buffers,
+        })
+    }
+    pub fn encode(&self, id: u64, known: &[String]) -> Result<Vec<u8>, String> {
+        let parts = self.packet_parts(id, known)?;
+        let mut result = Vec::with_capacity(
+            parts.header.len() + parts.buffers.iter().map(|b| b.bytes.len()).sum::<usize>(),
+        );
+        parts.write_to(&mut result).map_err(|e| e.to_string())?;
         Ok(result)
     }
 }

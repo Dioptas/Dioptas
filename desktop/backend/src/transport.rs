@@ -62,13 +62,13 @@ pub fn serve(
     let active: Mutex<Option<Arc<Control>>> = Mutex::new(None);
     let write = |id, reply: Reply, known: &[String]| -> Result<(), String> {
         let mut trace = crate::frame_trace::FrameTrace::new("packet", id);
-        let packet = reply.encode(id, known)?;
+        let packet = reply.packet_parts(id, known)?;
         trace.mark("encode response");
         let mut stream = output
             .lock()
             .map_err(|_| "Processing output lock failed.")?;
-        let result = stream
-            .write_all(&packet)
+        let result = packet
+            .write_to(&mut *stream)
             .and_then(|_| stream.flush())
             .map_err(|e| e.to_string());
         trace.mark("write and flush");

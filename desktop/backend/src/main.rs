@@ -1,5 +1,22 @@
 use std::{io, path::PathBuf};
 
+// Stdout's text-oriented line writer inspects binary image payloads for newline
+// bytes. Write to an owned duplicate of the same pipe on Unix instead.
+fn binary_stdout() -> Result<impl io::Write + Send, String> {
+    #[cfg(unix)]
+    {
+        use std::os::fd::AsFd;
+        io::stdout()
+            .as_fd()
+            .try_clone_to_owned()
+            .map(std::fs::File::from)
+            .map_err(|e| e.to_string())
+    }
+    #[cfg(not(unix))]
+    {
+        Ok(io::stdout())
+    }
+}
 fn run() -> Result<(), String> {
     let mut args = std::env::args().skip(1);
     let mut root = None;
@@ -21,7 +38,7 @@ fn run() -> Result<(), String> {
     }
     dioptas_backend::transport::serve(
         &mut io::stdin().lock(),
-        &mut io::BufWriter::new(io::stdout()),
+        &mut io::BufWriter::with_capacity(64 * 1024, binary_stdout()?),
         root.unwrap_or_else(|| {
             let executable = std::env::current_exe().expect("processor executable path");
             let directory = executable.parent().expect("processor directory");

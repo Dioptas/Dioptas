@@ -9,6 +9,88 @@ use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
+#[cfg(test)]
+mod orientation_conversion_tests {
+    use super::*;
+    fn verify(pixels: PixelBuffer, shape: [usize; 2]) {
+        let original = scalar_values(&pixels).unwrap();
+        let expected: Vec<_> = original
+            .chunks_exact(shape[1])
+            .rev()
+            .flatten()
+            .map(|v| v.to_bits())
+            .collect();
+        let actual: Vec<_> = oriented_values(&pixels, shape)
+            .unwrap()
+            .iter()
+            .map(|v| v.to_bits())
+            .collect();
+        assert_eq!(actual, expected);
+    }
+    #[test]
+    fn direct_orientation_preserves_scalar_precision_and_special_values() {
+        for pixels in [
+            PixelBuffer::U8((0..9).collect()),
+            PixelBuffer::I8((-4..5).collect()),
+            PixelBuffer::U16(vec![0, 1, 2, 3, 4, 5, 6, 7, u16::MAX]),
+            PixelBuffer::U32(vec![0, 1, 2, 3, 4, 5, 6, i32::MAX as u32, u32::MAX]),
+            PixelBuffer::I16(vec![i16::MIN, -7, -1, 0, 1, 2, 3, 4, i16::MAX]),
+            PixelBuffer::I32(vec![i32::MIN, -7, -1, 0, 1, 2, 3, 4, i32::MAX]),
+            PixelBuffer::U64(vec![0, 1, 2, 3, 4, 5, 6, 7, 1 << 53]),
+            PixelBuffer::I64(vec![-(1 << 53), -7, -1, 0, 1, 2, 3, 4, 1 << 53]),
+            PixelBuffer::F64(vec![
+                -0.,
+                0.,
+                1.,
+                f64::NAN,
+                f64::from_bits(0x7ff123456789abcd),
+                f64::INFINITY,
+                f64::NEG_INFINITY,
+                f64::MAX,
+                -1.25,
+            ]),
+            PixelBuffer::F32(vec![
+                -0.,
+                0.,
+                1.,
+                f32::NAN,
+                f32::MAX,
+                f32::INFINITY,
+                f32::NEG_INFINITY,
+                -1.25,
+                3.5,
+            ]),
+            PixelBuffer::F16(vec![
+                0, 0x8000, 0x3c00, 0x7c00, 0xfc00, 0x7e01, 1, 0x7bff, 0xbc00,
+            ]),
+            PixelBuffer::Bool(vec![0, 1, 0, 1, 255, 0, 1, 0, 1]),
+        ] {
+            verify(pixels, [3, 3]);
+        }
+        for pixels in [
+            PixelBuffer::U64(vec![(1 << 53) + 1]),
+            PixelBuffer::I64(vec![-(1 << 53) - 1]),
+        ] {
+            assert_eq!(
+                oriented_values(&pixels, [1, 1]).unwrap_err(),
+                scalar_values(&pixels).unwrap_err()
+            );
+        }
+    }
+    #[test]
+    fn parallel_orientation_handles_odd_heights_and_partial_row_ranges() {
+        let shape = [1025, 1027];
+        verify(
+            PixelBuffer::U32(
+                (0..shape[0] * shape[1])
+                    .map(|i| (i as u32).wrapping_mul(997))
+                    .collect(),
+            ),
+            shape,
+        );
+    }
+}
+
 #[derive(Clone)]
 pub struct Image {
     reader: Option<Arc<Mutex<Reader>>>,
@@ -265,18 +347,10 @@ impl Image {
         if pixels.len() != shape[0] * shape[1] || candidate.sample_shape() != Some(shape.to_vec()) {
             return Err("Color, component and complex arrays require an explicit scientific interpretation.".into());
         }
-        let mut values = scalar_values(pixels)?;
-        let width = shape[1];
-        for row in 0..shape[0] / 2 {
-            let opposite = (shape[0] - 1 - row) * width;
-            for col in 0..width {
-                values.swap(row * width + col, opposite + col);
-            }
-        }
+        let values = oriented_values(pixels, shape)?;
         self.source_dtype = format!("{:?}", pixels.pixel_type());
         self.ordinary_decodes += 1;
         self.combined = false;
-        self.parallel_pixels = false;
         self.parallel_pixels = false;
         self.buffer = Arc::new(candidate);
         self.combined_pixels = None;
@@ -378,6 +452,7 @@ impl Image {
         shape: [usize; 2],
         pixels: PixelBuffer,
     ) -> Result<(), String> {
+        let mut trace = crate::frame_trace::FrameTrace::new("source-publish", index as u64);
         self.check_sources()?;
         if shape.contains(&0)
             || shape[0]
@@ -387,12 +462,9 @@ impl Image {
         {
             return Err("Invalid combined detector dimensions.".into());
         }
-        let mut values = scalar_values(&pixels)?;
-        for row in 0..shape[0] / 2 {
-            for col in 0..shape[1] {
-                values.swap(row * shape[1] + col, (shape[0] - row - 1) * shape[1] + col);
-            }
-        }
+        trace.mark("validate source");
+        let values = oriented_values(&pixels, shape)?;
+        trace.mark("typed to oriented f64");
         self.source_dtype = format!("{:?}", pixels.pixel_type());
         self.combined_pixels = Some(Arc::new(pixels));
         self.buffer = Arc::new(FrameBuffer::default());
@@ -404,6 +476,7 @@ impl Image {
         self.orient(&ops, &crate::control::Control::default())?;
         self.frame = index;
         self.file_info = Arc::new(self.metadata_text());
+        trace.mark("publish metadata");
         Ok(())
     }
     /// Stored acquisition identity/pitch, without altering the original metadata.
@@ -618,6 +691,81 @@ fn metadata_dataset(file: &hdf5::File, path: &str) -> Option<hdf5::Dataset> {
     None
 }
 
+// Cast each source row directly into its final bottom-up position. Large planes
+// use disjoint row ranges, avoiding the old separate full-plane swapping pass.
+fn oriented_values(pixels: &PixelBuffer, shape: [usize; 2]) -> Result<Vec<f64>, String> {
+    fn convert<T: Copy + Sync>(
+        data: &[T],
+        [h, w]: [usize; 2],
+        cast: impl Fn(T) -> f64 + Sync,
+    ) -> Vec<f64> {
+        let mut out = vec![0.; data.len()];
+        let write = |source: &[T], target: &mut [f64]| {
+            for (row, target) in source.chunks_exact(w).rev().zip(target.chunks_exact_mut(w)) {
+                for (&value, target) in row.iter().zip(target) {
+                    *target = cast(value);
+                }
+            }
+        };
+        if data.len() >= 1_000_000 {
+            let workers = std::thread::available_parallelism()
+                .map_or(1, |n| n.get())
+                .min(8);
+            let rows = h.div_ceil(workers);
+            std::thread::scope(|scope| {
+                for (part, target) in out.chunks_mut(rows * w).enumerate() {
+                    let end = h - part * rows;
+                    let begin = end - target.len() / w;
+                    let source = &data[begin * w..end * w];
+                    let write = &write;
+                    scope.spawn(move || write(source, target));
+                }
+            });
+        } else {
+            write(data, &mut out);
+        }
+        out
+    }
+    macro_rules! cast {
+        ($values:expr) => {
+            convert($values, shape, |v| v as f64)
+        };
+    }
+    Ok(match pixels {
+        PixelBuffer::U8(v) => cast!(v),
+        PixelBuffer::U16(v) => cast!(v),
+        PixelBuffer::U32(v) => cast!(v),
+        PixelBuffer::I8(v) => cast!(v),
+        PixelBuffer::I16(v) => cast!(v),
+        PixelBuffer::I32(v) => cast!(v),
+        PixelBuffer::F32(v) => cast!(v),
+        PixelBuffer::F64(v) => cast!(v),
+        PixelBuffer::Bool(v) => convert(v, shape, |v| f64::from(v != 0)),
+        PixelBuffer::F16(v) => convert(v, shape, |v| half::f16::from_bits(v).to_f64()),
+        PixelBuffer::U64(v) => {
+            if v.iter().any(|&v| v > 1_u64 << 53) {
+                return Err(
+                    "Integer counts above 2^53 require an exact-integer numerical engine.".into(),
+                );
+            }
+            cast!(v)
+        }
+        PixelBuffer::I64(v) => {
+            if v.iter().any(|&v| v.unsigned_abs() > 1_u64 << 53) {
+                return Err(
+                    "Integer counts outside ±2^53 require an exact-integer numerical engine."
+                        .into(),
+                );
+            }
+            cast!(v)
+        }
+        _ => {
+            return Err(
+                "Complex detector samples require an explicit scientific interpretation.".into(),
+            );
+        }
+    })
+}
 pub fn scalar_values(pixels: &PixelBuffer) -> Result<Vec<f64>, String> {
     macro_rules! convert {
         ($v:expr) => {

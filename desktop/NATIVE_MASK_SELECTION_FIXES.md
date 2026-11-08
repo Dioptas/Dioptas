@@ -199,3 +199,43 @@ comparisons passed again. All seven Tauri processor tests passed, including
 round-trip buffers and cached-buffer omission with the new opaque IDs. The new
 bundle's resource manifest, ad-hoc signature, macOS 14 deployment targets and
 system-only dynamic dependencies passed inspection; no visible app was launched.
+
+## Follow-up: fused pixel preparation and streaming transfer
+
+Source decoding retains the existing Dioptrin-IO codec and original typed sample
+storage. Numeric conversion now writes source rows directly to their final
+bottom-up f64 positions, using up to eight workers for large planes. This removes
+the separate full-plane row-swapping pass. All supported scalar types preserve
+their previous conversion rules, including half floats, NaN payloads, signed
+zero, and rejection of integers beyond the existing exact-f64 bound.
+
+The processor emits a response header and immutable buffers using vectored
+writes under the existing packet mutex, instead of allocating/copying a full
+image-sized packet first. The protocol and caching rules are unchanged. Partial
+writes, interruptions and empty buffers are handled explicitly. On Unix, a
+duplicate of the stdout pipe is used through a binary File writer, avoiding the
+text stdout line-writer layer; other platforms retain their existing stdout.
+
+In a matched warm-cache release run against the previous standalone processor,
+decode/pixel-preparation handoff decreased from 9.95 to 8.17 ms, and response
+encoding plus write/flush from 9.07 to 8.03 ms. Stored Map selection decreased
+from 34.91 to 32.98 ms; reintegration from 38.82 to 37.09 ms. These same-run
+improvements are smaller than a comparison against the earlier 37/40-ms run;
+the matched numbers are the performance claim. Timings exclude GUI painting.
+The transmitted full-size float32 plane remains approximately 40.6 MB for this
+3262 × 3108 image. No spatial sampling or change in numerical precision is used.
+
+Patterns, every compared image/mask byte, histogram bins/edges, limits and linked
+coordinates match the baseline. All 65 Rust tests and seven Tauri processor
+tests passed, with Clippy warnings denied. Integration transport tests passed
+for cancellation and source mutation, and headless Chromium/WebKit checks
+passed for live Map results and detached previews. New regressions cover exact
+orientation of every supported scalar type, odd-height parallel row partitions,
+precision guards, and partial/interrupted vectored writes with cached buffers.
+
+The final standalone repeat measured 36.47 → 34.85 ms for stored selection and
+41.47 → 37.53 ms for reintegration. Decode/preparation was 9.77 → 8.14 ms;
+packet encoding plus write/flush was 9.76 → 8.44 ms. Exact output comparisons
+passed again. The bundle's manifest, signature integrity, macOS 14 deployment
+targets and system-only dynamic dependencies passed inspection. The existing
+user app and earlier artifacts were left unchanged.
