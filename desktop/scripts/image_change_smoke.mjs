@@ -208,6 +208,31 @@ try {
   assert.equal(result.state.calibrated, false);
   assert.equal(result.state.imageName, "same.edf");
   report.checks.push("explicit reset keeps current image");
+  // Loading through the shared shortcut must retain every workspace, including
+  // the selected calibration tab, even when accepting a detector-size reset.
+  for (const mode of ["Integration", "Map", "Mask", "Calibration"]) {
+    await button(mode).click();
+    const calibrationTab = page.getByRole("tab", {
+      name: "Step 2: Pick rings",
+      exact: true,
+    });
+    if (mode === "Calibration") await calibrationTab.click();
+    selectedImage =
+      mode === "Integration" || mode === "Mask"
+        ? path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif")
+        : small;
+    await page.keyboard.press("ControlOrMeta+o");
+    await button("Open and reset calibration").click();
+    await ready();
+    assert.equal(await button(mode).getAttribute("aria-pressed"), "true");
+    result = await call("state");
+    assert.equal(result.state.imageName, path.basename(selectedImage));
+    assert.equal(result.state.calibrated, false);
+    assert.equal(result.state.maskedPixels, 0);
+    if (mode === "Calibration")
+      assert.equal(await calibrationTab.getAttribute("aria-selected"), "true");
+    report.checks.push(`dimension reset retains ${mode} workspace and tab`);
+  }
   assert.deepEqual(errors, []);
   await writeFile(
     path.join(artifacts, `report-${browserName}.json`),

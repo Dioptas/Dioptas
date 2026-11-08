@@ -33,7 +33,7 @@ Phase/overlay grouping remains a separate design discussion.
   navigation, request a decision before publishing pixels or reusing geometry.
   Cancel/Escape preserve the session. Accept resets detector geometry,
   transformations, masks/plugins, corrections/image backgrounds, picks, detector edit
-  history and derived integration results, and opens Calibration at Image.
+  history and derived integration results while keeping the current workspace and tab.
   Phase and overlay references remain available. An unreadable accepted image
   rolls back the reset. Autoprocess stops safely on a size change.
 - Reset calibration uses the same native reset while retaining the current

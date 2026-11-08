@@ -478,8 +478,6 @@ export default function App() {
         if (result.calibrationReset) {
           resetFitDraft(result.state.calibration);
           resetGeometryDraft(result.state.calibration);
-          setMode("calibration");
-          setCalibrationStep(0);
           setSelectedPicks([]);
           setPhaseGuides([]);
         }

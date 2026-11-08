@@ -39,7 +39,7 @@ with Cosmic Removal in the Mask panel, two passes, Undo/Redo and cancellation.
 Changing source image dimensions asks for **Cancel** or **Open and reset
 calibration** before changing the session, including variable-size frames within
 one file. Accepting clears detector geometry, orientation, masks, corrections,
-picks and stale integration results, then opens Calibration at Image. It retains
+picks and stale integration results while keeping the current workspace and tab. It retains
 phase and overlay references. **Reset calibration** beside Load .poni performs
 the same detector reset while keeping the current image. Same-size images retain
 calibration; a physical detector change with identical dimensions still requires
