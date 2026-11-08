@@ -1,3 +1,4 @@
+import { ApplicationErrorBoundary, ErrorReportHost } from "./ApplicationErrors";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { DetachedBatchWindow } from "./DetachedBatchWindow";
@@ -35,18 +36,23 @@ if (
   });
 } else {
   createRoot(document.getElementById("root")!).render(
-    (isTauri() && getCurrentWindow().label === "batch-window") ||
-      new URLSearchParams(location.search).has("batch_window") ? (
-      <DetachedBatchWindow />
-    ) : (isTauri() && getCurrentWindow().label === "map-window") ||
-      new URLSearchParams(location.search).has("map_window") ? (
-      <DetachedMapWindow />
-    ) : isTauri() && getCurrentWindow().label === "calibration-tooltip" ? (
-      <NativeCalibrationTooltip />
-    ) : isTauri() && getCurrentWindow().label === "phase-editor" ? (
-      <NativePhaseEditor />
-    ) : (
-      <App />
-    ),
+    <>
+      <ErrorReportHost />
+      <ApplicationErrorBoundary>
+        {(isTauri() && getCurrentWindow().label === "batch-window") ||
+        new URLSearchParams(location.search).has("batch_window") ? (
+          <DetachedBatchWindow />
+        ) : (isTauri() && getCurrentWindow().label === "map-window") ||
+          new URLSearchParams(location.search).has("map_window") ? (
+          <DetachedMapWindow />
+        ) : isTauri() && getCurrentWindow().label === "calibration-tooltip" ? (
+          <NativeCalibrationTooltip />
+        ) : isTauri() && getCurrentWindow().label === "phase-editor" ? (
+          <NativePhaseEditor />
+        ) : (
+          <App />
+        )}
+      </ApplicationErrorBoundary>
+    </>,
   );
 }

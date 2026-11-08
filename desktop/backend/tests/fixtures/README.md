@@ -1,0 +1,11 @@
+`combined-counts.h5` contains three 64×80 uint32 frames generated as
+`120 + 11*row + 7*column + 83*frame`, with little-endian storage and independent
+Bitshuffle/LZ4 direct chunks (filter 32008, parameters 0,4,4,2048,2; 2048-element
+blocks). It is generated test input under the repository's MIT license. Rust
+tests read the frozen file without Python or an external HDF5 plugin and cover
+the admitted combined path across masks, units, errors, Batch/Map and projects.
+
+`asymmetric.mask` is a generated 64×80 uint8 TIFF/Deflate Dioptas mask, with
+only saved row/column (10,20) and (52,61) set to 1. Like Qt, mask loading
+preserves these saved scientific coordinates rather than treating the mask
+as a raw detector image. It is also MIT-licensed generated test input.

@@ -7,15 +7,47 @@ use crate::{
 };
 use serde_json::json;
 use std::{
+    backtrace::Backtrace,
+    cell::RefCell,
     io::{BufRead, Read, Write},
     path::PathBuf,
     sync::{
-        Arc, Mutex,
+        Arc, Mutex, Once,
         atomic::{AtomicBool, Ordering},
         mpsc,
     },
     thread,
 };
+
+thread_local! {
+    static PANIC_DETAILS: RefCell<Option<String>> = const { RefCell::new(None) };
+}
+fn install_panic_report() {
+    static INSTALL: Once = Once::new();
+    INSTALL.call_once(|| {
+        let previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let _ = PANIC_DETAILS.try_with(|details| {
+                *details.borrow_mut() = Some(format!("{info}\n{}", Backtrace::force_capture()));
+            });
+            previous(info);
+        }));
+    });
+}
+// An internal panic is reported, but the possibly inconsistent session is
+// never reused. Ordinary Result errors retain the session's existing rollback.
+fn guarded(invoke: impl FnOnce() -> Reply) -> Result<Reply, Reply> {
+    PANIC_DETAILS.with(|details| details.borrow_mut().take());
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(invoke)).map_err(|panic| {
+        let message = panic.downcast_ref::<String>().cloned()
+            .or_else(|| panic.downcast_ref::<&str>().map(|s| s.to_string()))
+            .unwrap_or_else(|| "Unknown native panic".into());
+        let trace = PANIC_DETAILS.with(|details| details.borrow_mut().take());
+        Reply::metadata(json!({"ok":false,"fatal":true,"errorKind":"internal",
+            "error":format!("The native processor stopped after an internal error. Reopen the application.\n{message}"),
+            "errorContext":{"panic":message,"nativeBacktrace":trace}}))
+    })
+}
 
 pub fn serve(
     input: &mut impl BufRead,
@@ -23,6 +55,7 @@ pub fn serve(
     root: PathBuf,
     example: bool,
 ) -> Result<(), String> {
+    install_panic_report();
     let output = Mutex::new(output);
     let running = AtomicBool::new(false);
     let closing = AtomicBool::new(false);
@@ -99,7 +132,11 @@ pub fn serve(
                         control.cancel();
                     }
                 }
-                let reply = session.invoke_controlled(&request, control.clone());
+                let (reply, fatal) =
+                    match guarded(|| session.invoke_controlled(&request, control.clone())) {
+                        Ok(reply) => (reply, false),
+                        Err(reply) => (reply, true),
+                    };
                 control.finish();
                 {
                     let mut active = worker_active.lock().unwrap();
@@ -109,6 +146,9 @@ pub fn serve(
                 }
                 worker_running.store(false, Ordering::Release);
                 worker_write(request.id, reply, &request.cached_buffers)?;
+                if fatal {
+                    return Err("Native processing stopped after an internal error.".into());
+                }
             }
             Ok(())
         });
@@ -143,12 +183,8 @@ pub fn serve(
                 }
                 match request.action.as_str() {
                     "progress" => {
-                        let progress=active.lock().unwrap().as_ref().map(|c|c.progress()).unwrap_or_else(||json!({"running":running.load(Ordering::Acquire),"current":0,"total":1}));
-                        write(
-                            request.id,
-                            Reply::metadata(json!({"ok":true,"progress":progress})),
-                            &[],
-                        )?;
+                        let reply = active.lock().unwrap().as_ref().map(|c|c.progress_reply()).unwrap_or_else(||Reply::metadata(json!({"ok":true,"progress":{"running":running.load(Ordering::Acquire),"current":0,"total":1}})));
+                        write(request.id, reply, &[])?;
                     }
                     "cancel_refinement" => {
                         let current = active.lock().unwrap().clone();
@@ -243,4 +279,30 @@ fn controlled(action: &str) -> bool {
             | "save_project"
             | "configuration"
     )
+}
+
+#[cfg(test)]
+mod panic_tests {
+    use super::*;
+    #[test]
+    fn native_panic_returns_fatal_diagnostics_instead_of_losing_the_pending_reply() {
+        install_panic_report();
+        let reply = guarded(|| panic!("test native failure")).err().unwrap();
+        assert_eq!(reply.result["fatal"], true);
+        assert_eq!(reply.result["errorKind"], "internal");
+        assert!(
+            reply.result["errorContext"]["nativeBacktrace"]
+                .as_str()
+                .unwrap()
+                .contains("test native failure")
+        );
+        assert!(reply.encode(42, &[]).unwrap().len() > 4);
+        assert_eq!(
+            guarded(|| Reply::metadata(json!({"ok":true})))
+                .ok()
+                .unwrap()
+                .result["ok"],
+            true
+        );
+    }
 }

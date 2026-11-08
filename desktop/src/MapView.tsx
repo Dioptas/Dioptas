@@ -10,7 +10,11 @@ import { RasterView } from "./RasterView";
 import { PatternView } from "./PatternView";
 import { ImageIntensity } from "./ImageIntensity";
 import { MapControls } from "./MapControls";
-import { patternViewport, plotViewContext, type SharedPlotViews } from "./plotViewport";
+import {
+  patternViewport,
+  plotViewContext,
+  type SharedPlotViews,
+} from "./plotViewport";
 import { mapPatternInUnit } from "./mapPattern";
 import type { PatternPosition } from "./linkedPosition";
 import { detectorPlotSetup, patternPlotSetup } from "./diffractionPlotSetup";
@@ -33,6 +37,7 @@ import "./map.css";
 
 export function MapView({
   map,
+  progressPreview,
   plotViews,
   image,
   mask,
@@ -65,6 +70,7 @@ export function MapView({
   }) => void;
   onPatternInspect: (point: PatternHover) => void;
   map: MapData | null;
+  progressPreview?: NonNullable<Response["progress"]>["mapPreview"];
   image: Raster | null;
   mask: Raster | null;
   pattern: Pattern | null;
@@ -169,6 +175,7 @@ export function MapView({
     };
   }, [live, ready, follow, mapIdentity]);
   const viewPattern = useMemo(() => {
+    if (progressPreview) return progressPreview.pattern;
     if (!pattern) return null;
     const requested = patternUnit ?? pattern.unit;
     const unit =
@@ -178,7 +185,13 @@ export function MapView({
         ? requested
         : pattern.unit;
     return mapPatternInUnit(pattern, unit, state?.geometry.wavelength);
-  }, [pattern, patternUnit, state?.geometry.wavelength, state?.calibrated]);
+  }, [
+    pattern,
+    patternUnit,
+    state?.geometry.wavelength,
+    state?.calibrated,
+    progressPreview,
+  ]);
   const patternPlot = viewPattern
     ? patternPlotSetup({
         pattern: viewPattern,
@@ -439,6 +452,7 @@ export function MapView({
         ) : (
           <ScanMapPanel
             map={map}
+            progressPreview={progressPreview}
             calibrated={!!state?.calibrated}
             ready={ready}
             run={run}

@@ -204,7 +204,7 @@ fn window_action_allowed(window: &str, action: &str) -> bool {
     match window {
         "main" => true,
         "phase-editor" => matches!(action, "integration_phase_editor" | "integration_phase" | "integration_phase_export"),
-        "map-window" => matches!(action, "map_snapshot" | "map_display" | "map_levels"),
+        "map-window" => matches!(action, "map_snapshot" | "map_display" | "map_levels" | "progress"),
         "batch-window" => matches!(action, "batch_snapshot" | "batch_levels"),
         _ => false,
     }
@@ -531,6 +531,8 @@ mod tests {
         }
         assert!(!window_action_allowed("unknown", "batch_snapshot"));
         assert!(!window_action_allowed("map-window", "batch_snapshot"));
+        assert!(window_action_allowed("map-window", "progress"));
+        assert!(!window_action_allowed("map-window", "map_load"));
         assert!(window_action_allowed("main", "batch_select"));
     }
     #[test]

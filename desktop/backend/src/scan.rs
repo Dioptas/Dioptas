@@ -52,23 +52,94 @@ pub(crate) fn dimensions(n: usize) -> Vec<[usize; 2]> {
     dims.sort_by_key(|d| d[0] + d[1]);
     dims
 }
+pub(crate) struct Analysis {
+    pub rois: Vec<Roi>,
+    pub expressions: Vec<(String, String)>,
+    pub active: String,
+}
 impl Scan {
-    pub fn new(mut series: Series, patterns: &Patterns) -> Result<Self, String> {
+    pub fn analysis(
+        x: &[f64],
+        unit: &str,
+        wavelength: f64,
+        previous: Option<&Self>,
+    ) -> Result<Analysis, String> {
+        let Some(previous) = previous else {
+            return Ok(Analysis {
+                rois: vec![Self::default_roi(x)],
+                expressions: vec![],
+                active: "A".into(),
+            });
+        };
+        let mut rois = previous.rois.clone();
+        if previous.series.unit != unit {
+            let old_wavelength = previous.series.wavelength.unwrap_or(wavelength);
+            for roi in &mut rois {
+                let convert = |v| {
+                    let q = crate::pattern::convert_coordinate(
+                        v,
+                        &previous.series.unit,
+                        "q_A^-1",
+                        old_wavelength,
+                    );
+                    crate::pattern::convert_coordinate(q, "q_A^-1", unit, wavelength)
+                };
+                let mut range = [convert(roi.min), convert(roi.max)];
+                if range.iter().any(|v| !v.is_finite()) {
+                    return Err(
+                        "An existing map region cannot be converted to the new radial unit.".into(),
+                    );
+                }
+                range.sort_by(f64::total_cmp);
+                roi.min = range[0];
+                roi.max = range[1];
+            }
+        }
+        Ok(Analysis {
+            rois,
+            expressions: previous.expressions.clone(),
+            active: previous.active.clone(),
+        })
+    }
+    pub fn default_roi(x: &[f64]) -> Roi {
+        let low = x.iter().copied().fold(f64::INFINITY, f64::min);
+        let high = x.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        let step = if x.len() > 1 {
+            (x[x.len() - 1] - x[0]) / (x.len() - 1) as f64
+        } else {
+            (high - low).max(1.0)
+        };
+        let center = x[x.len() / 2];
+        let mut range = [center - 3.0 * step, center + 3.0 * step];
+        range.sort_by(f64::total_cmp);
+        Roi {
+            name: "A".into(),
+            min: range[0],
+            max: range[1],
+            reduction: "sum".into(),
+            background: false,
+            color: "#ff9800".into(),
+        }
+    }
+    pub fn new(series: Series, patterns: &Patterns) -> Result<Self, String> {
+        Self::new_with_analysis(series, patterns, None)
+    }
+    pub fn new_with_analysis(
+        mut series: Series,
+        patterns: &Patterns,
+        previous: Option<&Self>,
+    ) -> Result<Self, String> {
         // Qt Map consumes Batch data, not its separately extracted background.
         series.background = None;
         series.raw_background = None;
         let dims = dimensions(series.count());
         let dimension = dims[0];
-        let low = series.x.iter().copied().fold(f64::INFINITY, f64::min);
-        let high = series.x.iter().copied().fold(f64::NEG_INFINITY, f64::max);
-        let step = if series.x.len() > 1 {
-            (series.x[series.x.len() - 1] - series.x[0]) / (series.x.len() - 1) as f64
-        } else {
-            (high - low).max(1.0)
-        };
-        let center = series.x[series.x.len() / 2];
-        let mut range = [center - 3.0 * step, center + 3.0 * step];
-        range.sort_by(f64::total_cmp);
+        let analysis = Self::analysis(
+            &series.x,
+            &series.unit,
+            series.wavelength.unwrap_or(1e-10),
+            previous,
+        )?;
         let mut s = Self {
             slots: (0..series.count()).map(Some).collect(),
             dimension,
@@ -77,16 +148,9 @@ impl Scan {
             flip_horizontal: false,
             flip_vertical: false,
             excluded: BTreeSet::new(),
-            rois: vec![Roi {
-                name: "A".into(),
-                min: range[0],
-                max: range[1],
-                reduction: "sum".into(),
-                background: false,
-                color: "#ff9800".into(),
-            }],
-            expressions: vec![],
-            active: "A".into(),
+            rois: analysis.rois,
+            expressions: analysis.expressions,
+            active: analysis.active,
             selected: None,
             selected_slot: None,
             values: Arc::new(vec![]),

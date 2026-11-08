@@ -110,6 +110,16 @@ impl Geometry {
     }
     pub fn validate_shape(&self, shape: [usize; 2]) -> Result<(), String> {
         if let Some(d) = &self.detector {
+            if let Some(expected) = d.max_shape
+                && (shape.contains(&0)
+                    || expected[0] % shape[0] != 0
+                    || expected[1] % shape[1] != 0)
+            {
+                return Err(format!(
+                    "{} calibration expects a {} × {} detector image or supported binning; the current image is {} × {}. Open the matching detector image first.",
+                    d.name, expected[1], expected[0], shape[1], shape[0]
+                ));
+            }
             d.binning(shape)?;
             if d.name == "Detector"
                 && matches!(d.map, dioptrin::detector::PixelMap::Uniform)
@@ -339,12 +349,9 @@ impl Geometry {
             .filter(|l| !l.is_empty() && !l.starts_with('#'))
         {
             let (key, value) = line.split_once(':').ok_or("Invalid PONI field.")?;
-            if fields
-                .insert(key.trim().to_lowercase(), value.trim().to_owned())
-                .is_some()
-            {
-                return Err("Duplicate PONI field.".into());
-            }
+            // pyFAI Geometry.save appends calibration records to an existing file.
+            // Its reader keeps the last occurrence of each case-insensitive field.
+            fields.insert(key.trim().to_lowercase(), value.trim().to_owned());
         }
         let known = [
             "poni_version",
@@ -680,6 +687,56 @@ impl PartialEq for Geometry {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn appended_poni_records_use_the_last_field_like_pyfai() {
+        let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../dioptas/tests/data/LaB6_40keV_MarCCD.poni");
+        let text = std::fs::read_to_string(&fixture).unwrap();
+        assert_eq!(text.matches("Distance:").count(), 2);
+        let geometry = Geometry::load(&fixture).unwrap();
+        assert_eq!(geometry.dist, 0.196711580484);
+        assert_eq!(geometry.poni1, 0.0813975852141);
+        assert_eq!(geometry.poni2, 0.0820662115429);
+        assert_eq!(geometry.rot1, 0.00615439716514);
+        assert_eq!(geometry.rot2, -0.00156720465515);
+        assert_eq!(geometry.rot3, 1.68707221612e-6);
+        assert_eq!(geometry.wavelength, 3.1e-11);
+        assert_eq!([geometry.pixel1, geometry.pixel2], [79e-6, 79e-6]);
+        let temporary = tempfile::tempdir().unwrap();
+        let path = temporary.path().join("repeated.poni");
+        std::fs::write(&path, format!("{text}\nDISTANCE: 0.21\n")).unwrap();
+        assert_eq!(Geometry::load(&path).unwrap().dist, 0.21);
+        std::fs::write(&path, format!("{text}\nDistance: invalid\n")).unwrap();
+        assert!(Geometry::load(&path).is_err());
+    }
+
+    #[test]
+    fn eiger_poni_accepts_its_detector_shape_and_explains_pilatus_mismatch() {
+        let temporary = tempfile::tempdir().unwrap();
+        let path = temporary.path().join("eiger_0000.poni");
+        std::fs::write(
+            &path,
+            concat!(
+                "poni_version: 2.1\nDetector: Eiger2CdTe_9M\n",
+                "Detector_config: {\"orientation\":2}\n",
+                "Distance: 0.1839103128035422\nPoni1: 0.11374917888680143\n",
+                "Poni2: 0.11053144274970403\nRot1: 0.012275635675880966\n",
+                "Rot2: 0.012776464559415958\nRot3: -3.4968839362494736e-09\n",
+                "Wavelength: 3.7380000000000004e-11\n"
+            ),
+        )
+        .unwrap();
+        let mut geometry = Geometry::load(&path).unwrap();
+        let error = geometry.sync_shape([1043, 981]).unwrap_err();
+        assert!(error.contains("Eiger2 CdTe 9M"));
+        assert!(error.contains("3108 × 3262"));
+        assert!(error.contains("981 × 1043"));
+        assert!(error.contains("Open the matching detector image first"));
+        geometry.sync_shape([3262, 3108]).unwrap();
+        assert_eq!([geometry.pixel1, geometry.pixel2], [75e-6, 75e-6]);
+        assert_eq!(geometry.detector.as_ref().unwrap().orientation, 3);
+        assert_eq!(geometry.dist, 0.1839103128035422);
+    }
     #[test]
     fn legacy_v2_orientation_and_transformed_spline_exports_keep_their_geometry() {
         use dioptrin::detector::{Detector, DetectorTransform, spline::Spline};

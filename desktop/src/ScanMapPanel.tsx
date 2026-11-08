@@ -8,6 +8,7 @@ import type { MapData, MapRun } from "./mapDomain";
 import type { ReportPlot } from "./plotReadout";
 export function ScanMapPanel({
   map,
+  progressPreview,
   calibrated,
   ready,
   run,
@@ -18,6 +19,7 @@ export function ScanMapPanel({
   allowLoad = true,
 }: {
   map: MapData | null;
+  progressPreview?: NonNullable<Response["progress"]>["mapPreview"];
   calibrated: boolean;
   ready: boolean;
   run: MapRun;
@@ -109,6 +111,29 @@ export function ScanMapPanel({
     [map?.selectedCell?.[0], map?.selectedCell?.[1], scanRaster?.height],
   );
   const display = useMapDisplay(scanRaster, "map");
+  if (progressPreview)
+    return (
+      <section className="map-scan-panel" aria-label="Scan map">
+        <div
+          className="detector-workspace map-raster"
+          data-testid="scan-map-progress"
+        >
+          <RasterView
+            raster={progressPreview.raster}
+            limits={progressPreview.raster.limits}
+            log={display.log}
+            palette={display.palette}
+            zoomMode="rectangle"
+            tool="pan"
+            busy
+          />
+        </div>
+        <div className="integration-image-tools" role="status">
+          Integrating {progressPreview.completed} / {progressPreview.total} ·
+          Preview of layer {progressPreview.active} · Unfinished cells are blank
+        </div>
+      </section>
+    );
   return (
     <section className="map-scan-panel" aria-label="Scan map">
       {map && scanRaster ? (

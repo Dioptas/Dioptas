@@ -3,6 +3,114 @@ use super::*;
 #[cfg(feature = "dioptrin")]
 use crate::series::Entry;
 use crate::series::Series;
+#[cfg(feature = "dioptrin")]
+struct MapProgress {
+    windows: Vec<(crate::scan::Roi, crate::map_math::Window)>,
+    active: String,
+    expression: Option<crate::map_math::Expression>,
+    shape: [usize; 2],
+    values: Vec<f64>,
+    updated: Option<std::time::Instant>,
+}
+#[cfg(feature = "dioptrin")]
+impl MapProgress {
+    fn new(
+        x: &[f64],
+        count: usize,
+        unit: &str,
+        wavelength: f64,
+        previous: Option<&crate::scan::Scan>,
+    ) -> Result<Self, String> {
+        let analysis = crate::scan::Scan::analysis(x, unit, wavelength, previous)?;
+        let expression = analysis
+            .expressions
+            .iter()
+            .find(|(name, _)| *name == analysis.active)
+            .map(|(_, text)| crate::map_math::Expression::parse(text))
+            .transpose()?;
+        Ok(Self {
+            windows: analysis
+                .rois
+                .into_iter()
+                .map(|roi| {
+                    let window = crate::map_math::Window::new(
+                        x,
+                        roi.min,
+                        roi.max,
+                        &roi.reduction,
+                        roi.background,
+                    );
+                    (roi, window)
+                })
+                .collect(),
+            active: analysis.active,
+            expression,
+            shape: crate::scan::dimensions(count)[0],
+            values: vec![f64::NAN; count],
+            updated: None,
+        })
+    }
+    fn push(
+        &mut self,
+        index: usize,
+        curve: &crate::pattern::Curve,
+        unit: &str,
+        control: &crate::control::Control,
+        patterns: &crate::pattern::Patterns,
+    ) -> Result<(), String> {
+        let layers: std::collections::BTreeMap<_, _> = self
+            .windows
+            .iter()
+            .map(|(roi, window)| (roi.name.clone(), vec![window.reduce(&curve.y)]))
+            .collect();
+        self.values[index] = if let Some(expression) = &self.expression {
+            expression.evaluate(&layers, 1, &|overlay, window| {
+                let roi = self
+                    .windows
+                    .iter()
+                    .find(|(roi, _)| roi.name == window)
+                    .map(|(roi, _)| roi)
+                    .ok_or("Unknown overlay window.")?;
+                let curve = patterns
+                    .overlays
+                    .iter()
+                    .find(|o| o.name == overlay)
+                    .map(|o| o.curve())
+                    .ok_or_else(|| format!("Unknown overlay {overlay}."))?;
+                Ok(crate::map_math::reduce(
+                    &curve.x,
+                    &curve.y,
+                    roi.min,
+                    roi.max,
+                    &roi.reduction,
+                    roi.background,
+                ))
+            })?[0]
+        } else {
+            layers.get(&self.active).ok_or("Unknown preview layer.")?[0]
+        };
+        let now = std::time::Instant::now();
+        if self
+            .updated
+            .is_some_and(|t| now.duration_since(t).as_millis() < 150)
+            && index + 1 < self.values.len()
+        {
+            return Ok(());
+        }
+        let pixels: Vec<_> = self
+            .values
+            .chunks_exact(self.shape[1])
+            .rev()
+            .flatten()
+            .copied()
+            .collect();
+        let raster = Raster::image(&pixels, self.shape);
+        control.publish_map_preview(json!({"raster":raster.metadata,"completed":index+1,"total":self.values.len(),"active":self.active,"unit":unit,
+            "pattern":{"x":curve.x,"y":curve.y,"unit":unit}}),raster.buffer);
+        self.updated = Some(now);
+        Ok(())
+    }
+}
 pub(super) fn source_paths(args: &Value) -> Result<Vec<String>, String> {
     let list = if let Some(p) = args["paths"].as_array() {
         p.clone()
@@ -140,6 +248,7 @@ impl Session {
                 let mut data = vec![];
                 let mut spread: Option<Vec<f64>> = None;
                 let mut entries = vec![];
+                let mut preview: Option<MapProgress> = None;
                 for (source, frames, shape, fingerprint) in &images {
                     for (path, identity) in fingerprint {
                         if crate::image::FileIdentity::read(path)? != *identity {
@@ -155,6 +264,40 @@ impl Session {
                         return Err("A series source changed after metadata discovery.".into());
                     }
 
+                    let mut bulk_options = self.integration_options();
+                    if bulk_options.automatic_bins {
+                        bulk_options.bins = self.settings.geometry.automatic_bins(image.shape);
+                    }
+                    let static_mask = if !self.processing.active() && !bulk_options.dynamic_mask {
+                        self.settings.geometry.sync_shape(image.shape)?;
+                        let mut mask = self.integration_mask(image.shape);
+                        // When no current image exists, the freshly allocated user mask
+                        // has not yet had the detector's intrinsic mask merged into it.
+                        if let Some(built) = self.physical_mask(image.shape)? {
+                            for (value, detector) in mask.iter_mut().zip(built.iter()) {
+                                *value |= *detector;
+                            }
+                        }
+                        Some(mask)
+                    } else {
+                        None
+                    };
+                    let combined_plan = if let Some(mask) = static_mask
+                        .as_ref()
+                        .filter(|_| image.single_dataset_series())
+                    {
+                        self.engine.prepare_combined_series(
+                            &mut image,
+                            0,
+                            &self.settings.geometry,
+                            mask,
+                            &bulk_options,
+                            &self.control,
+                        )?
+                    } else {
+                        None
+                    };
+
                     for frame in 0..image.frames {
                         let selected = global >= start
                             && global < stop
@@ -165,46 +308,81 @@ impl Session {
                         }
                         self.control.check()?;
                         self.control.publish(json!({"running":true,"current":entries.len(),"total":count,"label":"Integrating series"}));
-                        let mut options = self.integration_options();
-                        if options.automatic_bins {
-                            options.bins = self.settings.geometry.automatic_bins(image.shape);
-                        }
-                        let mask = self.integration_mask(image.shape);
-                        let prepared = if !self.processing.active() {
-                            self.engine.load_combined(
+                        let direct = if let Some(plan) = &combined_plan {
+                            Some(self.engine.combined_series_pattern(
                                 &mut image,
                                 frame,
-                                &self.settings.geometry,
-                                &mask,
-                                &options,
+                                plan,
                                 &self.control,
-                            )?
+                            )?)
                         } else {
                             None
                         };
-                        if prepared.is_none() && (image.frame != frame || image.values.is_empty()) {
-                            image.read(frame)?;
-                        }
-                        if Some(image.shape) != expected {
-                            return Err("Series frames must have one detector shape.".into());
-                        }
-                        self.image_generation += 1;
-                        self.image = Some(image.clone());
-                        self.processed_values = None;
-                        self.prepare_processing()?;
-                        self.refresh_masks(&self.control.clone())?;
-                        let options = self.integration_options();
-                        let mask = self.integration_mask(image.shape);
-                        let (pattern, _) = self.engine.integrate_pattern(
-                            &self.scientific_values(),
-                            image.shape,
-                            &self.settings.geometry,
-                            &mask,
-                            &options,
-                            prepared,
-                        )?;
+                        let pattern = if let Some(pattern) = direct {
+                            pattern
+                        } else {
+                            let mut options = self.integration_options();
+                            if options.automatic_bins {
+                                options.bins = self.settings.geometry.automatic_bins(image.shape);
+                            }
+                            let mask = self.integration_mask(image.shape);
+                            let prepared = if !self.processing.active() {
+                                self.engine.load_combined(
+                                    &mut image,
+                                    frame,
+                                    &self.settings.geometry,
+                                    &mask,
+                                    &options,
+                                    &self.control,
+                                )?
+                            } else {
+                                None
+                            };
+                            if prepared.is_none()
+                                && (image.frame != frame || image.values.is_empty())
+                            {
+                                image.read(frame)?;
+                            }
+                            if Some(image.shape) != expected {
+                                return Err("Series frames must have one detector shape.".into());
+                            }
+                            self.image_generation += 1;
+                            self.image = Some(image.clone());
+                            self.processed_values = None;
+                            self.prepare_processing()?;
+                            self.refresh_masks(&self.control.clone())?;
+                            let options = self.integration_options();
+                            let mask = self.integration_mask(image.shape);
+                            let (pattern, _) = self.engine.integrate_pattern(
+                                &self.scientific_values(),
+                                image.shape,
+                                &self.settings.geometry,
+                                &mask,
+                                &options,
+                                prepared,
+                            )?;
+                            pattern
+                        };
                         self.control.check()?;
                         let curve = crate::pattern::Curve::from_json(&pattern)?;
+                        if args["preview_map"] == true {
+                            if preview.is_none() {
+                                preview = Some(MapProgress::new(
+                                    &curve.x,
+                                    count,
+                                    &self.settings.unit,
+                                    self.settings.geometry.wavelength,
+                                    self.scan.as_ref(),
+                                )?);
+                            }
+                            preview.as_mut().unwrap().push(
+                                entries.len(),
+                                &curve,
+                                &self.settings.unit,
+                                &self.control,
+                                &self.patterns,
+                            )?;
+                        }
                         if let Some(previous) = &x {
                             if *previous != curve.x {
                                 return Err("Series radial axes differ; use fixed binning or disable zero trimming.".into());
@@ -583,4 +761,100 @@ pub(super) fn is_processed(path: &Path) -> bool {
     hdf5::File::open(path).ok().is_some_and(|f| {
         f.link_exists("processed/result") || (f.link_exists("data") && f.link_exists("binning"))
     })
+}
+
+#[cfg(all(test, feature = "dioptrin"))]
+mod map_progress_tests {
+    use super::*;
+    use crate::{
+        pattern::{Curve, Patterns},
+        scan::Scan,
+        series::{Entry, Series},
+    };
+    use std::sync::Arc;
+    #[test]
+    fn incremental_map_matches_finished_layers_and_keeps_unfinished_cells_blank() {
+        let x: Vec<_> = (0..32).map(|i| i as f64).collect();
+        let patterns = Patterns::default();
+        for kind in crate::map_math::REDUCTIONS {
+            for background in [false, true] {
+                for expression in [false, true] {
+                    let data: Vec<_> = (0..12)
+                        .flat_map(|frame| {
+                            (0..32).map(move |bin| {
+                                let t = (bin as f64 - 15.) / 4.;
+                                100. + 3. * bin as f64 + (frame + 1) as f64 * 100. * (-t * t).exp()
+                            })
+                        })
+                        .collect();
+                    let series = Series::new(
+                        x.clone(),
+                        data,
+                        "q_A^-1".into(),
+                        Some(4e-11),
+                        (0..12)
+                            .map(|frame| Entry {
+                                path: "scan.h5".into(),
+                                frame,
+                            })
+                            .collect(),
+                        vec!["scan.h5".into()],
+                        12,
+                    )
+                    .unwrap();
+                    let mut old = Scan::new(series.clone(), &patterns).unwrap();
+                    old.rois[0].min = 6.5;
+                    old.rois[0].max = 24.5;
+                    old.rois[0].reduction = kind.into();
+                    old.rois[0].background = background;
+                    if expression {
+                        old.expressions = vec![("Contrast".into(), "A*2+3".into())];
+                        old.active = "Contrast".into();
+                    }
+                    old.rebuild(true, &patterns).unwrap();
+                    let mut preview =
+                        MapProgress::new(&x, 12, "q_A^-1", 4e-11, Some(&old)).unwrap();
+                    let control = crate::control::Control::default();
+                    control.publish(json!({"running":true,"current":0,"total":12}));
+                    for frame in 0..12 {
+                        let curve = Curve {
+                            x: Arc::new(x.clone()),
+                            y: Arc::new(series.data[frame * 32..(frame + 1) * 32].to_vec()),
+                            sigma: None,
+                            spread: None,
+                        };
+                        preview
+                            .push(frame, &curve, "q_A^-1", &control, &patterns)
+                            .unwrap();
+                        if frame == 0 {
+                            let r = control.progress_reply();
+                            let values: Vec<_> = r.buffers[0]
+                                .bytes
+                                .as_chunks::<4>()
+                                .0
+                                .iter()
+                                .map(|b| f32::from_le_bytes(*b))
+                                .collect();
+                            assert_eq!(values.iter().filter(|v| v.is_finite()).count(), 1);
+                            assert_eq!(r.result["progress"]["mapPreview"]["completed"], 1);
+                            assert_eq!(r.result["progress"]["mapPreview"]["active"], old.active);
+                        }
+                    }
+                    let finished = Scan::new_with_analysis(series, &patterns, Some(&old)).unwrap();
+                    assert_eq!(
+                        control.progress_reply().buffers[0].bytes,
+                        finished.raster.buffer.bytes,
+                        "{kind}, background={background}, expression={expression}"
+                    );
+                    control.finish();
+                    assert!(control.progress_reply().buffers.is_empty());
+                    assert!(
+                        control.progress_reply().result["progress"]
+                            .get("mapPreview")
+                            .is_none()
+                    );
+                }
+            }
+        }
+    }
 }

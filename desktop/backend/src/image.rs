@@ -322,6 +322,14 @@ impl Image {
             .map(|p| FileIdentity::read(&p).map(|identity| (p, identity)))
             .collect()
     }
+    pub fn single_dataset_series(&self) -> bool {
+        let Some(reader) = &self.reader else {
+            return false;
+        };
+        let reader = reader.lock().unwrap();
+        matches!(reader.metadata(0), Some(dioptrin_io::wrapped::Metadata::Hdf5(m))
+            if m.first_frame == 0 && m.source_shape.first() == Some(&self.frames))
+    }
     pub fn combined_source(&self, index: usize) -> Result<Option<CombinedSource>, String> {
         self.check_sources()?;
         if !self.transformations.is_empty() {

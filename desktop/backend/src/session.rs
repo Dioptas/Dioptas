@@ -309,6 +309,11 @@ impl Session {
                             || self.integration_history.can_redo()
                     );
                 }
+                if let Some(path) = request.payload.get("path").filter(|p| p.is_string()) {
+                    reply.result["activity"] = json!({"path":path});
+                } else if let Some(paths) = request.payload["paths"].as_array() {
+                    reply.result["activity"] = json!({"paths":paths.iter().take(8).collect::<Vec<_>>(),"count":paths.len()});
+                }
                 reply
             }
             Err(error) => {
@@ -332,7 +337,14 @@ impl Session {
                 {
                     Reply::metadata(json!({"ok":true,"cancelled":true}))
                 } else {
-                    Reply::error(error)
+                    let mut reply = Reply::error(error);
+                    reply.result["errorContext"] = json!({
+                        "action": request.action,
+                        "path": request.payload.get("path"),
+                        "dataset": request.payload.get("dataset"),
+                        "frame": request.payload.get("frame")
+                    });
+                    reply
                 }
             }
         }

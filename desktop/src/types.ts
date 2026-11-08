@@ -214,6 +214,14 @@ export interface Response {
     current: number;
     total: number;
     label?: string;
+    mapPreview?: {
+      raster: Raster;
+      completed: number;
+      total: number;
+      active: string;
+      unit: Unit;
+      pattern: Pattern;
+    };
     calibration?: {
       activeRing: number | null;
       picks: Calibration["picks"];

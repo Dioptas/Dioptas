@@ -27,6 +27,7 @@ import {
   Undo2,
 } from "lucide-react";
 import { connect, updateWindowTitle } from "./bridge";
+import { fileOperationFailure, recordAction } from "./errorReporting";
 import { IntegrationModeIcon, MapModeIcon, MaskModeIcon } from "./ModeIcons";
 import { SettingsWorkspace } from "./SettingsWorkspace";
 import { useCustomCommands } from "./customCommands";
@@ -211,6 +212,9 @@ export default function App() {
   >(() =>
     readLayoutFlag(layoutKeys.batchOpen) ? "integration" : "calibration",
   );
+  useEffect(() => {
+    recordAction("Switch mode", { mode }).status = "completed";
+  }, [mode]);
   const activeMode = useRef(mode);
   useEffect(() => {
     activeMode.current = mode;
@@ -704,7 +708,9 @@ export default function App() {
         }
         onSuccess?.(result);
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
+        const details = e instanceof Error ? e.message : String(e);
+        const failure = fileOperationFailure(command, details, args);
+        setError(failure?.title ?? details);
         try {
           // Recovery refreshes the current image too. A failed peak pick must
           // keep the user's zoom so they can retry at the same location.
@@ -1768,6 +1774,7 @@ export default function App() {
               {mode === "map" ? (
                 <MapView
                   map={map}
+                  progressPreview={progress?.mapPreview}
                   plotViews={plotViews}
                   mapWindow={mapWindow}
                   linked={linked}

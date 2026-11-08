@@ -75,10 +75,16 @@ struct RawSource {
 }
 #[derive(Clone)]
 pub struct Prepared {
-    key: Key,
+    key: Arc<Key>,
     x: Vec<f64>,
     y: Vec<f64>,
     sigma: Option<Vec<f64>>,
+}
+pub struct CombinedSeriesPlan {
+    key: Arc<Key>,
+    fixed: Arc<Fixed1dPlan>,
+    source: CombinedSource,
+    options: Options,
 }
 #[derive(Default)]
 pub struct Engine {
@@ -90,6 +96,7 @@ pub struct Engine {
     combined_decodes: u64,
     prepared_hits: u64,
     resident_calls: u64,
+    pattern_only_decodes: u64,
 }
 fn unit(value: &str) -> RadialUnit {
     match value {
@@ -249,7 +256,7 @@ impl Plan {
 }
 impl Engine {
     pub fn diagnostics(&self) -> Value {
-        json!({"patternPlanBuilds":self.pattern_builds,"cakePlanBuilds":self.cake_builds,"combinedDecodes":self.combined_decodes,"preparedHits":self.prepared_hits,"residentIntegrations":self.resident_calls})
+        json!({"patternPlanBuilds":self.pattern_builds,"cakePlanBuilds":self.cake_builds,"combinedDecodes":self.combined_decodes,"preparedHits":self.prepared_hits,"residentIntegrations":self.resident_calls,"patternOnlyDecodes":self.pattern_only_decodes})
     }
     fn pattern_plan(&mut self, k: Key) -> Result<&mut Plan, String> {
         if self.pattern.as_ref().is_none_or(|p| p.key != k) {
@@ -269,6 +276,42 @@ impl Engine {
         options: &Options,
         c: &Control,
     ) -> Result<Option<Prepared>, String> {
+        let Some(plan) = self.prepare_combined_series(image, index, p, mask, options, c)? else {
+            return Ok(None);
+        };
+        self.decode_combined(image, index, &plan, c, true).map(Some)
+    }
+
+    pub fn combined_series_pattern(
+        &mut self,
+        image: &mut Image,
+        index: usize,
+        plan: &CombinedSeriesPlan,
+        c: &Control,
+    ) -> Result<Value, String> {
+        let prepared = self.decode_combined(image, index, plan, c, false)?;
+        self.prepared_hits += 1;
+        self.pattern_only_decodes += 1;
+        Self::finish_pattern(
+            prepared.x,
+            prepared.y,
+            prepared.sigma,
+            None,
+            &plan.key.geometry,
+            &plan.options,
+        )
+        .map(|(pattern, _)| pattern)
+    }
+
+    pub fn prepare_combined_series(
+        &mut self,
+        image: &mut Image,
+        index: usize,
+        p: &Parameters,
+        mask: &[u8],
+        options: &Options,
+        c: &Control,
+    ) -> Result<Option<CombinedSeriesPlan>, String> {
         if std::env::var("DIOPTAS_COMBINED_HDF5").as_deref() == Ok("0") {
             return Ok(None);
         }
@@ -318,12 +361,34 @@ impl Engine {
         };
         let k = key(source.shape, p, &m, &o, false);
         let plan = self.pattern_plan(k.clone())?.fixed()?;
+        Ok(Some(CombinedSeriesPlan {
+            key: Arc::new(k),
+            fixed: plan,
+            source,
+            options: o,
+        }))
+    }
+
+    fn decode_combined(
+        &mut self,
+        image: &mut Image,
+        index: usize,
+        context: &CombinedSeriesPlan,
+        c: &Control,
+        retain_pixels: bool,
+    ) -> Result<Prepared, String> {
+        let mut source = image
+            .combined_source(index)?
+            .ok_or("Admitted combined source disappeared.")?;
+        let frame = source.frame;
+        source.frame = 0;
+        if source != context.source || self.raw.as_ref().is_none_or(|r| r.source != source) {
+            return Err("A combined source changed after plan preparation.".into());
+        }
+        let o = &context.options;
+        let plan = &context.fixed;
         let raw = self.raw.as_mut().unwrap();
         let kind = raw.reader.pixel_type();
-        let frame = image
-            .combined_source(index)?
-            .ok_or("Combined source metadata disappeared.")?
-            .frame;
         let workers = std::env::var("DIOPTAS_INTEGRATION_THREADS")
             .ok()
             .and_then(|v| v.parse::<usize>().ok())
@@ -344,31 +409,33 @@ impl Engine {
                     worker
                         .begin_range(range.clone())
                         .map_err(dioptrin_io::hdf5::Error::from)?;
-                    let pixels = match kind {
+                    let pixels = retain_pixels.then(|| match kind {
                         PixelType::U16 => PixelBuffer::U16(Vec::with_capacity(range.len())),
                         PixelType::U32 => PixelBuffer::U32(Vec::with_capacity(range.len())),
                         _ => unreachable!(),
-                    };
+                    });
                     Ok((worker, pixels))
                 },
                 |(worker, pixels), offset, block| {
                     c.check().map_err(dioptrin_io::hdf5::Error::from)?;
                     match (pixels, block) {
-                        (PixelBuffer::U16(out), PixelBlock::U16(v)) => {
+                        (Some(PixelBuffer::U16(out)), PixelBlock::U16(v)) => {
                             out.extend_from_slice(v);
                             worker.push_u16_block(offset, v)
                         }
-                        (PixelBuffer::U32(out), PixelBlock::U32(v)) => {
+                        (Some(PixelBuffer::U32(out)), PixelBlock::U32(v)) => {
                             out.extend_from_slice(v);
                             worker.push_u32_block(offset, v)
                         }
+                        (None, PixelBlock::U16(v)) => worker.push_u16_block(offset, v),
+                        (None, PixelBlock::U32(v)) => worker.push_u32_block(offset, v),
                         _ => unreachable!(),
                     }
                     .map_err(Into::into)
                 },
             )
             .map_err(|e| e.to_string())?;
-        let mut pixels = match kind {
+        let mut pixels = retain_pixels.then(|| match kind {
             PixelType::U16 => {
                 PixelBuffer::U16(Vec::with_capacity(source.shape[0] * source.shape[1]))
             }
@@ -376,12 +443,13 @@ impl Engine {
                 PixelBuffer::U32(Vec::with_capacity(source.shape[0] * source.shape[1]))
             }
             _ => unreachable!(),
-        };
+        });
         let mut partials = Vec::with_capacity(states.len());
         for (worker, part) in states {
             match (&mut pixels, part) {
-                (PixelBuffer::U16(out), PixelBuffer::U16(v)) => out.extend(v),
-                (PixelBuffer::U32(out), PixelBuffer::U32(v)) => out.extend(v),
+                (Some(PixelBuffer::U16(out)), Some(PixelBuffer::U16(v))) => out.extend(v),
+                (Some(PixelBuffer::U32(out)), Some(PixelBuffer::U32(v))) => out.extend(v),
+                (None, None) => {}
                 _ => unreachable!(),
             };
             partials.push(worker);
@@ -389,14 +457,16 @@ impl Engine {
         let result = plan.finish_ranges(&mut partials)?;
         image.check_sources()?;
         c.check()?;
-        image.publish_combined(index, source.shape, pixels)?;
+        if let Some(pixels) = pixels {
+            image.publish_combined(index, source.shape, pixels)?;
+        }
         self.combined_decodes += 1;
-        Ok(Some(Prepared {
-            key: k,
+        Ok(Prepared {
+            key: context.key.clone(),
             x: result.radial,
             y: result.intensity,
             sigma: result.errors,
-        }))
+        })
     }
     pub fn integrate_pattern(
         &mut self,
@@ -409,8 +479,8 @@ impl Engine {
     ) -> Result<(Value, Option<Vec<f64>>), String> {
         let k = key(shape, p, mask, o, false);
         let prepared =
-            prepared.filter(|r| r.key == k && (!o.errors || r.sigma.is_some()) && !o.spread);
-        let (mut x, mut y, mut sigma, mut spread) = if let Some(r) = prepared {
+            prepared.filter(|r| *r.key == k && (!o.errors || r.sigma.is_some()) && !o.spread);
+        let (x, y, sigma, spread) = if let Some(r) = prepared {
             self.prepared_hits += 1;
             (r.x, r.y, r.sigma, None)
         } else {
@@ -451,6 +521,17 @@ impl Engine {
                 (x, y, None, None)
             }
         };
+        Self::finish_pattern(x, y, sigma, spread, p, o)
+    }
+
+    fn finish_pattern(
+        mut x: Vec<f64>,
+        mut y: Vec<f64>,
+        mut sigma: Option<Vec<f64>>,
+        mut spread: Option<Vec<f64>>,
+        p: &Parameters,
+        o: &Options,
+    ) -> Result<(Value, Option<Vec<f64>>), String> {
         if o.unit == "d_A" {
             for v in &mut x {
                 *v = p.wavelength * 1e10 / (2.0 * (v.to_radians() / 2.0).sin());

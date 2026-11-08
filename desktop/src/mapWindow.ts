@@ -4,7 +4,12 @@ import type { IntegrationRun } from "./integration";
 import type { Response } from "./types";
 import { mapWindowChannel, type MapWindowStatus } from "./mapWindowChannel";
 
-const reads = new Set(["map_snapshot", "map_display", "map_levels"]);
+const reads = new Set([
+  "map_snapshot",
+  "map_display",
+  "map_levels",
+  "progress",
+]);
 const edits = new Set(["map_select", "map_layer", "map_export"]);
 
 export function useMapWindow({

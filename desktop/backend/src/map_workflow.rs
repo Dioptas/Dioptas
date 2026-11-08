@@ -201,13 +201,21 @@ impl Session {
                 } else {
                     batch_workflow::source_paths(args)?
                 };
-                let series = self.integrate_series(paths, &json!({}))?;
-                self.scan = Some(Scan::new(series, &self.patterns)?);
+                let series = self.integrate_series(paths, &json!({"preview_map":true}))?;
+                self.scan = Some(Scan::new_with_analysis(
+                    series,
+                    &self.patterns,
+                    self.scan.as_ref(),
+                )?);
                 return self.map_selection(&json!({"index":0})).map(Some);
             }
             "map_batch" => {
                 let series = Series::load(path(args)?)?;
-                self.scan = Some(Scan::new(series, &self.patterns)?);
+                self.scan = Some(Scan::new_with_analysis(
+                    series,
+                    &self.patterns,
+                    self.scan.as_ref(),
+                )?);
                 return self.map_selection(&json!({"index":0})).map(Some);
             }
             "map_select" => return self.map_selection(args).map(Some),

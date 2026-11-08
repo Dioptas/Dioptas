@@ -12,6 +12,8 @@ import "./map.css";
 
 export function DetachedMapWindow() {
   const [map, setMap] = useState<MapData | null>(null);
+  const [progressPreview, setProgressPreview] =
+    useState<NonNullable<Response["progress"]>["mapPreview"]>();
   const [status, setStatus] = useState<MapWindowStatus>({
     ready: false,
     calibrated: false,
@@ -136,6 +138,28 @@ export function DetachedMapWindow() {
     },
     [rpc],
   );
+  useEffect(() => {
+    setProgressPreview(undefined);
+    if (status.ready) return;
+    let active = true;
+    let polling = false;
+    const timer = setInterval(() => {
+      if (polling) return;
+      polling = true;
+      void request("progress")
+        .then((result) => {
+          if (active && result.ok)
+            setProgressPreview(result.progress?.mapPreview);
+        })
+        .finally(() => {
+          polling = false;
+        });
+    }, 150);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [status.ready, request]);
   return (
     <div
       className="app detached-map-app"
@@ -144,6 +168,7 @@ export function DetachedMapWindow() {
       <div className="detached-map-content">
         <ScanMapPanel
           map={map}
+          progressPreview={progressPreview}
           allowLoad={false}
           calibrated={status.calibrated}
           ready={status.ready}
