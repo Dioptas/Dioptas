@@ -37,5 +37,16 @@ export default defineConfig({
       },
     },
   ],
+  server: {
+    watch: {
+      ignored: [
+        "**/backend/target/**",
+        "**/src-tauri/target/**",
+        "**/src-tauri/binaries/**",
+        "**/src-tauri/resources/**",
+        "**/artifacts/**",
+      ],
+    },
+  },
   build: { outDir: "../dioptas/desktop/ui", emptyOutDir: true },
 });

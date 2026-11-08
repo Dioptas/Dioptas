@@ -13,37 +13,132 @@
   padding: 4px;
   min-width: 26px;
 }
-.configuration-browsing-scope {
-  color: var(--ui-muted);
-  font-size: var(--text-meta);
-}
+/* Scientific browsing preferences share Settings' surfaces and typography. */
 .configuration-browsing-settings {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding-top: 20px;
-  margin-top: 18px;
-  border-top: 1px solid #ffffff12;
+  gap: 22px;
+  min-width: 0;
+  margin: 0;
 }
-.configuration-browsing-settings h4 {
+.configuration-browsing-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.configuration-browsing-heading h3 {
+  margin-bottom: 6px;
+}
+.configuration-browsing-presets {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.configuration-number-help {
+  padding: 12px 14px;
+  border-radius: 7px;
+  background: #ffffff04;
+  border: 1px solid #ffffff08;
+}
+.configuration-browsing-rules {
+  display: grid;
+  align-items: start;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.configuration-browsing-rule {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  background: #00000014;
+  border: 1px solid #ffffff0a;
+  border-radius: 8px;
+}
+.configuration-browsing-rule h4 {
+  display: flex;
+  gap: 9px;
+  align-items: center;
   margin: 0;
   font-size: var(--text-body);
 }
-.configuration-browsing-presets,
+.configuration-browsing-rule h4 svg {
+  color: var(--accent);
+}
 .configuration-browsing-fields {
-  display: flex;
-  align-items: flex-end;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
-.configuration-browsing-settings label {
+.configuration-browsing-fields label {
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
+  font-size: var(--text-small);
 }
 .configuration-browsing-fields input {
-  width: 140px;
+  width: 100%;
+  min-width: 0;
 }
-.configuration-browsing-presets select {
-  max-width: 100%;
+.configuration-number-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+.configuration-number-preview > span {
+  color: var(--ui-muted);
+  font-size: var(--text-meta);
+}
+.configuration-number-preview code {
+  display: block;
+  padding: 10px 12px;
+  background: #0000001c;
+  border: 1px solid #ffffff08;
+  border-radius: 5px;
+  overflow-wrap: anywhere;
+  font-size: var(--text-small);
+  line-height: 1.6;
+  color: var(--ui-text);
+}
+.configuration-number-preview mark {
+  color: var(--accent);
+  background: #ff95001c;
+  padding: 2px 3px;
+  border-radius: 3px;
+}
+.configuration-number-preview .configuration-number-missing {
+  color: var(--accent);
+}
+.configuration-browsing-settings .configuration-browsing-detail {
+  font-size: var(--text-meta);
+}
+.configuration-linked-filename {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 16px;
+  border-top: 1px solid #ffffff0c;
+}
+.configuration-linked-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-small);
+}
+.configuration-linked-toggle input {
+  margin: 0;
+}
+.configuration-browsing-settings:disabled .configuration-browsing-rules {
+  opacity: 0.6;
+}
+@media (max-width: 1150px) {
+  .configuration-browsing-rules {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

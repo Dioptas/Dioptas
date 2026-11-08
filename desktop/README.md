@@ -28,9 +28,9 @@ See the [qualification ledger](NATIVE_INTEGRATION_PARITY.md) for measured parity
 benchmark scope and remaining detector work. Native format-2 `.dio` persistence
 and configuration select/add/duplicate/rename/remove controls are now available;
 see [project compatibility and verification](NATIVE_PROJECT_PARITY.md).
-The configuration bar is hidden by default. Enable **Settings → Configurations → Show configuration controls** to use it. This interface
-preference is remembered across restarts; hiding the bar keeps all configurations
-and the active selection intact.
+The configuration bar is hidden by default. Enable **Settings → Configurations → Enable configurations** to use it. This preference is remembered across restarts. Switching it off hides the toolbar
+and disables combined patterns/cakes while retaining all configurations and the
+active selection. Opening a project with active combination enables the toolbar.
 The next stage adds [native rotations/flips and geometric masks](NATIVE_GEOMETRY_MASK_PARITY.md)
 through the existing controls, including per-configuration persistence and history.
 The separate [LA Cosmic action](NATIVE_LACOSMIC_PARITY.md) is now native as well,
@@ -49,9 +49,9 @@ on a mismatch so it cannot integrate using the wrong detector geometry.
 
 With configuration controls enabled, the top bar provides detector factors,
 **Combine patterns**, **Combined cake** (calibrated 2D cakes), and combined-pattern
-export across modes. File/folder arrows browse the active configuration or all
-configurations. Configure their scope, filename/folder number positions, step
-sizes and optional linked filename changes in **Settings → Configurations → Configuration browsing**. The MEC preset supplies the Qt convention;
+export across modes. Configuration file/folder arrows always browse all
+configurations; the Image panel's arrows browse the active detector. Configure
+filename/folder number positions, step sizes and linked filename changes in **Settings → Configurations → Configuration browsing**. The MEC preset supplies the Qt convention;
 all rules remain customizable and persist across restarts. See
 [detector combination and browsing](DETECTOR_COMBINATION_PARITY.md).
 Combined patterns and cakes run through
@@ -110,9 +110,23 @@ the Rust host and requires the Rust toolchain and platform build prerequisites.
 The Tauri CLI owns a loopback Vite frontend on port 1420; React/CSS edits appear
 in the running native window. If that port is occupied, it fails rather than
 opening a different project's server. Closing the window also stops Vite.
-Host Rust changes rebuild/restart the host. After processor-source edits, restart
-Tauri so its build hook stages the updated processor. Python is only needed for
-the explicit compatibility backend and independent reference tests.
+Rust processor source/Cargo/data changes rebuild the worker in the background.
+After a successful build, the host waits for the current operation, checkpoints
+all configurations into a private owned-data project, restores the new worker,
+and swaps the stdio connection. The window stays open: images, masks, corrections,
+geometry, calibration drafts/picks, file settings, combined results, configuration
+identities/selection, linked inspection and the current project save path survive.
+The frontend refreshes results without resetting plot views or its unapplied drafts.
+Build/start/restore failures keep the old worker and its session active. Progress
+and cancellation remain available while a reload waits for an operation.
+Undo/Redo history resets after a successful worker replacement. Reload status and
+build errors appear in the footer and launcher log. Set `DIOPTAS_DEV_RELOAD=0` to
+disable the watcher. Generated build/staging files are excluded from UI and host
+watchers, so a scientific rebuild does not reload the window.
+
+This applies to the native **live development preview**. Host Rust changes still
+restart the host/window; bundled snapshot apps do not watch source files. Python
+is only needed for the explicit compatibility backend and independent references.
 
 For phase-editor work in its assigned checkout, use `npm run tauri:phase-dev`.
 This opens the raw-image example with live React/CSS updates on its dedicated

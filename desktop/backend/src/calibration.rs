@@ -31,7 +31,7 @@ pub(super) struct Group {
     pub ring: usize,
     pub points: Vec<[f64; 2]>,
 }
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub(super) struct Reference {
     pub name: String,
     pub spacings: Vec<f64>,
@@ -89,7 +89,7 @@ impl Reference {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub(super) struct Calibration {
     pub reference: Reference,
     pub custom: Option<Reference>,

@@ -8,10 +8,11 @@ It does not use a Python wheel or fall back to Python or pyFAI for combination.
 
 ## Interface
 
-Enable **Settings → Configurations → Show configuration
-controls**. This existing preference remains off by default and persists across
+Enable **Settings → Configurations → Enable configurations**. This existing preference remains off by default and persists across
 restarts. The shared configuration bar supports add, duplicate, rename,
-select and remove. Hiding it preserves configurations and the selection.
+select and remove. Disabling configurations hides the toolbar and turns off
+combination, retaining configurations and selection. A combined project enables
+the toolbar when opened.
 
 With two or more configurations, the top-bar configuration controls include the
 selected detector's **Factor**, independent **Combine patterns** and **Combined cake** switches,
@@ -25,25 +26,22 @@ scientific coordinates. Detector contrast, palette, linear/log and Auto settings
 follow the stable configuration identity. Individual and combined cakes have
 separate display settings. Pending scientific drafts prevent configuration changes.
 
-The same bar provides previous/next **File** and **Folder** actions. Configure
-them under **Settings → Configurations → Configuration
-browsing**. The default scope is **Active configuration**; **All configurations**
-advances every detector from its own source, retaining calibration, masks,
-corrections and factors. Combined products are recomputed. The bar shows the
-current scope. The existing Image panel's individual browsing controls remain
-independent of these configuration-bar rules.
+The same bar provides previous/next **File** and **Folder** actions for all
+configurations. Configure them under **Settings → Configurations → Browse
+configurations**. Each detector advances from its own source, retaining
+calibration, masks, corrections and factors. Combined products are recomputed.
+The Image panel's individual browsing controls remain independent.
 
 File and folder rules independently select a numbered part, counting from the
 right, and a positive step size. Number 1 means the last number, 2 the preceding
 number, and 0 tries numeric groups from right to left. Folder numbering counts
 across the directory path. File browsing respects each configuration's name/time
 ordering; time ordering uses the configured step instead of filename numbering.
-Folder browsing normally retains the filename. **Filename number with folder**
-can additionally advance any selected filename number, using its own step; 0
-leaves the filename unchanged. **Use MEC preset** selects all configurations,
+Folder browsing normally retains the filename. Enable **Advance filename with
+folder** to additionally advance a selected filename number using its own step. **Use MEC preset** selects all configurations,
 automatic folder numbering, and the third filename number with unit steps,
 matching the Qt convention. Every rule remains editable after applying the
-preset. **Reset browsing** restores active-only browsing and default rules.
+preset. **Reset browsing** restores default number/step rules.
 Preferences persist across restarts.
 
 Configurations without a matching file remain in place and are reported in the
@@ -180,3 +178,44 @@ Verification passes **106 native Rust tests** (one opt-in benchmark ignored),
 Headless Chromium and WebKit exercise actual clicks on individual and combined
 cakes in all three pattern modes, physical conversion, linked guides, the new
 Configurations tab, and the absence of the removed Settings sections.
+
+## Live Rust worker replacement — 2026-11-08
+
+The native live preview rebuilds `backend/src`, Cargo, build script and data/resource
+changes after a short debounce. The host remains open and retains UI state. It
+starts a candidate Rust/Dioptrin process, waits for ordinary commands to finish,
+saves a private owned-data checkpoint and restores it in the candidate. Only a
+successful restore replaces the active stdio worker; compilation, startup and
+restore errors leave the prior worker/session in place. Progress and cancellation
+bypass the swap gate while an active calculation finishes.
+
+The private checkpoint preserves all configurations, active selection and stable
+identities; images and correction data survive even when input files disappear.
+Settings, calibration picks/drafts, file polling state, linked inspection and the
+current project path are restored. The original project is not overwritten and
+the handoff metadata is excluded from future project saves. New native plans and
+results are computed without triggering automatic output saves. Undo/Redo stacks
+reset at successful replacement. Host source edits still restart the whole host;
+this feature is for scientific worker updates in development, not bundled releases.
+
+Headless tests compile a small Rust launcher around the real numerical worker,
+change its source, verify automatic replacement and retained data, introduce a
+Rust syntax error and verify the prior PID/state survive, then fix the source and
+verify automatic recovery. Additional tests cover cancellation while a restart
+is queued, bad executables, untitled sessions, owned images without source files,
+project-file integrity, and generation of fresh configuration identities.
+
+## Configuration enable switch and browsing layout — 2026-11-08
+
+**Enable configurations** is the first control in its Settings tab. Turning it
+off disables combined patterns and cakes, hides the toolbar and retains all
+setups. A project opened with active combination enables the toolbar. Browsing
+in that toolbar always applies to every configuration; individual Image-panel
+arrows remain local to the selected detector. The settings scope selector and
+redundant Multi-detector setups heading were removed.
+
+File and folder rules have separate aligned sections with selected-number
+previews. Linked filename changes are enabled with **Advance filename with
+folder**; the MEC preset selects the third filename number. Turning configurations
+off disables browsing preferences. Chromium/WebKit cover disabling combination,
+retained setups, all-configuration payloads, reset, persistence and small windows.

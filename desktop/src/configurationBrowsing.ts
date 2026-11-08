@@ -1,7 +1,6 @@
 import { useSyncExternalStore } from "react";
 
 export interface ConfigurationBrowsing {
-  scope: "active" | "all";
   fileNumber: number;
   fileStep: number;
   folderNumber: number;
@@ -10,7 +9,6 @@ export interface ConfigurationBrowsing {
   folderFileStep: number;
 }
 export const defaultBrowsing: ConfigurationBrowsing = {
-  scope: "active",
   fileNumber: 0,
   fileStep: 1,
   folderNumber: 0,
@@ -20,7 +18,6 @@ export const defaultBrowsing: ConfigurationBrowsing = {
 };
 export const mecBrowsing: ConfigurationBrowsing = {
   ...defaultBrowsing,
-  scope: "all",
   folderFileNumber: 3,
 };
 const key = "dioptas-configuration-browsing";
@@ -29,7 +26,6 @@ function read(): ConfigurationBrowsing {
   try {
     const raw = JSON.parse(localStorage.getItem(key) ?? "{}");
     const result = { ...defaultBrowsing };
-    result.scope = raw.scope === "all" ? "all" : "active";
     for (const name of [
       "fileNumber",
       "fileStep",

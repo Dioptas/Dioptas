@@ -6,7 +6,7 @@ use std::{
     time::SystemTime,
 };
 
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub(super) struct Files {
     pub image_directory: String,
     pub output_directory: String,

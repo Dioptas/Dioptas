@@ -185,6 +185,15 @@ impl Processor {
         backend: Backend,
         resources: Option<&Path>,
     ) -> Result<Self, String> {
+        Self::start_backend_binary(example, backend, resources, None)
+    }
+
+    pub(super) fn start_backend_binary(
+        example: bool,
+        backend: Backend,
+        resources: Option<&Path>,
+        binary: Option<&Path>,
+    ) -> Result<Self, String> {
         let mut command = match backend {
             Backend::Python => {
                 let root = Self::source_root();
@@ -213,8 +222,9 @@ impl Processor {
                 } else {
                     "dioptas-processor"
                 };
-                let native = std::env::var_os("DIOPTAS_NATIVE_PROCESSOR")
-                    .map(PathBuf::from)
+                let native = binary
+                    .map(Path::to_path_buf)
+                    .or_else(|| std::env::var_os("DIOPTAS_NATIVE_PROCESSOR").map(PathBuf::from))
                     .unwrap_or_else(|| {
                         let sibling = std::env::current_exe()
                             .ok()

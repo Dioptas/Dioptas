@@ -4,6 +4,9 @@ use super::*;
 use checkpoint::Checkpoint;
 #[path = "project_config.rs"]
 mod config;
+#[cfg(debug_assertions)]
+#[path = "project/development.rs"]
+mod development;
 #[path = "project_io.rs"]
 mod io;
 #[path = "project/navigation.rs"]
@@ -14,8 +17,8 @@ mod phase;
 mod series;
 use io::*;
 use std::rc::Rc;
+static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
 fn next_id() -> u64 {
-    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
     NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
 }
 #[derive(Clone)]
@@ -145,6 +148,10 @@ impl Session {
         args: &Value,
     ) -> Result<Option<Reply>, String> {
         match action {
+            #[cfg(debug_assertions)]
+            "development_checkpoint" => self.save_development_checkpoint(args).map(Some),
+            #[cfg(debug_assertions)]
+            "development_restore" => self.restore_development_checkpoint(args).map(Some),
             "configuration_navigation" => self.navigate_configurations(args).map(Some),
             "save_project" => {
                 check_keys(args, &["path"])?;

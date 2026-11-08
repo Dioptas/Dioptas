@@ -12,15 +12,14 @@ export function ConfigurationNavigationControls({
   run: IntegrationRun;
 }) {
   const rules = useConfigurationBrowsing();
-  const scope =
-    rules.scope === "all" ? "all configurations" : "active configuration";
+  const scope = "all configurations";
   const navigate = (target: "file" | "folder", direction: number) =>
     void run(
       "configuration_navigation",
       {
         target,
         direction,
-        scope: rules.scope,
+        scope: "all",
         number_position: rules.fileNumber,
         step: target === "file" ? rules.fileStep : rules.folderStep,
         folder_number_position: rules.folderNumber,
@@ -62,9 +61,6 @@ export function ConfigurationNavigationControls({
           </Button>
         </div>
       ))}
-      <span className="configuration-browsing-scope">
-        {rules.scope === "all" ? "All" : "Active"}
-      </span>
     </div>
   );
 }

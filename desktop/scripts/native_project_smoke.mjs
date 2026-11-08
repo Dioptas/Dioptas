@@ -78,7 +78,7 @@ try {
         exact: true,
       });
       const toggle = page.getByRole("checkbox", {
-        name: "Show configuration controls",
+        name: "Enable configurations",
       });
       const closeSettings = page.getByRole("button", {
         name: "Close settings",
@@ -106,6 +106,15 @@ try {
           .getByRole("tab", { name: "Configurations", exact: true })
           .click();
         assert.equal(await toggle.isVisible(), true);
+        assert.equal(
+          await page
+            .getByRole("heading", {
+              name: "Multi-detector setups",
+              exact: true,
+            })
+            .count(),
+          0,
+        );
       };
       const assertBarHidden = async () => {
         assert.equal(await group.count(), 0);
@@ -199,7 +208,7 @@ try {
       const originalPath = (await invoke("state")).state.imagePath;
       await browsing
         .getByRole("button", {
-          name: "Next files in active configuration",
+          name: "Next files in all configurations",
           exact: true,
         })
         .click();
@@ -214,14 +223,10 @@ try {
         name: "Configuration browsing settings",
         exact: true,
       });
-      const scopeSetting = browsingSettings.getByRole("combobox", {
-        name: "Apply configuration browsing to",
-      });
-      assert.equal(await scopeSetting.inputValue(), "active");
+      assert.equal(await browsingSettings.getByRole("combobox").count(), 0);
       await browsingSettings
         .getByRole("button", { name: "Use MEC preset", exact: true })
         .click();
-      assert.equal(await scopeSetting.inputValue(), "all");
       assert.equal(
         await browsingSettings
           .getByRole("spinbutton", {
@@ -583,7 +588,17 @@ try {
         calls.filter(([action]) => action === "configuration").length;
       const beforeHiding = configurationCalls();
       await openConfigurations();
-      await toggle.uncheck();
+      await toggle.click();
+      await page.waitForFunction(
+        () =>
+          document.querySelector(
+            '[aria-describedby="settings-configuration-description"]',
+          )?.checked === false,
+      );
+      await page.waitForFunction(() => !document.querySelector(".spin"));
+      const disabled = await invoke("state");
+      assert.equal(disabled.state.combination.patterns, false);
+      assert.equal(disabled.state.combination.cakes, false);
       await closeSettings.click();
       await assertBarHidden();
       await page.reload();
@@ -594,7 +609,6 @@ try {
       });
       await openConfigurations();
       assert.equal(await toggle.isChecked(), false);
-      assert.equal(await scopeSetting.inputValue(), "all");
       for (const [label, value] of Object.entries(customRules)) {
         assert.equal(
           await browsingSettings
@@ -635,11 +649,20 @@ try {
       await page.screenshot({
         path: path.join(artifacts, `${name}-browsing-settings-small.png`),
       });
+      await toggle.check();
       await browsingSettings
         .getByRole("button", { name: "Reset browsing", exact: true })
         .click();
-      assert.equal(await scopeSetting.inputValue(), "active");
-      assert.equal(await folderFilename.inputValue(), "0");
+      assert.equal(
+        await browsingSettings
+          .getByRole("checkbox", {
+            name: "Advance filename with folder",
+            exact: true,
+          })
+          .isChecked(),
+        false,
+      );
+      assert.equal(await folderFilename.count(), 0);
       await toggle.check();
       await closeSettings.click();
       await group.waitFor();
@@ -674,7 +697,8 @@ try {
         configurableBrowsingRulesPersist: true,
         dedicatedConfigurationsSettings: true,
         generalOmitsProcessingAndPatternNavigation: true,
-        activeAndAllBrowsingScopes: true,
+        configurationToolbarAlwaysBrowsesAll: true,
+        disableConfigurationsStopsCombination: true,
         combinedPatternAndCake: true,
         individualAndCombinedCakeClicks: ["2th_deg", "q_A^-1", "d_A"],
         combinationInConfigurationBarAcrossModes: true,

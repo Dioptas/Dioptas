@@ -213,23 +213,21 @@ export function SettingsWorkspace({
             hidden={section !== 1}
           >
             <section className="settings-card">
-              <div className="settings-card-heading">
-                <Layers size={18} />
-                <h3>Multi-detector setups</h3>
-              </div>
               <div className="settings-preference-row">
                 <div>
                   <label htmlFor="settings-configuration-controls">
-                    Show configuration controls
+                    Enable configurations
                   </label>
                   <p id="settings-configuration-description">
-                    Switch between detector setups and manage their separate
-                    images, calibrations and processing settings.
+                    Keep each detector’s image, calibration and processing
+                    together. Switching off retains your setups and disables
+                    combination.
                   </p>
                 </div>
                 <Input
                   id="settings-configuration-controls"
                   type="checkbox"
+                  disabled={!ready || integrationDraft.dirty}
                   checked={showConfigurationControls}
                   onChange={(event) =>
                     onShowConfigurationControls(event.target.checked)
@@ -237,8 +235,12 @@ export function SettingsWorkspace({
                   aria-describedby="settings-configuration-description"
                 />
               </div>
-              <ConfigurationBrowsingSettings />
             </section>
+            <ConfigurationBrowsingSettings
+              enabled={showConfigurationControls}
+              filename={state?.imageName}
+              directory={state?.imagePath?.replace(/[\\/][^\\/]*$/, "")}
+            />
           </div>
           <div
             id="settings-panel-2"

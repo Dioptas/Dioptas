@@ -1,0 +1,4 @@
+# Scientific worker changes are handled without restarting the window.
+binaries/**
+resources/**
+target/**

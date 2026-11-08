@@ -3,6 +3,7 @@
 mod calibration_tooltip;
 mod color_picker;
 mod processor;
+mod processor_reload;
 mod phase_editor;
 mod map_window;
 mod smoke_storage;
@@ -13,14 +14,15 @@ use calibration_tooltip::{
     show_calibration_tooltip, TooltipState,
 };
 
-use processor::{Backend, Packet, Processor};
+use processor::{Backend, Packet};
+use processor_reload::ProcessorHost;
 use serde_json::{json, Value};
 use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use tauri::{Manager, State};
 use tauri_plugin_dialog::DialogExt;
 
 struct Host {
-    processor: Result<Arc<Processor>, String>,
+    processor: Result<Arc<ProcessorHost>, String>,
     smoke: bool,
     closing: AtomicBool,
 }
@@ -402,10 +404,21 @@ fn main() {
             let resources = app.path().resource_dir()?.join("dioptas");
             app.manage(Host {
                 processor: Backend::requested(&args, std::env::var("DIOPTAS_BACKEND").ok().as_deref())
-                    .and_then(|backend| Processor::start_backend_at(example, backend, Some(&resources))).map(Arc::new),
+                    .and_then(|backend| ProcessorHost::start(example, backend, Some(&resources))),
                 smoke,
                 closing: AtomicBool::new(false),
             });
+            #[cfg(debug_assertions)]
+            if tauri::is_dev() && !smoke && Backend::requested(&args, std::env::var("DIOPTAS_BACKEND").ok().as_deref()) == Ok(Backend::Rust) {
+                if let Ok(processor) = &app.state::<Host>().processor {
+                    let handle = app.handle().clone();
+                    processor.watch(move |status| {
+                        use tauri::Emitter;
+                        eprintln!("{}", status["message"].as_str().unwrap_or("Backend update"));
+                        let _ = handle.emit("dioptas-backend-update",status);
+                    });
+                }
+            }
             color_picker::install()?;
             let window = if smoke {
                 let config = app.config().app.windows.iter().find(|window| window.label == "main").unwrap().clone();

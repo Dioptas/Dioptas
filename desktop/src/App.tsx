@@ -1,3 +1,4 @@
+import { useBackendReload } from "./useBackendReload";
 import { usePlotZoomPreference } from "./usePlotZoomPreference";
 import {
   CalibrationResetDialog,
@@ -922,6 +923,18 @@ export default function App() {
       draftReplacement.request,
     ],
   );
+  useEffect(() => {
+    if (state?.combination?.patterns || state?.combination?.cakes)
+      setShowConfigurationControls(true);
+  }, [state?.combination?.patterns, state?.combination?.cakes]);
+  useBackendReload((message, restored) => {
+    setNotice(message);
+    if (restored)
+      void bridge
+        .current?.("state")
+        .then((result) => apply(result, false, true))
+        .catch((error) => setError(String(error)));
+  });
   useNativePhaseEditorSync(run, state?.revision);
   useEffect(() => {
     if (mode !== "integration" || !state?.integration.autoProcess) return;
@@ -3083,7 +3096,19 @@ export default function App() {
               largeText={largeText}
               onLargeText={setLargeText}
               showConfigurationControls={showConfigurationControls}
-              onShowConfigurationControls={setShowConfigurationControls}
+              onShowConfigurationControls={(show) => {
+                if (
+                  !show &&
+                  (state?.combination?.patterns || state?.combination?.cakes)
+                ) {
+                  void run(
+                    "combination_settings",
+                    { patterns: false, cakes: false },
+                    "Disabling configurations…",
+                    () => setShowConfigurationControls(false),
+                  );
+                } else setShowConfigurationControls(show);
+              }}
               onClose={closeSettings}
               returnLabel={
                 {

@@ -1,6 +1,6 @@
 //! Shared, subpixel detector/cake/pattern click inspection.
 use super::*;
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub(super) struct Inspection {
     geometry: Geometry,
     shape: [usize; 2],

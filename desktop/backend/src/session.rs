@@ -59,7 +59,7 @@ struct DetectorMaskCache {
 }
 #[cfg(feature = "dioptrin")]
 type NativeGeometryCache = (Geometry, [usize; 2], dioptrin::geometry::Geometry);
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 struct Settings {
     transformations: Vec<crate::transform::Transform>,
     original_pixels: Option<[f64; 2]>,
