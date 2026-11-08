@@ -43,6 +43,8 @@ pub(crate) struct Processing {
     pub background_poisson: bool,
     corrections: Value,
     cache: Option<Cached>,
+    #[cfg(feature = "dioptrin")]
+    sample_maps: crate::sample_absorption::Maps,
 }
 impl PartialEq for Processing {
     fn eq(&self, other: &Self) -> bool {
@@ -81,14 +83,22 @@ impl Default for Processing {
             background_poisson: true,
             corrections: serde_json::from_str(include_str!("correction_defaults.json")).unwrap(),
             cache: None,
+            #[cfg(feature = "dioptrin")]
+            sample_maps: crate::sample_absorption::Maps::default(),
         }
     }
 }
 impl Processing {
     pub fn estimated_bytes(&self) -> usize {
-        self.cache
-            .as_ref()
-            .map_or(0, |c| (c.values.len() + c.variance.len()) * 8)
+        #[cfg(feature = "dioptrin")]
+        let map_bytes = self.sample_maps.bytes();
+        #[cfg(not(feature = "dioptrin"))]
+        let map_bytes = 0;
+        map_bytes
+            + self
+                .cache
+                .as_ref()
+                .map_or(0, |c| (c.values.len() + c.variance.len()) * 8)
             + self.background.as_ref().map_or(0, |p| p.values.len() * 8)
             + self.flat.as_ref().map_or(0, |p| p.values.len() * 8)
             + self
@@ -99,6 +109,10 @@ impl Processing {
                 .transfer_response
                 .as_ref()
                 .map_or(0, |p| p.values.len() * 8)
+    }
+    #[cfg(feature = "dioptrin")]
+    pub fn diagnostics(&self) -> Value {
+        self.sample_maps.diagnostics()
     }
     pub fn active(&self) -> bool {
         self.factor != 1.0
@@ -306,7 +320,7 @@ impl Processing {
     pub fn correction(&mut self, args: &Value, calibrated: bool) -> Result<(), String> {
         let kind = args["kind"]
             .as_str()
-            .filter(|v| ["cbn", "oiadac", "plate", "slab"].contains(v))
+            .filter(|v| ["cbn", "oiadac", "plate", "slab", "cylinder", "sphere"].contains(v))
             .ok_or("Unsupported correction.")?;
         let enabled = args["enabled"]
             .as_bool()
@@ -336,8 +350,11 @@ impl Processing {
             }
         }
         if let Some(patch) = args.get("material") {
-            if !["plate", "slab"].contains(&kind) {
-                return Err("Material lookup is available for plate and slab absorption.".into());
+            if !["plate", "slab", "cylinder", "sphere"].contains(&kind) {
+                return Err(
+                    "Material lookup is available for plate, slab, cylinder and sphere absorption."
+                        .into(),
+                );
             }
             let patch = patch
                 .as_object()
@@ -349,6 +366,37 @@ impl Processing {
                 entry["material"][key] = value.clone();
             }
             validate_material(&entry["material"])?;
+        }
+        if let Some(patch) = args.get("container") {
+            if kind != "cylinder" {
+                return Err("A container wall is available for cylinder absorption.".into());
+            }
+            for (key, value) in patch
+                .as_object()
+                .ok_or("Container settings must be an object.")?
+            {
+                match key.as_str() {
+                    "enabled" => {
+                        if !value.is_boolean() {
+                            return Err("Container enabled must be a boolean.".into());
+                        }
+                        entry["container"][key] = value.clone();
+                    }
+                    "material" => {
+                        for (key, value) in value
+                            .as_object()
+                            .ok_or("Container material settings must be an object.")?
+                        {
+                            if !["mode", "formula", "density"].contains(&key.as_str()) {
+                                return Err("Unknown container material setting.".into());
+                            }
+                            entry["container"]["material"][key] = value.clone();
+                        }
+                        validate_material(&entry["container"]["material"])?;
+                    }
+                    _ => return Err("Unknown container setting.".into()),
+                }
+            }
         }
         if kind == "cbn"
             && entry["parameters"]["small_cbn_seat_radius"].as_f64()
@@ -371,6 +419,7 @@ impl Processing {
         image: &Image,
         generation: u64,
         geometry: &Geometry,
+        control: &crate::control::Control,
     ) -> Result<Arc<Vec<f64>>, String> {
         if self
             .background
@@ -407,12 +456,26 @@ impl Processing {
             self.cache = None;
             return Ok(image.values.clone());
         }
-        for kind in ["plate", "slab"] {
+        control.check()?;
+        for kind in ["plate", "slab", "cylinder", "sphere"] {
             let entry = &mut self.corrections[kind];
             if entry["enabled"] == true && entry["material"]["mode"] == "formula" {
                 let mu = material_mu(&entry["material"], geometry.wavelength)?;
                 entry["parameters"]["absorption_coefficient"] = json!(mu);
             }
+        }
+        let cylinder = &mut self.corrections["cylinder"];
+        if cylinder["enabled"] == true
+            && cylinder["container"]["enabled"] == true
+            && cylinder["parameters"]["wall_thickness"]
+                .as_f64()
+                .is_some_and(|v| v > 0.)
+            && cylinder["container"]["material"]["mode"] == "formula"
+        {
+            cylinder["parameters"]["container_absorption_coefficient"] = json!(material_mu(
+                &cylinder["container"]["material"],
+                geometry.wavelength
+            )?);
         }
         let geometry_active = self
             .corrections
@@ -438,7 +501,7 @@ impl Processing {
                 &background.values,
                 background.shape,
                 &image.transformations,
-                &crate::control::Control::default(),
+                control,
             )?;
             for ((v, var), b) in values.iter_mut().zip(&mut variance).zip(background.iter()) {
                 *v -= self.scale * b + self.offset;
@@ -449,12 +512,8 @@ impl Processing {
         }
         if self.flat_enabled {
             let flat = self.flat.as_ref().unwrap();
-            let response = crate::transform::apply(
-                &flat.values,
-                flat.shape,
-                &image.transformations,
-                &crate::control::Control::default(),
-            )?;
+            let response =
+                crate::transform::apply(&flat.values, flat.shape, &image.transformations, control)?;
             for ((v, var), f) in values.iter_mut().zip(&mut variance).zip(response.iter()) {
                 *v /= f;
                 *var /= f * f;
@@ -473,7 +532,7 @@ impl Processing {
                 &Arc::new(gains),
                 original.shape,
                 &image.transformations,
-                &crate::control::Control::default(),
+                control,
             )?;
             for ((v, var), gain) in values.iter_mut().zip(&mut variance).zip(gains.iter()) {
                 *v *= gain;
@@ -482,13 +541,50 @@ impl Processing {
         }
         #[cfg(feature = "dioptrin")]
         if geometry_active {
-            let native = geometry.native_geometry(image.shape)?;
-            let tth = native.calc_tth_all();
-            let azi = native.calc_azimuth_all();
+            let mut angles = None;
             for (kind, entry) in self.corrections.as_object().unwrap() {
                 if entry["enabled"] != true {
                     continue;
                 }
+                if kind == "cylinder" || kind == "sphere" {
+                    let mut parameters = entry["parameters"].clone();
+                    if kind == "cylinder" && entry["container"]["enabled"] != true {
+                        parameters["container_absorption_coefficient"] = json!(0.);
+                    }
+                    let factors = if let Some(v) =
+                        self.sample_maps
+                            .lookup(kind, &parameters, geometry, image.shape)
+                    {
+                        v
+                    } else {
+                        if angles.is_none() {
+                            let native = geometry.native_geometry(image.shape)?;
+                            angles = Some((native.calc_tth_all(), native.calc_azimuth_all()));
+                        }
+                        let (tth, azi) = angles.as_ref().unwrap();
+                        let factors =
+                            crate::sample_absorption::build(kind, &parameters, tth, azi, control)?;
+                        self.sample_maps.store(
+                            kind,
+                            parameters,
+                            geometry.clone(),
+                            image.shape,
+                            factors,
+                        )
+                    };
+                    for ((v, var), factor) in
+                        values.iter_mut().zip(&mut variance).zip(factors.iter())
+                    {
+                        *v /= factor;
+                        *var /= factor * factor;
+                    }
+                    continue;
+                }
+                if angles.is_none() {
+                    let native = geometry.native_geometry(image.shape)?;
+                    angles = Some((native.calc_tth_all(), native.calc_azimuth_all()));
+                }
+                let (tth, azi) = angles.as_ref().unwrap();
                 for (i, v) in values.iter_mut().enumerate() {
                     let factor = absorption(kind, &entry["parameters"], tth[i], azi[i]);
                     if !factor.is_finite() || factor <= 0.0 {

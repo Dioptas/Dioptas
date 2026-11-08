@@ -144,11 +144,14 @@ implemented controls, pinned Qt/API sources, independent numerical checks, real
 Eiger timing scope and reproduction commands. `src/correction_defaults.json`
 provides the existing cBN/OIADAC parameter metadata; `processing.rs` implements
 those corrections in native f64, together with image backgrounds, flat fields,
-transfer, plate absorption and slab self-absorption. Counting variance is
+transfer, plate/slab absorption, cylinder absorption (including an optional
+capillary wall) and sphere absorption. Counting variance is
 propagated from original samples through deterministic corrections and retained
 in pattern exports, Batch/Map and projects. See the
 [correction/uncertainty qualification](../NATIVE_CORRECTION_UNCERTAINTY_PARITY.md)
-for assumptions, equations and independent evidence.
+for assumptions, equations and independent evidence, and the
+[round-sample qualification](../NATIVE_ROUND_SAMPLE_CORRECTION_PARITY.md) for
+footprint integration, corrected legacy geometry and numerical limits.
 
 ## Projects and configurations
 

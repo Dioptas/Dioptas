@@ -91,6 +91,7 @@ impl Session {
                     &image,
                     self.image_generation + i as u64 + 1,
                     &self.settings.geometry,
+                    &self.control,
                 )?;
                 let invalid = self.physical_mask_for(image.shape, Some(&image))?;
                 save_image_tiff(

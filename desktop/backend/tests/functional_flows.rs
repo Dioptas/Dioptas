@@ -462,7 +462,7 @@ fn unsupported_legacy_corrections_fail_atomically_instead_of_becoming_noops() {
     poni(&p);
     let mut s = prepared(&a, &p, "2th_deg");
     let before = call(&mut s, "state", json!({}));
-    for kind in ["cylinder", "sphere"] {
+    for kind in ["unknown", "unsupported"] {
         let r = invoke(
             &mut s,
             "integration_correction",
@@ -1630,4 +1630,330 @@ fn formula_attenuation_tracks_wavelength_and_retains_material_settings_offline()
         json!({"kind":"plate","enabled":true}),
     );
     assert_eq!(actual.result["pattern"], before.result["pattern"]);
+}
+
+fn round_sample_export_and_project_flow(kind: &str, unit: &str) {
+    let d = tempfile::tempdir().unwrap();
+    let a = d.path().join("a.npy");
+    let b = d.path().join("b.npy");
+    let p = d.path().join("g.poni");
+    let bg = d.path().join("bg.npy");
+    let flat = d.path().join("flat.npy");
+    let mask = d.path().join("mask.npy");
+    image(&a, 0.);
+    image(&b, 50.);
+    poni(&p);
+    npy(&bg, [24, 32], &vec![4.; 768]);
+    npy(
+        &flat,
+        [24, 32],
+        &(0..768)
+            .map(|i| 2. + (i % 32) as f64 / 100.)
+            .collect::<Vec<_>>(),
+    );
+    let mut excluded = vec![0.; 768];
+    excluded[69] = 1.;
+    npy(&mask, [24, 32], &excluded);
+    let mut s = prepared(&a, &p, unit);
+    call(
+        &mut s,
+        "integration_settings",
+        json!({"poisson_errors":true,"supersampling":2}),
+    );
+    call(
+        &mut s,
+        "integration_image_background",
+        json!({"path":bg,"scale":0.7,"offset":1.2}),
+    );
+    call(&mut s, "integration_flat_field", json!({"path":flat}));
+    call(&mut s, "mask_file", json!({"path":mask}));
+    call(&mut s, "integration_roi", json!({"limits":[2,22,3,29]}));
+    let mut args = json!({"kind":kind,"enabled":true,"parameters":{"radius":0.2,"beam_width":0.12},"material":{"mode":"formula","formula":"SiO2","density":2.2}});
+    if kind == "cylinder" {
+        args["parameters"]["axis_tilt"] = json!(35.);
+        args["parameters"]["axis_rotation"] = json!(23.);
+        args["parameters"]["container_absorption_coefficient"] = json!(2.7);
+        args["parameters"]["wall_thickness"] = json!(0.02);
+        args["container"] = json!({"enabled":true});
+    }
+    call(&mut s, "integration_correction", args);
+    call(
+        &mut s,
+        "image_transform",
+        json!({"operation":"rotate_right"}),
+    );
+    let before = call(&mut s, "state", json!({}));
+    let diagnostic = call(&mut s, "integration_diagnostics", json!({}));
+    call(&mut s, "open_image", json!({"path":b}));
+    call(&mut s, "open_image", json!({"path":a}));
+    let warm = call(&mut s, "integration_diagnostics", json!({}));
+    assert_eq!(
+        warm.result["integrationDiagnostics"]["sampleCorrectionBuilds"],
+        diagnostic.result["integrationDiagnostics"]["sampleCorrectionBuilds"]
+    );
+    assert!(
+        warm.result["integrationDiagnostics"]["sampleCorrectionHits"]
+            .as_u64()
+            .unwrap()
+            > diagnostic.result["integrationDiagnostics"]["sampleCorrectionHits"]
+                .as_u64()
+                .unwrap()
+    );
+    let export = d.path().join("pattern.xye");
+    call(&mut s, "integration_save_pattern", json!({"path":export}));
+    let std: Vec<_> = fs::read_to_string(export)
+        .unwrap()
+        .lines()
+        .filter_map(|line| {
+            let f: Vec<_> = line.split_whitespace().collect();
+            if f.len() != 3 || f[0].parse::<f64>().is_err() {
+                return None;
+            }
+            f[2].parse::<f64>().ok()
+        })
+        .collect();
+    close(&std, &values(&before, "sigma"));
+    let project = d.path().join("sample.dio");
+    call(&mut s, "save_project", json!({"path":project}));
+    let disabled = call(
+        &mut s,
+        "integration_correction",
+        json!({"kind":kind,"enabled":false}),
+    );
+    let inactive = d.path().join("disabled.dio");
+    call(&mut s, "save_project", json!({"path":inactive}));
+    call(&mut s, "undo_calibration", json!({}));
+    assert_eq!(
+        call(&mut s, "state", json!({})).result["pattern"],
+        before.result["pattern"]
+    );
+    let mut no_wall = None;
+    if kind == "cylinder" {
+        let result = call(
+            &mut s,
+            "integration_correction",
+            json!({"kind":kind,"enabled":true,"container":{"enabled":false}}),
+        );
+        let path = d.path().join("no-wall.dio");
+        call(&mut s, "save_project", json!({"path":path}));
+        no_wall = Some((path, result));
+    }
+    for source in [&a, &b, &p, &bg, &flat, &mask] {
+        fs::remove_file(source).unwrap();
+    }
+    let mut restored = Session::new(root());
+    let actual = call(&mut restored, "open_project", json!({"path":project}));
+    assert_eq!(actual.result["pattern"], before.result["pattern"]);
+    let recalculated = call(&mut restored, "integrate", json!({}));
+    close(&values(&recalculated, "y"), &values(&before, "y"));
+    close(&values(&recalculated, "sigma"), &values(&before, "sigma"));
+    for raster in ["image", "cake", "mask"] {
+        assert_eq!(bytes(&actual, raster), bytes(&before, raster));
+    }
+    assert_eq!(
+        actual.result["state"]["integration"]["corrections"][kind],
+        before.result["state"]["integration"]["corrections"][kind]
+    );
+    let actual = call(&mut restored, "open_project", json!({"path":inactive}));
+    assert_eq!(actual.result["pattern"], disabled.result["pattern"]);
+    assert_eq!(
+        actual.result["state"]["integration"]["corrections"][kind]["material"]["mode"],
+        "formula"
+    );
+    let enabled = call(
+        &mut restored,
+        "integration_correction",
+        json!({"kind":kind,"enabled":true}),
+    );
+    assert_eq!(enabled.result["pattern"], before.result["pattern"]);
+    if let Some((path, expected)) = no_wall {
+        let actual = call(&mut restored, "open_project", json!({"path":path}));
+        assert_eq!(
+            actual.result["state"]["integration"]["corrections"][kind],
+            expected.result["state"]["integration"]["corrections"][kind]
+        );
+        let actual = call(
+            &mut restored,
+            "integration_correction",
+            json!({"kind":kind,"enabled":true,"container":{"enabled":true}}),
+        );
+        assert_eq!(actual.result["pattern"], before.result["pattern"]);
+    }
+}
+#[test]
+fn cylinder_correction_exports_and_reopens_without_sources() {
+    for unit in ["2th_deg", "q_A^-1", "d_A"] {
+        round_sample_export_and_project_flow("cylinder", unit);
+    }
+}
+#[test]
+fn sphere_correction_exports_and_reopens_without_sources() {
+    for unit in ["2th_deg", "q_A^-1", "d_A"] {
+        round_sample_export_and_project_flow("sphere", unit);
+    }
+}
+
+#[test]
+fn round_sample_invalid_parameters_and_cancellation_preserve_science_and_redo() {
+    let d = tempfile::tempdir().unwrap();
+    let a = d.path().join("a.npy");
+    let p = d.path().join("g.poni");
+    image(&a, 0.);
+    poni(&p);
+    let mut s = prepared(&a, &p, "2th_deg");
+    call(
+        &mut s,
+        "integration_correction",
+        json!({"kind":"sphere","enabled":true,"parameters":{"radius":0.2,"beam_width":0.15}}),
+    );
+    call(&mut s, "undo_calibration", json!({}));
+    let before = call(&mut s, "state", json!({}));
+    for kind in ["cylinder", "sphere"] {
+        let mut failures = vec![
+            json!({"radius":-1.}),
+            json!({"beam_width":-1.}),
+            json!({"absorption_coefficient":-1.}),
+            json!({"radius":1000.,"absorption_coefficient":1e6}),
+        ];
+        if kind == "cylinder" {
+            failures.push(json!({"axis_tilt":90.,"axis_rotation":0.}));
+            failures.push(json!({"wall_thickness":-0.01}));
+        }
+        for parameters in failures {
+            assert_eq!(
+                invoke(
+                    &mut s,
+                    "integration_correction",
+                    json!({"kind":kind,"enabled":true,"parameters":parameters})
+                )
+                .result["ok"],
+                false
+            );
+            assert_eq!(call(&mut s, "state", json!({})).result, before.result);
+        }
+        let control = std::sync::Arc::new(dioptas_backend::control::Control::default());
+        control.cancel();
+        let r = s.invoke_controlled(
+            &Request {
+                id: 1,
+                action: "integration_correction".into(),
+                payload: json!({"kind":kind,"enabled":true}),
+                cached_buffers: vec![],
+            },
+            control,
+        );
+        assert_eq!(r.result["ok"], false);
+        assert_eq!(call(&mut s, "state", json!({})).result, before.result);
+    }
+    for container in [
+        json!({"enabled":"yes"}),
+        json!({"enabled":true,"material":{"mode":"formula","formula":"InvalidXYZ"}}),
+    ] {
+        assert_eq!(
+            invoke(
+                &mut s,
+                "integration_correction",
+                json!({"kind":"cylinder","enabled":true,"container":container})
+            )
+            .result["ok"],
+            false
+        );
+        assert_eq!(call(&mut s, "state", json!({})).result, before.result);
+    }
+    let redone = call(&mut s, "redo_calibration", json!({}));
+    assert_eq!(
+        redone.result["state"]["integration"]["corrections"]["sphere"]["enabled"],
+        true
+    );
+}
+
+#[test]
+fn round_sample_batch_map_and_combined_errors_survive_offline_projects() {
+    for kind in ["cylinder", "sphere"] {
+        let d = tempfile::tempdir().unwrap();
+        let a = d.path().join("a.npy");
+        let b = d.path().join("b.npy");
+        let p = d.path().join("g.poni");
+        image(&a, 0.);
+        image(&b, 80.);
+        poni(&p);
+        let mut s = prepared(&a, &p, "q_A^-1");
+        call(
+            &mut s,
+            "integration_settings",
+            json!({"poisson_errors":true}),
+        );
+        call(
+            &mut s,
+            "integration_correction",
+            json!({"kind":kind,"enabled":true,"parameters":{"radius":0.2,"beam_width":0.12}}),
+        );
+        let mut patterns = vec![];
+        for source in [&a, &b] {
+            patterns.push(call(&mut s, "open_image", json!({"path":source})));
+        }
+        call(&mut s, "batch_load", json!({"paths":[a,b]}));
+        let batch = d.path().join("batch.h5");
+        call(&mut s, "integration_save_batch", json!({"path":batch}));
+        let file = hdf5::File::open(&batch).unwrap();
+        close(
+            &file
+                .dataset("processed/result/counting_std")
+                .unwrap()
+                .read_raw::<f64>()
+                .unwrap(),
+            &patterns
+                .iter()
+                .flat_map(|p| values(p, "sigma"))
+                .collect::<Vec<_>>(),
+        );
+        drop(file);
+        call(&mut s, "map_batch", json!({"path":batch}));
+        call(&mut s, "configuration", json!({"operation":"duplicate"}));
+        let combined = call(
+            &mut s,
+            "combination_settings",
+            json!({"patterns":true,"cakes":true}),
+        );
+        for index in 0..2 {
+            call(
+                &mut s,
+                "configuration",
+                json!({"operation":"select","index":index}),
+            );
+            call(&mut s, "combination_settings", json!({"factor":-2.}));
+        }
+        let changed = call(&mut s, "state", json!({}));
+        close(
+            &values(&changed, "y"),
+            &values(&combined, "y")
+                .iter()
+                .map(|v| -2. * v)
+                .collect::<Vec<_>>(),
+        );
+        close(
+            &values(&changed, "sigma"),
+            &values(&combined, "sigma")
+                .iter()
+                .map(|v| 2. * v)
+                .collect::<Vec<_>>(),
+        );
+        let project = d.path().join("scan.dio");
+        call(&mut s, "save_project", json!({"path":project}));
+        fs::remove_file(a).unwrap();
+        fs::remove_file(b).unwrap();
+        fs::remove_file(p).unwrap();
+        let mut restored = Session::new(root());
+        let actual = call(&mut restored, "open_project", json!({"path":project}));
+        assert_eq!(actual.result["pattern"], changed.result["pattern"]);
+        call(
+            &mut restored,
+            "combination_settings",
+            json!({"patterns":false,"cakes":false}),
+        );
+        let actual = call(&mut restored, "batch_select", json!({"index":1}));
+        close(&values(&actual, "sigma"), &values(&patterns[1], "sigma"));
+        let actual = call(&mut restored, "map_select", json!({"index":0}));
+        close(&values(&actual, "sigma"), &values(&patterns[0], "sigma"));
+    }
 }

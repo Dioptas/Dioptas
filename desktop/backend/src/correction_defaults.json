@@ -168,5 +168,97 @@
       "formula": "CeO2",
       "density": 7.22
     }
+  },
+  "cylinder": {
+    "enabled": false,
+    "parameters": {
+      "radius": 0.15,
+      "absorption_coefficient": 1.0,
+      "beam_width": 0.0,
+      "axis_tilt": 0.0,
+      "axis_rotation": 0.0,
+      "container_absorption_coefficient": 1.0,
+      "wall_thickness": 0.01
+    },
+    "fields": {
+      "radius": {
+        "label": "Radius (mm)",
+        "min": 0.0,
+        "max": 1000.0
+      },
+      "absorption_coefficient": {
+        "label": "Absorption coefficient (mm\u207b\u00b9)",
+        "min": 0.0,
+        "max": 1000000.0
+      },
+      "beam_width": {
+        "label": "Beam width (mm)",
+        "min": 0.0,
+        "max": 2000.0
+      },
+      "axis_tilt": {
+        "label": "Axis tilt (\u00b0)",
+        "min": -180.0,
+        "max": 180.0
+      },
+      "axis_rotation": {
+        "label": "Axis rotation (\u00b0)",
+        "min": -360.0,
+        "max": 360.0
+      },
+      "container_absorption_coefficient": {
+        "label": "Container absorption coefficient (mm\u207b\u00b9)",
+        "min": 0.0,
+        "max": 1000000.0
+      },
+      "wall_thickness": {
+        "label": "Wall thickness (mm)",
+        "min": 0.0,
+        "max": 1000.0
+      }
+    },
+    "material": {
+      "mode": "manual",
+      "formula": "SiO2",
+      "density": 2.65
+    },
+    "container": {
+      "enabled": false,
+      "material": {
+        "mode": "manual",
+        "formula": "SiO2",
+        "density": 2.23
+      }
+    }
+  },
+  "sphere": {
+    "enabled": false,
+    "parameters": {
+      "radius": 0.5,
+      "absorption_coefficient": 1.0,
+      "beam_width": 0.0
+    },
+    "fields": {
+      "radius": {
+        "label": "Radius (mm)",
+        "min": 0.0,
+        "max": 1000.0
+      },
+      "absorption_coefficient": {
+        "label": "Absorption coefficient (mm\u207b\u00b9)",
+        "min": 0.0,
+        "max": 1000000.0
+      },
+      "beam_width": {
+        "label": "Beam width (mm)",
+        "min": 0.0,
+        "max": 2000.0
+      }
+    },
+    "material": {
+      "mode": "manual",
+      "formula": "Fe2O3",
+      "density": 5.24
+    }
   }
 }

@@ -9,14 +9,14 @@ and writes a compact receipt under `artifacts/functional-coverage`.
 
 | Classification | Definitions | Meaning |
 | --- | ---: | --- |
-| Native scientific contract | 58 | A Rust integration test exercises the corresponding supported scientific behavior with actual native commands and data. This does not assert identical Qt widgets. |
+| Native scientific contract | 60 | A Rust integration test exercises the corresponding supported scientific behavior with actual native commands and data. This does not assert identical Qt widgets. |
 | Adapted behavior | 16 | The React/native workflow differs; evidence and the exact remaining difference are explicit in each entry. These are not counted as identical legacy UI parity. |
-| Unsupported feature | 4 | Cylinder/sphere corrections, batch rectangle-to-waterfall generation, and standalone detector-image docking are not implemented by the native workspace. Unsupported corrections have atomic rejection tests, not success claims. |
+| Unsupported feature | 2 | Batch rectangle-to-waterfall generation and standalone detector-image docking are not implemented by the native workspace. |
 | Platform-specific | 4 | Native Map window management/docking needs isolated OS-level tests. Detached data/progress is tested headlessly; native window semantics are not claimed by this CI. |
 
 ## Added native flows
 
-`backend/tests/functional_flows.rs` contains 26 tests, including:
+`backend/tests/functional_flows.rs` contains 30 tests, including:
 
 - Raw image → PONI → asymmetric mask → scaled/offset image background → flat
   field → ROI → supersampling → integration with propagated errors, separately
@@ -63,7 +63,10 @@ focus their canvas, with an explicit browser assertion before polygon completion
 
 The [correction and uncertainty ledger](NATIVE_CORRECTION_UNCERTAINTY_PARITY.md)
 records the additional transfer/plate/slab, corrected-count variance,
-Batch/Map std storage and offline data-flow qualification.
+Batch/Map std storage and offline data-flow qualification. The
+[round-sample ledger](NATIVE_ROUND_SAMPLE_CORRECTION_PARITY.md) adds cylinder,
+sphere and optional capillary absorption, corrected legacy geometry, explicit
+convergence checks, project migration and independent volume/ray integration.
 
 ## Gates
 
@@ -85,7 +88,7 @@ and manual dispatch, with read-only repository permissions:
    cancellation. Tauri host unit tests do not open an application window.
 3. **Linux independent references:** a separate CPython 3.13 environment
    supplies pyFAI/NumPy/Qt-model/PhaseSmith/Peritheos reference calculations and
-   fixture writers. Thirteen native parity scripts, the remaining bulk/project
+   fixture writers. Sixteen native parity scripts, the remaining bulk/project
    stdio cancellation tests and partial/detached Map progress run here. The
    processor children still have Python and PATH unavailable. The reference
    interpreter is not an application dependency or fallback.

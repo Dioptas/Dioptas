@@ -1,6 +1,6 @@
 # Native correction and counting-uncertainty qualification
 
-Transfer, plate absorption and slab self-absorption run in Dioptas's Rust
+Transfer, plate, slab, cylinder and sphere absorption run in Dioptas's Rust
 processing pipeline alongside flat field, cBN and detector absorption. The GUI,
 processing settings and `.dio` persistence belong to Dioptas. Dioptrin supplies
 generic integration of independent pixel variances, including shared-grid
@@ -79,7 +79,7 @@ zero thickness or zero attenuation gives unity. Path cosines are bounded by
 `1e-10`; nonpositive/nonfinite final transmission or overflow is rejected
 atomically. cBN/detector absorption retain their established definitions.
 
-The existing **Corrections** type list contains all six choices, with no new
+The existing **Corrections** type list contains all eight choices, with no new
 toolbar. Image background owns its counting-noise control. Current-image
 correction edits use the shared scientific Undo/Redo history. Reference planes
 remain in source order and follow rotations/flips together with the image.
@@ -122,8 +122,8 @@ All checks run through the existing native CI gate:
   std differs by less than `4e-13` on this synthetic fixture. Independent
   Gauss–Legendre quadrature checks the slab depth integral near equal incident
   and outgoing paths, where the original subtraction formula loses precision.
-- `scripts/native_material_parity.py`: 84 independent XrayDB comparisons across
-  both correction types, six materials/formulas, seven energies, a near-edge
+- `scripts/native_material_parity.py`: 168 independent XrayDB comparisons across
+  all four sample correction types, six materials/formulas, seven energies, a near-edge
   pair, grouped/fractional formulas and named-material density. Formula mode is
   compared against explicit μ through intensities and propagated std. Invalid
   materials, density and out-of-range energy preserve the preceding state.
@@ -135,4 +135,8 @@ All checks run through the existing native CI gate:
   fractional LUT checks squared weights/masking; negative signals, detector
   gains and invalid variance rejection are covered.
 
-Cylinder and sphere absorption remain unsupported and fail atomically.
+Cylinder and sphere, including an optional absorbing cylinder wall, now run
+through this same deterministic-gain/counting-variance pipeline. See the
+[round-sample qualification](NATIVE_ROUND_SAMPLE_CORRECTION_PARITY.md) for
+footprint definitions, geometric corrections to the legacy implementation,
+numerical convergence limits, project migration and additional full-flow tests.

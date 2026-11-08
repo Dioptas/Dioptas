@@ -47,6 +47,7 @@ export interface IntegrationState {
       enabled: boolean;
       parameters: Record<string, number>;
       material?: CorrectionMaterial;
+      container?: { enabled: boolean; material: CorrectionMaterial };
       fields: Record<string, { label: string; min: number; max: number }>;
     }
   >;

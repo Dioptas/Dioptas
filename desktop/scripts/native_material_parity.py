@@ -23,9 +23,9 @@ def main():
                         polarization_factor=0.965)
         n.call("manual_geometry", convention="pyfai", values=geometry)
         n.call("integration_settings", bins=48, cake_bins=12, poisson_errors=True)
-        for kind in ["plate", "slab"]:
+        for kind in ["plate", "slab", "cylinder", "sphere"]:
             n.call("integration_correction", kind=kind, enabled=True,
-                   parameters=dict(thickness=0.00001),
+                   parameters=(dict(thickness=0.00001) if kind in ("plate","slab") else dict(radius=0.00001,beam_width=0.)),
                    material=dict(mode="formula", formula="C", density=3.51))
             for formula, density in [("C", 3.51), ("CeO2", 7.22), ("Fe0.7Mg0.3O", 4.0),
                                      ("Ca3(PO4)2", 3.14), ("Au", 19.32), ("kapton", 0)]:

@@ -184,3 +184,9 @@
   width: min(100%, 300px);
   grid-template-columns: minmax(0, 1fr) 114px;
 }
+
+.integration-controls .processing-subnav {
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+}

@@ -652,19 +652,21 @@
     },
     {
       "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_cylinder_correction",
-      "status": "unsupported",
+      "status": "native",
       "evidence": [
-        "desktop/backend/tests/functional_flows.rs#unsupported_legacy_corrections_fail_atomically_instead_of_becoming_noops"
+        "desktop/backend/tests/functional_flows.rs#cylinder_correction_exports_and_reopens_without_sources",
+        "desktop/backend/tests/functional_flows.rs#round_sample_batch_map_and_combined_errors_survive_offline_projects"
       ],
-      "note": "This correction is outside the native support boundary. A native rejection/rollback test protects against silent no-op processing; it does not claim a successful correction port."
+      "note": "Native sample absorption, finite beam, formula lookup, propagated counting std, GUI, active/disabled project drafts and offline reintegration. Cylinder adds optional capillary absorption. Correct ray geometry intentionally differs from known legacy model defects; see NATIVE_ROUND_SAMPLE_CORRECTION_PARITY.md."
     },
     {
       "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_sphere_correction",
-      "status": "unsupported",
+      "status": "native",
       "evidence": [
-        "desktop/backend/tests/functional_flows.rs#unsupported_legacy_corrections_fail_atomically_instead_of_becoming_noops"
+        "desktop/backend/tests/functional_flows.rs#sphere_correction_exports_and_reopens_without_sources",
+        "desktop/backend/tests/functional_flows.rs#round_sample_batch_map_and_combined_errors_survive_offline_projects"
       ],
-      "note": "This correction is outside the native support boundary. A native rejection/rollback test protects against silent no-op processing; it does not claim a successful correction port."
+      "note": "Native sample absorption, finite beam, formula lookup, propagated counting std, GUI, active/disabled project drafts and offline reintegration. Cylinder adds optional capillary absorption. Correct ray geometry intentionally differs from known legacy model defects; see NATIVE_ROUND_SAMPLE_CORRECTION_PARITY.md."
     },
     {
       "legacy": "test_save_and_load_project.py::ProjectSaveLoadTest::test_with_plate_correction",

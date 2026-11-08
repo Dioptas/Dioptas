@@ -223,6 +223,7 @@ export interface Response {
   cake?: Cake | null;
   pattern?: Pattern | null;
   savedPath?: string;
+  correctionNotice?: string;
   pixel?: {
     x: number;
     y: number;

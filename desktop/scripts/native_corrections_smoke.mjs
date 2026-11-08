@@ -189,6 +189,64 @@ try {
           s.integration.corrections.slab.material.formula === "SiO2" &&
           s.integration.corrections.slab.material.density === 2.2,
       );
+      for (const [kind, label] of [
+        ["cylinder", "Cylinder"],
+        ["sphere", "Sphere"],
+      ]) {
+        await type(label).click();
+        for (const [name, value] of [
+          ["Radius (mm)", "0.2"],
+          ["Beam width (mm)", "0.12"],
+        ]) {
+          const field = page.getByLabel(name, { exact: true });
+          await field.fill(value);
+          await field.press("Enter");
+        }
+        await page
+          .getByRole("checkbox", {
+            name: `Apply ${kind} absorption`,
+            exact: true,
+          })
+          .check();
+        await wait(
+          (s) =>
+            s.integration.corrections[kind].enabled &&
+            s.integration.corrections[kind].parameters.beam_width === 0.12,
+        );
+        await page
+          .getByLabel("Attenuation source", { exact: true })
+          .selectOption("formula");
+        await wait(
+          (s) => s.integration.corrections[kind].material.mode === "formula",
+        );
+        if (kind === "cylinder") {
+          await page
+            .getByRole("checkbox", {
+              name: "Correct capillary wall",
+              exact: true,
+            })
+            .check();
+          await wait(
+            (s) => s.integration.corrections.cylinder.container.enabled,
+          );
+          await page
+            .getByLabel("Container Attenuation source", { exact: true })
+            .selectOption("formula");
+          await wait(
+            (s) =>
+              s.integration.corrections.cylinder.container.material.mode ===
+              "formula",
+          );
+          const wall = page.getByLabel("Wall thickness (mm)", { exact: true });
+          await wall.fill("0.03");
+          await wall.press("Enter");
+          await wait(
+            (s) =>
+              s.integration.corrections.cylinder.parameters.wall_thickness ===
+              0.03,
+          );
+        }
+      }
       await page
         .getByRole("button", { name: "Save project", exact: true })
         .click();
@@ -210,15 +268,21 @@ try {
       assert.deepEqual((await invoke("state")).pattern, before);
       for (const width of [1440, 1100]) {
         await page.setViewportSize({ width, height: 900 });
-        for (const label of ["Transfer", "Plate", "Slab"]) {
+        for (const label of [
+          "Transfer",
+          "Plate",
+          "Slab",
+          "Cylinder",
+          "Sphere",
+        ]) {
           await type(label).click();
           assert.equal(
             await page
               .locator(".integration-tab-corrections")
               .getByRole("checkbox")
               .count(),
-            1,
-            `${label}: one apply control after navigation/reopening`,
+            label === "Cylinder" ? 2 : 1,
+            `${label}: expected apply controls after navigation/reopening`,
           );
           const sizes = await page
             .locator(".integration-tab-corrections")
@@ -230,6 +294,10 @@ try {
             sizes.scroll <= sizes.width + 1,
             `${label} fits at ${width}`,
           );
+          if (label === "Cylinder") {
+            await page.getByLabel("Container Formula or material", { exact: true }).scrollIntoViewIfNeeded();
+            await page.screenshot({ path: path.join(out, `${name}-${width}-capillary.png`) });
+          }
         }
         await page.screenshot({ path: path.join(out, `${name}-${width}.png`) });
       }
@@ -242,7 +310,7 @@ try {
       receipts.push({
         browser: name,
         layouts: [1440, 1100],
-        corrections: ["transfer", "plate", "slab"],
+        corrections: ["transfer", "plate", "slab", "cylinder", "sphere"],
         projectRoundtrip: true,
       });
     } finally {

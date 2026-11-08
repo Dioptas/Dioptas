@@ -806,6 +806,7 @@ impl Session {
                                 "enabled",
                                 "parameters",
                                 "material",
+                                "container",
                                 "defer_integration",
                             ],
                         )?;
@@ -1107,8 +1108,13 @@ impl Session {
             }
             #[cfg(feature = "dioptrin")]
             "integration_diagnostics" => {
+                let mut diagnostics = self.engine.diagnostics();
+                diagnostics
+                    .as_object_mut()
+                    .unwrap()
+                    .extend(self.processing.diagnostics().as_object().unwrap().clone());
                 return Ok(Reply::metadata(
-                    json!({"ok":true,"integrationDiagnostics":self.engine.diagnostics()}),
+                    json!({"ok":true,"integrationDiagnostics":diagnostics}),
                 ));
             }
             "custom_command" if args["operation"] == "list" => {
@@ -1683,9 +1689,12 @@ impl Session {
     }
     fn prepare_processing(&mut self) -> Result<(), String> {
         if let Some(image) = &self.image {
-            let values =
-                self.processing
-                    .values(image, self.image_generation, &self.settings.geometry)?;
+            let values = self.processing.values(
+                image,
+                self.image_generation,
+                &self.settings.geometry,
+                &self.control,
+            )?;
             if self
                 .processed_values
                 .as_ref()

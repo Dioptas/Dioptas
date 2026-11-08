@@ -358,11 +358,14 @@ pub(super) fn load(
     s.processing.factor = finite(&img["factor"], "Image scale factor", -1e12, 1e12)?;
     if let Some(shape) = shape {
         if let Some(drafts) = doc["native_desktop"]["correction_drafts"].as_object() {
-            for kind in ["cbn", "oiadac", "plate", "slab"] {
+            for kind in ["cbn", "oiadac", "plate", "slab", "cylinder", "sphere"] {
                 if let Some(draft) = drafts.get(kind) {
                     let mut args = json!({"kind":kind,"enabled":draft["enabled"],"parameters":draft["parameters"]});
                     if let Some(material) = draft.get("material") {
                         args["material"] = material.clone();
+                    }
+                    if let Some(container) = draft.get("container") {
+                        args["container"] = container.clone();
                     }
                     s.processing.correction(&args, s.settings.calibrated)?;
                 }
@@ -445,7 +448,7 @@ pub(super) fn load(
         if let Some(corrections) = img["corrections"].as_object() {
             for (name, parameters) in corrections {
                 match name.as_str() {
-                    "cbn" | "oiadac" | "plate" | "slab" => {
+                    "cbn" | "oiadac" | "plate" | "slab" | "cylinder" | "sphere" => {
                         let mut parameters = parameters.clone();
                         if name == "cbn"
                             && let Some(value) = parameters
@@ -455,10 +458,25 @@ pub(super) fn load(
                         {
                             parameters["cbn_abs_length"] = value;
                         }
-                        s.processing.correction(
-                            &json!({"kind":name,"enabled":true,"parameters":parameters}),
-                            s.settings.calibrated,
-                        )?;
+                        let mut args = json!({"kind":name,"enabled":true,"parameters":parameters});
+                        if name == "cylinder"
+                            && doc["native_desktop"]["correction_drafts"]["cylinder"]["container"]["enabled"]
+                                == false
+                            && parameters["container_absorption_coefficient"] == 0.0
+                        {
+                            // The legacy active correction stores zero when the wall is
+                            // disabled. Retain its native manual coefficient for re-enable.
+                            args["parameters"]["container_absorption_coefficient"] = doc["native_desktop"]["correction_drafts"]["cylinder"]["parameters"]["container_absorption_coefficient"].clone();
+                        }
+
+                        if name == "cylinder"
+                            && doc["native_desktop"]["correction_drafts"]["cylinder"]
+                                .get("container")
+                                .is_none()
+                        {
+                            args["container"] = json!({"enabled":parameters["container_absorption_coefficient"].as_f64().unwrap_or(0.)>0. && parameters["wall_thickness"].as_f64().unwrap_or(0.)>0.});
+                        }
+                        s.processing.correction(&args, s.settings.calibrated)?;
                     }
                     "transfer" => {} // Restored above, including its owned reference images.
                     "flat_field" => {
@@ -843,13 +861,17 @@ pub(super) fn save(
     );
     let processing = s.processing.details();
     let mut corrections = json!({});
-    for kind in ["cbn", "oiadac", "plate", "slab"] {
+    for kind in ["cbn", "oiadac", "plate", "slab", "cylinder", "sphere"] {
         if processing["corrections"][kind]["enabled"] == true {
             let mut parameters = processing["corrections"][kind]["parameters"].clone();
             if kind == "cbn"
                 && let Some(value) = parameters.as_object_mut().unwrap().remove("cbn_abs_length")
             {
                 parameters["seat_abs_length"] = value;
+            }
+            if kind == "cylinder" && processing["corrections"][kind]["container"]["enabled"] != true
+            {
+                parameters["container_absorption_coefficient"] = json!(0.);
             }
             corrections[kind] = parameters;
         }
@@ -870,6 +892,10 @@ pub(super) fn save(
     let mut physical = serde_json::to_value(owned).map_err(|e| e.to_string())?;
     physical["detector"] = encode_detector(g.detector.as_deref(), payloads)?;
     native["physical_geometry"] = physical;
+    #[cfg(feature = "dioptrin")]
+    {
+        native["sample_absorption"] = crate::sample_absorption::provenance();
+    }
     native["attenuation_data"] = serde_json::from_str(include_str!("../data/attenuation.json"))
         .map_err(|e| e.to_string())?;
     native["original_detector"] = encode_detector(settings.original_detector.as_deref(), payloads)?;

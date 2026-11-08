@@ -24,6 +24,8 @@ mod phase_sites;
 mod phases;
 mod processing;
 pub mod protocol;
+#[cfg(feature = "dioptrin")]
+mod sample_absorption;
 mod scan;
 #[cfg(feature = "dioptrin")]
 mod sector;

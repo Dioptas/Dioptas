@@ -343,8 +343,12 @@ impl Session {
                 let mut candidates = Vec::new();
                 for ring in 1..=total {
                     control.check()?;
-                    let current =
-                        processing.values(image, self.image_generation, &candidate.geometry)?;
+                    let current = processing.values(
+                        image,
+                        self.image_generation,
+                        &candidate.geometry,
+                        &self.control,
+                    )?;
                     let changed = !Arc::ptr_eq(&current, &data);
                     if changed {
                         data_generation += 1;

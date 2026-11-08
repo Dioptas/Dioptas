@@ -852,6 +852,7 @@ export default function App() {
             `Saved ${result.savedPath.split(/[\\/]/).at(-1)} · unapplied option drafts remain in this session`,
           );
         }
+        if (result.correctionNotice) setNotice(result.correctionNotice);
         if (command === "open_calibration" && !result.cancelled) {
           setNotice(
             `Loaded calibration: ${result.state?.calibrationName ?? "PONI"}`,

@@ -191,3 +191,8 @@ coverage and cross-platform native installer qualification remain.
 Batch HDF5 preserves processed series; `.dio` retains supported project state. Numerical
 fixture agreement is not a universal scientific equivalence proof. These gaps
 are explicit native errors; the backend never silently switches to Python.
+
+Cylinder and sphere sample absorption, including optional capillary walls, are
+qualified separately in the [round-sample ledger](NATIVE_ROUND_SAMPLE_CORRECTION_PARITY.md).
+They use corrected physical ray paths and uniform footprints in Rust, with
+project ownership, propagated counting std and independent numerical checks.

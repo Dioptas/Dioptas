@@ -172,7 +172,22 @@ impl Session {
             "open_project" => {
                 check_keys(args, &["path"])?;
                 self.open_native_project(path(args)?)?;
-                Ok(Some(self.configuration_reply()))
+                let legacy = self.project.document["configurations"]
+                    .as_array()
+                    .is_some_and(|docs| {
+                        docs.iter().any(|doc| {
+                            doc["native_desktop"]["sample_absorption"].is_null()
+                                && ["cylinder", "sphere"]
+                                    .iter()
+                                    .any(|kind| doc["img"]["corrections"].get(kind).is_some())
+                        })
+                    });
+                let mut reply = self.configuration_reply();
+                if legacy {
+                    reply.result["correctionNotice"] =
+                        json!("Recalculated legacy sample absorption using corrected geometry");
+                }
+                Ok(Some(reply))
             }
             "configuration" => {
                 check_keys(args, &["operation", "index", "name"])?;

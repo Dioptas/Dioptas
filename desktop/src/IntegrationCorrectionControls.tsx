@@ -54,6 +54,7 @@ export function IntegrationCorrectionControls({
       enabled?: boolean;
       parameters?: Record<string, number>;
       material?: Partial<CorrectionMaterial>;
+      container?: { enabled?: boolean; material?: Partial<CorrectionMaterial> };
     },
   ) => {
     const task = tail.current.then(() => {
@@ -66,6 +67,22 @@ export function IntegrationCorrectionControls({
           parameters: { ...correction.parameters, ...patch.parameters },
           ...(patch.material
             ? { material: { ...correction.material, ...patch.material } }
+            : {}),
+          ...(patch.container
+            ? {
+                container: {
+                  ...correction.container,
+                  ...patch.container,
+                  ...(patch.container.material
+                    ? {
+                        material: {
+                          ...correction.container?.material,
+                          ...patch.container.material,
+                        },
+                      }
+                    : {}),
+                },
+              }
             : {}),
         },
         "",
@@ -92,12 +109,16 @@ export function IntegrationCorrectionControls({
       oiadac: "detector absorption",
       plate: "plate absorption",
       slab: "slab self-absorption",
+      cylinder: "cylinder absorption",
+      sphere: "sphere absorption",
     } as Record<string, string>
   )[tab];
   const field = (key: string) => {
     if (
-      key === "absorption_coefficient" &&
-      correction.material?.mode === "formula" &&
+      (key === "absorption_coefficient"
+        ? correction.material?.mode === "formula"
+        : key === "container_absorption_coefficient" &&
+          correction.container?.material.mode === "formula") &&
       !correction.enabled
     )
       return null;
@@ -117,7 +138,9 @@ export function IntegrationCorrectionControls({
           !state.hasImage ||
           switching === tab ||
           (key === "absorption_coefficient" &&
-            correction.material?.mode === "formula")
+            correction.material?.mode === "formula") ||
+          (key === "container_absorption_coefficient" &&
+            correction.container?.material.mode === "formula")
         }
         onCommit={async (value) => {
           if (correction.enabled)
@@ -145,6 +168,8 @@ export function IntegrationCorrectionControls({
           ["transfer", "Transfer"],
           ["plate", "Plate"],
           ["slab", "Slab"],
+          ["cylinder", "Cylinder"],
+          ["sphere", "Sphere"],
           ["cbn", "cBN seat"],
           ["oiadac", "Detector absorption"],
         ].map(([key, label]) => (
@@ -259,7 +284,7 @@ export function IntegrationCorrectionControls({
                 Load an image and calibration to use this correction.
               </p>
             )}
-            {(tab === "plate" || tab === "slab") && correction.material && (
+            {correction.material && (
               <MaterialControls
                 key={`material-${tab}`}
                 material={correction.material}
@@ -274,6 +299,14 @@ export function IntegrationCorrectionControls({
                   : "Self-absorption integrated through a uniformly scattering slab."}{" "}
                 Tilt is relative to the incident beam; rotation is about the
                 beam.
+              </p>
+            )}
+            {(tab === "cylinder" || tab === "sphere") && (
+              <p className="integration-note">
+                Beam width 0 uses a pencil beam; a width at least twice the
+                radius illuminates the full sample.
+                {tab === "cylinder" &&
+                  " Axis tilt is from vertical; rotation 0° tilts toward the incident beam."}
               </p>
             )}
             {tab === "cbn" ? (
@@ -291,8 +324,46 @@ export function IntegrationCorrectionControls({
               ))
             ) : (
               <div className="processing-parameter-grid">
-                {Object.keys(correction.fields).map(field)}
+                {Object.keys(correction.fields)
+                  .filter(
+                    (key) =>
+                      ![
+                        "container_absorption_coefficient",
+                        "wall_thickness",
+                      ].includes(key),
+                  )
+                  .map(field)}
               </div>
+            )}
+            {tab === "cylinder" && correction.container && (
+              <section
+                className="processing-parameter-group"
+                aria-label="Capillary wall"
+              >
+                <h3>Capillary wall</h3>
+                <ProcessingToggle
+                  label="Correct capillary wall"
+                  checked={correction.container.enabled}
+                  disabled={!state.hasImage}
+                  onCommit={(enabled) => edit(tab, { container: { enabled } })}
+                />
+                {correction.container.enabled && (
+                  <>
+                    <MaterialControls
+                      prefix="Container "
+                      material={correction.container.material}
+                      disabled={!state.hasImage || switching === tab}
+                      onCommit={(material) =>
+                        edit(tab, { container: { material } })
+                      }
+                    />
+                    <div className="processing-parameter-grid">
+                      {field("wall_thickness")}
+                      {field("container_absorption_coefficient")}
+                    </div>
+                  </>
+                )}
+              </section>
             )}
           </div>
         )}
@@ -305,7 +376,9 @@ function MaterialControls({
   material,
   disabled,
   onCommit,
+  prefix = "",
 }: {
+  prefix?: string;
   material: CorrectionMaterial;
   disabled: boolean;
   onCommit: (patch: Partial<CorrectionMaterial>) => Promise<void>;
@@ -317,7 +390,7 @@ function MaterialControls({
       <label className="field-label processing-material-input">
         <span>Attenuation source</span>
         <Select
-          aria-label="Attenuation source"
+          aria-label={`${prefix}Attenuation source`}
           value={material.mode}
           disabled={disabled}
           onChange={(e) =>
@@ -335,7 +408,7 @@ function MaterialControls({
           <label className="field-label processing-material-input">
             <span>Formula or material</span>
             <Input
-              aria-label="Formula or material"
+              aria-label={`${prefix}Formula or material`}
               value={formula}
               disabled={disabled}
               maxLength={256}
@@ -354,7 +427,7 @@ function MaterialControls({
             />
           </label>
           <ProcessingNumberField
-            label="Density (g/cm³)"
+            label={`${prefix}Density (g/cm³)`}
             value={material.density}
             min={0}
             max={100000}
@@ -363,7 +436,7 @@ function MaterialControls({
           />
           <p className="integration-note">
             μ follows the calibration wavelength. Density 0 uses the material
-            database; enable to calculate.
+            database.
           </p>
         </>
       )}

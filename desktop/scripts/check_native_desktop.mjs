@@ -113,6 +113,7 @@ if (selected.has("--references")) {
     "processing",
     "uncertainty",
     "material",
+    "round_absorption",
     "series",
     "phase",
     "io_history",

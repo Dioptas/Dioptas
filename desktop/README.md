@@ -61,7 +61,9 @@ and solid-angle correction. Combined counting errors use independent pixel varia
 backgrounds, detector factors and image corrections. See the
 [correction and uncertainty ledger](NATIVE_CORRECTION_UNCERTAINTY_PARITY.md)
 for transfer/plate/slab controls, project ownership, full data-flow tests and
-statistical assumptions.
+statistical assumptions. Cylinder, sphere and optional capillary-wall absorption are
+also native; see the [round-sample qualification](NATIVE_ROUND_SAMPLE_CORRECTION_PARITY.md)
+for their footprint models and legacy-project recalculation notice.
 
 Integration and Map use the same `RasterView` and `PatternView` renderers.
 `diffractionPlotSetup.ts` prepares their common detector mask/click properties
