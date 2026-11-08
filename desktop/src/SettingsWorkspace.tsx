@@ -1,3 +1,4 @@
+import { Button, Select } from "./ui";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -130,13 +131,14 @@ export function SettingsWorkspace({
     >
       <header className="settings-header">
         <h1 id="settings-title">Settings</h1>
-        <button
-          className="quiet settings-return"
+        <Button
+          variant="quiet"
+          className="settings-return"
           aria-label="Close settings"
           onClick={onClose}
         >
           <ArrowLeft size={16} /> Back to {returnLabel}
-        </button>
+        </Button>
       </header>
       <div className="settings-layout">
         <div className="settings-category-column">
@@ -148,7 +150,7 @@ export function SettingsWorkspace({
             aria-orientation="vertical"
           >
             {categories.map(({ name, icon: Icon }, index) => (
-              <button
+              <Button
                 key={name}
                 id={`settings-tab-${index === 2 ? "shortcuts" : name.toLowerCase().replaceAll(" ", "-")}`}
                 role="tab"
@@ -177,7 +179,7 @@ export function SettingsWorkspace({
               >
                 <Icon size={18} />
                 <span>{name}</span>
-              </button>
+              </Button>
             ))}
           </div>
           <p className="settings-navigation-note">
@@ -208,7 +210,7 @@ export function SettingsWorkspace({
                 aria-label="Interface text size"
               >
                 {[false, true].map((large) => (
-                  <button
+                  <Button
                     key={String(large)}
                     className="settings-size-option"
                     aria-pressed={largeText === large}
@@ -231,7 +233,7 @@ export function SettingsWorkspace({
                         }}
                       />
                     </span>
-                  </button>
+                  </Button>
                 ))}
               </div>
             </section>
@@ -245,9 +247,12 @@ export function SettingsWorkspace({
                   <label htmlFor="settings-processing-engine">
                     Processing engine
                   </label>
-                  <p>Peak searches and detector-geometry fitting.</p>
+                  <p>
+                    Peak searches, geometry fitting, patterns and cakes.
+                    Unsupported integration options use pyFAI.
+                  </p>
                 </div>
-                <select
+                <Select
                   id="settings-processing-engine"
                   value={state?.calibration.engine ?? "pyfai"}
                   disabled={!ready}
@@ -273,7 +278,7 @@ export function SettingsWorkspace({
                       {!engine.available ? " · not installed" : ""}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
             </section>
             <section className="settings-card">
@@ -288,7 +293,7 @@ export function SettingsWorkspace({
                   </label>
                   <p>{patternLabel}. Also available in the plot’s corner.</p>
                 </div>
-                <select
+                <Select
                   id="settings-pattern-zoom"
                   aria-label="Pattern zoom mode"
                   value={patternZoom}
@@ -298,7 +303,7 @@ export function SettingsWorkspace({
                 >
                   <option value="rectangle">Rectangle</option>
                   <option value="horizontal">X-range</option>
-                </select>
+                </Select>
               </div>
               <p className="settings-detail">
                 {patternZoom === "horizontal"

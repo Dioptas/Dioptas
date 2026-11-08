@@ -15,31 +15,12 @@
   max-height: calc(100vh - 16px);
   overflow: auto;
   padding: 12px;
-  color: #dce2e7;
-  background: #232323;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  box-shadow: 0 8px 24px #0006;
-  font-size: var(--text-small);
-}
-.overlay-color-scale-dialog::backdrop {
-  background: transparent;
 }
 .overlay-color-scale-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-}
-.overlay-color-scale-heading h2 {
-  font-size: inherit;
-  margin: 0;
-}
-.overlay-color-scale-heading button {
-  min-height: 24px;
-  padding: 3px;
-  display: grid;
-  place-items: center;
 }
 .overlay-color-scale-reverse {
   display: flex;

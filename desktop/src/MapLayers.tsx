@@ -1,3 +1,4 @@
+import { Button, Input, Select } from "./ui";
 import { useEffect, useState, useRef, type CSSProperties } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { DataTable, TableActions, TableScroll } from "./DataTable";
@@ -39,7 +40,7 @@ function Cell({
     setDraft(shown);
   };
   return (
-    <input
+    <Input
       aria-label={label}
       type={numeric ? "number" : "text"}
       step={numeric ? "any" : undefined}
@@ -199,7 +200,7 @@ export function MapLayers({
       setSelected(map.rois[0]?.name ?? "");
   }, [map.active, map.rois.map((r) => r.name).join("\0")]);
   const show = (layer: string, color?: string) => (
-    <input
+    <Input
       type="radio"
       name="map-visible-layer"
       aria-label={`Show map layer ${layer}`}
@@ -217,22 +218,22 @@ export function MapLayers({
           <small data-testid="map-window-unit">{unitLabel(unit)}</small>
         </span>
         <TableActions aria-label="Window actions">
-          <button
+          <Button
             aria-label="Add window"
             title="Add a pattern window and map layer"
             disabled={!ready}
             onClick={() => run("map_roi", { op: "add" })}
           >
             <Plus size={16} />
-          </button>
-          <button
+          </Button>
+          <Button
             aria-label="Remove window"
             title="Remove selected window"
             disabled={!ready || map.rois.length < 2 || !selected}
             onClick={() => run("map_roi", { op: "remove", name: selected })}
           >
             <Trash2 size={15} />
-          </button>
+          </Button>
         </TableActions>
       </div>
       {rangeError && (
@@ -277,7 +278,7 @@ export function MapLayers({
                 >
                   <td>{show(roi.name, roi.color)}</td>
                   <td>
-                    <input
+                    <Input
                       type="color"
                       aria-label={`Window ${roi.name} color`}
                       title={`Color for window ${roi.name}`}
@@ -321,7 +322,7 @@ export function MapLayers({
                     />
                   </td>
                   <td>
-                    <select
+                    <Select
                       aria-label={`Window ${roi.name} value`}
                       disabled={!canEdit}
                       value={roi.reduction + (roi.background ? ":bkg" : "")}
@@ -345,7 +346,7 @@ export function MapLayers({
                           {roi.reduction} − bkg
                         </option>
                       )}
-                    </select>
+                    </Select>
                   </td>
                 </tr>
               );
@@ -356,7 +357,7 @@ export function MapLayers({
       <div className="map-section-heading">
         <span>Expression layers</span>
         <TableActions aria-label="Expression actions">
-          <button
+          <Button
             aria-label="Remove expression"
             title="Remove selected expression"
             disabled={!ready || !map.expressions[expressionSelection]}
@@ -365,7 +366,7 @@ export function MapLayers({
             }
           >
             <Trash2 size={15} />
-          </button>
+          </Button>
         </TableActions>
       </div>
       <TableScroll className="map-expression-scroll">
@@ -434,7 +435,7 @@ export function MapLayers({
       >
         <label>
           Name
-          <input
+          <Input
             aria-label="Expression layer name"
             value={name}
             disabled={!canEdit}
@@ -444,7 +445,7 @@ export function MapLayers({
         </label>
         <label>
           Expression
-          <input
+          <Input
             aria-label="Map expression"
             value={expression}
             disabled={!canEdit}
@@ -452,13 +453,13 @@ export function MapLayers({
             spellCheck={false}
           />
         </label>
-        <button
+        <Button
           aria-label="Apply expression"
           title="Add or update expression layer"
           disabled={!ready || !name.trim() || !expression.trim()}
         >
           <Plus size={16} />
-        </button>
+        </Button>
       </form>
     </div>
   );

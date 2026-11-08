@@ -1,3 +1,4 @@
+import { DialogHeader, Button, Dialog, Input, Portal } from "./ui";
 import { matchesRecordAuthor, recordAuthors } from "./phaseAuthorSearch";
 import { Star } from "lucide-react";
 import {
@@ -7,7 +8,7 @@ import {
   useState,
   type KeyboardEvent,
 } from "react";
-import { createPortal } from "react-dom";
+
 import { DataTable, TableScroll } from "./DataTable";
 import type { IntegrationRun } from "./integration";
 import type { DatabaseMaterial, DatabaseRecord } from "./phaseDatabaseTypes";
@@ -166,12 +167,7 @@ export function PhaseDatabase({
   const materialTable = useRef<HTMLTableElement>(null);
   const recordTable = useRef<HTMLTableElement>(null);
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
-    dialog.current?.showModal();
     search.current?.focus();
-    return () => {
-      previous?.focus();
-    };
   }, []);
   useEffect(() => {
     const q = query.trim();
@@ -410,14 +406,14 @@ export function PhaseDatabase({
           : "none"
       }
     >
-      <button
+      <Button
         onClick={() =>
           update({ key, descending: sort?.key === key && !sort.descending })
         }
       >
         {label}
         {sort?.key === key ? (sort.descending ? " ↓" : " ↑") : ""}
-      </button>
+      </Button>
     </th>
   );
   const empty = query.trim()
@@ -427,439 +423,461 @@ export function PhaseDatabase({
       : view === "Favourites"
         ? "No favourites yet. Choose All or search, select a material and mark its star."
         : "No materials in this view.";
-  return createPortal(
-    <dialog
-      ref={dialog}
-      className="phase-dialog phase-database-dialog"
-      aria-label="EoS Material Database"
-      onCancel={(e) => {
-        e.preventDefault();
-        onClose();
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") {
+  return (
+    <Portal>
+      <Dialog
+        open
+        ref={dialog}
+        className="phase-dialog phase-database-dialog"
+        aria-label="EoS Material Database"
+        onCancel={(e) => {
           e.preventDefault();
-          e.stopPropagation();
           onClose();
-          return;
-        }
-        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") {
-          e.preventDefault();
-          search.current?.focus();
-          search.current?.select();
-        }
-      }}
-    >
-      <header>
-        <h2>EoS Material Database</h2>
-        <button aria-label="Close EoS Material Database" onClick={onClose}>
-          ×
-        </button>
-      </header>
-      <div className="phase-database-body">
-        <div className="phase-database-search">
-          <input
-            ref={search}
-            type="search"
-            aria-label="Search materials"
-            placeholder="Search material, formula or author…"
-            title="Search material names, formulas, aliases or EoS authors."
-            value={query}
-            onChange={(e) => changeQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "ArrowDown") {
-                e.preventDefault();
-                (
-                  materialTable.current?.querySelector(
-                    'tr[aria-selected="true"]',
-                  ) as HTMLElement
-                )?.focus();
-              }
-            }}
-          />
-        </div>
-        <div className="phase-database-tools">
-          <div role="tablist" aria-label="Material views">
-            {views.map((name, i) => (
-              <button
-                key={name}
-                role="tab"
-                tabIndex={view === name ? 0 : -1}
-                aria-selected={view === name}
-                onClick={() => {
-                  setView(name);
-                  setMaterialSort(null);
-                  if (beforeSearch.current !== null)
-                    beforeSearch.current = name;
-                }}
-                onKeyDown={(e) => {
-                  if (
-                    !["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)
-                  )
-                    return;
-                  e.preventDefault();
-                  const next =
-                    e.key === "Home"
-                      ? 0
-                      : e.key === "End"
-                        ? 2
-                        : (i + (e.key === "ArrowRight" ? 1 : 2)) % 3;
-                  setView(views[next]);
-                  setMaterialSort(null);
-                  if (beforeSearch.current !== null)
-                    beforeSearch.current = views[next];
-                  (
-                    e.currentTarget.parentElement?.children[next] as HTMLElement
-                  )?.focus();
-                }}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
-          {materialSort && (
-            <button
-              className="phase-database-sort-reset"
-              onClick={() => setMaterialSort(null)}
-            >
-              Restore{" "}
-              {query.trim()
-                ? "search ranking"
-                : view === "Recent"
-                  ? "recent order"
-                  : "alphabetical order"}
-            </button>
-          )}
-          <span
-            className="phase-database-result-count"
-            aria-label="Material result count"
-          >
-            {pending
-              ? "…"
-              : `${shown.length} ${shown.length === 1 ? "result" : "results"}`}
-          </span>
-          <button
-            className="icon-button phase-database-favourite"
-            aria-label={
-              material && favourites.includes(material.id)
-                ? "Remove from favourites"
-                : "Add to favourites"
-            }
-            title={
-              material && favourites.includes(material.id)
-                ? "Remove from favourites"
-                : "Add to favourites"
-            }
-            aria-pressed={!!material && favourites.includes(material.id)}
-            disabled={!material}
-            onClick={() => {
-              const ids = favourites.includes(material.id)
-                ? favourites.filter((id) => id !== material.id)
-                : [...favourites, material.id];
-              setFavourites(ids);
-              saveIds("dioptas-phase-favourites", ids);
-            }}
-          >
-            <Star
-              size={17}
-              aria-hidden="true"
-              fill={
-                material && favourites.includes(material.id)
-                  ? "currentColor"
-                  : "none"
-              }
-            />
-          </button>
-        </div>
-        <section
-          className="phase-database-section phase-database-materials"
-          aria-label="Material results"
-          aria-busy={pending}
-        >
-          <TableScroll>
-            <DataTable ref={materialTable} aria-label="Database materials">
-              <thead>
-                <tr>
-                  {sortHead("Material", "name", materialSort, setMaterialSort)}
-                  {sortHead(
-                    "Space group",
-                    "spaceGroup",
-                    materialSort,
-                    setMaterialSort,
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {shown.map((m, i) => (
-                  <tr
-                    key={m.id}
-                    aria-selected={m.id === material?.id}
-                    tabIndex={m.id === material?.id ? 0 : -1}
-                    onClick={() => selectMaterial(m.id)}
-                    onDoubleClick={() => {
-                      load(
-                        m.id === material?.id ? reference : m.defaultReference,
-                        m,
-                      );
-                    }}
-                    onKeyDown={(e) =>
-                      rowKey(
-                        e,
-                        (n) => selectMaterial(shown[n].id),
-                        i,
-                        shown.length,
-                        () => load(),
-                      )
-                    }
-                  >
-                    <td title={m.name}>{m.name}</td>
-                    <td>{spaceGroup(m.spaceGroup)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </DataTable>
-            {!shown.length && (
-              <p role="status" className="phase-database-empty">
-                {pending ? searchError || "Searching materials…" : empty}
-                {searchError && (
-                  <button
-                    onClick={() => {
-                      setSearchError("");
-                      setRetry((n) => n + 1);
-                    }}
-                  >
-                    Retry search
-                  </button>
-                )}
-              </p>
-            )}
-          </TableScroll>
-        </section>
-        <section className="phase-database-section">
-          <div className="phase-database-heading">
-            <h3>
-              {material
-                ? `${material.name} — EoS records (${records.length}${recordQuery.trim() || authorQuery ? ` / ${material.references.length}` : ""})`
-                : "Equation of state records"}
-            </h3>
-            <input
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            e.stopPropagation();
+            onClose();
+            return;
+          }
+          if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") {
+            e.preventDefault();
+            search.current?.focus();
+            search.current?.select();
+          }
+        }}
+      >
+        <DialogHeader
+          title="EoS Material Database"
+          closeLabel="Close EoS Material Database"
+          onClose={onClose}
+        />
+        <div className="phase-database-body">
+          <div className="phase-database-search">
+            <Input
+              ref={search}
               type="search"
-              className="phase-database-record-filter"
-              aria-label="Filter EoS records"
-              placeholder={
-                authorQuery
-                  ? `Filter ${authorQuery} records…`
-                  : "Filter records…"
-              }
-              title={
-                authorQuery
-                  ? `Showing only records matching author ${authorQuery}. Refine by reference, EoS or thermal model; clear the upper author search to show all authors.`
-                  : "Filter authors, year, EoS or thermal model. PVT and TERM find thermal records."
-              }
-              value={recordQuery}
-              disabled={!material}
-              onChange={(e) =>
-                setRecordFilter({ material: material.id, text: e.target.value })
-              }
+              aria-label="Search materials"
+              placeholder="Search material, formula or author…"
+              title="Search material names, formulas, aliases or EoS authors."
+              value={query}
+              onChange={(e) => changeQuery(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "ArrowDown") {
                   e.preventDefault();
-                  const row =
-                    recordTable.current?.querySelector<HTMLTableRowElement>(
-                      'tbody tr[aria-selected="true"]',
-                    ) ||
-                    recordTable.current?.querySelector<HTMLTableRowElement>(
-                      "tbody tr",
-                    );
-                  row?.focus({ preventScroll: true });
-                  keepVisible(row || null);
+                  (
+                    materialTable.current?.querySelector(
+                      'tr[aria-selected="true"]',
+                    ) as HTMLElement
+                  )?.focus();
                 }
               }}
             />
-            {recordSort && (
-              <button onClick={() => setRecordSort(null)}>
-                Restore record order
-              </button>
-            )}
           </div>
-          <TableScroll>
-            <DataTable
-              ref={recordTable}
-              aria-label="Material EoS records"
-              className="phase-database-records"
-            >
-              <thead>
-                <tr>
-                  {sortHead("Reference", "authors", recordSort, setRecordSort)}
-                  {sortHead("EoS", "eos", recordSort, setRecordSort)}
-                  {sortHead("Thermal", "thermal", recordSort, setRecordSort)}
-                  {sortHead(
-                    "Fit P range",
-                    "pressureRange",
-                    recordSort,
-                    setRecordSort,
-                  )}
-                  {hasVariants &&
-                    sortHead("Variant", "variant", recordSort, setRecordSort)}
-                </tr>
-              </thead>
-              <tbody>
-                {records.map(({ r, index }, i) => (
-                  <tr
-                    key={index}
-                    title={r.label}
-                    data-reference={index}
-                    aria-selected={index === reference}
-                    tabIndex={
-                      index === reference || (reference < 0 && i === 0) ? 0 : -1
-                    }
-                    onClick={() =>
-                      setChoice({ material: material.id, reference: index })
-                    }
-                    onDoubleClick={() => {
-                      load(index);
-                    }}
-                    onKeyDown={(e) =>
-                      rowKey(
-                        e,
-                        (n) =>
-                          setChoice({
-                            material: material.id,
-                            reference: records[n].index,
-                          }),
-                        i,
-                        records.length,
-                        () => load(index),
+          <div className="phase-database-tools">
+            <div role="tablist" aria-label="Material views">
+              {views.map((name, i) => (
+                <Button
+                  key={name}
+                  role="tab"
+                  tabIndex={view === name ? 0 : -1}
+                  aria-selected={view === name}
+                  onClick={() => {
+                    setView(name);
+                    setMaterialSort(null);
+                    if (beforeSearch.current !== null)
+                      beforeSearch.current = name;
+                  }}
+                  onKeyDown={(e) => {
+                    if (
+                      !["ArrowLeft", "ArrowRight", "Home", "End"].includes(
+                        e.key,
                       )
-                    }
-                  >
-                    <td className="phase-database-reference">
-                      <span>
-                        {r.authors
-                          ? `${r.authors}${r.year ? ` (${r.year})` : ""}`
-                          : r.label}
-                      </span>
-                      {index === material.defaultReference && (
-                        <small>Default</small>
-                      )}
-                    </td>
-                    <td title={r.thermal ? `${r.eos} · ${r.thermal}` : r.eos}>
-                      {r.eos}
-                    </td>
-                    <td
-                      className="phase-database-thermal"
-                      title={r.thermal || "No thermal model"}
-                      aria-label={
-                        r.thermal
-                          ? `Thermal model: ${r.thermal}`
-                          : "No thermal model"
-                      }
-                    >
-                      {r.thermal ? "✓" : "—"}
-                    </td>
-                    <td
-                      title={
-                        r.pressureRange || "Fit pressure range not recorded"
-                      }
-                    >
-                      {r.pressureRange || "—"}
-                    </td>
-                    {hasVariants && (
-                      <td className="phase-database-variant" title={r.label}>
-                        {variant(r, material.references)}
-                      </td>
+                    )
+                      return;
+                    e.preventDefault();
+                    const next =
+                      e.key === "Home"
+                        ? 0
+                        : e.key === "End"
+                          ? 2
+                          : (i + (e.key === "ArrowRight" ? 1 : 2)) % 3;
+                    setView(views[next]);
+                    setMaterialSort(null);
+                    if (beforeSearch.current !== null)
+                      beforeSearch.current = views[next];
+                    (
+                      e.currentTarget.parentElement?.children[
+                        next
+                      ] as HTMLElement
+                    )?.focus();
+                  }}
+                >
+                  {name}
+                </Button>
+              ))}
+            </div>
+            {materialSort && (
+              <Button
+                className="phase-database-sort-reset"
+                onClick={() => setMaterialSort(null)}
+              >
+                Restore{" "}
+                {query.trim()
+                  ? "search ranking"
+                  : view === "Recent"
+                    ? "recent order"
+                    : "alphabetical order"}
+              </Button>
+            )}
+            <span
+              className="phase-database-result-count"
+              aria-label="Material result count"
+            >
+              {pending
+                ? "…"
+                : `${shown.length} ${shown.length === 1 ? "result" : "results"}`}
+            </span>
+            <Button
+              className="icon-button phase-database-favourite"
+              aria-label={
+                material && favourites.includes(material.id)
+                  ? "Remove from favourites"
+                  : "Add to favourites"
+              }
+              title={
+                material && favourites.includes(material.id)
+                  ? "Remove from favourites"
+                  : "Add to favourites"
+              }
+              aria-pressed={!!material && favourites.includes(material.id)}
+              disabled={!material}
+              onClick={() => {
+                const ids = favourites.includes(material.id)
+                  ? favourites.filter((id) => id !== material.id)
+                  : [...favourites, material.id];
+                setFavourites(ids);
+                saveIds("dioptas-phase-favourites", ids);
+              }}
+            >
+              <Star
+                size={17}
+                aria-hidden="true"
+                fill={
+                  material && favourites.includes(material.id)
+                    ? "currentColor"
+                    : "none"
+                }
+              />
+            </Button>
+          </div>
+          <section
+            className="phase-database-section phase-database-materials"
+            aria-label="Material results"
+            aria-busy={pending}
+          >
+            <TableScroll>
+              <DataTable ref={materialTable} aria-label="Database materials">
+                <thead>
+                  <tr>
+                    {sortHead(
+                      "Material",
+                      "name",
+                      materialSort,
+                      setMaterialSort,
+                    )}
+                    {sortHead(
+                      "Space group",
+                      "spaceGroup",
+                      materialSort,
+                      setMaterialSort,
                     )}
                   </tr>
-                ))}
-              </tbody>
-            </DataTable>
-            {!records.length && (
-              <p className="phase-database-empty">
+                </thead>
+                <tbody>
+                  {shown.map((m, i) => (
+                    <tr
+                      key={m.id}
+                      aria-selected={m.id === material?.id}
+                      tabIndex={m.id === material?.id ? 0 : -1}
+                      onClick={() => selectMaterial(m.id)}
+                      onDoubleClick={() => {
+                        load(
+                          m.id === material?.id
+                            ? reference
+                            : m.defaultReference,
+                          m,
+                        );
+                      }}
+                      onKeyDown={(e) =>
+                        rowKey(
+                          e,
+                          (n) => selectMaterial(shown[n].id),
+                          i,
+                          shown.length,
+                          () => load(),
+                        )
+                      }
+                    >
+                      <td title={m.name}>{m.name}</td>
+                      <td>{spaceGroup(m.spaceGroup)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </DataTable>
+              {!shown.length && (
+                <p role="status" className="phase-database-empty">
+                  {pending ? searchError || "Searching materials…" : empty}
+                  {searchError && (
+                    <Button
+                      onClick={() => {
+                        setSearchError("");
+                        setRetry((n) => n + 1);
+                      }}
+                    >
+                      Retry search
+                    </Button>
+                  )}
+                </p>
+              )}
+            </TableScroll>
+          </section>
+          <section className="phase-database-section">
+            <div className="phase-database-heading">
+              <h3>
                 {material
-                  ? recordQuery.trim()
-                    ? "No records match this filter."
-                    : "No EoS records for this material."
-                  : "Select a material."}
+                  ? `${material.name} — EoS records (${records.length}${recordQuery.trim() || authorQuery ? ` / ${material.references.length}` : ""})`
+                  : "Equation of state records"}
+              </h3>
+              <Input
+                type="search"
+                className="phase-database-record-filter"
+                aria-label="Filter EoS records"
+                placeholder={
+                  authorQuery
+                    ? `Filter ${authorQuery} records…`
+                    : "Filter records…"
+                }
+                title={
+                  authorQuery
+                    ? `Showing only records matching author ${authorQuery}. Refine by reference, EoS or thermal model; clear the upper author search to show all authors.`
+                    : "Filter authors, year, EoS or thermal model. PVT and TERM find thermal records."
+                }
+                value={recordQuery}
+                disabled={!material}
+                onChange={(e) =>
+                  setRecordFilter({
+                    material: material.id,
+                    text: e.target.value,
+                  })
+                }
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    const row =
+                      recordTable.current?.querySelector<HTMLTableRowElement>(
+                        'tbody tr[aria-selected="true"]',
+                      ) ||
+                      recordTable.current?.querySelector<HTMLTableRowElement>(
+                        "tbody tr",
+                      );
+                    row?.focus({ preventScroll: true });
+                    keepVisible(row || null);
+                  }
+                }}
+              />
+              {recordSort && (
+                <Button onClick={() => setRecordSort(null)}>
+                  Restore record order
+                </Button>
+              )}
+            </div>
+            <TableScroll>
+              <DataTable
+                ref={recordTable}
+                aria-label="Material EoS records"
+                className="phase-database-records"
+              >
+                <thead>
+                  <tr>
+                    {sortHead(
+                      "Reference",
+                      "authors",
+                      recordSort,
+                      setRecordSort,
+                    )}
+                    {sortHead("EoS", "eos", recordSort, setRecordSort)}
+                    {sortHead("Thermal", "thermal", recordSort, setRecordSort)}
+                    {sortHead(
+                      "Fit P range",
+                      "pressureRange",
+                      recordSort,
+                      setRecordSort,
+                    )}
+                    {hasVariants &&
+                      sortHead("Variant", "variant", recordSort, setRecordSort)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {records.map(({ r, index }, i) => (
+                    <tr
+                      key={index}
+                      title={r.label}
+                      data-reference={index}
+                      aria-selected={index === reference}
+                      tabIndex={
+                        index === reference || (reference < 0 && i === 0)
+                          ? 0
+                          : -1
+                      }
+                      onClick={() =>
+                        setChoice({ material: material.id, reference: index })
+                      }
+                      onDoubleClick={() => {
+                        load(index);
+                      }}
+                      onKeyDown={(e) =>
+                        rowKey(
+                          e,
+                          (n) =>
+                            setChoice({
+                              material: material.id,
+                              reference: records[n].index,
+                            }),
+                          i,
+                          records.length,
+                          () => load(index),
+                        )
+                      }
+                    >
+                      <td className="phase-database-reference">
+                        <span>
+                          {r.authors
+                            ? `${r.authors}${r.year ? ` (${r.year})` : ""}`
+                            : r.label}
+                        </span>
+                        {index === material.defaultReference && (
+                          <small>Default</small>
+                        )}
+                      </td>
+                      <td title={r.thermal ? `${r.eos} · ${r.thermal}` : r.eos}>
+                        {r.eos}
+                      </td>
+                      <td
+                        className="phase-database-thermal"
+                        title={r.thermal || "No thermal model"}
+                        aria-label={
+                          r.thermal
+                            ? `Thermal model: ${r.thermal}`
+                            : "No thermal model"
+                        }
+                      >
+                        {r.thermal ? "✓" : "—"}
+                      </td>
+                      <td
+                        title={
+                          r.pressureRange || "Fit pressure range not recorded"
+                        }
+                      >
+                        {r.pressureRange || "—"}
+                      </td>
+                      {hasVariants && (
+                        <td className="phase-database-variant" title={r.label}>
+                          {variant(r, material.references)}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </DataTable>
+              {!records.length && (
+                <p className="phase-database-empty">
+                  {material
+                    ? recordQuery.trim()
+                      ? "No records match this filter."
+                      : "No EoS records for this material."
+                    : "Select a material."}
+                </p>
+              )}
+            </TableScroll>
+          </section>
+          <div className="phase-database-conditions">
+            {reason && material && records.length > 0 && (
+              <p
+                className="phase-condition-note"
+                role="status"
+                title={material.hold || reason}
+              >
+                {!material.diffraction
+                  ? "No diffraction data available."
+                  : !record
+                    ? "Select a record to load."
+                    : "This record is source-only and cannot be loaded."}
               </p>
             )}
-          </TableScroll>
-        </section>
-        <div className="phase-database-conditions">
-          {reason && material && records.length > 0 && (
-            <p
-              className="phase-condition-note"
-              role="status"
-              title={material.hold || reason}
-            >
-              {!material.diffraction
-                ? "No diffraction data available."
-                : !record
-                  ? "Select a record to load."
-                  : "This record is source-only and cannot be loaded."}
-            </p>
-          )}
+          </div>
         </div>
-      </div>
-      <footer>
-        <button
-          disabled={!ready || !material || pending}
-          title="Export the selected material with all its EoS records"
-          onClick={() =>
-            void run(
-              "integration_phase_export",
-              { material_id: material.id },
-              "Exporting material…",
-            )
-          }
-        >
-          Export .eosmat…
-        </button>
-        <div className="phase-database-links">
-          {record?.recordUrl && (
-            <button
-              disabled={!ready}
-              title="View the selected record in Peritheos"
-              onClick={() =>
-                void run(
-                  "integration_phase_documentation",
-                  { material_id: material.id, reference, kind: "record" },
-                  "Opening Peritheos record…",
-                )
-              }
-            >
-              Peritheos ↗
-            </button>
-          )}
-          {record?.reportUrl && (
-            <button
-              disabled={!ready}
-              title="Open the selected record’s reconstruction report"
-              onClick={() =>
-                void run(
-                  "integration_phase_documentation",
-                  { material_id: material.id, reference, kind: "report" },
-                  "Opening reconstruction report…",
-                )
-              }
-            >
-              Reconstruction report ↗
-            </button>
-          )}
-        </div>
-        <button onClick={onClose}>Close</button>
-        <button
-          className="primary"
-          disabled={!canLoad}
-          title={
-            reason ||
-            "Load the selected material and EoS record as a diffraction phase"
-          }
-          onClick={() => load()}
-        >
-          Load as Phase
-        </button>
-      </footer>
-    </dialog>,
-    document.querySelector(".app") || document.body,
+        <footer>
+          <Button
+            disabled={!ready || !material || pending}
+            title="Export the selected material with all its EoS records"
+            onClick={() =>
+              void run(
+                "integration_phase_export",
+                { material_id: material.id },
+                "Exporting material…",
+              )
+            }
+          >
+            Export .eosmat…
+          </Button>
+          <div className="phase-database-links">
+            {record?.recordUrl && (
+              <Button
+                disabled={!ready}
+                title="View the selected record in Peritheos"
+                onClick={() =>
+                  void run(
+                    "integration_phase_documentation",
+                    { material_id: material.id, reference, kind: "record" },
+                    "Opening Peritheos record…",
+                  )
+                }
+              >
+                Peritheos ↗
+              </Button>
+            )}
+            {record?.reportUrl && (
+              <Button
+                disabled={!ready}
+                title="Open the selected record’s reconstruction report"
+                onClick={() =>
+                  void run(
+                    "integration_phase_documentation",
+                    { material_id: material.id, reference, kind: "report" },
+                    "Opening reconstruction report…",
+                  )
+                }
+              >
+                Reconstruction report ↗
+              </Button>
+            )}
+          </div>
+          <Button onClick={onClose}>Close</Button>
+          <Button
+            variant="primary"
+            disabled={!canLoad}
+            title={
+              reason ||
+              "Load the selected material and EoS record as a diffraction phase"
+            }
+            onClick={() => load()}
+          >
+            Load as Phase
+          </Button>
+        </footer>
+      </Dialog>
+    </Portal>
   );
 }

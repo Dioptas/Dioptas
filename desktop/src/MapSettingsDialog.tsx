@@ -1,5 +1,5 @@
+import { DialogHeader, Button, Dialog, Input, Select } from "./ui";
 import { useLayoutEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
 import type { MapData, MapRun } from "./mapDomain";
 import { unitLabel, type Unit } from "./types";
 import { radialValues } from "./radialReadout";
@@ -79,7 +79,6 @@ export function MapSettingsDialog({
     : selectedWindow?.max;
   useLayoutEffect(() => {
     const popup = dialog.current!;
-    popup.showModal();
     const place = () => {
       const trigger = anchor?.getBoundingClientRect();
       if (!trigger) return;
@@ -107,7 +106,6 @@ export function MapSettingsDialog({
       observer.disconnect();
       window.removeEventListener("resize", place);
       window.removeEventListener("scroll", place, true);
-      popup.close();
       anchor?.focus({ preventScroll: true });
     };
   }, [anchor]);
@@ -140,21 +138,14 @@ export function MapSettingsDialog({
     setUnit(next);
   };
   return (
-    <dialog
+    <Dialog
+      backdrop="clear"
+      open
       ref={dialog}
       className="map-settings-dialog"
       aria-labelledby="map-settings-title"
-      onClick={(event) => {
-        if (event.target !== event.currentTarget) return;
-        const box = event.currentTarget.getBoundingClientRect();
-        if (
-          event.clientX < box.left ||
-          event.clientX > box.right ||
-          event.clientY < box.top ||
-          event.clientY > box.bottom
-        )
-          onClose();
-      }}
+      dismissOnBackdrop
+      onDismiss={onClose}
       onCancel={(event) => {
         event.preventDefault();
         onClose();
@@ -172,20 +163,13 @@ export function MapSettingsDialog({
             });
         }}
       >
-        <header>
-          <h3 id="map-settings-title">Map settings</h3>
-          <button
-            type="button"
-            className="quiet map-settings-close"
-            aria-label="Close"
-            title="Close"
-            onClick={onClose}
-          >
-            <X size={15} />
-          </button>
-        </header>
+        <DialogHeader
+          title="Map settings"
+          headingId="map-settings-title"
+          onClose={onClose}
+        />
         <label className="check-row map-reintegrate-setting">
-          <input
+          <Input
             autoFocus
             aria-label="Reintegrate selected image"
             type="checkbox"
@@ -197,7 +181,7 @@ export function MapSettingsDialog({
         <h4>Normalize patterns</h4>
         <label className="field-label">
           Use
-          <select
+          <Select
             aria-label="Normalization source"
             value={source}
             onChange={(event) =>
@@ -206,13 +190,13 @@ export function MapSettingsDialog({
           >
             <option value="range">Radial range</option>
             <option value="window">Pattern window</option>
-          </select>
+          </Select>
         </label>
         {source === "window" ? (
           <>
             <label className="field-label">
               Window
-              <select
+              <Select
                 aria-label="Normalization window"
                 value={windowName}
                 onChange={(event) => setWindowName(event.target.value)}
@@ -222,7 +206,7 @@ export function MapSettingsDialog({
                     {roi.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             {selectedWindow && (
               <p className="map-note">
@@ -236,7 +220,7 @@ export function MapSettingsDialog({
           <>
             <label className="field-label">
               Unit
-              <select
+              <Select
                 aria-label="Normalization unit"
                 value={unit}
                 onChange={(event) => changeUnit(event.target.value as Unit)}
@@ -260,12 +244,12 @@ export function MapSettingsDialog({
                     {label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             <div className="map-field-pair">
               <label className="field-label">
                 From
-                <input
+                <Input
                   type="number"
                   step="any"
                   required
@@ -276,7 +260,7 @@ export function MapSettingsDialog({
               </label>
               <label className="field-label">
                 To
-                <input
+                <Input
                   type="number"
                   step="any"
                   required
@@ -290,7 +274,7 @@ export function MapSettingsDialog({
         )}
         <label className="field-label map-reference-file">
           Reference file
-          <select
+          <Select
             required
             aria-label="Normalization reference"
             title={map.labels[map.slots.indexOf(referenceValue)] ?? ""}
@@ -309,7 +293,7 @@ export function MapSettingsDialog({
                   : map.labels[slot] || "Raw source unavailable"}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         {!coordinates && (
           <p className="map-note">
@@ -317,23 +301,23 @@ export function MapSettingsDialog({
           </p>
         )}
         <footer>
-          <button
+          <Button
             type="button"
             disabled={!ready || !map.normalized}
             onClick={() => run("map_normalize", { enabled: false })}
           >
             Restore original
-          </button>
+          </Button>
           <span />
-          <button
+          <Button
             type="submit"
-            className="primary"
+            variant="primary"
             disabled={!ready || !valid || !coordinates}
           >
             Normalize
-          </button>
+          </Button>
         </footer>
       </form>
-    </dialog>
+    </Dialog>
   );
 }

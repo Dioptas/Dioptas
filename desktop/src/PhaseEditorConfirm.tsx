@@ -1,3 +1,4 @@
+import { Button, Dialog } from "./ui";
 import { useLayoutEffect, useRef } from "react";
 
 export function PhaseEditorConfirm({
@@ -18,7 +19,6 @@ export function PhaseEditorConfirm({
   const dialog = useRef<HTMLDialogElement>(null);
   useLayoutEffect(() => {
     const popup = dialog.current!;
-    popup.showModal();
     const place = () => {
       const target = anchor?.getBoundingClientRect();
       if (!target) return;
@@ -39,12 +39,13 @@ export function PhaseEditorConfirm({
     window.addEventListener("resize", place);
     return () => {
       window.removeEventListener("resize", place);
-      popup.close();
       anchor?.focus({ preventScroll: true });
     };
   }, [anchor]);
   return (
-    <dialog
+    <Dialog
+      backdrop="clear"
+      open
       ref={dialog}
       className="phase-dialog pe-confirm-popover"
       aria-label={title}
@@ -53,28 +54,19 @@ export function PhaseEditorConfirm({
         event.stopPropagation();
         onCancel();
       }}
-      onClick={(event) => {
-        if (event.target !== event.currentTarget) return;
-        const box = event.currentTarget.getBoundingClientRect();
-        if (
-          event.clientX < box.left ||
-          event.clientX > box.right ||
-          event.clientY < box.top ||
-          event.clientY > box.bottom
-        )
-          onCancel();
-      }}
+      dismissOnBackdrop
+      onDismiss={onCancel}
     >
       <h3>{title}</h3>
       <p>{detail}</p>
       <footer>
-        <button autoFocus onClick={onCancel}>
+        <Button autoFocus onClick={onCancel}>
           Cancel
-        </button>
-        <button className="primary" onClick={onConfirm}>
+        </Button>
+        <Button variant="primary" onClick={onConfirm}>
           {action}
-        </button>
+        </Button>
       </footer>
-    </dialog>
+    </Dialog>
   );
 }

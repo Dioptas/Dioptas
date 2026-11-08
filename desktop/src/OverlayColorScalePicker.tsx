@@ -1,4 +1,5 @@
-import { Palette, X } from "lucide-react";
+import { DialogHeader, Button, Dialog, Input } from "./ui";
+import { Palette } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { colorMaps } from "./colorMaps";
 import { overlayScaleColors } from "./overlayColorScales";
@@ -31,7 +32,7 @@ export function OverlayColorScalePicker({
   };
   return (
     <>
-      <button
+      <Button
         ref={button}
         className="qt-overlay-color-scale-button"
         aria-label="Color overlays by scale"
@@ -40,34 +41,23 @@ export function OverlayColorScalePicker({
         onClick={open}
       >
         <Palette size={16} aria-hidden="true" />
-      </button>
-      <dialog
+      </Button>
+      <Dialog
+        backdrop="clear"
         ref={dialog}
         className="overlay-color-scale-dialog"
         aria-labelledby="overlay-color-scale-title"
-        onClick={(event) => {
-          if (event.target !== event.currentTarget) return;
-          const box = event.currentTarget.getBoundingClientRect();
-          if (
-            event.clientX < box.left ||
-            event.clientX > box.right ||
-            event.clientY < box.top ||
-            event.clientY > box.bottom
-          )
-            event.currentTarget.close();
-        }}
+        dismissOnBackdrop
       >
-        <div className="overlay-color-scale-heading">
-          <h2 id="overlay-color-scale-title">Overlay color scale</h2>
-          <button
-            aria-label="Close color scales"
-            onClick={() => dialog.current?.close()}
-          >
-            <X size={16} />
-          </button>
-        </div>
+        <DialogHeader
+          className="overlay-color-scale-heading"
+          title="Overlay color scale"
+          headingId="overlay-color-scale-title"
+          closeLabel="Close color scales"
+          onClose={() => dialog.current?.close()}
+        />
         <label className="overlay-color-scale-reverse">
-          <input
+          <Input
             type="checkbox"
             checked={reverse}
             onChange={(event) => setReverse(event.target.checked)}
@@ -76,7 +66,7 @@ export function OverlayColorScalePicker({
         </label>
         <div className="overlay-color-scale-options">
           {scales.map((name) => (
-            <button
+            <Button
               key={name}
               aria-label={`Apply ${colorMaps[name].label} to overlays`}
               onClick={() => {
@@ -97,14 +87,14 @@ export function OverlayColorScalePicker({
                   background: `linear-gradient(to right, ${overlayScaleColors(colorMaps[name].colors, 32, reverse).join(", ")})`,
                 }}
               />
-            </button>
+            </Button>
           ))}
         </div>
         <p>
           Dark endpoints are trimmed for visibility. Applies in table order;
           Undo restores the previous colors.
         </p>
-      </dialog>
+      </Dialog>
     </>
   );
 }

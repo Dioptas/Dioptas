@@ -1,3 +1,4 @@
+import { Button, Input } from "./ui";
 import {
   useEffect,
   useMemo,
@@ -10,7 +11,11 @@ import { RasterView } from "./RasterView";
 import { PatternView } from "./PatternView";
 import { ImageIntensity } from "./ImageIntensity";
 import { MapControls } from "./MapControls";
-import { patternViewport, plotViewContext, type SharedPlotViews } from "./plotViewport";
+import {
+  patternViewport,
+  plotViewContext,
+  type SharedPlotViews,
+} from "./plotViewport";
 import { mapPatternInUnit } from "./mapPattern";
 import type { PatternPosition } from "./linkedPosition";
 import { detectorPlotSetup, patternPlotSetup } from "./diffractionPlotSetup";
@@ -314,7 +319,7 @@ export function MapView({
       )}
       <div className="map-detector-tools">
         <label className="check-row">
-          <input
+          <Input
             aria-label="Map use mask"
             type="checkbox"
             checked={!!state?.useMask}
@@ -326,7 +331,7 @@ export function MapView({
           Mask
         </label>
         <label className="check-row">
-          <input
+          <Input
             aria-label="Map transparent mask"
             type="checkbox"
             checked={!!state?.transparentMask}
@@ -413,22 +418,22 @@ export function MapView({
             <div className="empty-view map-detached-placeholder">
               <p>Map is open in a separate window.</p>
               <div className="map-detached-actions">
-                <button
+                <Button
                   className="plot-tool-button map-icon-button"
                   aria-label="Show map"
                   title="Show the separate map window"
                   onClick={mapWindow.open}
                 >
                   <ExternalLink size={16} />
-                </button>
-                <button
+                </Button>
+                <Button
                   className="plot-tool-button map-icon-button"
                   aria-label="Dock map"
                   title="Dock map here"
                   onClick={mapWindow.dock}
                 >
                   <PanelLeftClose size={16} />
-                </button>
+                </Button>
               </div>
             </div>
           </section>
@@ -443,7 +448,7 @@ export function MapView({
             reportPlot={reportPlot}
             actions={
               <>
-                <button
+                <Button
                   className="plot-tool-button map-icon-button"
                   aria-label="Detach map"
                   title="Open map in a separate window and return to Integration"
@@ -451,7 +456,7 @@ export function MapView({
                   onClick={mapWindow.open}
                 >
                   <ExternalLink size={16} />
-                </button>
+                </Button>
               </>
             }
           />
@@ -540,7 +545,7 @@ export function MapView({
                     ["d_A", "d"],
                   ] as [Unit, string][]
                 ).map(([unit, label]) => (
-                  <button
+                  <Button
                     key={unit}
                     className="plot-tool-button"
                     aria-label={`Map pattern unit ${label}`}
@@ -555,11 +560,11 @@ export function MapView({
                     onClick={() => setPatternUnit(unit)}
                   >
                     {label}
-                  </button>
+                  </Button>
                 ))}
               </div>
               <div className="plot-tool-group">
-                <button
+                <Button
                   className="plot-tool-button"
                   aria-label="Show pattern windows"
                   title="Show pattern windows"
@@ -567,8 +572,8 @@ export function MapView({
                   onClick={() => setShowRegions((v) => !v)}
                 >
                   ROI
-                </button>
-                <button
+                </Button>
+                <Button
                   className="plot-tool-button"
                   aria-label="Edit windows"
                   title="Edit pattern windows by dragging; turn off to zoom inside windows"
@@ -577,10 +582,10 @@ export function MapView({
                   onClick={() => setEditRegions((v) => !v)}
                 >
                   <MoveHorizontal size={15} />
-                </button>
+                </Button>
               </div>
               <div className="plot-tool-group">
-                <button
+                <Button
                   className="plot-tool-button"
                   aria-label="Logarithmic map pattern intensity"
                   aria-pressed={scale === "log"}
@@ -588,8 +593,8 @@ export function MapView({
                   onClick={() => setScale(scale === "log" ? "linear" : "log")}
                 >
                   Log
-                </button>
-                <button
+                </Button>
+                <Button
                   className="plot-tool-button"
                   aria-label="Square root map pattern intensity"
                   aria-pressed={scale === "sqrt"}
@@ -597,9 +602,9 @@ export function MapView({
                   onClick={() => setScale(scale === "sqrt" ? "linear" : "sqrt")}
                 >
                   √
-                </button>
+                </Button>
               </div>
-              <button
+              <Button
                 className="plot-tool-button"
                 aria-label="Antialias map pattern"
                 title="Antialiased pattern lines"
@@ -607,8 +612,8 @@ export function MapView({
                 onClick={() => setAntialias((v) => !v)}
               >
                 AA
-              </button>
-              <button
+              </Button>
+              <Button
                 className="plot-tool-button"
                 aria-label="Map pattern auto range"
                 title="Fit axes when the selected pattern changes"
@@ -616,7 +621,7 @@ export function MapView({
                 onClick={() => setAutoRange((v) => !v)}
               >
                 A
-              </button>
+              </Button>
             </div>
           </section>
         </>

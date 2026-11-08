@@ -26,6 +26,15 @@ class ImageBatchWorkflow:
         if not isinstance(paths, list) or not paths or not all(isinstance(p, str) for p in paths):
             raise ValueError("Choose an ordered list of image files.")
         paths = [self._path(p, "image") for p in paths]
+        if mode in {"add", "average"}:
+            from dioptas.model.ImgModel import ImgModel
+            expected = self._expected_image_shape()
+            first_shape = tuple(ImgModel().get_image_data(paths[0])["img_data"].shape)
+            if expected and first_shape != expected:
+                raise ValueError(
+                    "Combined images must match the current detector dimensions. "
+                    "Open one image first to change the detector setup and reset calibration."
+                )
         output = None
         if mode == "save":
             if output_directory is None and self._choose_file:

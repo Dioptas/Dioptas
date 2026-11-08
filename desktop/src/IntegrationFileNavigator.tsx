@@ -1,3 +1,4 @@
+import { Button, Input } from "./ui";
 import { useEffect, useState } from "react";
 
 /** Qt BrowseFileWidget's shared load/checkbox, step and file-order rows. */
@@ -32,11 +33,15 @@ export function IntegrationFileNavigator({
   return (
     <div className="integration-file-browser">
       <div className="integration-file-loading">
-        <button className="secondary integration-file-load" onClick={onLoad}>
+        <Button
+          variant="secondary"
+          className="integration-file-load"
+          onClick={onLoad}
+        >
           Load {kind}…
-        </button>
+        </Button>
         <label className="check-row">
-          <input
+          <Input
             type="checkbox"
             checked={checked}
             onChange={(event) => onCheckedChange(event.target.checked)}
@@ -46,26 +51,26 @@ export function IntegrationFileNavigator({
       </div>
       <div className="integration-file-navigation">
         <div className="file-actions">
-          <button
+          <Button
             aria-label={`Integration previous ${kind}`}
             title={`Previous ${kind}`}
             disabled={!canNavigate}
             onClick={() => onNavigate(-1)}
           >
             ‹
-          </button>
-          <button
+          </Button>
+          <Button
             aria-label={`Integration next ${kind}`}
             title={`Next ${kind}`}
             disabled={!canNavigate}
             onClick={() => onNavigate(1)}
           >
             ›
-          </button>
+          </Button>
         </div>
         <label className="integration-file-step">
           Step
-          <input
+          <Input
             className="numeric-stepper"
             type="number"
             aria-label={kind === "image" ? "File step" : "Pattern file step"}
@@ -96,7 +101,7 @@ export function IntegrationFileNavigator({
           ["time", "By Time"],
         ].map(([mode, label]) => (
           <label className="check-row" key={mode}>
-            <input
+            <Input
               type="radio"
               name={`integration-${kind}-order`}
               value={mode}

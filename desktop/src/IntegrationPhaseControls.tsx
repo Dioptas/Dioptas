@@ -1,10 +1,11 @@
+import { DialogHeader, Button, Dialog, Input, Portal, Select } from "./ui";
 import { PhaseDatabase } from "./PhaseDatabase";
 import { isTauri } from "@tauri-apps/api/core";
 import { openNativePhaseEditor } from "./phaseEditorWindow";
 import type { EditorData } from "./phaseEditorTypes";
 import { DataTable, TableScroll, TableActions } from "./DataTable";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+
 import { Database, FolderOpen, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import type { IntegrationRun, IntegrationState } from "./integration";
 import type {
@@ -189,7 +190,7 @@ export function IntegrationPhaseControls({
           <thead>
             <tr>
               <th>
-                <button
+                <Button
                   className="phase-show-all"
                   aria-label="Toggle all phase visibility"
                   disabled={!source.phases.length}
@@ -201,7 +202,7 @@ export function IntegrationPhaseControls({
                   }
                 >
                   ✓
-                </button>
+                </Button>
               </th>
               <th aria-label="Color" />
               <th>Name</th>
@@ -265,7 +266,7 @@ export function IntegrationPhaseControls({
                 tabIndex={index === selected ? 0 : -1}
               >
                 <td>
-                  <input
+                  <Input
                     type="checkbox"
                     aria-label={`Show phase ${index + 1}`}
                     checked={p.visible}
@@ -275,7 +276,7 @@ export function IntegrationPhaseControls({
                   />
                 </td>
                 <td>
-                  <input
+                  <Input
                     type="color"
                     aria-label={`Phase ${index + 1} color`}
                     value={p.color}
@@ -334,7 +335,7 @@ export function IntegrationPhaseControls({
                   </div>
                 </td>
                 <td>
-                  <select
+                  <Select
                     aria-label={`Phase ${index + 1} reference`}
                     title={
                       p.referenceDetails[p.reference]?.detail ||
@@ -364,7 +365,7 @@ export function IntegrationPhaseControls({
                         {ref}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </td>
               </tr>
             ))}
@@ -416,7 +417,7 @@ export function IntegrationPhaseControls({
             className="phase-apply-all"
             title="Whether individual changes in P or T are applied to all other phases"
           >
-            <input
+            <Input
               type="checkbox"
               aria-label="Apply conditions to all phases"
               checked={source.sameConditions}
@@ -429,7 +430,7 @@ export function IntegrationPhaseControls({
           <hr />
         </div>
         <div className="phase-list-actions">
-          <button
+          <Button
             disabled={
               !source.phases.length || source.phases.some((p) => !p.fileBacked)
             }
@@ -447,8 +448,8 @@ export function IntegrationPhaseControls({
             }
           >
             Save List
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() =>
               void run(
                 "integration_phase_list",
@@ -458,7 +459,7 @@ export function IntegrationPhaseControls({
             }
           >
             Load List
-          </button>
+          </Button>
         </div>
       </div>
       {importFiles && (
@@ -507,7 +508,7 @@ function PhaseIcon({
   children: ReactNode;
 }) {
   return (
-    <button
+    <Button
       type="button"
       aria-label={label}
       title={title}
@@ -515,7 +516,7 @@ function PhaseIcon({
       onClick={onClick}
     >
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -629,7 +630,7 @@ export function PhaseNumber({
   };
   useSpinBoxWheel(input, increment);
   return (
-    <input
+    <Input
       ref={input}
       className="numeric-stepper"
       type="number"
@@ -683,29 +684,26 @@ function PhaseDialog({
   children: ReactNode;
   wide?: boolean;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    ref.current?.showModal();
-  }, []);
-  return createPortal(
-    <dialog
-      ref={ref}
-      className={`phase-dialog${wide ? " phase-dialog-wide" : ""}`}
-      aria-label={title}
-      onCancel={(e) => {
-        e.preventDefault();
-        onClose();
-      }}
-    >
-      <header>
-        <h2>{title}</h2>
-        <button type="button" aria-label={`Close ${title}`} onClick={onClose}>
-          ×
-        </button>
-      </header>
-      {children}
-    </dialog>,
-    document.querySelector(".app") || document.body,
+  return (
+    <Portal>
+      <Dialog
+        open
+        onDismiss={onClose}
+        className={`phase-dialog${wide ? " phase-dialog-wide" : ""}`}
+        aria-label={title}
+        onCancel={(e) => {
+          e.preventDefault();
+          onClose();
+        }}
+      >
+        <DialogHeader
+          title={title}
+          closeLabel={`Close ${title}`}
+          onClose={onClose}
+        />
+        {children}
+      </Dialog>
+    </Portal>
   );
 }
 
@@ -749,16 +747,16 @@ function PhaseImportDialog({
         </label>
       </div>
       <footer>
-        <button onClick={onClose}>Cancel</button>
-        <button
-          className="primary"
+        <Button onClick={onClose}>Cancel</Button>
+        <Button
+          variant="primary"
           disabled={!ready}
           onClick={() =>
             onLoad({ intensity_cutoff: cutoff, minimum_d_spacing: spacing })
           }
         >
           OK
-        </button>
+        </Button>
       </footer>
     </PhaseDialog>
   );

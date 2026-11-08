@@ -1,3 +1,4 @@
+import { Button } from "./ui";
 import { useRef } from "react";
 import { Eye, Save } from "lucide-react";
 import type { State } from "./types";
@@ -132,7 +133,7 @@ export function IntegrationBackgroundControls({
                 disabled={!source.patternName}
                 onChange={(enabled) => onChange({ enabled })}
               />
-              <button
+              <Button
                 type="button"
                 aria-label="Inspect background"
                 title="Show the original pattern and fitted background; drag the range edges to refit"
@@ -142,8 +143,8 @@ export function IntegrationBackgroundControls({
               >
                 <Eye />
                 <span className="processing-tool-label">Inspect</span>
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 aria-label="Save background…"
                 title="Save fitted background…"
@@ -151,7 +152,7 @@ export function IntegrationBackgroundControls({
                 onClick={() => void run("integration_save_background")}
               >
                 <Save />
-              </button>
+              </Button>
             </div>
             <BackgroundNumberField
               label="Smooth width"
@@ -197,14 +198,14 @@ export function IntegrationBackgroundControls({
                 <span className="integration-note">
                   Overlay background active
                 </span>
-                <button
+                <Button
                   type="button"
                   aria-label="Remove overlay background"
                   title="Remove overlay background"
                   onClick={() => void run("integration_clear_background")}
                 >
                   Remove
-                </button>
+                </Button>
               </div>
             )}
           </div>

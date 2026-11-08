@@ -340,6 +340,15 @@ class ImgModel:
         # read the file before touching any state, so a failing load leaves
         # the model exactly as it was
         image_file_data = self.get_image_data(filename, pos)
+        self.load_data(filename, image_file_data, pos)
+
+    def load_data(self, filename: str, image_file_data: dict[str, Any], pos: int = 0) -> None:
+        """Publish decoded file data after a caller has checked compatibility.
+
+        Uses the same transformations, bookkeeping and signals as ``load``,
+        without decoding a potentially large detector image a second time.
+        """
+        filename = str(filename)
         self.filename = filename
         self.set_loadable_attributes(image_file_data)
 

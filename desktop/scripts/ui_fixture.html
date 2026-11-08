@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Shared Dioptas controls</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <style>
+      .ui-fixture {
+        padding: 24px;
+        overflow: auto;
+      }
+      .ui-fixture-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 20px;
+      }
+      .ui-fixture-fields {
+        display: grid;
+        gap: 9px;
+      }
+      .ui-fixture-fields label {
+        display: grid;
+        gap: 5px;
+      }
+      .ui-fixture-actions {
+        display: flex;
+        gap: 8px;
+        margin: 16px 0;
+      }
+      .ui-fixture-dialog {
+        width: 420px;
+        max-height: calc(100vh - 32px);
+        overflow: auto;
+        padding: 18px;
+      }
+      .ui-fixture-popover {
+        position: fixed;
+        left: 30px;
+        bottom: 24px;
+        padding: 16px;
+      }
+    </style>
+    <script type="module" src="./ui_fixture.tsx"></script>
+  </body>
+</html>

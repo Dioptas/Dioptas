@@ -1,5 +1,6 @@
+import { Button, Input, Popover, Portal } from "./ui";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+
 import { Ellipsis, LoaderCircle } from "lucide-react";
 import { getCommandIcon } from "./customCommandIcons";
 import {
@@ -175,7 +176,7 @@ export function CustomCommandButtons({
         const { running, disabled, detail } = status(command);
         const Icon = getCommandIcon(command.icon);
         return (
-          <button
+          <Button
             key={command.id}
             className="workspace-nav"
             aria-label={`Run ${command.name}`}
@@ -189,11 +190,11 @@ export function CustomCommandButtons({
               <Icon size={18} />
             )}
             <span>{command.name}</span>
-          </button>
+          </Button>
         );
       })}
       {overflow && (
-        <button
+        <Button
           ref={trigger}
           className="workspace-nav"
           aria-label="More actions"
@@ -208,12 +209,11 @@ export function CustomCommandButtons({
         >
           <Ellipsis size={20} />
           <span>More</span>
-        </button>
+        </Button>
       )}
-      {open &&
-        overflow &&
-        createPortal(
-          <div
+      {open && overflow && (
+        <Portal>
+          <Popover
             id={menuId}
             ref={popup}
             className="custom-command-menu"
@@ -239,7 +239,7 @@ export function CustomCommandButtons({
             <div className="custom-command-menu-heading">
               Custom actions <span>{visible.length}</span>
             </div>
-            <input
+            <Input
               ref={input}
               type="search"
               aria-label="Search custom actions"
@@ -291,7 +291,7 @@ export function CustomCommandButtons({
                 const { running, disabled, detail } = status(command);
                 const Icon = getCommandIcon(command.icon);
                 return (
-                  <button
+                  <Button
                     key={command.id}
                     aria-label={`Run ${command.name}`}
                     title={`${command.name}${detail ? ` · ${detail}` : ""}`}
@@ -310,14 +310,14 @@ export function CustomCommandButtons({
                       {command.name}
                       {detail && <small>{detail}</small>}
                     </span>
-                  </button>
+                  </Button>
                 );
               })}
               {!matches.length && <p>No matching actions.</p>}
             </div>
-          </div>,
-          document.querySelector(".app") ?? document.body,
-        )}
+          </Popover>
+        </Portal>
+      )}
     </div>
   );
 }

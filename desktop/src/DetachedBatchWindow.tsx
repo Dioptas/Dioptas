@@ -1,3 +1,4 @@
+import { Button } from "./ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isTauri } from "@tauri-apps/api/core";
 import { connect } from "./bridge";
@@ -160,17 +161,17 @@ export function DetachedBatchWindow() {
                 : "")}
         </span>
         {status.progress?.running && (
-          <button onClick={() => run("cancel_refinement")}>
+          <Button onClick={() => run("cancel_refinement")}>
             Cancel processing
-          </button>
+          </Button>
         )}
         {error && (
-          <button
+          <Button
             aria-label="Dismiss batch error"
             onClick={() => setError(null)}
           >
             ×
-          </button>
+          </Button>
         )}
       </footer>
     </div>

@@ -81,9 +81,6 @@
   height: 28px;
   padding: 2px 3px;
   font-size: inherit;
-  border-color: transparent;
-  background-color: #ffffff04;
-  border-radius: 2px;
 }
 .phase-parameters input[type="checkbox"] {
   margin: 0;
@@ -134,20 +131,11 @@
   padding: 0 8px;
 }
 .phase-dialog {
-  color: var(--text);
-  background: #202225;
-  border: 1px solid #505257;
-  border-radius: 5px;
   padding: 0;
   width: min(430px, calc(100vw - 32px));
   max-width: calc(100vw - 32px);
   max-height: calc(100vh - 32px);
-  box-shadow: 0 14px 60px #0009;
   font-family: inherit;
-  font-size: var(--text-small);
-}
-.phase-dialog::backdrop {
-  background: #0008;
 }
 .phase-dialog[open] {
   display: flex;
@@ -166,16 +154,6 @@
 }
 .phase-dialog header {
   border-bottom: 1px solid var(--border);
-}
-.phase-dialog header h2 {
-  margin: 0;
-  font-size: var(--text-main);
-  font-weight: 500;
-  flex: 1;
-}
-.phase-dialog header button {
-  font-size: 19px;
-  padding: 2px 9px;
 }
 .phase-dialog footer {
   border-top: 1px solid var(--border);
@@ -378,8 +356,6 @@
   min-height: 28px;
   margin: 0;
   padding: 3px 5px;
-  border-color: var(--table-control-border);
-  background-color: var(--table-control-background);
 }
 .phase-import-fields label {
   text-align: right;

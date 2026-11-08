@@ -337,14 +337,7 @@ class CalibrationWorkflow:
         if direction not in (-1, 1):
             raise ValueError("Image direction must be -1 or 1.")
         step = int(finite(step, "File step", 1, 100000))
-        image = self.configuration.img_model
-        (image.load_next_file if direction == 1 else image.load_previous_file)(
-            step=step
-        )
-        self.configuration.calibration_model.clear_peaks()
-        self._fit_rms = None
-        self._calculate()
-        return self._snapshot(include_image=True)
+        return self._checked_next_image(direction, step)
 
     def _detector_file(self, path=None, reset=False):
         c = self.configuration.calibration_model

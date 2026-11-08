@@ -58,7 +58,7 @@ class WithoutQt:
             raise ImportError('Qt intentionally unavailable')
 sys.meta_path.insert(0, WithoutQt())
 from dioptas.desktop.session import DesktopSession
-session = DesktopSession()
+session = DesktopSession(engine="pyfai")
 assert session.invoke('example')['ok']
 assert not any(name.startswith(('dioptas.controller', 'dioptas.widgets')) for name in sys.modules)
 assert 'dioptrin' not in sys.modules

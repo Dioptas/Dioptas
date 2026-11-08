@@ -10,9 +10,6 @@
   --table-control-height: 23px;
   --table-cell-padding: 1px 2px;
   --table-header-padding: 1px;
-  --table-control-background: #11171d;
-  --table-control-border: #333d48;
-  --table-control-radius: 5px;
   --table-scroll-track: #151b22;
   --table-scroll-thumb: #65707c;
 }
@@ -81,9 +78,6 @@
   height: var(--table-control-height);
   min-height: var(--table-control-height);
   padding: 1px 3px;
-  border: 1px solid var(--table-control-border);
-  border-radius: var(--table-control-radius);
-  background-color: var(--table-control-background);
   color: inherit;
   font-size: inherit;
   line-height: 1.1;
@@ -91,6 +85,9 @@
 .app .data-table input[type="number"],
 .app .data-table-grid input[type="number"] {
   text-align: right;
+}
+.app .data-table select.ui-select:not([multiple]):not([size]) {
+  padding-right: 26px;
 }
 .app .data-table input[readonly] {
   background: transparent;

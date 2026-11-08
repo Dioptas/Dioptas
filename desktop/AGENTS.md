@@ -64,6 +64,17 @@ server/window. Other user windows may contain work. If a native test is needed,
 use your own bundled test window or a temporary Tauri config with a distinct
 Vite port.
 
+## Shared UI components
+
+Use `Button`, `Input`, `Select`, `TextArea`, `Dialog`, `DialogHeader`,
+`DialogPanel`, `Popover`, `Tooltip` and `Portal` from `src/ui` for controls and
+floating surfaces in every mode and detached window. Shared appearance belongs
+in `src/ui/ui.css`; view CSS owns layout and scientific state feedback. Compose
+existing scientific field editors instead of changing their commit behavior.
+Do not introduce raw control/dialog JSX, private portal implementations or a
+second field/dialog palette. See `UI_COMPONENTS.md`. Run `npm test` and
+`npm run test:ui-components` when changing the shared components.
+
 ## GUI testing
 
 Use headless tests by default. Run routine GUI interaction, layout, rendering,

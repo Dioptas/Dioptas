@@ -1,5 +1,6 @@
+import { Button, Input, Popover, Portal } from "./ui";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+
 import { ChevronDown } from "lucide-react";
 import {
   commandIconChoices,
@@ -101,7 +102,7 @@ export function CustomCommandIconPicker({
   return (
     <div className="custom-command-icon-selector">
       <span id={`${id}-label`}>Button icon</span>
-      <button
+      <Button
         ref={trigger}
         type="button"
         className="custom-command-icon-trigger"
@@ -118,10 +119,10 @@ export function CustomCommandIconPicker({
         <Icon size={20} aria-hidden="true" />
         <span>{label}</span>
         <ChevronDown size={16} aria-hidden="true" />
-      </button>
-      {open &&
-        createPortal(
-          <div
+      </Button>
+      {open && (
+        <Portal>
+          <Popover
             ref={popup}
             id={id}
             role="dialog"
@@ -144,7 +145,7 @@ export function CustomCommandIconPicker({
                 setOpen(false);
             }}
           >
-            <input
+            <Input
               ref={input}
               type="search"
               aria-label="Search action icons"
@@ -205,7 +206,7 @@ export function CustomCommandIconPicker({
               }}
             >
               {choices.map(({ id, label, icon: ChoiceIcon }, index) => (
-                <button
+                <Button
                   key={id}
                   type="button"
                   title={label}
@@ -218,13 +219,13 @@ export function CustomCommandIconPicker({
                   }}
                 >
                   <ChoiceIcon size={20} aria-hidden="true" />
-                </button>
+                </Button>
               ))}
               {!choices.length && <p>No matching icons.</p>}
             </div>
-          </div>,
-          document.querySelector(".app") ?? document.body,
-        )}
+          </Popover>
+        </Portal>
+      )}
     </div>
   );
 }

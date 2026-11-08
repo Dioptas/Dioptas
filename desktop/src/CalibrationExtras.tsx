@@ -1,3 +1,4 @@
+import { DialogHeader, Button, Dialog, Input, Select } from "./ui";
 import { useEffect, useState, useRef, Fragment } from "react";
 import {
   Check,
@@ -120,7 +121,7 @@ export function CalibrationExtras({
                 ],
               ] as const
             ).map(([operation, label, Icon, text]) => (
-              <button
+              <Button
                 type="button"
                 key={operation}
                 className={operation === "reset" ? "quiet" : "secondary"}
@@ -133,12 +134,12 @@ export function CalibrationExtras({
               >
                 <Icon size={15} />
                 {text}
-              </button>
+              </Button>
             ))}
           </div>
           <hr className="calibration-tool-divider" />
           <div className="file-actions">
-            <button
+            <Button
               type="button"
               disabled={!ready}
               title={c?.detectorFile ?? "Load detector definition"}
@@ -148,18 +149,18 @@ export function CalibrationExtras({
             >
               <FolderOpen size={14} />
               Detector file
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="quiet"
+              variant="quiet"
               disabled={!ready || !c?.detectorFile}
               onClick={() => run("detector_file", { reset: true })}
             >
               Reset
-            </button>
+            </Button>
           </div>
           <div className="file-actions">
-            <button
+            <Button
               type="button"
               disabled={!ready}
               title={c?.distortionFile ?? "Load distortion spline"}
@@ -169,15 +170,15 @@ export function CalibrationExtras({
             >
               <FolderOpen size={14} />
               Distortion spline
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="quiet"
+              variant="quiet"
               disabled={!ready || !c?.distortionFile}
               onClick={() => run("distortion_file", { reset: true })}
             >
               Reset
-            </button>
+            </Button>
           </div>
         </section>
       )}
@@ -187,7 +188,7 @@ export function CalibrationExtras({
             <h3 className="calibration-fit-heading">Parameters</h3>
             <div className="calibration-field-row calibration-calibrant-row">
               <label htmlFor="calibration-calibrant">Calibrant</label>
-              <select
+              <Select
                 id="calibration-calibrant"
                 aria-label="Calibration calibrant"
                 disabled={!ready}
@@ -203,8 +204,8 @@ export function CalibrationExtras({
                 {(c?.calibrants ?? ["CeO2"]).map((name) => (
                   <option key={name}>{name}</option>
                 ))}
-              </select>
-              <button
+              </Select>
+              <Button
                 type="button"
                 className="icon-button"
                 aria-label="Load custom calibrant…"
@@ -215,7 +216,7 @@ export function CalibrationExtras({
                 }
               >
                 <FolderOpen size={16} />
-              </button>
+              </Button>
             </div>
             <div className="constraint-heading">
               <span>Parameter</span>
@@ -228,7 +229,7 @@ export function CalibrationExtras({
               <Fragment key={key}>
                 <div className="constraint-row">
                   <label htmlFor={`constraint-${key}`}>{label}</label>
-                  <input
+                  <Input
                     id={`constraint-${key}`}
                     aria-label={`${label} constraint value`}
                     type="number"
@@ -243,7 +244,7 @@ export function CalibrationExtras({
                     }}
                   />
                   <span className="calibration-unit">{unit}</span>
-                  <input
+                  <Input
                     aria-label={`Refine ${label.toLowerCase()}`}
                     title="Checked: refine this parameter. Unchecked: hold it fixed."
                     type="checkbox"
@@ -261,7 +262,7 @@ export function CalibrationExtras({
                   <>
                     <div className="constraint-row calibration-auxiliary-row">
                       <label htmlFor="fit-energy">Energy</label>
-                      <input
+                      <Input
                         id="fit-energy"
                         aria-label="Fit energy in kiloelectronvolts"
                         type="number"
@@ -293,7 +294,7 @@ export function CalibrationExtras({
                     </div>
                     <div className="constraint-row calibration-auxiliary-row">
                       <label htmlFor="fit-polarization">Polarization</label>
-                      <input
+                      <Input
                         id="fit-polarization"
                         className="full-input"
                         aria-label="Polarization factor"
@@ -319,7 +320,7 @@ export function CalibrationExtras({
           >
             <h3 className="calibration-fit-heading">Refinement</h3>
             <label className="check-row">
-              <input
+              <Input
                 aria-label="Automatic refinement"
                 type="checkbox"
                 disabled={!ready}
@@ -336,7 +337,7 @@ export function CalibrationExtras({
                   <label htmlFor="refinement-algorithm">
                     Peak-search algorithm
                   </label>
-                  <select
+                  <Select
                     id="refinement-algorithm"
                     aria-label="Refinement peak-search algorithm"
                     value={workflow.algorithm}
@@ -345,7 +346,7 @@ export function CalibrationExtras({
                   >
                     <option>Massif</option>
                     <option>Blob</option>
-                  </select>
+                  </Select>
                 </div>
                 {(
                   [
@@ -360,7 +361,7 @@ export function CalibrationExtras({
                     key={key}
                   >
                     <label htmlFor={`refinement-${key}`}>{label}</label>
-                    <input
+                    <Input
                       id={`refinement-${key}`}
                       className="full-input"
                       aria-label={label}
@@ -412,7 +413,7 @@ export function CalibrationExtras({
         >
           <div className="calibration-mask-row">
             <label className="check-row">
-              <input
+              <Input
                 aria-label="Use mask"
                 type="checkbox"
                 checked={state?.useMask ?? false}
@@ -427,7 +428,7 @@ export function CalibrationExtras({
               />
               Use mask
             </label>
-            <button
+            <Button
               type="button"
               className="icon-button"
               aria-label="Load mask"
@@ -436,10 +437,10 @@ export function CalibrationExtras({
               onClick={() => run("mask_file", {}, "Loading mask…")}
             >
               <FolderOpen size={16} />
-            </button>
+            </Button>
           </div>
           <label className="check-row">
-            <input
+            <Input
               aria-label="Transparent"
               type="checkbox"
               checked={state?.transparentMask ?? false}
@@ -561,7 +562,7 @@ export function GeometryEditor({
         aria-label="Geometry convention"
       >
         {(["pyfai", "fit2d"] as const).map((value) => (
-          <button
+          <Button
             type="button"
             key={value}
             role="tab"
@@ -579,7 +580,7 @@ export function GeometryEditor({
             onClick={() => setConvention(value)}
           >
             {value === "pyfai" ? "pyFAI" : "Fit2D"}
-          </button>
+          </Button>
         ))}
       </div>
       {dirty && !formId && (
@@ -588,7 +589,7 @@ export function GeometryEditor({
       {fields.map(([key, label, unit]) => (
         <label className="geometry-field" key={key}>
           <span>{label}</span>
-          <input
+          <Input
             aria-label={`Manual ${label.toLowerCase()}`}
             required
             type="number"
@@ -607,9 +608,10 @@ export function GeometryEditor({
         </label>
       ))}
       {!formId && (
-        <button
+        <Button
           type="button"
-          className="secondary full-input"
+          variant="secondary"
+          className="full-input"
           disabled={
             !ready ||
             fields.some(
@@ -621,7 +623,7 @@ export function GeometryEditor({
         >
           <Check size={14} />
           Apply geometry
-        </button>
+        </Button>
       )}
     </>
   );
@@ -661,28 +663,25 @@ export function ManualGeometryDialog({
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    dialog.current?.showModal();
-  }, []);
   return (
-    <dialog ref={dialog} className="manual-geometry-dialog" onClose={onClose}>
-      <div className="manual-geometry-heading">
-        <h2>Enter calibration manually</h2>
-        <button
-          type="button"
-          autoFocus
-          onClick={() => dialog.current?.close()}
-          aria-label="Close manual geometry"
-        >
-          Close
-        </button>
-      </div>
+    <Dialog
+      open
+      ref={dialog}
+      className="manual-geometry-dialog"
+      onClose={onClose}
+    >
+      <DialogHeader
+        className="manual-geometry-heading"
+        title="Enter calibration manually"
+        closeLabel="Close manual geometry"
+        onClose={() => dialog.current?.close()}
+      />
       <GeometryEditor
         calibration={calibration}
         ready={ready}
         run={run}
         embedded
       />
-    </dialog>
+    </Dialog>
   );
 }

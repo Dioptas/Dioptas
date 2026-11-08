@@ -37,6 +37,7 @@ from .mask import MaskWorkflow
 from .map import MapWorkflow
 from .custom_commands import CustomCommands, CustomCommandWorkflow
 from .batch import BatchWorkflow
+from .image_change import ImageChangeWorkflow
 
 logger = logging.getLogger(__name__)
 UNITS = {"2th_deg", "q_A^-1", "d_A"}
@@ -114,19 +115,21 @@ def _finite_number(value: Any, name: str, low: float, high: float) -> float:
     return number
 
 
-class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, MapWorkflow, CustomCommandWorkflow, BatchWorkflow):
+class DesktopSession(ImageChangeWorkflow, MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, MapWorkflow, CustomCommandWorkflow, BatchWorkflow):
     """One scientific session. A native window can supply its file picker."""
 
-    def __init__(self, choose_file=None, *, binary_images=False):
+    def __init__(self, choose_file=None, *, binary_images=False, engine="auto"):
         self._binary_images = binary_images
         self._raster_cache = RasterCache()
         self._ring_cache = None
         self._lock = threading.RLock()
         self._choose_file = choose_file
         self._custom_commands = CustomCommands()
-        self._engine = make_engine("pyfai")
+        self._engine = make_engine(engine)
         self._model = self._new_model()
+        self.configuration.calibration_model.use_dioptrin = self._engine.id == "dioptrin"
         self._has_image = False
+        self._calibration_image_shape = None
         self._project: str | None = None
         self._pattern: dict | None = None
         self._cake: dict | None = None
@@ -165,6 +168,19 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         return model
 
     @staticmethod
+    def _release_native_integrators(model):
+        # Logging/exception tracebacks may retain a model after its window
+        # closes. Release thread-affine objects explicitly on their owner.
+        for configuration in model.configurations:
+            calibration = configuration.calibration_model
+            calibration._dioptrin_integrator = None
+            calibration._dioptrin_integrator_key = None
+
+    def close(self):
+        """Release native resources on the session's processing thread."""
+        self._release_native_integrators(self._model)
+
+    @staticmethod
     def _disable_automatic_processing(model):
         for configuration in model.configurations:
             configuration.auto_integrate_pattern = False
@@ -198,6 +214,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
             "example": self._example,
             "open_image": self._open_image,
             "open_calibration": self._open_calibration,
+            "reset_calibration": self._reset_calibration,
             "open_project": self._open_project,
             "save_project": self._save_project,
             "export_pattern": self._export_pattern,
@@ -422,6 +439,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
             raise FileNotFoundError(
                 "The example is available in a source checkout. Open your own image and .poni calibration instead."
             )
+        self.close()
         self._model = self._new_model()
         self.configuration.calibration_model.use_dioptrin = (
             self._engine.id == "dioptrin"
@@ -430,6 +448,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         self._integration_auto_save = False
         self._integration_reset_autoprocess()
         self._geometry_source = "none"
+        self._calibration_image_shape = None
         image, calibration = paths
         # This example starts with a raw calibrant image, not a solved PONI.
         self._calibrant_name = "CeO2"
@@ -449,7 +468,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         self._calculate()
         return self._snapshot(include_image=True)
 
-    def _open_image(self, path=None, directory=None, paths=None, multiple=False, batch_mode=None, output_directory=None):
+    def _open_image(self, path=None, directory=None, paths=None, multiple=False, batch_mode=None, output_directory=None, reset_calibration=False, frame=1):
         if multiple and paths is None and path is None and self._choose_file:
             paths = self._choose_file("batch_images", False)
         if paths is not None:
@@ -463,18 +482,20 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         path = self._path(path, "image")
         if path is None:
             return {"cancelled": True}
-        self.configuration.img_model.load(path)
-        self.configuration.calibration_model.clear_peaks()
-        self._fit_rms = None
-        self._has_image = True
-        self._calculate()
-        return self._snapshot(include_image=True)
+        return self._open_checked_image(path, frame=frame, reset_calibration=reset_calibration)
 
     def _open_calibration(self, path=None):
         path = self._path(path, "calibration")
         if path is None:
             return {"cancelled": True}
+        expected_shape = self._poni_shape(path)
+        if self._has_image and expected_shape and expected_shape != self._source_image_shape():
+            raise ValueError(
+                "This calibration's detector dimensions do not match the current image. "
+                "Open an image with matching dimensions before loading this calibration."
+            )
         self.configuration.calibration_model.load(path)
+        self._calibration_image_shape = expected_shape
         self._geometry_source = "loaded"
         self._setup_confirmed = True
         c = self.configuration.calibration_model
@@ -506,6 +527,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         candidate.calibration_model.use_dioptrin = self._engine.id == "dioptrin"
         if candidate.calibration_model.is_calibrated:
             candidate.calibration_model.create_cake_geometry()
+        self.close()
         self._model = candidate
         self._integration_auto_save = False
         self._integration_reset_autoprocess()
@@ -528,6 +550,10 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         self._fit_dirty = bool(metadata.get("fit_dirty", False))
         self._fit_rms = metadata.get("rms_degrees")
         self._has_image = candidate.img_model.img_data is not None
+        self._calibration_image_shape = (
+            self._source_image_shape()
+            if self._has_image and candidate.calibration_model.is_calibrated else None
+        )
         self._project = path
         self._restore_map_normalization(path)
         self._restore_batch_project(path)
@@ -576,7 +602,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         return {**self._state(), "savedPath": path}
 
     def _export_pattern(self, path=None):
-        if self._pattern is None:
+        if self._pattern is None or not self._pattern["x"]:
             raise ValueError("Integrate an image before exporting a pattern.")
         path = self._path(path, "pattern", save=True)
         if path is None:
@@ -691,7 +717,7 @@ class DesktopSession(MaskWorkflow, CalibrationWorkflow, IntegrationWorkflow, Map
         self._ring_cache = (key, rings)
 
     def _select_engine(self, engine):
-        # Construct and validate first, so a missing dependency/license cannot
+        # Construct and validate first, so a missing or incompatible dependency cannot
         # replace a functioning pyFAI session or silently change the engine.
         selected = make_engine(engine)
         self._engine = selected

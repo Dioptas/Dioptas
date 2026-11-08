@@ -1,5 +1,6 @@
+import { DialogHeader, Button, Dialog, Input, Portal } from "./ui";
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+
 import type { EditorData } from "./phaseEditorTypes";
 
 const rows = [
@@ -45,9 +46,7 @@ export function PhaseElementPicker({
   const [error, setError] = useState("");
   const opener = useRef(document.activeElement as HTMLElement | null);
   useEffect(() => {
-    dialog.current?.showModal();
     return () => {
-      dialog.current?.close();
       opener.current?.focus();
     };
   }, []);
@@ -66,80 +65,81 @@ export function PhaseElementPicker({
     onChoose(item.symbol);
     onClose();
   };
-  return createPortal(
-    <dialog
-      ref={dialog}
-      className="phase-dialog pe-element-dialog"
-      aria-label="Choose element"
-      onCancel={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onClose();
-      }}
-    >
-      <header>
-        <h2>Choose element</h2>
-        <button aria-label="Close element picker" onClick={onClose}>
-          ×
-        </button>
-      </header>
-      <form
-        onSubmit={(e) => {
+  return (
+    <Portal>
+      <Dialog
+        open
+        ref={dialog}
+        className="phase-dialog pe-element-dialog"
+        aria-label="Choose element"
+        onCancel={(e) => {
           e.preventDefault();
-          choose(text);
+          e.stopPropagation();
+          onClose();
         }}
       >
-        <input
-          autoFocus
-          aria-label="Element symbol"
-          placeholder="Symbol, e.g. Fe"
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            setError("");
-          }}
+        <DialogHeader
+          title="Choose element"
+          closeLabel="Close element picker"
+          onClose={onClose}
         />
-        <div className="pe-periodic-table">
-          {rows.flatMap((row, r) =>
-            row
-              .filter(([, s]) => s !== ".")
-              .map(([c, symbol]) => {
-                const element = elements.find((e) => e.symbol === symbol);
-                return (
-                  <button
-                    key={String(symbol)}
-                    type="button"
-                    disabled={!element?.enabled}
-                    aria-label={`Choose ${element?.name || symbol}`}
-                    aria-pressed={
-                      text.toLowerCase() === String(symbol).toLowerCase()
-                    }
-                    title={`${element?.number} · ${element?.name}${!element?.enabled ? " · no scattering data" : ""}`}
-                    style={{
-                      gridColumn: Number(c) + 1,
-                      gridRow: r + 1 + (r >= 7 ? 1 : 0),
-                    }}
-                    onClick={() => choose(String(symbol))}
-                  >
-                    {String(symbol)}
-                  </button>
-                );
-              }),
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            choose(text);
+          }}
+        >
+          <Input
+            autoFocus
+            aria-label="Element symbol"
+            placeholder="Symbol, e.g. Fe"
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              setError("");
+            }}
+          />
+          <div className="pe-periodic-table">
+            {rows.flatMap((row, r) =>
+              row
+                .filter(([, s]) => s !== ".")
+                .map(([c, symbol]) => {
+                  const element = elements.find((e) => e.symbol === symbol);
+                  return (
+                    <Button
+                      key={String(symbol)}
+                      type="button"
+                      disabled={!element?.enabled}
+                      aria-label={`Choose ${element?.name || symbol}`}
+                      aria-pressed={
+                        text.toLowerCase() === String(symbol).toLowerCase()
+                      }
+                      title={`${element?.number} · ${element?.name}${!element?.enabled ? " · no scattering data" : ""}`}
+                      style={{
+                        gridColumn: Number(c) + 1,
+                        gridRow: r + 1 + (r >= 7 ? 1 : 0),
+                      }}
+                      onClick={() => choose(String(symbol))}
+                    >
+                      {String(symbol)}
+                    </Button>
+                  );
+                }),
+            )}
+          </div>
+          {error && (
+            <p className="pe-edit-error" role="alert">
+              {error}
+            </p>
           )}
-        </div>
-        {error && (
-          <p className="pe-edit-error" role="alert">
-            {error}
-          </p>
-        )}
-        <footer>
-          <button type="button" onClick={onClose}>
-            Cancel
-          </button>
-          <button className="primary">Use element</button>
-        </footer>
-      </form>
-    </dialog>,
-    document.querySelector(".app") || document.body,
+          <footer>
+            <Button type="button" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button variant="primary">Use element</Button>
+          </footer>
+        </form>
+      </Dialog>
+    </Portal>
   );
 }

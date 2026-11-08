@@ -541,29 +541,12 @@
   overflow: auto;
   box-sizing: border-box;
   padding: 10px;
-  border: 1px solid #41484f;
-  border-radius: 6px;
-  background: #202226;
-  color: #e2e6eb;
-  box-shadow: 0 8px 24px #0006;
-}
-.map-settings-dialog::backdrop {
-  background: transparent;
 }
 .map-settings-dialog header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 6px;
-}
-.map-settings-dialog h3 {
-  margin: 0;
-  font-size: var(--text-small);
-}
-.app .map-settings-dialog .map-settings-close {
-  width: 24px;
-  min-height: 24px;
-  padding: 3px;
 }
 .map-settings-dialog input:not([type="checkbox"]),
 .map-settings-dialog select {

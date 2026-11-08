@@ -1,3 +1,4 @@
+import { Button, Select } from "./ui";
 import { useEffect, useState } from "react";
 import type { State } from "./types";
 import type { IntegrationRun, IntegrationState } from "./integration";
@@ -45,7 +46,7 @@ export function IntegrationSettings({
         <Group title="Integration" open>
           <label className="field-label">
             Radial coordinate
-            <select
+            <Select
               aria-label="Radial coordinate"
               value={state?.unit ?? "2th_deg"}
               onChange={(e) =>
@@ -55,7 +56,7 @@ export function IntegrationSettings({
               <option value="2th_deg">2θ · degrees</option>
               <option value="q_A^-1">Q · Å⁻¹</option>
               <option value="d_A">d · Å</option>
-            </select>
+            </Select>
           </label>
           <Check
             label="Automatic radial binning"
@@ -136,9 +137,9 @@ export function IntegrationSettings({
       </fieldset>
       <div className="settings-apply-bar">
         <p>Apply binning, ranges and corrections to the current project.</p>
-        <button className="primary" disabled={!ready} onClick={settings}>
+        <Button variant="primary" disabled={!ready} onClick={settings}>
           Apply integration options
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -16,6 +16,13 @@ session. Pattern ranges are shared across Calibration, Integration and Map,
 converting radial units and intensity scales as needed. Resizing keeps detector
 pixels square; F/right double-click still restore the fitted image view.
 
+## Shared UI controls
+
+All views use the controls and surfaces in `src/ui`, including table fields,
+popup menus and detached windows. The shared stylesheet owns their neutral
+palette and interaction states. See [UI_COMPONENTS.md](UI_COMPONENTS.md) for
+component usage and the checks that prevent new per-view control themes.
+
 ## Run this checkout
 
 Use standard CPython 3.13 (not a free-threaded interpreter):
@@ -166,6 +173,39 @@ resolution (no display decimation). Zoom therefore resolves the original
 detector pixels; calculations, brush edits and pixel readouts also use original
 resolution. Display payloads use float32; scientific arrays retain their source
 precision in Python.
+
+## Changing detector or image dimensions
+
+Opening an image with different source dimensions first offers **Cancel** or
+**Open and reset calibration**. Cancel preserves the current image, geometry,
+mask, background, corrections and history. Accepting opens the new image without
+calibration and returns to Calibration → Image. It clears detector geometry,
+pixel setup, distortion, picked peaks, masks (including enabled mask plugins),
+image background/corrections and the previous integration/cake. Image orientation
+returns to its original state. Load a matching `.poni` or check the detector/pixel
+sizes and calibrate again. Wavelength/distance start values, integration
+preferences, overlays and phases remain available; automatic saving and
+Autoprocess turn off.
+
+The small **Reset calibration** icon beside **Load .poni** offers the same reset
+while retaining the current image. Use it when changing detectors even if the
+new detector has the same dimensions. Ordinary same-size image loads preserve
+the current calibration, mask and image processing. Rotation is accounted for
+when comparing source dimensions.
+
+Previous/next image and frame navigation use the same compatibility check.
+Autoprocess stops with a message on a size change instead of silently applying
+the old geometry. When a PONI declares detector dimensions, incompatible image
+loads prompt even if no image was previously loaded; loading that PONI onto an
+incompatible current image is refused. Legacy/custom PONIs without dimensions
+cannot establish the expected image size, so their first image establishes it.
+Equal dimensions alone cannot establish that a calibration belongs to a detector.
+
+`desktop/tests/test_image_change.py` covers both scientific engines. Run
+`node scripts/image_change_smoke.mjs` from `desktop/` for the real-model headless
+workflow, or add `--webkit`. It checks confirmation, cancellation/Escape and
+focus restoration, reset/reload, ordinary same-size switching and compact layout
+at both text sizes. Evidence is written to `desktop/artifacts/image-change/`.
 
 ## Custom actions
 
@@ -538,7 +578,8 @@ All current plots (detector, cake, integrated pattern) share these controls:
 - **Wheel:** zoom the plot under the pointer; the event is captured so the
   surrounding workspace does not scroll or jump.
 - **Left drag:** zoom in using the selected zoom mode.
-- **Right drag:** pan both axes. Ctrl + left drag also pans.
+- **Right drag:** pan both axes in Rectangle mode, or horizontally in X-range
+  mode. Ctrl + left drag also pans.
 - **Right click:** zoom out one step (2× range). X-range mode expands only
   the horizontal range, refitting both pattern intensity limits to visible data
   with a small margin and preserving the cake's current azimuth limits.
@@ -556,8 +597,12 @@ Both buttons have transparent backgrounds and a subtle rectangular background on
 on hover; the selected icon is orange and the other icon is neutral. X-range selection fits the pattern's
 minimum and maximum intensity to the visible data instead of forcing a zero
 baseline; the cake keeps its current azimuth range. Wheel zoom follows the selected
-mode too. Settings also offers the pattern choice, independently for the main
-pattern and Map pattern.
+mode too. In X-range mode, the pattern intensity limits continuously follow the
+visible data during panning and data updates; the cake's azimuth limits stay
+fixed. Settings also offers the pattern choice, independently for the main
+pattern and Map pattern. Rectangle/X-range choices are saved independently for
+the cake, main pattern, Map pattern and Batch plot and restored after restarting
+the app.
 
 When Pick peaks is enabled, a stationary left click picks peaks in any
 calibration tab. A left drag zooms
@@ -618,8 +663,8 @@ controls, scientific qualifications, tests and shared contracts.
 
 ## Optional processing engine
 
-**pyFAI is the default and provides the complete implemented workflow without
-Dioptrin installed.** Tauri uses the normal Dioptas scientific dependencies.
+**The desktop prefers Dioptrin when installed and compatible, and otherwise
+starts with pyFAI.** Dioptrin remains optional. Tauri uses the normal Dioptas scientific dependencies.
 The `desktop` extra adds pywebview only for the earlier comparison host.
 
 To install the optional Dioptrin engine:
@@ -628,11 +673,12 @@ To install the optional Dioptrin engine:
 uv sync --python 3.13 --extra dioptrin
 ```
 
-Then select **Dioptrin (optional)** under **Settings → General → Processing engine**. Selection
-checks its calibration API and normal license validation before changing the
-session. Installing the package does not select it automatically. The engine
-choice is local to the session, not restored from another computer's project.
-The new interface does not change either project's licensing.
+Restart the processing session after installation. This checkout pins Dioptrin
+0.9.0 and selects it automatically at startup. **Settings → General → Processing
+engine** switches between Dioptrin and pyFAI. Selection checks the required API
+before changing the session. Dioptrin 0.9.0 requires no license activation.
+The engine choice is local to the session, not restored from another computer's
+project; new sessions prefer the installed native engine again.
 
 `dioptas/desktop/engines.py` defines the narrow calibration adapter: seeded peak
 finding and geometry fitting. The Dioptrin adapter calls its existing Python
@@ -643,7 +689,35 @@ native integration options that are unsupported. The native calibration adapter
 currently accepts only flat detectors with uniform pixels and no distortion
 spline; use pyFAI otherwise.
 
+Dioptrin uses full pixel splitting; the usual pyFAI `csr` path uses bounding-box
+splitting. Their bin grids and peak heights can therefore differ. The measured
+CeO2 fixture is checked against pyFAI `full_csr`, including Poisson std and mask
+edits, with relative-L2 regression limits of 0.3% for patterns, 0.6% for Poisson
+std and 0.5% for cakes. These are scoped fixture checks, not universal accuracy
+claims or bitwise parity. Unsupported integration options (including disabled
+solid-angle correction and 1D azimuth sectors) use pyFAI. Spline, nonuniform and
+curved detectors also retain pyFAI integration.
+
+For separate cold/repeated-image timings with no, static and changing masks:
+
+```sh
+.venv/bin/python desktop/scripts/dioptrin_benchmark.py
+```
+
+The report is written to `desktop/artifacts/dioptrin-benchmark.json`. It covers
+model calls with each desktop engine's own splitting method, excluding file
+IO, IPC and rendering. Native objects are created, used and explicitly released
+on the processing thread, including when logs retain an old model.
+
 ## Development and verification
+
+Dioptrin 0.9.0 update (2026-11-06): the desktop suite passes **309 tests**
+with the native engine installed, including missing/incompatible-engine fallback,
+full-split numerical comparisons, mask edits, cancellation and native-resource
+release. Shared CalibrationModel/Pipeline/integration-task checks pass **111
+tests**. The headless browser workflow covers automatic native startup, explicit
+engine switching, calibration and integration. No visible test window is required
+for this backend change.
 
 ```sh
 uv sync --python 3.13 --extra desktop --extra test

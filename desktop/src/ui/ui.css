@@ -1,0 +1,412 @@
+/* Shared palette and controls. View styles own layout, never base control colors. */
+:root {
+  --ui-field-background: #14171b;
+  --ui-field-border: #41484f;
+  --ui-button-background: #2b3036;
+  --ui-button-hover: #383f46;
+  --ui-overlay-background: #202226;
+  --ui-overlay-border: #41484f;
+  --ui-choice-background: #1a1c20;
+  --ui-choice-border: #62676d;
+  --ui-choice-checked: #34373b;
+  --ui-radius-field: 5px;
+  --ui-radius-button: 6px;
+  --ui-radius-overlay: 7px;
+}
+.ui-input,
+.ui-select,
+.ui-textarea,
+.ui-dialog,
+.ui-popover {
+  color-scheme: dark;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  color: inherit;
+  background: none;
+  border-radius: var(--ui-radius-button);
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+}
+button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+button:not(:disabled):hover {
+  background: #ffffff09;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  border-color: var(--accent);
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+button svg {
+  flex-shrink: 0;
+}
+input,
+select,
+textarea {
+  color: #dce2e7;
+  background: var(--ui-field-background);
+  border: 1px solid var(--ui-field-border);
+  border-radius: var(--ui-radius-field);
+  padding: 9px 10px;
+  min-width: 0;
+}
+input[type="number"] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+/* Reserve visible step arrows for controls that are routinely stepped. */
+input[type="number"]:not(.numeric-stepper) {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+input[type="number"]:not(.numeric-stepper)::-webkit-inner-spin-button,
+input[type="number"]:not(.numeric-stepper)::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="checkbox"],
+input[type="radio"] {
+  /* Keep WKWebView's active-window native tint from lightening the fill. */
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  padding: 0;
+  flex-shrink: 0;
+  border: 1px solid var(--ui-choice-border);
+  border-radius: 4px;
+  background: var(--ui-choice-background) center / 100% 100% no-repeat;
+}
+input[type="radio"] {
+  width: 17px;
+  height: 17px;
+  min-height: 17px;
+  border-radius: 50%;
+}
+input[type="checkbox"]:checked,
+input[type="checkbox"]:indeterminate,
+input[type="radio"]:checked {
+  border-color: var(--ui-choice-border);
+  background-color: var(--ui-choice-checked);
+}
+input[type="checkbox"]:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m3.5 8 3 3 6-6' fill='none' stroke='%23e3e7eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+input[type="checkbox"]:indeterminate {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8h8' stroke='%23e3e7eb' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+input[type="radio"]:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='3' fill='%23e3e7eb'/%3E%3C/svg%3E");
+}
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled {
+  opacity: 0.45;
+}
+@media (forced-colors: active) {
+  input[type="checkbox"],
+  input[type="checkbox"]:is(:checked, :indeterminate),
+  input[type="radio"],
+  input[type="radio"]:checked {
+    -webkit-appearance: auto;
+    appearance: auto;
+    background-image: none;
+  }
+}
+input[type="range"] {
+  accent-color: var(--accent);
+  padding: 0;
+  border: 0;
+  background: none;
+}
+select {
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.ui-select:not([multiple]):not([size]) {
+  padding-right: 26px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m3 4.5 3 3 3-3' fill='none' stroke='%23c4cbd3' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 12px;
+}
+button.primary {
+  background: var(--accent);
+  color: #262019;
+  font-weight: 650;
+  border-color: var(--accent);
+  padding: 10px 13px;
+}
+button.primary:not(:disabled):hover {
+  background: #ffab36;
+}
+button.secondary {
+  background: var(--ui-button-background);
+  border-color: var(--ui-field-border);
+  padding: 9px 13px;
+  color: #dce2e7;
+}
+button.quiet {
+  padding: 8px 10px;
+  color: #a7b1bc;
+  font-size: var(--text-small);
+}
+.icon-button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: #95a2af;
+}
+
+/* Soft tonal actions; related tools share compact, recessed groups. */
+.ui-button {
+  --button-fill: var(--ui-button-background);
+  --button-edge: transparent;
+  --button-sheen: none;
+  border-radius: var(--ui-radius-button);
+  background-color: var(--button-fill);
+  background-image: var(--button-sheen);
+  border-color: var(--button-edge);
+  box-shadow: none;
+  transition:
+    background-color 0.12s,
+    border-color 0.12s,
+    box-shadow 0.12s;
+}
+.ui-button:not(:disabled):hover {
+  --button-fill: var(--ui-button-hover);
+  --button-edge: transparent;
+  background-color: var(--button-fill);
+  background-image: var(--button-sheen);
+  border-color: var(--button-edge);
+}
+.ui-button.primary {
+  --button-fill: var(--dioptas-orange);
+  --button-edge: transparent;
+  color: #262019;
+  box-shadow: none;
+}
+.ui-button.primary:not(:disabled):hover {
+  --button-fill: #ffa21f;
+  --button-edge: transparent;
+}
+.ui-button:is(.quiet, .icon-button, .workspace-nav, .text-button),
+.app .calibration-step-buttons button,
+.app .map-file-list button {
+  --button-fill: transparent;
+  --button-edge: transparent;
+  --button-sheen: none;
+  background-image: var(--button-sheen);
+  box-shadow: none;
+}
+.ui-button:is(.quiet, .icon-button, .workspace-nav, .text-button):not(
+    :disabled
+  ):hover,
+.app .calibration-step-buttons button:not(:disabled):hover,
+.app .map-file-list button:not(:disabled):hover {
+  --button-fill: rgb(255 255 255 / 4%);
+  --button-sheen: none;
+  background-image: var(--button-sheen);
+  box-shadow: none;
+}
+.ui-button:is(
+  .workspace-active,
+  .active,
+  [aria-pressed="true"],
+  [aria-selected="true"]
+),
+.app .segmented button.selected {
+  --button-fill: rgb(255 149 0 / 15%);
+  --button-edge: transparent;
+  color: var(--dioptas-orange);
+  --button-sheen: none;
+  background-color: var(--button-fill);
+  background-image: var(--button-sheen);
+  box-shadow: none;
+}
+.ui-button:is(
+    .workspace-active,
+    .active,
+    [aria-pressed="true"],
+    [aria-selected="true"]
+  ):not(:disabled):hover,
+.app .segmented button.selected:not(:disabled):hover {
+  --button-fill: rgb(255 149 0 / 22%);
+  --button-edge: transparent;
+}
+.ui-button:not(:disabled):active {
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 12%);
+}
+
+/* Joined choices read as one control instead of a row of separate buttons. */
+.app .segmented {
+  gap: 0;
+  padding: 3px;
+  background: #111519;
+  border-color: transparent;
+  border-radius: 10px;
+}
+.app .segmented button {
+  --button-fill: transparent;
+  min-width: 0;
+  border-radius: 6px;
+  color: #b5bfc9;
+}
+.app .segmented button + button {
+  margin-left: 2px;
+}
+.app .segmented button:is(.selected, [aria-pressed="true"]) {
+  --button-fill: #343a41;
+  color: var(--accent);
+  box-shadow: none;
+}
+.app .segmented button:is(.selected, [aria-pressed="true"]):hover {
+  --button-fill: #3c434b;
+}
+
+.app .orientation-tools button.quiet {
+  color: #b5bfc9;
+}
+
+/* Edit operations stay on one quiet toolbar below their selection table. */
+.app .compact-actions {
+  gap: 2px;
+}
+.app .compact-actions button {
+  --button-fill: transparent;
+  --button-edge: transparent;
+  padding-inline: 5px;
+  color: #b5bfc9;
+  white-space: nowrap;
+}
+.app .compact-actions button:not(:disabled):hover {
+  --button-fill: rgb(255 255 255 / 5%);
+  color: #f3f5f7;
+}
+
+/* Plot selectors and Integration toolbars use quiet, rectangular controls. */
+.ui-button.plot-zoom-button,
+.app
+  :is(
+    .integration-image-tools .plot-tool-button,
+    .integration-pattern-tools button,
+    .integration-pattern-actions button
+  ) {
+  --button-fill: transparent;
+  --button-edge: transparent;
+  --button-sheen: none;
+  border: 0;
+  border-radius: 1px;
+  background: transparent;
+  box-shadow: none;
+}
+.ui-button.plot-zoom-button {
+  color: #606b76;
+}
+.app
+  :is(
+    .integration-image-tools .plot-tool-button,
+    .integration-pattern-tools button,
+    .integration-pattern-actions button
+  ) {
+  color: #aab4be;
+}
+.ui-button.plot-zoom-button:not(:disabled):hover,
+.app
+  :is(
+    .integration-image-tools .plot-tool-button,
+    .integration-pattern-tools button,
+    .integration-pattern-actions button
+  ):not(:disabled):hover {
+  --button-fill: rgb(255 255 255 / 4%);
+  background: var(--button-fill);
+  color: #dce2e7;
+}
+.ui-button.plot-zoom-button[aria-pressed="true"],
+.ui-button.plot-zoom-button[aria-pressed="true"]:not(:disabled):hover,
+.app
+  :is(
+    .integration-image-tools .plot-tool-button,
+    .integration-pattern-tools button,
+    .integration-pattern-actions button
+  )[aria-pressed="true"],
+.app
+  :is(
+    .integration-image-tools .plot-tool-button,
+    .integration-pattern-tools button,
+    .integration-pattern-actions button
+  )[aria-pressed="true"]:not(:disabled):hover {
+  color: var(--accent);
+}
+.ui-button.plot-zoom-button:active,
+.app
+  :is(
+    .integration-image-tools .plot-tool-button,
+    .integration-pattern-tools button,
+    .integration-pattern-actions button
+  ):active {
+  box-shadow: none;
+}
+
+/* Surface geometry remains with each view; material comes from one component. */
+.ui-dialog,
+.ui-popover,
+.ui-tooltip {
+  color: #dce2e7;
+  background: var(--ui-overlay-background);
+  border: 1px solid var(--ui-overlay-border);
+  border-radius: var(--ui-radius-overlay);
+  box-shadow: 0 8px 30px #0008;
+  font-size: var(--text-small);
+}
+.ui-dialog::backdrop {
+  background: #0008;
+}
+.ui-dialog[data-backdrop="clear"]::backdrop {
+  background: transparent;
+}
+.ui-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ui-dialog-header h2 {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+.ui-dialog-header .ui-dialog-close {
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0;
+  flex-shrink: 0;
+  font-size: 21px;
+}

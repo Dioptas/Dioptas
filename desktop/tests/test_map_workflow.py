@@ -283,7 +283,16 @@ def test_map_selection_defers_cake_for_shared_calibration_and_integration(tmp_pa
     call(reference, "settings", bins=120)
     call(reference, "open_calibration", path=str(DATA / "CeO2_Pilatus1M.poni"))
     expected = call(reference, "open_image", path=str(second))
-    assert integrated["cake"] == expected["cake"]
+    # Native float64 accumulation can vary by a few ULPs when rebuilding a
+    # cache. The float32 display pixels and histogram counts must still match.
+    assert {k: v for k, v in integrated["cake"].items() if k not in {"histogram", "limits"}} == {
+        k: v for k, v in expected["cake"].items() if k not in {"histogram", "limits"}
+    }
+    np.testing.assert_allclose(integrated["cake"]["limits"], expected["cake"]["limits"], rtol=1e-14, atol=1e-14)
+    actual_histogram, expected_histogram = integrated["cake"]["histogram"], expected["cake"]["histogram"]
+    assert actual_histogram["counts"] == expected_histogram["counts"]
+    assert actual_histogram["finitePixels"] == expected_histogram["finitePixels"]
+    np.testing.assert_allclose(actual_histogram["edges"], expected_histogram["edges"], rtol=1e-14, atol=1e-14)
     assert integrated["pattern"] == expected["pattern"]
     assert not integrated["state"]["integrationDirty"]
     np.testing.assert_array_equal(s.configuration.map_model.pattern_intensities, stored_patterns)

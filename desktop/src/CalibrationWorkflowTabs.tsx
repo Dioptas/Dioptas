@@ -1,3 +1,4 @@
+import { Button } from "./ui";
 const sections = [
   ["Image", "Image & setup"],
   ["Peaks", "Pick rings"],
@@ -21,7 +22,7 @@ export function CalibrationWorkflowTabs({
       aria-label="Calibration sections"
     >
       {sections.map(([label, description], index) => (
-        <button
+        <Button
           key={label}
           type="button"
           id={`calibration-section-${index}`}
@@ -60,7 +61,7 @@ export function CalibrationWorkflowTabs({
           }}
         >
           {label}
-        </button>
+        </Button>
       ))}
     </div>
   );
