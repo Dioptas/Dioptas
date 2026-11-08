@@ -56,6 +56,13 @@ impl Packet {
 
 type Reply = Result<Packet, String>;
 
+fn write_navigation_trace(value: Value) {
+    // Host and worker share the stderr pipe. Write each preformatted line in
+    // one operation so their optional timing records cannot interleave.
+    let line = format!("DIOPTAS_NATIVE_TRACE {value}\n");
+    let _ = std::io::stderr().lock().write_all(line.as_bytes());
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Backend {
     Python,
@@ -87,6 +94,17 @@ impl Backend {
 // million cells. Detector and series rasters remain separate binary buffers.
 const MAX_HEADER: usize = 256 * 1024 * 1024;
 const MAX_BUFFERS: usize = 1024 * 1024 * 1024;
+#[derive(serde::Deserialize)]
+struct WireBuffer {
+    length: u64,
+}
+#[derive(serde::Deserialize)]
+struct WireHeader {
+    id: u64,
+    buffers: Vec<WireBuffer>,
+    #[serde(rename = "result")]
+    _result: serde::de::IgnoredAny,
+}
 fn read_packet(reader: &mut impl Read) -> Result<(u64, Packet), String> {
     let mut prefix = [0u8; 4];
     reader.read_exact(&mut prefix).map_err(|e| e.to_string())?;
@@ -96,37 +114,38 @@ fn read_packet(reader: &mut impl Read) -> Result<(u64, Packet), String> {
     }
     let mut header = vec![0; length];
     reader.read_exact(&mut header).map_err(|e| e.to_string())?;
-    let value: Value = serde_json::from_slice(&header).map_err(|e| e.to_string())?;
-    let id = value["id"]
-        .as_u64()
-        .ok_or("Missing processing request id")?;
-    let buffers = value["buffers"]
-        .as_array()
-        .ok_or("Missing binary buffer table")?;
-    let total = buffers.iter().try_fold(0usize, |size, buffer| {
-        let n = buffer["length"]
-            .as_u64()
-            .and_then(|v| usize::try_from(v).ok())
-            .ok_or("Invalid binary buffer length")?;
+    let trace = std::env::var_os("DIOPTAS_TRACE_NATIVE_NAV").is_some();
+    let parse_started = std::time::Instant::now();
+    // The host routes and bounds the packet; JavaScript consumes its metadata.
+    // Validate the complete JSON without allocating a second scientific tree.
+    let value: WireHeader = serde_json::from_slice(&header).map_err(|e| e.to_string())?;
+    let parsed = std::time::Instant::now();
+    let id = value.id;
+    let total = value.buffers.iter().try_fold(0usize, |size, buffer| {
+        let n = usize::try_from(buffer.length)
+            .map_err(|_| "Invalid binary buffer length")?;
         size.checked_add(n)
             .filter(|v| *v <= MAX_BUFFERS)
             .ok_or("Oversized processing buffers")
     })?;
-    let mut bytes = Vec::with_capacity(4 + length + total);
-    bytes.extend_from_slice(&prefix);
-    bytes.extend_from_slice(&header);
-    bytes.resize(4 + length + total, 0);
+    // Allocate initialized bytes directly. Growing a nonempty Vec with resize
+    // uses an element-by-element fill in unoptimized host builds (tens of ms
+    // per detector). Zeroed allocation keeps this safe read target inexpensive.
+    let mut bytes = vec![0; 4 + length + total];
+    bytes[..4].copy_from_slice(&prefix);
+    bytes[4..4 + length].copy_from_slice(&header);
+    let allocated = std::time::Instant::now();
     reader
         .read_exact(&mut bytes[4 + length..])
         .map_err(|e| e.to_string())?;
+    if trace {
+        write_navigation_trace(json!({"stage":"read-packet","id":id,"headerBytes":length,"pixelBytes":total,"headerDecodeMs":parsed.duration_since(parse_started).as_secs_f64()*1000.,"allocationMs":allocated.duration_since(parsed).as_secs_f64()*1000.,"payloadReadMs":allocated.elapsed().as_secs_f64()*1000.,"assemblyAndReadMs":parsed.elapsed().as_secs_f64()*1000.}));
+    }
     #[cfg(test)]
-    let result = value
+    let result = serde_json::from_slice::<Value>(&header).map_err(|e| e.to_string())?
         .get("result")
         .ok_or("Missing processing result")?
         .clone();
-    if value.get("result").is_none() {
-        return Err("Missing processing result".into());
-    }
     Ok((
         id,
         Packet {
@@ -322,6 +341,7 @@ impl Processor {
             return Err("The desktop session is closed.".into());
         }
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
+        let started = std::time::Instant::now();
         let (sender, receiver) = mpsc::channel();
         {
             let mut replies = self.replies.lock().unwrap();
@@ -348,9 +368,13 @@ impl Processor {
             self.replies.lock().unwrap().waiting.remove(&id);
             return Err(format!("Cannot send local processing command: {error}"));
         }
-        receiver
+        let reply = receiver
             .recv()
-            .map_err(|_| "Local processing disconnected.".to_string())?
+            .map_err(|_| "Local processing disconnected.".to_string())?;
+        if std::env::var_os("DIOPTAS_TRACE_NATIVE_NAV").is_some() {
+            write_navigation_trace(json!({"stage":"request","id":id,"action":action,"elapsedMs":started.elapsed().as_secs_f64()*1000.}));
+        }
+        reply
     }
 
     pub fn shutdown(&self) {
@@ -538,6 +562,32 @@ mod tests {
         assert_eq!(&p.bytes[p.bytes.len() - 5..], &[0, 255, 10, 13, 42]);
         assert!(read_packet(&mut &bytes[..bytes.len() - 1]).is_err());
         assert!(read_packet(&mut &(MAX_HEADER as u32 + 1).to_le_bytes()[..]).is_err());
+    }
+
+    #[test]
+    fn routing_header_requires_valid_fields_and_forwards_metadata_bytes_unchanged() {
+        let packet = |header: &[u8]| {
+            let mut bytes = (header.len() as u32).to_le_bytes().to_vec();
+            bytes.extend_from_slice(header);
+            bytes
+        };
+        let raw = br#"{ "result": {"nested":[1.2345678901234567,1e-200,{"text":"escaped\\text"}]}, "buffers": [], "id": 17 }"#;
+        let bytes = packet(raw);
+        let (id, parsed) = read_packet(&mut bytes.as_slice()).unwrap();
+        assert_eq!(id, 17);
+        assert_eq!(parsed.bytes, bytes);
+        for raw in [
+            r#"{"result":{},"buffers":[]}"#,
+            r#"{"id":1,"buffers":[]}"#,
+            r#"{"id":1,"result":{}}"#,
+            r#"{"id":-1,"result":{},"buffers":[]}"#,
+            r#"{"id":1,"result":{},"buffers":[{"length":-1}]}"#,
+            r#"{"id":1,"result":{},"buffers":[{"length":1.5}]}"#,
+            r#"{"id":1,"result":{},"buffers":[{"length":1073741825}]}"#,
+            r#"{"id":1,"result":{"bad":[1,]},"buffers":[]}"#,
+        ] {
+            assert!(read_packet(&mut packet(raw.as_bytes()).as_slice()).is_err(), "{raw}");
+        }
     }
 
     #[test]

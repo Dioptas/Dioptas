@@ -1,4 +1,5 @@
 import type { Raster, Response } from "./types";
+import { navigationTrace } from "./navigationTiming.ts";
 
 // Bound retained source buffers, including images we have just browsed away from.
 export class ByteCache<K, V> {
@@ -65,7 +66,12 @@ export class RasterTransfer {
     // Pin advertised buffers for this request. A concurrent response may evict
     // them from the LRU before this response arrives.
     const known = this.buffers.snapshot();
+    navigationTrace("ipc-start", { action });
     const frame = await this.invoke(action, payload, [...known.keys()]);
+    navigationTrace("ipc-received", {
+      action,
+      bytes: frame instanceof ArrayBuffer ? frame.byteLength : null,
+    });
     if (!(frame instanceof ArrayBuffer) || frame.byteLength < 4)
       throw Error("Invalid binary image response.");
     const length = new DataView(frame).getUint32(0, true);
@@ -132,7 +138,15 @@ export class RasterTransfer {
         Object.entries(obj).map(([k, v]) => [k, hydrate(v)]),
       );
     };
-    return hydrate(header.result) as Response;
+    const result = hydrate(header.result) as Response;
+    navigationTrace("ipc-hydrated", {
+      action,
+      requestId: header.id,
+      headerBytes: length,
+      pixelBytes: frame.byteLength - 4 - length,
+      bufferId: result.image?.bufferId,
+    });
+    return result;
   }
 }
 

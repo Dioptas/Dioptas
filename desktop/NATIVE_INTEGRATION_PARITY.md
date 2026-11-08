@@ -143,6 +143,72 @@ filtering, late arrivals, symlinked files/folders and byte-identical packet
 framing. Headless Chromium/WebKit cover stable controls, boundary notices,
 rapid Next/Previous order and later arrivals.
 
+## Native button-to-display timing (2026-11-08)
+
+The native navigation benchmark runs the actual React App in a private Tauri
+WKWebView, with the Rust worker, binary IPC and shared GPU renderers. It activates
+the real Integration Next/Previous buttons and records response receipt,
+hydration, React publication, detector/cake submission and pattern rendering.
+After the new frame has rendered, it waits for GPU completion and two animation
+frames. The reported display interval includes a WebKit presentation opportunity;
+it does not measure OS input dispatch or physical LCD scanout. The extra animation
+frame makes it a conservative presentation estimate.
+
+Matched local debug builds, warm filesystem pages, 1,000 radial × 360 cake bins,
+1440 × 908 CSS pixels at device-pixel ratio 1, visible foreground windows:
+
+| Integration browsing | Before host changes | After host changes |
+| --- | ---: | ---: |
+| 4 MP TIFF, first Next (one sample) | 140 ms | 79 ms |
+| 4 MP TIFF, cached Next/Previous (13 samples) | 79 ms | 59 ms |
+| Eiger 9M, 12 successive new frames | 339 ms | 139 ms |
+| Eiger 9M, cached Next/Previous (13 samples) | 138 ms | 117 ms |
+
+Values are medians, with no CPU isolation. All final samples were visible and
+focused; screenshots confirm the detector and pattern were displayed. These
+before values already include the shared loader optimizations above. They are
+not timings for the earlier unoptimized worker or predictions for release builds.
+
+The largest additional bottleneck was the native host's packet allocation:
+extending a nonempty `Vec` with `resize` initialized a 42 MB payload byte by byte
+in the debug host. Direct zeroed allocation reduces initialization from roughly
+140 ms to 0.23 ms; payload reading itself takes about 5.5 ms. The host also used
+to construct and discard a complete duplicate JSON metadata tree. It now
+deserializes only routing fields, validates/skips the remaining JSON and forwards
+the original metadata and binary bytes unchanged. Optimizing the host's
+`serde_json` development dependency further reduces header parsing. Eiger header
+parsing falls from about 31 ms to 12 ms overall. Bounds, truncation checks,
+response routing and scientific precision remain intact.
+
+Remaining time is mostly worker preparation and transfer: final native IPC is
+about 94 ms for a new Eiger frame and 80 ms for a cached one. JavaScript hydration
+takes 4–6 ms, response-to-detector submission about 12 ms, and the final paint
+wait about 18–22 ms. Texture uploads total about 2 ms, and pattern drawing is
+typically below 1 ms. Thus these samples do not identify GPU rendering as the
+dominant remaining delay. The shared host fix applies to every mode using binary
+responses, including image opens, Integration, Batch and Map selections.
+
+To reproduce from `desktop/` after preparing the debug worker:
+
+```sh
+npm run backend:prepare -- --debug
+node scripts/image_navigation_native.mjs --foreground --eiger /absolute/path/to/eiger_0000.h5 --output artifacts/native-navigation/current
+```
+
+Keep the explicitly printed private benchmark window visible and focused; on
+macOS it may need to be raised after launch. The runner uses private WebKit
+storage, never substitutes the bridge, and closes only its own process and
+worker. `--no-build --app /absolute/path/to/baseline-host` can measure a saved
+host built with the same benchmark hooks and resource layout. Hooks are enabled
+only by `VITE_DIOPTAS_NAVIGATION_BENCHMARK=1`; normal builds expose no benchmark
+control API. Optional host timings use `DIOPTAS_TRACE_NATIVE_NAV=1`.
+
+Local receipts, stage traces and screenshots are under ignored
+`desktop/artifacts/native-navigation/before-focused/` and
+`desktop/artifacts/native-navigation/optimized-final/`. Malformed headers,
+byte-identical forwarding, cached-buffer omission, child cleanup and existing
+transport behavior pass the 25 native host tests; all 71 frontend unit tests pass.
+
 ## Independent checks and limits
 
 - Core synthetic u32 Bitshuffle fixture: exact original display counts, frame and

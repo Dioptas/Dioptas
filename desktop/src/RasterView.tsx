@@ -1,4 +1,5 @@
 import { usePlotTypography } from "./usePlotTypography";
+import { navigationTrace } from "./navigationTiming";
 import {
   useCallback,
   useEffect,
@@ -316,6 +317,10 @@ export function RasterView({
   useLayoutEffect(() => {
     if (!gpu.current) return;
     try {
+      navigationTrace("raster-start", {
+        bufferId: raster.bufferId,
+        kind: cake ? "cake" : "detector",
+      });
       gpu.current.draw({
         data,
         mask: maskData,
@@ -334,6 +339,10 @@ export function RasterView({
           height: raster.fullHeight * sy,
         },
         clip: { left, top, width: plotWidth, height: plotHeight },
+      });
+      navigationTrace("raster-submitted", {
+        bufferId: raster.bufferId,
+        kind: cake ? "cake" : "detector",
       });
       setRenderer("webgl2");
     } catch {

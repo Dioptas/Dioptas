@@ -1,4 +1,5 @@
 import { usePlotTypography } from "./usePlotTypography";
+import { navigationTrace } from "./navigationTiming";
 import { WebGLPattern, type PatternCurve } from "./WebGLPattern";
 import { IntegrationPhaseLegend } from "./IntegrationPhaseLegend";
 import {
@@ -918,6 +919,10 @@ export function PatternView({
     context.textBaseline = "middle";
     context.fillText("Intensity (a.u.)", 0, 0);
     context.restore();
+    navigationTrace("pattern-rendered", {
+      cpuMs: performance.now() - started,
+      renderer: curveCache.current.renderer,
+    });
     renderObserver.current?.({
       cpuMs: performance.now() - started,
       renderer: curveCache.current.renderer,

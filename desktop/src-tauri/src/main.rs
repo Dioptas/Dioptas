@@ -367,9 +367,10 @@ fn native_smoke_report(
 fn main() {
     let args: Vec<_> = std::env::args().collect();
     let pattern_benchmark = args.iter().any(|a| a == "--pattern-benchmark");
+    let navigation_benchmark = args.iter().any(|a| a == "--navigation-benchmark");
     let tooltip_smoke = args.iter().any(|a| a == "--tooltip-smoke");
     let standalone_smoke = args.iter().any(|a| a == "--standalone-smoke");
-    let smoke = standalone_smoke || pattern_benchmark || tooltip_smoke || args.iter().any(|a| a == "--smoke");
+    let smoke = standalone_smoke || pattern_benchmark || navigation_benchmark || tooltip_smoke || args.iter().any(|a| a == "--smoke");
     let batch_smoke = std::env::args().any(|arg| arg == "--batch-smoke");
     let map_smoke = args.iter().any(|a| a == "--map-smoke");
     let example = args.iter().any(|a| a == "--example");
@@ -429,6 +430,12 @@ fn main() {
             if tauri::is_dev() {
                 window.set_title("Dioptas · Tauri live preview")?;
             }
+            if navigation_benchmark && std::env::var("DIOPTAS_NAVIGATION_BENCHMARK")
+                .ok().and_then(|config| serde_json::from_str::<Value>(&config).ok())
+                .is_some_and(|config| config["foreground"] == true) {
+                window.show()?;
+                window.set_focus()?;
+            }
             if smoke {
                 use tauri::Listener;
                 app.listen("native-smoke-diagnostic", |event| {
@@ -437,7 +444,7 @@ fn main() {
                 });
                 let handle = app.handle().clone();
                 std::thread::spawn(move || {
-                    std::thread::sleep(std::time::Duration::from_secs(if pattern_benchmark { 600 } else { 120 }));
+                    std::thread::sleep(std::time::Duration::from_secs(if pattern_benchmark || navigation_benchmark { 600 } else { 120 }));
                     eprintln!("Native smoke timed out before receiving a report.");
                     handle.exit(1);
                 });
@@ -491,6 +498,15 @@ fn main() {
                 if pattern_benchmark {
                     let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
                     let _ = webview.eval(include_str!("../../scripts/pattern_native_benchmark.js"));
+                    return;
+                }
+                if navigation_benchmark {
+                    if let Ok(config) = std::env::var("DIOPTAS_NAVIGATION_BENCHMARK") {
+                        if let Ok(value) = serde_json::from_str::<Value>(&config) {
+                            let _ = webview.eval(format!("window.__dioptasNavigationConfig = {value};"));
+                        }
+                    }
+                    let _ = webview.eval(include_str!("../../scripts/image_navigation_native.js"));
                     return;
                 }
                 if !tooltip_smoke {

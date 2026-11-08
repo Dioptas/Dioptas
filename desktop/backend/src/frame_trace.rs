@@ -29,11 +29,11 @@ impl Drop for FrameTrace {
     fn drop(&mut self) {
         if self.enabled {
             use std::io::Write;
-            let _ = writeln!(
-                std::io::stderr().lock(),
-                "DIOPTAS_TRACE {}",
+            let line = format!(
+                "DIOPTAS_TRACE {}\n",
                 serde_json::json!({"stage":self.label,"id":self.id,"steps":self.steps})
             );
+            let _ = std::io::stderr().lock().write_all(line.as_bytes());
         }
     }
 }

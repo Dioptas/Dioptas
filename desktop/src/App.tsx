@@ -1,4 +1,5 @@
 import { useBackendReload } from "./useBackendReload";
+import { navigationTimingEnabled, navigationTrace } from "./navigationTiming";
 import { usePlotZoomPreference } from "./usePlotZoomPreference";
 import {
   CalibrationResetDialog,
@@ -764,6 +765,7 @@ export default function App() {
             : s,
         );
       quietInFlight.current = quiet;
+      navigationTrace("command-start", { action: command });
       try {
         const selectedPosition = currentLinked.current;
         let result = await bridge.current(
@@ -782,6 +784,10 @@ export default function App() {
               ? { ...args, integration_view: commandMode === "integration" }
               : args,
         );
+        navigationTrace("command-response", {
+          action: command,
+          bufferId: result.image?.bufferId,
+        });
         if (result.imageChange) {
           if (
             document.activeElement instanceof HTMLElement &&
@@ -825,7 +831,15 @@ export default function App() {
           readImageAutoLevels(display.name, display.filterGaps),
           raw,
         );
+        navigationTrace("command-prepared", {
+          action: command,
+          bufferId: result.image?.bufferId,
+        });
         apply(result, true, retainMapClick);
+        navigationTrace("command-applied", {
+          action: command,
+          bufferId: result.image?.bufferId,
+        });
         if (command === "next_image" && result.ok)
           setNotice(
             result.imageUnavailable
@@ -934,6 +948,34 @@ export default function App() {
     if (state?.combination?.patterns || state?.combination?.cakes)
       setShowConfigurationControls(true);
   }, [state?.combination?.patterns, state?.combination?.cakes]);
+  useEffect(() => {
+    if (!navigationTimingEnabled) return;
+    const probe = {
+      run: (action: string, payload: Record<string, unknown> = {}) =>
+        run(
+          action,
+          payload,
+          "Preparing navigation benchmark…",
+          undefined,
+          undefined,
+          false,
+          true,
+        ),
+      state: () => currentState.current,
+      image: () => imageSource.current,
+    };
+    window.__dioptasNavigationProbe = probe;
+    return () => {
+      if (window.__dioptasNavigationProbe === probe)
+        delete window.__dioptasNavigationProbe;
+    };
+  }, [run]);
+  useLayoutEffect(() => {
+    navigationTrace("react-commit", {
+      revision: state?.revision,
+      bufferId: image?.bufferId,
+    });
+  }, [state?.revision, image?.bufferId]);
   useBackendReload((message, restored) => {
     setNotice(message);
     if (restored)
