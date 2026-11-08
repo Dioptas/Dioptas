@@ -8,6 +8,10 @@ from pathlib import Path
 
 import numpy as np
 from pyFAI.geometry import Geometry
+from dioptas.model.util.ImgCorrection import (
+    CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection,
+    PlateAbsorptionCorrection, SlabAbsorptionCorrection,
+)
 
 from native_reference_client import Native, ROOT
 
@@ -43,9 +47,35 @@ def main():
         n.call("integration_transfer", enabled=True)
         n.call("combination_settings", factor=2)
         gain = 2 * flat.mean() / flat * original / response
-        corrected = (raw - 2 * background - 900) * gain
         g = Geometry(**geometry)
         tth, azi = g.tth(rows, cols), g.chi(rows, cols)
+        # Every absorption correction must square its transmission in variance,
+        # independently of its agreement on corrected intensity alone.
+        for kind, cls, params, degrees in [
+            ("cbn", CbnCorrection, dict(tilt=7, tilt_rotation=31), True),
+            ("oiadac", ObliqueAngleDetectorAbsorptionCorrection, dict(tilt=3, rotation=16), False),
+            ("plate", PlateAbsorptionCorrection, dict(thickness=0.3, absorption_coefficient=0.8, plate_tilt=12, plate_rotation=27), True),
+            ("slab", SlabAbsorptionCorrection, dict(thickness=0.15, absorption_coefficient=1.2, slab_tilt=8, slab_rotation=-32), True),
+        ]:
+            ref = cls(tth_array=np.rad2deg(tth) if degrees else tth,
+                      azi_array=np.rad2deg(azi) if degrees else azi, **params)
+            ref.update()
+            transmission = ref.get_data()
+            if kind == "slab":
+                # Independent quadrature avoids cancellation in the original
+                # Python difference-of-exponentials near equal path lengths.
+                tilt, rotation = np.deg2rad([params["slab_tilt"], params["slab_rotation"]])
+                outgoing_cos = np.maximum(abs(np.cos(tilt)*np.cos(tth) + np.sin(tilt)*np.sin(tth)*np.cos(azi-rotation)), 1e-10)
+                incident = params["absorption_coefficient"] / max(abs(np.cos(tilt)), 1e-10)
+                outgoing = params["absorption_coefficient"] / outgoing_cos
+                nodes, quadrature_weights = np.polynomial.legendre.leggauss(32)
+                depth = params["thickness"] * (nodes + 1) / 2
+                integral = params["thickness"] / 2 * np.sum(quadrature_weights[:, None, None] * np.exp(-incident*depth[:, None, None] - outgoing[None, :, :]*(params["thickness"]-depth[:, None, None])), axis=0)
+                np.testing.assert_allclose(transmission, integral, rtol=3e-10, atol=1e-13)
+                transmission = integral
+            gain /= transmission
+            n.call("integration_correction", kind=kind, enabled=True, parameters=params)
+        corrected = (raw - 2 * background - 900) * gain
         pol = 0.5 * (1 + np.cos(tth)**2 - 0.965 * np.cos(2*azi) * np.sin(tth)**2)
         p1 = (rows + 0.5)*geometry["pixel1"] - geometry["poni1"]
         p2 = (cols + 0.5)*geometry["pixel2"] - geometry["poni2"]

@@ -103,9 +103,12 @@ All checks run through the existing native CI gate:
 - `scripts/native_processing_parity.py`: original Python correction formulas,
   asymmetric transfer references and Python/Rust project cross-read/write.
 - `scripts/native_uncertainty_parity.py`: independent NumPy weights for a
-  supersampled sector, nonuniform flat/transfer maps, negative corrected
+  supersampled sector, nonuniform flat/transfer maps, all four absorption
+  corrections, negative corrected
   intensities, background noise on/off and solid angle on/off. The checked
-  std differs by less than `3e-14` on this synthetic fixture.
+  std differs by less than `4e-13` on this synthetic fixture. Independent
+  Gauss–Legendre quadrature checks the slab depth integral near equal incident
+  and outgoing paths, where the original subtraction formula loses precision.
 - `scripts/native_corrections_smoke.mjs`: headless Chromium/WebKit controls,
   transfer loading, draft commit/enable, project reopening and panel layouts at
   1440 and 1100 px. Receipts/screenshots are under `artifacts/native-corrections`.
