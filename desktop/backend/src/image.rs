@@ -105,6 +105,7 @@ pub struct Image {
     pub(crate) transformations: Vec<crate::transform::Transform>,
     pub values: Arc<Vec<f64>>,
     pub source_dtype: String,
+    pub(crate) derived: bool,
     pub ordinary_decodes: u64,
     pub combined: bool,
     pub parallel_pixels: bool,
@@ -134,6 +135,7 @@ impl Image {
             .copied()
             .collect();
         self.publish_combined(0, self.shape, PixelBuffer::F64(stored))?;
+        self.derived = true;
         self.combined = false;
         self.frames = 1;
         self.file_info = Arc::new(format!("{description}\n{}", self.file_info));
@@ -252,6 +254,7 @@ impl Image {
             transformations: vec![],
             values: Arc::new(vec![]),
             source_dtype: String::new(),
+            derived: false,
             ordinary_decodes: 0,
             combined: false,
             parallel_pixels: false,
@@ -302,6 +305,7 @@ impl Image {
             transformations: vec![],
             values: source_values,
             source_dtype: "F64".into(),
+            derived: true,
             ordinary_decodes: 0,
             combined: false,
             parallel_pixels: false,
@@ -349,6 +353,7 @@ impl Image {
         }
         let values = oriented_values(pixels, shape)?;
         self.source_dtype = format!("{:?}", pixels.pixel_type());
+        self.derived = false;
         self.ordinary_decodes += 1;
         self.combined = false;
         self.parallel_pixels = false;
@@ -466,6 +471,7 @@ impl Image {
         let values = oriented_values(&pixels, shape)?;
         trace.mark("typed to oriented f64");
         self.source_dtype = format!("{:?}", pixels.pixel_type());
+        self.derived = false;
         self.combined_pixels = Some(Arc::new(pixels));
         self.buffer = Arc::new(FrameBuffer::default());
         self.combined = true;

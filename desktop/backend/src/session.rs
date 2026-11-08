@@ -39,7 +39,13 @@ use calibration::{Calibration, History, Workflow};
 #[cfg(feature = "dioptrin")]
 use std::time::Instant;
 
-type DetectorMaskSource = (PathBuf, Option<crate::image::FileIdentity>, String, Value);
+type DetectorMaskSource = (
+    PathBuf,
+    Option<crate::image::FileIdentity>,
+    String,
+    Value,
+    bool,
+);
 struct DetectorMaskCache {
     detector: Arc<dioptrin::detector::Detector>,
     shape: [usize; 2],
@@ -1095,22 +1101,7 @@ impl Session {
             crate::frame_trace::FrameTrace::new("open-image", args["frame"].as_u64().unwrap_or(0));
         let mut image = Image::prepare(&file, args)?;
         trace.mark("metadata");
-        if self.settings.geometry.auto_assign
-            && !self.settings.calibrated
-            && self.settings.transformations.is_empty()
-        {
-            let (description, pixels) = image.detector_hints();
-            let found = dioptrin::detector::identify(image.source_shape, pixels, &description);
-            let g = &mut self.settings.geometry;
-            if let Some(d) = found.selected {
-                d.binning(image.source_shape)?;
-                [g.pixel1, g.pixel2] = d.effective_pixels(image.source_shape);
-                g.detector = Some(Arc::new(d));
-            }
-            g.auto_assign = false;
-            g.assignment = Some(found.reason);
-            g.candidates = found.candidates;
-        }
+        self.assign_image_detector(&image)?;
 
         image.orient(&self.settings.transformations, &self.control)?;
         self.settings.geometry.sync_shape(image.shape)?;
@@ -1155,6 +1146,25 @@ impl Session {
                 .map_or(Ok(false), |v| boolean(v, "Pattern only"))?,
         )?;
         trace.mark("processing masks and integration");
+        Ok(())
+    }
+    fn assign_image_detector(&mut self, image: &Image) -> Result<(), String> {
+        if self.settings.geometry.auto_assign
+            && !self.settings.calibrated
+            && self.settings.transformations.is_empty()
+        {
+            let (description, pixels) = image.detector_hints();
+            let found = dioptrin::detector::identify(image.source_shape, pixels, &description);
+            let g = &mut self.settings.geometry;
+            if let Some(d) = found.selected {
+                d.binning(image.source_shape)?;
+                [g.pixel1, g.pixel2] = d.effective_pixels(image.source_shape);
+                g.detector = Some(Arc::new(d));
+            }
+            g.auto_assign = false;
+            g.assignment = Some(found.reason);
+            g.candidates = found.candidates;
+        }
         Ok(())
     }
     fn publish_image(&mut self, mut image: Image) -> Result<(), String> {
@@ -1269,6 +1279,7 @@ impl Session {
                     crate::image::FileIdentity::read(&i.path).ok(),
                     i.source_dtype.clone(),
                     i.options.clone(),
+                    i.derived,
                 )
             });
         if let Some(entry) = cache.as_ref()

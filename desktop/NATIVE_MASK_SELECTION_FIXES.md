@@ -343,3 +343,49 @@ filtering leaves stored/reintegrated profiles unchanged. Disabling the user-mask
 switch and reintegrating the Map still excludes detector-invalid pixels. These
 checks complement the exact explicit-mask pattern/cake comparison above and
 are recorded in `artifacts/native-mask/real-eiger-integration.json`.
+
+## Batch and other integration routes
+
+`scripts/native_detector_gap_workflows_check.py` compares the Eiger detector with
+a Custom uniform detector having the same geometry and **no automatic mask**.
+The reference uses an explicit mask of the 887,556 acquisition dummy pixels.
+Its unmasked control produces a median intensity over 1,000 times larger, so
+the comparison is sensitive to missing exclusions rather than merely matching
+two automatic-mask paths.
+
+The checks cover all 625 stored Batch profiles on warm and cold bulk HDF5 paths,
+Batch reintegration and selected-frame cakes, folder/multiple-image integration,
+ordinary TIFF and combined/pattern-only HDF5 loading, frame navigation, explicit
+reintegration, CSC/CSR layouts, azimuth limits, detector ROI, background/flat-field/
+absorption corrections, dynamic-mask fallback, the disabled user-mask switch,
+automatic processing, live Map appends, Poisson-error export, derived images,
+rotations, cached `.dio` pixels and duplicated configurations. Numerical receipts
+record the exact processor hash in `artifacts/native-mask/real-eiger-workflows.json`.
+
+The audit found an additional failure in Image → Add: arithmetic changed the
+dummy codes before automatic-mask discovery, contaminating 1,957 of 2,000 profile
+bins in the real TIFF pair. Corrected image export could similarly change or
+overflow those codes. Add/Average now union the physical acquisition masks from
+the original inputs before arithmetic, transforming that union back to the
+source layout. Derived and saved invalid samples use the reserved int32 maximum
+marker. Using minus one instead was rejected by the corrected-export comparison:
+valid negative corrected counts could also equal minus one and become excluded.
+Original source files and valid sample arithmetic are unchanged.
+
+The mask-cache source key distinguishes derived/project-cache pixels from the
+original disk samples, preventing a union from a derived image from leaking into
+an original same-path F64 input. Image batch actions share the existing first-load
+detector assignment rules. A synthetic Rust regression checks minus-one/int32-max/
+uint32-max fills, isolated invalid pixels in different inputs, Add/Average,
+rotation, project reload, return to original F64 sources and saved TIFFs. Valid
+negative counts that become minus one remain unmasked. All 66 Rust tests and
+Clippy pass; the optional external-data timing test remains ignored.
+
+Code inspection confirms that ordinary/automatic/calibration validation and cake
+integration use `calculate_products` with `integration_mask`. The Batch/Map/live
+series owner builds the static physical mask before the combined HDF5 plan, or
+refreshes masks before resident integration in the processing/plugin fallback.
+Prepared results are validated against a key containing the scientific mask.
+Histogram filtering does not select any of these masks. This qualifies the tested
+fixed-mask Eiger acquisition and the listed routes, not every possible detector
+or acquisitions whose invalid locations change frame by frame.
