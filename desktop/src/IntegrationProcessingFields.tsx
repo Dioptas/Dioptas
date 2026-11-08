@@ -1,3 +1,4 @@
+import { Button, Input } from "./ui";
 import { useEffect, useRef, useState } from "react";
 import { FolderOpen, Trash2 } from "lucide-react";
 import { Check, splitNumericLabel } from "./IntegrationFields";
@@ -52,7 +53,7 @@ export function ProcessingNumberField({
       className={`field-label${unit ? " processing-field-with-unit" : ""}`}
     >
       <span>{name}</span>
-      <input
+      <Input
         ref={input}
         aria-label={label}
         type="number"
@@ -97,7 +98,7 @@ export function ProcessingFile({
 }) {
   return (
     <div className="processing-file">
-      <button
+      <Button
         type="button"
         aria-label={`Load ${kind}…`}
         title={`Load ${kind}…`}
@@ -105,11 +106,11 @@ export function ProcessingFile({
         onClick={onLoad}
       >
         <FolderOpen />
-      </button>
+      </Button>
       <span className="integration-filename" title={filename ?? undefined}>
         {filename?.split(/[\\/]/).at(-1) || `No ${kind} loaded`}
       </span>
-      <button
+      <Button
         type="button"
         aria-label={`Remove ${kind}`}
         title={`Remove ${kind}`}
@@ -117,7 +118,7 @@ export function ProcessingFile({
         onClick={onRemove}
       >
         <Trash2 />
-      </button>
+      </Button>
     </div>
   );
 }
@@ -134,7 +135,7 @@ export function ProcessingType({
   onClick: () => void;
 }) {
   return (
-    <button
+    <Button
       type="button"
       aria-label={label}
       aria-pressed={selected}
@@ -148,7 +149,7 @@ export function ProcessingType({
         aria-label={active ? "Active" : "Inactive"}
         title={active ? "Active" : "Inactive"}
       />
-    </button>
+    </Button>
   );
 }
 

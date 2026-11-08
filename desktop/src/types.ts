@@ -154,6 +154,13 @@ export interface RingOverlay {
   points: number[][];
 }
 export interface Response {
+  imageChange?: {
+    path: string;
+    frame: number;
+    previousShape: [number, number];
+    newShape: [number, number];
+  };
+  calibrationReset?: boolean;
   savedPaths?: string[];
   clearImage?: boolean;
   customCommands?: import("./customCommands").CustomCommand[];

@@ -354,6 +354,14 @@ class CalibrationModel:
         }
 
     def _create_dioptrin_integrator(self) -> None:
+        # The PONI-dict adapter cannot describe curved/nonuniform detectors
+        # or distortion splines. Preserve their full geometry through pyFAI.
+        if (self.distortion_spline_filename
+                or not getattr(self.detector, "IS_FLAT", True)
+                or not getattr(self.detector, "uniform_pixel", True)):
+            self._dioptrin_integrator = None
+            self._dioptrin_integrator_key = None
+            return
         poni = self._get_poni_dict()
         raw_image = self.img_model.raw_img_data
         image_shape = None if raw_image is None else raw_image.shape

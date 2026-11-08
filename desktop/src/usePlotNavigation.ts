@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent, RefObject } from "react";
 import type { PlotViewport } from "./plotViewport";
 
@@ -86,6 +86,21 @@ export function usePlotNavigation(
   const gesture = useRef<Gesture | null>(null);
   const rightClick = useRef<{ time: number; point: ScreenPoint } | null>(null);
   const currentRange = range ?? fit;
+  // Slice mode always follows the visible content, including when data changes
+  // or the user switches from a manually scaled rectangle view.
+  const horizontalExtent = useMemo(
+    () =>
+      zoomMode === "horizontal" && !aspectLocked
+        ? horizontalYRange?.(currentRange.xMin, currentRange.xMax)
+        : undefined,
+    [
+      zoomMode,
+      aspectLocked,
+      horizontalYRange,
+      currentRange.xMin,
+      currentRange.xMax,
+    ],
+  );
   // A zoomed range outlives the viewport that created it. Derive its height
   // from the current canvas aspect on every render, including resize frames.
   const halfHeight =
@@ -99,7 +114,13 @@ export function usePlotNavigation(
         yMin: centerY - halfHeight,
         yMax: centerY + halfHeight,
       }
-    : currentRange;
+    : horizontalExtent
+      ? {
+          ...currentRange,
+          yMin: horizontalExtent[0],
+          yMax: horizontalExtent[1],
+        }
+      : currentRange;
   const reset = () => {
     gesture.current = null;
     rightClick.current = null;
@@ -210,13 +231,21 @@ export function usePlotNavigation(
         ((p.x - current.start.x) / bounds.width) *
         (current.range.xMax - current.range.xMin);
       const dy =
-        ((p.y - current.start.y) / bounds.height) *
-        (current.range.yMax - current.range.yMin);
+        zoomMode === "horizontal" && !aspectLocked
+          ? 0
+          : ((p.y - current.start.y) / bounds.height) *
+            (current.range.yMax - current.range.yMin);
+      const xMin = current.range.xMin - dx,
+        xMax = current.range.xMax - dx;
+      const [yMin, yMax] =
+        zoomMode === "horizontal" && !aspectLocked && horizontalYRange
+          ? horizontalYRange(xMin, xMax)
+          : [current.range.yMin + dy, current.range.yMax + dy];
       setRange({
-        xMin: current.range.xMin - dx,
-        xMax: current.range.xMax - dx,
-        yMin: current.range.yMin + dy,
-        yMax: current.range.yMax + dy,
+        xMin,
+        xMax,
+        yMin,
+        yMax,
       });
     } else {
       // Margin-enabled drags may start on the axes. Select the intersection with

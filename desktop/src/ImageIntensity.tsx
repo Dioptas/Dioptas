@@ -1,5 +1,6 @@
+import { DialogHeader, Button, Input, Popover, Portal, Select } from "./ui";
 import { useEffect, useId, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+
 import { Settings } from "lucide-react";
 import type {
   Palette,
@@ -509,7 +510,7 @@ export function ImageIntensity({
         </div>
         <div className="intensity-basic-controls">
           <div className="intensity-actions">
-            <button
+            <Button
               aria-label={label("Auto intensity")}
               aria-pressed={autoActive}
               disabled={!ready}
@@ -517,8 +518,8 @@ export function ImageIntensity({
               onClick={() => applyAuto(auto)}
             >
               Auto
-            </button>
-            <button
+            </Button>
+            <Button
               aria-label={`${title} histogram settings`}
               aria-haspopup="dialog"
               aria-expanded={!!dialog}
@@ -529,7 +530,7 @@ export function ImageIntensity({
               }}
             >
               <Settings size={16} aria-hidden="true" />
-            </button>
+            </Button>
           </div>
           <ColorMapPicker
             ref={colorMapPicker}
@@ -539,13 +540,13 @@ export function ImageIntensity({
           />
         </div>
       </aside>
-      {dialog &&
-        createPortal(
+      {dialog && (
+        <Portal>
           <div
             className="display-settings-backdrop"
             onPointerDown={() => setDialog(null)}
           >
-            <section
+            <Popover
               role="dialog"
               aria-modal="true"
               aria-label={`${title} display settings`}
@@ -556,18 +557,15 @@ export function ImageIntensity({
               }}
               onPointerDown={(event) => event.stopPropagation()}
             >
-              <div className="display-settings-heading">
-                <h2>{title} display</h2>
-                <button
-                  aria-label={`Close ${display} display settings`}
-                  onClick={() => setDialog(null)}
-                >
-                  ×
-                </button>
-              </div>
+              <DialogHeader
+                className="display-settings-heading"
+                title={`${title} display`}
+                closeLabel={`Close ${display} display settings`}
+                onClose={() => setDialog(null)}
+              />
               <label>
                 Scale
-                <select
+                <Select
                   aria-label={label("Image scale")}
                   value={log ? "log" : "linear"}
                   onChange={(event) => {
@@ -577,11 +575,11 @@ export function ImageIntensity({
                 >
                   <option value="linear">Linear</option>
                   <option value="log">Logarithmic</option>
-                </select>
+                </Select>
               </label>
               <label>
                 Auto mode
-                <select
+                <Select
                   aria-label={label("Auto intensity mode")}
                   value={auto.mode}
                   disabled={!ready}
@@ -594,12 +592,12 @@ export function ImageIntensity({
                   <option value="percentile">Percentile</option>
                   <option value="minmax">Min/max</option>
                   <option value="mean3std">Mean ± 3 Std</option>
-                </select>
+                </Select>
               </label>
               {auto.mode === "percentile" && (
                 <label>
                   Clip each tail · %
-                  <input
+                  <Input
                     aria-label={label("Clipping percentile")}
                     type="number"
                     min="0.01"
@@ -619,7 +617,7 @@ export function ImageIntensity({
                 </label>
               )}
               <label className="display-settings-check">
-                <input
+                <Input
                   aria-label={label("Filter detector gaps")}
                   type="checkbox"
                   checked={auto.filter_gaps}
@@ -632,7 +630,7 @@ export function ImageIntensity({
               </label>
               <label>
                 Minimum
-                <input
+                <Input
                   aria-label={label("Minimum intensity")}
                   type="number"
                   step="any"
@@ -649,7 +647,7 @@ export function ImageIntensity({
               </label>
               <label>
                 Maximum
-                <input
+                <Input
                   aria-label={label("Maximum intensity")}
                   type="number"
                   step="any"
@@ -666,7 +664,7 @@ export function ImageIntensity({
               </label>
               <label>
                 Bar layout
-                <select
+                <Select
                   aria-label={label("Histogram orientation")}
                   value={horizontal ? "horizontal" : "vertical"}
                   onChange={(event) =>
@@ -675,11 +673,11 @@ export function ImageIntensity({
                 >
                   <option value="vertical">Vertical · right of image</option>
                   <option value="horizontal">Horizontal · above image</option>
-                </select>
+                </Select>
               </label>
               <label>
                 Bar size
-                <select
+                <Select
                   aria-label={label("Histogram size")}
                   value={small ? "compact" : "large"}
                   onChange={(event) =>
@@ -688,12 +686,12 @@ export function ImageIntensity({
                 >
                   <option value="compact">Compact</option>
                   <option value="large">Large</option>
-                </select>
+                </Select>
               </label>
-            </section>
-          </div>,
-          document.body,
-        )}
+            </Popover>
+          </div>
+        </Portal>
+      )}
     </>
   );
 }

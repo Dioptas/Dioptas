@@ -1,3 +1,4 @@
+import { Button, Input } from "./ui";
 import { useEffect, useId, useRef, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useSpinBoxWheel } from "./spinBoxWheel";
@@ -175,7 +176,7 @@ export function EditorNumber({
   });
   return (
     <span className={`pe-number${stepper ? " pe-number-stepped" : ""}`}>
-      <input
+      <Input
         ref={input}
         type="text"
         inputMode="decimal"
@@ -228,7 +229,7 @@ export function EditorNumber({
       {stepper && step !== "any" && (
         <span className="pe-number-steps">
           {[1, -1].map((direction) => (
-            <button
+            <Button
               key={direction}
               type="button"
               tabIndex={-1}
@@ -239,7 +240,7 @@ export function EditorNumber({
               onClick={() => nudge(direction)}
             >
               {direction === 1 ? <ChevronUp /> : <ChevronDown />}
-            </button>
+            </Button>
           ))}
         </span>
       )}
@@ -278,7 +279,7 @@ export function TextEdit({
     }
   };
   return (
-    <input
+    <Input
       aria-label={label}
       value={text}
       disabled={disabled}

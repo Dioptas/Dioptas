@@ -30,7 +30,6 @@
   white-space: nowrap;
 }
 .integration-controls .integration-file-controls button {
-  border-radius: 3px;
   min-height: 30px;
 }
 .integration-controls .integration-file-navigation button {

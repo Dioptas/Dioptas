@@ -1,3 +1,4 @@
+import { Button } from "./ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronDown,
@@ -196,15 +197,15 @@ export function BatchView({
           role="toolbar"
           aria-label="Batch files"
         >
-          <button
+          <Button
             aria-label="Load raw/proc data"
             title="Load raw/proc data"
             disabled={!ready}
             onClick={() => run("batch_load_data", {}, "Loading batch data…")}
           >
             <FolderOpen size={16} />
-          </button>
-          <button
+          </Button>
+          <Button
             aria-label="Previous batch folder"
             title="Load files in previous folder"
             disabled={!ready || !batch?.canReintegrate}
@@ -217,8 +218,8 @@ export function BatchView({
             }
           >
             <ChevronLeft size={15} />
-          </button>
-          <button
+          </Button>
+          <Button
             aria-label="Next batch folder"
             title="Load files in next folder"
             disabled={!ready || !batch?.canReintegrate}
@@ -227,15 +228,15 @@ export function BatchView({
             }
           >
             <ChevronRight size={15} />
-          </button>
-          <button
+          </Button>
+          <Button
             aria-label="Save batch data"
             title="Save data"
             disabled={!ready || !batch}
             onClick={() => run("integration_save_batch", {}, "Saving batch…")}
           >
             <Save size={15} />
-          </button>
+          </Button>
         </div>
         <span className="batch-folder-label" title={folder}>
           <span>{folderLabel}</span>
@@ -258,7 +259,7 @@ export function BatchView({
             ? (["Files", "2D", "Options"] as const)
             : (["Files", "2D"] as const)
           ).map((name) => (
-            <button
+            <Button
               role="tab"
               aria-label={name}
               title={name === "Options" ? "Options" : undefined}
@@ -268,7 +269,7 @@ export function BatchView({
               onClick={() => setTab(name)}
             >
               {name === "Options" ? <Settings2 size={15} /> : name}
-            </button>
+            </Button>
           ))}
         </div>
         <PlotToggle
@@ -282,7 +283,7 @@ export function BatchView({
         </PlotToggle>
         <div className="batch-window-actions">
           {onCollapse && (
-            <button
+            <Button
               aria-label={
                 collapsed ? "Expand batch overview" : "Collapse batch overview"
               }
@@ -290,34 +291,34 @@ export function BatchView({
               onClick={onCollapse}
             >
               {collapsed ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-            </button>
+            </Button>
           )}
           {onDetach && (
-            <button
+            <Button
               aria-label="Detach batch"
               title="Move Batch to a separate window"
               onClick={onDetach}
             >
               <ExternalLink size={15} />
-            </button>
+            </Button>
           )}
           {onDock && (
-            <button
+            <Button
               aria-label="Dock batch below image"
               title="Dock below the image in Integration"
               onClick={onDock}
             >
               <PanelBottomClose size={15} />
-            </button>
+            </Button>
           )}
           {docked && (
-            <button
+            <Button
               aria-label="Hide batch view"
               title="Hide Batch; keep the series"
               onClick={onHide}
             >
               <X size={15} />
-            </button>
+            </Button>
           )}
         </div>
       </header>
@@ -354,14 +355,14 @@ export function BatchView({
                         }
                       >
                         <td>
-                          <button
+                          <Button
                             disabled={!ready || file.first === null}
                             aria-label={`Select batch file ${i}`}
                             title={file.path}
                             onClick={() => select(file.first!)}
                           >
                             <span>{file.name}</span>
-                          </button>
+                          </Button>
                         </td>
                         <td>{file.frames}</td>
                       </tr>
@@ -374,14 +375,14 @@ export function BatchView({
                 <p>
                   Load a series of raw image files to integrate them in one run.
                 </p>
-                <button
+                <Button
                   disabled={!ready}
                   onClick={() =>
                     run("batch_load_data", {}, "Loading batch data…")
                   }
                 >
                   Load raw/proc data
-                </button>
+                </Button>
                 {!calibrated && (
                   <p>
                     Raw images need a calibration. Stored batches can be opened

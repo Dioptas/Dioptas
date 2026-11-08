@@ -200,7 +200,6 @@
 .settings-preference-row select {
   width: 170px;
   flex-shrink: 0;
-  background: #13161a;
 }
 .settings-card .settings-detail,
 .settings-detail {
@@ -301,7 +300,6 @@
   font-size: var(--text-small);
 }
 .settings-shortcut kbd {
-  background: #13161a;
   border: 1px solid #ffffff18;
   border-radius: 5px;
   padding: 5px 9px;

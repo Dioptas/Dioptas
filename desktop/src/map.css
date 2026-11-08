@@ -541,14 +541,6 @@
   overflow: auto;
   box-sizing: border-box;
   padding: 10px;
-  border: 1px solid #41484f;
-  border-radius: 6px;
-  background: #202226;
-  color: #e2e6eb;
-  box-shadow: 0 8px 24px #0006;
-}
-.map-settings-dialog::backdrop {
-  background: transparent;
 }
 .map-settings-dialog header {
   display: flex;

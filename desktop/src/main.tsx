@@ -9,7 +9,6 @@ import { NativeCalibrationTooltip } from "./NativeCalibrationTooltip";
 import { installNativeColorPickerAnchors } from "./nativeColorPicker";
 import { installSpinBoxWheel } from "./spinBoxWheel";
 import "./style.css";
-import "./buttons.css";
 import "./surfaces.css";
 import "./navigation.css";
 import "./calibrationSetup.css";

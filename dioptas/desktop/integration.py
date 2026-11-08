@@ -582,6 +582,13 @@ class IntegrationWorkflow(PhaseWorkflow):
         path = self._integration_incoming.popleft()
         try:
             result = self._open_image(path=path)
+            if result.get("imageChange"):
+                self._integration_auto_process = False
+                self._integration_auto_process_error = (
+                    f"{Path(path).name}: detector dimensions changed. "
+                    "Autoprocess stopped; open this image manually to reset the calibration."
+                )
+                return self._state()
             self._integration_image_loaded()
         except Exception as exc:
             # A bad image must not block the remaining acquisition queue.
@@ -600,9 +607,11 @@ class IntegrationWorkflow(PhaseWorkflow):
             if not self._has_image:
                 raise ValueError("Open an image first.")
             frame = finite(frame, "Frame", 1, image.series_max, True)
-            image.load_series_img(frame)
-            self.configuration.calibration_model.clear_peaks()
-            self._fit_rms = None
+            if frame != image.series_pos:
+                result = self._open_checked_image(image.filename, frame=frame)
+                if not result.get("cancelled"):
+                    self._integration_image_loaded()
+                return result
             self._calculate()
             self._integration_image_loaded()
             return self._snapshot(include_image=True)
@@ -818,7 +827,7 @@ class IntegrationWorkflow(PhaseWorkflow):
         return self._snapshot()
 
     def _integration_save_pattern(self, path=None, subtract_background=False):
-        if self._pattern is None:
+        if self._pattern is None or not self._pattern["x"]:
             raise ValueError("Load or integrate a pattern first.")
         path = self._path(path, "pattern", save=True)
         if path is None:

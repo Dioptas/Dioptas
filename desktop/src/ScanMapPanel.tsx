@@ -1,3 +1,4 @@
+import { Button, Input, Select } from "./ui";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Save } from "lucide-react";
 import { RasterView } from "./RasterView";
@@ -179,19 +180,19 @@ export function ScanMapPanel({
               : "Load a scan from Map mode in the main window."}
           </p>
           {allowLoad && (
-            <button
+            <Button
               disabled={!ready || !calibrated}
-              className="primary"
+              variant="primary"
               onClick={() => run("map_load", {}, "Integrating map…")}
             >
               Load images…
-            </button>
+            </Button>
           )}
         </div>
       )}
       <div className="integration-image-tools map-display-controls">
         <label>
-          <input
+          <Input
             aria-label="Smooth map"
             type="checkbox"
             checked={smooth}
@@ -200,7 +201,7 @@ export function ScanMapPanel({
           />
           Smooth
         </label>
-        <input
+        <Input
           aria-label="Map smoothing factor"
           title={`Smoothing factor: ${smoothFactor}×`}
           type="range"
@@ -211,7 +212,7 @@ export function ScanMapPanel({
           onChange={(e) => setSmoothFactor(+e.target.value)}
         />
         <label>
-          <input
+          <Input
             aria-label="Map contours"
             type="checkbox"
             checked={showContours}
@@ -220,7 +221,7 @@ export function ScanMapPanel({
           />
           Contours
         </label>
-        <input
+        <Input
           aria-label="Map contour count"
           title={`${contourCount} contour levels`}
           type="range"
@@ -232,7 +233,7 @@ export function ScanMapPanel({
         />
       </div>
       <div className="integration-image-tools map-toolbar">
-        <button
+        <Button
           className="plot-tool-button map-icon-button"
           aria-label="Save map data…"
           title="Save map data as text or TIFF"
@@ -240,10 +241,10 @@ export function ScanMapPanel({
           onClick={() => run("map_export")}
         >
           <Save size={16} />
-        </button>
+        </Button>
         <label className="map-layer-select">
           Layer
-          <select
+          <Select
             aria-label="Map layer"
             disabled={!ready || !map}
             value={map?.active ?? ""}
@@ -257,9 +258,9 @@ export function ScanMapPanel({
             ) : (
               <option>No map loaded</option>
             )}
-          </select>
+          </Select>
         </label>
-        <button
+        <Button
           className="plot-tool-button map-icon-button"
           aria-label="Save PNG…"
           title="Save map viewport as PNG"
@@ -270,7 +271,7 @@ export function ScanMapPanel({
           }}
         >
           PNG
-        </button>
+        </Button>
         {actions}
       </div>
     </section>

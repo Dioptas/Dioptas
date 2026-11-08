@@ -15,15 +15,6 @@
   max-height: calc(100vh - 16px);
   overflow: auto;
   padding: 12px;
-  color: #dce2e7;
-  background: #232323;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  box-shadow: 0 8px 24px #0006;
-  font-size: var(--text-small);
-}
-.overlay-color-scale-dialog::backdrop {
-  background: transparent;
 }
 .overlay-color-scale-heading {
   display: flex;

@@ -1,3 +1,4 @@
+import { Button, Input, TextArea } from "./ui";
 import { useLayoutEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, GripVertical, Plus, Trash2 } from "lucide-react";
 import { getCommandIcon } from "./customCommandIcons";
@@ -181,7 +182,7 @@ export function CustomCommandSettings({
                 endDrag();
               }}
             >
-              <button
+              <Button
                 type="button"
                 className="custom-command-drag-handle"
                 aria-label={`Drag ${command.name} to reorder`}
@@ -212,8 +213,8 @@ export function CustomCommandSettings({
                 }}
               >
                 <GripVertical size={16} />
-              </button>
-              <button
+              </Button>
+              <Button
                 className="custom-command-edit"
                 title={command.name}
                 aria-pressed={draft?.id === command.id}
@@ -225,24 +226,24 @@ export function CustomCommandSettings({
                   {command.name}
                   {!command.enabled ? " · hidden" : ""}
                 </span>
-              </button>
-              <button
+              </Button>
+              <Button
                 aria-label={`Move ${command.name} up`}
                 title="Move up"
                 disabled={dirty || pending || index === 0}
                 onClick={() => moveCommand(command.id, -1)}
               >
                 <ArrowUp size={15} />
-              </button>
-              <button
+              </Button>
+              <Button
                 aria-label={`Move ${command.name} down`}
                 title="Move down"
                 disabled={dirty || pending || index === commands.length - 1}
                 onClick={() => moveCommand(command.id, 1)}
               >
                 <ArrowDown size={15} />
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 className="custom-command-delete"
                 aria-label={`Delete action: ${command.name}`}
@@ -251,18 +252,18 @@ export function CustomCommandSettings({
                 onClick={() => void deleteAction(command.id)}
               >
                 <Trash2 size={15} />
-              </button>
+              </Button>
             </div>
           );
         })}
-        <button
+        <Button
           className="custom-command-add"
           disabled={dirty || pending}
           onClick={() => edit(blank())}
         >
           <Plus size={16} />
           Add action
-        </button>
+        </Button>
       </div>
       {commands.length > 1 && (
         <p className="settings-save-note">
@@ -304,7 +305,7 @@ export function CustomCommandSettings({
           <div className="custom-command-name-row">
             <label>
               Button name
-              <input
+              <Input
                 autoFocus
                 required
                 maxLength={80}
@@ -336,7 +337,7 @@ export function CustomCommandSettings({
           />
           <label>
             Program or executable script
-            <input
+            <Input
               required
               value={draft.program}
               disabled={pending}
@@ -351,7 +352,7 @@ export function CustomCommandSettings({
           </p>
           <label>
             Arguments · one per line
-            <textarea
+            <TextArea
               rows={5}
               disabled={pending}
               spellCheck={false}
@@ -379,7 +380,7 @@ export function CustomCommandSettings({
             aria-label="Available action inputs"
           >
             {commandInputs.map(([key, label, description]) => (
-              <button
+              <Button
                 key={key}
                 type="button"
                 title={`${description}. ${context[key] ?? "Currently unavailable"}`}
@@ -392,7 +393,7 @@ export function CustomCommandSettings({
                 }}
               >
                 {label}
-              </button>
+              </Button>
             ))}
           </div>
           <details className="custom-command-context">
@@ -412,7 +413,7 @@ export function CustomCommandSettings({
             </p>
           </details>
           <label className="check-row">
-            <input
+            <Input
               type="checkbox"
               disabled={pending}
               checked={draft.enabled}
@@ -421,9 +422,9 @@ export function CustomCommandSettings({
             Show button in sidebar
           </label>
           <div className="custom-command-actions">
-            <button
+            <Button
               type="submit"
-              className="primary"
+              variant="primary"
               disabled={
                 !ready ||
                 pending ||
@@ -433,8 +434,8 @@ export function CustomCommandSettings({
               }
             >
               Save action
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               disabled={pending}
               onClick={() => {
@@ -444,15 +445,15 @@ export function CustomCommandSettings({
               }}
             >
               Cancel
-            </button>
+            </Button>
             {draft.id && (
-              <button
+              <Button
                 type="button"
                 disabled={!ready || pending || !!run?.running}
                 onClick={() => void deleteAction(draft.id)}
               >
                 Delete action
-              </button>
+              </Button>
             )}
           </div>
         </form>

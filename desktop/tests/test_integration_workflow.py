@@ -368,6 +368,18 @@ def test_batch_cancel_bypasses_worker_and_preserves_complete_result(tmp_path):
 
         def install_delay():
             configuration = processor._session.configuration
+            calibration = configuration.calibration_model
+            if calibration.use_dioptrin:
+                integrate_batch = calibration.dioptrin_batch1d_iter
+
+                def slow_batch(*args, **kwargs):
+                    for result in integrate_batch(*args, **kwargs):
+                        entered.set()
+                        time.sleep(0.15)
+                        yield result
+
+                calibration.dioptrin_batch1d_iter = slow_batch
+                return
             integrate = configuration.integrate_image_1d
 
             def slow_frame(*args, **kwargs):

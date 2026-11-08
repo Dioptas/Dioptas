@@ -67,8 +67,9 @@ preview replaces the complete application. The original Qt interface is unchange
   model and Qt application were not modified.
 - Cake coordinates remain actual 2θ even when the pattern uses Q or d, following
   the existing synchronous configuration API.
-- PyFAI is the default, including when Dioptrin is installed. No server is started
-  by the desktop host. The optional native adapter currently requires a flat,
+- The desktop prefers installed, compatible Dioptrin (pinned to 0.9.0), with
+  pyFAI as the startup fallback and an explicit Settings choice. No server is started
+  by the desktop host. The optional native calibration adapter currently requires a flat,
   uniformly sampled detector without a distortion spline.
 
 The Export pattern button has been removed as requested; the underlying export

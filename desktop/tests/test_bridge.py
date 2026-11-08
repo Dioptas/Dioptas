@@ -46,3 +46,27 @@ def test_processing_lifetime_has_one_owner_and_cancel_bypasses_busy_worker(monke
         processor.close()
     assert lifetime == [("created", first["owner"]), ("released", first["owner"])]
     assert not processor.invoke("state")["ok"]
+
+
+def test_close_releases_native_resources_even_when_model_is_retained():
+    lifetime = []
+
+    class NativeProbe:
+        def __init__(self):
+            lifetime.append(("created", threading.get_ident()))
+
+        def __del__(self):
+            lifetime.append(("released", threading.get_ident()))
+
+    processor = bridge.DesktopBridge()
+
+    def retain_model():
+        calibration = processor._session.configuration.calibration_model
+        calibration._dioptrin_integrator = NativeProbe()
+        return calibration
+
+    # Simulate a log/exception handler retaining the Python model past close.
+    retained = processor._worker.submit(retain_model).result()
+    processor.close()
+    assert retained._dioptrin_integrator is None
+    assert lifetime == [("created", lifetime[0][1]), ("released", lifetime[0][1])]

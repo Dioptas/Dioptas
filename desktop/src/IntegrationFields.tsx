@@ -1,3 +1,4 @@
+import { Input } from "./ui";
 import type { ReactNode } from "react";
 import "./integrationNumericFields.css";
 
@@ -35,7 +36,7 @@ export function Field({
       className={`field-label integration-number-field${unit ? " integration-number-with-unit" : ""}`}
     >
       <span>{name}</span>
-      <input
+      <Input
         aria-label={label}
         type="number"
         value={value}
@@ -68,7 +69,7 @@ export function Check({
 }) {
   return (
     <label className="check-row">
-      <input
+      <Input
         aria-label={label}
         type="checkbox"
         checked={checked}

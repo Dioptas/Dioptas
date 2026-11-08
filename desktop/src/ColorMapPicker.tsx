@@ -1,6 +1,7 @@
+import { Popover, Portal } from "./ui";
 import { useEffect, useId, useImperativeHandle, useRef, useState } from "react";
 import type { Ref } from "react";
-import { createPortal } from "react-dom";
+
 import { colorMaps, colorMapPreview } from "./colorMaps";
 
 type MenuPoint = { clientX: number; clientY: number };
@@ -92,10 +93,10 @@ export function ColorMapPicker({
   };
   return (
     <>
-      {position &&
-        createPortal(
+      {position && (
+        <Portal>
           <div className="color-map-backdrop" onPointerDown={close}>
-            <div
+            <Popover
               id={id}
               ref={list}
               className="color-map-options"
@@ -129,10 +130,10 @@ export function ColorMapPicker({
                   <span>{colorMaps[name].label}</span>
                 </div>
               ))}
-            </div>
-          </div>,
-          document.body,
-        )}
+            </Popover>
+          </div>
+        </Portal>
+      )}
     </>
   );
 }

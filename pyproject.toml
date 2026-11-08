@@ -55,7 +55,7 @@ dependencies = [
 [project.optional-dependencies]
 desktop = ["pywebview>=6.0,<7.0"]
 # Optional scientific engine; desktop functionality does not require it.
-dioptrin = ["dioptrin==0.6.1"]
+dioptrin = ["dioptrin==0.9.0"]
 test = [
     "pytest>=7.4.0,<10.0",
     "pytest-cov>=6.0,<7.0",

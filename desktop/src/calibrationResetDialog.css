@@ -1,0 +1,22 @@
+.calibration-reset-dialog {
+  box-sizing: border-box;
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 22px;
+}
+.calibration-reset-dialog h2 {
+  margin: 0 0 16px;
+  font-size: 18px;
+}
+.calibration-reset-dialog p {
+  line-height: 1.5;
+  margin: 12px 0;
+}
+.calibration-reset-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}

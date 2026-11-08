@@ -1,3 +1,4 @@
+import { Button, Input } from "./ui";
 import { useEffect, useState } from "react";
 import type { State } from "./types";
 import type { IntegrationRun } from "./integration";
@@ -80,7 +81,7 @@ export function IntegrationView({
           "Background",
           "Corrections",
         ].map((name) => (
-          <button
+          <Button
             key={name}
             role="tab"
             aria-selected={tab === name}
@@ -121,7 +122,7 @@ export function IntegrationView({
             onClick={() => setTab(name)}
           >
             {name}
-          </button>
+          </Button>
         ))}
       </div>
       <fieldset
@@ -220,7 +221,7 @@ function CommitField({
   return (
     <label className="field-label integration-number-field">
       <span>{label}</span>
-      <input
+      <Input
         aria-label={label}
         type="number"
         value={draft}

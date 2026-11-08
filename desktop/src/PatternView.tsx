@@ -1,6 +1,6 @@
 import { WebGLPattern, type PatternCurve } from "./WebGLPattern";
 import { IntegrationPhaseLegend } from "./IntegrationPhaseLegend";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { nearestSample, visibleSamples } from "./patternSamples";
 import type { PlotViewport } from "./plotViewport";
 import type { Pattern } from "./types";
@@ -292,17 +292,8 @@ export function PatternView({
       high,
     ];
   }, [visibleCurves, log, sqrt]);
-  const navigation = usePlotNavigation(
-    {
-      xMin: fitXMin,
-      xMax: Math.max(fitXMin + 1e-12, fitXMax),
-      yMin: fitYMin,
-      yMax: fitYMax,
-    },
-    { left, top, width: w, height: h },
-    false,
-    zoomMode,
-    (xMin, xMax) => {
+  const horizontalYRange = useCallback(
+    (xMin: number, xMax: number): [number, number] => {
       let min = Infinity,
         max = -Infinity;
       for (const curve of visibleCurves) {
@@ -326,6 +317,19 @@ export function PatternView({
       }
       return min === Infinity ? [fitYMin, fitYMax] : paddedExtent([min, max]);
     },
+    [visibleCurves, log, sqrt, fitYMin, fitYMax],
+  );
+  const navigation = usePlotNavigation(
+    {
+      xMin: fitXMin,
+      xMax: Math.max(fitXMin + 1e-12, fitXMax),
+      yMin: fitYMin,
+      yMax: fitYMax,
+    },
+    { left, top, width: w, height: h },
+    false,
+    zoomMode,
+    horizontalYRange,
     viewport,
   );
   const previousAutoRange = useRef<
@@ -334,7 +338,8 @@ export function PatternView({
   useEffect(() => {
     const previous = previousAutoRange.current;
     const managed = !!onAutoRange;
-    const toggled = previous?.managed && managed && previous.value !== autoRange;
+    const toggled =
+      previous?.managed && managed && previous.value !== autoRange;
     previousAutoRange.current = { value: autoRange, managed };
     if (navigating.current || (regionDrag.current && onRegionInput)) return;
     if (viewport) {

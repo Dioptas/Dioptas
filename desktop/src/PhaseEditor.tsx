@@ -1,5 +1,14 @@
+import {
+  DialogHeader,
+  Dialog,
+  DialogPanel,
+  Button,
+  Input,
+  Portal,
+  Select,
+} from "./ui";
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+
 import { CopyPlus, ListX, Plus, Star, Trash2 } from "lucide-react";
 import { DataTable, TableScroll } from "./DataTable";
 import type { IntegrationRun } from "./integration";
@@ -43,7 +52,13 @@ export function PhaseEditor({
     ).values(),
   ];
   const dialog = useRef<HTMLDialogElement>(null);
-  const returnFocus = useRef<HTMLElement | null>(null);
+  const returnFocus = useRef<HTMLElement | null>(
+    document.activeElement === document.body
+      ? document.querySelector<HTMLElement>(
+          '.phase-action-rail button[aria-label="Edit selected Phase"]',
+        )
+      : (document.activeElement as HTMLElement),
+  );
   const [tab, setTab] = useState("Volume & structure");
   const [positionView, setPositionView] = useState("d-angle");
   const positions = (
@@ -98,15 +113,7 @@ export function PhaseEditor({
   const content = useRef(data);
   content.current = data;
   useEffect(() => {
-    returnFocus.current =
-      document.activeElement === document.body
-        ? document.querySelector<HTMLElement>(
-            '.phase-action-rail button[aria-label="Edit selected Phase"]',
-          )
-        : (document.activeElement as HTMLElement);
-    if (!detached) dialog.current?.showModal();
     return () => {
-      if (!detached) dialog.current?.close();
       const target = returnFocus.current;
       requestAnimationFrame(() => target?.focus());
     };
@@ -191,7 +198,7 @@ export function PhaseEditor({
         )}
       </span>
       {!!f.choices?.length ? (
-        <select
+        <Select
           aria-label={f.label}
           title={f.description}
           value={String(f.value ?? "")}
@@ -208,7 +215,7 @@ export function PhaseEditor({
               {v.replaceAll("_", " ")}
             </option>
           ))}
-        </select>
+        </Select>
       ) : (
         <EditorNumber
           label={f.label}
@@ -305,9 +312,10 @@ export function PhaseEditor({
       },
     );
   };
-  const Surface = detached ? "section" : "dialog";
+  const Surface = detached ? DialogPanel : Dialog;
   const surfaceContent = (
     <Surface
+      open={detached ? undefined : true}
       ref={dialog}
       className={`phase-dialog pe-dialog${detached ? " pe-native" : ""}`}
       aria-label="Phase Editor"
@@ -318,14 +326,16 @@ export function PhaseEditor({
       }}
     >
       {!detached && (
-        <header>
-          <h2>
-            Phase Editor <span className="pe-material-name">· {data.name}</span>
-          </h2>
-          <button type="button" aria-label="Close Phase Editor" onClick={close}>
-            ×
-          </button>
-        </header>
+        <DialogHeader
+          title={
+            <>
+              Phase Editor{" "}
+              <span className="pe-material-name">· {data.name}</span>
+            </>
+          }
+          closeLabel="Close Phase Editor"
+          onClose={close}
+        />
       )}
       <div className="pe-source">
         <label className="pe-material-name-field">
@@ -346,7 +356,7 @@ export function PhaseEditor({
                 : "Unsaved material"}
           </span>
           {data.filename && data.origin !== "bundled" && (
-            <input
+            <Input
               aria-label="Material file"
               readOnly
               value={data.filename}
@@ -370,7 +380,7 @@ export function PhaseEditor({
         <section className="pe-parameters" aria-label="Phase parameters">
           <div className="pe-tabs" role="tablist" aria-label="Phase parameters">
             {["Volume & structure", "Equation of state"].map((name, i) => (
-              <button
+              <Button
                 key={name}
                 role="tab"
                 id={`pe-tab-${i}`}
@@ -396,7 +406,7 @@ export function PhaseEditor({
                 }}
               >
                 {name}
-              </button>
+              </Button>
             ))}
           </div>
           <div
@@ -414,7 +424,7 @@ export function PhaseEditor({
             )}
             <label className="pe-selector">
               Symmetry{" "}
-              <select
+              <Select
                 aria-label="Phase symmetry"
                 disabled={locked || !data.editable}
                 value={data.symmetry}
@@ -437,7 +447,7 @@ export function PhaseEditor({
                 ].map((v) => (
                   <option key={v}>{v}</option>
                 ))}
-              </select>
+              </Select>
             </label>
             <h3>Reference lattice</h3>
             <div className="pe-lattice-grid">
@@ -506,7 +516,7 @@ export function PhaseEditor({
               {["a", "b", "c", "v0", "v"].map((p) => (
                 <label className="pe-field" key={p}>
                   <span>{p === "v0" ? "V₀" : p === "v" ? "V" : p}</span>
-                  <input
+                  <Input
                     aria-label={`Current lattice ${p}`}
                     readOnly
                     value={data.lattice[p].toPrecision(8)}
@@ -531,7 +541,7 @@ export function PhaseEditor({
               {!!data.references.length && (
                 <label className="pe-selector">
                   EoS record{" "}
-                  <select
+                  <Select
                     aria-label="Editor material record"
                     title={data.references[data.reference]?.label}
                     value={data.reference}
@@ -546,7 +556,7 @@ export function PhaseEditor({
                         {i === data.defaultReference ? " · default" : ""}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </label>
               )}
               <div
@@ -554,7 +564,7 @@ export function PhaseEditor({
                 role="toolbar"
                 aria-label="EoS records"
               >
-                <button
+                <Button
                   type="button"
                   aria-label="Duplicate as custom"
                   title={
@@ -568,8 +578,8 @@ export function PhaseEditor({
                   }
                 >
                   <CopyPlus aria-hidden="true" />
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   aria-label="Add record"
                   title={
@@ -581,8 +591,8 @@ export function PhaseEditor({
                   onClick={() => void act("editor_record", { action: "add" })}
                 >
                   <Plus aria-hidden="true" />
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   aria-label="Set default"
                   aria-pressed={
@@ -601,8 +611,8 @@ export function PhaseEditor({
                   }
                 >
                   <Star aria-hidden="true" />
-                </button>
-                <button
+                </Button>
+                <Button
                   ref={deleteRecord}
                   type="button"
                   aria-label="Delete record…"
@@ -613,8 +623,8 @@ export function PhaseEditor({
                   onClick={() => setConfirm("record")}
                 >
                   <Trash2 aria-hidden="true" />
-                </button>
-                <button
+                </Button>
+                <Button
                   ref={clearRecords}
                   type="button"
                   aria-label="Clear all records…"
@@ -627,7 +637,7 @@ export function PhaseEditor({
                   onClick={() => setConfirm("records")}
                 >
                   <ListX aria-hidden="true" />
-                </button>
+                </Button>
               </div>
             </div>
             {!!data.references.length && (
@@ -668,7 +678,7 @@ export function PhaseEditor({
             )}
             <label className="pe-selector">
               EoS{" "}
-              <select
+              <Select
                 aria-label="Equation of state model"
                 value={data.eosType}
                 disabled={locked || !data.eosEditable}
@@ -689,11 +699,11 @@ export function PhaseEditor({
                     {o.value}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             <label className="pe-selector">
               Thermal model{" "}
-              <select
+              <Select
                 aria-label="Thermal model"
                 value={
                   !data.thermalType && legacy
@@ -725,7 +735,7 @@ export function PhaseEditor({
                         : o.value}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             <h3 className="pe-parameter-heading">EoS parameters</h3>
             <div
@@ -806,7 +816,7 @@ export function PhaseEditor({
           </div>
           <label className="pe-position-choice">
             Positions{" "}
-            <select
+            <Select
               aria-label="Reflection position columns"
               value={positionView}
               onChange={(e) => setPositionView(e.target.value)}
@@ -816,7 +826,7 @@ export function PhaseEditor({
               <option value="angle">2θ only</option>
               <option value="q">Q only</option>
               <option value="all">All positions</option>
-            </select>
+            </Select>
           </label>
           <TableScroll
             className="pe-reflection-scroll"
@@ -873,7 +883,7 @@ export function PhaseEditor({
               <thead>
                 <tr>
                   <th>
-                    <input
+                    <Input
                       type="checkbox"
                       aria-label="Select all reflections"
                       checked={
@@ -900,7 +910,7 @@ export function PhaseEditor({
                           : "none"
                       }
                     >
-                      <button
+                      <Button
                         className="pe-sort"
                         title={`Sort by ${label}`}
                         onClick={() =>
@@ -916,7 +926,7 @@ export function PhaseEditor({
                             ? " ↑"
                             : " ↓"
                           : ""}
-                      </button>
+                      </Button>
                     </th>
                   ))}
                 </tr>
@@ -925,7 +935,7 @@ export function PhaseEditor({
                 {orderedRows.map(({ r, row }) => (
                   <tr key={row} aria-selected={selected.includes(row)}>
                     <td>
-                      <input
+                      <Input
                         type="checkbox"
                         aria-label={`Select reflection ${row + 1}`}
                         checked={selected.includes(row)}
@@ -989,7 +999,7 @@ export function PhaseEditor({
             )}
           </TableScroll>
           <div className="pe-reflection-actions">
-            <button
+            <Button
               disabled={locked || !data.editable}
               onClick={() => {
                 focusAddedReflection.current = true;
@@ -999,26 +1009,26 @@ export function PhaseEditor({
               }}
             >
               Add
-            </button>
-            <button
+            </Button>
+            <Button
               disabled={locked || !data.editable || !selected.length}
               onClick={removeReflections}
             >
               Delete
-            </button>
-            <button
+            </Button>
+            <Button
               ref={clearReflections}
               disabled={locked || !data.editable || !data.reflections.length}
               onClick={() => setConfirm("reflections")}
             >
               Clear…
-            </button>
-            <button
+            </Button>
+            <Button
               disabled={locked || !data.reflections.length}
               onClick={() => void save("txt")}
             >
               Export table…
-            </button>
+            </Button>
           </div>
           <p className="pe-help">
             ₀: reference · unmarked: current P/T. Intensities: 4 significant
@@ -1076,21 +1086,21 @@ export function PhaseEditor({
                   ? "Saved"
                   : "Session material")}
         </p>
-        <button
+        <Button
           disabled={locked || !data.canReload}
           onClick={() => void act("reload")}
         >
           Reload File
-        </button>
-        <button
+        </Button>
+        <Button
           disabled={locked}
           title="Create an independent editable material"
           onClick={() => void act("editor_copy")}
         >
           Edit a copy
-        </button>
-        <button
-          className="primary"
+        </Button>
+        <Button
+          variant="primary"
           title={
             data.editable
               ? "Save this material"
@@ -1105,22 +1115,17 @@ export function PhaseEditor({
           onClick={() => void save("eosmat", data.canSaveCurrent)}
         >
           Save
-        </button>
-        <button
+        </Button>
+        <Button
           disabled={locked || rangesDirty}
           title="Save .eosmat to retain EoS records, provenance and atomic positions"
           onClick={() => void save("eosmat")}
         >
           Save As…
-        </button>
-        <button onClick={close}>Close</button>
+        </Button>
+        <Button onClick={close}>Close</Button>
       </footer>
     </Surface>
   );
-  return detached
-    ? surfaceContent
-    : createPortal(
-        surfaceContent,
-        document.querySelector(".app") || document.body,
-      );
+  return detached ? surfaceContent : <Portal>{surfaceContent}</Portal>;
 }

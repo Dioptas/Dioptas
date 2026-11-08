@@ -538,7 +538,8 @@ All current plots (detector, cake, integrated pattern) share these controls:
 - **Wheel:** zoom the plot under the pointer; the event is captured so the
   surrounding workspace does not scroll or jump.
 - **Left drag:** zoom in using the selected zoom mode.
-- **Right drag:** pan both axes. Ctrl + left drag also pans.
+- **Right drag:** pan both axes in Rectangle mode, or horizontally in X-range
+  mode. Ctrl + left drag also pans.
 - **Right click:** zoom out one step (2× range). X-range mode expands only
   the horizontal range, refitting both pattern intensity limits to visible data
   with a small margin and preserving the cake's current azimuth limits.
@@ -556,8 +557,12 @@ Both buttons have transparent backgrounds and a subtle rectangular background on
 on hover; the selected icon is orange and the other icon is neutral. X-range selection fits the pattern's
 minimum and maximum intensity to the visible data instead of forcing a zero
 baseline; the cake keeps its current azimuth range. Wheel zoom follows the selected
-mode too. Settings also offers the pattern choice, independently for the main
-pattern and Map pattern.
+mode too. In X-range mode, the pattern intensity limits continuously follow the
+visible data during panning and data updates; the cake's azimuth limits stay
+fixed. Settings also offers the pattern choice, independently for the main
+pattern and Map pattern. Rectangle/X-range choices are saved independently for
+the cake, main pattern, Map pattern and Batch plot and restored after restarting
+the app.
 
 When Pick peaks is enabled, a stationary left click picks peaks in any
 calibration tab. A left drag zooms
@@ -618,8 +623,8 @@ controls, scientific qualifications, tests and shared contracts.
 
 ## Optional processing engine
 
-**pyFAI is the default and provides the complete implemented workflow without
-Dioptrin installed.** Tauri uses the normal Dioptas scientific dependencies.
+**The desktop prefers Dioptrin when installed and compatible, and otherwise
+starts with pyFAI.** Dioptrin remains optional. Tauri uses the normal Dioptas scientific dependencies.
 The `desktop` extra adds pywebview only for the earlier comparison host.
 
 To install the optional Dioptrin engine:
@@ -628,11 +633,12 @@ To install the optional Dioptrin engine:
 uv sync --python 3.13 --extra dioptrin
 ```
 
-Then select **Dioptrin (optional)** under **Settings → General → Processing engine**. Selection
-checks its calibration API and normal license validation before changing the
-session. Installing the package does not select it automatically. The engine
-choice is local to the session, not restored from another computer's project.
-The new interface does not change either project's licensing.
+Restart the processing session after installation. This checkout pins Dioptrin
+0.9.0 and selects it automatically at startup. **Settings → General → Processing
+engine** switches between Dioptrin and pyFAI. Selection checks the required API
+before changing the session. Dioptrin 0.9.0 requires no license activation.
+The engine choice is local to the session, not restored from another computer's
+project; new sessions prefer the installed native engine again.
 
 `dioptas/desktop/engines.py` defines the narrow calibration adapter: seeded peak
 finding and geometry fitting. The Dioptrin adapter calls its existing Python
@@ -643,7 +649,35 @@ native integration options that are unsupported. The native calibration adapter
 currently accepts only flat detectors with uniform pixels and no distortion
 spline; use pyFAI otherwise.
 
+Dioptrin uses full pixel splitting; the usual pyFAI `csr` path uses bounding-box
+splitting. Their bin grids and peak heights can therefore differ. The measured
+CeO2 fixture is checked against pyFAI `full_csr`, including Poisson std and mask
+edits, with relative-L2 regression limits of 0.3% for patterns, 0.6% for Poisson
+std and 0.5% for cakes. These are scoped fixture checks, not universal accuracy
+claims or bitwise parity. Unsupported integration options (including disabled
+solid-angle correction and 1D azimuth sectors) use pyFAI. Spline, nonuniform and
+curved detectors also retain pyFAI integration.
+
+For separate cold/repeated-image timings with no, static and changing masks:
+
+```sh
+.venv/bin/python desktop/scripts/dioptrin_benchmark.py
+```
+
+The report is written to `desktop/artifacts/dioptrin-benchmark.json`. It covers
+model calls with each desktop engine's own splitting method, excluding file
+IO, IPC and rendering. Native objects are created, used and explicitly released
+on the processing thread, including when logs retain an old model.
+
 ## Development and verification
+
+Dioptrin 0.9.0 update (2026-11-06): the desktop suite passes **309 tests**
+with the native engine installed, including missing/incompatible-engine fallback,
+full-split numerical comparisons, mask edits, cancellation and native-resource
+release. Shared CalibrationModel/Pipeline/integration-task checks pass **111
+tests**. The headless browser workflow covers automatic native startup, explicit
+engine switching, calibration and integration. No visible test window is required
+for this backend change.
 
 ```sh
 uv sync --python 3.13 --extra desktop --extra test

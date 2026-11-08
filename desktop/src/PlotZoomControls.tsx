@@ -1,3 +1,4 @@
+import { Button } from "./ui";
 import type { ZoomMode } from "./usePlotNavigation";
 
 export function PlotZoomControls({
@@ -17,7 +18,7 @@ export function PlotZoomControls({
 }) {
   return (
     <>
-      <button
+      <Button
         className="plot-zoom-button"
         style={{ left: Math.max(8, left - 72), bottom: bottom - 24 }}
         type="button"
@@ -37,8 +38,8 @@ export function PlotZoomControls({
         >
           <rect x="4" y="5" width="16" height="14" />
         </svg>
-      </button>
-      <button
+      </Button>
+      <Button
         className="plot-zoom-button"
         style={{ left: Math.max(8, left - 72) + 22, bottom: bottom - 24 }}
         type="button"
@@ -63,7 +64,7 @@ export function PlotZoomControls({
         >
           <path d="M7 5v14M17 5v14" />
         </svg>
-      </button>
+      </Button>
     </>
   );
 }

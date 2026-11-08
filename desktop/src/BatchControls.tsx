@@ -1,5 +1,6 @@
+import { Button, Input, Popover, Portal } from "./ui";
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+
 import { ChevronLeft, ChevronRight, Settings2 } from "lucide-react";
 import type { BatchData, BatchRun } from "./batchDomain";
 
@@ -85,7 +86,7 @@ export function BatchControls({
   const actions = (
     <div className="batch-action-row">
       {filesView ? (
-        <button
+        <Button
           disabled={!ready || !batch?.canReintegrate || !calibrated}
           onClick={() =>
             run(
@@ -96,14 +97,14 @@ export function BatchControls({
           }
         >
           Integrate
-        </button>
+        </Button>
       ) : (
         <>
-          <button disabled={!ready || !batch} onClick={onAutoScale}>
+          <Button disabled={!ready || !batch} onClick={onAutoScale}>
             AutoScale
-          </button>
+          </Button>
           <span className="batch-control-divider" />
-          <button
+          <Button
             aria-label="Normalize batch"
             aria-pressed={!!batch?.normalized}
             disabled={!ready || !batch}
@@ -121,9 +122,9 @@ export function BatchControls({
             }
           >
             Normalize
-          </button>
+          </Button>
           <span className="batch-normalization-anchor">
-            <button
+            <Button
               ref={normalizationButton}
               aria-label="Normalization settings"
               title="Normalization settings"
@@ -146,10 +147,10 @@ export function BatchControls({
               }}
             >
               <Settings2 size={15} />
-            </button>
-            {normalization &&
-              createPortal(
-                <div
+            </Button>
+            {normalization && (
+              <Portal>
+                <Popover
                   ref={popup}
                   className="batch-normalization-popup"
                   style={popupPosition}
@@ -163,7 +164,7 @@ export function BatchControls({
                   </p>
                   <label>
                     First bin (inclusive)
-                    <input
+                    <Input
                       aria-label="First normalization bin"
                       type="number"
                       min={0}
@@ -174,7 +175,7 @@ export function BatchControls({
                   </label>
                   <label>
                     Last bin (inclusive)
-                    <input
+                    <Input
                       aria-label="Last normalization bin"
                       type="number"
                       min={firstBin}
@@ -185,7 +186,7 @@ export function BatchControls({
                   </label>
                   <label>
                     Reference frame
-                    <input
+                    <Input
                       aria-label="Normalization reference frame"
                       type="number"
                       min={0}
@@ -195,7 +196,7 @@ export function BatchControls({
                     />
                   </label>
                   <div>
-                    <button
+                    <Button
                       onClick={() => {
                         void run(
                           "batch_normalization_settings",
@@ -206,14 +207,14 @@ export function BatchControls({
                       }}
                     >
                       Apply
-                    </button>
-                    <button onClick={() => setNormalization(false)}>
+                    </Button>
+                    <Button onClick={() => setNormalization(false)}>
                       Cancel
-                    </button>
+                    </Button>
                   </div>
-                </div>,
-                document.body,
-              )}
+                </Popover>
+              </Portal>
+            )}
           </span>
         </>
       )}
@@ -223,7 +224,7 @@ export function BatchControls({
     <div className="batch-range-row">
       <label>
         Start:
-        <input
+        <Input
           aria-label="Batch start frame"
           type="number"
           min={0}
@@ -239,7 +240,7 @@ export function BatchControls({
       </label>
       <label>
         Stop:
-        <input
+        <Input
           aria-label="Batch stop frame"
           type="number"
           min={start}
@@ -255,7 +256,7 @@ export function BatchControls({
       </label>
       <label>
         Step:
-        <input
+        <Input
           aria-label="Batch frame step"
           type="number"
           min={1}
@@ -269,15 +270,15 @@ export function BatchControls({
   );
   const navigation = (
     <div className="batch-navigation-row">
-      <button
+      <Button
         aria-label="Previous batch frame"
         title="Previous frame"
         disabled={!ready || !count || current - step < start}
         onClick={() => select(current - step)}
       >
         <ChevronLeft size={15} />
-      </button>
-      <input
+      </Button>
+      <Input
         className="batch-frame-slider"
         aria-label="Batch frame slider"
         type="range"
@@ -292,7 +293,7 @@ export function BatchControls({
             select(Number(e.currentTarget.value));
         }}
       />
-      <button
+      <Button
         aria-label="Next batch frame"
         title="Next frame"
         disabled={
@@ -301,10 +302,10 @@ export function BatchControls({
         onClick={() => select(current + step)}
       >
         <ChevronRight size={15} />
-      </button>
+      </Button>
       <label className="batch-frame-number">
         Frame ({count}/{batch?.total ?? 0})
-        <input
+        <Input
           aria-label="Selected batch frame"
           type="number"
           min={0}

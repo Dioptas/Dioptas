@@ -1,3 +1,4 @@
+import { Button } from "./ui";
 export function CalibrationTabs({
   label,
   tabs,
@@ -12,7 +13,7 @@ export function CalibrationTabs({
   return (
     <div className="calibration-section-tabs" role="tablist" aria-label={label}>
       {tabs.map((tab, index) => (
-        <button
+        <Button
           type="button"
           key={tab}
           role="tab"
@@ -39,7 +40,7 @@ export function CalibrationTabs({
           }}
         >
           {tab}
-        </button>
+        </Button>
       ))}
     </div>
   );

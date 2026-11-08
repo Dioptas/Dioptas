@@ -295,6 +295,9 @@ class BatchWorkflow(ImageBatchWorkflow):
                 "batchOpened": True,
             }
         finally:
+            # The isolated graph can survive in a logged failure traceback.
+            worker.calibration_model._dioptrin_integrator = None
+            worker.calibration_model._dioptrin_integrator_key = None
             self._progress = {**self._progress, "running": False}
 
     def _batch_open(self, path=None):

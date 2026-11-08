@@ -294,8 +294,6 @@
   font-size: var(--text-small);
   padding: 5px 8px;
   min-height: 28px;
-  background: #24272a;
-  border: 1px solid #3b4045;
   border-radius: 3px;
   white-space: nowrap;
 }
@@ -351,7 +349,6 @@
   border: 1px solid transparent;
   border-radius: 3px;
   font-size: var(--text-small);
-  background: #24272a;
   color: #b8bec5;
   flex-shrink: 0;
 }

@@ -4,7 +4,10 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
-import { verifyModifiedPlotNavigation } from "./plot_navigation.mjs";
+import {
+  verifyModifiedPlotNavigation,
+  verifySliceContentScaling,
+} from "./plot_navigation.mjs";
 
 const desktop = fileURLToPath(new URL("../", import.meta.url));
 await mkdir(new URL("../artifacts/", import.meta.url), { recursive: true });
@@ -475,6 +478,7 @@ try {
     assert.equal(await page.evaluate(() => window.navigationAutoRange), true);
   }
   if (baselineRef) report.baselinePattern = await benchmark(true);
+  report.sliceNavigation = await verifySliceContentScaling(page);
   assert.deepEqual(errors, []);
   await writeFile(
     `${desktop}artifacts/rendering-${process.argv.includes("--webkit") ? "webkit" : "chromium"}.json`,

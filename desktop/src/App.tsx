@@ -1,3 +1,4 @@
+import { Button, Input, Select } from "./ui";
 import {
   layoutKeys,
   readLayoutFlag,
@@ -21,12 +22,17 @@ import {
   LoaderCircle,
   Plus,
   Redo2,
+  RotateCcw,
   Save,
   Settings,
   Sparkles,
   Undo2,
 } from "lucide-react";
 import { connect, updateWindowTitle } from "./bridge";
+import {
+  CalibrationResetDialog,
+  type CalibrationResetRequest,
+} from "./CalibrationResetDialog";
 import { IntegrationModeIcon, MapModeIcon, MaskModeIcon } from "./ModeIcons";
 import { SettingsWorkspace } from "./SettingsWorkspace";
 import { useCustomCommands } from "./customCommands";
@@ -103,7 +109,7 @@ import {
   ManualGeometryDialog,
 } from "./CalibrationExtras";
 import type { RingOverlay } from "./types";
-import type { ZoomMode } from "./usePlotNavigation";
+import { usePlotZoomPreference } from "./usePlotZoomPreference";
 
 function clickContext(state: State | null) {
   return JSON.stringify([
@@ -201,8 +207,8 @@ export default function App() {
   });
   const [progress, setProgress] = useState<Response["progress"]>();
   const progressGeneration = useRef(0);
-  const [patternZoom, setPatternZoom] = useState<ZoomMode>("rectangle");
-  const [cakeZoom, setCakeZoom] = useState<ZoomMode>("rectangle");
+  const [patternZoom, setPatternZoom] = usePlotZoomPreference("pattern");
+  const [cakeZoom, setCakeZoom] = usePlotZoomPreference("cake");
   const [setupDirty, setSetupDirty] = useState(false);
   const [setupValid, setSetupValid] = useState(true);
   const [mode, setMode] = useState<
@@ -230,7 +236,8 @@ export default function App() {
     text: string;
     cancel: () => void;
   } | null>(null);
-  const [mapPatternZoom, setMapPatternZoom] = useState<ZoomMode>("rectangle");
+  const [mapPatternZoom, setMapPatternZoom] =
+    usePlotZoomPreference("map-pattern");
   const [batch, setBatch] = useState<BatchData | null>(null);
   const [batchDockVisible, setBatchDockVisible] = useState(
     () =>
@@ -334,6 +341,8 @@ export default function App() {
     if (!colorMaps[cakePalette]) setCakePalette("grey");
   }, [palette, cakePalette]);
   const [resetKey, setResetKey] = useState(0);
+  const [calibrationResetRequest, setCalibrationResetRequest] =
+    useState<CalibrationResetRequest>();
   const [pixel, setPixel] = useState<NonNullable<Response["pixel"]> | null>(
     null,
   );
@@ -387,6 +396,12 @@ export default function App() {
       if ("map" in result) setMap(result.map ?? null);
       if ("mapWarning" in result) setMapWarning(result.mapWarning ?? null);
       if (result.state) {
+        if (result.calibrationReset) {
+          setMode("calibration");
+          setCalibrationStep(0);
+          setSelectedPicks([]);
+          setPhaseGuides([]);
+        }
         if (retainClick)
           retainedClickContext.current = clickContext(result.state);
         currentState.current = result.state;
@@ -522,9 +537,13 @@ export default function App() {
       const liveBackground =
         command === "integration_background" && message === "";
       const liveMapRegion = command === "map_roi" && message === "";
-      const liveCorrection = message === "" && [
-        "integration_correction", "integration_image_background", "integration_flat_field",
-      ].includes(command);
+      const liveCorrection =
+        message === "" &&
+        [
+          "integration_correction",
+          "integration_image_background",
+          "integration_flat_field",
+        ].includes(command);
       const frameSelection =
         command === "map_select" || command === "batch_select";
       const livePhaseConditions =
@@ -643,6 +662,10 @@ export default function App() {
               ? { ...args, integration_view: commandMode === "integration" }
               : args,
         );
+        if (result.imageChange) {
+          setCalibrationResetRequest(result.imageChange);
+          return;
+        }
         // Stored-only map projects can be inspected even when their raw files are unavailable.
         if (
           command === "map_select" &&
@@ -828,7 +851,9 @@ export default function App() {
           mode === "integration"
             ? {
                 multiple: true,
-                batch_mode: currentState.current?.integration.imageBatchMode ?? "integrate",
+                batch_mode:
+                  currentState.current?.integration.imageBatchMode ??
+                  "integrate",
               }
             : {},
           "Opening image…",
@@ -1579,7 +1604,7 @@ export default function App() {
     <div className="app" data-text-size={largeText ? "large" : "normal"}>
       <div className="app-body">
         <nav className="mode-navigation" aria-label="Workspace modes">
-          <button
+          <Button
             className={`workspace-nav ${!settingsOpen && mode === "calibration" ? "workspace-active" : ""}`}
             aria-label="Calibration"
             aria-pressed={!settingsOpen && mode === "calibration"}
@@ -1591,8 +1616,8 @@ export default function App() {
           >
             <Crosshair size={20} />
             <span>Calib</span>
-          </button>
-          <button
+          </Button>
+          <Button
             className={`workspace-nav ${!settingsOpen && mode === "mask" ? "workspace-active" : ""}`}
             aria-label="Mask"
             aria-pressed={!settingsOpen && mode === "mask"}
@@ -1604,8 +1629,8 @@ export default function App() {
           >
             <MaskModeIcon />
             <span>Mask</span>
-          </button>
-          <button
+          </Button>
+          <Button
             className={`workspace-nav ${!settingsOpen && mode === "integration" ? "workspace-active" : ""}`}
             aria-label="Integration"
             aria-pressed={!settingsOpen && mode === "integration"}
@@ -1617,8 +1642,8 @@ export default function App() {
           >
             <IntegrationModeIcon />
             <span>Int</span>
-          </button>
-          <button
+          </Button>
+          <Button
             className={`workspace-nav ${!settingsOpen && mode === "map" ? "workspace-active" : ""}`}
             aria-label="Map"
             aria-pressed={!settingsOpen && mode === "map"}
@@ -1630,7 +1655,7 @@ export default function App() {
           >
             <MapModeIcon />
             <span>Map</span>
-          </button>
+          </Button>
           <div className="navigation-utilities">
             <CustomCommandButtons
               controller={customCommands}
@@ -1642,7 +1667,7 @@ export default function App() {
               role="group"
               aria-label="Edit history"
             >
-              <button
+              <Button
                 className="workspace-nav"
                 aria-label="Undo"
                 title={
@@ -1670,8 +1695,8 @@ export default function App() {
                 }
               >
                 <Undo2 size={18} />
-              </button>
-              <button
+              </Button>
+              <Button
                 className="workspace-nav"
                 aria-label="Redo"
                 title={
@@ -1699,7 +1724,7 @@ export default function App() {
                 }
               >
                 <Redo2 size={18} />
-              </button>
+              </Button>
             </div>
             <div className="navigation-group" role="group" aria-label="Project">
               {state?.projectName && (
@@ -1707,7 +1732,7 @@ export default function App() {
                   {state.projectName}
                 </div>
               )}
-              <button
+              <Button
                 className="workspace-nav project-action"
                 aria-label="Open project"
                 title="Open project"
@@ -1715,8 +1740,8 @@ export default function App() {
                 onClick={() => run("open_project", {}, "Opening project…")}
               >
                 <FolderOpen size={20} />
-              </button>
-              <button
+              </Button>
+              <Button
                 className="workspace-nav project-action"
                 aria-label="Save project"
                 disabled={!ready || (!state?.hasImage && !map && !batch)}
@@ -1728,9 +1753,9 @@ export default function App() {
                 }
               >
                 <Save size={20} />
-              </button>
+              </Button>
             </div>
-            <button
+            <Button
               className={`workspace-nav navigation-settings ${settingsOpen ? "workspace-active" : ""}`}
               onClick={() => {
                 clearPlot();
@@ -1742,7 +1767,7 @@ export default function App() {
               title="Settings"
             >
               <Settings size={20} />
-            </button>
+            </Button>
           </div>
         </nav>
 
@@ -1806,7 +1831,7 @@ export default function App() {
                       )}
                       <div className="image-overlay-controls">
                         <label>
-                          <input
+                          <Input
                             aria-label="Show calibrant lines"
                             type="checkbox"
                             checked={showRings}
@@ -1815,7 +1840,7 @@ export default function App() {
                           Calibrant lines
                         </label>
                         <label>
-                          <input
+                          <Input
                             aria-label="Show ring numbers"
                             type="checkbox"
                             checked={showNumbers}
@@ -1985,8 +2010,8 @@ export default function App() {
                                 </>
                               )}
                             </p>
-                            <button
-                              className="primary"
+                            <Button
+                              variant="primary"
                               disabled={!ready}
                               onClick={() =>
                                 run("open_image", {}, "Opening detector image…")
@@ -1994,9 +2019,9 @@ export default function App() {
                             >
                               <Plus size={15} />
                               Open detector image
-                            </button>
+                            </Button>
                             {state?.exampleAvailable && (
-                              <button
+                              <Button
                                 className="text-button"
                                 disabled={!ready}
                                 onClick={() =>
@@ -2009,7 +2034,7 @@ export default function App() {
                               >
                                 Explore example
                                 <ArrowUpRight size={14} />
-                              </button>
+                              </Button>
                             )}
                           </div>
                         )}
@@ -2181,9 +2206,11 @@ export default function App() {
                       )}
                       {mode === "integration" && batchDockVisible && (
                         <BatchDock
-                          position={linked
-                            ? { x: linked.twoTheta, unit: "2th_deg" }
-                            : localPatternClick}
+                          position={
+                            linked
+                              ? { x: linked.twoTheta, unit: "2th_deg" }
+                              : localPatternClick
+                          }
                           batch={batch}
                           calibrated={!!state?.calibrated}
                           ready={ready}
@@ -2405,8 +2432,9 @@ export default function App() {
                         <>
                           <section className="sidebar-section setup-image-source">
                             <div className="setup-image-row">
-                              <button
-                                className="secondary setup-open-image"
+                              <Button
+                                variant="secondary"
+                                className="setup-open-image"
                                 disabled={!ready}
                                 onClick={() =>
                                   run(
@@ -2421,11 +2449,11 @@ export default function App() {
                               >
                                 <FolderOpen size={14} />
                                 Open image
-                              </button>
+                              </Button>
                               {state?.hasImage && (
                                 <div className="setup-image-navigation">
-                                  <button
-                                    className="secondary"
+                                  <Button
+                                    variant="secondary"
                                     title="Previous image"
                                     aria-label="Previous image"
                                     disabled={!ready}
@@ -2438,9 +2466,9 @@ export default function App() {
                                     }
                                   >
                                     ←
-                                  </button>
-                                  <button
-                                    className="secondary"
+                                  </Button>
+                                  <Button
+                                    variant="secondary"
                                     title="Next image"
                                     aria-label="Next image"
                                     disabled={!ready}
@@ -2453,7 +2481,7 @@ export default function App() {
                                     }
                                   >
                                     →
-                                  </button>
+                                  </Button>
                                 </div>
                               )}
                             </div>
@@ -2466,7 +2494,7 @@ export default function App() {
                               </div>
                             )}
                             {state?.exampleAvailable && !state?.hasImage && (
-                              <button
+                              <Button
                                 className="example-link"
                                 disabled={!ready}
                                 onClick={() =>
@@ -2480,7 +2508,7 @@ export default function App() {
                                 <Sparkles size={12} />
                                 Try the CeO₂ example
                                 <ArrowUpRight size={12} />
-                              </button>
+                              </Button>
                             )}
                           </section>
                         </>
@@ -2521,7 +2549,7 @@ export default function App() {
                             <section className="calibration-validation-reference">
                               <label className="calibration-field-row">
                                 <span>Calibrant</span>
-                                <select
+                                <Select
                                   aria-label="Validation calibrant"
                                   disabled={!ready}
                                   value={state?.calibration.calibrant ?? "CeO2"}
@@ -2538,9 +2566,9 @@ export default function App() {
                                       <option key={name}>{name}</option>
                                     ),
                                   )}
-                                </select>
+                                </Select>
                               </label>
-                              <button
+                              <Button
                                 className="icon-button"
                                 aria-label="Load custom validation reference"
                                 title="Load custom reference spacings"
@@ -2554,7 +2582,7 @@ export default function App() {
                                 }
                               >
                                 <FolderOpen size={16} />
-                              </button>
+                              </Button>
                             </section>
                           )}
                           <div hidden={calibrationStep !== 3}>
@@ -2603,18 +2631,27 @@ export default function App() {
                           runProcessing={(command, args, message, onSuccess) =>
                             run(command, args, message, onSuccess, () => {
                               const current = currentState.current;
-                              return current?.projectName === state?.projectName &&
-                                current?.configurationIndex === state?.configurationIndex &&
-                                current?.imagePath === state?.imagePath;
-                            })}
+                              return (
+                                current?.projectName === state?.projectName &&
+                                current?.configurationIndex ===
+                                  state?.configurationIndex &&
+                                current?.imagePath === state?.imagePath
+                              );
+                            })
+                          }
                           backgroundSettings={liveBackground.settings}
                           onBackgroundChange={liveBackground.change}
                           backgroundUpdating={liveBackground.updating}
                           inspectBackground={inspectBackground}
                           onInspectBackgroundChange={setInspectBackground}
-                          backgroundDefaultRange={pattern?.x.length
-                            ? [Math.min(pattern.x[0], pattern.x.at(-1)!), Math.max(pattern.x[0], pattern.x.at(-1)!)]
-                            : [0, 50]}
+                          backgroundDefaultRange={
+                            pattern?.x.length
+                              ? [
+                                  Math.min(pattern.x[0], pattern.x.at(-1)!),
+                                  Math.max(pattern.x[0], pattern.x.at(-1)!),
+                                ]
+                              : [0, 50]
+                          }
                           onOverlaySelectionChange={setSelectedOverlayUid}
                           showOriginalPattern={originalPatternVisible}
                           onShowOriginalPatternChange={(visible) => {
@@ -2640,17 +2677,19 @@ export default function App() {
                     {calibrationStep >= 2 && (
                       <div className="calibration-main-action">
                         {calibrationStep === 3 && geometryDirty && (
-                          <button
+                          <Button
                             type="submit"
                             form="validation-geometry-form"
-                            className="primary calibration-apply-geometry"
+                            variant="primary"
+                            className="calibration-apply-geometry"
                             disabled={!ready}
                           >
                             Apply geometry
-                          </button>
+                          </Button>
                         )}
-                        <button
-                          className="primary fit-button"
+                        <Button
+                          variant="primary"
+                          className="fit-button"
                           title={`Start a fresh geometry from the current peaks and start values.${!fitReady ? ` ${fitBlocker}` : ""}`}
                           disabled={!fitReady}
                           onClick={() =>
@@ -2662,9 +2701,9 @@ export default function App() {
                           }
                         >
                           Calibrate
-                        </button>
-                        <button
-                          className="secondary"
+                        </Button>
+                        <Button
+                          variant="secondary"
                           title={`Adjust the existing geometry using the current peaks.${!state?.calibrated ? " Calibrate or load a geometry first." : !fitReady ? ` ${fitBlocker}` : ""}`}
                           disabled={!fitReady || !state?.calibrated}
                           onClick={() =>
@@ -2676,12 +2715,13 @@ export default function App() {
                           }
                         >
                           Refine
-                        </button>
+                        </Button>
                       </div>
                     )}
                     <div className="calibration-general-actions">
-                      <button
-                        className="secondary calibration-save"
+                      <Button
+                        variant="secondary"
+                        className="calibration-save"
                         aria-label="Save .poni calibration"
                         disabled={!canSaveCalibration}
                         onClick={() =>
@@ -2694,10 +2734,19 @@ export default function App() {
                       >
                         <Save size={15} />
                         Save .poni
-                      </button>
+                      </Button>
                       <div className="calibration-secondary-actions">
-                        <button
-                          className="quiet"
+                        <Button
+                          variant="quiet"
+                          aria-label="Reset calibration"
+                          title="Reset calibration and detector setup; keep the image"
+                          disabled={!ready || !state?.hasImage}
+                          onClick={() => setCalibrationResetRequest("reset")}
+                        >
+                          <RotateCcw size={14} />
+                        </Button>
+                        <Button
+                          variant="quiet"
                           disabled={!ready}
                           onClick={() =>
                             run(
@@ -2709,14 +2758,14 @@ export default function App() {
                         >
                           <FolderOpen size={14} />
                           Load .poni
-                        </button>
-                        <button
-                          className="quiet"
+                        </Button>
+                        <Button
+                          variant="quiet"
                           disabled={!ready}
                           onClick={() => setManualGeometryOpen(true)}
                         >
                           Enter manually
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -2724,6 +2773,28 @@ export default function App() {
               </aside>
             )}
           </IntegrationWorkspace>
+          {calibrationResetRequest && (
+            <CalibrationResetDialog
+              request={calibrationResetRequest}
+              onCancel={() => setCalibrationResetRequest(undefined)}
+              onConfirm={() => {
+                const request = calibrationResetRequest;
+                setCalibrationResetRequest(undefined);
+                if (request === "reset")
+                  void run("reset_calibration", {}, "Resetting calibration…");
+                else
+                  void run(
+                    "open_image",
+                    {
+                      path: request.path,
+                      frame: request.frame,
+                      reset_calibration: true,
+                    },
+                    "Opening image and resetting calibration…",
+                  );
+              }}
+            />
+          )}
           {manualGeometryOpen && (
             <ManualGeometryDialog
               calibration={state?.calibration}
@@ -2815,25 +2886,28 @@ export default function App() {
               {statusMessage}
             </span>
             {error && (
-              <button
-                className="secondary status-action"
+              <Button
+                variant="secondary"
+                className="status-action"
                 aria-label="Dismiss error"
                 onClick={() => setError(null)}
               >
                 ×
-              </button>
+              </Button>
             )}
             {maskSelection && (
-              <button
-                className="secondary status-action"
+              <Button
+                variant="secondary"
+                className="status-action"
                 onClick={maskSelection.cancel}
               >
                 Cancel selection
-              </button>
+              </Button>
             )}
             {progress?.running && (
-              <button
-                className="secondary status-action"
+              <Button
+                variant="secondary"
+                className="status-action"
                 onClick={() => {
                   void bridge.current?.("cancel_refinement");
                 }}
@@ -2845,7 +2919,7 @@ export default function App() {
                     : mode === "mask"
                       ? "Cancel mask processing"
                       : "Cancel refinement"}
-              </button>
+              </Button>
             )}
           </div>
         </footer>
