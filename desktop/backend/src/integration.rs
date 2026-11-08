@@ -258,6 +258,27 @@ impl Plan {
     }
 }
 impl Engine {
+    /// One interactive frame loader for file opens, frame arrows, Batch and Map
+    /// selections. Keep admission, parallel pixels and the ordinary reader in
+    /// the same order so new input optimizations reach every view.
+    pub(crate) fn load_frame(
+        &mut self,
+        image: &mut Image,
+        index: usize,
+        integration: Option<(&Parameters, &[u8], &Options)>,
+        control: &Control,
+    ) -> Result<Option<Prepared>, String> {
+        let prepared = if let Some((geometry, mask, options)) = integration {
+            self.load_combined(image, index, geometry, mask, options, control)?
+        } else {
+            None
+        };
+        if prepared.is_none() && !self.load_pixels(image, index, control)? {
+            image.read(index)?;
+        }
+        Ok(prepared)
+    }
+
     pub fn diagnostics(&self) -> Value {
         json!({"patternPlanBuilds":self.pattern_builds,"cakePlanBuilds":self.cake_builds,"combinedDecodes":self.combined_decodes,"preparedHits":self.prepared_hits,"residentIntegrations":self.resident_calls,"patternOnlyDecodes":self.pattern_only_decodes,"parallelPixelDecodes":self.parallel_pixel_decodes,"lastPixelDecodeMs":self.last_pixel_decode_ms})
     }

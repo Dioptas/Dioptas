@@ -70,3 +70,12 @@ opt-level = 2
 
 [profile.dev.package.sha2]
 opt-level = 2
+
+# Display buffer IDs are on every image-navigation path. Keep their library
+# optimized in live previews, like the numerical kernels.
+[profile.dev.package.blake3]
+opt-level = 2
+
+# Float-to-JSON formatting of full calibration contours is also a hot path.
+[profile.dev.package.zmij]
+opt-level = 2

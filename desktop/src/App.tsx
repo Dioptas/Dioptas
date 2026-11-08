@@ -653,7 +653,10 @@ export default function App() {
           "integration_transfer",
         ].includes(command);
       const frameSelection =
-        command === "map_select" || command === "batch_select";
+        command === "map_select" ||
+        command === "batch_select" ||
+        command === "next_image" ||
+        (command === "integration_navigation" && args.frame !== undefined);
       const livePhaseConditions =
         command === "integration_phase" &&
         args.operation === "update" &&
@@ -739,7 +742,6 @@ export default function App() {
         command === "integration_phase_state" ||
         command === "integration_phase_guides" ||
         command === "integration_autoprocess_poll" ||
-        command === "next_image" ||
         frameSelection ||
         command === "validation_position" ||
         command === "image_levels" ||

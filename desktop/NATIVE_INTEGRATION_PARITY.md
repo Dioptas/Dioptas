@@ -78,8 +78,70 @@ Bulk discovery reads metadata, releases each reader, then opens one file at a
 time. It checks frozen identities and uniform shapes, reuses the same warm 1D
 owner and restores the selected session before publishing the complete matrix.
 It does not compute an unused cake for every bulk frame. Source mutation or
-cancellation cannot publish a partial Batch/Map. Display buffer SHA-256 is also
-optimized in the development profile; buffer identities are unchanged.
+cancellation cannot publish a partial Batch/Map. Live display buffers use
+parallel BLAKE3 identities; owned project data retain SHA-256 identities.
+
+## Shared interactive loading and navigation (2026-11-08)
+
+File opens and in-file Next/Previous now call the same `Engine::load_frame`.
+Batch selection and Map selection reach that loader through
+`select_series_mode` → `open_image_model`. Configuration browsing and incoming
+file processing also use `open_image_model`. The loader selects combined HDF5
+decode/integration when admitted, parallel native pixels otherwise when
+supported, and the ordinary native reader exactly once for other inputs.
+Corrections, dynamic masks, source validation and detector-size confirmation
+retain their existing admission and rollback behavior. Bulk Batch/Map work
+retains its shared numerical kernels and avoids unused detector/cake display work.
+
+All modes use the same `Raster::image`, `Buffer` fingerprints and binary packet
+writer. Integration/Map retain their shared raster/pattern renderers. The
+development profile now optimizes BLAKE3 and the JSON float formatter (`zmij`),
+which were missing from the existing numerical-library optimization list.
+Packet serialization borrows the response metadata instead of constructing an
+intermediate JSON tree. Time-order browsing resolves the source directory once,
+with per-file resolution only for symlinks; each click still rescans for new
+arrivals. Image arrows and direct frame selection use the same quiet ordered
+selection queue as Batch/Map, retaining every rapid click without disabling the
+whole interface.
+
+Matched local development-build medians, 12 alternating selections after warmup,
+1,000 radial × 360 cake bins, baseline `032771df` versus the shared changes:
+
+| Path | Before | After |
+| --- | ---: | ---: |
+| 4 MP TIFF, Next/Previous with integration/cake | 66.77 ms | 21.70 ms |
+| 4 MP TIFF, By Time in a 2,002-file folder | 75.73 ms | 25.95 ms |
+| 4 MP TIFF, Batch selection | 67.69 ms | 23.02 ms |
+| 4 MP TIFF, stored Map selection | 40.49 ms | 11.24 ms |
+| Eiger 9M, Next/Previous with integration/cake | 162.84 ms | 72.32 ms |
+| Eiger 9M, stored Map selection | 118.88 ms | 54.98 ms |
+
+These intervals cover real Rust stdio through the complete requested response,
+with warm local filesystem pages and no CPU isolation; they exclude Tauri IPC,
+GPU and physical-display latency. The Eiger frame is 3,262 × 3,108 pixels.
+The comparison checks all 13 image/Batch/Map entry-point scenarios: detector,
+mask and cake bytes, patterns and histograms match exactly. Only display Auto
+limit metadata permits four machine epsilons of relative rounding (observed
+differences below 4e-12); source/calibration metadata and scientific outputs
+remain exact. Plans are reused: this improvement does not skip integration or
+reduce detector resolution. Remaining Eiger time is principally decoding and
+the requested integration/display preparation.
+
+To reproduce from `desktop/`, build the baseline and current processor in
+separate worktrees, then run:
+
+```sh
+node scripts/image_navigation_benchmark.mjs --all-paths --baseline /absolute/path/to/baseline-processor --eiger /absolute/path/to/eiger_0000.h5
+node scripts/image_navigation_ui_benchmark.mjs --baseline /absolute/path/to/baseline-processor --compare-busy-ui
+```
+
+Receipts are under ignored `desktop/artifacts/image-navigation/`. The headless
+UI probe preserves binary-buffer identity and separates response-to-paint time;
+its Playwright bridge replaces Tauri IPC, so its absolute click-to-paint totals
+are not native-application latency measurements. Rust checks cover file-order
+filtering, late arrivals, symlinked files/folders and byte-identical packet
+framing. Headless Chromium/WebKit cover stable controls, boundary notices,
+rapid Next/Previous order and later arrivals.
 
 ## Independent checks and limits
 

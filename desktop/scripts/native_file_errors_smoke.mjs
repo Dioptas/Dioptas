@@ -59,6 +59,7 @@ try {
       });
       await page.addInitScript(() => {
         window.__pending = 0;
+        window.__navigationCompleted = 0;
         window.pywebview = {
           api: {
             invoke: async (a, p) => {
@@ -68,6 +69,7 @@ try {
                 return await window.__nativeInvoke(a, p);
               } finally {
                 if (track) window.__pending--;
+                if (a === "next_image") window.__navigationCompleted++;
               }
             },
           },
@@ -235,6 +237,29 @@ try {
         await previousImage.click();
         await ready();
         assert.equal((await call("state")).state.imagePath, first);
+        const completed = await page.evaluate(
+          () => window.__navigationCompleted,
+        );
+        await page.evaluate(() => {
+          const next = document.querySelector(
+            '[aria-label="Integration next image"]',
+          );
+          const previous = document.querySelector(
+            '[aria-label="Integration previous image"]',
+          );
+          next.click();
+          previous.click();
+          next.click();
+        });
+        await page.waitForFunction(
+          (count) => window.__navigationCompleted === count + 3,
+          completed,
+        );
+        await ready();
+        assert.equal((await call("state")).state.imagePath, second);
+        await previousImage.click();
+        await ready();
+        assert.equal((await call("state")).state.imagePath, first);
       }
       await page.evaluate(() => {
         Object.defineProperty(navigator, "clipboard", {
@@ -299,6 +324,7 @@ try {
         unexpectedAndUnhandledErrors: true,
         imageBoundaryNoopsAndRetry: ["number", "time"],
         quietImageNavigationAndFooterNotice: true,
+        rapidImageNavigationUsesSelectionQueue: true,
       });
     } finally {
       await browser.close();

@@ -118,24 +118,36 @@ pub(super) fn neighbor(path: &Path, mode: &str, step: i64) -> Result<Option<Path
         return Ok(numbered(path, step));
     }
     let mut entries = Vec::new();
-    for entry in
-        std::fs::read_dir(path.parent().unwrap_or(Path::new("."))).map_err(|e| e.to_string())?
-    {
-        let p = entry.map_err(|e| e.to_string())?.path();
-        if p.is_file()
-            && !p
-                .file_name()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .starts_with('.')
+    // Resolve the directory once. Regular entries then already have canonical
+    // parents; resolving every earlier filename made late-acquisition browsing
+    // pay thousands of redundant filesystem lookups on each click.
+    let directory = path
+        .parent()
+        .unwrap_or(Path::new("."))
+        .canonicalize()
+        .map_err(|e| e.to_string())?;
+    for entry in std::fs::read_dir(directory).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let p = entry.path();
+        if !p
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .starts_with('.')
             && p.extension() == path.extension()
         {
-            let m = std::fs::metadata(&p).map_err(|e| e.to_string())?;
+            let Ok(m) = std::fs::metadata(&p) else {
+                continue;
+            };
+            if !m.is_file() {
+                continue;
+            }
             entries.push((
                 m.created()
                     .or_else(|_| m.modified())
                     .map_err(|e| e.to_string())?,
                 p,
+                entry.file_type().map_err(|e| e.to_string())?.is_symlink(),
             ));
         }
     }
@@ -143,13 +155,58 @@ pub(super) fn neighbor(path: &Path, mode: &str, step: i64) -> Result<Option<Path
     let current = path.canonicalize().map_err(|e| e.to_string())?;
     let i = entries
         .iter()
-        .position(|(_, p)| p.canonicalize().ok().as_ref() == Some(&current))
+        .position(|(_, p, symlink)| {
+            p == &current || (*symlink && p.canonicalize().ok().as_ref() == Some(&current))
+        })
         .ok_or("Current file is not in its source directory.")?;
     let target = i as i64 + step;
     if target < 0 || target >= entries.len() as i64 {
         return Ok(None);
     }
     Ok(Some(entries[target as usize].1.clone()))
+}
+
+#[cfg(test)]
+mod navigation_tests {
+    use super::*;
+    #[test]
+    fn time_order_filters_entries_preserves_steps_and_finds_new_arrivals() {
+        let temp = tempfile::tempdir().unwrap();
+        let directory = temp.path().canonicalize().unwrap();
+        let first = directory.join("a.tif");
+        let second = directory.join("b.tif");
+        std::fs::write(&first, b"first").unwrap();
+        std::fs::write(directory.join(".hidden.tif"), b"hidden").unwrap();
+        std::fs::write(directory.join("other.edf"), b"other").unwrap();
+        std::fs::create_dir(directory.join("subfolder.tif")).unwrap();
+        assert_eq!(neighbor(&first, "time", 1).unwrap(), None);
+        std::fs::write(&second, b"second").unwrap();
+        assert_eq!(neighbor(&first, "time", 1).unwrap(), Some(second.clone()));
+        assert_eq!(neighbor(&second, "time", -1).unwrap(), Some(first.clone()));
+        assert_eq!(neighbor(&first, "time", 2).unwrap(), None);
+        assert_eq!(neighbor(&first, "time", -1).unwrap(), None);
+    }
+    #[test]
+    #[cfg(unix)]
+    fn time_order_resolves_directory_and_file_symlinks() {
+        use std::os::unix::fs::symlink;
+        let temp = tempfile::tempdir().unwrap();
+        let directory = temp.path().canonicalize().unwrap();
+        let source = directory.join("source");
+        std::fs::create_dir(&source).unwrap();
+        let target = directory.join("outside.tif");
+        std::fs::write(&target, b"target").unwrap();
+        let first = source.join("a.tif");
+        symlink(&target, &first).unwrap();
+        let second = source.join("b.tif");
+        std::fs::write(&second, b"next").unwrap();
+        symlink(source, directory.join("alias")).unwrap();
+        symlink(directory.join("absent"), directory.join("alias/broken.tif")).unwrap();
+        assert_eq!(
+            neighbor(&directory.join("alias/a.tif"), "time", 1).unwrap(),
+            Some(second)
+        );
+    }
 }
 impl Files {
     fn scan(&self) -> Result<BTreeSet<PathBuf>, String> {

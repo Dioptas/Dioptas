@@ -500,15 +500,7 @@ impl Session {
                     })
                     .transpose()?
                     .unwrap_or(1);
-                #[cfg(feature = "dioptrin")]
-                let options = self.integration_options();
-                #[cfg(feature = "dioptrin")]
-                let load_mask = self
-                    .image
-                    .as_ref()
-                    .map(|i| self.integration_mask(i.shape))
-                    .unwrap_or_default();
-                let image = self.image.as_mut().ok_or("Open an image first.")?;
+                let image = self.image.as_ref().ok_or("Open an image first.")?;
                 let index = (image.frame as i64)
                     .checked_add(
                         direction
@@ -539,29 +531,28 @@ impl Session {
                     options["defer_integration"] = json!(defer);
                     return self.dispatch("open_image", &options);
                 }
+                #[cfg(feature = "dioptrin")]
+                let options = self.integration_options();
+                #[cfg(feature = "dioptrin")]
+                let load_mask = if self.settings.calibrated && !defer && !self.processing.active() {
+                    image
+                        .combined_source(index as usize)?
+                        .map(|source| self.integration_mask(source.shape))
+                        .unwrap_or_default()
+                } else {
+                    Vec::new()
+                };
+                let image = self.image.as_mut().unwrap();
                 let previous_shape = image.shape;
                 #[cfg(feature = "dioptrin")]
                 {
-                    self.prepared =
-                        if self.settings.calibrated && !defer && !self.processing.active() {
-                            self.engine.load_combined(
-                                image,
-                                index as usize,
-                                &self.settings.geometry,
-                                &load_mask,
-                                &options,
-                                &self.control,
-                            )?
-                        } else {
-                            None
-                        };
-                    if self.prepared.is_none()
-                        && !self
-                            .engine
-                            .load_pixels(image, index as usize, &self.control)?
-                    {
-                        image.read(index as usize)?;
-                    }
+                    self.prepared = self.engine.load_frame(
+                        image,
+                        index as usize,
+                        (self.settings.calibrated && !defer && !self.processing.active())
+                            .then_some((&self.settings.geometry, load_mask.as_slice(), &options)),
+                        &self.control,
+                    )?;
                 }
                 #[cfg(not(feature = "dioptrin"))]
                 image.read(index as usize)?;
@@ -1193,30 +1184,27 @@ impl Session {
         image.orient(&self.settings.transformations, &self.control)?;
         self.settings.geometry.sync_shape(image.shape)?;
         #[cfg(feature = "dioptrin")]
-        let prepared = if self.settings.calibrated && !defer && !self.processing.active() {
+        let prepared = {
             let options = self.integration_options();
-            let load_mask = image
-                .combined_source(image.frame)?
-                .map(|source| self.integration_mask(source.shape))
-                .unwrap_or_default();
-            self.engine.load_combined(
+            let load_mask = if self.settings.calibrated && !defer && !self.processing.active() {
+                image
+                    .combined_source(image.frame)?
+                    .map(|source| self.integration_mask(source.shape))
+                    .unwrap_or_default()
+            } else {
+                Vec::new()
+            };
+            self.engine.load_frame(
                 &mut image,
                 args.get("frame").and_then(Value::as_u64).unwrap_or(0) as usize,
-                &self.settings.geometry,
-                &load_mask,
-                &options,
+                (self.settings.calibrated && !defer && !self.processing.active()).then_some((
+                    &self.settings.geometry,
+                    load_mask.as_slice(),
+                    &options,
+                )),
                 &self.control,
             )?
-        } else {
-            None
         };
-        #[cfg(feature = "dioptrin")]
-        if prepared.is_none() {
-            let frame = image.frame;
-            if !self.engine.load_pixels(&mut image, frame, &self.control)? {
-                image.read(frame)?;
-            }
-        }
         #[cfg(not(feature = "dioptrin"))]
         image.read(image.frame)?;
         trace.mark("decode and warm-plan handoff");

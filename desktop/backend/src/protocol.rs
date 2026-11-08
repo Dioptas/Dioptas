@@ -77,6 +77,11 @@ mod packet_write_tests {
                 .unwrap();
             let size = u32::from_le_bytes(out.bytes[..4].try_into().unwrap()) as usize;
             let header: Value = serde_json::from_slice(&out.bytes[4..4 + size]).unwrap();
+            let reference_header = serde_json::to_vec(&json!({
+                "id":42,"result":reply.result,"buffers":header["buffers"]
+            }))
+            .unwrap();
+            assert_eq!(&out.bytes[4..4 + size], reference_header);
             assert_eq!(header["id"], 42);
             assert_eq!(header["result"], reply.result);
             let mut expected = vec![];
@@ -211,6 +216,12 @@ impl Reply {
             id: &'a str,
             length: usize,
         }
+        #[derive(Serialize)]
+        struct Header<'a> {
+            id: u64,
+            result: &'a Value,
+            buffers: &'a [Entry<'a>],
+        }
         let mut seen: HashSet<&str> = known.iter().map(String::as_str).collect();
         let buffers: Vec<_> = self.buffers.iter().filter(|b| seen.insert(&b.id)).collect();
         let table: Vec<_> = buffers
@@ -220,9 +231,14 @@ impl Reply {
                 length: b.bytes.len(),
             })
             .collect();
-        let header =
-            serde_json::to_vec(&json!({"id": id, "result": self.result, "buffers": table}))
-                .map_err(|e| e.to_string())?;
+        // Borrow the result: json! would recursively clone/serialize the complete
+        // calibration contour and workflow tree before encoding it a second time.
+        let header = serde_json::to_vec(&Header {
+            id,
+            result: &self.result,
+            buffers: &table,
+        })
+        .map_err(|e| e.to_string())?;
         let length = u32::try_from(header.len()).map_err(|_| "Oversized response header")?;
         let mut result = length.to_le_bytes().to_vec();
         result.extend_from_slice(&header);
