@@ -67,8 +67,12 @@ export function PlotLegend({
   };
   const commit = (point: Point) => {
     const next = bounded(point);
+    const previous = positionRef.current;
+    // Refresh/resize effects can run again before React finishes a commit.
+    // Bail out before scheduling state, including during React Fast Refresh.
+    if (previous?.x === next.x && previous?.y === next.y) return;
     positionRef.current = next;
-    setPosition((old) => (old?.x === next.x && old?.y === next.y ? old : next));
+    setPosition(next);
   };
   const move = (point: Point) => {
     manual.current = true;
