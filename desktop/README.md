@@ -414,6 +414,11 @@ screenshots are written to `desktop/artifacts/`.
 
 ## Layout and plot interaction
 
+Ctrl+left click and Command+left click provide the right-button gestures in
+image, cake and pattern views: click to zoom out 2×, double-click to restore the
+full view, and drag to pan. These gestures also work over editable ROIs and
+while peak picking or mask painting is active.
+
 Calibration peak lists, Integration Phase/Overlay tables and material/reflection
 tables share `DataTable`, `TableScroll` and `TableActions` from
 `src/DataTable.tsx`. Header colors, compact row and field sizing, numeric

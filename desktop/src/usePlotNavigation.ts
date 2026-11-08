@@ -52,8 +52,21 @@ type Gesture = {
   moved: boolean;
 };
 
+/** Ctrl/Command + primary button also works with a single-button mouse. */
+export function isPlotSecondaryGesture(event: {
+  button: number;
+  ctrlKey: boolean;
+  metaKey: boolean;
+}) {
+  return (
+    event.button === 2 ||
+    (event.button === 0 && (event.ctrlKey || event.metaKey))
+  );
+}
+
 /** Dioptas plot gestures, shared by detector, cake, and diffraction pattern.
  * A right click zooms out once; a right double-click restores the fitted view.
+ * Ctrl/Command + left click/drag provides the same navigation.
  */
 export function usePlotNavigation(
   fit: PlotRange,
@@ -165,7 +178,7 @@ export function usePlotNavigation(
     allowLeft = true,
     allowMarginSelection = false,
   ) {
-    const right = event.button === 2 || (event.button === 0 && event.ctrlKey);
+    const right = isPlotSecondaryGesture(event);
     const p = screen(event);
     if (!right) rightClick.current = null;
     if (

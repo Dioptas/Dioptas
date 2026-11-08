@@ -16,6 +16,7 @@ import {
   RANGE_SELECTION_COLOR,
 } from "./drawRangeSelection";
 import {
+  isPlotSecondaryGesture,
   usePlotNavigation,
   usePlotWheel,
   type ZoomMode,
@@ -988,7 +989,7 @@ export function PatternView({
           if (
             editRegions &&
             e.button === 0 &&
-            !e.ctrlKey &&
+            !isPlotSecondaryGesture(e) &&
             onRegionChange &&
             point.x >= left &&
             point.x <= left + w &&

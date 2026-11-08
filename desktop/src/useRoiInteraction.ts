@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { isPlotSecondaryGesture } from "./usePlotNavigation";
 
 // Scientific rows increase upward; screen rows increase downward.
 export type DetectorRoi = [number, number, number, number];
@@ -162,7 +163,7 @@ export function useRoiInteraction({
         !onChange ||
         busy ||
         event.button !== 0 ||
-        event.ctrlKey ||
+        isPlotSecondaryGesture(event) ||
         gesture.current
       )
         return false;

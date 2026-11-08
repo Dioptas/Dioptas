@@ -29,6 +29,7 @@ import {
   RANGE_SELECTION_COLOR,
 } from "./drawRangeSelection";
 import {
+  isPlotSecondaryGesture,
   usePlotNavigation,
   usePlotWheel,
   type ZoomMode,
@@ -944,13 +945,15 @@ export function RasterView({
         data-view-y-min={view.yMin}
         data-view-y-max={view.yMax}
         onDoubleClick={(event) => {
-          if (event.button === 0 && !busy) onImageDoubleClick?.();
+          if (event.button === 0 && !isPlotSecondaryGesture(event) && !busy)
+            onImageDoubleClick?.();
         }}
         onContextMenu={(event) => event.preventDefault()}
         onAuxClick={(event) => event.preventDefault()}
         onPointerDown={(event) => {
           if (roiInteraction.onPointerDown(event)) return;
-          const brushDrag = painting && event.shiftKey && !event.ctrlKey;
+          const brushDrag =
+            painting && event.shiftKey && !isPlotSecondaryGesture(event);
           // Navigation is available in every tool, including while processing.
           if (navigation.onPointerDown(event, !brushDrag || !!busy, cake))
             return;

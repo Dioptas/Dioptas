@@ -63,6 +63,51 @@ async function restore(page, canvas) {
   await settle(page);
 }
 
+export async function verifyModifiedPlotNavigation(page, canvas) {
+  const id = await canvas.getAttribute("data-testid");
+  await restore(page, canvas);
+  const fit = await read(canvas);
+  const p = await point(canvas, 0.5, 0.5);
+  for (const modifier of ["Control", "Meta"]) {
+    await page.mouse.move(p.x, p.y);
+    await page.mouse.wheel(0, -1000);
+    await settle(page);
+    const zoomed = await read(canvas);
+    assert.ok(spanX(zoomed) < spanX(fit) / 3);
+    await page.keyboard.down(modifier);
+    try {
+      await drag(page, canvas, [0.5, 0.5], [0.55, 0.55]);
+      const panned = await read(canvas);
+      close(spanX(panned), spanX(zoomed), `${id}: ${modifier}-drag x scale`);
+      close(spanY(panned), spanY(zoomed), `${id}: ${modifier}-drag y scale`);
+      assert.ok(
+        panned.xMin < zoomed.xMin && panned.yMin > zoomed.yMin,
+        `${id}: ${modifier}-drag pans both axes`,
+      );
+      await page.mouse.click(p.x, p.y);
+      await settle(page);
+      const single = await read(canvas);
+      close(
+        spanX(single),
+        spanX(panned) * 2,
+        `${id}: ${modifier}-click unzooms`,
+      );
+      // A pan separates the single click from the following double-click.
+      await drag(page, canvas, [0.5, 0.5], [0.55, 0.55]);
+      await page.mouse.dblclick(p.x, p.y);
+      await settle(page);
+      assert.deepEqual(
+        await read(canvas),
+        fit,
+        `${id}: ${modifier}-double-click restores the complete fitted view`,
+      );
+    } finally {
+      await page.keyboard.up(modifier);
+    }
+  }
+  return `${id}: Ctrl/Command click unzoom, double-click fit and drag pan`;
+}
+
 export async function verifyCakeMarginNavigation(page) {
   return verifyRectangleMarginNavigation(page, "cake-canvas");
 }
@@ -495,6 +540,7 @@ export async function verifyPlotNavigation(page) {
     checks.push(
       `${id}: rectangle zoom, right pan, single unzoom / double full fit`,
     );
+    checks.push(await verifyModifiedPlotNavigation(page, canvas));
     if (id === "cake-canvas" || id === "pattern-canvas") {
       checks.push(...(await verifyRectangleMarginNavigation(page, id)));
       checks.push(...(await verifyCompactAxisLabels(page, id)));
