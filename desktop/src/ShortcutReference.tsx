@@ -23,6 +23,7 @@ export const shortcutGroups = [
   {
     title: "Workspace & mask tools",
     rows: [
+      ["Open / close Settings · also while editing fields", "⌘ / Ctrl + ,"],
       ["Enable / disable configurations", "Shift + C"],
       [
         "Enable picking / switch to Calibration · valid image setup; outside Mask mode",
@@ -94,9 +95,10 @@ export function ShortcutReference() {
   return (
     <>
       <p className="shortcut-scope-note">
-        App shortcuts pause while editing text, using a dialog or menu, or
-        viewing Settings. A focused button keeps its normal Enter / Space
-        action. Focus a plot with Tab to use its navigation keys.
+        Except for the Settings toggle, app shortcuts pause while editing text,
+        using a menu or viewing Settings. Dialogs keep their own keys. A focused
+        button keeps its normal Enter / Space action. Focus a plot with Tab to
+        use its navigation keys.
       </p>
       {shortcutGroups.map(({ title, rows }) => (
         <section className="settings-card" key={title}>

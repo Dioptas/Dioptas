@@ -111,6 +111,7 @@ if (selected.has("--references")) {
     "calibration",
     "mask",
     "integration_core",
+    "pyfai_splitting",
     "processing",
     "uncertainty",
     "material",

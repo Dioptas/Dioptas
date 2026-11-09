@@ -78,12 +78,16 @@ struct Settings {
     errors: bool,
     automatic_binning: bool,
     supersampling: usize,
+    #[serde(default)]
+    pyfai_splitting: bool,
     solid_angle: bool,
     azimuth: Option<[f64; 2]>,
     cake_azimuth: Option<[f64; 2]>,
     trim_zeros: bool,
     spread: bool,
     csc: bool,
+    #[serde(default)]
+    auto_layout: bool,
     roi: Option<[usize; 4]>,
     auto_save: bool,
     formats: Vec<String>,
@@ -107,12 +111,14 @@ impl Default for Settings {
             errors: false,
             automatic_binning: false,
             supersampling: 1,
+            pyfai_splitting: false,
             solid_angle: true,
             azimuth: None,
             cake_azimuth: None,
             trim_zeros: false,
             spread: false,
-            csc: true,
+            csc: false,
+            auto_layout: false,
             roi: None,
             auto_save: false,
             formats: vec![".xy".into()],
@@ -262,9 +268,15 @@ impl Session {
         }
         let mut payload = std::borrow::Cow::Borrowed(&request.payload);
         if let Some(products) = request.payload.get("requested_products") {
-            if !products.is_object() || !products["cake"].is_boolean()
-                || products.as_object().unwrap().iter().any(|(key,value)| !["cake","rings"].contains(&key.as_str()) || !value.is_boolean()) {
-                return Reply::error("Requested products must contain a cake boolean and optional rings boolean.");
+            if !products.is_object()
+                || !products["cake"].is_boolean()
+                || products.as_object().unwrap().iter().any(|(key, value)| {
+                    !["cake", "rings"].contains(&key.as_str()) || !value.is_boolean()
+                })
+            {
+                return Reply::error(
+                    "Requested products must contain a cake boolean and optional rings boolean.",
+                );
             }
             self.control.request_cake(products["cake"].as_bool().unwrap());
             self.control.request_calibration_rings(products["rings"].as_bool().unwrap_or(true));
@@ -701,15 +713,20 @@ impl Session {
                         "poisson_errors" => candidate.errors = boolean(value, key)?,
                         "solid_angle" => candidate.solid_angle = boolean(value, key)?,
                         "supersampling" => candidate.supersampling = integer(value, key, 1, 20)?,
+                        "method" => { /* Applied after the sampling factor, independently of JSON key order. */
+                        }
                         "trim_zeros" => candidate.trim_zeros = boolean(value, key)?,
                         "auto_save" => candidate.auto_save = boolean(value, key)?,
                         "azimuthal_std" => candidate.spread = boolean(value, key)?,
                         "sparse_layout" => {
                             candidate.csc = match value.as_str() {
-                                Some("csc") => true,
+                                Some("csc" | "auto") => true,
                                 Some("csr") => false,
-                                _ => return Err("Choose CSC or CSR sparse layout.".into()),
-                            }
+                                _ => {
+                                    return Err("Choose automatic, CSC or CSR sparse layout.".into());
+                                }
+                            };
+                            candidate.auto_layout = value.as_str() == Some("auto");
                         }
                         "azimuth_range" => candidate.azimuth = optional_azimuth(value)?,
                         "cake_azimuth_range" => candidate.cake_azimuth = optional_azimuth(value)?,
@@ -739,6 +756,29 @@ impl Session {
                             ));
                         }
                     }
+                }
+                if let Some(method) = args.get("method") {
+                    match method.as_str() {
+                        Some("polygon") => {
+                            candidate.pyfai_splitting = false;
+                            candidate.supersampling = 1;
+                        }
+                        Some("subpixel") => {
+                            candidate.pyfai_splitting = false;
+                            candidate.supersampling = candidate.supersampling.max(2);
+                        }
+                        Some("pyfai_full" | "pyfai") => {
+                            candidate.pyfai_splitting = true;
+                            candidate.supersampling = 1;
+                        }
+                        _ => {
+                            return Err(
+                                "Choose polygon, pyFAI-compatible or subpixel integration.".into(),
+                            );
+                        }
+                    }
+                } else if args.get("supersampling").is_some() {
+                    candidate.pyfai_splitting = false;
                 }
                 if candidate
                     .bins
@@ -1696,6 +1736,7 @@ impl Session {
             polarization: self.settings.polarization,
             errors: self.settings.errors,
             supersampling: self.settings.supersampling,
+            pyfai: self.settings.pyfai_splitting,
             solid_angle: self.settings.solid_angle,
             azimuth: self.settings.azimuth,
             cake_azimuth: self.settings.cake_azimuth,
@@ -1703,6 +1744,7 @@ impl Session {
             spread: self.settings.spread,
             dynamic_mask: self.settings.use_mask && self.plugins.states.iter().any(|p| p.enabled),
             csc: self.settings.csc,
+            auto_layout: self.settings.auto_layout,
         }
     }
     #[cfg(feature = "dioptrin")]
@@ -1836,7 +1878,8 @@ impl Session {
             "configurationLabels": self.project.labels(),"configurationContext":self.project.active_id,
             "geometry": {"dist":g.dist,"poni1":g.poni1,"poni2":g.poni2,"rot1":g.rot1,"rot2":g.rot2,"rot3":g.rot3,"wavelength":g.wavelength},
             "integration": {
-                "roi":s.roi, "automaticBinning": s.automatic_binning, "actualBins": if s.automatic_binning {self.automatic_bins()}else{s.bins}, "supersampling":s.supersampling, "azimuthRange":s.azimuth, "cakeAzimuthRange":s.cake_azimuth,
+                "roi":s.roi, "automaticBinning": s.automatic_binning, "actualBins": if s.automatic_binning {self.automatic_bins()}else{s.bins}, "supersampling":s.supersampling, "method":if s.pyfai_splitting {"pyfai_full"} else if s.supersampling > 1 {"subpixel"} else {"polygon"}, "azimuthRange":s.azimuth, "cakeAzimuthRange":s.cake_azimuth,
+                "sparseLayout":if s.auto_layout {"auto"}else if s.csc {"csc"}else{"csr"},
                 "cakeBins": s.cake_bins, "solidAngle":s.solid_angle, "polarization":s.polarization, "poissonErrors":s.errors, "trimZeros":s.trim_zeros,
                 "autoSave":s.auto_save, "formats":s.formats, "outputDirectory":"", "imageBackground":{"filename":null,"scale":1,"offset":0},
                 "patternBackground":{"enabled":false,"smoothing":1,"iterations":1,"order":1,"range":null,"overlay":false},

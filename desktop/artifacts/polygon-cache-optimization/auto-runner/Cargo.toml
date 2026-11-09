@@ -1,0 +1,9 @@
+[package]
+name = "compare-polygon-auto"
+version = "0.1.0"
+edition = "2024"
+publish = false
+[dependencies]
+dioptrin = { git = "https://github.com/CPrescher/Dioptrin", rev = "ef5f458654d27abbb8b17338ecbe694295973c3d", default-features = false }
+serde_json = "1"
+[workspace]

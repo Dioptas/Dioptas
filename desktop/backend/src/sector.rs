@@ -89,9 +89,24 @@ pub fn build(
     range: Option<[f64; 2]>,
     nss: usize,
 ) -> Result<Grid, String> {
+    build_on_range(g, radial_unit, bins, azimuth_bins, range, nss, None)
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn build_on_range(
+    g: &Geometry,
+    radial_unit: RadialUnit,
+    bins: usize,
+    azimuth_bins: usize,
+    range: Option<[f64; 2]>,
+    nss: usize,
+    radial_range: Option<[f64; 2]>,
+) -> Result<Grid, String> {
     let (tth, azi) = g.angular_corners();
     let radial = radial_unit.convert_from_tth(&tth, g.poni.wavelength);
-    let (rmin, rmax, dr) = if nss > 1 {
+    let (rmin, rmax, dr) = if let Some([lo, hi]) = radial_range {
+        (lo, hi, (hi - lo) / bins as f64)
+    } else if nss > 1 {
         let center_radial = radial_unit.convert_from_tth(&g.calc_tth_all(), g.poni.wavelength);
         dioptrin::math::histogram::ss_tth_min_max_step(g, &center_radial, bins, nss, radial_unit)
     } else {
@@ -135,6 +150,9 @@ pub fn build(
             {
                 let av = angles[0] + (av - angles[0]).rem_euclid(TAU);
                 if av >= angles[1] {
+                    continue;
+                }
+                if radial_range.is_some() && (rv < rmin || rv >= rmax) {
                     continue;
                 }
                 let rb = (((rv - rmin) / dr).floor() as usize).min(bins - 1);

@@ -1,0 +1,202 @@
+{
+  "before": {
+    "polygon_1d": {
+      "coldMs": {
+        "medianMs": 64.940709,
+        "minMs": 63.255584000000006,
+        "maxMs": 92.84070799999999,
+        "q25Ms": 63.777625,
+        "q75Ms": 72.715354,
+        "samples": 15
+      },
+      "warmMs": {
+        "medianMs": 0.544375,
+        "minMs": 0.490333,
+        "maxMs": 0.601167,
+        "q25Ms": 0.5261875,
+        "q75Ms": 0.551479,
+        "samples": 63
+      }
+    },
+    "pyfai_1d": {
+      "coldMs": {
+        "medianMs": 107.177792,
+        "minMs": 104.87608399999999,
+        "maxMs": 113.74641700000001,
+        "q25Ms": 106.8324375,
+        "q75Ms": 108.677771,
+        "samples": 15
+      },
+      "warmMs": {
+        "medianMs": 0.6156659999999999,
+        "minMs": 0.526791,
+        "maxMs": 0.796625,
+        "q25Ms": 0.5875414999999999,
+        "q75Ms": 0.6497915000000001,
+        "samples": 63
+      }
+    },
+    "polygon_cake": {
+      "coldMs": {
+        "medianMs": 57.808666,
+        "minMs": 55.5445,
+        "maxMs": 64.523667,
+        "q25Ms": 55.751729499999996,
+        "q75Ms": 60.742520999999996,
+        "samples": 15
+      },
+      "warmMs": {
+        "medianMs": 0.737125,
+        "minMs": 0.606042,
+        "maxMs": 1.1435,
+        "q25Ms": 0.654542,
+        "q75Ms": 0.9565,
+        "samples": 63
+      }
+    },
+    "pyfai_cake": {
+      "coldMs": {
+        "medianMs": 73.523834,
+        "minMs": 68.7625,
+        "maxMs": 89.148417,
+        "q25Ms": 70.795125,
+        "q75Ms": 78.12116649999999,
+        "samples": 15
+      },
+      "warmMs": {
+        "medianMs": 2.647417,
+        "minMs": 2.556708,
+        "maxMs": 3.234917,
+        "q25Ms": 2.6228749999999996,
+        "q75Ms": 2.6997289999999996,
+        "samples": 63
+      }
+    }
+  },
+  "after": {
+    "polygon_1d": {
+      "coldMs": {
+        "medianMs": 64.826042,
+        "minMs": 61.655458,
+        "maxMs": 94.523083,
+        "q25Ms": 63.65927049999999,
+        "q75Ms": 67.196687,
+        "samples": 15
+      },
+      "warmMs": {
+        "medianMs": 0.538416,
+        "minMs": 0.5018750000000001,
+        "maxMs": 0.577333,
+        "q25Ms": 0.5277499999999999,
+        "q75Ms": 0.5508545,
+        "samples": 63
+      }
+    },
+    "pyfai_1d": {
+      "coldMs": {
+        "medianMs": 116.888375,
+        "minMs": 113.681166,
+        "maxMs": 120.83891700000001,
+        "q25Ms": 114.8409375,
+        "q75Ms": 118.9779585,
+        "samples": 15
+      },
+      "warmMs": {
+        "medianMs": 0.27745899999999996,
+        "minMs": 0.25166700000000003,
+        "maxMs": 0.3365,
+        "q25Ms": 0.269396,
+        "q75Ms": 0.2890205,
+        "samples": 63
+      }
+    },
+    "polygon_cake": {
+      "coldMs": {
+        "medianMs": 59.324292,
+        "minMs": 56.5835,
+        "maxMs": 64.104,
+        "q25Ms": 57.877104,
+        "q75Ms": 62.455333499999995,
+        "samples": 15
+      },
+      "warmMs": {
+        "medianMs": 0.6809160000000001,
+        "minMs": 0.5892080000000001,
+        "maxMs": 1.136417,
+        "q25Ms": 0.6158755,
+        "q75Ms": 0.9185415,
+        "samples": 63
+      }
+    },
+    "pyfai_cake": {
+      "coldMs": {
+        "medianMs": 74.22395800000001,
+        "minMs": 68.108208,
+        "maxMs": 85.217791,
+        "q25Ms": 71.65956249999999,
+        "q75Ms": 78.2930205,
+        "samples": 15
+      },
+      "warmMs": {
+        "medianMs": 0.657708,
+        "minMs": 0.606084,
+        "maxMs": 0.767084,
+        "q25Ms": 0.641646,
+        "q75Ms": 0.6688129999999999,
+        "samples": 63
+      }
+    }
+  },
+  "speedup": {
+    "pyfai_1d": 2.2189440602034898,
+    "pyfai_cake": 4.025216357410888
+  },
+  "identity": {
+    "releaseBaselineArraysBitwiseEqual": true,
+    "pairedRuns": 3,
+    "nativeCommandsBitwiseEqual": 68
+  },
+  "input": {
+    "image": "/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/dioptas/tests/data/CeO2_Pilatus1M.tif",
+    "poni": "/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/dioptas/tests/data/CeO2_Pilatus1M.poni",
+    "shape": [
+      1043,
+      981
+    ],
+    "imageSha256": "1d4320d23608d84cccbab0d08b8445761980292dbb415fc281a7f34db7990c41",
+    "poniSha256": "a73f34e45f460eb0c3601d3462c9c1e8c045359ded34466986dfdc1215579b8c",
+    "orientation": "TIFF rows reversed once, matching desktop scientific coordinates",
+    "maskedPixels": 73560,
+    "polarization": 0.99,
+    "solidAngle": true,
+    "errors": false,
+    "radialBins": 1000,
+    "azimuthBins": 360,
+    "threads": 8
+  },
+  "revision": "4e2cabba6fa6fbf7d376e6ffc64555c52fffb9b2",
+  "scope": "Release-profile Rust numerical paths, 8 Rayon threads; resident float64 image, no errors, fixed gap mask; excludes decoding, process startup, transport, raster conversion, UI. Three alternating paired runs; 15 fresh plans and 63 cached calls per method.",
+  "toolchain": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+  "cpu": "Apple M4 Pro",
+  "sha256": {
+    "before/dioptas-processor": "8ae4b846fafc978573c89d0cdc784fd643069dcfee69469f5a82d09fdf754199",
+    "runner/src/main.rs": "46b44ccef05865bde5244123677cd4841448906f45684daa6485346dbd7aacc0",
+    "runner/Cargo.lock": "12790d1673f3b1e6f8937588b04be5d215bf3abc6d7019e5c0db17ecedd9989f",
+    "before/runner/src/main.rs": "4e4897c5af15894dca3845493698c1bb0ab53d90b441244ad295479655c6c75e",
+    "before/runner/Cargo.lock": "081489183ff4dde68378e59fd9a9bf607d81ea32f74f8fa75bef260a062f769f",
+    "before/aggregate.json": "39c81d9aa707b75cb63609917805d50da8e4e9cf9c2999b6888ecf042eb1a81b",
+    "after/aggregate.json": "2b1a8310b48ea510e4a3e37b632aba08fa995cea82f28fd6735ac310ab5d786c"
+  },
+  "tests": {
+    "Dioptrin": {
+      "passed": 229,
+      "failed": 0,
+      "ignored": 0
+    },
+    "Desktop": {
+      "passed": 140,
+      "failed": 0,
+      "ignored": 1
+    }
+  }
+}

@@ -66,22 +66,26 @@ reference tests remain outside the shipping runtime. A few transport/Map tests
 use `DIOPTAS_REFERENCE_PYTHON` only to generate reference fixtures; their Rust
 children run with Python and PATH unavailable.
 
-## Local dependency and portability
+## Released dependency and portability
 
-Dioptrin is pinned to `6ede5d0553811a41ad4511d1f5a50d955eb85156`, on local
-`codex/rust-desktop-combination` in
-`/Users/clemens/Programming/Dioptrin-rust-desktop`. It merges physical detector
-geometry (`52738685`), shared-grid integration (`7e6b73b`) and the subsequently
-validated beam-splitting refinements (`c104ab2`). Fractional polygon splitting
-remains the default; pyFAI histogram compatibility is separate upstream.
+The desktop uses the public Dioptrin **0.12.0** release as its baseline.
+The current exact pin in `backend/Cargo.lock` is `7f2d0c2`, which adds the
+Massif preprocessing optimization, prepared compatibility integration plans
+and resident CSC/CSR selection
+on top of `v0.12.0`. These additions are not part of the published 0.12.0 package;
+see [Massif performance](MASSIF_PERFORMANCE.md) and
+[cached integration performance](PYFAI_CACHED_PERFORMANCE.md).
+CSR is the default. Optional Automatic uses CSC above roughly 8 MP and 2,000 bins without Poisson errors. The execution-layout setting and empirical
+predictor are documented in the [crossover study](INTEGRATION_LAYOUT_CROSSOVER.md).
+The release includes physical detector geometry, shared-grid integration,
+explicit count variances, and the `PyfaiFull` integration method used for
+both 1D patterns and 2D cakes. Fractional polygon splitting remains the default.
 
-This dependency commit and the desktop consolidation are local, not published.
-The dependency is present in this machine's Cargo Git cache; the archive also
-contains `dioptrin-rust-desktop.bundle`, preserving the complete dependency Git
-history. It can be restored with `git clone <bundle> <restore-directory>`.
-Publishing/merging this dependency revision is still needed before a clean CI
-clone can resolve the pinned Git URL. The bundled application owns the compiled
-processor and resources and does not depend on this cache or a source checkout.
+This release publishes the previous desktop-specific geometry and integration
+work. A clean checkout can resolve the current dependency from GitHub without this machine's Cargo
+cache or a local library checkout. The bundled application owns its compiled
+processor and resources. Python remains an independent reference or explicit
+compatibility runtime; the default desktop processing runs in Rust.
 
 ## Verification
 

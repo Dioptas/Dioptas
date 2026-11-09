@@ -85,8 +85,10 @@ project storage are unchanged; task controls stay in the Integration workspace.
   relative intensity r normalized independently per phase, width is 1 + 3r
   screen pixels and opacity is 0.3 + 0.4r. These widths stay fixed while zooming;
   zero-intensity phases use the minimum width and opacity.
-- Numerical controls use explicit Apply actions. These do not launch model
-  signal-driven background processing, a scientific HTTP service or Qt app.
+- Integration settings apply checkboxes/selectors immediately and valid numerical
+  edits on blur or Enter. The native method selector distinguishes polygon pixel
+  splitting from subpixel sampling; the latter alone exposes its sampling count.
+  Commands still use the worker-owned processing boundary.
 
 ## Integration contracts for merging the view branches
 

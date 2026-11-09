@@ -998,9 +998,7 @@ try {
   );
   await page.getByLabel("Automatic radial binning", { exact: true }).uncheck();
   await page.getByLabel("Radial bins", { exact: true }).fill("0");
-  await page
-    .getByRole("button", { name: "Apply integration options", exact: true })
-    .click();
+  await page.getByLabel("Radial bins", { exact: true }).blur();
   assert.ok(
     await page
       .getByLabel("Radial bins", { exact: true })
@@ -1023,9 +1021,7 @@ try {
   await openIntegrationSettings(page);
   await page.getByLabel("Automatic radial binning", { exact: true }).uncheck();
   await page.getByLabel("Radial bins", { exact: true }).fill("1000");
-  await page
-    .getByRole("button", { name: "Apply integration options", exact: true })
-    .click();
+  await page.getByLabel("Radial bins", { exact: true }).blur();
   await waitReady();
   current = await invoke("state");
   assert.equal(current.pattern.unit, "q_A^-1");

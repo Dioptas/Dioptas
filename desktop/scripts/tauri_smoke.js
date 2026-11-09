@@ -424,12 +424,18 @@
     check(automaticBinning, "Automatic radial binning control is missing");
     if (automaticBinning.checked) automaticBinning.click();
     await delay();
-    input("Radial bins", "600");
-    input("Cake azimuth bins", "90");
-    await delay();
-    click("Apply integration options");
-    await delay();
-    await ready();
+    for (const [label, value] of [
+      ["Radial bins", "600"],
+      ["Cake azimuth bins", "90"],
+    ]) {
+      input(label, value);
+      await delay();
+      document
+        .querySelector(`input[aria-label="${label}"]`)
+        .dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+      await delay();
+      await ready();
+    }
     const integrated = await call("state");
     check(
       integrated.state.bins === 600 && integrated.cake.height === 90,

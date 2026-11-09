@@ -10,11 +10,15 @@ uses this checkout; the single-crystal experiment stays separate. See the
 [consolidation record](RUST_DESKTOP_CONSOLIDATION.md) for included branches and
 verification.
 
-The desktop uses Dioptrin **0.12.0** plus the Massif preprocessing optimization
-at revision `88b88a1`, locked in `backend/Cargo.lock`. It includes native
+The desktop uses Dioptrin **0.12.0** plus the Massif, cached compatibility
+and resident-layout optimizations at revision `7f2d0c2`, locked in `backend/Cargo.lock`. It includes native
 pyFAI-compatible full pixel splitting for both 1D patterns and cakes. Massif
 picking retains full-resolution samples and reuses preprocessing across clicks;
-see [performance and numerical checks](MASSIF_PERFORMANCE.md).
+see [Massif performance and numerical checks](MASSIF_PERFORMANCE.md) and
+[cached integration measurements](PYFAI_CACHED_PERFORMANCE.md).
+Settings → Integration also exposes bin-oriented CSR (the default),
+pixel-oriented CSC and optional automatic size-based selection for resident 1D patterns.
+See the [detector/bin crossover study and predictor](INTEGRATION_LAYOUT_CROSSOVER.md).
 
 The default [Rust backend](backend/README.md) runs the
 image → peak picking/fitting or loaded/manual geometry → integration workflow without Python, using
@@ -743,13 +747,18 @@ masks remain visible, with use and transparency controlled in task options.
 Settings is anchored at the bottom of the left mode sidebar. It opens a full,
 fixed-size workspace inside the main window, with a category column for General,
 Integration and Keyboard shortcuts. General contains interface text size, the processing-engine selector and
-pattern drag-zoom mode. Categories scroll independently of the header and the
-Integration Apply bar. Back, Escape or a mode button returns to the plots;
+pattern drag-zoom mode. Categories scroll independently of the header. Back, Escape or a mode button returns to the plots;
 opening Settings retains the mounted plots and their zoom, layout and drafts.
-Settings → Integration contains radial coordinates and binning, supersampling,
+Reopening Settings restores the last selected category in the current session.
+Command+, or Ctrl+, toggles Settings, including from focused plots and fields.
+Settings → Integration contains radial coordinates and binning, integration method,
 1D/cake azimuth ranges, cake resolution, solid angle, Poisson errors,
 polarization and zero trimming. These use the existing session/project settings
-and explicit Apply action. A shared
+with automatic application: checkboxes and selectors take effect immediately;
+valid numeric edits apply on blur or Enter, including when leaving Settings.
+The native method selector offers fractional polygon splitting, pyFAI-compatible
+full pixel splitting, and subpixel sampling for both 1D patterns and cakes; only subpixel sampling shows a subpixels-per-axis control,
+limited to 2–20 per axis (4–400 sample positions per detector pixel). A shared
 app footer starts beside the full-height left sidebar and shows the active plot's
 coordinates/intensity on the left, with workflow, processing, selection, save
 and error messages on the right. Detector,

@@ -7,7 +7,8 @@ use crate::{
 };
 use dioptrin::{
     integration::{
-        Fixed1dPlan, InputOrder, IntegrationMethod, Integrator, MaskMode, RadialUnit, SparseLayout,
+        Fixed1dPlan, FixedCsr1dPlan, FixedGrid2dPlan, InputOrder, IntegrationGrid2d,
+        IntegrationMethod, Integrator, MaskMode, RadialUnit, SparseLayout,
     },
     mask::Mask,
 };
@@ -36,6 +37,7 @@ pub struct Options {
     pub polarization: f64,
     pub errors: bool,
     pub supersampling: usize,
+    pub pyfai: bool,
     pub solid_angle: bool,
     pub azimuth: Option<[f64; 2]>,
     pub cake_azimuth: Option<[f64; 2]>,
@@ -43,6 +45,7 @@ pub struct Options {
     pub spread: bool,
     pub dynamic_mask: bool,
     pub csc: bool,
+    pub auto_layout: bool,
 }
 #[derive(Clone, PartialEq)]
 struct Key {
@@ -53,9 +56,11 @@ struct Key {
     unit: String,
     polarization: f64,
     supersampling: usize,
+    pyfai: bool,
     mask: Vec<u8>,
     dynamic: bool,
     csc: bool,
+    auto_layout: bool,
     solid: bool,
     azimuth: Option<[f64; 2]>,
 }
@@ -64,9 +69,17 @@ struct Plan {
     engine: Integrator,
     fixed: Option<Arc<Fixed1dPlan>>,
     general_1d: Option<dioptrin::lut::Lut1d>,
+    compatibility_1d: Option<FixedCsr1dPlan>,
+    compatibility_cake: Option<CompatibilityCake>,
     general_2d: Option<crate::sector::Grid>,
     normalization: Option<Vec<f64>>,
     radial: Option<[f64; 2]>,
+}
+struct CompatibilityCake {
+    grid: IntegrationGrid2d,
+    fixed: Option<FixedGrid2dPlan>,
+    radial: [f64; 2],
+    azimuth: [f64; 2],
 }
 struct RawSource {
     source: CombinedSource,
@@ -121,9 +134,11 @@ fn key(shape: [usize; 2], p: &Parameters, m: &[u8], o: &Options, cake: bool) -> 
         },
         polarization: o.polarization,
         supersampling: o.supersampling,
+        pyfai: o.pyfai,
         mask: if o.dynamic_mask { vec![] } else { m.to_vec() },
         dynamic: o.dynamic_mask,
         csc: o.csc,
+        auto_layout: o.auto_layout,
         solid: o.solid_angle,
         azimuth: if cake { o.cake_azimuth } else { o.azimuth },
     }
@@ -132,7 +147,9 @@ impl Plan {
     fn new(key: Key) -> Result<Self, String> {
         let [h, w] = key.shape;
         let mut engine = Integrator::new(key.geometry.native_geometry([h, w])?)
-            .with_method(if key.supersampling > 1 {
+            .with_method(if key.pyfai {
+                IntegrationMethod::PyfaiFull
+            } else if key.supersampling > 1 {
                 IntegrationMethod::Supersampled {
                     n_ss: key.supersampling,
                 }
@@ -166,6 +183,8 @@ impl Plan {
             engine,
             fixed: None,
             general_1d: None,
+            compatibility_1d: None,
+            compatibility_cake: None,
             general_2d: None,
             normalization: None,
             radial: None,
@@ -173,10 +192,23 @@ impl Plan {
     }
     fn fixed(&mut self) -> Result<Arc<Fixed1dPlan>, String> {
         if self.fixed.is_none() {
-            self.fixed = Some(Arc::new(
-                self.engine
-                    .prepare_fixed1d((self.key.shape[0], self.key.shape[1]), self.key.bins)?,
-            ));
+            let shape = (self.key.shape[0], self.key.shape[1]);
+            let fixed = if self.key.csc {
+                self.engine.prepare_fixed1d(shape, self.key.bins)?
+            } else {
+                // Keep the resident CSR plan and the fused CSC snapshot under
+                // the same immutable scientific key. Entering Batch must not
+                // evict/rebuild the resident plan for every frame.
+                let mut stream_key = self.key.clone();
+                stream_key.csc = true;
+                stream_key.auto_layout = false;
+                Self::new(stream_key)?.engine.prepare_fixed1d(shape, self.key.bins)?
+            };
+            self.fixed = Some(Arc::new(if self.key.auto_layout {
+                fixed.with_auto_layout()
+            } else {
+                fixed.with_csc_layout()
+            }));
         }
         Ok(self.fixed.as_ref().unwrap().clone())
     }
@@ -209,7 +241,9 @@ impl Plan {
         if self.general_1d.is_none() {
             let g = self.engine.geometry();
             let u = unit(&self.key.unit);
-            self.general_1d = Some(if o.azimuth.is_some() {
+            self.general_1d = Some(if o.pyfai {
+                crate::pyfai_splitting::build1d(g, u, o.bins, o.azimuth, None)?
+            } else if o.azimuth.is_some() {
                 crate::sector::collapse(crate::sector::build(
                     g,
                     u,
@@ -229,6 +263,26 @@ impl Plan {
         }
         let lut = self.general_1d.as_ref().unwrap();
         let norm = self.normalization.as_ref().unwrap();
+        if o.pyfai && !o.dynamic_mask && !o.spread && supplied_variance.is_none() {
+            if self.compatibility_1d.is_none() {
+                self.compatibility_1d = Some(FixedCsr1dPlan::new(
+                    lut.clone(),
+                    norm.clone(),
+                    Some(mask.to_vec()),
+                )?);
+            }
+            let result = self
+                .compatibility_1d
+                .as_ref()
+                .unwrap()
+                .integrate_frame(data, o.errors)?;
+            return Ok(dioptrin::lut::AzimuthalIntegrationResult {
+                radial: result.radial,
+                intensity: result.intensity,
+                errors: result.errors,
+                azimuthal_std: vec![],
+            });
+        }
         let variance = (o.errors && supplied_variance.is_none())
             .then(|| data.iter().map(|&v| v.max(0.0)).collect::<Vec<_>>());
         let variance = supplied_variance.or(variance.as_deref());
@@ -423,7 +477,8 @@ impl Engine {
             return Ok(None);
         }
         let mut o = options.clone();
-        if o.dynamic_mask || !o.csc || !o.solid_angle || o.azimuth.is_some() || o.spread {
+        if o.pyfai || o.dynamic_mask || !o.solid_angle || o.azimuth.is_some() || o.spread
+        {
             return Ok(None);
         }
         let Some(mut source) = image.combined_source(index)? else {
@@ -603,7 +658,8 @@ impl Engine {
                     dim2: shape[1],
                 });
             }
-            if !o.solid_angle || o.azimuth.is_some() || (o.errors && variance.is_some()) {
+            if o.pyfai || !o.solid_angle || o.azimuth.is_some() || (o.errors && variance.is_some())
+            {
                 let r = plan.general_pattern(data, variance, mask, o)?;
                 (
                     r.radial,
@@ -677,7 +733,12 @@ impl Engine {
         let (pattern, sigma) =
             self.integrate_pattern_with_variance(data, variance, shape, p, mask, o, prepared)?;
         let (cake, cake_values) = self.integrate_cake(data, shape, p, mask, o)?;
-        Ok(Products { pattern, cake, cake_values, sigma })
+        Ok(Products {
+            pattern,
+            cake,
+            cake_values,
+            sigma,
+        })
     }
     /// Both full integration and lazy display/export use this same cake kernel.
     pub fn integrate_cake(
@@ -702,7 +763,67 @@ impl Engine {
                 dim2: shape[1],
             });
         }
-        let (pixels, radial_range, azimuth_range) = if !o.solid_angle || o.cake_azimuth.is_some() {
+        let (pixels, radial_range, azimuth_range) = if o.pyfai {
+            if plan.compatibility_cake.is_none() {
+                let grid = crate::pyfai_splitting::grid2d(
+                    plan.engine.geometry(),
+                    RadialUnit::TthDeg,
+                    o.bins,
+                    o.cake_bins,
+                    o.cake_azimuth,
+                    None,
+                )?;
+                let radial = grid.radial_centers();
+                let angles = grid.azimuthal_centers();
+                let fixed = if !o.dynamic_mask && o.solid_angle {
+                    Some(
+                        plan.engine
+                            .prepare_fixed2d_on_grid((shape[0], shape[1]), &grid)?,
+                    )
+                } else {
+                    None
+                };
+                plan.compatibility_cake = Some(CompatibilityCake {
+                    grid,
+                    fixed,
+                    radial: [radial[0], *radial.last().unwrap()],
+                    azimuth: [angles[0].to_degrees(), angles.last().unwrap().to_degrees()],
+                });
+            }
+            if !o.solid_angle {
+                plan.prepare_normalization();
+            }
+            let compatibility = plan.compatibility_cake.as_ref().unwrap();
+            let pixels = if let Some(fixed) = &compatibility.fixed {
+                fixed.integrate_frame(data, false)?.0
+            } else {
+                let mut raw = plan.engine.integrate2d_raw_on_grid_from_slice(
+                    data,
+                    shape[0],
+                    shape[1],
+                    &compatibility.grid,
+                    false,
+                )?;
+                if !o.solid_angle {
+                    raw.sum_norm = plan
+                        .engine
+                        .integrate2d_raw_on_grid_from_slice(
+                            plan.normalization.as_ref().unwrap(),
+                            shape[0],
+                            shape[1],
+                            &compatibility.grid,
+                            false,
+                        )?
+                        .sum_signal;
+                }
+                raw.sum_signal
+                    .iter()
+                    .zip(raw.sum_norm)
+                    .map(|(s, n)| if n == 0.0 { 0.0 } else { s / n })
+                    .collect()
+            };
+            (pixels, compatibility.radial, compatibility.azimuth)
+        } else if !o.solid_angle || o.cake_azimuth.is_some() {
             plan.prepare_normalization();
             if plan.general_2d.is_none() {
                 plan.general_2d = Some(crate::sector::build(

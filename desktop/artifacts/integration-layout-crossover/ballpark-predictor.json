@@ -1,0 +1,14 @@
+{
+  "default": "csr",
+  "usualResidentLayout": "csr",
+  "automaticOptional": true,
+  "largeImagePixels": 8000000,
+  "cscException": {
+    "minPixels": 8000000,
+    "minBins": 2000,
+    "poisson": false
+  },
+  "parallelAndStreamed": "csc",
+  "timingProbes": false,
+  "scope": "resident fixed-mask 1D; broad estimate for practical large-detector bin counts of 1000 or more; manual overrides available"
+}

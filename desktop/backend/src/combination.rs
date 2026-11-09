@@ -12,8 +12,17 @@ pub(super) struct State {
 
 #[cfg(feature = "dioptrin")]
 #[derive(PartialEq)]
+struct DetectorKey {
+    geometry: Geometry,
+    shape: [usize; 2],
+    mask: Vec<u8>,
+    supersampling: usize,
+    pyfai: bool,
+}
+#[cfg(feature = "dioptrin")]
+#[derive(PartialEq)]
 struct Key {
-    detectors: Vec<(Geometry, [usize; 2], Vec<u8>, usize)>,
+    detectors: Vec<DetectorKey>,
     unit: String,
     bins: usize,
     cake_bins: usize,
@@ -27,6 +36,125 @@ pub(super) struct Plans {
     key: Key,
     pattern: dioptrin::multi::MultiIntegrator,
     cake: dioptrin::multi::MultiIntegrator,
+    compatible: Option<Vec<CompatibleDetector>>,
+}
+
+#[cfg(feature = "dioptrin")]
+struct CompatibleDetector {
+    engine: dioptrin::integration::Integrator,
+    pattern: dioptrin::lut::Lut1d,
+    normalization: Vec<f64>,
+    absolute: f64,
+    pyfai: bool,
+}
+
+#[cfg(feature = "dioptrin")]
+type DetectorImage = (Arc<Vec<f64>>, [usize; 2], Arc<Vec<f64>>);
+
+#[cfg(feature = "dioptrin")]
+impl Plans {
+    fn compatible_result(
+        &self,
+        images: &[DetectorImage],
+        pattern: bool,
+        errors: bool,
+    ) -> Result<dioptrin::multi::Multi2dResult, String> {
+        use dioptrin::{
+            integration::{IntegrationGrid2d, PixelSplitMode},
+            lut::{IntermediateResult2d, integrate1d_raw, integrate1d_raw_with_variance},
+        };
+        let count = if pattern { 1 } else { self.key.cake_bins };
+        let angles = if pattern {
+            self.key.pattern_azimuth
+        } else {
+            self.key.cake_azimuth
+        };
+        let grid = IntegrationGrid2d::new(
+            self.key.bins,
+            count,
+            (self.key.radial[0], self.key.radial[1]),
+            (angles[0], angles[1]),
+        )?;
+        let size = self.key.bins * count;
+        let mut total = IntermediateResult2d {
+            sum_signal: vec![0.; size],
+            sum_norm: vec![0.; size],
+            sum_variance: errors.then(|| vec![0.; size]),
+            count: vec![0.; size],
+            n_radial: self.key.bins,
+            n_azimuthal: count,
+        };
+        for (detector, (data, shape, variance)) in
+            self.compatible.as_ref().unwrap().iter().zip(images)
+        {
+            let raw = if pattern {
+                let mask = detector.engine.mask().map(|m| m.data.as_slice());
+                let r = if errors {
+                    integrate1d_raw_with_variance(
+                        data,
+                        variance,
+                        &detector.pattern,
+                        mask,
+                        &detector.normalization,
+                    )
+                } else {
+                    integrate1d_raw(data, &detector.pattern, mask, &detector.normalization)
+                };
+                IntermediateResult2d {
+                    sum_signal: r.sum_signal,
+                    sum_norm: r.sum_norm,
+                    sum_variance: r.sum_variance,
+                    count: r.count,
+                    n_radial: self.key.bins,
+                    n_azimuthal: 1,
+                }
+            } else {
+                let grid = grid.with_pixel_split_mode(if detector.pyfai {
+                    PixelSplitMode::PyfaiHistogram
+                } else {
+                    PixelSplitMode::Fractional
+                });
+                if errors {
+                    detector
+                        .engine
+                        .integrate2d_raw_on_grid_with_variances_from_slice(
+                            data, variance, shape[0], shape[1], &grid,
+                        )?
+                } else {
+                    detector.engine.integrate2d_raw_on_grid_from_slice(
+                        data, shape[0], shape[1], &grid, false,
+                    )?
+                }
+            };
+            for bin in 0..size {
+                total.sum_signal[bin] += raw.sum_signal[bin];
+                total.sum_norm[bin] += raw.sum_norm[bin] * detector.absolute;
+                total.count[bin] += raw.count[bin];
+                if let (Some(total), Some(v)) = (&mut total.sum_variance, &raw.sum_variance) {
+                    total[bin] += v[bin];
+                }
+            }
+        }
+        let intensity = total
+            .sum_signal
+            .iter()
+            .zip(&total.sum_norm)
+            .map(|(s, n)| if *n == 0. { 0. } else { s / n })
+            .collect();
+        let sigma = total.sum_variance.as_ref().map(|v| {
+            v.iter()
+                .zip(&total.sum_norm)
+                .map(|(v, n)| if *n == 0. { 0. } else { v.max(0.).sqrt() / n })
+                .collect()
+        });
+        Ok(dioptrin::multi::Multi2dResult {
+            radial: grid.radial_centers(),
+            azimuthal: grid.azimuthal_centers(),
+            intensity,
+            errors: sigma,
+            raw: total,
+        })
+    }
 }
 
 impl Session {
@@ -263,12 +391,13 @@ impl Session {
                 .or_else(|| image.input_variance())
                 .unwrap_or_else(|| Arc::new(image.values.iter().map(|v| v.max(0.0)).collect()));
             images.push((owner.scientific_values(), image.shape, variance));
-            detectors.push((
-                owner.settings.geometry.clone(),
-                image.shape,
-                owner.integration_mask(image.shape),
-                owner.settings.supersampling,
-            ));
+            detectors.push(DetectorKey {
+                geometry: owner.settings.geometry.clone(),
+                shape: image.shape,
+                mask: owner.integration_mask(image.shape),
+                supersampling: owner.settings.supersampling,
+                pyfai: owner.settings.pyfai_splitting,
+            });
         }
         let radial = [rmin.max(0.), rmax * (1. + f32::EPSILON as f64)];
         if !radial.iter().all(|v| v.is_finite()) || radial[0] >= radial[1] {
@@ -303,29 +432,113 @@ impl Session {
                 let integrators = key
                     .detectors
                     .iter()
-                    .map(|(g, shape, mask, ss)| {
-                        let mut integrator = Integrator::new(g.native_geometry(*shape)?)
-                            .with_method(if *ss > 1 {
-                                IntegrationMethod::Supersampled { n_ss: *ss }
-                            } else {
-                                IntegrationMethod::PixelSplit
-                            })
-                            .with_radial_unit(unit)
-                            .with_radial_range(radial[0], radial[1])
-                            .with_polarization_factor(key.polarization);
-                        integrator.set_mask(Mask {
-                            data: mask.clone(),
-                            dim1: shape[0],
-                            dim2: shape[1],
-                        });
-                        Ok(integrator)
-                    })
+                    .map(
+                        |DetectorKey {
+                             geometry: g,
+                             shape,
+                             mask,
+                             supersampling: ss,
+                             ..
+                         }| {
+                            let mut integrator = Integrator::new(g.native_geometry(*shape)?)
+                                .with_method(if *ss > 1 {
+                                    IntegrationMethod::Supersampled { n_ss: *ss }
+                                } else {
+                                    IntegrationMethod::PixelSplit
+                                })
+                                .with_radial_unit(unit)
+                                .with_radial_range(radial[0], radial[1])
+                                .with_polarization_factor(key.polarization);
+                            integrator.set_mask(Mask {
+                                data: mask.clone(),
+                                dim1: shape[0],
+                                dim2: shape[1],
+                            });
+                            Ok(integrator)
+                        },
+                    )
                     .collect::<Result<Vec<_>, String>>()?;
                 MultiIntegrator::try_new(integrators)
+            };
+            let compatible = if key.detectors.iter().any(|d| d.pyfai) {
+                Some(
+                    key.detectors
+                        .iter()
+                        .map(
+                            |DetectorKey {
+                                 geometry: parameters,
+                                 shape,
+                                 mask,
+                                 supersampling: ss,
+                                 pyfai,
+                             }| {
+                                let g = parameters.native_geometry(*shape)?;
+                                let tth = g.calc_tth_all();
+                                let azimuth = g.calc_azimuth_all();
+                                let polarization =
+                                    g.calc_polarization(key.polarization, &tth, &azimuth);
+                                let normalization = g
+                                    .calc_solid_angle()
+                                    .into_iter()
+                                    .zip(polarization)
+                                    .map(|(s, p)| s * p)
+                                    .collect();
+                                let angles = Some([
+                                    key.pattern_azimuth[0].to_degrees(),
+                                    key.pattern_azimuth[1].to_degrees(),
+                                ]);
+                                let pattern = if *pyfai {
+                                    crate::pyfai_splitting::build1d(
+                                        &g,
+                                        unit,
+                                        key.bins,
+                                        angles,
+                                        Some(radial),
+                                    )?
+                                } else {
+                                    crate::sector::collapse(crate::sector::build_on_range(
+                                        &g,
+                                        unit,
+                                        key.bins,
+                                        1,
+                                        angles,
+                                        *ss,
+                                        Some(radial),
+                                    )?)
+                                };
+                                let absolute = (g.poni.pixel1 / g.poni.distance)
+                                    * (g.poni.pixel2 / g.poni.distance);
+                                let mut engine = Integrator::new(g)
+                                    .with_method(if *ss > 1 {
+                                        IntegrationMethod::Supersampled { n_ss: *ss }
+                                    } else {
+                                        IntegrationMethod::PixelSplit
+                                    })
+                                    .with_radial_unit(unit)
+                                    .with_polarization_factor(key.polarization);
+                                engine.set_mask(Mask {
+                                    data: mask.clone(),
+                                    dim1: shape[0],
+                                    dim2: shape[1],
+                                });
+                                Ok(CompatibleDetector {
+                                    engine,
+                                    pattern,
+                                    normalization,
+                                    absolute,
+                                    pyfai: *pyfai,
+                                })
+                            },
+                        )
+                        .collect::<Result<Vec<_>, String>>()?,
+                )
+            } else {
+                None
             };
             self.combination_plans = Some(Plans {
                 pattern: make()?,
                 cake: make()?,
+                compatible,
                 key,
             });
         }
@@ -341,7 +554,10 @@ impl Session {
             normalization_factors: None,
         };
         let variances: Vec<_> = images.iter().map(|(_, _, v)| v.as_slice()).collect();
-        let integrate = |engine: &MultiIntegrator, azimuth_bins, range| {
+        let integrate = |engine: &MultiIntegrator, pattern, azimuth_bins, range| {
+            if plans.compatible.is_some() {
+                return plans.compatible_result(&images, pattern, self.settings.errors);
+            }
             if self.settings.errors {
                 engine.integrate2d_from_slices_with_variances(
                     &slices,
@@ -360,7 +576,7 @@ impl Session {
             }
         };
         if self.combination.patterns {
-            let p = integrate(&plans.pattern, 1, plans.key.pattern_azimuth)?;
+            let p = integrate(&plans.pattern, true, 1, plans.key.pattern_azimuth)?;
             let x: Vec<_> = p
                 .radial
                 .iter()
@@ -384,7 +600,12 @@ impl Session {
             self.combination.pattern = None;
         }
         if self.combination.cakes && self.control.cake_requested() {
-            let p = integrate(&plans.cake, plans.key.cake_bins, plans.key.cake_azimuth)?;
+            let p = integrate(
+                &plans.cake,
+                false,
+                plans.key.cake_bins,
+                plans.key.cake_azimuth,
+            )?;
             let mut raster = Raster::image(&p.intensity, [plans.key.cake_bins, plans.key.bins]);
             raster.metadata["radialRange"] = json!([p.radial[0], p.radial[p.radial.len() - 1]]);
             raster.metadata["azimuthRange"] = json!([

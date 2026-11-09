@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { verifyIntegrationSettingsAuto } from "./integration_settings_auto.mjs";
 import { mkdtemp, mkdir, copyFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
@@ -78,6 +79,7 @@ try {
       await page
         .getByRole("button", { name: "Integration", exact: true })
         .click();
+      await verifyIntegrationSettingsAuto(page, invoke);
       await page.getByRole("tab", { name: "Phase", exact: true }).click();
       await page
         .getByRole("button", {

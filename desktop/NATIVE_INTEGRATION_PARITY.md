@@ -324,3 +324,43 @@ Cylinder and sphere sample absorption, including optional capillary walls, are
 qualified separately in the [round-sample ledger](NATIVE_ROUND_SAMPLE_CORRECTION_PARITY.md).
 They use corrected physical ray paths and uniform footprints in Rust, with
 project ownership, propagated counting std and independent numerical checks.
+
+## pyFAI-compatible full pixel splitting — 2026-11-08
+
+Settings → Integration offers **Pixel splitting (pyFAI-compatible)** alongside
+the existing polygon and subpixel methods. The mode is owned by each detector
+configuration, survives `.dio` projects and development handoffs, and applies to
+1D patterns, cakes, combined detectors and fresh Batch/Map integration.
+Both algorithms execute in Rust/Dioptrin. The 1D kernel is Dioptrin's
+`IntegrationMethod::PyfaiFull` / `lut::build_lut1d_pyfai_csr`; 2D reuses its
+shared-grid full-histogram compatibility rasterizer. Corrections and supplied
+count variances retain their existing normalization and squared-weight propagation.
+
+Compatibility is approximate: singular direct-beam pixels use nonnegative
+detector-plane sampling; negative numerical fractions are discarded. 1D azimuth
+selection follows pyFAI's intersecting-pixel convention; ordinary polygon sectors
+retain their fractional clipping behavior. Fused compressed-input integration is
+not selected for this desktop mode; resident processing remains entirely Rust.
+
+`desktop/scripts/native_pyfai_splitting_parity.py` compares matched effective
+edges against independent pyFAI `fullSplit1D_engine` and `fullSplit2D_engine`
+references (2θ/Q/d, correction on/off, full/finite/wrapped azimuth), plus masks,
+warm reuse, project restoration, Batch and combined-detector errors. The library
+has its own Python oracle and Rust golden/plan tests. Headless Chromium/WebKit
+checks verify that selecting the mode recalculates both products.
+
+The full-splitting kernel is included in the public [Dioptrin 0.12.0 release](https://github.com/CPrescher/Dioptrin/releases/tag/v0.12.0).
+The desktop's current pin, `7f2d0c2`, adds Massif preprocessing, immutable
+fixed-mask execution plans and opt-in resident layout selection on top of that release. The splitting weights and
+compatibility arithmetic are unchanged; see the
+[cached-path verification](PYFAI_CACHED_PERFORMANCE.md). It has no local-path dependency. The centered-detector
+full-azimuth cake case differs in two bins whose pyFAI reference weights are
+−5.55e-9 and 3.75e-8. Bins with absolute reference weight ≥1e-6 agree within
+the cake tolerance; the receipt retains every difference. No bitwise boundary
+compatibility is claimed. Dioptrin 0.12.0 publishes this method in the Rust and Python APIs.
+
+Settings → Integration now offers CSR (default), CSC and optional Automatic for the
+polygon/subpixel 1D execution layout. Forced CSC retains its original arithmetic;
+ordinary CSR can differ by floating-point reduction order. Automatic uses a broad size/bin estimate for
+resident frames, leaving streamed/parallel workers on
+CSC. See [the matched detector/bin study](INTEGRATION_LAYOUT_CROSSOVER.md).

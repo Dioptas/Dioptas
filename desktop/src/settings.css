@@ -275,24 +275,6 @@
   margin-top: 12px;
   gap: 12px;
 }
-.settings-apply-bar {
-  flex-shrink: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 24px;
-  padding: 18px 0;
-  border-top: 1px solid #ffffff12;
-}
-.settings-apply-bar p {
-  margin: 0;
-  color: #a3abb3;
-  font-size: var(--text-meta);
-  line-height: 1.5;
-}
-.settings-apply-bar button {
-  flex-shrink: 0;
-}
 .settings-shortcuts .settings-card > h3 {
   margin-bottom: 14px;
 }

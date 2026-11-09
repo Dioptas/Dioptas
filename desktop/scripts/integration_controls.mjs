@@ -36,6 +36,12 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
     await page.getByRole("button", { name, exact: true }).click();
     await waitReady();
   };
+  const commit = async () => {
+    await page
+      .locator(".integration-settings input:focus")
+      .evaluateAll((els) => els.forEach((el) => el.blur()));
+    await waitReady();
+  };
   await page.setViewportSize({ width: 1440, height: 1000 });
   await settle(page);
   await page.getByTestId("detector-canvas").evaluate((el) => {
@@ -52,7 +58,7 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
     .selectOption("2th_deg");
   await waitReady();
   await page.getByLabel("Automatic radial binning", { exact: true }).check();
-  await click("Apply integration options");
+  await commit();
   const automaticBins = (await invoke("state")).state.integration.actualBins;
   assert.ok(automaticBins > 0);
   assert.equal(
@@ -63,16 +69,20 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
     await page.getByLabel("Radial bins", { exact: true }).isDisabled(),
     true,
   );
-  await page.getByLabel("Supersampling", { exact: true }).fill("2");
-  await click("Apply integration options");
+  await page
+    .getByLabel("Integration method", { exact: true })
+    .selectOption("subpixel");
+  await commit();
   const supersampledBins = (await invoke("state")).state.integration.actualBins;
   assert.notEqual(supersampledBins, automaticBins);
   assert.equal(
     await page.getByLabel("Radial bins", { exact: true }).inputValue(),
     String(supersampledBins),
   );
-  await page.getByLabel("Supersampling", { exact: true }).fill("1");
-  await click("Apply integration options");
+  await page
+    .getByLabel("Integration method", { exact: true })
+    .selectOption("polygon");
+  await commit();
   await page.getByLabel("Automatic radial binning", { exact: true }).uncheck();
   assert.equal(
     await page.getByLabel("Radial bins", { exact: true }).inputValue(),
@@ -80,18 +90,21 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
     "Manual binning starts from the current automatic count",
   );
   await page.getByLabel("Radial bins", { exact: true }).fill("360");
+  await commit();
   await page.getByLabel("Cake azimuth bins", { exact: true }).fill("60");
+  await commit();
   await page.getByLabel("1D azimuth full range", { exact: true }).uncheck();
   await page.getByLabel("1D azimuth minimum (°)", { exact: true }).fill("150");
+  await commit();
   await page.getByLabel("1D azimuth maximum (°)", { exact: true }).fill("-150");
+  await commit();
   await page.getByLabel("Calculate Poisson errors", { exact: true }).check();
-  await click("Apply integration options");
+  await commit();
   let current = await invoke("state");
   assert.deepEqual(current.state.integration.azimuthRange, [150, -150]);
   assert.equal(current.state.bins, 360);
   assert.equal(current.cake.height, 60);
   assert.equal(current.cake.step, 1);
-  const revision = current.state.revision;
   await page
     .getByRole("button", { name: "Close settings", exact: true })
     .click();
@@ -109,18 +122,14 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
     "60",
   );
   await page.getByLabel("Radial bins", { exact: true }).fill("361");
-  // Settings participates in normal keyboard navigation; the workspace is inert.
-  const apply = page.getByRole("button", {
-    name: "Apply integration options",
-    exact: true,
-  });
-  await apply.focus();
-  await page.keyboard.press("Shift+Tab");
+  await page.getByLabel("Radial bins", { exact: true }).press("Enter");
+  await waitReady();
+  assert.equal((await invoke("state")).state.bins, 361);
   assert.equal(
     await page
-      .getByLabel("Polarization factor", { exact: true })
-      .evaluate((el) => el === document.activeElement),
-    true,
+      .getByRole("button", { name: "Apply integration options", exact: true })
+      .count(),
+    0,
   );
   const settingsRegion = page.getByRole("region", {
     name: "Settings",
@@ -140,10 +149,12 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
     "361",
   );
   await page.getByLabel("Radial bins", { exact: true }).fill("360");
+  await commit();
   assert.equal(
     await page.locator(".workspace-content").evaluate((el) => el.inert),
     true,
   );
+  const revision = (await invoke("state")).state.revision;
   await page.keyboard.press("b");
   assert.equal(
     await page
@@ -164,14 +175,6 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
         );
       }),
     true,
-  );
-  assert.equal(
-    await apply.evaluate((el) => {
-      const bounds = el.getBoundingClientRect();
-      return bounds.top >= 0 && bounds.bottom <= innerHeight;
-    }),
-    true,
-    "Apply stays visible in a compact window",
   );
   await page.screenshot({
     path: new URL("../artifacts/integration-settings.png", import.meta.url)
@@ -298,7 +301,7 @@ export async function verifyIntegrationControls(page, invoke, waitReady) {
   );
   await openIntegrationSettings(page);
   await page.getByLabel("1D azimuth full range", { exact: true }).check();
-  await click("Apply integration options");
+  await commit();
   await page
     .getByRole("button", { name: "Close settings", exact: true })
     .click();

@@ -26,65 +26,36 @@ export async function verifyDraftsAndFeedback({ page, ready, invoke, output }) {
   const original = (await invoke("state")).state;
   await click("Settings");
   await tab("Integration");
-  assert(
-    await button("Apply integration options").isDisabled(),
-    "Unchanged options cannot be reapplied",
-  );
+  assert.equal(await button("Apply integration options").count(), 0);
   await page.getByLabel("Automatic radial binning", { exact: true }).uncheck();
-  await page.getByLabel("Radial bins", { exact: true }).fill("777");
+  await ready();
+  const bins = page.getByLabel("Radial bins", { exact: true });
+  await bins.fill("777");
+  await bins.press("Enter");
+  await ready();
   await page
     .getByLabel("Radial coordinate", { exact: true })
     .selectOption("q_A^-1");
-  assert.equal(
-    await page.getByLabel("Radial bins", { exact: true }).inputValue(),
-    "777",
-    "Changing coordinate preserves the bins draft",
-  );
-  assert.equal(
-    (await invoke("state")).state.unit,
-    original.unit,
-    "Coordinate is an unapplied draft until Apply",
-  );
-  await tab("General");
-  const beforeRevision = (await invoke("state")).state.revision;
-  await invoke("calibration_engine", { engine: "pyfai" });
   await ready();
-  assert((await invoke("state")).state.revision >= beforeRevision);
-  await tab("Integration");
+  assert.equal((await invoke("state")).state.unit, "q_A^-1");
+  assert.equal((await invoke("state")).state.bins, 777);
+  await bins.fill("0");
+  await bins.blur();
+  await ready();
   assert.equal(
-    await page.getByLabel("Radial bins", { exact: true }).inputValue(),
-    "777",
-    "An unrelated processing-engine response preserves the draft",
+    (await invoke("state")).state.bins,
+    777,
+    "Invalid edits retain applied bins",
   );
+  assert(await bins.evaluate((e) => !e.validity.valid));
+  await bins.fill("778");
   await page.keyboard.press("Escape");
   await ready();
-  await click("Settings");
-  await tab("Integration");
   assert.equal(
-    await page.getByLabel("Radial bins", { exact: true }).inputValue(),
-    "777",
-    "Leaving and reopening Settings preserves pending options",
+    (await invoke("state")).state.bins,
+    778,
+    "Escape commits the focused field",
   );
-  await page.getByLabel("Radial bins", { exact: true }).fill("0");
-  await button("Apply integration options").click();
-  assert.equal(
-    (await invoke("state")).state.unit,
-    original.unit,
-    "Invalid bins prevent the entire settings transaction",
-  );
-  assert(
-    await page
-      .getByLabel("Radial bins", { exact: true })
-      .evaluate((e) => !e.validity.valid),
-  );
-  await page.getByLabel("Radial bins", { exact: true }).fill("777");
-  await click("Apply integration options");
-  const applied = (await invoke("state")).state;
-  assert.equal(applied.unit, "q_A^-1");
-  assert.equal(applied.bins, 777);
-  await page.getByLabel("Radial bins", { exact: true }).fill("778");
-  await page.keyboard.press("Escape");
-  await ready();
   await click("Integration");
   await click("Pattern unit d");
   await click("Settings");
@@ -92,31 +63,19 @@ export async function verifyDraftsAndFeedback({ page, ready, invoke, output }) {
   assert.equal(
     await page.getByLabel("Radial coordinate", { exact: true }).inputValue(),
     "d_A",
-    "Unedited form unit rebases to the plot toggle",
   );
-  assert.equal(
-    await page.getByLabel("Radial bins", { exact: true }).inputValue(),
-    "778",
-    "Rebasing keeps the deliberate bin edit",
-  );
-  await click("Apply integration options");
-  assert.equal(
-    (await invoke("state")).state.unit,
-    "d_A",
-    "Applying a bin edit does not undo a newer plot-unit choice",
-  );
-  assert.equal((await invoke("state")).state.bins, 778);
-
+  assert.equal(await bins.inputValue(), "778");
   await page
     .getByLabel("Radial coordinate", { exact: true })
     .selectOption(original.unit);
-  if (original.integration.automaticBinning)
+  await ready();
+  if (original.integration.automaticBinning) {
     await page.getByLabel("Automatic radial binning", { exact: true }).check();
-  else
-    await page
-      .getByLabel("Radial bins", { exact: true })
-      .fill(String(original.bins));
-  await click("Apply integration options");
+  } else {
+    await bins.fill(String(original.bins));
+    await bins.press("Enter");
+  }
+  await ready();
   await page.keyboard.press("Escape");
   await ready();
   await click("Integration");
@@ -247,7 +206,7 @@ export async function verifyDraftsAndFeedback({ page, ready, invoke, output }) {
   await rotation.blur();
   return [
     "Compact scientific numbers reveal exact text and accept empty/edited drafts without changing stored geometry",
-    "Integration drafts rebase unedited fields, preserve deliberate edits and newer plot units; Apply is atomic and rejects invalid bins",
+    "Integration settings apply on selection, blur or Enter, preserve newer plot units, reject invalid bins and commit on Escape",
     "Overlay menu Escape restores row focus; Tab dismisses the menu",
     "Undo queues behind a quiet inspection request without losing the user action",
     "Real missing-PONI error: readable details, Escape, focus return and dismissal",

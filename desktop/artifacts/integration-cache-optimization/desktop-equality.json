@@ -1,0 +1,657 @@
+{
+  "comparisons": [
+    {
+      "action": "manual_geometry",
+      "payload": {
+        "convention": "pyfai",
+        "values": {
+          "dist": 0.08,
+          "poni1": -0.0013,
+          "poni2": -0.0021,
+          "rot1": 0.007,
+          "rot2": -0.011,
+          "rot3": 0.02,
+          "pixel1": 0.0001,
+          "pixel2": 0.00012,
+          "wavelength": 5e-11,
+          "polarization_factor": 0.6
+        }
+      },
+      "patternPoints": 0,
+      "cake": false
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "bins": 67,
+        "cake_bins": 29,
+        "method": "pyfai_full",
+        "poisson_errors": true,
+        "trim_zeros": false,
+        "use_mask": true
+      },
+      "patternPoints": 0,
+      "cake": false
+    },
+    {
+      "action": "open_image",
+      "payload": {
+        "path": "/var/folders/bl/8tn2xdfx7l9_rty91f3_bkz40000gn/T/dioptas-cached-equality-hdp_xp9i/first.h5",
+        "dataset": "counts"
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "unit": "2th_deg",
+        "solid_angle": true,
+        "azimuth_range": null,
+        "cake_azimuth_range": null
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "unit": "2th_deg",
+        "solid_angle": true,
+        "azimuth_range": [
+          20.0,
+          65.0
+        ],
+        "cake_azimuth_range": [
+          20.0,
+          65.0
+        ]
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "unit": "2th_deg",
+        "solid_angle": true,
+        "azimuth_range": [
+          150.0,
+          -150.0
+        ],
+        "cake_azimuth_range": [
+          150.0,
+          -150.0
+        ]
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "unit": "2th_deg",
+        "solid_angle": false,
+        "azimuth_range": null,
+        "cake_azimuth_range": null
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "unit": "2th_deg",
+        "solid_angle": false,
+        "azimuth_range": [
+          20.0,
+          65.0
+        ],
+        "cake_azimuth_range": [
+          20.0,
+          65.0
+        ]
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "unit": "2th_deg",
+        "solid_angle": false,
+        "azimuth_range": [
+          150.0,
+          -150.0
+        ],
+        "cake_azimuth_range": [
+          150.0,
+          -150.0
+        ]
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "unit": "q_A^-1",
+        "solid_angle": true,
+        "azimuth_range": null,
+        "cake_azimuth_range": null
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "unit": "q_A^-1",
+        "solid_angle": true,
+        "azimuth_range": [
+          20.0,
+          65.0
+        ],
+        "cake_azimuth_range": [
+          20.0,
+          65.0
+        ]
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "unit": "q_A^-1",
+        "solid_angle": true,
+        "azimuth_range": [
+          150.0,
+          -150.0
+        ],
+        "cake_azimuth_range": [
+          150.0,
+          -150.0
+        ]
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "unit": "q_A^-1",
+        "solid_angle": false,
+        "azimuth_range": null,
+        "cake_azimuth_range": null
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "unit": "q_A^-1",
+        "solid_angle": false,
+        "azimuth_range": [
+          20.0,
+          65.0
+        ],
+        "cake_azimuth_range": [
+          20.0,
+          65.0
+        ]
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "unit": "q_A^-1",
+        "solid_angle": false,
+        "azimuth_range": [
+          150.0,
+          -150.0
+        ],
+        "cake_azimuth_range": [
+          150.0,
+          -150.0
+        ]
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "unit": "d_A",
+        "solid_angle": true,
+        "azimuth_range": null,
+        "cake_azimuth_range": null
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "unit": "d_A",
+        "solid_angle": true,
+        "azimuth_range": [
+          20.0,
+          65.0
+        ],
+        "cake_azimuth_range": [
+          20.0,
+          65.0
+        ]
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "unit": "d_A",
+        "solid_angle": true,
+        "azimuth_range": [
+          150.0,
+          -150.0
+        ],
+        "cake_azimuth_range": [
+          150.0,
+          -150.0
+        ]
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "unit": "d_A",
+        "solid_angle": false,
+        "azimuth_range": null,
+        "cake_azimuth_range": null
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "unit": "d_A",
+        "solid_angle": false,
+        "azimuth_range": [
+          20.0,
+          65.0
+        ],
+        "cake_azimuth_range": [
+          20.0,
+          65.0
+        ]
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "unit": "d_A",
+        "solid_angle": false,
+        "azimuth_range": [
+          150.0,
+          -150.0
+        ],
+        "cake_azimuth_range": [
+          150.0,
+          -150.0
+        ]
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "unit": "2th_deg",
+        "solid_angle": true,
+        "azimuth_range": null,
+        "cake_azimuth_range": null
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "open_image",
+      "payload": {
+        "path": "/var/folders/bl/8tn2xdfx7l9_rty91f3_bkz40000gn/T/dioptas-cached-equality-hdp_xp9i/second.h5",
+        "dataset": "counts"
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "mask_stroke",
+      "payload": {
+        "points": [
+          [
+            16,
+            12
+          ]
+        ],
+        "radius": 2.0
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "use_mask": false
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "use_mask": true
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "polarization": 0.2
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "polarization": 0.99
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "bins": 71,
+        "cake_bins": 31
+      },
+      "patternPoints": 71,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 71,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "bins": 67,
+        "cake_bins": 29
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "poisson_errors": false
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "poisson_errors": true
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "azimuthal_std": true
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integration_settings",
+      "payload": {
+        "azimuthal_std": false
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "manual_geometry",
+      "payload": {
+        "convention": "pyfai",
+        "values": {
+          "dist": 0.07,
+          "poni1": -0.0013,
+          "poni2": -0.0021,
+          "rot1": 0.007,
+          "rot2": -0.011,
+          "rot3": 0.02,
+          "pixel1": 0.0001,
+          "pixel2": 0.00012,
+          "wavelength": 5e-11,
+          "polarization_factor": 0.6
+        }
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "clear_mask",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "configuration",
+      "payload": {
+        "operation": "duplicate"
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "combination_settings",
+      "payload": {
+        "patterns": true,
+        "cakes": true
+      },
+      "patternPoints": 67,
+      "cake": true
+    },
+    {
+      "action": "integrate",
+      "payload": {},
+      "patternPoints": 67,
+      "cake": true
+    }
+  ],
+  "pattern": "bitwise float64",
+  "cake": "bitwise transport float32; separate Rust benchmark verifies float64"
+}

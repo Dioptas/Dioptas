@@ -26,7 +26,10 @@ import {
   isCalibrationHistoryCommand,
   canTraverseScientificHistory,
 } from "./historyLabels";
-import { useIntegrationSettingsDraft } from "./IntegrationSettings";
+import {
+  useIntegrationSettingsDraft,
+  useIntegrationSettingsAutoApply,
+} from "./IntegrationSettings";
 import { GeometryProvenance } from "./GeometryProvenance";
 import { StatusMessage } from "./StatusMessage";
 import {
@@ -263,11 +266,43 @@ export default function App() {
     clear: clearPlot,
   } = usePlotReadout();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsSection, setSettingsSection] = useState(0);
   const [customActionsOpen, setCustomActionsOpen] = useState(false);
   const closeSettings = useCallback(() => {
+    if (document.activeElement instanceof HTMLElement)
+      document.activeElement.blur();
     setSettingsOpen(false);
     document.querySelector<HTMLButtonElement>(".navigation-settings")?.focus();
   }, []);
+  const toggleSettings = useCallback(() => {
+    clearPlot();
+    if (settingsOpen) closeSettings();
+    else {
+      if (document.activeElement instanceof HTMLElement)
+        document.activeElement.blur();
+      setSettingsOpen(true);
+    }
+  }, [settingsOpen, closeSettings, clearPlot]);
+  useEffect(() => {
+    const keyboard = (event: KeyboardEvent) => {
+      if (
+        !(event.ctrlKey || event.metaKey) ||
+        event.altKey ||
+        event.shiftKey ||
+        (event.key !== "," && event.code !== "Comma") ||
+        event.defaultPrevented ||
+        (event.target instanceof Element &&
+          event.target.closest('dialog, [role="dialog"]'))
+      )
+        return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (!event.repeat) toggleSettings();
+    };
+    // This app shortcut also works from fields and focused plots.
+    window.addEventListener("keydown", keyboard, true);
+    return () => window.removeEventListener("keydown", keyboard, true);
+  }, [toggleSettings]);
   const [maskSelection, setMaskSelection] = useState<{
     text: string;
     cancel: () => void;
@@ -1484,6 +1519,12 @@ export default function App() {
         : null;
 
   const ready = !!state && !busy;
+  useIntegrationSettingsAutoApply(
+    integrationDraft,
+    ready,
+    (command, args, message) =>
+      run(command, args, message, undefined, undefined, true),
+  );
   const customInvoke = useCallback<Invoke>((command, args) => {
     if (!bridge.current)
       return Promise.reject(new Error("The desktop bridge is unavailable."));
@@ -2044,14 +2085,12 @@ export default function App() {
             </div>
             <Button
               className={`workspace-nav navigation-settings ${settingsOpen ? "workspace-active" : ""}`}
-              onClick={() => {
-                clearPlot();
-                setSettingsOpen((open) => !open);
-              }}
+              onClick={toggleSettings}
               aria-label="Settings"
               aria-controls="settings-workspace"
               aria-expanded={settingsOpen}
-              title="Settings"
+              title="Settings · ⌘/Ctrl+,"
+              aria-keyshortcuts="Control+, Meta+,"
             >
               <Settings size={20} />
             </Button>
@@ -3240,6 +3279,8 @@ export default function App() {
           )}
           {settingsOpen && (
             <SettingsWorkspace
+              section={settingsSection}
+              onSectionChange={setSettingsSection}
               integrationDraft={integrationDraft}
               onCustomActionsActiveChange={setCustomActionsOpen}
               customCommands={customCommands}

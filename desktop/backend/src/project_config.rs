@@ -349,11 +349,16 @@ pub(super) fn load(
         image.source_variance = Some(Arc::new(values));
     }
     let shape = s.image.as_ref().map(|i| i.shape);
-    let settings = json!({"unit":p["integration_unit"],"bins":p["integration_rad_points"],"cake_bins":p["cake_azimuth_points"],
+    let mut settings = json!({"unit":p["integration_unit"],"bins":p["integration_rad_points"],"cake_bins":p["cake_azimuth_points"],
         "use_mask":p["use_mask"],"transparent_mask":p["transparent_mask"],"polarization":cal["polarization_factor"],"poisson_errors":p["calculate_poisson_errors"],
         "solid_angle":cal["correct_solid_angle"],"supersampling":cal["supersampling_factor"],"trim_zeros":p["trim_trailing_zeros"],
         "azimuthal_std":p["calculate_azimuthal_std"],"azimuth_range":p["oned_azimuth_range"],"cake_azimuth_range":p["cake_azimuth_range"],
         "formats":p["integrated_patterns_file_formats"],"defer_integration":true});
+    if let Some(method) = doc["native_desktop"].get("integration_method") {
+        settings["method"] = method.clone();
+    }
+    settings["sparse_layout"] = doc["native_desktop"].get("sparse_layout")
+        .cloned().unwrap_or_else(|| json!("csr"));
     s.dispatch("integration_settings", &settings)?;
     s.processing.factor = finite(&img["factor"], "Image scale factor", -1e12, 1e12)?;
     if let Some(shape) = shape {
@@ -882,7 +887,7 @@ pub(super) fn save(
     }
     merge(
         &mut native,
-        &json!({"version":1,"original_pixel_sizes":settings.original_pixels,"pattern_name":s.patterns.name,"correction_drafts":processing["corrections"],"label":c.label,"reader_options":image.map(|i|&i.options),"mask_filename":s.mask_filename,"image_batch_mode":s.image_batch_mode,
+        &json!({"version":1,"sparse_layout":if settings.auto_layout {"auto"}else if settings.csc {"csc"}else{"csr"},"integration_method":if settings.pyfai_splitting {"pyfai_full"} else if settings.supersampling>1 {"subpixel"} else {"polygon"},"original_pixel_sizes":settings.original_pixels,"pattern_name":s.patterns.name,"correction_drafts":processing["corrections"],"label":c.label,"reader_options":image.map(|i|&i.options),"mask_filename":s.mask_filename,"image_batch_mode":s.image_batch_mode,
         "calibration":{"version":1,"calibrant":s.calibration.reference.name,"fit_dirty":s.calibration.dirty,"rms_degrees":s.calibration.rms,
         "custom_calibrant":s.calibration.custom.as_ref().map(|r|json!({"name":r.name,"content":r.content})),"setup_confirmed":s.calibration.confirmed,
         "workflow":s.workflow,"geometry_source":s.calibration.source}}),

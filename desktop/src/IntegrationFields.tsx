@@ -20,6 +20,7 @@ export function Field({
   max,
   step = "any",
   disabled = false,
+  commitOnBlur = false,
 }: {
   label: string;
   displayLabel?: string;
@@ -29,6 +30,7 @@ export function Field({
   max?: number;
   step?: number | string;
   disabled?: boolean;
+  commitOnBlur?: boolean;
 }) {
   const { name, unit } = splitNumericLabel(displayLabel ?? label);
   const input = useRef<HTMLInputElement>(null);
@@ -53,8 +55,26 @@ export function Field({
         disabled={disabled}
         onChange={(e) => {
           setDraft(e.target.value);
-          if (e.target.value.trim() && Number.isFinite(e.target.valueAsNumber))
+          if (
+            !commitOnBlur &&
+            e.target.value.trim() &&
+            Number.isFinite(e.target.valueAsNumber)
+          )
             onChange(e.target.valueAsNumber);
+        }}
+        onBlur={(e) => {
+          if (commitOnBlur && e.currentTarget.validity.valid)
+            onChange(e.currentTarget.valueAsNumber);
+        }}
+        onKeyDown={(e) => {
+          if (
+            commitOnBlur &&
+            e.key === "Enter" &&
+            e.currentTarget.validity.valid
+          ) {
+            e.preventDefault();
+            onChange(e.currentTarget.valueAsNumber);
+          }
         }}
       />
       {unit && (
@@ -111,10 +131,12 @@ export function Sector({
   title,
   value,
   onChange,
+  commitOnBlur = false,
 }: {
   title: string;
   value: [number, number] | null;
   onChange: (v: [number, number] | null) => void;
+  commitOnBlur?: boolean;
 }) {
   return (
     <div className="integration-sector">
@@ -131,6 +153,7 @@ export function Sector({
           disabled={!value}
           min={-180}
           max={180}
+          commitOnBlur={commitOnBlur}
           onChange={(v) => onChange([v, value![1]])}
         />
         <Field
@@ -140,6 +163,7 @@ export function Sector({
           disabled={!value}
           min={-180}
           max={180}
+          commitOnBlur={commitOnBlur}
           onChange={(v) => onChange([value![0], v])}
         />
       </div>

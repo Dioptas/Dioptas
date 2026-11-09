@@ -11,6 +11,8 @@ export interface IntegrationState {
   automaticBinning: boolean;
   actualBins: number;
   supersampling: number;
+  method?: "polygon" | "pyfai_full" | "subpixel";
+  sparseLayout?: "csc" | "csr" | "auto";
   azimuthRange: [number, number] | null;
   cakeAzimuthRange: [number, number] | null;
   cakeBins: number;

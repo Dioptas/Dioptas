@@ -1,7 +1,7 @@
 import { Input, Button } from "./ui";
 import { ShortcutReference } from "./ShortcutReference";
 import { TabList } from "./TabList";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import {
   ArrowLeft,
   Check,
@@ -56,6 +56,8 @@ const categories = [
 export function SettingsWorkspace({
   integrationDraft,
   open = true,
+  section,
+  onSectionChange,
   state,
   ready,
   run,
@@ -70,6 +72,8 @@ export function SettingsWorkspace({
 }: {
   integrationDraft: IntegrationSettingsDraft;
   open?: boolean;
+  section: number;
+  onSectionChange: (section: number) => void;
   state: State | null;
   ready: boolean;
   run: IntegrationRun;
@@ -82,7 +86,6 @@ export function SettingsWorkspace({
   customCommands: CustomCommandController;
   onCustomActionsActiveChange: (active: boolean) => void;
 }) {
-  const [section, setSection] = useState(0);
   useLayoutEffect(() => {
     onCustomActionsActiveChange(open && section === 4);
     return () => onCustomActionsActiveChange(false);
@@ -90,8 +93,9 @@ export function SettingsWorkspace({
   const tabs = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
-    setSection(0);
-    tabs.current?.querySelector<HTMLButtonElement>('[role="tab"]')?.focus();
+    tabs.current
+      ?.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]')
+      ?.focus();
     const key = (event: KeyboardEvent) => {
       const target =
         event.target instanceof Element ? event.target : document.body;
@@ -132,7 +136,7 @@ export function SettingsWorkspace({
               label="Settings categories"
               orientation="vertical"
               value={section}
-              onChange={setSection}
+              onChange={onSectionChange}
               options={categories.map(({ name, icon: Icon }, index) => ({
                 value: index,
                 label: (
@@ -255,7 +259,6 @@ export function SettingsWorkspace({
                 editor={integrationDraft}
                 state={state}
                 ready={ready}
-                run={run}
               />
             ) : (
               <p className="settings-detail">

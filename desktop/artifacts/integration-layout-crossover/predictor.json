@@ -1,0 +1,78 @@
+{
+  "formula": "ln(CSC_ms/CSR_ms) = dot(coefficients, [1,x,z,z*z,x*z,e,e*x,e*z,b,b*x,b*z]); x=log2(pixels/1e6), z=log2(bins/1000), e=Poisson, b=parallelFrames",
+  "coefficients": [
+    0.9625023218279644,
+    -0.32014207619562346,
+    -0.025054288861904386,
+    -0.012208761830162198,
+    0.009420331475340826,
+    0.17262911494014688,
+    0.0010245923933961238,
+    0.031075927627037103,
+    -0.6220661764539083,
+    0.19181084719728966,
+    0.0007575524029175193
+  ],
+  "threads": 8,
+  "pixelRange": [
+    287625,
+    10138296
+  ],
+  "binRange": [
+    128,
+    8000
+  ],
+  "training": {
+    "cases": 152,
+    "decisiveCases": 122,
+    "decisiveAccuracy": 0.9672131147540983,
+    "logRmse": 0.14810172816982262,
+    "meanSlowdown": 1.0080303570547062,
+    "worstSlowdown": 1.5110321201195447
+  },
+  "detectorFamilyHoldout": {
+    "pilatus300k": {
+      "cases": 28,
+      "decisiveCases": 28,
+      "decisiveAccuracy": 1.0,
+      "logRmse": 0.2977657027835616,
+      "meanSlowdown": 1.0,
+      "worstSlowdown": 1.0
+    },
+    "pilatus1m": {
+      "cases": 28,
+      "decisiveCases": 27,
+      "decisiveAccuracy": 1.0,
+      "logRmse": 0.17359477512193397,
+      "meanSlowdown": 1.0,
+      "worstSlowdown": 1.0
+    },
+    "marccd4m": {
+      "cases": 28,
+      "decisiveCases": 22,
+      "decisiveAccuracy": 0.8636363636363636,
+      "logRmse": 0.24457000170860876,
+      "meanSlowdown": 1.0565931695851094,
+      "worstSlowdown": 1.6969889894921764
+    },
+    "eiger": {
+      "cases": 68,
+      "decisiveCases": 45,
+      "decisiveAccuracy": 0.7111111111111111,
+      "logRmse": 0.2663619307842978,
+      "meanSlowdown": 1.0598851482207594,
+      "worstSlowdown": 1.7052519321952455
+    }
+  },
+  "pooledHoldout": {
+    "cases": 152,
+    "decisiveCases": 122,
+    "decisiveAccuracy": 0.8688524590163934,
+    "logRmse": 0.25424945515577746,
+    "meanSlowdown": 1.0372157817591756,
+    "worstSlowdown": 1.7052519321952455
+  },
+  "guardBandRatio": 1.3,
+  "scope": "Resident float64 fixed-mask polygon 1D, M4 Pro, 8 Rayon threads. Prior only; measure locally. Not a cake, strict, dynamic-mask or fused streaming predictor.",
+  "inputSha256": "b4cd3e89ad084dae80ff2fd220b2d420d2cc0de62f4ee3c4b17245e6b2647844"
+}
