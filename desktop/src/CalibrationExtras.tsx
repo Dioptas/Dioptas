@@ -203,11 +203,6 @@ export function CalibrationExtras({
         <div className="calibration-fit-controls">
           <section className="calibration-fit-page" aria-label="Fit parameters">
             <h3 className="calibration-fit-heading">Starting values</h3>
-            <p className="control-note">
-              Seeds for the next fit; they do not change the current geometry
-              until you calibrate. Checked parameters are refined; the others
-              stay fixed.
-            </p>
             <div className="calibration-field-row calibration-calibrant-row">
               <label htmlFor="calibration-calibrant">Calibrant</label>
               <Select
