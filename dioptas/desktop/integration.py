@@ -600,8 +600,18 @@ class IntegrationWorkflow(PhaseWorkflow):
         self._integration_auto_process_error = ""
         return result
 
-    def _integration_navigation(self, mode=None, frame=None):
+    def _integration_navigation(self, mode=None, frame=None, direction=None, step=None):
         image = self.configuration.img_model
+        if direction is not None:
+            if frame is not None:
+                raise ValueError("Choose a frame position or a relative frame step.")
+            direction = finite(direction, "Frame direction", -1, 1, True)
+            if direction not in {-1, 1}:
+                raise ValueError("Frame direction must be -1 or 1.")
+            step = finite(1 if step is None else step, "Frame step", 1, 100000, True)
+            frame = min(max(image.series_pos + direction * step, 1), image.series_max)
+        elif step is not None:
+            raise ValueError("Choose a relative frame direction for the step.")
         if mode is not None:
             if mode not in {"number", "time"}:
                 raise ValueError("Choose filename number or creation time navigation.")

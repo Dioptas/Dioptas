@@ -562,7 +562,15 @@ impl Session {
                 return Ok(reply);
             }
             "next_image" => {
-                check_keys(args, &["direction", "step", "defer_integration"])?;
+                check_keys(
+                    args,
+                    &["direction", "step", "files_only", "defer_integration"],
+                )?;
+                let files_only = args
+                    .get("files_only")
+                    .map(|v| boolean(v, "Files only"))
+                    .transpose()?
+                    .unwrap_or(false);
                 let direction = args
                     .get("direction")
                     .map(|v| v.as_i64().ok_or("direction must be an integer."))
@@ -585,7 +593,7 @@ impl Session {
                             .ok_or("Frame step exceeds range.")?,
                     )
                     .ok_or("Frame step exceeds range.")?;
-                if index < 0 || index >= image.frames as i64 {
+                if files_only || index < 0 || index >= image.frames as i64 {
                     let Some(target) = file_workflow::neighbor(
                         &image.path,
                         &self.files.image_mode,
@@ -598,6 +606,11 @@ impl Session {
                     };
                     let mut options = image.options.clone();
                     options["path"] = json!(target);
+                    if files_only {
+                        // Qt's file iterator opens the first frame of the new file.
+                        // Never carry a frame index into a shorter destination stack.
+                        options["frame"] = json!(0);
+                    }
                     options["defer_integration"] = json!(defer);
                     return self.dispatch("open_image", &options);
                 }

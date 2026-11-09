@@ -53,7 +53,7 @@ export function IntegrationFileNavigator({
         <div className="file-actions">
           <Button
             aria-label={`Integration previous ${kind}`}
-            title={`Previous ${kind}`}
+            title={`Previous ${kind} file`}
             disabled={!canNavigate}
             onClick={() => onNavigate(-1)}
           >
@@ -61,7 +61,7 @@ export function IntegrationFileNavigator({
           </Button>
           <Button
             aria-label={`Integration next ${kind}`}
-            title={`Next ${kind}`}
+            title={`Next ${kind} file`}
             disabled={!canNavigate}
             onClick={() => onNavigate(1)}
           >

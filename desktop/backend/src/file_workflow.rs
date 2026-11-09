@@ -371,6 +371,9 @@ impl Session {
                 }
             }
             "integration_navigation" => {
+                if args.get("step").is_some() && args.get("direction").is_none() {
+                    return Err("Choose a relative frame direction for the step.".into());
+                }
                 if let Some(mode) = args.get("mode") {
                     self.files.image_mode = mode
                         .as_str()
@@ -378,13 +381,35 @@ impl Session {
                         .ok_or("Choose filename number or creation time navigation.")?
                         .into();
                 }
-                if let Some(frame) = args.get("frame") {
+                if args.get("frame").is_some() || args.get("direction").is_some() {
                     let image = self.image.as_ref().ok_or("Open an image first.")?;
-                    let frame = integer(frame, "Frame", 1, image.frames)?;
+                    let frame = if let Some(frame) = args.get("frame") {
+                        if args.get("direction").is_some() || args.get("step").is_some() {
+                            return Err("Choose a frame position or a relative frame step.".into());
+                        }
+                        integer(frame, "Frame", 1, image.frames)?
+                    } else {
+                        let direction = args["direction"]
+                            .as_i64()
+                            .filter(|v| [-1, 1].contains(v))
+                            .ok_or("Frame direction must be -1 or 1.")?;
+                        let step = args
+                            .get("step")
+                            .map(|v| integer(v, "Frame step", 1, 100_000))
+                            .transpose()?
+                            .unwrap_or(1);
+                        // Resolve against the worker's current frame so queued clicks
+                        // accumulate. Frame browsing never crosses into another file.
+                        (image.frame as i64 + 1 + direction * step as i64)
+                            .clamp(1, image.frames as i64) as usize
+                    };
                     let direction = frame as i64 - 1 - image.frame as i64;
+                    if direction == 0 {
+                        return Ok(Some(self.snapshot(false)));
+                    }
                     return Ok(Some(self.dispatch(
                         "next_image",
-                        &json!({"direction":direction,"step":1}),
+                        &json!({"direction":direction,"step":1,"defer_integration":args["defer_integration"].as_bool().unwrap_or(false)}),
                     )?));
                 }
             }

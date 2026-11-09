@@ -34,6 +34,16 @@ catalog and frame belong to each configuration; native format-2 project caches
 retain them even when original files are offline. Navigation reopens the
 selected dataset and fails if it is unavailable, preserving cached pixels.
 
+Integration → Image includes Qt-style previous/next frame arrows and an
+independent Frame step alongside direct frame entry. Relative requests resolve
+against the worker's current frame, so queued clicks accumulate. Overshooting
+clamps to the first/last frame of the selected source and never opens a neighboring
+file; the corresponding boundary arrow is disabled. The controls appear only
+for multi-frame images and also use the same native path for non-HDF5 stacks.
+The separate file arrows always browse files, using their own File step and
+By Name/By Time setting, and open the destination's first frame. They retain the
+selected HDF5 source and never substitute a frame when a neighboring file is missing.
+
 Discovery uses the pinned native NeXus immutable metadata snapshot for exact
 soft/external-link resolution and typed readers for dataset admission. Metadata
 enumeration visits only concrete paths from that validated graph; it does not
@@ -72,6 +82,10 @@ both source selectors, frame-field navigation, compact layout at both text sizes
 Cancel/Escape/focus restoration, the existing file-error dialog, project
 save/reopen and accepted source-size reset. Screenshots and a receipt are under
 `artifacts/hdf5-sources/`. This check is included in `test:ci-native`.
+It also exercises frame arrows/steps, end clamping, rapid queued clicks, invalid
+step recovery, and independent file/frame steps retained across Integration tabs.
+The Rust source tests check relative stepping with neighboring files present,
+selected-source retention, pixel/pattern/cake updates, and invalid-request rollback.
 
 Validation on November 8, 2026: all 128 Rust tests passed (one optional
 performance benchmark ignored), Clippy passed with warnings denied, all 75

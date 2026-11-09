@@ -74,7 +74,7 @@ export function IntegrationImageControls({
             });
         }}
         onNavigate={(direction) =>
-          action("next_image", { direction, step: fileStep })
+          action("next_image", { direction, step: fileStep, files_only: true })
         }
       />
       <ImageSourceControl

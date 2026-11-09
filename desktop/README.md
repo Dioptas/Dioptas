@@ -53,6 +53,13 @@ and updates the image and integrated results together. Recognized Eiger/LImA/Lam
 formats retain their automatic series option. Selected sources belong to each
 configuration and survive native project save/reopen. See [HDF5 source selection](HDF5_SOURCE_PARITY.md).
 
+For multi-frame images, **Integration → Image** also offers previous/next frame
+arrows, a separate **Frame step**, and direct one-based frame entry. Frame steps
+stop at the first/last frame of the current file or selected HDF5 source;
+rapid clicks are processed in order. The frame step is independent of File step.
+File arrows move directly between files using File step and By Name/By Time,
+opening frame 1 of each destination even when the current file has more frames.
+
 Changing source image dimensions asks for **Cancel** or **Open and reset
 calibration** before changing the session, including variable-size frames within
 one file. Accepting clears detector geometry, orientation, masks, corrections,

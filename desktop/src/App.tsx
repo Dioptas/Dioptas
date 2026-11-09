@@ -724,7 +724,8 @@ export default function App() {
         command === "map_select" ||
         command === "batch_select" ||
         command === "next_image" ||
-        (command === "integration_navigation" && args.frame !== undefined);
+        (command === "integration_navigation" &&
+          (args.frame !== undefined || args.direction !== undefined));
       const livePhaseConditions =
         command === "integration_phase" &&
         args.operation === "update" &&
@@ -2899,7 +2900,7 @@ export default function App() {
                                     onClick={() =>
                                       run(
                                         "next_image",
-                                        { direction: -1 },
+                                        { direction: -1, files_only: true },
                                         "Opening previous image…",
                                       )
                                     }
@@ -2914,7 +2915,7 @@ export default function App() {
                                     onClick={() =>
                                       run(
                                         "next_image",
-                                        { direction: 1 },
+                                        { direction: 1, files_only: true },
                                         "Opening next image…",
                                       )
                                     }

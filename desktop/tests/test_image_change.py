@@ -176,7 +176,7 @@ def test_autoprocess_stops_without_replacing_session(experiment, tmp_path, monke
 
 def test_multiframe_navigation_and_cancel_keep_the_reader(experiment, tmp_path):
     s = experiment
-    series = tmp_path / "series.h5"
+    series = tmp_path / "series_001.h5"
     with h5py.File(series, "w") as f:
         f["entry/data/data"] = np.stack([np.full((96, 128), i, dtype=np.float32) for i in (1, 2, 3)])
     call(s, "open_image", path=str(series))
@@ -188,6 +188,20 @@ def test_multiframe_navigation_and_cancel_keep_the_reader(experiment, tmp_path):
     assert image.loader is loader and image.series_pos == 2
     call(s, "integration_navigation", frame=3)
     np.testing.assert_array_equal(image.raw_img_data, 3)
+    for direction, step, expected in [(-1, 2, 1), (-1, 100, 1), (1, 1, 2), (1, 100, 3)]:
+        call(s, "integration_navigation", direction=direction, step=step)
+        assert image.series_pos == expected
+        np.testing.assert_array_equal(image.raw_img_data, expected)
+    next_series = tmp_path / "series_002.h5"
+    with h5py.File(next_series, "w") as f:
+        f["entry/data/data"] = np.stack([np.full((96, 128), i, dtype=np.float32) for i in (11, 12)])
+    call(s, "next_image", direction=1, files_only=True)
+    assert Path(image.filename) == next_series
+    assert image.series_pos == 1
+    np.testing.assert_array_equal(image.raw_img_data, 11)
+    call(s, "next_image", direction=-1, files_only=True)
+    assert Path(image.filename) == series
+    assert image.series_pos == 1
 
 
 @pytest.mark.parametrize("mode", ["add", "average"])

@@ -137,6 +137,163 @@ fn generic_discovery_source_frame_navigation_and_scientific_products() {
     assert_eq!(pixel(&mut s), 70.);
 }
 #[test]
+fn relative_frame_steps_stay_in_the_selected_source_and_update_products() {
+    let temp = tempfile::tempdir().unwrap();
+    let path = temp.path().join("image_001.h5");
+    fixture(&path);
+    // Neighbors deliberately exist: overshooting a frame must never open them.
+    fixture(&temp.path().join("image_000.h5"));
+    fixture(&temp.path().join("image_002.h5"));
+    let mut s = Session::new(root());
+    call(&mut s, "open_image", json!({"path":path,"dataset":"/a"}));
+    geometry(&mut s);
+    let before = call(&mut s, "state", json!({}));
+    let first = call(&mut s, "integrate", json!({}));
+    for (direction, step, expected) in [
+        (1, 2, 3),
+        (-1, 1, 2),
+        (1, 1, 3),
+        (1, 1, 4),
+        (1, 100_000, 4),
+        (-1, 100_000, 1),
+        (-1, 1, 1),
+    ] {
+        let reply = call(
+            &mut s,
+            "integration_navigation",
+            json!({"direction":direction,"step":step}),
+        );
+        let state = &reply.result["state"];
+        assert_eq!(state["integration"]["frame"], expected);
+        assert_eq!(state["imagePath"], before.result["state"]["imagePath"]);
+        assert_eq!(state["selectedImageSource"], "/a");
+        assert_eq!(state["geometry"], before.result["state"]["geometry"]);
+        assert_eq!(pixel(&mut s), 9. + expected as f64);
+    }
+    let changed = call(
+        &mut s,
+        "integration_navigation",
+        json!({"direction":1,"step":2}),
+    );
+    assert_ne!(
+        changed.result["cake"]["bufferId"],
+        first.result["cake"]["bufferId"]
+    );
+    for (a, b) in first.result["pattern"]["y"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(changed.result["pattern"]["y"].as_array().unwrap())
+    {
+        let expected = a.as_f64().unwrap() * 12. / 10.;
+        assert!((b.as_f64().unwrap() - expected).abs() < 1e-9 * (1. + expected.abs()));
+    }
+    call(&mut s, "select_image_source", json!({"dataset":"/b"}));
+    let reply = call(
+        &mut s,
+        "integration_navigation",
+        json!({"direction":-1,"step":2}),
+    );
+    assert_eq!(reply.result["state"]["integration"]["frame"], 1);
+    assert_eq!(reply.result["state"]["selectedImageSource"], "/b");
+    assert_eq!(pixel(&mut s), 30.);
+    let stable = call(&mut s, "state", json!({}));
+    for payload in [
+        json!({"direction":0}),
+        json!({"direction":2}),
+        json!({"direction":1,"step":0}),
+        json!({"direction":1,"step":1.5}),
+        json!({"direction":1,"step":100001}),
+        json!({"frame":1,"direction":1}),
+        json!({"step":2}),
+    ] {
+        assert_eq!(
+            invoke(&mut s, "integration_navigation", payload).result["ok"],
+            false
+        );
+        assert_eq!(call(&mut s, "state", json!({})).result, stable.result);
+    }
+}
+#[test]
+fn file_only_steps_skip_stacks_and_open_the_first_frame() {
+    let temp = tempfile::tempdir().unwrap();
+    let paths: Vec<_> = (1..=3)
+        .map(|i| temp.path().join(format!("image_{i:03}.h5")))
+        .collect();
+    for (i, (path, frames)) in paths.iter().zip([4, 2, 3]).enumerate() {
+        let f = hdf5::File::create(path).unwrap();
+        let values: Vec<u16> = (0..frames)
+            .flat_map(|frame| vec![10 * (i as u16 + 1) + frame as u16; 24 * 32])
+            .collect();
+        f.new_dataset::<u16>()
+            .shape((frames, 24, 32))
+            .create("a")
+            .unwrap()
+            .write_raw(&values)
+            .unwrap();
+    }
+    for mode in ["number", "time"] {
+        let mut s = Session::new(root());
+        call(
+            &mut s,
+            "open_image",
+            json!({"path":paths[0],"dataset":"/a","frame":2}),
+        );
+        geometry(&mut s);
+        call(&mut s, "integration_navigation", json!({"mode":mode}));
+        let geometry = call(&mut s, "state", json!({})).result["state"]["geometry"].clone();
+        // There are still frames in file 1, and the destination has fewer frames.
+        for (direction, step, expected_file) in
+            [(1, 1, 1), (1, 1, 2), (-1, 2, 0), (1, 2, 2), (-1, 1, 1)]
+        {
+            let r = call(
+                &mut s,
+                "next_image",
+                json!({"direction":direction,"step":step,"files_only":true}),
+            );
+            assert_eq!(
+                r.result["state"]["imagePath"],
+                json!(paths[expected_file].canonicalize().unwrap()),
+                "{mode}"
+            );
+            assert_eq!(r.result["state"]["integration"]["frame"], 1);
+            assert_eq!(r.result["state"]["selectedImageSource"], "/a");
+            assert_eq!(r.result["state"]["geometry"], geometry);
+            assert_eq!(pixel(&mut s), 10. * (expected_file as f64 + 1.));
+            // Frame stepping must stay in whichever file the file arrows selected.
+            let r = call(
+                &mut s,
+                "integration_navigation",
+                json!({"direction":1,"step":100}),
+            );
+            assert_eq!(
+                r.result["state"]["imagePath"],
+                json!(paths[expected_file].canonicalize().unwrap())
+            );
+            assert_eq!(
+                r.result["state"]["integration"]["frame"],
+                r.result["state"]["integration"]["frames"]
+            );
+        }
+        // A missing neighbor must not be replaced with a frame in the current file.
+        for (file, direction) in [(0, -1), (2, 1)] {
+            call(
+                &mut s,
+                "open_image",
+                json!({"path":paths[file],"dataset":"/a"}),
+            );
+            let before = call(&mut s, "state", json!({}));
+            let r = call(
+                &mut s,
+                "next_image",
+                json!({"direction":direction,"files_only":true}),
+            );
+            assert_eq!(r.result, json!({"ok":true,"imageUnavailable":true}));
+            assert_eq!(call(&mut s, "state", json!({})).result, before.result);
+        }
+    }
+}
+#[test]
 fn size_confirmation_failures_and_cancellation_restore_entire_session() {
     let temp = tempfile::tempdir().unwrap();
     let path = temp.path().join("image.h5");

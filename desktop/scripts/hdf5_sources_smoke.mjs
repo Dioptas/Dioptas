@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import {
+  copyFile,
+  mkdir,
+  mkdtemp,
+  realpath,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -11,7 +18,7 @@ const desktop = path.join(root, "desktop"),
   artifacts = path.join(desktop, "artifacts/hdf5-sources");
 await mkdir(artifacts, { recursive: true });
 const temporary = await mkdtemp(path.join(tmpdir(), "dioptas-hdf5-source-"));
-const fixture = path.join(temporary, "sources.h5"),
+const fixture = path.join(temporary, "sources_001.h5"),
   project = path.join(temporary, "sources.dio");
 execFileSync(
   "cargo",
@@ -28,6 +35,10 @@ execFileSync(
   ],
   { cwd: desktop, stdio: "inherit" },
 );
+const secondFile = path.join(temporary, "sources_002.h5"),
+  thirdFile = path.join(temporary, "sources_003.h5");
+await copyFile(fixture, secondFile);
+await copyFile(fixture, thirdFile);
 const server = await createServer({
   root: desktop,
   server: { host: "127.0.0.1", port: 0 },
@@ -142,8 +153,134 @@ try {
       assert.equal((await call("state")).state.integration.frame, 1);
       await choose("/a");
       assert.equal((await call("state")).state.integration.frames, 4);
+      const previousFrame = button("Integration previous frame"),
+        nextFrame = button("Integration next frame"),
+        frameStep = page.getByRole("spinbutton", {
+          name: "Frame step",
+          exact: true,
+        }),
+        framePosition = page.getByRole("spinbutton", {
+          name: "Frame position (1–4)",
+          exact: true,
+        });
+      assert.equal(await previousFrame.isDisabled(), true);
+      await frameStep.fill("2");
+      await frameStep.press("Enter");
+      await nextFrame.click();
+      await ready();
+      assert.equal(await framePosition.inputValue(), "3");
+      assert.equal((await call("state")).state.integration.frame, 3);
+      await nextFrame.click();
+      await ready();
+      assert.equal(await framePosition.inputValue(), "4");
+      assert.equal(await nextFrame.isDisabled(), true);
+      await previousFrame.click();
+      await ready();
+      assert.equal(await framePosition.inputValue(), "2");
+      await previousFrame.click();
+      await ready();
+      assert.equal(await framePosition.inputValue(), "1");
+      assert.equal(await previousFrame.isDisabled(), true);
+      assert.equal(
+        (await call("state")).state.imagePath,
+        await realpath(fixture),
+      );
+      await frameStep.fill("0");
+      await frameStep.press("Enter");
+      assert.equal(await frameStep.inputValue(), "2");
+      // The two clicks occur before either command returns. Both must advance.
+      await frameStep.fill("1");
+      await frameStep.press("Enter");
+      await nextFrame.evaluate((element) => {
+        element.click();
+        element.click();
+      });
+      await ready();
+      assert.equal(await framePosition.inputValue(), "3");
+      await frameStep.fill("2");
+      await frameStep.press("Enter");
+      await page
+        .getByRole("spinbutton", { name: "File step", exact: true })
+        .fill("3");
+      await page.getByRole("tab", { name: "Pattern", exact: true }).click();
+      await page.getByRole("tab", { name: "Image", exact: true }).click();
+      assert.equal(await frameStep.inputValue(), "2");
+      assert.equal(
+        await page
+          .getByRole("spinbutton", { name: "File step", exact: true })
+          .inputValue(),
+        "3",
+      );
       report.checks.push(
         "Calibration and Integration dropdown; clamped frame, count and one-based frame navigation",
+        "Frame arrows and independent step; boundary clamping, rapid queued clicks, invalid-step recovery and retained step across tabs",
+      );
+      const fileStep = page.getByRole("spinbutton", {
+          name: "File step",
+          exact: true,
+        }),
+        nextFile = button("Integration next image"),
+        previousFile = button("Integration previous image");
+      await fileStep.fill("1");
+      await fileStep.press("Enter");
+      await nextFile.click();
+      await ready();
+      assert.equal(
+        (await call("state")).state.imagePath,
+        await realpath(secondFile),
+      );
+      assert.equal(await framePosition.inputValue(), "1");
+      await nextFrame.click();
+      await ready();
+      assert.equal(await framePosition.inputValue(), "3");
+      assert.equal(
+        (await call("state")).state.imagePath,
+        await realpath(secondFile),
+      );
+      await nextFile.click();
+      await ready();
+      assert.equal(
+        (await call("state")).state.imagePath,
+        await realpath(thirdFile),
+      );
+      assert.equal(await framePosition.inputValue(), "1");
+      await nextFile.click();
+      await ready();
+      assert.equal(
+        (await call("state")).state.imagePath,
+        await realpath(thirdFile),
+      );
+      assert.equal(await framePosition.inputValue(), "1");
+      await fileStep.fill("2");
+      await fileStep.press("Enter");
+      await previousFile.click();
+      await ready();
+      assert.equal(
+        (await call("state")).state.imagePath,
+        await realpath(fixture),
+      );
+      assert.equal(await framePosition.inputValue(), "1");
+      await nextFile.click();
+      await ready();
+      assert.equal(
+        (await call("state")).state.imagePath,
+        await realpath(thirdFile),
+      );
+      await previousFile.click();
+      await ready();
+      await previousFile.click();
+      await ready();
+      assert.equal(
+        (await call("state")).state.imagePath,
+        await realpath(fixture),
+      );
+      assert.equal(await framePosition.inputValue(), "1");
+      assert.equal(await frameStep.inputValue(), "2");
+      await nextFrame.click();
+      await ready();
+      assert.equal(await framePosition.inputValue(), "3");
+      report.checks.push(
+        "File arrows skip stacks and reset to frame 1; independent file/frame steps, missing-file boundaries and selected-source retention",
       );
       for (const large of [false, true]) {
         await page.setViewportSize({ width: 1000, height: 668 });
@@ -156,6 +293,23 @@ try {
             box.x + box.width <= 1000 &&
             box.y >= 0 &&
             box.y + box.height <= 668,
+        );
+        const navigation = page.getByRole("group", {
+          name: "Frame navigation",
+          exact: true,
+        });
+        await navigation.scrollIntoViewIfNeeded();
+        const navigationBox = await navigation.boundingBox();
+        assert.ok(
+          navigationBox &&
+            navigationBox.x >= 0 &&
+            navigationBox.x + navigationBox.width <= 1000,
+        );
+        assert.equal(
+          await navigation.evaluate(
+            (element) => element.scrollWidth <= element.clientWidth,
+          ),
+          true,
         );
         await page.screenshot({
           path: path.join(

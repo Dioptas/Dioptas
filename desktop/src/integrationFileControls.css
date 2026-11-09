@@ -21,6 +21,13 @@
   display: grid;
   gap: 3px;
 }
+.integration-frame-browser {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+  min-width: 0;
+}
 .integration-controls .integration-file-load {
   padding: 5px 12px;
   white-space: nowrap;
@@ -104,6 +111,10 @@
 @media (max-width: 1100px) {
   .integration-file-browser {
     grid-template-columns: max-content minmax(90px, 120px) max-content;
+    gap: 6px;
+  }
+  .integration-frame-browser {
+    grid-template-columns: minmax(90px, 120px) minmax(0, 1fr);
     gap: 6px;
   }
   .integration-controls .integration-file-load {

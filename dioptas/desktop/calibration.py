@@ -331,7 +331,10 @@ class CalibrationWorkflow:
         self._calculate()
         return self._snapshot(include_image=True)
 
-    def _next_image(self, direction=1, step=1):
+    def _next_image(self, direction=1, step=1, files_only=False):
+        # The comparison backend already uses Qt's file-only iterator.
+        if not isinstance(files_only, bool):
+            raise ValueError("Files only must be a boolean.")
         if not self._has_image:
             raise ValueError("Open an image first.")
         if direction not in (-1, 1):

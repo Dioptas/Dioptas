@@ -1,4 +1,4 @@
-import { CommitNumberField } from "./CommitNumberField";
+import { IntegrationFrameNavigator } from "./IntegrationFrameNavigator";
 import { TabList } from "./TabList";
 import { useEffect, useState } from "react";
 import type { State } from "./types";
@@ -63,6 +63,7 @@ export function IntegrationView({
   const [backgroundTab, setBackgroundTab] = useState("pattern");
   const [correctionTab, setCorrectionTab] = useState("flat");
   const [fileStep, setFileStep] = useState(1);
+  const [frameStep, setFrameStep] = useState(1);
   const [patternStep, setPatternStep] = useState(1);
   if (!source || !state) return null;
   const action = (command: string, args: Record<string, unknown> = {}) =>
@@ -106,14 +107,19 @@ export function IntegrationView({
             action={action}
             frameControl={
               source.frames > 1 && (
-                <CommitNumberField
-                  label={`Frame position (1–${source.frames})`}
-                  min={1}
-                  max={source.frames}
-                  integer
-                  value={source.frame}
-                  onCommit={(frame) =>
+                <IntegrationFrameNavigator
+                  frame={source.frame}
+                  frames={source.frames}
+                  step={frameStep}
+                  onStepChange={setFrameStep}
+                  onSelect={(frame) =>
                     action("integration_navigation", { frame })
+                  }
+                  onNavigate={(direction) =>
+                    action("integration_navigation", {
+                      direction,
+                      step: frameStep,
+                    })
                   }
                 />
               )
