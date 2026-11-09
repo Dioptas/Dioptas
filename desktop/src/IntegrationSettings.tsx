@@ -289,7 +289,7 @@ export function IntegrationSettings({
             </>
           )}
           <Check
-            label="Trim trailing zeros"
+            label="Trim leading and trailing zeros"
             checked={draft.trimZeros}
             onChange={(v) => set("trimZeros", v)}
           />

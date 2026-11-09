@@ -22,6 +22,24 @@ use dioptrin_io::{
 use serde_json::{Value, json};
 use std::sync::Arc;
 
+/// Remove only contiguous exact-zero edges, keeping every radial array aligned.
+/// Keep an entirely zero pattern (for example, image minus itself) on its grid.
+pub(super) fn trim_zero_edges(
+    x: &mut Vec<f64>,
+    y: &mut Vec<f64>,
+    sigma: Option<&mut Vec<f64>>,
+    spread: Option<&mut Vec<f64>>,
+) {
+    let Some(start) = y.iter().position(|v| *v != 0.0) else {
+        return;
+    };
+    let end = y.iter().rposition(|v| *v != 0.0).unwrap() + 1;
+    for values in [Some(x), Some(y), sigma, spread].into_iter().flatten() {
+        values.truncate(end);
+        values.drain(..start);
+    }
+}
+
 pub struct Products {
     pub pattern: Value,
     pub cake: Raster,
@@ -703,16 +721,8 @@ impl Engine {
                 *v = p.wavelength * 1e10 / (2.0 * (v.to_radians() / 2.0).sin());
             }
         }
-        if o.trim && y.iter().any(|v| *v != 0.0) {
-            let n = y.iter().rposition(|v| *v != 0.0).unwrap() + 1;
-            x.truncate(n);
-            y.truncate(n);
-            if let Some(s) = &mut sigma {
-                s.truncate(n);
-            }
-            if let Some(s) = &mut spread {
-                s.truncate(n);
-            }
+        if o.trim {
+            trim_zero_edges(&mut x, &mut y, sigma.as_mut(), spread.as_mut());
         }
         Ok((
             json!({"x":x,"y":y,"unit":o.unit,"azimuthalStd":spread,"sigma":sigma}),
@@ -895,5 +905,42 @@ impl Engine {
         cake.metadata["azimuthRange"] = json!(azimuth_range);
         cake.metadata["unit"] = json!("2th_deg");
         Ok((cake, pixels))
+    }
+}
+
+#[cfg(test)]
+mod zero_trimming_tests {
+    use super::trim_zero_edges;
+
+    #[test]
+    fn edges_keep_internal_zeros_negative_counts_and_aligned_diagnostics() {
+        let mut x = vec![9., 8., 7., 6., 5., 4., 3., 2.];
+        let mut y = vec![0., -0., -2., 0., 2., 1e-100, 0., 0.];
+        let mut sigma = vec![10., 11., 12., 13., 14., 15., 16., 17.];
+        let mut spread = vec![20., 21., 22., 23., 24., 25., 26., 27.];
+        trim_zero_edges(&mut x, &mut y, Some(&mut sigma), Some(&mut spread));
+        assert_eq!(x, [7., 6., 5., 4.]);
+        assert_eq!(y, [-2., 0., 2., 1e-100]);
+        assert_eq!(sigma, [12., 13., 14., 15.]);
+        assert_eq!(spread, [22., 23., 24., 25.]);
+    }
+
+    #[test]
+    fn empty_all_zero_and_single_point_patterns_keep_valid_grids() {
+        for values in [vec![], vec![0., 0., 0.], vec![3.], vec![0., 3., 0.]] {
+            let mut x: Vec<_> = (0..values.len()).map(|i| i as f64).collect();
+            let mut y = values.clone();
+            let mut sigma = vec![1.; y.len()];
+            trim_zero_edges(&mut x, &mut y, Some(&mut sigma), None);
+            if values == [0., 3., 0.] {
+                assert_eq!(x, [1.]);
+                assert_eq!(y, [3.]);
+                assert_eq!(sigma, [1.]);
+            } else {
+                assert_eq!(y, values);
+                assert_eq!(x.len(), values.len());
+                assert_eq!(sigma.len(), values.len());
+            }
+        }
     }
 }

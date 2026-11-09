@@ -784,6 +784,14 @@ fold away, while the existing left navigation / right controls arrangement stays
 
 ## Integration workflow
 
+New sessions trim contiguous leading and trailing exact-zero bins from 1D
+integrated patterns by default, including combined-detector patterns and their
+exports. **Settings → Integration → Trim leading and trailing zeros** can retain
+the full radial grid; saved project choices are honored. Radial coordinates,
+counting errors and azimuthal std are sliced together. Internal zeros, negative
+intensities and entirely zero patterns are retained. Cakes and the shared stored
+Batch/Map grids keep their full binning.
+
 Integration follows Qt's pane arrangement: a full-height image/cake on the left,
 with tabbed controls above the integrated pattern on the right. Drag either
 divider to resize the panes; Image/Cake switches the left display and preserves

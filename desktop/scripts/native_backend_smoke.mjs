@@ -92,7 +92,12 @@ for (const [name, type] of [
     assert.deepEqual(commandErrors, []);
     let snapshot = await native.invoke("state");
     assert.equal(snapshot.state.calibrated, true);
-    assert.equal(snapshot.pattern.x.length, 1000);
+    assert.equal(snapshot.state.integration.trimZeros, true);
+    assert.ok(
+      snapshot.pattern.x.length > 0 && snapshot.pattern.x.length <= 1000,
+    );
+    assert.notEqual(snapshot.pattern.y[0], 0);
+    assert.notEqual(snapshot.pattern.y.at(-1), 0);
     assert.equal(snapshot.cake, null, "Hidden cake should not be calculated");
     assert.equal(
       (await native.invoke("integration_diagnostics")).integrationDiagnostics
@@ -155,6 +160,32 @@ for (const [name, type] of [
       beforeReload + 1,
     );
     await page.screenshot({ path: path.join(artifacts, `${name}-cake.png`) });
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    await page
+      .getByRole("region", { name: "Settings", exact: true })
+      .getByRole("tab", { name: "Integration", exact: true })
+      .click();
+    const trim = page.getByLabel("Trim leading and trailing zeros", {
+      exact: true,
+    });
+    assert.equal(await trim.isChecked(), true);
+    for (const enabled of [false, true]) {
+      await trim.setChecked(enabled);
+      const apply = page.getByRole("button", {
+        name: "Apply integration options",
+        exact: true,
+      });
+      if (await apply.count()) await apply.click();
+      await page.waitForFunction(
+        async (enabled) =>
+          (await window.pywebview.api.invoke("state", {})).state.integration
+            .trimZeros === enabled,
+        enabled,
+      );
+    }
+    await page
+      .getByRole("button", { name: "Close settings", exact: true })
+      .click();
     assert.deepEqual(errors, []);
     assert.deepEqual(commandErrors, []);
     results.push({

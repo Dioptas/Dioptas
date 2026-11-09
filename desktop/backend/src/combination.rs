@@ -576,8 +576,8 @@ impl Session {
             }
         };
         if self.combination.patterns {
-            let p = integrate(&plans.pattern, true, 1, plans.key.pattern_azimuth)?;
-            let x: Vec<_> = p
+            let mut p = integrate(&plans.pattern, true, 1, plans.key.pattern_azimuth)?;
+            let mut x: Vec<_> = p
                 .radial
                 .iter()
                 .map(|v| {
@@ -593,6 +593,14 @@ impl Session {
                     }
                 })
                 .collect();
+            if self.settings.trim_zeros {
+                crate::integration::trim_zero_edges(
+                    &mut x,
+                    &mut p.intensity,
+                    p.errors.as_mut(),
+                    None,
+                );
+            }
             self.combination.pattern = Some(Arc::new(
                 json!({"x":x,"y":p.intensity,"unit":self.settings.unit,"sigma":p.errors}),
             ));

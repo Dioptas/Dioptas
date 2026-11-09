@@ -199,6 +199,10 @@ impl Session {
         {
             let checkpoint = self.checkpoint();
             let outcome = (|| {
+                // Batch and Map rows need one shared grid even when exposures
+                // have different zero edges. Restore the display preference
+                // with the checkpoint after processing, including on failure.
+                self.settings.trim_zeros = false;
                 let mut images = Vec::new();
                 let mut total = 0usize;
                 let mut expected = self.image.as_ref().map(|i| i.shape);
@@ -436,7 +440,7 @@ impl Session {
                         }
                         if let Some(previous) = &x {
                             if *previous != curve.x {
-                                return Err("Series radial axes differ; use fixed binning or disable zero trimming.".into());
+                                return Err("Series radial axes differ; use fixed binning.".into());
                             }
                         } else {
                             x = Some(curve.x.clone());

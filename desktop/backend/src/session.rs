@@ -115,7 +115,7 @@ impl Default for Settings {
             solid_angle: true,
             azimuth: None,
             cake_azimuth: None,
-            trim_zeros: false,
+            trim_zeros: true,
             spread: false,
             csc: false,
             auto_layout: false,
@@ -278,9 +278,15 @@ impl Session {
                     "Requested products must contain a cake boolean and optional rings boolean.",
                 );
             }
-            self.control.request_cake(products["cake"].as_bool().unwrap());
-            self.control.request_calibration_rings(products["rings"].as_bool().unwrap_or(true));
-            payload.to_mut().as_object_mut().unwrap().remove("requested_products");
+            self.control
+                .request_cake(products["cake"].as_bool().unwrap());
+            self.control
+                .request_calibration_rings(products["rings"].as_bool().unwrap_or(true));
+            payload
+                .to_mut()
+                .as_object_mut()
+                .unwrap()
+                .remove("requested_products");
         } else {
             self.control.request_cake(true);
             self.control.request_calibration_rings(true);
@@ -485,8 +491,13 @@ impl Session {
                 check_keys(args, &["cake", "rings"])?;
                 let cake = boolean(&args["cake"], "Request cake")?;
                 self.control.request_cake(cake);
-                if let Some(rings) = args.get("rings") { self.control.request_calibration_rings(boolean(rings,"Request calibration rings")?); }
-                if cake { self.ensure_cake()?; }
+                if let Some(rings) = args.get("rings") {
+                    self.control
+                        .request_calibration_rings(boolean(rings, "Request calibration rings")?);
+                }
+                if cake {
+                    self.ensure_cake()?;
+                }
                 return Ok(self.snapshot(false));
             }
             "example" => {
@@ -1597,7 +1608,9 @@ impl Session {
         #[cfg(feature = "dioptrin")]
         {
             if self.combination.cakes {
-                if self.combination.cake.is_none() { self.refresh_combination()?; }
+                if self.combination.cake.is_none() {
+                    self.refresh_combination()?;
+                }
                 return Ok(());
             }
             if self.cake.is_none() {
@@ -1606,8 +1619,11 @@ impl Session {
                 self.refresh_masks(&self.control.clone())?;
                 let shape = self.image.as_ref().unwrap().shape;
                 let (cake, values) = self.engine.integrate_cake(
-                    &self.scientific_values(), shape, &self.settings.geometry,
-                    &self.integration_mask(shape), &self.integration_options(),
+                    &self.scientific_values(),
+                    shape,
+                    &self.settings.geometry,
+                    &self.integration_mask(shape),
+                    &self.integration_options(),
                 )?;
                 self.control.check()?;
                 self.cake = Some(cake);
