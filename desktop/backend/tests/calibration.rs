@@ -229,6 +229,43 @@ fn single_peak_groups_reassign_delete_undo_redo_and_files_match_the_existing_sch
 
 #[cfg(feature = "dioptrin")]
 #[test]
+fn missed_peak_picks_leave_calibration_and_history_unchanged() {
+    let f = fixture();
+    let mut data = vec![0.0; 256 * 256];
+    // A nonfinite patch also gives single-peak search no eligible samples.
+    for y in 120..136 {
+        for x in 120..136 {
+            data[y * 256 + x] = f64::NAN;
+        }
+    }
+    npy(&f.image, [256, 256], &data);
+    let mut s = prepared(&f);
+    call(&mut s, "clear_peaks", json!({}));
+    call(&mut s, "undo_calibration", json!({}));
+    let before = state(&mut s);
+    assert_eq!(before["calibration"]["canRedo"], true);
+    for automatic in [true, false] {
+        let result = call(
+            &mut s,
+            "pick_peak",
+            json!({"x":128,"y":128,"ring":1,"automatic":automatic,"search_size":6}),
+        );
+        assert_eq!(result["noPeakFound"], true);
+        assert_eq!(result["pickedCount"], 0);
+        assert!(result.get("nextRing").is_none());
+        assert_eq!(state(&mut s), before);
+    }
+    call(&mut s, "redo_calibration", json!({}));
+    assert_eq!(state(&mut s)["calibration"]["picks"], json!([]));
+    assert_eq!(
+        s.invoke(&request("pick_peak", json!({"x":128,"y":128,"ring":0})))
+            .result["ok"],
+        false
+    );
+}
+
+#[cfg(feature = "dioptrin")]
+#[test]
 fn seeded_massif_picking_recovers_subpixel_positions_on_original_samples() {
     let f = fixture();
     let mut s = prepared(&f);

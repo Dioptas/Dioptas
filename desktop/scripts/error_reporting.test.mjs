@@ -60,3 +60,30 @@ test("responses and transport rejection produce local reports; mismatch and canc
   );
   assert.equal(currentFailure(), null);
 });
+
+test("missed peak picks are normal outcomes; other picking failures remain errors", async () => {
+  globalThis.window = new EventTarget();
+  dismissFailure();
+  const message =
+    "No peak found here. Click on a bright ring, or try single-peak mode.";
+  for (const reply of [
+    { ok: true, noPeakFound: true },
+    { ok: false, error: message },
+  ]) {
+    const result = await withErrorReporting(async () => reply)("pick_peak");
+    assert.equal(result.ok, true);
+    assert.equal(result.noPeakFound, true);
+    assert.equal(currentFailure(), null);
+  }
+  await withErrorReporting(async () => ({
+    ok: false,
+    error: "Processor disconnected",
+  }))("pick_peak");
+  assert.match(currentFailure().details, /Processor disconnected/);
+  dismissFailure();
+  await withErrorReporting(async () => ({ ok: false, error: message }))(
+    "calibrate",
+  );
+  assert.equal(currentFailure().details, message);
+  dismissFailure();
+});

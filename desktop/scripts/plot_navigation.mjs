@@ -700,28 +700,42 @@ export async function verifyCalibrationNavigation(page) {
   await drag(page, canvas, [0.3, 0.3], [0.7, 0.7]);
   assert.ok(spanX(await read(canvas)) < spanX(initial) * 0.5);
   const zoomed = await read(canvas);
-  // A missed pick triggers a full state refresh. That refresh must not turn
-  // a left double-click into a fitted-view reset.
+  // A missed pick is a normal notice and must preserve the current view.
   await page.evaluate(() => {
     window.__doubleClickInvoke = window.__dioptasInvoke;
-    window.__doubleClickRecovery = 0;
+    window.__doubleClickPicks = 0;
     window.__doubleClickFail = true;
     window.__dioptasInvoke = async (command, args) => {
-      if (command === "pick_peak")
+      if (command === "pick_peak") {
+        window.__doubleClickPicks++;
         return window.__doubleClickFail
-          ? { ok: false, error: "No peak found here (navigation check)." }
+          ? {
+              ok: false,
+              error:
+                "No peak found here. Click on a bright ring, or try single-peak mode.",
+            }
           : { ok: true };
+      }
       const result = await window.__doubleClickInvoke(command, args);
-      if (command === "state") window.__doubleClickRecovery++;
       return result;
     };
   });
   try {
     const p = await point(canvas, 0.5, 0.5);
     await page.mouse.dblclick(p.x, p.y);
-    await page.waitForFunction(() => window.__doubleClickRecovery > 0);
+    await page.waitForFunction(() => window.__doubleClickPicks > 0);
     await page.waitForFunction(() => !document.querySelector(".spin"));
     await settle(page);
+    assert.match(
+      await page.locator('.workflow-status [role="status"]').innerText(),
+      /No peaks found in this area/,
+    );
+    assert.equal(
+      await page
+        .getByRole("button", { name: "View error details", exact: true })
+        .count(),
+      0,
+    );
     assert.deepEqual(
       await read(canvas),
       zoomed,
@@ -757,7 +771,7 @@ export async function verifyCalibrationNavigation(page) {
     await page.evaluate(() => {
       window.__dioptasInvoke = window.__doubleClickInvoke;
       delete window.__doubleClickInvoke;
-      delete window.__doubleClickRecovery;
+      delete window.__doubleClickPicks;
       delete window.__doubleClickFail;
     });
   }

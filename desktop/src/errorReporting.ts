@@ -147,6 +147,15 @@ export function withErrorReporting(invoke: Invoke): Invoke {
       reportFailure(action, error, args);
       throw error;
     }
+    // Older live workers and the explicit Python compatibility backend still
+    // return this expected search outcome as an error.
+    if (
+      action === "pick_peak" &&
+      !response.ok &&
+      response.error ===
+        "No peak found here. Click on a bright ring, or try single-peak mode."
+    )
+      response = { ok: true, noPeakFound: true };
     if (entry)
       entry.status = response.cancelled
         ? "cancelled"

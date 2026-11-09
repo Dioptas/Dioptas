@@ -8,6 +8,17 @@ import { selectCalibrationRing } from "./calibration_ring_picker.mjs";
 
 const artifacts = path.join(root, "desktop/artifacts/native-calibration");
 await mkdir(artifacts, { recursive: true });
+const blankImage = path.join(artifacts, "no-peaks.npy");
+const header = Buffer.from(
+  "{'descr': '<f8', 'fortran_order': False, 'shape': (32, 32), }".padEnd(117) +
+    "\n",
+);
+const prefix = Buffer.from([0x93, 0x4e, 0x55, 0x4d, 0x50, 0x59, 1, 0, 0, 0]);
+prefix.writeUInt16LE(header.length, 8);
+await writeFile(
+  blankImage,
+  Buffer.concat([prefix, header, Buffer.alloc(32 * 32 * 8)]),
+);
 const receipts = [];
 for (const [name, type] of [
   ["chromium", chromium],
@@ -20,7 +31,10 @@ for (const [name, type] of [
     previews = [];
   try {
     assert.equal((await native.invoke("__host__")).runtime, "rust");
-    assert.equal((await native.invoke("example")).ok, true);
+    assert.equal(
+      (await native.invoke("open_image", { path: blankImage })).ok,
+      true,
+    );
     browser = await type.launch({ headless: true });
     const page = await browser.newPage({
       viewport: { width: 1440, height: 940 },
@@ -73,6 +87,62 @@ for (const [name, type] of [
       assert.deepEqual(commandErrors, []);
       assert.deepEqual(errors, []);
     };
+    await page.getByTestId("detector-canvas").waitFor();
+    await ready();
+    const blankCanvas = page.getByTestId("detector-canvas");
+    const box = await blankCanvas.boundingBox();
+    // Zoom before missing a peak, so an accidental fitted-view reset is visible.
+    await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.3);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.7, {
+      steps: 8,
+    });
+    await page.mouse.up();
+    const view = () =>
+      blankCanvas.evaluate((el) => [
+        el.dataset.viewXMin,
+        el.dataset.viewXMax,
+        el.dataset.viewYMin,
+        el.dataset.viewYMax,
+      ]);
+    const zoomed = await view();
+    const beforeMiss = (await native.invoke("state")).state;
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    const notice = page.locator('.workflow-status [role="status"]');
+    await notice.filter({ hasText: "No peaks found in this area" }).waitFor();
+    await ready();
+    assert.deepEqual((await native.invoke("state")).state, beforeMiss);
+    assert.deepEqual(await view(), zoomed);
+    assert.equal(await page.getByRole("dialog").count(), 0);
+    assert.equal(
+      await page
+        .getByRole("button", { name: "View error details", exact: true })
+        .count(),
+      0,
+    );
+    assert.equal(
+      await page.locator('.workflow-status [role="alert"]').innerText(),
+      "",
+    );
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Current calibrant ring", exact: true })
+        .getAttribute("data-ring"),
+      "1",
+    );
+    const noticeBox = await notice.boundingBox();
+    assert.ok(
+      noticeBox.x > 720 && noticeBox.y > 850,
+      "Missed picks use the lower-right footer",
+    );
+    await page.screenshot({
+      path: path.join(artifacts, `${name}-missed-pick.png`),
+    });
+    await notice
+      .filter({ hasText: "No peaks found in this area" })
+      .waitFor({ state: "hidden", timeout: 7000 });
+    assert.equal((await native.invoke("example")).ok, true);
+    await page.reload();
     await page.getByTestId("detector-canvas").waitFor();
     await ready();
     const seeds = [
@@ -181,6 +251,7 @@ for (const [name, type] of [
     assert.deepEqual(errors, []);
     receipts.push({
       browser: name,
+      missedPickNotice: true,
       source: "raw CeO2 TIFF; no reference geometry loaded",
       manualRmsDegrees: manualRms,
       automaticRmsDegrees: snapshot.state.calibration.rmsDegrees,

@@ -232,6 +232,7 @@ export interface Response {
     twoThetaResolution?: number;
   };
   nextRing?: number;
+  noPeakFound?: boolean;
   levels?: [number, number] | null;
   display?: "detector" | "cake";
   progress?: {

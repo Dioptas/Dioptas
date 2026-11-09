@@ -873,6 +873,8 @@ export default function App() {
           );
         }
         if (result.correctionNotice) setNotice(result.correctionNotice);
+        if (command === "pick_peak" && result.noPeakFound)
+          setNotice("No peaks found in this area");
         if (command === "open_calibration" && !result.cancelled) {
           setNotice(
             `Loaded calibration: ${result.state?.calibrationName ?? "PONI"}`,

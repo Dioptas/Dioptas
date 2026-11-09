@@ -367,6 +367,11 @@ impl Session {
             Err(error) => Err(error),
             Ok(mut extra) => {
                 self.control.check()?;
+                if extra["noPeakFound"] == true {
+                    // A missed click does not edit calibration or its history.
+                    extra["ok"] = json!(true);
+                    return Ok(Reply::metadata(extra));
+                }
                 if let Some(image) = &self.image {
                     self.settings.geometry.sync_shape(image.shape)?;
                 }
@@ -608,10 +613,7 @@ impl Session {
                         .unwrap_or_default()
                 };
                 if points.is_empty() {
-                    return Err(
-                        "No peak found here. Click on a bright ring, or try single-peak mode."
-                            .into(),
-                    );
+                    return Ok(json!({"pickedCount":0,"noPeakFound":true}));
                 }
                 if self
                     .calibration
