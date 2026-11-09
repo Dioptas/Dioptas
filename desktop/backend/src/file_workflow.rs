@@ -451,6 +451,7 @@ impl Session {
                 if source != "image" && source != "cake" {
                     return Err("Choose the detector image or cake to save.".into());
                 }
+                if source == "cake" { self.ensure_cake()?; }
                 let mut file = path(args)?.to_path_buf();
                 if file.extension().is_none() {
                     file.set_extension("png");

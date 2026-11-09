@@ -30,6 +30,7 @@ for (const [name, type] of [
     page.setDefaultTimeout(30000);
     const errors = [];
     const commandErrors = [];
+    const productRequests = [];
     page.on("pageerror", (error) => {
       errors.push(error.message);
       console.error(`${name}: ${error.stack}`);
@@ -37,6 +38,7 @@ for (const [name, type] of [
     await page.exposeFunction(
       "__nativeInvoke",
       async (action, payload = {}) => {
+        productRequests.push({ action, products: payload.requested_products });
         if (action === "open_image" && !payload.path)
           payload.path = path.join(
             root,
@@ -76,13 +78,27 @@ for (const [name, type] of [
       .getByRole("button", { name: "Integration", exact: true })
       .click();
     await page.waitForTimeout(250);
+    const beforeReload = (await native.invoke("integration_diagnostics"))
+      .integrationDiagnostics.cakeIntegrations;
+    // Loading a PONI opens calibration Validation, which legitimately shows a
+    // cake. Reload through Integration's real filename editor with Cake hidden.
+    await page.getByLabel("Image filename", { exact: true }).press("Enter");
+    await page.waitForFunction(() => !document.querySelector(".spin"));
+    assert.equal(
+      productRequests.findLast((r) => r.action === "open_image").products.cake,
+      false,
+    );
     assert.deepEqual(errors, []);
     assert.deepEqual(commandErrors, []);
-    const snapshot = await native.invoke("state");
+    let snapshot = await native.invoke("state");
     assert.equal(snapshot.state.calibrated, true);
     assert.equal(snapshot.pattern.x.length, 1000);
-    assert.equal(snapshot.cake.width, 1000);
-    assert.equal(snapshot.cake.height, 360);
+    assert.equal(snapshot.cake, null, "Hidden cake should not be calculated");
+    assert.equal(
+      (await native.invoke("integration_diagnostics")).integrationDiagnostics
+        .cakeIntegrations,
+      beforeReload,
+    );
     await page.screenshot({
       path: path.join(artifacts, `${name}-integration.png`),
     });
@@ -91,6 +107,53 @@ for (const [name, type] of [
       .boundingBox();
     assert.ok(detector && detector.width > 200 && detector.height > 200);
     await selectIntegrationDisplay(page, "cake");
+    await page.getByTestId("cake-canvas").waitFor({ state: "visible" });
+    snapshot = await native.invoke("state");
+    assert.equal(snapshot.cake.width, 1000);
+    assert.equal(snapshot.cake.height, 360);
+    assert.equal(
+      (await native.invoke("integration_diagnostics")).integrationDiagnostics
+        .cakeIntegrations,
+      beforeReload + 1,
+    );
+    const storedPattern = snapshot.pattern;
+    await selectIntegrationDisplay(page, "image");
+    await selectIntegrationDisplay(page, "cake");
+    assert.equal(
+      (await native.invoke("integration_diagnostics")).integrationDiagnostics
+        .cakeIntegrations,
+      beforeReload + 1,
+    );
+    assert.deepEqual((await native.invoke("state")).pattern, storedPattern);
+    await page
+      .getByRole("button", { name: "Calibration", exact: true })
+      .click();
+    await page.waitForFunction(
+      () =>
+        Number(
+          document.querySelector('[data-testid="detector-canvas"]')?.dataset
+            .ringCount,
+        ) > 0,
+    );
+    await page.getByLabel("Show calibrant lines", { exact: true }).uncheck();
+    await page.waitForFunction(
+      () =>
+        document.querySelector('[data-testid="detector-canvas"]')?.dataset
+          .ringCount === "0",
+    );
+    await page.getByLabel("Show calibrant lines", { exact: true }).check();
+    await page.waitForFunction(
+      () =>
+        Number(
+          document.querySelector('[data-testid="detector-canvas"]')?.dataset
+            .ringCount,
+        ) > 0,
+    );
+    assert.equal(
+      (await native.invoke("integration_diagnostics")).integrationDiagnostics
+        .cakeIntegrations,
+      beforeReload + 1,
+    );
     await page.screenshot({ path: path.join(artifacts, `${name}-cake.png`) });
     assert.deepEqual(errors, []);
     assert.deepEqual(commandErrors, []);

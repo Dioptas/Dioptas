@@ -93,6 +93,7 @@ pub struct Engine {
     raw: Option<RawSource>,
     pattern_builds: u64,
     cake_builds: u64,
+    cake_integrations: u64,
     combined_decodes: u64,
     parallel_pixel_decodes: u64,
     last_pixel_decode_ms: f64,
@@ -280,7 +281,7 @@ impl Engine {
     }
 
     pub fn diagnostics(&self) -> Value {
-        json!({"patternPlanBuilds":self.pattern_builds,"cakePlanBuilds":self.cake_builds,"combinedDecodes":self.combined_decodes,"preparedHits":self.prepared_hits,"residentIntegrations":self.resident_calls,"patternOnlyDecodes":self.pattern_only_decodes,"parallelPixelDecodes":self.parallel_pixel_decodes,"lastPixelDecodeMs":self.last_pixel_decode_ms})
+        json!({"patternPlanBuilds":self.pattern_builds,"cakePlanBuilds":self.cake_builds,"cakeIntegrations":self.cake_integrations,"combinedDecodes":self.combined_decodes,"preparedHits":self.prepared_hits,"residentIntegrations":self.resident_calls,"patternOnlyDecodes":self.pattern_only_decodes,"parallelPixelDecodes":self.parallel_pixel_decodes,"lastPixelDecodeMs":self.last_pixel_decode_ms})
     }
     fn pattern_plan(&mut self, k: Key) -> Result<&mut Plan, String> {
         if self.pattern.as_ref().is_none_or(|p| p.key != k) {
@@ -675,6 +676,19 @@ impl Engine {
     ) -> Result<Products, String> {
         let (pattern, sigma) =
             self.integrate_pattern_with_variance(data, variance, shape, p, mask, o, prepared)?;
+        let (cake, cake_values) = self.integrate_cake(data, shape, p, mask, o)?;
+        Ok(Products { pattern, cake, cake_values, sigma })
+    }
+    /// Both full integration and lazy display/export use this same cake kernel.
+    pub fn integrate_cake(
+        &mut self,
+        data: &[f64],
+        shape: [usize; 2],
+        p: &Parameters,
+        mask: &[u8],
+        o: &Options,
+    ) -> Result<(Raster, Vec<f64>), String> {
+        self.cake_integrations += 1;
         let ck = key(shape, p, mask, o, true);
         if self.cake.as_ref().is_none_or(|plan| plan.key != ck) {
             self.cake = Some(Plan::new(ck)?);
@@ -759,11 +773,6 @@ impl Engine {
         cake.metadata["radialRange"] = json!(radial_range);
         cake.metadata["azimuthRange"] = json!(azimuth_range);
         cake.metadata["unit"] = json!("2th_deg");
-        Ok(Products {
-            pattern,
-            cake,
-            cake_values: pixels,
-            sigma,
-        })
+        Ok((cake, pixels))
     }
 }

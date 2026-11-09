@@ -9,10 +9,26 @@ use std::sync::{
 #[derive(Default)]
 pub struct Control {
     cancelled: AtomicBool,
+    skip_cake: AtomicBool,
+    skip_calibration_rings: AtomicBool,
     progress: Mutex<Value>,
     map_preview: Mutex<Option<(Value, Buffer)>>,
 }
 impl Control {
+    /// Per-command display demand, shared by all configuration owners. Legacy
+    /// callers that do not specify products retain the complete response.
+    pub(crate) fn request_cake(&self, requested: bool) {
+        self.skip_cake.store(!requested, Ordering::Release);
+    }
+    pub(crate) fn cake_requested(&self) -> bool {
+        !self.skip_cake.load(Ordering::Acquire)
+    }
+    pub(crate) fn request_calibration_rings(&self, requested: bool) {
+        self.skip_calibration_rings.store(!requested, Ordering::Release);
+    }
+    pub(crate) fn calibration_rings_requested(&self) -> bool {
+        !self.skip_calibration_rings.load(Ordering::Acquire)
+    }
     pub fn cancel(&self) {
         self.cancelled.store(true, Ordering::Release);
     }

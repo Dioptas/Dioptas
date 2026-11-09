@@ -498,6 +498,20 @@ with Batch open restores it. Scientific data is restored by loading a project. C
 normalization, HDF5/CSV saving and processed-batch import. Save project retains the series.
 See [Batch parity](BATCH_PARITY.md) for workflow, checks and scope.
 
+## Requested display products
+
+The Rust UI requests only the display products it uses. Image browsing, Batch
+selection and Map selection do not calculate a hidden cake. Switching to Cake,
+opening calibration Validation or explicitly exporting cake data calculates it
+on demand through the same native cake kernel. Showing it again reuses the
+current result; changing the frame, mask or integration settings invalidates it.
+Requesting a cake does not replace a stored/normalized pattern or add history.
+Calibration ring contours are requested only while their calibration overlay is
+visible. Phase guides and linked inspection contours remain independent.
+The common request policy applies to file opens, arrows, settings, Batch, Map,
+configuration changes and project loading. Legacy/reference calls without a
+product request retain their complete response for compatibility.
+
 ## WebGL pattern benchmark
 
 The renderer comparison is described in

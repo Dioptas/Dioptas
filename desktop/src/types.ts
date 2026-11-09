@@ -62,6 +62,7 @@ export interface Pattern {
   }[];
 }
 export interface State {
+  supportsRequestedProducts?: boolean;
   revision: number;
   hasImage: boolean;
   imageName: string | null;

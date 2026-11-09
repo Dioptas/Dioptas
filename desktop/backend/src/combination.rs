@@ -169,6 +169,7 @@ impl Session {
             && !matches!(
                 action,
                 "state"
+                    | "display_products"
                     | "pixel"
                     | "image_levels"
                     | "integration_phase_state"
@@ -199,7 +200,7 @@ impl Session {
             });
             reply.result["pattern"] = json!(pattern);
         }
-        if self.combination.cakes && reply.result.get("cake").is_some() {
+        if self.combination.cakes && self.control.cake_requested() && reply.result.get("cake").is_some() {
             reply.result["cake"] = self
                 .combination
                 .cake
@@ -214,7 +215,7 @@ impl Session {
     }
 
     #[cfg(feature = "dioptrin")]
-    fn refresh_combination(&mut self) -> Result<(), String> {
+    pub(super) fn refresh_combination(&mut self) -> Result<(), String> {
         use dioptrin::{
             integration::{IntegrationMethod, Integrator, RadialUnit},
             mask::Mask,
@@ -382,7 +383,7 @@ impl Session {
         } else {
             self.combination.pattern = None;
         }
-        if self.combination.cakes {
+        if self.combination.cakes && self.control.cake_requested() {
             let p = integrate(&plans.cake, plans.key.cake_bins, plans.key.cake_azimuth)?;
             let mut raster = Raster::image(&p.intensity, [plans.key.cake_bins, plans.key.bins]);
             raster.metadata["radialRange"] = json!([p.radial[0], p.radial[p.radial.len() - 1]]);

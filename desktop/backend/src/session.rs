@@ -260,6 +260,19 @@ impl Session {
         if let Err(error) = request.validate() {
             return Reply::error(error);
         }
+        let mut payload = std::borrow::Cow::Borrowed(&request.payload);
+        if let Some(products) = request.payload.get("requested_products") {
+            if !products.is_object() || !products["cake"].is_boolean()
+                || products.as_object().unwrap().iter().any(|(key,value)| !["cake","rings"].contains(&key.as_str()) || !value.is_boolean()) {
+                return Reply::error("Requested products must contain a cake boolean and optional rings boolean.");
+            }
+            self.control.request_cake(products["cake"].as_bool().unwrap());
+            self.control.request_calibration_rings(products["rings"].as_bool().unwrap_or(true));
+            payload.to_mut().as_object_mut().unwrap().remove("requested_products");
+        } else {
+            self.control.request_cake(true);
+            self.control.request_calibration_rings(true);
+        }
         let project_checkpoint = self.project.clone();
         let shared_before = (
             self.phases.clone(),
@@ -291,9 +304,9 @@ impl Session {
         .then(|| self.calibration_snapshot());
         let calibration_head = self.calibration_history.undo.last().cloned();
         let dispatched = self
-            .dispatch(&request.action, &request.payload)
+            .dispatch(&request.action, &payload)
             .and_then(|mut reply| {
-                self.update_combination_reply(&mut reply, &request.action, &request.payload)?;
+                self.update_combination_reply(&mut reply, &request.action, &payload)?;
                 Ok(reply)
             });
         match dispatched {
@@ -452,10 +465,18 @@ impl Session {
                 return Ok(Reply::metadata(
                     json!({"ok": true, "protocol": 2, "transport": "stdio", "runtime": "rust", "pid": std::process::id(), "qtApplication": false,
                 "engine": if cfg!(feature="dioptrin") { Some("dioptrin") } else { None },
-                "capabilities": ["image-input", "frame-navigation", "binary-rasters", "display-statistics", "mask-brush", "mask-history", "mask-plugins", "calibration-peaks", "calibration-history", "uniform-poni", "manual-pyfai-geometry", "xy-export", "project-format-2", "configuration-management", "image-transformations", "geometric-masks", "mask-lacosmic","detector-definitions","detector-orientations","distortion-splines","fit2d-geometry"]}),
+                "capabilities": ["requested-products", "image-input", "frame-navigation", "binary-rasters", "display-statistics", "mask-brush", "mask-history", "mask-plugins", "calibration-peaks", "calibration-history", "uniform-poni", "manual-pyfai-geometry", "xy-export", "project-format-2", "configuration-management", "image-transformations", "geometric-masks", "mask-lacosmic","detector-definitions","detector-orientations","distortion-splines","fit2d-geometry"]}),
                 ));
             }
             "state" => return Ok(self.snapshot(true)),
+            "display_products" => {
+                check_keys(args, &["cake", "rings"])?;
+                let cake = boolean(&args["cake"], "Request cake")?;
+                self.control.request_cake(cake);
+                if let Some(rings) = args.get("rings") { self.control.request_calibration_rings(boolean(rings,"Request calibration rings")?); }
+                if cake { self.ensure_cake()?; }
+                return Ok(self.snapshot(false));
+            }
             "example" => {
                 let path = self.example_path();
                 let candidate = Image::open(&path, &json!({}))?;
@@ -1527,7 +1548,38 @@ impl Session {
     fn calculate(&mut self, defer: bool) -> Result<(), String> {
         self.calculate_products(defer, true)
     }
+    pub(super) fn ensure_cake(&mut self) -> Result<(), String> {
+        self.control.request_cake(true);
+        self.require_image()?;
+        if !self.settings.calibrated {
+            return Err("Load a calibration before requesting a cake.".into());
+        }
+        #[cfg(feature = "dioptrin")]
+        {
+            if self.combination.cakes {
+                if self.combination.cake.is_none() { self.refresh_combination()?; }
+                return Ok(());
+            }
+            if self.cake.is_none() {
+                self.control.check()?;
+                self.prepare_processing()?;
+                self.refresh_masks(&self.control.clone())?;
+                let shape = self.image.as_ref().unwrap().shape;
+                let (cake, values) = self.engine.integrate_cake(
+                    &self.scientific_values(), shape, &self.settings.geometry,
+                    &self.integration_mask(shape), &self.integration_options(),
+                )?;
+                self.control.check()?;
+                self.cake = Some(cake);
+                self.cake_values = Some(Arc::new(values));
+            }
+            Ok(())
+        }
+        #[cfg(not(feature = "dioptrin"))]
+        Err("Cake calculation requires the native Dioptrin engine.".into())
+    }
     fn calculate_products(&mut self, defer: bool, include_cake: bool) -> Result<(), String> {
+        let include_cake = include_cake && self.control.cake_requested();
         self.control.check()?;
         if let Some(image) = &self.image {
             self.settings.geometry.sync_shape(image.shape)?;
@@ -1774,6 +1826,7 @@ impl Session {
             .map(|p| p.to_string_lossy().into_owned())
             .unwrap_or_default();
         let mut result = json!({"ok": true, "backend": {"runtime": "rust", "experimental": true}, "state": {
+            "supportsRequestedProducts": true,
             "revision": self.revision, "hasImage": self.image.is_some(), "imageName": name, "imagePath": image_path, "shape": shape,
             "calibrationName": s.calibration_name, "calibrated": s.calibrated, "projectName": self.project.path.as_ref().and_then(|p|p.file_name()).map(|p|p.to_string_lossy()), "unit": s.unit,
             "bins": if s.automatic_binning {Value::Null}else{json!(s.bins)}, "useMask": s.use_mask, "transparentMask": s.transparent_mask,
@@ -1835,7 +1888,7 @@ impl Session {
         }
         trace.mark("processing and calibration metadata");
         #[cfg(feature = "dioptrin")]
-        if self.settings.calibrated && include_rings {
+        if self.settings.calibrated && include_rings && self.control.calibration_rings_requested() {
             result["rings"] = self.calibration_rings();
         }
         #[cfg(not(feature = "dioptrin"))]
@@ -1855,7 +1908,7 @@ impl Session {
             result["mask"] = raster.metadata.clone();
             buffers.push(raster.buffer.clone());
         }
-        if let Some(raster) = &self.cake {
+        if let Some(raster) = self.cake.as_ref().filter(|_| self.control.cake_requested()) {
             result["cake"] = raster.metadata.clone();
             buffers.push(raster.buffer.clone());
         }

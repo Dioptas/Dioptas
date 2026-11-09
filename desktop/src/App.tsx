@@ -1,4 +1,8 @@
 import { useBackendReload } from "./useBackendReload";
+import {
+  requestedDisplayProducts,
+  withRequestedProducts,
+} from "./displayProducts";
 import { navigationTimingEnabled, navigationTrace } from "./navigationTiming";
 import { usePlotZoomPreference } from "./usePlotZoomPreference";
 import {
@@ -319,6 +323,23 @@ export default function App() {
   const pendingMapRegions = useRef(0);
   const currentState = useRef<State | null>(null);
   const [state, setState] = useState<State | null>(null);
+  const { cake: requestedCake, rings: requestedRings } =
+    requestedDisplayProducts({
+      mode,
+      display: integrationDisplay,
+      calibrationStep,
+      concealed: settingsOpen,
+      combinedCake: !!state?.combination?.cakes,
+      showRings,
+    });
+  const requestedProductsRef = useRef({
+    cake: requestedCake,
+    rings: requestedRings,
+  });
+  requestedProductsRef.current = { cake: requestedCake, rings: requestedRings };
+  const supportsRequestedProducts = useRef(false);
+  const requestingCake = useRef(false);
+  const requestedRingContext = useRef<string | null>(null);
   const integrationDraft = useIntegrationSettingsDraft(state);
   const resetIntegrationDraft = integrationDraft.sync;
   const fitEditor = useCalibrationFitDraft(state?.calibration);
@@ -479,6 +500,8 @@ export default function App() {
       if ("map" in result) setMap(result.map ?? null);
       if ("mapWarning" in result) setMapWarning(result.mapWarning ?? null);
       if (result.state) {
+        supportsRequestedProducts.current =
+          result.state.supportsRequestedProducts === true;
         if (result.calibrationReset) {
           resetFitDraft(result.state.calibration);
           resetGeometryDraft(result.state.calibration);
@@ -575,6 +598,8 @@ export default function App() {
             : result.mask!,
         );
       if (result.rings) {
+        if (!result.rings.length && !requestedProductsRef.current.rings)
+          requestedRingContext.current = null;
         setRings(result.rings);
       }
       if ("pattern" in result) setPattern(result.pattern ?? null);
@@ -1047,11 +1072,60 @@ export default function App() {
     run,
   ]);
   useEffect(() => {
+    const ringContext = JSON.stringify([
+      clickContext(state),
+      state?.calibration.calibrant,
+    ]);
+    const missingRings =
+      requestedRings &&
+      !rings.length &&
+      requestedRingContext.current !== ringContext;
+    if (
+      supportsRequestedProducts.current &&
+      ((requestedCake && !cake) || missingRings) &&
+      state?.hasImage &&
+      state.calibrated &&
+      !state.integrationDirty &&
+      !busy &&
+      !error &&
+      !requestingCake.current
+    ) {
+      requestingCake.current = true;
+      if (requestedRings) requestedRingContext.current = ringContext;
+      void run(
+        "display_products",
+        { cake: requestedCake, rings: requestedRings },
+        requestedCake ? "Preparing cake…" : "Preparing calibration rings…",
+      ).finally(() => {
+        requestingCake.current = false;
+      });
+    }
+  }, [
+    requestedCake,
+    requestedRings,
+    rings.length,
+    state,
+    cake,
+    state?.hasImage,
+    state?.calibrated,
+    state?.integrationDirty,
+    busy,
+    error,
+    run,
+  ]);
+  useEffect(() => {
     let mounted = true;
     connect()
       .then(async (invoke) => {
         if (!mounted) return;
-        bridge.current = invoke;
+        const displayInvoke = withRequestedProducts(
+          invoke,
+          () => requestedProductsRef.current,
+        );
+        bridge.current = (action, payload) =>
+          supportsRequestedProducts.current
+            ? displayInvoke(action, payload)
+            : invoke(action, payload);
         await run("state", {}, "Opening workspace…");
       })
       .catch((e) => {
