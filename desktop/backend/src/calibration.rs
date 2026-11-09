@@ -6,6 +6,8 @@ include!(concat!(env!("OUT_DIR"), "/calibrants.rs"));
 #[cfg(feature = "dioptrin")]
 #[path = "calibration_fit.rs"]
 mod native;
+#[cfg(feature = "dioptrin")]
+pub(super) use native::MassifCache;
 const KEYS: [&str; 7] = [
     "dist",
     "poni1",

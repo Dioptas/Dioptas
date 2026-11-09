@@ -2,7 +2,7 @@ use super::*;
 use crate::control::Control;
 use dioptrin::{
     calibration::{
-        Calibrant, CalibrationOptions, CalibrationPoints, MassifOptions, ParamMask,
+        Calibrant, CalibrationOptions, CalibrationPoints, MassifOptions, ParamMask, PreparedMassif,
         RingCenterOptions,
     },
     geometry::Geometry as NativeGeometry,
@@ -201,35 +201,78 @@ fn publish(
         "calibration":{"activeRing":ring,"picks":candidate.data.picks,"rings":rings(candidate,shape,cache),"rmsDegrees":candidate.data.rms}}));
 }
 
+/// A single bounded, disposable preprocessing cache. Immutable owners keep
+/// pointer identity valid across image/configuration changes and copy-on-write
+/// edits; mask changes while mask use is disabled do not affect the search.
+pub(crate) struct MassifCache {
+    values: std::sync::Arc<Vec<f64>>,
+    mask: Option<std::sync::Arc<Vec<u8>>>,
+    shape: [usize; 2],
+    prepared: PreparedMassif,
+}
+
+impl MassifCache {
+    fn matches(
+        &self,
+        values: &std::sync::Arc<Vec<f64>>,
+        mask: Option<&std::sync::Arc<Vec<u8>>>,
+        shape: [usize; 2],
+    ) -> bool {
+        self.shape == shape
+            && std::sync::Arc::ptr_eq(&self.values, values)
+            && match (&self.mask, mask) {
+                (None, None) => true,
+                (Some(a), Some(b)) => std::sync::Arc::ptr_eq(a, b),
+                _ => false,
+            }
+    }
+}
+
 impl Session {
     pub(super) fn seeded_peaks(&self, seed: [f64; 2]) -> Result<Vec<[f64; 2]>, String> {
         let image = self.image.as_ref().ok_or("Open a calibrant image first.")?;
-        let clean: Vec<_> = self
-            .scientific_values()
-            .iter()
-            .enumerate()
-            .map(|(i, &v)| {
-                if v.is_finite() && (!self.settings.use_mask || self.effective_mask[i] == 0) {
-                    v
-                } else {
-                    0.0
-                }
-            })
-            .collect();
+        let values = self.scientific_values();
+        let mask = self.settings.use_mask.then_some(&self.effective_mask);
         let row = seed[0].round_ties_even() as usize;
         let col = seed[1].round_ties_even() as usize;
-        if self.settings.use_mask && self.effective_mask[row * image.shape[1] + col] != 0 {
+        if mask.is_some_and(|m| m[row * image.shape[1] + col] != 0) {
             return Err("The selected pixel is masked.".into());
         }
         self.control.check()?;
-        let mut points = dioptrin::calibration::find_peaks(
-            &clean,
-            image.shape[0],
-            image.shape[1],
-            (row, col),
-            &MassifOptions::default(),
-        );
+        let mut cache = self.massif_cache.borrow_mut();
+        if cache
+            .as_ref()
+            .is_none_or(|c| !c.matches(&values, mask, image.shape))
+        {
+            let clean = values
+                .iter()
+                .enumerate()
+                .map(|(i, &v)| {
+                    if v.is_finite() && mask.is_none_or(|m| m[i] == 0) {
+                        v
+                    } else {
+                        0.0
+                    }
+                })
+                .collect();
+            let prepared = PreparedMassif::new(
+                clean,
+                image.shape[0],
+                image.shape[1],
+                MassifOptions::default(),
+            );
+            self.control.check()?;
+            *cache = Some(MassifCache {
+                values,
+                mask: mask.cloned(),
+                shape: image.shape,
+                prepared,
+            });
+        }
+        let prepared = &cache.as_ref().unwrap().prepared;
+        let mut points = prepared.find_peaks((row, col));
         if points.is_empty() {
+            let clean = prepared.image();
             let mut best = (row, col);
             for y in row.saturating_sub(5)..(row + 6).min(image.shape[0]) {
                 for x in col.saturating_sub(5)..(col + 6).min(image.shape[1]) {
@@ -238,13 +281,7 @@ impl Session {
                     }
                 }
             }
-            points = dioptrin::calibration::find_peaks(
-                &clean,
-                image.shape[0],
-                image.shape[1],
-                best,
-                &MassifOptions::default(),
-            );
+            points = prepared.find_peaks(best);
         }
         self.control.check()?;
         Ok(points
@@ -485,5 +522,163 @@ impl Session {
         }
         control.finish();
         result
+    }
+}
+
+#[cfg(test)]
+mod massif_cache_tests {
+    use super::*;
+    use std::sync::Arc;
+
+    fn call(session: &mut Session, action: &str, payload: Value) -> Value {
+        let reply = session
+            .invoke(&crate::protocol::Request {
+                id: 1,
+                action: action.into(),
+                payload,
+                cached_buffers: vec![],
+            })
+            .result;
+        assert_eq!(reply["ok"], true, "{action}: {reply}");
+        reply
+    }
+    fn session() -> Session {
+        let mut session = Session::new(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../.."));
+        call(&mut session, "example", json!({}));
+        session
+    }
+    fn cache_id(session: &Session) -> usize {
+        session
+            .massif_cache
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .prepared
+            .image()
+            .as_ptr() as usize
+    }
+    fn matches_fresh(session: &Session, seed: [f64; 2]) {
+        let cached = session.seeded_peaks(seed).unwrap();
+        *session.massif_cache.borrow_mut() = None;
+        assert_eq!(cached, session.seeded_peaks(seed).unwrap());
+    }
+
+    #[test]
+    fn massif_cache_reuses_pixels_across_seeds_and_calibration_edits() {
+        let mut s = session();
+        assert!(!s.seeded_peaks([564., 637.]).unwrap().is_empty());
+        let id = cache_id(&s);
+        for seed in [[511., 671.], [703., 668.], [0., 0.]] {
+            s.seeded_peaks(seed).unwrap();
+            assert_eq!(cache_id(&s), id);
+        }
+        call(&mut s, "workflow_settings", json!({"autoIncrement":false}));
+        call(&mut s, "pick_peak", json!({"x":637,"y":564,"ring":1}));
+        call(&mut s, "undo_calibration", json!({}));
+        call(&mut s, "redo_calibration", json!({}));
+        assert_eq!(cache_id(&s), id);
+    }
+
+    #[test]
+    fn massif_cache_invalidates_on_image_orientation_corrections_and_masks() {
+        let mut s = session();
+        s.seeded_peaks([564., 637.]).unwrap();
+        let source = s.image.as_ref().unwrap().path.clone();
+        for (action, payload) in [
+            (
+                "mask_edit",
+                json!({"operation":"rectangle","points":[[1.,1.],[4.,3.]]}),
+            ),
+            ("undo_mask", json!({})),
+            ("redo_mask", json!({})),
+            ("settings", json!({"use_mask":false})),
+            ("settings", json!({"use_mask":true})),
+            (
+                "integration_image_background",
+                json!({"path":source,"scale":0.01}),
+            ),
+            ("integration_image_background", json!({"reset":true})),
+            ("image_transform", json!({"operation":"flip_horizontal"})),
+            ("image_transform", json!({"operation":"rotate_right"})),
+            ("example", json!({})),
+        ] {
+            let before = cache_id(&s);
+            call(&mut s, action, payload);
+            s.seeded_peaks([564., 637.]).unwrap();
+            assert_ne!(cache_id(&s), before, "{action} must rebuild preprocessing");
+            matches_fresh(&s, [564., 637.]);
+        }
+        call(&mut s, "settings", json!({"use_mask":false}));
+        s.seeded_peaks([564., 637.]).unwrap();
+        let before = cache_id(&s);
+        // Editing through the Mask workflow also enables mask use. Here vary
+        // an inactive effective mask directly to check the cache key itself.
+        Arc::make_mut(&mut s.effective_mask)[5 * 981 + 5] = 1;
+        s.seeded_peaks([564., 637.]).unwrap();
+        assert_eq!(
+            cache_id(&s),
+            before,
+            "Disabled masks do not affect preprocessing"
+        );
+    }
+
+    #[test]
+    fn massif_cache_keeps_copy_on_write_inputs_immutable_and_rejects_masked_seeds() {
+        let mut s = session();
+        let original = s.seeded_peaks([564., 637.]).unwrap();
+        let before = cache_id(&s);
+        // Holding the source owners in the cache forces a fresh identity even
+        // when a caller changes an existing Arc through copy-on-write.
+        s.processed_values = Some(s.scientific_values());
+        let values = s.processed_values.as_mut().unwrap();
+        Arc::make_mut(values)[564 * 981 + 637] += 1000.;
+        s.seeded_peaks([564., 637.]).unwrap();
+        assert_ne!(cache_id(&s), before);
+        matches_fresh(&s, [564., 637.]);
+        let before = cache_id(&s);
+        Arc::make_mut(&mut s.effective_mask)[564 * 981 + 637] = 1;
+        assert_eq!(
+            s.seeded_peaks([564., 637.]).unwrap_err(),
+            "The selected pixel is masked."
+        );
+        // A rejected click does not publish preprocessing for that masked seed.
+        assert_eq!(cache_id(&s), before);
+        s.seeded_peaks([511., 671.]).unwrap();
+        assert_ne!(cache_id(&s), before);
+        matches_fresh(&s, [511., 671.]);
+        assert!(!original.is_empty());
+    }
+
+    #[test]
+    fn massif_cache_rebuilds_for_a_different_frame_of_the_same_file() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("frames.tif");
+        let mut encoder =
+            tiff::encoder::TiffEncoder::new(std::fs::File::create(&path).unwrap()).unwrap();
+        for center in [20.3, 40.2] {
+            let values: Vec<_> = (0..64 * 64)
+                .map(|i| {
+                    1.0 + 100.0
+                        * (-((i / 64) as f64 - 32.0).powi(2) / 8.0
+                            - ((i % 64) as f64 - center).powi(2) / 8.0)
+                            .exp()
+                })
+                .collect();
+            encoder
+                .write_image::<tiff::encoder::colortype::Gray64Float>(64, 64, &values)
+                .unwrap();
+        }
+        drop(encoder);
+        let mut s = Session::new(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../.."));
+        call(&mut s, "open_image", json!({"path":path,"frame":0}));
+        assert_eq!(s.image.as_ref().unwrap().frames, 2);
+        let first = s.seeded_peaks([31., 20.]).unwrap();
+        let before = cache_id(&s);
+        call(&mut s, "open_image", json!({"path":path,"frame":1}));
+        let second = s.seeded_peaks([31., 40.]).unwrap();
+        assert_ne!(cache_id(&s), before);
+        assert!((first[0][1] - 20.3).abs() < 0.1);
+        assert!((second[0][1] - 40.2).abs() < 0.1);
+        matches_fresh(&s, [31., 40.]);
     }
 }

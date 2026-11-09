@@ -169,6 +169,8 @@ pub struct Session {
     #[cfg(feature = "dioptrin")]
     ring_cache: std::cell::RefCell<Option<calibration::RingCache>>,
     #[cfg(feature = "dioptrin")]
+    massif_cache: std::cell::RefCell<Option<calibration::MassifCache>>,
+    #[cfg(feature = "dioptrin")]
     sigma: Option<Vec<f64>>,
     #[cfg(feature = "dioptrin")]
     engine: crate::integration::Engine,
@@ -240,6 +242,8 @@ impl Session {
             control: Arc::new(Control::default()),
             #[cfg(feature = "dioptrin")]
             ring_cache: Default::default(),
+            #[cfg(feature = "dioptrin")]
+            massif_cache: Default::default(),
             #[cfg(feature = "dioptrin")]
             sigma: None,
             #[cfg(feature = "dioptrin")]

@@ -10,6 +10,12 @@ uses this checkout; the single-crystal experiment stays separate. See the
 [consolidation record](RUST_DESKTOP_CONSOLIDATION.md) for included branches and
 verification.
 
+The desktop uses Dioptrin **0.12.0** plus the Massif preprocessing optimization
+at revision `88b88a1`, locked in `backend/Cargo.lock`. It includes native
+pyFAI-compatible full pixel splitting for both 1D patterns and cakes. Massif
+picking retains full-resolution samples and reuses preprocessing across clicks;
+see [performance and numerical checks](MASSIF_PERFORMANCE.md).
+
 The default [Rust backend](backend/README.md) runs the
 image → peak picking/fitting or loaded/manual geometry → integration workflow without Python, using
 `dioptrin-io` and Dioptrin. `npm run tauri:dev`, `desktop/launch.command` and
