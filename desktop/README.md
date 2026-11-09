@@ -28,7 +28,7 @@ See the [qualification ledger](NATIVE_INTEGRATION_PARITY.md) for measured parity
 benchmark scope and remaining detector work. Native format-2 `.dio` persistence
 and configuration select/add/duplicate/rename/remove controls are now available;
 see [project compatibility and verification](NATIVE_PROJECT_PARITY.md).
-The configuration bar is hidden by default. Enable **Settings → Configurations → Enable configurations** to use it. This preference is remembered across restarts. Switching it off hides the toolbar
+The configuration bar is hidden by default. Enable **Settings → Configurations → Enable configurations** to use it, or press **Shift+C** in the workspace to toggle configurations. The shortcut pauses in text fields, menus, dialogs and Settings. This preference is remembered across restarts. Switching it off hides the toolbar
 and disables combined patterns/cakes while retaining all configurations and the
 active selection. Opening a project with active combination enables the toolbar.
 The next stage adds [native rotations/flips and geometric masks](NATIVE_GEOMETRY_MASK_PARITY.md)

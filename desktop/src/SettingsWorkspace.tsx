@@ -223,6 +223,7 @@ export function SettingsWorkspace({
                     onShowConfigurationControls(event.target.checked)
                   }
                   aria-describedby="settings-configuration-description"
+                  aria-keyshortcuts="Shift+C"
                 />
                 <div>
                   <label htmlFor="settings-configuration-controls">
@@ -231,7 +232,7 @@ export function SettingsWorkspace({
                   <p id="settings-configuration-description">
                     Keep each detector’s image, calibration and processing
                     together. Switching off retains your setups and disables
-                    combination.
+                    combination. Press Shift+C in the workspace to toggle.
                   </p>
                 </div>
               </div>

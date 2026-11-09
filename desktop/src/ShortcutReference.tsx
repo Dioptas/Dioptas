@@ -23,6 +23,7 @@ export const shortcutGroups = [
   {
     title: "Workspace & mask tools",
     rows: [
+      ["Enable / disable configurations", "Shift + C"],
       [
         "Enable picking / switch to Calibration · valid image setup; outside Mask mode",
         "P",

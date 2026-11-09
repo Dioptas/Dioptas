@@ -944,6 +944,27 @@ export default function App() {
       draftReplacement.request,
     ],
   );
+  const changeConfigurationControls = useCallback(
+    (show: boolean) => {
+      if (
+        !currentState.current ||
+        busy ||
+        inFlight.current ||
+        integrationDraft.dirty
+      )
+        return;
+      const combination = currentState.current.combination;
+      if (!show && (combination?.patterns || combination?.cakes)) {
+        void run(
+          "combination_settings",
+          { patterns: false, cakes: false },
+          "Disabling configurations…",
+          () => setShowConfigurationControls(false),
+        );
+      } else setShowConfigurationControls(show);
+    },
+    [busy, integrationDraft.dirty, run],
+  );
   useEffect(() => {
     if (state?.combination?.patterns || state?.combination?.cakes)
       setShowConfigurationControls(true);
@@ -1086,7 +1107,11 @@ export default function App() {
       if (event.defaultPrevented) return;
       const key = event.key.toLowerCase(),
         mod = event.metaKey || event.ctrlKey;
-      if (mod && key === "o") {
+      if (!mod && !event.altKey && event.shiftKey && key === "c") {
+        event.preventDefault();
+        if (!event.repeat)
+          changeConfigurationControls(!showConfigurationControls);
+      } else if (mod && key === "o") {
         event.preventDefault();
         void run(
           "open_image",
@@ -1188,6 +1213,8 @@ export default function App() {
     selectedPicks,
     maskTools,
     settingsOpen,
+    changeConfigurationControls,
+    showConfigurationControls,
   ]);
   const onPatternHover = useCallback(
     (point: PatternHover | null) => {
@@ -3134,19 +3161,7 @@ export default function App() {
               largeText={largeText}
               onLargeText={setLargeText}
               showConfigurationControls={showConfigurationControls}
-              onShowConfigurationControls={(show) => {
-                if (
-                  !show &&
-                  (state?.combination?.patterns || state?.combination?.cakes)
-                ) {
-                  void run(
-                    "combination_settings",
-                    { patterns: false, cakes: false },
-                    "Disabling configurations…",
-                    () => setShowConfigurationControls(false),
-                  );
-                } else setShowConfigurationControls(show);
-              }}
+              onShowConfigurationControls={changeConfigurationControls}
               onClose={closeSettings}
               returnLabel={
                 {
