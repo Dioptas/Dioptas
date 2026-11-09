@@ -75,6 +75,7 @@ if (selected.has("--ui")) {
   run("frontend-unit", "npm", ["test"]);
   run("frontend-build", "npm", ["run", "build"]);
   for (const script of [
+    "hook_refresh_smoke",
     "ui_components",
     "native_backend_smoke",
     "native_calibration_smoke",

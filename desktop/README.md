@@ -118,6 +118,11 @@ the Rust host and requires the Rust toolchain and platform build prerequisites.
 The Tauri CLI owns a loopback Vite frontend on port 1420; React/CSS edits appear
 in the running native window. If that port is occupied, it fails rather than
 opening a different project's server. Closing the window also stops Vite.
+Development also tracks React hook signatures in `.ts` modules: changing their
+hook layout safely remounts the affected interface, while ordinary edits retain
+interface state. Run `npm run test:hook-refresh` for the headless Chromium/WebKit
+regression check against a real native session.
+
 Rust processor source/Cargo/data changes rebuild the worker in the background.
 After a successful build, the host waits for the current operation, checkpoints
 all configurations into a private owned-data project, restores the new worker,

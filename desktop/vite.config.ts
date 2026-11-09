@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { viteSingleFile } from "vite-plugin-singlefile";
+import { reactHookRefresh } from "./scripts/react_hook_refresh.mjs";
 
 let revision = "unknown";
 try {
@@ -21,6 +22,7 @@ export default defineConfig({
     ),
   },
   plugins: [
+    reactHookRefresh(),
     react(),
     viteSingleFile(),
     {
