@@ -41,7 +41,14 @@ impl IndexedField {
         }
     }
     pub fn contour(&self, target: f64) -> serde_json::Value {
-        contours(&self.angles, self.shape, &[(0, target)], 1, Some(self))
+        contours(
+            &self.angles,
+            self.shape,
+            &[(0, target)],
+            1,
+            Some(self),
+            true,
+        )
     }
 }
 pub(crate) fn contours_at_step(
@@ -50,7 +57,7 @@ pub(crate) fn contours_at_step(
     targets: &[(usize, f64)],
     step: usize,
 ) -> serde_json::Value {
-    contours(angles, shape, targets, step, None)
+    contours(angles, shape, targets, step, None, true)
 }
 fn contours(
     angles: &[f64],
@@ -58,6 +65,7 @@ fn contours(
     targets: &[(usize, f64)],
     step: usize,
     index: Option<&IndexedField>,
+    skip_empty: bool,
 ) -> serde_json::Value {
     use serde_json::json;
     use std::collections::{BTreeMap, BTreeSet};
@@ -68,6 +76,31 @@ fn contours(
     if rows.len() < 2 || cols.len() < 2 {
         return json!(paths);
     }
+    // Calibration previews already sample the field for display. Build bounds
+    // on that exact sample grid once, then skip strips that cannot cross any
+    // given ring. Do not change interpolation, path order or the sample grid.
+    let strip = if index.is_some() { BLOCK } else { 16 };
+    let blocks = (cols.len() - 1).div_ceil(strip);
+    let sampled_bounds = if index.is_none() && skip_empty {
+        let mut bounds = Vec::with_capacity((rows.len() - 1) * blocks);
+        for row in 0..rows.len() - 1 {
+            for start in (0..cols.len() - 1).step_by(strip) {
+                let end = (start + strip).min(cols.len() - 1);
+                let mut range = [f64::INFINITY, f64::NEG_INFINITY];
+                for &r in &rows[row..=row + 1] {
+                    for &c in &cols[start..=end] {
+                        let value = angles[r * w + c];
+                        range[0] = range[0].min(value);
+                        range[1] = range[1].max(value);
+                    }
+                }
+                bounds.push(range);
+            }
+        }
+        Some(bounds)
+    } else {
+        None
+    };
     let [low, high] = index.map_or_else(
         || {
             [
@@ -84,14 +117,18 @@ fn contours(
         let mut vertices = BTreeMap::new();
         let mut adjacent: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
         for row in 0..rows.len() - 1 {
-            for start in (0..cols.len() - 1).step_by(BLOCK) {
-                if let Some(index) = index {
-                    let [min, max] = index.bounds[row * index.blocks + start / BLOCK];
-                    if target <= min || target > max {
-                        continue;
-                    }
+            for start in (0..cols.len() - 1).step_by(strip) {
+                let range = if let Some(index) = index {
+                    Some(index.bounds[row * index.blocks + start / BLOCK])
+                } else {
+                    sampled_bounds
+                        .as_ref()
+                        .map(|b| b[row * blocks + start / strip])
+                };
+                if range.is_some_and(|[min, max]| target <= min || target > max) {
+                    continue;
                 }
-                for col in start..(start + BLOCK).min(cols.len() - 1) {
+                for col in start..(start + strip).min(cols.len() - 1) {
                     let positions = [
                         (row, col),
                         (row, col + 1),
@@ -212,6 +249,42 @@ mod tests {
             contours_at_step(&saddle, [2, 2], &[(0, 0.5)], 1)
         );
     }
+    #[test]
+    fn sampled_strip_skipping_preserves_exact_paths_for_all_steps() {
+        for [h, w] in [[1, 1], [2, 2], [9, 66], [73, 131], [157, 251]] {
+            let mut field: Vec<_> = (0..h * w)
+                .map(|i| {
+                    let (y, x) = ((i / w) as f64, (i % w) as f64);
+                    ((y - h as f64 * 0.4).powi(2) + (x - w as f64 * 0.6).powi(2)).sqrt()
+                })
+                .collect();
+            for special in [false, true] {
+                if special {
+                    for (i, value) in field.iter_mut().enumerate() {
+                        if i % 127 == 0 {
+                            *value = f64::NAN;
+                        } else if i % 133 == 0 {
+                            *value = f64::INFINITY;
+                        } else if i % 17 == 0 {
+                            *value = 10.0;
+                        }
+                    }
+                }
+                let targets: Vec<_> = [-1., 0., 0.5, 1., 2., 5., 10., 20., 40., 1000.]
+                    .into_iter()
+                    .enumerate()
+                    .collect();
+                for step in [1, 2, 3, 7] {
+                    assert_eq!(
+                        contours_at_step(&field, [h, w], &targets, step),
+                        contours(&field, [h, w], &targets, step, None, false),
+                        "shape {h}x{w}, step {step}, special {special}"
+                    );
+                }
+            }
+        }
+    }
+
     #[test]
     fn plane_and_low_connected_saddle() {
         // Analytic intersections, with the same half-pixel display convention

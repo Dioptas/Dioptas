@@ -19,6 +19,7 @@ fn fit_once(
     restart: bool,
     control: &Control,
 ) -> Result<(), String> {
+    let mut trace = crate::frame_trace::FrameTrace::new("calibration-fit", 0);
     control.check()?;
     let count = candidate
         .data
@@ -105,6 +106,7 @@ fn fit_once(
         &candidate.data.reference.name,
         candidate.data.reference.spacings.clone(),
     );
+    trace.mark("prepare");
     let fitted =
         dioptrin::calibration::refine(&geometry(shape, &start)?, &points, &reference, &options)
             .map_err(|e| {
@@ -150,6 +152,7 @@ fn fit_once(
     if !fitted.rms_rad.is_finite() {
         return Err("Calibration produced a nonfinite residual; previous geometry and picked peaks restored.".into());
     }
+    trace.mark("solve-and-apply");
     candidate.calibrated = true;
     candidate.name = Some("current".into());
     candidate.data.rms = Some(fitted.rms_rad.to_degrees());
@@ -177,12 +180,13 @@ fn rings(candidate: &Snapshot, shape: [usize; 2], cache: &RefCell<Option<RingCac
     let Ok(native) = geometry(shape, &candidate.geometry) else {
         return json!([]);
     };
-    let field = native.calc_tth_all();
+    let field = Arc::new(native.calc_tth_all());
     let value = crate::peak_search::contours(&field, shape, &targets);
     *cache.borrow_mut() = Some(RingCache {
         geometry: candidate.geometry.clone(),
         shape,
         targets,
+        angles: field,
         value: value.clone(),
     });
     value
@@ -195,10 +199,12 @@ fn publish(
     progress: (usize, usize, &str, Option<usize>),
 ) {
     let (current, total, label, ring) = progress;
+    let mut trace = crate::frame_trace::FrameTrace::new("calibration-preview", current as u64);
     // Progress is an owned immutable JSON snapshot. The reader never observes
     // candidate geometry, native objects, or vectors which the worker mutates.
     control.publish(json!({"running":true,"current":current,"total":total,"label":label,
         "calibration":{"activeRing":ring,"picks":candidate.data.picks,"rings":rings(candidate,shape,cache),"rmsDegrees":candidate.data.rms}}));
+    trace.mark("contours-and-snapshot");
 }
 
 /// A single bounded, disposable preprocessing cache. Immutable owners keep
@@ -379,6 +385,8 @@ impl Session {
                 let mut mask = Vec::new();
                 let mut candidates = Vec::new();
                 for ring in 1..=total {
+                    let mut trace =
+                        crate::frame_trace::FrameTrace::new("calibration-ring", ring as u64);
                     control.check()?;
                     let current = processing.values(
                         image,
@@ -406,6 +414,7 @@ impl Session {
                     } else {
                         vec![0; image.values.len()]
                     };
+                    trace.mark("corrections-and-mask");
                     if ring == 1 || current_mask != mask || changed {
                         mask = current_mask;
                         let clean: Vec<_> = data
@@ -426,8 +435,23 @@ impl Session {
                             &control,
                         )?;
                     }
+                    trace.mark("candidates");
                     publish(&candidate, ring, total, "Finding peaks on ring", Some(ring));
-                    let field = geometry(shape, &candidate.geometry)?.calc_tth_all();
+                    trace.mark("search-preview");
+                    // The preview just evaluated this exact geometry. Reuse
+                    // its full-resolution field for the scientific ring band.
+                    let field = ring_cache
+                        .borrow()
+                        .as_ref()
+                        .filter(|entry| {
+                            entry.geometry == candidate.geometry && entry.shape == shape
+                        })
+                        .map(|entry| entry.angles.clone());
+                    let field = match field {
+                        Some(field) => field,
+                        None => Arc::new(geometry(shape, &candidate.geometry)?.calc_tth_all()),
+                    };
+                    trace.mark("full-angle-field");
                     let target = candidate
                         .data
                         .reference
@@ -450,6 +474,7 @@ impl Session {
                         },
                         &control,
                     )?;
+                    trace.mark("on-ring");
                     if !points.is_empty() {
                         candidate.data.picks.push(Group { ring, points });
                     }
@@ -476,6 +501,7 @@ impl Session {
                         fit_once(&mut candidate, shape, false, &control)?;
                     }
                     publish(&candidate, ring, total, "Refining ring", Some(ring));
+                    trace.mark("refit-and-publish");
                 }
                 if candidate.data.picks.is_empty() {
                     return Err("Automatic ring search found no peaks; previous geometry and picked peaks restored.".into());

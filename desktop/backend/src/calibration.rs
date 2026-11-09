@@ -25,6 +25,7 @@ pub(super) struct RingCache {
     geometry: Geometry,
     targets: Vec<(usize, f64)>,
     shape: [usize; 2],
+    angles: Arc<Vec<f64>>,
     value: Value,
 }
 

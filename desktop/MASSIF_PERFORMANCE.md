@@ -95,3 +95,93 @@ reference check only. The Rust processor does not call Python.
 
 In the Dioptrin source checkout, run `cargo test --lib` to include the frozen
 Massif reference comparisons and the rest of the library checks.
+
+
+## Event-to-render and full-calibration follow-up
+
+The November 9 follow-up measures actual React input handling, Tauri binary
+IPC, the Rust processor, and the detector canvas in an isolated WKWebView
+host. The timer starts at synthetic pointer-up/button activation and stops
+when the final marker strokes have been issued to the detector canvas.
+Additional animation-frame timestamps bound the next presentation
+opportunities. OS input queues and physical monitor scanout are not measured.
+
+The headless Chromium/WebKit comparison uses the same UI and Rust processor
+but substitutes a test bridge for Tauri IPC. Its transport overhead is
+measurably larger, particularly on the 4-megapixel image, so the table below
+uses the native host measurements. Each native run includes one cold pick and
+seven warm picks per image, and three repeats of each CeO2 calibration case.
+Before and after use the same frozen frontend bundle, image data and fit inputs.
+
+| Native operation | Before follow-up, median to drawn markers | After follow-up, median to drawn markers | After, next frame opportunity |
+| --- | ---: | ---: | ---: |
+| CeO2 cold pick | 19 ms | 17 ms | 18 ms |
+| CeO2 cached pick | 9 ms | 9 ms | 19 ms |
+| LaB6 cold pick, 2048 × 2048 | 73 ms | 69 ms | 69 ms |
+| LaB6 cached pick | 11 ms | 11 ms | 19 ms |
+| CeO2 initial fit, automatic search disabled | 77 ms | 49 ms | 64 ms |
+| CeO2 automatic refinement, 4 rings | 321 ms | 139 ms | 154 ms |
+| CeO2 automatic refinement, 15 rings | 986 ms | 394 ms | 411 ms |
+
+The first calibration also prepares integration products and can be slower:
+post-change fifteen-ring samples ranged from 394 to 513 ms. A conservative
+second-frame bound for that case was 439 ms at the median. These are local
+optimized-development timings, not a guarantee for other detectors or loads.
+
+### Additional changes
+
+An opt-in `DIOPTAS_TRACE_FRAME=1` profile identified preview construction as
+about 795 ms of a 1.15-second fifteen-ring calibration. The image-wide Massif
+candidate search was about 10 ms and the geometry fits about 33 ms. The
+follow-up therefore changes display-contour work and field reuse:
+
+- Contour extraction computes conservative angle bounds on the existing sample
+  grid and skips strips that cannot cross a target. Sampling, interpolation,
+  path traversal and output coordinates are unchanged. Existing full-resolution
+  indexed contours retain their existing strip index.
+- Automatic ring-band searches reuse the exact full-resolution angle field
+  already evaluated for the current preview geometry, rather than evaluating
+  it a second time. The cache validates geometry and shape. This retains one
+  additional f64 angle field (8 MB per million pixels), shared by ownership.
+- Calibration fit, ring-search and preview stage timings are available through
+  the existing opt-in stderr tracing. Ordinary command responses are unchanged.
+
+The before/after native receipts compare all 25 measured operations for exact
+peak coordinates, fitted geometry and RMS. A separate processor comparison
+also checks the complete final ring paths and integrated pattern for manual,
+four-ring and fifteen-ring fits. New contour tests compare exact paths against
+the unpruned traversal at several sampling steps, boundaries, non-square
+shapes, saddles, nonfinite values and exact-level values. Desktop library,
+calibration and requested-product tests, independent pyFAI RMS checks, and the
+stdio cancellation/rollback test pass.
+
+The initial fit uses the selected groups. With automatic refinement enabled,
+an image-wide Massif candidate search then supplies successive angular ring
+bands and repeated fits. It is not a repeated click-based seed search.
+
+Further numerical optimization of ordinary warm picks would save only a small
+part of the current event-to-render latency. Background preparation could hide
+cold-pick latency, but would add work after loading every image and needs a
+separate scheduling and cancellation design. No speculative background work or
+change to peak selection has been added.
+
+### Follow-up benchmark tools
+
+- `scripts/calibration_latency_benchmark.mjs`: headless pointer-to-canvas
+  measurements in Chromium and WebKit, with source-buffer identity retained.
+  Build an instrumented UI first with
+  `VITE_DIOPTAS_NAVIGATION_BENCHMARK=1 npx vite build --outDir artifacts/calibration-latency/baseline-ui`.
+  The runner accepts `--processor`, `--ui`, `--label` and `--repetitions`.
+- `scripts/calibration_latency_native.js`: native browser driver, substituted
+  for `scripts/image_navigation_native.js` only in an isolated test checkout.
+  The test host embeds that same instrumented UI and is launched with
+  `--navigation-benchmark`; the regular preview host is not modified.
+- `scripts/calibration_latency_native.mjs`: runs the prepared isolated host with
+  private WebKit storage and an explicit processor. Use `--app`, `--processor`
+  and `--label` to compare saved binaries. The native test bundle needs the
+  ordinary staged Dioptas resources and a macOS application bundle structure.
+
+Receipts are in ignored `artifacts/calibration-latency/`: `baseline.json`,
+`optimized.json`, `native-before.json`, `native-optimized.json`, `science.json`
+and opt-in stage logs. The temporary native host exits after each report and
+does not share the running preview's scientific session.
