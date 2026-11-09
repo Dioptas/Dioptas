@@ -41,7 +41,7 @@ export function useImageDisplayPreferences(
   const [preferences, setPreferences] = useState<ImageDisplayPreferences>(
     () => {
       const auto = readImageAutoLevels(display, filterGaps);
-      return { size: "compact", orientation, auto };
+      return { orientation, auto };
     },
   );
   useEffect(() => {

@@ -27,8 +27,8 @@ export async function verifyImageControls(page, invoke, pixelRequests) {
   });
   assert.equal(await autoButton.getAttribute("aria-pressed"), "true");
   assert.equal(
-    await detector.locator(".image-intensity").getAttribute("data-size"),
-    "compact",
+    await detector.getByTestId("intensity-histogram").locator("text").count(),
+    0,
   );
   assert.equal(await canvas.getAttribute("data-intensity-scale"), "linear");
   assert.equal(await detector.locator(".intensity-header").count(), 0);
@@ -37,9 +37,10 @@ export async function verifyImageControls(page, invoke, pixelRequests) {
   await page
     .getByRole("button", { name: "Detector histogram settings", exact: true })
     .click();
-  await page
-    .getByLabel("Histogram size", { exact: true })
-    .selectOption("large");
+  assert.equal(
+    await page.getByLabel("Histogram size", { exact: true }).count(),
+    0,
+  );
   await page
     .getByRole("button", {
       name: "Close detector display settings",
@@ -397,9 +398,6 @@ export async function verifyImageControls(page, invoke, pixelRequests) {
   await page
     .getByRole("button", { name: "Detector histogram settings", exact: true })
     .click();
-  await page
-    .getByLabel("Histogram size", { exact: true })
-    .selectOption("compact");
   await page
     .getByLabel("Histogram orientation", { exact: true })
     .selectOption("horizontal");

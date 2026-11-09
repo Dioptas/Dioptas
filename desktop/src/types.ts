@@ -13,7 +13,6 @@ export interface AutoLevels {
   filter_gaps: boolean;
 }
 export interface ImageDisplayPreferences {
-  size: "compact" | "large";
   orientation: "vertical" | "horizontal";
   auto: AutoLevels;
 }

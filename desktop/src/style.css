@@ -1779,13 +1779,13 @@ input[type="checkbox"] {
   overscroll-behavior: contain;
 }
 .image-intensity {
-  width: 140px;
+  width: 78px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  gap: 7px;
-  padding: 10px 8px;
+  gap: 6px;
+  padding: 7px 4px;
   background: #101419;
   font-size: var(--text-small);
 }
@@ -2161,21 +2161,6 @@ input[type="checkbox"] {
   flex-direction: column;
   gap: 7px;
 }
-.image-intensity[data-size="compact"] {
-  width: 78px;
-  padding: 7px 4px;
-  gap: 6px;
-}
-.image-intensity[data-size="compact"] .intensity-expanded {
-  display: none;
-}
-.image-intensity[data-size="compact"] .histogram-container {
-  min-height: 110px;
-}
-.image-intensity[data-size="compact"] select {
-  padding: 4px 1px;
-  font-size: var(--text-meta);
-}
 .compact-levels {
   color: #b1c2cc;
   font-size: var(--text-meta);
@@ -2186,7 +2171,7 @@ input[type="checkbox"] {
 .cake-workspace > .raster-container {
   min-width: 0;
 }
-.app[data-text-size="large"] .image-intensity[data-size="compact"] {
+.app[data-text-size="large"] .image-intensity {
   width: 92px;
 }
 
@@ -2221,14 +2206,10 @@ input[type="checkbox"] {
 }
 .image-intensity[data-orientation="horizontal"] {
   width: 100%;
-  height: 96px;
+  height: 56px;
   flex-direction: row;
   padding: 4px;
   overflow: visible;
-}
-.image-intensity[data-orientation="horizontal"][data-size="compact"] {
-  width: 100%;
-  height: 56px;
 }
 .image-intensity[data-orientation="horizontal"] .histogram-container {
   min-height: 0;

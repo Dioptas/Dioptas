@@ -21,11 +21,6 @@ type WindowDrag = {
   axisMin: number;
   axisMax: number;
 };
-const compact = (value: number) =>
-  value.toLocaleString("en-US", {
-    notation: "compact",
-    maximumSignificantDigits: 2,
-  });
 const editableIntensity = (value: number) =>
   String(Number(value.toPrecision(7)));
 
@@ -67,7 +62,6 @@ export function ImageIntensity({
   const dialogTrigger = useRef<HTMLElement | SVGElement | null>(null);
   const colorMapPicker = useRef<ColorMapPickerHandle>(null);
   const [size, setSize] = useState({ width: 136, height: 300 });
-  const small = preferences.size === "compact";
   const horizontal = preferences.orientation === "horizontal";
   const auto = preferences.auto;
   const [percentileDraft, setPercentileDraft] = useState(
@@ -90,8 +84,6 @@ export function ImageIntensity({
     setAutoActive(true);
     return onAuto(settings);
   };
-  const setSmall = (small: boolean) =>
-    onPreferences({ ...preferences, size: small ? "compact" : "large" });
   const setHorizontal = (horizontal: boolean) =>
     onPreferences({
       ...preferences,
@@ -175,8 +167,8 @@ export function ImageIntensity({
     gap = span / 1000;
   const length = Math.max(40, horizontal ? size.width : size.height),
     plotLength = length - 32;
-  const offset = small ? 38 : 0,
-    thickness = small ? 92 : 136;
+  const offset = 38,
+    thickness = 92;
   const y = (value: number) =>
     16 + (1 - (Math.asinh(value) - min) / span) * plotLength;
   const upper = Math.max(16, Math.min(length - 16, y(limits[1]))),
@@ -215,8 +207,7 @@ export function ImageIntensity({
   const targetAt = (event: React.PointerEvent<SVGSVGElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
     const cross = horizontal
-      ? (small ? 130 : 136) -
-        ((event.clientY - box.top) / box.height) * thickness
+      ? 130 - ((event.clientY - box.top) / box.height) * thickness
       : (mirrored
           ? 1 - (event.clientX - box.left) / box.width
           : (event.clientX - box.left) / box.width) *
@@ -253,7 +244,6 @@ export function ImageIntensity({
       <aside
         className="image-intensity"
         data-display={display}
-        data-size={small ? "compact" : "expanded"}
         data-orientation={horizontal ? "horizontal" : "vertical"}
         data-mirrored={mirrored && !horizontal}
         aria-label={`${title} intensity controls`}
@@ -332,7 +322,7 @@ export function ImageIntensity({
             <g
               transform={
                 horizontal
-                  ? `matrix(0,-1,-1,0,${length},${small ? 130 : 136})`
+                  ? `matrix(0,-1,-1,0,${length},130)`
                   : mirrored
                     ? `translate(${2 * offset + thickness},0) scale(-1,1)`
                     : undefined
@@ -479,29 +469,6 @@ export function ImageIntensity({
                 </g>
               ))}
             </g>
-            {!small &&
-              [0, 0.25, 0.5, 0.75, 1].map((f) => (
-                <text
-                  key={f}
-                  x={
-                    horizontal
-                      ? 16 + f * plotLength
-                      : mirrored
-                        ? 2 * offset + thickness - 36
-                        : 36
-                  }
-                  y={horizontal ? 124 : 20 + f * (plotLength - 4)}
-                  textAnchor={
-                    horizontal ? "middle" : mirrored ? "start" : "end"
-                  }
-                  fill="#a7b5c0"
-                  fontSize="13"
-                >
-                  {compact(
-                    Math.sinh(horizontal ? min + f * span : max - f * span),
-                  )}
-                </text>
-              ))}
           </svg>
         </div>
         <div className="intensity-basic-controls">
@@ -664,19 +631,6 @@ export function ImageIntensity({
                 >
                   <option value="vertical">Vertical (right)</option>
                   <option value="horizontal">Horizontal (top)</option>
-                </Select>
-              </label>
-              <label>
-                Bar size
-                <Select
-                  aria-label={label("Histogram size")}
-                  value={small ? "compact" : "large"}
-                  onChange={(event) =>
-                    setSmall(event.target.value === "compact")
-                  }
-                >
-                  <option value="compact">Compact</option>
-                  <option value="large">Large</option>
                 </Select>
               </label>
               <p className="ui-display-note">
