@@ -21,6 +21,11 @@ try {
       errors = [];
     const call = async (action, payload = {}) => {
       requests.push(action);
+      // Resolve the file chooser only in this test adapter.
+      if (action === "batch_load_data")
+        payload = {
+          paths: [path.join(root, "dioptas/tests/data/image_001.tif")],
+        };
       const result = await native.invoke(action, {
         ...payload,
         requested_products: { cake: false, rings: false },
@@ -113,11 +118,43 @@ try {
         await child.waitForTimeout(100);
         assert.equal(
           requests.filter((a) => a === "batch_snapshot").length - before,
-          1,
-          "One snapshot per committed selection",
+          0,
+          "Selection reuses the main result without a snapshot",
         );
         assert.equal((await call("state")).batch.selected, index);
       }
+      let snapshots = requests.filter((a) => a === "batch_snapshot").length;
+      await child
+        .getByRole("button", { name: "Batch unit Q", exact: true })
+        .click();
+      await child.waitForFunction(
+        () =>
+          document
+            .querySelector('[aria-label="Batch unit Q"]')
+            ?.getAttribute("aria-pressed") === "true",
+      );
+      await child.waitForTimeout(100);
+      assert.equal(
+        requests.filter((a) => a === "batch_snapshot").length - snapshots,
+        1,
+        "Axis changes refresh the full child model once",
+      );
+      snapshots = requests.filter((a) => a === "batch_snapshot").length;
+      await child
+        .getByRole("button", { name: "Load raw/proc data", exact: true })
+        .click();
+      await child.waitForFunction(() =>
+        document
+          .querySelector(".detached-batch-footer")
+          ?.textContent.includes("Frame 1 of 1"),
+      );
+      await selected(0);
+      await child.waitForTimeout(100);
+      assert.equal(
+        requests.filter((a) => a === "batch_snapshot").length - snapshots,
+        1,
+        "Replacing the series refreshes the full child model once",
+      );
       const closed = child.waitForEvent("close");
       await child
         .getByRole("button", { name: "Dock batch below image", exact: true })
@@ -130,7 +167,7 @@ try {
           browser: name,
           runtime: "rust",
           selections: 3,
-          snapshotsPerSelection: 1,
+          snapshotsPerSelection: 0,
           docked: true,
           errors,
         }),

@@ -9,6 +9,7 @@ import { BatchView } from "./BatchView";
 import { usePlotReadout } from "./plotReadout";
 import type { BatchData, BatchRun } from "./batchDomain";
 import type { Invoke, Response } from "./types";
+import { BatchWindowSync } from "./batchWindowState";
 import { ReadingFields } from "./PlotStatus";
 
 export function DetachedBatchWindow() {
@@ -62,47 +63,24 @@ export function DetachedBatchWindow() {
     [rpc],
   );
   useEffect(() => {
-    let disposed = false,
-      refreshing = false,
-      queued = false;
-    let requestedRevision: number | undefined;
-    let requestedSnapshot = false;
+    let disposed = false;
     const transport = mapWindowChannel(
       true,
       new URLSearchParams(location.search).get("batch_window") ?? "native",
       "batch",
     );
     channel.current = transport;
-    const refresh = async () => {
-      queued = true;
-      if (refreshing) return;
-      refreshing = true;
-      try {
-        while (queued && !disposed) {
-          queued = false;
-          const r = await request("batch_snapshot");
-          if (!disposed && r.ok && "batch" in r) setBatch(r.batch ?? null);
-          if (!r.ok) requestedSnapshot = false;
-        }
-      } finally {
-        refreshing = false;
-      }
-    };
+    const sync = new BatchWindowSync(async () => {
+      const r = await request("batch_snapshot");
+      return r.ok && "batch" in r ? (r.batch ?? null) : undefined;
+    }, setBatch);
     const subscription = transport.listen((message) => {
       if (message.type === "refresh") {
-        setStatus(message.status);
-        // Readiness, progress and linked-position notifications do not change
-        // the matrix. Fetch each committed scientific revision only once.
         if (
-          message.status.ready &&
-          (!requestedSnapshot ||
-            message.status.revision === undefined ||
-            requestedRevision !== message.status.revision)
-        ) {
-          requestedSnapshot = true;
-          requestedRevision = message.status.revision;
-          void refresh();
-        }
+          !message.batchUpdate ||
+          sync.receive(message.batchUpdate, message.status.ready)
+        )
+          setStatus(message.status);
       } else if (message.type === "response") {
         const task = pending.current.get(message.id);
         if (task) {
@@ -122,6 +100,7 @@ export function DetachedBatchWindow() {
     window.addEventListener("beforeunload", closing);
     return () => {
       disposed = true;
+      sync.dispose();
       window.removeEventListener("beforeunload", closing);
       void subscription.then((stop) => stop());
       transport.close();

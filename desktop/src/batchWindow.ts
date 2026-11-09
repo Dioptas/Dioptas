@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { mapWindowChannel, type MapWindowStatus } from "./mapWindowChannel";
 import type { IntegrationRun } from "./integration";
+import { batchWindowUpdate } from "./batchWindowState";
+import type { BatchData } from "./batchDomain";
 import type { Response } from "./types";
 
 export interface BatchWindowStatus extends MapWindowStatus {
@@ -27,6 +29,7 @@ const edits = new Set([
   "integration_save_batch",
 ]);
 export function useBatchWindow({
+  batch,
   run,
   request,
   status,
@@ -36,6 +39,7 @@ export function useBatchWindow({
   onError,
   cancel,
 }: {
+  batch: BatchData | null;
   run: IntegrationRun;
   request: (
     command: string,
@@ -51,6 +55,7 @@ export function useBatchWindow({
   const [detached, setDetached] = useState(false);
   const [session] = useState(() => crypto.randomUUID());
   const latest = useRef({
+    batch,
     run,
     request,
     status,
@@ -61,6 +66,7 @@ export function useBatchWindow({
     cancel,
   });
   latest.current = {
+    batch,
     run,
     request,
     status,
@@ -71,6 +77,22 @@ export function useBatchWindow({
     cancel,
   };
   const transport = useRef<ReturnType<typeof mapWindowChannel> | null>(null);
+  const published = useRef<{
+    batch: BatchData | null | undefined;
+    base: number;
+    sequence: number;
+  }>({ batch: undefined, base: 0, sequence: 0 });
+  const publish = (initial = false) => {
+    const { batch, status } = latest.current;
+    const update = batchWindowUpdate(
+      published.current.batch,
+      batch,
+      published.current,
+      initial,
+    );
+    published.current = { batch, base: update.base, sequence: update.sequence };
+    transport.current?.send({ type: "refresh", status, batchUpdate: update });
+  };
   const popup = useRef<Window | null>(null),
     opening = useRef(false);
   const shuttingDown = useRef(false),
@@ -92,7 +114,7 @@ export function useBatchWindow({
     const subscription = channel.listen(async (message) => {
       if (message.type === "ready") {
         setDetached(true);
-        channel.send({ type: "refresh", status: latest.current.status });
+        publish(true);
       } else if (message.type === "closed") {
         setDetached(false);
         if (
@@ -175,8 +197,9 @@ export function useBatchWindow({
     };
   }, [session]);
   useEffect(() => {
-    if (detached) transport.current?.send({ type: "refresh", status });
+    if (detached) publish();
   }, [
+    batch,
     detached,
     status.ready,
     status.calibrated,

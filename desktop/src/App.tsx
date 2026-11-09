@@ -1899,6 +1899,7 @@ export default function App() {
                 ? "Ready"
                 : "Load a calibration to integrate this image."));
   const batchWindow = useBatchWindow({
+    batch,
     run,
     request: requestMap,
     status: {

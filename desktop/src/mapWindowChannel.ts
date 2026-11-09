@@ -18,7 +18,11 @@ export type MapWindowStatus = {
 export type MapWindowMessage =
   | { type: "ready" | "dock" }
   | { type: "closed"; shuttingDown?: boolean }
-  | { type: "refresh"; status: MapWindowStatus }
+  | {
+      type: "refresh";
+      status: MapWindowStatus;
+      batchUpdate?: import("./batchWindowState").BatchWindowUpdate;
+    }
   | {
       type: "request";
       id: string;
