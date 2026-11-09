@@ -1,0 +1,108 @@
+name: Notarize MossA release
+
+on:
+  push:
+    branches: ['codex/mossa-release-2.0.0-rc.1-5e46b65648de']
+    paths: ['.github/workflows/mossa-release-notarize.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mossa-release-2.0.0-rc.1
+  cancel-in-progress: false
+
+jobs:
+  notarize:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - name: Check out the existing signing helper
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Check out the pinned MossA source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: CPrescher/MossA
+          ref: '5e46b65648de7d96aff8d3b9fb75505964e4649b'
+          path: mossa
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 26.12.1
+          cache: npm
+          cache-dependency-path: |
+            mossa/package-lock.json
+            mossa/manual/package-lock.json
+      - name: Set up native Rust
+        run: |
+          rustup toolchain install 1.99.1 --profile minimal --target aarch64-apple-darwin --target x86_64-apple-darwin
+          rustup default 1.99.1
+      - name: Cache MossA build dependencies
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            mossa/rust-core/target
+            mossa/src-tauri/target
+          key: mossa-notarize-universal-1.99.1-${{ hashFiles('mossa/rust-core/Cargo.lock', 'mossa/src-tauri/Cargo.lock') }}
+      - name: Install MossA dependencies and check notarization recovery
+        working-directory: mossa
+        run: |
+          npm ci
+          npm ci --prefix manual
+          python3 -m unittest discover -s tests -p '*_test.py'
+      - name: Prepare the existing Developer ID and notarization profile
+        env:
+          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: python3 installer/macos/signing.py setup
+      - name: Build the Developer ID-signed MossA application
+        working-directory: mossa
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          config = {"bundle": {"macOS": {"signingIdentity": os.environ["DIOPTAS_CODESIGN_IDENTITY"]}}}
+          env = {**os.environ, "GITHUB_SHA": "5e46b65648de7d96aff8d3b9fb75505964e4649b", "GITHUB_REF_NAME": "v2.0.0-rc.1"}
+          subprocess.run(["npm", "run", "desktop:build", "--", "--config", json.dumps(config), "--target", "universal-apple-darwin", "--bundles", "app", "--", "--locked"], check=True, env=env)
+          info = json.load(open("dist-desktop/build-info.json"))
+          assert info["commit"] == env["GITHUB_SHA"] and info["version"] == "2.0.0-rc.1" and info["channel"] == "desktop" and not info["dirty"], info
+          architectures = subprocess.check_output(["lipo", "-archs", "src-tauri/target/universal-apple-darwin/release/bundle/macos/MossA.app/Contents/MacOS/mossa-desktop"], text=True).split()
+          assert set(architectures) == {"arm64", "x86_64"}, architectures
+          PY
+      - name: Notarize and staple MossA and its installer
+        working-directory: mossa
+        run: |
+          export MOSSA_NOTARY_KEYCHAIN="$DIOPTAS_SIGNING_KEYCHAIN"
+          python3 scripts/notarize-macos.py --profile dioptas-notarization --app src-tauri/target/universal-apple-darwin/release/bundle/macos/MossA.app --dmg src-tauri/target/universal-apple-darwin/release/bundle/dmg/MossA_2.0.0-rc.1_universal.dmg
+      - name: Archive the stapled app preserving permissions
+        working-directory: mossa
+        run: tar -czf dist-desktop/MossA_2.0.0-rc.1_universal.app.tar.gz -C src-tauri/target/universal-apple-darwin/release/bundle/macos MossA.app
+      - name: Upload notarized app, installer, and build identity
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: MossA-macOS-universal-notarized
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            mossa/dist-desktop/MossA_2.0.0-rc.1_universal.app.tar.gz
+            mossa/dist-desktop/build-info.json
+            mossa/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+      - name: Preserve submission IDs, payloads, and logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: MossA-notarization-recovery
+          if-no-files-found: ignore
+          retention-days: 30
+          path: mossa/src-tauri/target/notarization/
+      - name: Clean up the temporary signing keychain
+        if: always()
+        run: python3 installer/macos/signing.py cleanup
