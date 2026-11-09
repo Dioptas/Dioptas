@@ -209,6 +209,7 @@ export function ScanMapPanel({
             ready={ready}
             initialLevelsReady={display.initialLevelsReady}
             initialAutoActive={display.initialAutoActive}
+            onAutoActiveChange={display.setAutoActive}
             onAuto={async (settings) => {
               const result = await request("map_levels", { ...settings });
               if (result?.mapLevels) display.setAutoLimits(result.mapLevels);

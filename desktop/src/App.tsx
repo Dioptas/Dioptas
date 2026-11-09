@@ -107,6 +107,7 @@ import { CalibrationPanel } from "./CalibrationPanel";
 import { CalibrationWorkflowTabs } from "./CalibrationWorkflowTabs";
 import { CalibrationRingControls } from "./CalibrationRingControls";
 import { ImageIntensity } from "./ImageIntensity";
+import { useRasterLevels } from "./useRasterLevels";
 import {
   readImageAutoLevels,
   useImageDisplayPreferences,
@@ -359,6 +360,8 @@ export default function App() {
     [logPattern, setLogPattern] = useState(false);
   const [palette, setPalette] = useState<Palette>("grey");
   const [limits, setLimits] = useState<[number, number]>([0, 100]);
+  const [maskAutoActive, setMaskAutoActive] = useState(true);
+  const [maskLimits, setMaskLimits] = useRasterLevels(image, maskAutoActive);
   const imageSource = useRef<Raster | null>(null);
   const rawImageSource = useRef<Raster | null>(null);
   const cakeSource = useRef<Cake | null>(null);
@@ -541,8 +544,11 @@ export default function App() {
         setImage(result.image);
         // Recovery and state refreshes can resend the same detector image.
         // Only a changed source should replace the user's contrast limits.
-        if (sourceChanged) {
-          detectorAutoActive.current = true;
+        if (
+          sourceChanged &&
+          (detectorAutoActive.current ||
+            configurationDisplay.configurationChanged)
+        ) {
           setLimits(
             activeMode.current === "integration" &&
               !correctedImageRef.current &&
@@ -576,6 +582,7 @@ export default function App() {
         setCake(result.cake ?? null);
         if (
           result.cake &&
+          (cakeAutoActive.current || configurationDisplay.cakeDisplayChanged) &&
           (result.cake.data !== cakeSource.current?.data ||
             result.cake.width !== cakeSource.current?.width ||
             result.cake.height !== cakeSource.current?.height)
@@ -824,13 +831,14 @@ export default function App() {
           );
         const display = detectorDisplay.current;
         const raw = commandMode === "integration" && !correctedImageRef.current;
-        result = await prepareDetectorImage(
-          bridge.current,
-          result,
-          raw ? rawImageSource.current : imageSource.current,
-          readImageAutoLevels(display.name, display.filterGaps),
-          raw,
-        );
+        if (detectorAutoActive.current)
+          result = await prepareDetectorImage(
+            bridge.current,
+            result,
+            raw ? rawImageSource.current : imageSource.current,
+            readImageAutoLevels(display.name, display.filterGaps),
+            raw,
+          );
         navigationTrace("command-prepared", {
           action: command,
           bufferId: result.image?.bufferId,
@@ -2029,6 +2037,12 @@ export default function App() {
                 />
               ) : mode === "mask" ? (
                 <MaskView
+                  contrast={{
+                    limits: maskLimits,
+                    setLimits: setMaskLimits,
+                    autoActive: maskAutoActive,
+                    setAutoActive: setMaskAutoActive,
+                  }}
                   plotViews={plotViews}
                   active={!settingsOpen}
                   image={image}
@@ -2181,13 +2195,10 @@ export default function App() {
                             />
                             <ImageIntensity
                               key={`detector-${state?.configurationContext ?? state?.configurationIndex}`}
-                              initialAutoActive={
-                                configurationDisplays.current.get(
-                                  state?.configurationContext ??
-                                    state?.configurationIndex ??
-                                    0,
-                                )?.autoActive ?? true
-                              }
+                              initialAutoActive={detectorAutoActive.current}
+                              onAutoActiveChange={(active) => {
+                                detectorAutoActive.current = active;
+                              }}
                               initialLevelsReady={configurationDisplays.current.has(
                                 state?.configurationContext ??
                                   state?.configurationIndex ??
@@ -2377,11 +2388,10 @@ export default function App() {
                               />
                               <ImageIntensity
                                 key={`cake-${state?.configurationContext ?? state?.configurationIndex}-${!!state?.combination?.cakes}`}
-                                initialAutoActive={
-                                  configurationCakeDisplays.current.get(
-                                    `${state?.configurationContext ?? state?.configurationIndex}:${!!state?.combination?.cakes}`,
-                                  )?.autoActive ?? true
-                                }
+                                initialAutoActive={cakeAutoActive.current}
+                                onAutoActiveChange={(active) => {
+                                  cakeAutoActive.current = active;
+                                }}
                                 initialLevelsReady={configurationCakeDisplays.current.has(
                                   `${state?.configurationContext ?? state?.configurationIndex}:${!!state?.combination?.cakes}`,
                                 )}
@@ -2465,10 +2475,11 @@ export default function App() {
                           corrected={correctedImage}
                           onCorrected={() => {
                             setCorrectedImage((v) => !v);
-                            setLimits(
-                              (correctedImage ? rawImage : image)?.limits ??
-                                limits,
-                            );
+                            if (detectorAutoActive.current)
+                              setLimits(
+                                (correctedImage ? rawImage : image)?.limits ??
+                                  limits,
+                              );
                             onHover(null);
                           }}
                           roi={!!state?.integration.roi}

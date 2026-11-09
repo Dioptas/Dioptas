@@ -39,6 +39,7 @@ export function ImageIntensity({
   onPreferences,
   initialLevelsReady = false,
   initialAutoActive = true,
+  onAutoActiveChange,
   mirrored = false,
 }: {
   preferences: ImageDisplayPreferences;
@@ -55,6 +56,7 @@ export function ImageIntensity({
   display?: "detector" | "cake" | "map" | "batch";
   initialLevelsReady?: boolean;
   initialAutoActive?: boolean;
+  onAutoActiveChange?: (active: boolean) => void;
   mirrored?: boolean;
 }) {
   const id = useId(),
@@ -79,8 +81,13 @@ export function ImageIntensity({
   );
   useEffect(() => setMinimumDraft(editableIntensity(limits[0])), [limits[0]]);
   useEffect(() => setMaximumDraft(editableIntensity(limits[1])), [limits[1]]);
-  const [autoActive, setAutoActive] = useState(initialAutoActive);
+  const [autoActive, setLocalAutoActive] = useState(initialAutoActive);
+  const setAutoActive = (active: boolean) => {
+    setLocalAutoActive(active);
+    onAutoActiveChange?.(active);
+  };
   const applyAuto = (settings: AutoLevels) => {
+    previousSource.current = raster.data;
     setAutoActive(true);
     return onAuto(settings);
   };
@@ -124,14 +131,13 @@ export function ImageIntensity({
     return () => observer.disconnect();
   }, []);
   useEffect(() => {
-    if (!ready || previousSource.current === raster.data) return;
+    if (!autoActive || !ready || previousSource.current === raster.data) return;
     if (
       raster.autoLevels?.mode === auto.mode &&
       raster.autoLevels.percentile === auto.percentile &&
       raster.autoLevels.filter_gaps === auto.filter_gaps
     ) {
       previousSource.current = raster.data;
-      setAutoActive(true);
       return;
     }
     const timer = setTimeout(() => {
@@ -139,7 +145,7 @@ export function ImageIntensity({
       applyAuto(auto);
     }, 0);
     return () => clearTimeout(timer);
-  }, [raster.data, ready]);
+  }, [raster.data, ready, autoActive]);
   const updateAuto = (change: Partial<AutoLevels>) => {
     const next = { ...auto, ...change };
     setAuto(next);
@@ -477,8 +483,14 @@ export function ImageIntensity({
               aria-label={label("Auto intensity")}
               aria-pressed={autoActive}
               disabled={!ready}
-              title="Apply auto levels"
-              onClick={() => applyAuto(auto)}
+              title={
+                autoActive
+                  ? "Disable auto levels and keep current limits"
+                  : "Enable auto levels for each image"
+              }
+              onClick={() =>
+                autoActive ? setAutoActive(false) : applyAuto(auto)
+              }
             >
               {horizontal ? "A" : "Auto"}
             </Button>

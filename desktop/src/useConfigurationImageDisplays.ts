@@ -144,6 +144,7 @@ export function useConfigurationImageDisplays(input: Displays) {
 
     return {
       configurationChanged: configurationChanged || !!result.configurationReset,
+      cakeDisplayChanged: cakeDisplayChanged || !!result.configurationReset,
       restore: () => {
         const {
           setLimits,

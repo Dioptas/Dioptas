@@ -9,7 +9,6 @@ import { RasterView } from "./RasterView";
 import { ImageIntensity } from "./ImageIntensity";
 import type { Raster, State } from "./types";
 import { useImageDisplayPreferences } from "./useImageDisplayPreferences";
-import { useRasterLevels } from "./useRasterLevels";
 import {
   previewMask,
   shapeHelp,
@@ -25,6 +24,7 @@ export type MaskRun = (
 ) => Promise<void>;
 
 export function MaskView({
+  contrast,
   plotViews,
   active = true,
   image,
@@ -38,6 +38,12 @@ export function MaskView({
   onHover,
   onSelectionStatus,
 }: {
+  contrast: {
+    limits: [number, number];
+    setLimits: (limits: [number, number]) => void;
+    autoActive: boolean;
+    setAutoActive: (active: boolean) => void;
+  };
   plotViews?: SharedPlotViews;
   active?: boolean;
   image: Raster | null;
@@ -53,7 +59,7 @@ export function MaskView({
     status: { text: string; cancel: () => void } | null,
   ) => void;
 }) {
-  const [limits, setLimits] = useRasterLevels(image);
+  const { limits, setLimits, autoActive, setAutoActive } = contrast;
   const [log, setLog] = useState(false),
     [palette, setPalette] = useState("grey");
   const [points, setPoints] = useState<MaskPoint[]>([]),
@@ -221,6 +227,8 @@ export function MaskView({
             }
           />
           <ImageIntensity
+            initialAutoActive={autoActive}
+            onAutoActiveChange={setAutoActive}
             raster={image}
             preferences={preferences}
             onPreferences={setPreferences}

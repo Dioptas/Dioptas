@@ -288,13 +288,15 @@ export function MapView({
       onPreferences={d.setPrefs}
       display={kind}
       ready={ready}
+      initialAutoActive={d.initialAutoActive}
+      onAutoActiveChange={d.setAutoActive}
       onAuto={async (settings) => {
         const result = await request(
           kind === "map" ? "map_levels" : "image_levels",
           { ...settings },
         );
         const levels = kind === "map" ? result?.mapLevels : result?.levels;
-        if (levels) d.setLimits(levels);
+        if (levels) d.setAutoLimits(levels);
       }}
     />
   );

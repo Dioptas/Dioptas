@@ -434,6 +434,7 @@ export function BatchView({
                     display="batch"
                     initialLevelsReady={display.initialized}
                     initialAutoActive={display.auto}
+                    onAutoActiveChange={(auto) => display.update({ auto })}
                     onAuto={auto}
                   />
                   <BatchHeatmap

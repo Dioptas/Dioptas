@@ -39,6 +39,7 @@ export function useMapDisplay(raster: Raster | null, name: string) {
     return null;
   };
   const saved = readSaved();
+  const [autoActive, setAutoActive] = useState(saved?.autoActive ?? true);
   const readLimits = (): [number, number] =>
     saved?.limits ?? raster?.limits ?? [0, 1];
   const [current, setCurrent] = useState(() => ({
@@ -46,9 +47,13 @@ export function useMapDisplay(raster: Raster | null, name: string) {
     limits: readLimits(),
   }));
   const limits =
-    current.source === raster?.data ? current.limits : readLimits();
-  if (current.source !== raster?.data)
+    current.source === raster?.data || (!autoActive && current.source != null)
+      ? current.limits
+      : readLimits();
+  if (current.source !== raster?.data) {
     setCurrent({ source: raster?.data, limits });
+    if (current.source == null && saved) setAutoActive(saved.autoActive);
+  }
   const setLimits = (next: [number, number], autoActive = false) => {
     setCurrent((previous) =>
       previous.source === raster?.data
@@ -78,7 +83,20 @@ export function useMapDisplay(raster: Raster | null, name: string) {
     setLimits,
     setAutoLimits: (next: [number, number]) => setLimits(next, true),
     initialLevelsReady: !!saved,
-    initialAutoActive: saved?.autoActive ?? true,
+    initialAutoActive: autoActive,
+    setAutoActive: (active: boolean) => {
+      setAutoActive(active);
+      if (name === "map" && identity) {
+        try {
+          localStorage.setItem(
+            "dioptas-map:contrast",
+            JSON.stringify({ identity, limits, autoActive: active }),
+          );
+        } catch {
+          /* Session only. */
+        }
+      }
+    },
     log,
     setLog,
     palette,
