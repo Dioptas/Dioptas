@@ -2216,24 +2216,19 @@ input[type="checkbox"] {
   min-width: 100px;
 }
 .image-intensity[data-orientation="horizontal"] .intensity-basic-controls {
-  width: max-content;
-  gap: 4px;
+  width: 24px;
   justify-content: center;
 }
+.image-intensity[data-orientation="horizontal"] .intensity-actions {
+  display: grid;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  height: 100%;
+  gap: 2px;
+}
 .image-intensity[data-orientation="horizontal"] .intensity-actions > button {
-  min-height: 24px;
-  padding-block: 2px;
-}
-.image-intensity[data-orientation="horizontal"]
-  .intensity-actions
-  > button:first-child {
-  flex: 0 0 auto;
-  padding-inline: 5px;
-}
-.image-intensity[data-orientation="horizontal"]
-  .intensity-actions
-  > button:last-child {
-  flex-basis: 24px;
+  min-height: 0;
+  width: 24px;
+  padding: 0;
 }
 .app[data-text-size="large"] .image-intensity[data-orientation="horizontal"] {
   width: 100%;

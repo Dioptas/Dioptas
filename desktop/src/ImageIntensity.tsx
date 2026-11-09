@@ -480,7 +480,7 @@ export function ImageIntensity({
               title="Apply auto levels"
               onClick={() => applyAuto(auto)}
             >
-              Auto
+              {horizontal ? "A" : "Auto"}
             </Button>
             <Button
               aria-label={`${title} histogram settings`}
