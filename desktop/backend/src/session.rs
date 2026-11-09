@@ -757,7 +757,9 @@ impl Session {
                                 Some("csc" | "auto") => true,
                                 Some("csr") => false,
                                 _ => {
-                                    return Err("Choose automatic, CSC or CSR sparse layout.".into());
+                                    return Err(
+                                        "Choose automatic, CSC or CSR sparse layout.".into()
+                                    );
                                 }
                             };
                             candidate.auto_layout = value.as_str() == Some("auto");

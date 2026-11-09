@@ -25,8 +25,9 @@ replacing them with a resolved file's path.
 frame of a shorter source, matching Qt. `state.integration.frame` and the UI's
 frame field use positions starting at 1, matching `integration_navigation.frame`;
 `open_image.frame` and `nativeSource.frame` remain zero-based. Selection passes through the ordinary transactional image load:
-source-size changes ask for Cancel or Open and reset calibration; same-size
-changes retain geometry and transformations. Image/mask/processing and pattern,
+source-size changes ask for Cancel or Open and reset calibration; acceptance
+retains the current workspace and tab, while same-size changes retain geometry
+and transformations. Image/mask/processing and pattern,
 cake and combined results use that same boundary. Cancel, Escape, decode/read
 failure and native cancellation retain the previous session. Source selection,
 catalog and frame belong to each configuration; native format-2 project caches
@@ -77,3 +78,19 @@ performance benchmark ignored), Clippy passed with warnings denied, all 75
 frontend unit/architecture tests passed, and the frontend production build
 passed. Source-selection and existing image-change/reset browser suites passed
 in both headless Chromium and WebKit. No visible test windows were opened.
+
+## Primary-checkout integration — November 9, 2026
+
+The feature is integrated with the primary checkout's newer Dioptrin runtime,
+requested-product pipeline and native history transfer. Project metadata retains
+both source-selection fields and the existing integration method/sparse-layout
+fields. The current reset workflow retains its workspace and tab. A seventh
+native HDF5 regression verifies source changes with hidden/lazy cakes and the
+combined source, integration-method and sparse-layout project round trip.
+
+Primary integration checks: 147 Rust tests passed (one optional performance
+benchmark ignored), Clippy with warnings denied and rustfmt passed, 79 frontend
+unit/architecture tests and the production build passed. HDF5 source selection,
+image-change/reset, projects/configurations/combination and the main native
+workflow passed in headless Chromium and WebKit. Logs are in
+`artifacts/hdf5-primary-integration/`; no visible test windows were opened.

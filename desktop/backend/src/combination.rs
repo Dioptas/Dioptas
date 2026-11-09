@@ -328,7 +328,10 @@ impl Session {
             });
             reply.result["pattern"] = json!(pattern);
         }
-        if self.combination.cakes && self.control.cake_requested() && reply.result.get("cake").is_some() {
+        if self.combination.cakes
+            && self.control.cake_requested()
+            && reply.result.get("cake").is_some()
+        {
             reply.result["cake"] = self
                 .combination
                 .cake

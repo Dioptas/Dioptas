@@ -378,3 +378,65 @@ fn link_opt_in_does_not_change_non_hdf5_loading() {
     assert_eq!(loaded.result["state"]["shape"], json!([1043, 981]));
     assert_eq!(loaded.result["state"]["imageSources"], json!([]));
 }
+
+#[test]
+fn source_switch_preserves_display_demand_and_new_project_integration_settings() {
+    let temp = tempfile::tempdir().unwrap();
+    let path = temp.path().join("sources.h5");
+    fixture(&path);
+    let project = temp.path().join("source-and-layout.dio");
+    let mut session = Session::new(root());
+    call(&mut session, "open_image", json!({"path":path}));
+    geometry(&mut session);
+    call(
+        &mut session,
+        "integration_settings",
+        json!({"method":"pyfai_full","sparse_layout":"csc"}),
+    );
+    let before =
+        call(&mut session, "integration_diagnostics", json!({})).result["integrationDiagnostics"]
+            .clone();
+    let switched = call(
+        &mut session,
+        "select_image_source",
+        json!({"dataset":"/b","requested_products":{"cake":false,"rings":false}}),
+    );
+    assert_eq!(switched.result["state"]["selectedImageSource"], "/b");
+    assert!(switched.result["pattern"].is_object());
+    assert!(switched.result["cake"].is_null());
+    let after =
+        call(&mut session, "integration_diagnostics", json!({})).result["integrationDiagnostics"]
+            .clone();
+    assert_eq!(after["cakeIntegrations"], before["cakeIntegrations"]);
+    let shown = call(&mut session, "display_products", json!({"cake":true}));
+    assert_eq!(shown.result["pattern"], switched.result["pattern"]);
+    let mut eager = Session::new(root());
+    call(
+        &mut eager,
+        "open_image",
+        json!({"path":path,"dataset":"/b"}),
+    );
+    geometry(&mut eager);
+    let expected = call(
+        &mut eager,
+        "integration_settings",
+        json!({"method":"pyfai_full","sparse_layout":"csc"}),
+    );
+    assert_eq!(
+        shown.result["cake"]["bufferId"],
+        expected.result["cake"]["bufferId"]
+    );
+    call(&mut session, "save_project", json!({"path":project}));
+    let mut restored = Session::new(root());
+    let loaded = call(&mut restored, "open_project", json!({"path":project}));
+    assert_eq!(loaded.result["state"]["selectedImageSource"], "/b");
+    assert_eq!(
+        loaded.result["state"]["integration"]["method"],
+        "pyfai_full"
+    );
+    assert_eq!(loaded.result["state"]["integration"]["sparseLayout"], "csc");
+    assert_eq!(
+        loaded.result["state"]["imageSources"],
+        switched.result["state"]["imageSources"]
+    );
+}

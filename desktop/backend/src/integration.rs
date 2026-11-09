@@ -220,7 +220,9 @@ impl Plan {
                 let mut stream_key = self.key.clone();
                 stream_key.csc = true;
                 stream_key.auto_layout = false;
-                Self::new(stream_key)?.engine.prepare_fixed1d(shape, self.key.bins)?
+                Self::new(stream_key)?
+                    .engine
+                    .prepare_fixed1d(shape, self.key.bins)?
             };
             self.fixed = Some(Arc::new(if self.key.auto_layout {
                 fixed.with_auto_layout()
@@ -495,8 +497,7 @@ impl Engine {
             return Ok(None);
         }
         let mut o = options.clone();
-        if o.pyfai || o.dynamic_mask || !o.solid_angle || o.azimuth.is_some() || o.spread
-        {
+        if o.pyfai || o.dynamic_mask || !o.solid_angle || o.azimuth.is_some() || o.spread {
             return Ok(None);
         }
         let Some(mut source) = image.combined_source(index)? else {

@@ -215,10 +215,9 @@ fn invalid_demand_is_rejected_and_legacy_requests_keep_complete_products() {
         });
         assert_eq!(r.result["ok"], false);
     }
-    assert_eq!(
-        call(&mut s, "state", json!({}), false).result["state"]["integration"]["frame"],
-        0
-    );
+    let unchanged = call(&mut s, "state", json!({}), false);
+    assert_eq!(unchanged.result["state"]["integration"]["frame"], 1);
+    assert_eq!(unchanged.result["nativeSource"]["frame"], 0);
     let legacy = s.invoke(&Request {
         id: 2,
         action: "next_image".into(),

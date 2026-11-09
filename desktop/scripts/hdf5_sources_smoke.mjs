@@ -227,12 +227,19 @@ try {
       assert.equal(state.selectedImageSource, "/c");
       assert.deepEqual(state.shape, [16, 20]);
       assert.equal(state.calibrated, false);
-      await page
-        .getByRole("tab", { name: "Step 1: Image & setup", exact: true })
-        .waitFor();
+      assert.equal(
+        await button("Integration").getAttribute("aria-pressed"),
+        "true",
+      );
+      assert.equal(
+        await page
+          .getByRole("tab", { name: "Image", exact: true })
+          .getAttribute("aria-selected"),
+        "true",
+      );
       assert.equal(await selector().inputValue(), "/c");
       report.checks.push(
-        "accepted size reset returns to Calibration Image with correct source",
+        "accepted size reset preserves Integration Image and the correct source",
       );
       assert.deepEqual(errors, []);
       reports.push(report);

@@ -85,6 +85,8 @@ try {
       });
       const openConfigurations = async () => {
         await settings.click();
+        // Settings retains its selected tab between openings.
+        await page.getByRole("tab", { name: "General", exact: true }).click();
         assert.equal(
           await toggle.isVisible(),
           false,
@@ -271,7 +273,10 @@ try {
       const folderCall = calls.findLast(
         ([action]) => action === "configuration_navigation",
       );
-      assert.deepEqual(folderCall[1], {
+      const { requested_products: folderProducts, ...folderNavigation } =
+        folderCall[1];
+      assert.deepEqual(folderProducts, { cake: false, rings: true });
+      assert.deepEqual(folderNavigation, {
         target: "folder",
         direction: 1,
         scope: "all",
@@ -306,6 +311,11 @@ try {
           document.querySelectorAll(
             '.configuration-combination button[aria-pressed="true"]',
           ).length === 2,
+      );
+      // Combined cakes are requested lazily after the combination state reaches
+      // React. Wait for that UI request instead of racing it with a state read.
+      await page.waitForFunction(
+        async () => !!(await window.__nativeInvoke("state", {})).cake,
       );
       const fromConfigurationBar = await invoke("state");
       assert.equal(fromConfigurationBar.state.combination.patterns, true);
@@ -441,6 +451,9 @@ try {
             '.configuration-combination button[aria-pressed="true"]',
           ).length === 2,
       );
+      await page.waitForFunction(
+        async () => !!(await window.__nativeInvoke("state", {})).cake,
+      );
       const combined = await invoke("state");
       assert.equal(
         combined.state.combination.backends.pattern,
@@ -490,6 +503,9 @@ try {
           await idle();
           const cakeUnit =
             combinedCake && patternUnit === "q_A^-1" ? "q_A^-1" : "2th_deg";
+          await page.waitForFunction(
+            async () => !!(await window.__nativeInvoke("state", {})).cake,
+          );
           const beforeClick = await invoke("state");
           assert.equal(beforeClick.state.unit, patternUnit);
           assert.equal(beforeClick.cake.unit, cakeUnit);

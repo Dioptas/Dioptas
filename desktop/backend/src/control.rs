@@ -24,7 +24,8 @@ impl Control {
         !self.skip_cake.load(Ordering::Acquire)
     }
     pub(crate) fn request_calibration_rings(&self, requested: bool) {
-        self.skip_calibration_rings.store(!requested, Ordering::Release);
+        self.skip_calibration_rings
+            .store(!requested, Ordering::Release);
     }
     pub(crate) fn calibration_rings_requested(&self) -> bool {
         !self.skip_calibration_rings.load(Ordering::Acquire)

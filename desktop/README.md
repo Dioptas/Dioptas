@@ -299,7 +299,7 @@ precision independently of the display buffers.
 Opening an image with different source dimensions first offers **Cancel** or
 **Open and reset calibration**. Cancel preserves the current image, geometry,
 mask, background, corrections and history. Accepting opens the new image without
-calibration and returns to Calibration → Image. It clears detector geometry,
+calibration while retaining the current workspace and tab. It clears detector geometry,
 pixel setup, distortion, picked peaks, masks (including enabled mask plugins),
 image background/corrections and the previous integration/cake. Image orientation
 returns to its original state. Load a matching `.poni` or check the detector/pixel

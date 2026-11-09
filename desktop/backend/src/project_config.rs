@@ -367,8 +367,10 @@ pub(super) fn load(
     if let Some(method) = doc["native_desktop"].get("integration_method") {
         settings["method"] = method.clone();
     }
-    settings["sparse_layout"] = doc["native_desktop"].get("sparse_layout")
-        .cloned().unwrap_or_else(|| json!("csr"));
+    settings["sparse_layout"] = doc["native_desktop"]
+        .get("sparse_layout")
+        .cloned()
+        .unwrap_or_else(|| json!("csr"));
     s.dispatch("integration_settings", &settings)?;
     s.processing.factor = finite(&img["factor"], "Image scale factor", -1e12, 1e12)?;
     if let Some(shape) = shape {
