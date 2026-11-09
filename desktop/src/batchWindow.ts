@@ -146,8 +146,9 @@ export function useBatchWindow({
           result = { ok: false, error: String(e) };
         }
         channel.send({ type: "response", id, result });
-        if (!read)
-          channel.send({ type: "refresh", status: latest.current.status });
+        // The committed status effect publishes edits once React has applied
+        // them. Sending here can announce the previous revision and fetch the
+        // same snapshot again when the committed revision arrives.
       }
     });
     const timer = isTauri()

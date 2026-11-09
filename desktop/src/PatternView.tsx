@@ -5,6 +5,7 @@ import { IntegrationPhaseLegend } from "./IntegrationPhaseLegend";
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useId,
   useMemo,
   useRef,
@@ -477,7 +478,8 @@ export function PatternView({
         ? "ew-resize"
         : "grab"
       : undefined;
-  useEffect(() => {
+  // Submit the pattern in the same commit as the detector, before WebKit paints.
+  useLayoutEffect(() => {
     const started = performance.now();
     const backgroundContext = backdrop.current?.getContext("2d");
     if (!backgroundContext || !backdrop.current || !canvas.current) return;

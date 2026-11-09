@@ -65,6 +65,8 @@ export function DetachedBatchWindow() {
     let disposed = false,
       refreshing = false,
       queued = false;
+    let requestedRevision: number | undefined;
+    let requestedSnapshot = false;
     const transport = mapWindowChannel(
       true,
       new URLSearchParams(location.search).get("batch_window") ?? "native",
@@ -80,6 +82,7 @@ export function DetachedBatchWindow() {
           queued = false;
           const r = await request("batch_snapshot");
           if (!disposed && r.ok && "batch" in r) setBatch(r.batch ?? null);
+          if (!r.ok) requestedSnapshot = false;
         }
       } finally {
         refreshing = false;
@@ -88,7 +91,18 @@ export function DetachedBatchWindow() {
     const subscription = transport.listen((message) => {
       if (message.type === "refresh") {
         setStatus(message.status);
-        if (message.status.ready) void refresh();
+        // Readiness, progress and linked-position notifications do not change
+        // the matrix. Fetch each committed scientific revision only once.
+        if (
+          message.status.ready &&
+          (!requestedSnapshot ||
+            message.status.revision === undefined ||
+            requestedRevision !== message.status.revision)
+        ) {
+          requestedSnapshot = true;
+          requestedRevision = message.status.revision;
+          void refresh();
+        }
       } else if (message.type === "response") {
         const task = pending.current.get(message.id);
         if (task) {

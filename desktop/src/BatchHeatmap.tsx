@@ -1,7 +1,7 @@
 import { Equal } from "lucide-react";
 import { PlotToggle } from "./IntegrationPlotControls";
 import { usePlotTypography } from "./usePlotTypography";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { BatchData } from "./batchDomain";
 import { decodeRaster } from "./rasterTransfer";
 import { unitLabel, type Pattern } from "./types";
@@ -85,7 +85,10 @@ export function BatchHeatmap({
     viewport,
   );
   const normalizationRegion = batchNormalizationRegion(batch);
-  const values = useMemo(() => decodeRaster(batch.raster), [batch.raster.data]);
+  const values = useMemo(
+    () => decodeRaster(batch.raster),
+    [batch.raster.data, batch.raster.dtype],
+  );
   const coloredValues = useMemo(
     () =>
       sqrt
@@ -110,7 +113,19 @@ export function BatchHeatmap({
         palette,
         0,
       ),
-    [batch.raster, coloredValues, limits, log, sqrt, palette],
+    [
+      batch.raster.data,
+      batch.raster.bufferId,
+      batch.raster.dtype,
+      batch.raster.width,
+      batch.raster.height,
+      coloredValues,
+      limits[0],
+      limits[1],
+      log,
+      sqrt,
+      palette,
+    ],
   );
   useEffect(() => {
     const observer = new ResizeObserver(([e]) =>
@@ -130,13 +145,15 @@ export function BatchHeatmap({
       batch.x[i] + (batch.x[Math.min(cols - 1, i + 1)] - batch.x[i]) * (p - i)
     );
   };
-  useEffect(() => {
+  useLayoutEffect(() => {
     const c = canvas.current!,
       dpr = window.devicePixelRatio || 1;
-    c.width = Math.round(size.width * dpr);
-    c.height = Math.round(size.height * dpr);
+    const width = Math.round(size.width * dpr),
+      height = Math.round(size.height * dpr);
+    if (c.width !== width) c.width = width;
+    if (c.height !== height) c.height = height;
     const ctx = c.getContext("2d")!;
-    ctx.scale(dpr, dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, size.width, size.height);
     const v = nav.view,
       sx = bounds.width / (v.xMax - v.xMin),
@@ -268,12 +285,21 @@ export function BatchHeatmap({
     typography.mono,
     size,
     bitmap,
-    nav.view,
+    nav.view.xMin,
+    nav.view.xMax,
+    nav.view.yMin,
+    nav.view.yMax,
     nav.selection,
     batch.selected,
     batch.unit,
     zoomMode,
-    position,
+    position?.x,
+    position?.unit,
+    batch.x,
+    batch.wavelength,
+    rows,
+    cols,
+    typography.scale,
     phaseLines,
   ]);
   const hit = (event: React.PointerEvent<HTMLCanvasElement>) => {
