@@ -1,94 +1,98 @@
-# Integration pattern figure export — November 10, 2026
+# Integration pattern figure editor — November 10, 2026
 
-The existing **Save pattern** action offers XY, XYE, CHI, DAT, FXYE, PNG and SVG
-through the native Save chooser. There is no additional Export toolbar action.
-The data formats and automatic data-file creation retain their existing paths.
+**Save pattern** retains numerical XY/XYE/CHI/DAT/FXYE export. An icon-only
+**Export pattern figure** button sits immediately to its right, as requested.
+The image icon opens the editor directly, without first choosing a destination.
+The native chooser opens when saving the figure; later saves in the same editor
+can reuse the chosen path. **Save as…** always opens the chooser. Cancellation
+keeps the editor and its settings available.
 
-The reference is `dioptas/controller/integration/PatternController.py`:
-`save_pattern` offers these seven formats and routes figures to
-`widgets/plot_widgets/PatternWidget.py`'s `save_png` / `save_svg`. Qt uses
-pyqtgraph's ImageExporter and SVGExporter; its SVG is vector content.
+The earlier direct-capture workflow in `908dc3f6` has been superseded by this
+editor. Its display capture hook and regression checks remain available.
+Read-only references were Qt's `PatternController.save_pattern`,
+`PatternWidget.save_png/save_svg`, and MossA's `FigureExportDialog.tsx`,
+`figure.ts`, `figure-layout.ts`, and `figure-settings.ts`.
 
-## Rendering and ownership
+## Editor
 
-`PatternView` exposes the small display-only `PlotFigureExport.capture` hook.
-It can also be implemented by a future spottiness or azimuthal-profile plot;
-no additional plot or scientific implementation is introduced here.
+- A fitted live paper preview and a magnified, scrollable preview use the same
+  standalone SVG that is saved or rasterized to PNG.
+- Single-column, double-column and widescreen presets, custom dimensions in mm,
+  font family/size in pt, optional title, and white/transparent/dark backgrounds.
+- Current/full/custom horizontal limits in the plot's existing units, independent
+  linear/log/√ intensity display and current/automatic/custom intensity limits.
+  Editable axis labels, grid, boxed axes, tick direction and intensity tick labels.
+- Per-curve labels, colors, visibility, line width/style, points, and drawing order.
+  These controls operate on the measured/overlay curves supplied by the plot.
+- Legend placement inside corners, an automatic corner heuristic, above/below,
+  right, or hidden. Outside horizontal legends use wrapped columns.
+- Phase references can remain inside the pattern, occupy separate aligned rows,
+  or be hidden. Each phase has editable labels/colors/visibility. Separate rows
+  retain exact x coordinates and relative reflection strengths within each phase;
+  labels occupy a separate band above the sticks.
+- SVG remains editable paths and text, with no raster image or foreignObject.
+  PNG supports 150/300/600 dpi, exact pixel dimensions, alpha transparency and
+  native pHYs resolution metadata for document insertion at the chosen size.
 
-The native host chooses the destination first. Numerical saves proceed directly
-to the existing Rust command. Cancel returns without rendering or publication.
-For a PNG/SVG choice, the host returns `figureExportPath`; `patternFigureSave.ts`
-asks the mounted renderer for the figure and submits the explicit destination
-through the same native command. Ordinary numerical exports do not allocate
-or transfer PNG/SVG buffers. Capture failures use the existing error report UI.
-The Rust worker validates the PNG or parses the SVG, then uses the existing
-single-file atomic replacement. Invalid/missing capture or a destination error
-cannot replace the preceding file. Explicit paths bypass the chooser.
+Valid appearance settings are remembered locally. Named-plot labels/colors and
+custom ranges are restored for the same source; other sources inherit reusable
+layout settings and refresh their labels/ranges. Invalid optional preferences
+fall back to defaults. Settings are not yet embedded in `.dio` projects.
+Invalid ranges, insufficient layout space, unavailable positive log intensities
+or oversized PNG output disable publication with an explanation, rather than
+saving a stale preview. Labels accept Unicode; mathematical text outlining,
+PDF/EPS and multi-panel page composition are outside this implementation.
 
-PNG composites the actual displayed background, WebGL/Canvas curves and Canvas
-annotations at device-pixel resolution, then paints the currently positioned DOM
-legends as text. The existing transparent layers remain transparent until the
-final workspace-background composition. Because WebGL discards its drawing
-buffer after presentation, capture repaints the identical retained GPU frame
-immediately before copying it. Context loss retains the Canvas export path.
+## Ownership and scientific semantics
 
-SVG records an on-demand pass through the same plot drawing code. Tick helpers,
-view ranges, transforms, visible measured/overlay curves, order/emphasis/colors,
-phase scaling and positions, axes, labels, regions and linked guides retain their
-renderer ownership. The interactive hot path performs no SVG recording. SVG
-contains paths, rectangles, clipping and text; there is no raster image or
-foreignObject. With curve antialiasing off it uses crisp vector paths instead of
-millions of pixel rectangles. Legends retain dragged positions, clipping,
-scrolling, ellipsis/wrapping, colors and workspace text shadows. Controls, tool
-buttons and focus outlines are excluded from the figure.
+`PatternView` supplies a display snapshot through `PlotFigureExport.source`.
+Metadata snapshots follow label/view changes without adding redraw dependencies
+to the existing WebGL/Canvas hot path. The editor retains the source captured at
+opening, so subsequent source replacement cannot silently change its figure.
+`patternFigure.ts` handles paper layout and uses the existing tick generation,
+visible-sample lookup, phase scaling and SVG Canvas recording infrastructure.
+The editor reads the original displayed sample arrays, including descending d,
+nonfinite gaps and already-applied background/overlay transformations. It does
+not integrate, resample, change units, normalize or modify scientific arrays.
+The square-root display retains the working plot's clamp of negative samples.
+Main plot ranges, colors, phase settings and view preferences remain unchanged.
 
-Exports never modify scientific arrays or radial/phase coordinates and do not
-reintegrate. The plot's persistent view/zoom preferences remain owned by the
-existing navigation helpers. Pattern saving uses the same displayed renderer
-for individual and combined patterns.
+Publication stays on the existing Tauri → Rust stdio command. The editor sends
+rendered SVG or PNG bytes with an explicit format. Native dialogs use that
+format's filter and suggested name. A missing suffix adopts the figure format;
+a mismatched suffix is rejected before replacing any file. Rust parses SVG or
+validates PNG, writes PNG resolution metadata when requested, and atomically
+publishes the file. Existing raw-image/Batch PNG paths retain their bytes and
+metadata behavior. There is no additional processing session or Python fallback.
 
-Intentional differences from Qt: SVG retains the displayed charcoal background
-and current colors, rather than Qt's temporary color inversion; it retains the
-Unicode 2θ label rather than Qt's SVG-specific `2th_deg` substitution. SVG text
-uses font families, so independent viewers can substitute unavailable fonts.
-Vector stroke rasterization can differ slightly from GPU antialiasing. There is
-no publication-layout designer or custom export size/DPI editor.
+The original `PlotFigureExport.capture` remains a small extensible display hook
+for future profile/spottiness figure work. Its quick PNG composes the actual
+WebGL/Canvas layers at device resolution; the vector capture records the same
+plot drawing code. This is separate from the paper editor's optional styling.
 
 ## Verification
 
-- `npm run build` passes; `npm test` passes all 105 existing unit/architecture checks.
-- `npm run test:pattern-figure-export` runs headless Chromium and WebKit at 2×
-  device scale. Eighteen zoomed cases cover 2θ/Q/descending d, linear/log/√,
-  selected overlays, gaps, phase positions/strengths, labels and moved legends.
-  PNG pixels outside the DOM legend boxes match the displayed renderer layers
-  exactly (maximum channel error 0); dimensions match physical canvas size.
-  Scientific source arrays remain identical after capture.
-- Each SVG is parsed, checked for paths/text and absence of raster content,
-  loaded as an independent SVG image in both browsers, and rendered with resvg
-  (a development-only test dependency). The browser PNG/SVG mean channel
-  difference is below 1/255 across all cases. Independent render dimensions and
-  curve/reference colors are checked. Canvas fallback, hidden measured curves,
-  antialias-off and larger plot text are also exercised.
-- The real Rust processor is driven through the actual compact Integration Save
-  button in both browsers. All five numerical formats match direct native exports
-  (apart from filename-bearing headers); PNG/SVG files are independently read.
-  The chooser alone is replaced by a test adapter. Cancellation, failed writes,
-  retry, unchanged figure-save scientific state and 1000 × 668 Standard/Larger
-  controls are checked.
-- Focused Rust publication test, 15 native-session tests, 31 scientific functional
-  flows, and all 29 Tauri host tests pass. These include all five data formats,
-  case-insensitive figure extensions, explicit paths, native format routing,
-  render-request capability, invalid SVG/PNG and atomic failure preservation.
-- Existing `rendering_smoke.mjs` passes in both browsers, including shared gestures,
-  transparent rendering, reused storage, context recovery and Canvas fallback.
+- Production frontend build and all existing frontend unit/architecture checks.
+- `npm run test:pattern-figure-export` runs three headless scripts in Chromium
+  and WebKit: original display-capture regression, real native Save/image-button
+  workflows, and the figure editor/rendering checks.
+- Eighteen quick-capture cases and eighteen paper-rendering cases cover zoomed
+  2θ/Q/descending d, linear/log/√, overlays, gaps and phase positions. Independent
+  resvg rendering checks standalone SVG content. Quick PNG pixels outside DOM
+  legends match the active renderer exactly; the paper preview and saved SVG
+  have identical markup. Source arrays remain unchanged.
+- Real native data exports match all five direct writers. Image-icon adjacency,
+  direct editor opening, both UI text sizes at 1000 × 668, all editor tabs,
+  complete preview labels, edited styles/order/ranges/phase labels, persistence,
+  malformed preferences, source changes, negative √ samples, cancellation,
+  failed writes and retry are checked. Native PNG files are read back to verify
+  physical pixel dimensions, pHYs density and transparent alpha.
+- Focused Rust tests cover atomic publication, invalid SVG/PNG/DPI, pixel
+  preservation, explicit/case-insensitive paths, suffix mismatch and dotless
+  figure destinations. Host tests cover separate numerical/figure filters.
 - Backend formatting and Clippy with warnings denied pass.
 
-Receipts and visually inspected files are in `artifacts/pattern-figure-export/`;
-existing renderer receipts are `artifacts/rendering-{chromium,webkit}.json`.
-No visible/native windows were opened. Actual OS Save-panel interaction and
+Receipts and inspected figures/screenshots are in
+`artifacts/pattern-figure-export/` and `artifacts/pattern-figure-editor/`.
+No visible/native windows were opened. Actual OS save-panel interaction and
 Windows/Linux behavior are not newly qualified by these headless checks.
-
-Implementation is committed on the isolated `codex/pattern-figure-export` branch.
-The primary checkout was inspected read-only and remained clean at `b31e7650`
-before the feature commit. Primary integration is left to the coordinating chat;
-this ledger does not claim that the consolidated desktop already contains it.

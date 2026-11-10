@@ -47,21 +47,18 @@ try {
         cancel = false;
       await page.exposeFunction("__nativeInvoke", async (action, args = {}) => {
         if (action === "integration_save_pattern") {
-          if (args.figure_export) {
+          if (!args.format) {
             assert.equal(args.png_data, undefined);
             assert.equal(args.svg_data, undefined);
           } else {
             assert(
-              args.png_data?.length > 100 && args.svg_data?.startsWith("<svg"),
+              args.png_data?.length > 100 || args.svg_data?.startsWith("<svg"),
             );
-            assert.equal(args.path, selected);
+            if (args.path) assert.equal(args.path, selected);
           }
           if (cancel) {
             saves.push({ cancelled: true });
             return { ok: true, cancelled: true };
-          }
-          if (args.figure_export && /\.(png|svg)$/i.test(selected)) {
-            return { ok: true, figureExportPath: selected };
           }
           args = { ...args, path: selected };
         }
@@ -80,11 +77,7 @@ try {
               if (track) window.__pending++;
               try {
                 const result = await window.__nativeInvoke(a, p);
-                if (
-                  a === "integration_save_pattern" &&
-                  !result.figureExportPath
-                )
-                  window.__completedSaves++;
+                if (a === "integration_save_pattern") window.__completedSaves++;
                 return result;
               } finally {
                 if (track) window.__pending--;
@@ -111,14 +104,57 @@ try {
         name: "Save pattern",
         exact: true,
       });
+      const imageButton = page.getByRole("button", {
+        name: "Export pattern figure",
+        exact: true,
+      });
+      assert.equal(
+        await imageButton.evaluate((el) =>
+          el.previousElementSibling?.getAttribute("aria-label"),
+        ),
+        "Save pattern",
+      );
+      const iconBounds = await imageButton.boundingBox(),
+        saveBounds = await save.boundingBox();
+      assert(
+        iconBounds.x > saveBounds.x &&
+          Math.abs(iconBounds.y - saveBounds.y) < 2,
+        "The image icon must sit immediately right of Save",
+      );
       const saveOnce = async () => {
         const count = await page.evaluate(() => window.__completedSaves);
-        await save.click();
+        const figure = /\.(png|svg)$/i.test(selected);
+        if (figure) {
+          await page
+            .getByRole("button", { name: "Export pattern figure", exact: true })
+            .click();
+          const editor = page.getByRole("dialog", {
+            name: "Export pattern figure",
+            exact: true,
+          });
+          await editor.waitFor();
+          await editor
+            .getByRole("combobox", { name: "Figure file format", exact: true })
+            .selectOption(
+              selected.toLowerCase().endsWith(".png") ? "png" : "svg",
+            );
+          await editor
+            .getByRole("button", { name: "Save figure", exact: true })
+            .click();
+        } else await save.click();
         await page.waitForFunction(
           (count) => window.__completedSaves > count,
           count,
         );
         await ready();
+        if (
+          /\.(png|svg)$/i.test(selected) &&
+          (cancel || saves.at(-1)?.result?.ok)
+        ) {
+          await page
+            .getByRole("button", { name: "Close figure editor", exact: true })
+            .click();
+        }
       };
       const dimensions = await save.evaluate((element) => {
         const rect = element.getBoundingClientRect();
@@ -182,8 +218,8 @@ try {
         const bytes = await readFile(selected);
         if (extension === "png") {
           assert.equal(bytes.subarray(1, 4).toString(), "PNG");
-          assert.equal(bytes.readUInt32BE(16), Math.round(box.width * 2));
-          assert.equal(bytes.readUInt32BE(20), Math.round(box.height * 2));
+          assert.equal(bytes.readUInt32BE(16), Math.round((180 / 25.4) * 300));
+          assert.equal(bytes.readUInt32BE(20), Math.round((115 / 25.4) * 300));
         } else {
           assert.match(bytes.toString(), /Q \(Å⁻¹\)/);
           assert(!bytes.toString().includes("<image"));
@@ -206,6 +242,9 @@ try {
       });
       await dialog.waitFor();
       await dialog.getByRole("button", { name: "OK", exact: true }).click();
+      await page
+        .getByRole("button", { name: "Close figure editor", exact: true })
+        .click();
       selected = path.join(temp, `${name}-retry.svg`);
       await saveOnce();
       assert.equal(saves.at(-1).result.ok, true);
@@ -223,7 +262,8 @@ try {
       );
       for (const textSize of ["standard", "large"]) {
         await page.evaluate((value) => {
-          document.documentElement.dataset.textSize = value;
+          document.querySelector(".app").dataset.textSize =
+            value === "large" ? "large" : "normal";
         }, textSize);
         await page.screenshot({
           path: path.join(artifacts, `${name}-save-${textSize}.png`),

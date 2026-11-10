@@ -85,3 +85,65 @@ fn display_figures_publish_atomically_and_reject_bad_payloads_without_replacing_
     assert_eq!(result["ok"], false, "{result}");
     assert!(!temp.path().join("pattern.xy").exists());
 }
+
+#[test]
+fn figure_resolution_metadata_preserves_pixels_and_invalid_dpi_cannot_replace_files() {
+    use base64::Engine;
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("paper.png");
+    let bytes = png_bytes();
+    let data = base64::engine::general_purpose::STANDARD.encode(&bytes);
+    let mut session = Session::new(root());
+    for dpi in [150, 300, 600] {
+        let reply = invoke(
+            &mut session,
+            json!({"path":path,"png_data":data,"png_dpi":dpi}),
+        );
+        assert_eq!(reply["ok"], true, "{reply}");
+        let saved = fs::read(&path).unwrap();
+        let mut reader = png::Decoder::new(std::io::Cursor::new(saved.clone()))
+            .read_info()
+            .unwrap();
+        let dimensions = reader.info().pixel_dims.unwrap();
+        assert_eq!(dimensions.xppu, (dpi as f64 / 0.0254).round() as u32);
+        assert_eq!(dimensions.yppu, dimensions.xppu);
+        assert_eq!(dimensions.unit, png::Unit::Meter);
+        let mut pixels = vec![0; reader.output_buffer_size().unwrap()];
+        reader.next_frame(&mut pixels).unwrap();
+        assert_eq!(pixels, vec![255, 149, 0, 255, 16, 21, 24, 255]);
+        let reply = invoke(
+            &mut session,
+            json!({"path":path,"png_data":data,"png_dpi":-300}),
+        );
+        assert_eq!(reply["ok"], false);
+        assert_eq!(fs::read(&path).unwrap(), saved);
+    }
+}
+
+#[test]
+fn figure_format_rejects_mismatched_suffix_before_writing_and_defaults_missing_suffix() {
+    let temp = tempfile::tempdir().unwrap();
+    let path = temp.path().join("numeric.xy");
+    std::fs::write(&path, "keep numerical data").unwrap();
+    let mut session = Session::new(root());
+    let svg = r#"<svg xmlns="http://www.w3.org/2000/svg"/>"#;
+    let failed = invoke(
+        &mut session,
+        json!({"path":path,"format":"svg","svg_data":svg}),
+    );
+    assert_eq!(failed["ok"], false);
+    assert_eq!(
+        std::fs::read_to_string(&path).unwrap(),
+        "keep numerical data"
+    );
+    let output = temp.path().join("paper");
+    let saved = invoke(
+        &mut session,
+        json!({"path":output,"format":"svg","svg_data":svg}),
+    );
+    assert_eq!(saved["ok"], true, "{saved}");
+    assert_eq!(
+        std::fs::read_to_string(output.with_extension("svg")).unwrap(),
+        svg
+    );
+}

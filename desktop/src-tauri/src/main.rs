@@ -1,7 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod batch_export;
-mod pattern_export;
 mod calibration_tooltip;
 mod color_picker;
 mod processor;
@@ -150,9 +149,11 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
             "combined.xy",
             true,
         ),
+        "integration_save_pattern" if payload["format"] == "png" => ("PNG pattern figure", &["png"], "pattern.png", true),
+        "integration_save_pattern" if payload["format"] == "svg" => ("SVG vector pattern figure", &["svg"], "pattern.svg", true),
         "integration_save_pattern" => (
             "Diffraction pattern",
-            &["xy", "xye", "chi", "dat", "fxye", "png", "svg"],
+            &["xy", "xye", "chi", "dat", "fxye"],
             "pattern.xy",
             true,
         ),
@@ -298,17 +299,6 @@ async fn desktop_invoke(
                 .file()
                 .add_filter(choice.label, choice.extensions)
                 .add_filter("All files", &["*"]);
-            if action == "integration_save_pattern" {
-                dialog = dialog
-                    .set_title("Save pattern data or figure")
-                    .add_filter("Data", &["xy"])
-                    .add_filter("Data with errors", &["xye"])
-                    .add_filter("CHI data", &["chi"])
-                    .add_filter("DAT data", &["dat"])
-                    .add_filter("GSAS with errors", &["fxye"])
-                    .add_filter("PNG figure", &["png"])
-                    .add_filter("SVG vector figure", &["svg"]);
-            }
             if action == "integration_save_batch" {
                 dialog = dialog.set_title(if batch_export::multifile(&payload) { "Choose Batch export basename" } else { "Save Batch data" });
             }
@@ -337,7 +327,7 @@ async fn desktop_invoke(
             let selected = if choice.save {
                 let name = if action == "integration_save_batch" {
                     batch_export::suggested_name(&payload, choice.name)
-                } else if action == "integration_save_image" || action == "integration_phase_export" {
+                } else if action == "integration_save_image" || action == "integration_phase_export" || action == "integration_save_pattern" {
                     payload["suggested_name"].as_str().unwrap_or(choice.name)
                 } else {
                     choice.name
@@ -354,9 +344,6 @@ async fn desktop_invoke(
         }
         if !choose_batch_image_output(&app, &action, &mut payload)? {
             return Ok(Packet::metadata(json!({"ok": true, "cancelled": true})));
-        }
-        if let Some(request) = pattern_export::capture_request(&action, &payload) {
-            return Ok(Packet::metadata(request));
         }
         finish_packet(processor.request_packet(&action, payload, cached), &action)
     })
@@ -606,10 +593,15 @@ fn main() {
 mod tests {
     use super::*;
     #[test]
-    fn pattern_save_chooser_keeps_data_and_adds_display_figures() {
+    fn pattern_save_chooser_separates_data_and_editor_figures() {
         let choice = file_choice("integration_save_pattern", &json!({"png_data":"png", "svg_data":"svg"})).unwrap();
-        assert_eq!(choice.extensions, &["xy", "xye", "chi", "dat", "fxye", "png", "svg"]);
+        assert_eq!(choice.extensions, &["xy", "xye", "chi", "dat", "fxye"]);
         assert_eq!(choice.name, "pattern.xy");
+        for format in ["png", "svg"] {
+            let figure = file_choice("integration_save_pattern", &json!({"format":format})).unwrap();
+            assert_eq!(figure.extensions, &[format]);
+            assert_eq!(figure.name, format!("pattern.{format}"));
+        }
         assert!(choice.save);
         for extension in choice.extensions {
             assert!(file_choice("integration_save_pattern", &json!({"path":format!("/tmp/pattern.{extension}")})).is_none());

@@ -184,8 +184,6 @@ export interface RingOverlay {
   points: number[][];
 }
 export interface Response {
-  /** Native figure chooser requests display capture before publication. */
-  figureExportPath?: string;
   imageUnavailable?: boolean;
   configurationNavigation?: { advanced: number[]; skipped: number[] };
   configurationReset?: boolean;

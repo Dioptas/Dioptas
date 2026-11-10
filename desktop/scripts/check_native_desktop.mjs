@@ -83,6 +83,7 @@ if (selected.has("--ui")) {
     "native_integration_workflow_smoke",
     "pattern_figure_export_smoke",
     "pattern_figure_save_smoke",
+    "pattern_figure_editor_smoke",
     "batch_waterfall_smoke",
     "batch_surface_smoke",
     "batch_surface_gpu_smoke",

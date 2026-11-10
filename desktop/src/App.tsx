@@ -109,7 +109,8 @@ import { MaskView } from "./MaskView";
 import { MaskPanel } from "./MaskPanel";
 import { useMaskTools } from "./maskDomain";
 import { RasterView, type RasterExport } from "./RasterView";
-import { saveIntegrationPattern } from "./patternFigureSave";
+import { PatternFigureDialog } from "./PatternFigureDialog";
+import type { PatternFigureSource } from "./patternFigure";
 import type { PlotFigureExport } from "./plotFigureExport";
 import { PatternView } from "./PatternView";
 import { ORIGINAL_PATTERN_UID } from "./integration";
@@ -165,6 +166,9 @@ export default function App() {
   const detectorExport = useRef<RasterExport>(null);
   const cakeExport = useRef<RasterExport>(null);
   const patternExport = useRef<PlotFigureExport>(null);
+  const [figureEditor, setFigureEditor] = useState<{
+    source: PatternFigureSource;
+  } | null>(null);
   const [overlayReveal, setOverlayReveal] = useState(0);
   const [integrationDisplay, setIntegrationDisplay] = useState("image");
   const [integrationControlsCollapsed, setIntegrationControlsCollapsed] =
@@ -2732,15 +2736,19 @@ export default function App() {
                               state={state}
                               ready={ready}
                               run={run}
-                              onSave={() =>
-                                void saveIntegrationPattern(run, () => {
-                                  if (!patternExport.current)
-                                    throw Error(
-                                      "The pattern has not been rendered yet.",
-                                    );
-                                  return patternExport.current.capture();
-                                })
-                              }
+                              onSaveFigure={() => {
+                                try {
+                                  const source =
+                                    patternExport.current?.source?.();
+                                  if (source) setFigureEditor({ source });
+                                } catch (error) {
+                                  setError(
+                                    error instanceof Error
+                                      ? error.message
+                                      : String(error),
+                                  );
+                                }
+                              }}
                             />
                             <IntegrationPatternTools
                               state={state}
@@ -3427,6 +3435,14 @@ export default function App() {
             />
           )}
         </div>
+        {figureEditor && (
+          <PatternFigureDialog
+            source={figureEditor.source}
+            initialPath={null}
+            run={run}
+            onClose={() => setFigureEditor(null)}
+          />
+        )}
         <footer className="app-status">
           <div className="plot-status">
             <div className="plot-status-line">

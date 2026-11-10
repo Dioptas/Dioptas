@@ -430,8 +430,22 @@ impl Session {
             }
             "integration_save_pattern" | "export_pattern" | "integration_save_background" => {
                 let mut file = path(args)?.to_path_buf();
+                let figure_format = args["format"]
+                    .as_str()
+                    .filter(|format| ["png", "svg"].contains(format));
                 if file.extension().is_none() {
-                    file.set_extension("xy");
+                    file.set_extension(figure_format.unwrap_or("xy"));
+                }
+                if let Some(format) = figure_format {
+                    if file
+                        .extension()
+                        .and_then(|extension| extension.to_str())
+                        .is_none_or(|extension| !extension.eq_ignore_ascii_case(format))
+                    {
+                        return Err(format!(
+                            "Choose a .{format} destination for this figure format."
+                        ));
+                    }
                 }
                 if action == "integration_save_pattern" {
                     match file
@@ -441,7 +455,16 @@ impl Session {
                         .as_deref()
                     {
                         Some("png") => {
-                            save_png(&file, &args["png_data"])?;
+                            let dpi = args
+                                .get("png_dpi")
+                                .map(|value| {
+                                    value
+                                        .as_u64()
+                                        .filter(|dpi| [150, 300, 600].contains(dpi))
+                                        .ok_or("Choose 150, 300 or 600 dpi.")
+                                })
+                                .transpose()?;
+                            save_png_with_resolution(&file, &args["png_data"], dpi)?;
                             return Ok(Some(Reply::metadata(json!({"ok":true,"savedPath":file}))));
                         }
                         Some("svg") => {
@@ -663,6 +686,10 @@ impl Session {
 }
 
 pub(super) fn save_png(file: &Path, value: &Value) -> Result<(), String> {
+    save_png_with_resolution(file, value, None)
+}
+
+fn save_png_with_resolution(file: &Path, value: &Value, dpi: Option<u64>) -> Result<(), String> {
     use base64::Engine;
     let encoded = value
         .as_str()
@@ -680,8 +707,27 @@ pub(super) fn save_png(file: &Path, value: &Value) -> Result<(), String> {
         .filter(|&n| n <= 256 * 1024 * 1024)
         .ok_or("PNG exceeds the bounded image size.")?;
     let mut output = vec![0; length];
-    reader.next_frame(&mut output).map_err(|e| e.to_string())?;
+    let frame = reader.next_frame(&mut output).map_err(|e| e.to_string())?;
     reader.finish().map_err(|e| e.to_string())?;
+    if let Some(dpi) = dpi {
+        let mut figure = Vec::new();
+        {
+            let mut encoder = png::Encoder::new(&mut figure, frame.width, frame.height);
+            encoder.set_color(frame.color_type);
+            encoder.set_depth(frame.bit_depth);
+            let pixels_per_meter = (dpi as f64 / 0.0254).round() as u32;
+            encoder.set_pixel_dims(Some(png::PixelDimensions {
+                xppu: pixels_per_meter,
+                yppu: pixels_per_meter,
+                unit: png::Unit::Meter,
+            }));
+            encoder
+                .write_header()
+                .and_then(|mut writer| writer.write_image_data(&output[..frame.buffer_size()]))
+                .map_err(|e| e.to_string())?;
+        }
+        return atomic_write(file, &figure);
+    }
     atomic_write(file, &bytes)
 }
 

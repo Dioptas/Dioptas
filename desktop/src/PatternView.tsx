@@ -3,6 +3,7 @@ import {
   drawFigureLegends,
   type PlotFigureExport,
 } from "./plotFigureExport";
+import type { PatternFigureSource } from "./patternFigure";
 import { usePlotTypography } from "./usePlotTypography";
 import { navigationTrace } from "./navigationTiming";
 import {
@@ -181,11 +182,17 @@ export function PatternView({
   if (!referenceLines.length) referenceLines = EMPTY_REFERENCES;
   const canvas = useRef<HTMLCanvasElement>(null),
     container = useRef<HTMLDivElement>(null);
+  const figureSource = useRef<PatternFigureSource | null>(null);
   const exportDraw =
     useRef<() => ReturnType<PlotFigureExport["capture"]>>(null);
   useImperativeHandle(
     exportRef,
     () => ({
+      source: () => {
+        if (!figureSource.current)
+          throw Error("The pattern has not been rendered yet.");
+        return figureSource.current;
+      },
       capture: () => {
         if (!exportDraw.current)
           throw Error("The pattern has not been rendered yet.");
@@ -1069,6 +1076,33 @@ export function PatternView({
     top,
     right,
   ]);
+  // Metadata snapshots follow labels/views without adding redraw dependencies.
+  useLayoutEffect(() => {
+    figureSource.current = {
+      curves: [
+        ...(showPattern
+          ? [
+              {
+                id: "measured",
+                name: overlayLegend?.[0]?.name || "Measured pattern",
+                color: patternColor,
+                x: pattern.x,
+                y: pattern.y,
+              },
+            ]
+          : []),
+        ...curves.map((curve, i) => ({
+          ...curve,
+          id: `overlay:${i}:${curve.name}`,
+        })),
+      ],
+      phases: referenceLines,
+      pattern,
+      unit: pattern.unit,
+      view: { ...navigation.view },
+      scale: log ? "log" : sqrt ? "sqrt" : "linear",
+    };
+  });
   const inspectByKeyboard = (event: ReactKeyboardEvent<HTMLCanvasElement>) => {
     if (
       !event.altKey ||

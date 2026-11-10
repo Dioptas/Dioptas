@@ -1,5 +1,8 @@
 /** Display-only hook, also usable by future profile/spottiness plots. */
+import type { PatternFigureSource } from "./patternFigure";
+
 export interface PlotFigureExport {
+  source?: () => PatternFigureSource;
   capture: () => { png_data: string; svg_data: string };
 }
 
@@ -141,7 +144,7 @@ export class SvgRecording {
     });
   }
 
-  svg(width: number, height: number) {
+  svg(width: number | string, height: number | string) {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${this.canvas.width} ${this.canvas.height}" role="img" aria-label="Diffraction pattern"><defs>${this.definitions.join("")}</defs>${this.elements.join("")}</svg>`;
   }
 }

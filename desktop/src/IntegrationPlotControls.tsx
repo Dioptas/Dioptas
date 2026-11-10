@@ -4,7 +4,13 @@ import { geometrySourceLabel } from "./GeometryProvenance";
 import { PatternFreshness } from "./PatternFreshness";
 import { useMemo, type ReactNode } from "react";
 import { decodeRaster } from "./rasterTransfer";
-import { FolderOpen, ImageMinus, Layers, Save } from "lucide-react";
+import {
+  FolderOpen,
+  ImageMinus,
+  Image as ImageIcon,
+  Layers,
+  Save,
+} from "lucide-react";
 import type { Cake, State, Unit } from "./types";
 import type { IntegrationRun } from "./integration";
 import type { BackgroundSettings } from "./useLiveBackground";
@@ -196,12 +202,12 @@ export function IntegrationPatternActions({
   state,
   ready,
   run,
-  onSave,
+  onSaveFigure,
 }: {
   state: State | null;
   ready: boolean;
   run: IntegrationRun;
-  onSave: () => void;
+  onSaveFigure: () => void;
 }) {
   const hasPattern = !!state?.integration.patternName;
   const source = state?.calibrated
@@ -220,11 +226,21 @@ export function IntegrationPatternActions({
     >
       <Button
         aria-label="Save pattern"
-        title="Save pattern data or displayed figure (PNG/SVG)"
+        title="Save pattern data"
         disabled={!ready || !hasPattern}
-        onClick={onSave}
+        onClick={() =>
+          void run("integration_save_pattern", { subtract_background: true })
+        }
       >
         <Save size={15} />
+      </Button>
+      <Button
+        aria-label="Export pattern figure"
+        title="Edit and export pattern figure"
+        disabled={!ready || !hasPattern}
+        onClick={onSaveFigure}
+      >
+        <ImageIcon size={15} />
       </Button>
       <Button
         aria-label="As Overlay"
