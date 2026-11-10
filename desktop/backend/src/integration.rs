@@ -166,6 +166,7 @@ pub struct Engine {
     last_pixel_decode_ms: f64,
     prepared_hits: u64,
     resident_calls: u64,
+    typed_image_integrations: u64,
     pattern_only_decodes: u64,
     frame_parallel_integrations: u64,
     series_worker_starts: u64,
@@ -423,7 +424,7 @@ impl Engine {
     }
 
     pub fn diagnostics(&self) -> Value {
-        json!({"patternPlanBuilds":self.pattern_builds,"cakePlanBuilds":self.cake_builds,"cakeIntegrations":self.cake_integrations,"combinedDecodes":self.combined_decodes,"preparedHits":self.prepared_hits,"residentIntegrations":self.resident_calls,"patternOnlyDecodes":self.pattern_only_decodes,"parallelPixelDecodes":self.parallel_pixel_decodes,"lastPixelDecodeMs":self.last_pixel_decode_ms,
+        json!({"patternPlanBuilds":self.pattern_builds,"cakePlanBuilds":self.cake_builds,"cakeIntegrations":self.cake_integrations,"combinedDecodes":self.combined_decodes,"preparedHits":self.prepared_hits,"residentIntegrations":self.resident_calls,"typedImageIntegrations":self.typed_image_integrations,"patternOnlyDecodes":self.pattern_only_decodes,"parallelPixelDecodes":self.parallel_pixel_decodes,"lastPixelDecodeMs":self.last_pixel_decode_ms,
             "frameParallelIntegrations":self.frame_parallel_integrations,"seriesWorkerStarts":self.series_worker_starts,"seriesPipelineRuns":self.series_pipeline_runs,"seriesPendingPeak":self.series_pending_peak,
             "processedFrameIntegrations":self.processed_frame_integrations,"dynamicSeriesPlanBuilds":self.dynamic_series_builds})
     }
@@ -433,6 +434,54 @@ impl Engine {
             self.pattern_builds += 1;
         }
         Ok(self.pattern.as_mut().unwrap())
+    }
+    /// Interactive compatibility integration reads the original integer image,
+    /// scheduling independent bins in parallel without changing any row's math.
+    /// The caller admits only uncorrected scientific pixels. Transformed,
+    /// derived, dynamic-mask and spread inputs retain resident integration.
+    pub fn prepare_compatibility_image(
+        &mut self,
+        image: &Image,
+        p: &Parameters,
+        mask: &[u8],
+        options: &Options,
+        control: &Control,
+    ) -> Result<Option<Prepared>, String> {
+        if !options.pyfai
+            || options.dynamic_mask
+            || options.spread
+            || image.derived
+            || !image.transformations.is_empty()
+            || !matches!(
+                image.original_pixels(),
+                PixelBuffer::U16(_) | PixelBuffer::U32(_)
+            )
+        {
+            return Ok(None);
+        }
+        control.check()?;
+        let mut trace =
+            crate::frame_trace::FrameTrace::new("pyfai-typed-image", image.frame as u64);
+        let k = key(image.shape, p, mask, options, false);
+        let plan = self
+            .pattern_plan(k.clone())?
+            .fixed_compatibility_input(options, mask)?;
+        trace.mark("prepare plan");
+        let result = match image.original_pixels() {
+            PixelBuffer::U16(v) => plan.integrate_u16_parallel(v, options.errors),
+            PixelBuffer::U32(v) => plan.integrate_u32_parallel(v, options.errors),
+            _ => unreachable!(),
+        }?;
+        trace.mark("strict typed CSR");
+        image.check_sources()?;
+        control.check()?;
+        self.typed_image_integrations += 1;
+        Ok(Some(Prepared {
+            key: Arc::new(k),
+            x: result.radial,
+            y: result.intensity,
+            sigma: result.errors,
+        }))
     }
     /// Admission is metadata-only. Unsupported layouts decode through ordinary
     /// native input once; admitted-source failures never become silent fallbacks.

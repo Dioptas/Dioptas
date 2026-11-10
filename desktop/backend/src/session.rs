@@ -648,7 +648,11 @@ impl Session {
                 #[cfg(feature = "dioptrin")]
                 let options = self.integration_options();
                 #[cfg(feature = "dioptrin")]
-                let load_mask = if self.settings.calibrated && !defer && !self.processing.active() {
+                let load_mask = if self.settings.calibrated
+                    && !defer
+                    && !self.processing.active()
+                    && !options.pyfai
+                {
                     image
                         .combined_source(index as usize)?
                         .map(|source| self.integration_mask(source.shape))
@@ -1330,7 +1334,11 @@ impl Session {
         #[cfg(feature = "dioptrin")]
         let prepared = {
             let options = self.integration_options();
-            let load_mask = if self.settings.calibrated && !defer && !self.processing.active() {
+            let load_mask = if self.settings.calibrated
+                && !defer
+                && !self.processing.active()
+                && !options.pyfai
+            {
                 image
                     .combined_source(image.frame)?
                     .map(|source| self.integration_mask(source.shape))
@@ -1732,6 +1740,15 @@ impl Session {
             {
                 let start = Instant::now();
                 let mask = self.integration_mask(image.shape);
+                if self.prepared.is_none() && !self.processing.active() {
+                    self.prepared = self.engine.prepare_compatibility_image(
+                        image,
+                        &self.settings.geometry,
+                        &mask,
+                        &self.integration_options(),
+                        &self.control,
+                    )?;
+                }
                 let (pattern, sigma, cake, cake_values) = if include_cake {
                     let products = self.engine.integrate_with_variance(
                         &self.scientific_values(),
