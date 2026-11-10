@@ -121,6 +121,7 @@ struct RowContext<'a> {
 }
 #[cfg(feature = "dioptrin")]
 struct SeriesRows {
+    started: std::time::Instant,
     x: Option<Arc<Vec<f64>>>,
     data: Vec<f64>,
     sigma: Option<Vec<f64>>,
@@ -132,6 +133,14 @@ struct SeriesRows {
 }
 #[cfg(feature = "dioptrin")]
 impl SeriesRows {
+    fn publish_progress(&self, control: &crate::control::Control) {
+        let elapsed = self.started.elapsed().as_secs_f64();
+        control.publish(
+            json!({"running":true,"current":self.entries.len(),"total":self.count,
+            "label":"Integrating series","elapsedSeconds":elapsed,
+            "fps":self.entries.len() as f64 / elapsed.max(f64::EPSILON)}),
+        );
+    }
     fn push(
         &mut self,
         context: &RowContext<'_>,
@@ -195,7 +204,7 @@ impl SeriesRows {
             path: source.to_string_lossy().into_owned(),
             frame,
         });
-        context.control.publish(json!({"running":true,"current":self.entries.len(),"total":self.count,"label":"Integrating series"}));
+        self.publish_progress(context.control);
         Ok(())
     }
 }
@@ -285,6 +294,7 @@ impl Session {
         }
         #[cfg(feature = "dioptrin")]
         {
+            let started = std::time::Instant::now();
             let checkpoint = self.checkpoint();
             let outcome = (|| {
                 // Batch and Map rows need one shared grid even when exposures
@@ -337,6 +347,7 @@ impl Session {
                 }
                 let mut global = 0usize;
                 let mut rows = SeriesRows {
+                    started,
                     x: None,
                     data: vec![],
                     sigma: self.settings.errors.then(Vec::new),
@@ -346,6 +357,7 @@ impl Session {
                     preview_enabled: args["preview_map"] == true,
                     count,
                 };
+                rows.publish_progress(&self.control);
                 for (source, frames, shape, fingerprint) in &images {
                     for (path, identity) in fingerprint {
                         if crate::image::FileIdentity::read(path)? != *identity {
@@ -458,7 +470,7 @@ impl Session {
                             &bulk_options,
                         )?
                     {
-                        self.control.publish(json!({"running":true,"current":rows.entries.len(),"total":count,"label":"Integrating series"}));
+                        rows.publish_progress(&self.control);
                         let processing = self
                             .processing
                             .active()
@@ -522,7 +534,7 @@ impl Session {
                     }
                     for frame in selected_frames {
                         self.control.check()?;
-                        self.control.publish(json!({"running":true,"current":rows.entries.len(),"total":count,"label":"Integrating series"}));
+                        rows.publish_progress(&self.control);
                         let direct = if let Some(plan) = &combined_plan {
                             Some(self.engine.combined_series_pattern(
                                 &mut image,

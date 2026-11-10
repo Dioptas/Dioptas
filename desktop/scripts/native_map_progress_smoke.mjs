@@ -35,7 +35,8 @@ try {
     const native = nativeClient();
     const browser = await type.launch({ headless: true });
     const errors = [],
-      observed = [];
+      observed = [],
+      rates = [];
     const call = async (a, p = {}) => {
       const r = await native.invoke(a, p);
       assert.equal(r.ok, true, `${a}: ${r.error}`);
@@ -89,6 +90,14 @@ try {
         );
         if (a === "progress" && r.progress?.mapPreview)
           observed.push(r.progress.mapPreview);
+        if (a === "progress" && r.progress?.current > 0 && r.progress.fps > 0) {
+          assert.ok(
+            Math.abs(
+              r.progress.fps * r.progress.elapsedSeconds - r.progress.current,
+            ) < 1e-8,
+          );
+          rates.push(r.progress.fps);
+        }
         return native.browserResult(r);
       });
       await page.addInitScript(() => {
@@ -173,6 +182,11 @@ try {
         .getByRole("button", { name: "Load images…", exact: true })
         .click();
       await page.getByTestId("scan-map-progress").waitFor();
+      await page.waitForFunction(() =>
+        document
+          .querySelector(".workflow-status")
+          ?.textContent.includes("images/s"),
+      );
       assert.match(
         await page.getByRole("status").first().innerText(),
         /Preview of layer Signal/,
@@ -219,6 +233,11 @@ try {
         .getByRole("button", { name: "Load images…", exact: true })
         .click();
       await detached.getByTestId("scan-map-progress").waitFor();
+      await detached.waitForFunction(() =>
+        document
+          .querySelector(".detached-map-footer")
+          ?.textContent.includes("images/s"),
+      );
       await detached.screenshot({
         path: path.join(artifacts, `${name}-detached-loading.png`),
       });
@@ -232,6 +251,7 @@ try {
         previewEqualsFinishedCells: true,
         regionsAndExpressionPreserved: true,
         detachedPreview: true,
+        liveRateDisplayed: rates.length > 0,
         completed: 2048,
       });
     } finally {

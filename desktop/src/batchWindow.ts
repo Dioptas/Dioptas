@@ -13,6 +13,8 @@ export interface BatchWindowStatus extends MapWindowStatus {
     current: number;
     total: number;
     label?: string;
+    fps?: number;
+    elapsedSeconds?: number;
   };
 }
 const reads = new Set(["batch_snapshot", "batch_levels"]);

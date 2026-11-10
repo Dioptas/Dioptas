@@ -42,6 +42,9 @@ and private reusable frame workers, including propagated pixel variances; see
 [processed-series qualification](NATIVE_PROCESSED_SERIES_PIPELINE.md).
 Spot and Cosmic masks use compact row workspaces and shared Spot bin membership;
 see the [full-series spatial-mask profile and benchmark](NATIVE_SPATIAL_MASK_PERFORMANCE.md).
+The integration status line reports measured images/s during Batch/Map loading.
+See [native GUI Eiger timings](NATIVE_GUI_SERIES_PERFORMANCE.md) for first/repeated
+loads, bin counts, Poisson errors and the serial compatibility-method limitation.
 See the [qualification ledger](NATIVE_INTEGRATION_PARITY.md) for measured parity,
 benchmark scope and remaining detector work. Native format-2 `.dio` persistence
 and configuration select/add/duplicate/rename/remove controls are now available;

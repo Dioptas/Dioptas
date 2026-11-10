@@ -93,12 +93,21 @@
       },
     });
     const reports = [];
+    const loading = [];
+    const series = [];
     const configure = async (image, calibration, reset = false) => {
+      const start = performance.now();
       await call("open_image", {
         path: image,
         ...(reset ? { reset_calibration: true } : {}),
       });
+      const opened = performance.now();
       await call("open_calibration", { path: calibration });
+      loading.push({
+        image,
+        openToPaintMs: opened - start,
+        calibrationToPaintMs: performance.now() - opened,
+      });
       await call("integration_settings", { bins: 1000, cake_bins: 360 });
       const integration =
         document.querySelector('button[aria-label="Integration"]') ??
@@ -117,6 +126,7 @@
       await paint();
     };
     const step = async (scenario, direction, boundary = false) => {
+      const action = "next_image";
       const button = document.querySelector(
         `[aria-label="Integration ${direction > 0 ? "next" : "previous"} image"]`,
       );
@@ -128,8 +138,7 @@
       button.click();
       await wait(() => {
         const hydrated = active.events.find(
-          (event) =>
-            event.stage === "ipc-hydrated" && event.action === "next_image",
+          (event) => event.stage === "ipc-hydrated" && event.action === action,
         );
         if (!hydrated) return false;
         if (boundary)
@@ -138,7 +147,7 @@
             ?.textContent.includes("No new image available");
         const response = active.events.find(
           (event) =>
-            event.stage === "command-response" && event.action === "next_image",
+            event.stage === "command-response" && event.action === action,
         );
         const id = probe.image()?.bufferId;
         return (
@@ -186,8 +195,7 @@
       const event = (stage) =>
         trace.events.find(
           (entry) =>
-            entry.stage === stage &&
-            (!entry.action || entry.action === "next_image"),
+            entry.stage === stage && (!entry.action || entry.action === action),
         );
       const wire = event("ipc-hydrated");
       const raster = trace.events
@@ -237,30 +245,158 @@
       });
       return row;
     };
-    await configure(
-      `${config.root}/dioptas/tests/data/image_001.tif`,
-      `${config.root}/dioptas/tests/data/LaB6_40keV_MarCCD.poni`,
-    );
-    await step("tiff-first-next", 1);
-    await step("tiff-first-previous", -1);
-    for (let i = 0; i < 12; i++)
-      await step("tiff-cached", i % 2 === 0 ? 1 : -1);
-    await step("tiff-cached", 1);
-    await step("tiff-boundary", 1, true);
-    await invoke("native_smoke_report", {
-      report: { stage: "diagnostic", capture: "tiff-native-navigation" },
-    });
-    await delay(800);
+    if (!config.series) {
+      await configure(
+        `${config.root}/dioptas/tests/data/image_001.tif`,
+        `${config.root}/dioptas/tests/data/LaB6_40keV_MarCCD.poni`,
+      );
+      await step("tiff-first-next", 1);
+      await step("tiff-first-previous", -1);
+      for (let i = 0; i < 12; i++)
+        await step("tiff-cached", i % 2 === 0 ? 1 : -1);
+      await step("tiff-cached", 1);
+      await step("tiff-boundary", 1, true);
+      await invoke("native_smoke_report", {
+        report: { stage: "diagnostic", capture: "tiff-native-navigation" },
+      });
+      await delay(800);
+    }
     if (config.eiger) {
       await configure(
         config.eiger,
         config.eiger.replace(/\.h5$/, ".poni"),
         true,
       );
-      for (let i = 0; i < 12; i++) await step("eiger-new-frame", 1);
-      await step("eiger-cached", -1);
-      for (let i = 0; i < 12; i++)
-        await step("eiger-cached", i % 2 === 0 ? 1 : -1);
+      if (config.series) {
+        const diagnostic = async () => {
+          const wire = await invoke("desktop_invoke", {
+            action: "integration_diagnostics",
+            payload: {},
+            cachedBuffers: [],
+          });
+          const length = new DataView(wire).getUint32(0, true);
+          return JSON.parse(
+            new TextDecoder().decode(new Uint8Array(wire, 4, length)),
+          ).result.integrationDiagnostics;
+        };
+        const presets = config.seriesMethod
+          ? [
+              {
+                name: "method-no-errors",
+                bins: 2000,
+                poisson_errors: false,
+                method: config.seriesMethod,
+              },
+              {
+                name: "method-poisson",
+                bins: 2000,
+                poisson_errors: true,
+                method: config.seriesMethod,
+              },
+            ]
+          : config.seriesExtra
+            ? [
+                {
+                  name: "bins-control-1000",
+                  bins: 1000,
+                  poisson_errors: false,
+                },
+                {
+                  name: "bins-control-2000",
+                  bins: 2000,
+                  poisson_errors: false,
+                },
+                {
+                  name: "compatibility-sample",
+                  bins: 2000,
+                  poisson_errors: false,
+                  method: "pyfai_full",
+                  frames: 32,
+                },
+              ]
+            : [
+                { name: "default", bins: 1000, poisson_errors: false },
+                { name: "matched-poisson", bins: 2000, poisson_errors: true },
+              ];
+        for (const preset of presets) {
+          const frames = preset.frames ?? probe.state().integration.frames;
+          const method = preset.method ?? "polygon";
+          await call("integration_settings", {
+            bins: preset.bins,
+            poisson_errors: preset.poisson_errors,
+            method,
+            sparse_layout: "csr",
+            polarization: 0.965,
+          });
+          for (const view of ["batch"]) {
+            const action = "batch_load_data";
+            for (const pass of ["first", "warm"]) {
+              const progress = [];
+              const observer = new MutationObserver(() => {
+                const text =
+                  document.querySelector(".workflow-status")?.textContent ?? "";
+                if (text.includes("images/s") && text !== progress.at(-1))
+                  progress.push(text);
+              });
+              observer.observe(document.body, {
+                subtree: true,
+                childList: true,
+                characterData: true,
+              });
+              const before = await diagnostic();
+              active = { start: performance.now(), events: [], uploads: [] };
+              await call(action, { paths: [config.eiger], stop: frames });
+              for (const gl of contexts)
+                if (gl.canvas.isConnected && !gl.isContextLost()) gl.finish();
+              await paint();
+              const seconds = (performance.now() - active.start) / 1000;
+              const events = active.events;
+              active = null;
+              observer.disconnect();
+              const after = await diagnostic();
+              const delta = Object.fromEntries(
+                Object.keys(after).map((k) => [k, after[k] - (before[k] ?? 0)]),
+              );
+              if (
+                method === "polygon" &&
+                delta.frameParallelIntegrations !== frames
+              )
+                throw Error("Full Eiger series did not use the frame pipeline");
+              if (!progress.length && frames === 625)
+                throw Error("Live integration images/s was not displayed");
+              const start = events.find(
+                (e) => e.stage === "ipc-start" && e.action === action,
+              );
+              const received = events.find(
+                (e) => e.stage === "ipc-received" && e.action === action,
+              );
+              series.push({
+                preset: preset.name,
+                bins: preset.bins,
+                poisson: preset.poisson_errors,
+                view,
+                pass,
+                frames,
+                method,
+                seconds,
+                fps: frames / seconds,
+                nativeIpcSeconds: (received.at - start.at) / 1000,
+                diagnosticsDelta: delta,
+                progress,
+              });
+              await invoke("native_smoke_report", {
+                report: { stage: "hmr", navigationProgress: series.at(-1) },
+              });
+            }
+          }
+        }
+      }
+      if (!config.series) {
+        for (let i = 0; i < 12; i++) await step("eiger-new-frame", 1);
+        await step("eiger-cached", -1);
+        for (let i = 0; i < 12; i++)
+          await step("eiger-cached", i % 2 === 0 ? 1 : -1);
+      }
       await invoke("native_smoke_report", {
         report: { stage: "diagnostic", capture: "eiger-native-navigation" },
       });
@@ -290,11 +426,14 @@
         stage: "complete",
         ok: true,
         processingPid: host.pid,
-        scope:
-          "Actual React App in Tauri WKWebView, production binary IPC and GPU renderers; DOM button activation to GPU completion and two animation-frame presentation opportunity; physical LCD scanout unmeasured",
+        scope: config.series
+          ? "Actual React App Batch load action in Tauri WKWebView, production binary IPC, GUI processing and GPU renderers; complete command through GPU completion and paint opportunities; excludes OS file picker and initial image/calibration setup; physical LCD scanout unmeasured"
+          : "Actual React App in Tauri WKWebView, production binary IPC and GPU renderers; DOM button activation to GPU completion and two animation-frame presentation opportunity; physical LCD scanout unmeasured",
         viewport: [innerWidth, innerHeight],
         devicePixelRatio,
         summaries,
+        loading,
+        series,
         reports,
         errors,
       },

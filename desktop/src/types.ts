@@ -247,6 +247,8 @@ export interface Response {
     current: number;
     total: number;
     label?: string;
+    fps?: number;
+    elapsedSeconds?: number;
     mapPreview?: {
       raster: Raster;
       completed: number;

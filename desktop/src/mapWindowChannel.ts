@@ -13,6 +13,8 @@ export type MapWindowStatus = {
     current: number;
     total: number;
     label?: string;
+    fps?: number;
+    elapsedSeconds?: number;
   };
 };
 export type MapWindowMessage =

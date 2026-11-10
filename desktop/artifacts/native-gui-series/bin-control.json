@@ -1,0 +1,393 @@
+{
+  "devicePixelRatio": 1,
+  "errors": [],
+  "loading": [
+    {
+      "calibrationToPaintMs": 1453,
+      "image": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.h5",
+      "openToPaintMs": 315
+    }
+  ],
+  "ok": true,
+  "processingPid": 46312,
+  "reports": [],
+  "scope": "Actual React App in Tauri WKWebView, production binary IPC and GPU renderers; DOM button activation to GPU completion and two animation-frame presentation opportunity; physical LCD scanout unmeasured",
+  "series": [
+    {
+      "bins": 1000,
+      "diagnosticsDelta": {
+        "cakeIntegrations": 0,
+        "cakePlanBuilds": 0,
+        "combinedDecodes": 626,
+        "dynamicSeriesPlanBuilds": 0,
+        "frameParallelIntegrations": 625,
+        "lastPixelDecodeMs": 0,
+        "parallelPixelDecodes": 0,
+        "patternOnlyDecodes": 625,
+        "patternPlanBuilds": 0,
+        "preparedHits": 626,
+        "processedFrameIntegrations": 0,
+        "residentIntegrations": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0,
+        "seriesPendingPeak": 6,
+        "seriesPipelineRuns": 1,
+        "seriesWorkerStarts": 8
+      },
+      "fps": 188.99304505594196,
+      "frames": 625,
+      "method": "polygon",
+      "nativeIpcSeconds": 3.1939999999999995,
+      "pass": "first",
+      "poisson": false,
+      "preset": "bins-control-1000",
+      "progress": [
+        "Integrating series 39 / 625 \u00b7 51.6 images/sCancel processing",
+        "Integrating series 72 / 625 \u00b7 81.6 images/sCancel processing",
+        "Integrating series 112 / 625 \u00b7 107.9 images/sCancel processing",
+        "Integrating series 152 / 625 \u00b7 126.5 images/sCancel processing",
+        "Integrating series 191 / 625 \u00b7 140.1 images/sCancel processing",
+        "Integrating series 227 / 625 \u00b7 149.9 images/sCancel processing",
+        "Integrating series 264 / 625 \u00b7 160.2 images/sCancel processing",
+        "Integrating series 304 / 625 \u00b7 168.0 images/sCancel processing",
+        "Integrating series 341 / 625 \u00b7 173.4 images/sCancel processing",
+        "Integrating series 376 / 625 \u00b7 178.5 images/sCancel processing",
+        "Integrating series 416 / 625 \u00b7 183.2 images/sCancel processing",
+        "Integrating series 453 / 625 \u00b7 186.6 images/sCancel processing",
+        "Integrating series 488 / 625 \u00b7 190.5 images/sCancel processing",
+        "Integrating series 528 / 625 \u00b7 193.8 images/sCancel processing",
+        "Integrating series 565 / 625 \u00b7 196.2 images/sCancel processing",
+        "Integrating series 600 / 625 \u00b7 198.9 images/sCancel processing",
+        "Integrating series 625 / 625 \u00b7 199.2 images/sCancel processing"
+      ],
+      "seconds": 3.3069999999999995,
+      "view": "batch"
+    },
+    {
+      "bins": 1000,
+      "diagnosticsDelta": {
+        "cakeIntegrations": 0,
+        "cakePlanBuilds": 0,
+        "combinedDecodes": 626,
+        "dynamicSeriesPlanBuilds": 0,
+        "frameParallelIntegrations": 625,
+        "lastPixelDecodeMs": 0,
+        "parallelPixelDecodes": 0,
+        "patternOnlyDecodes": 625,
+        "patternPlanBuilds": 0,
+        "preparedHits": 626,
+        "processedFrameIntegrations": 0,
+        "residentIntegrations": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0,
+        "seriesPendingPeak": 2,
+        "seriesPipelineRuns": 1,
+        "seriesWorkerStarts": 8
+      },
+      "fps": 226.5313519391084,
+      "frames": 625,
+      "method": "polygon",
+      "nativeIpcSeconds": 2.699,
+      "pass": "warm",
+      "poisson": false,
+      "preset": "bins-control-1000",
+      "progress": [
+        "Integrating series 24 / 625 \u00b7 182.0 images/sCancel processing",
+        "Integrating series 64 / 625 \u00b7 217.0 images/sCancel processing",
+        "Integrating series 96 / 625 \u00b7 225.3 images/sCancel processing",
+        "Integrating series 136 / 625 \u00b7 230.4 images/sCancel processing",
+        "Integrating series 176 / 625 \u00b7 233.7 images/sCancel processing",
+        "Integrating series 211 / 625 \u00b7 232.2 images/sCancel processing",
+        "Integrating series 248 / 625 \u00b7 237.3 images/sCancel processing",
+        "Integrating series 288 / 625 \u00b7 238.4 images/sCancel processing",
+        "Integrating series 327 / 625 \u00b7 239.3 images/sCancel processing",
+        "Integrating series 360 / 625 \u00b7 238.7 images/sCancel processing",
+        "Integrating series 392 / 625 \u00b7 237.6 images/sCancel processing",
+        "Integrating series 431 / 625 \u00b7 237.5 images/sCancel processing",
+        "Integrating series 464 / 625 \u00b7 235.5 images/sCancel processing",
+        "Integrating series 503 / 625 \u00b7 237.6 images/sCancel processing",
+        "Integrating series 538 / 625 \u00b7 236.0 images/sCancel processing",
+        "Integrating series 575 / 625 \u00b7 238.3 images/sCancel processing",
+        "Integrating series 615 / 625 \u00b7 238.7 images/sCancel processing"
+      ],
+      "seconds": 2.759,
+      "view": "batch"
+    },
+    {
+      "bins": 2000,
+      "diagnosticsDelta": {
+        "cakeIntegrations": 0,
+        "cakePlanBuilds": 0,
+        "combinedDecodes": 626,
+        "dynamicSeriesPlanBuilds": 0,
+        "frameParallelIntegrations": 625,
+        "lastPixelDecodeMs": 0,
+        "parallelPixelDecodes": 0,
+        "patternOnlyDecodes": 625,
+        "patternPlanBuilds": 0,
+        "preparedHits": 626,
+        "processedFrameIntegrations": 0,
+        "residentIntegrations": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0,
+        "seriesPendingPeak": 0,
+        "seriesPipelineRuns": 1,
+        "seriesWorkerStarts": 8
+      },
+      "fps": 175.561797752809,
+      "frames": 625,
+      "method": "polygon",
+      "nativeIpcSeconds": 3.512,
+      "pass": "first",
+      "poisson": false,
+      "preset": "bins-control-2000",
+      "progress": [
+        "Integrating series 32 / 625 \u00b7 44.0 images/sCancel processing",
+        "Integrating series 72 / 625 \u00b7 79.6 images/sCancel processing",
+        "Integrating series 104 / 625 \u00b7 98.8 images/sCancel processing",
+        "Integrating series 136 / 625 \u00b7 113.2 images/sCancel processing",
+        "Integrating series 168 / 625 \u00b7 124.5 images/sCancel processing",
+        "Integrating series 200 / 625 \u00b7 133.5 images/sCancel processing",
+        "Integrating series 232 / 625 \u00b7 141.0 images/sCancel processing",
+        "Integrating series 264 / 625 \u00b7 146.7 images/sCancel processing",
+        "Integrating series 302 / 625 \u00b7 153.1 images/sCancel processing",
+        "Integrating series 334 / 625 \u00b7 157.9 images/sCancel processing",
+        "Integrating series 368 / 625 \u00b7 161.5 images/sCancel processing",
+        "Integrating series 400 / 625 \u00b7 165.2 images/sCancel processing",
+        "Integrating series 432 / 625 \u00b7 168.0 images/sCancel processing",
+        "Integrating series 469 / 625 \u00b7 171.8 images/sCancel processing",
+        "Integrating series 502 / 625 \u00b7 173.9 images/sCancel processing",
+        "Integrating series 534 / 625 \u00b7 175.9 images/sCancel processing",
+        "Integrating series 570 / 625 \u00b7 178.7 images/sCancel processing",
+        "Integrating series 604 / 625 \u00b7 181.0 images/sCancel processing",
+        "Integrating series 625 / 625 \u00b7 181.5 images/sCancel processing"
+      ],
+      "seconds": 3.56,
+      "view": "batch"
+    },
+    {
+      "bins": 2000,
+      "diagnosticsDelta": {
+        "cakeIntegrations": 0,
+        "cakePlanBuilds": 0,
+        "combinedDecodes": 626,
+        "dynamicSeriesPlanBuilds": 0,
+        "frameParallelIntegrations": 625,
+        "lastPixelDecodeMs": 0,
+        "parallelPixelDecodes": 0,
+        "patternOnlyDecodes": 625,
+        "patternPlanBuilds": 0,
+        "preparedHits": 626,
+        "processedFrameIntegrations": 0,
+        "residentIntegrations": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0,
+        "seriesPendingPeak": 0,
+        "seriesPipelineRuns": 1,
+        "seriesWorkerStarts": 8
+      },
+      "fps": 204.3819489862655,
+      "frames": 625,
+      "method": "polygon",
+      "nativeIpcSeconds": 3.001,
+      "pass": "warm",
+      "poisson": false,
+      "preset": "bins-control-2000",
+      "progress": [
+        "Integrating series 24 / 625 \u00b7 174.1 images/sCancel processing",
+        "Integrating series 56 / 625 \u00b7 197.7 images/sCancel processing",
+        "Integrating series 88 / 625 \u00b7 206.5 images/sCancel processing",
+        "Integrating series 120 / 625 \u00b7 207.9 images/sCancel processing",
+        "Integrating series 152 / 625 \u00b7 208.4 images/sCancel processing",
+        "Integrating series 184 / 625 \u00b7 208.7 images/sCancel processing",
+        "Integrating series 221 / 625 \u00b7 208.8 images/sCancel processing",
+        "Integrating series 253 / 625 \u00b7 209.8 images/sCancel processing",
+        "Integrating series 285 / 625 \u00b7 210.3 images/sCancel processing",
+        "Integrating series 317 / 625 \u00b7 211.0 images/sCancel processing",
+        "Integrating series 349 / 625 \u00b7 211.4 images/sCancel processing",
+        "Integrating series 384 / 625 \u00b7 211.1 images/sCancel processing",
+        "Integrating series 416 / 625 \u00b7 211.5 images/sCancel processing",
+        "Integrating series 448 / 625 \u00b7 211.6 images/sCancel processing",
+        "Integrating series 480 / 625 \u00b7 211.8 images/sCancel processing",
+        "Integrating series 517 / 625 \u00b7 213.1 images/sCancel processing",
+        "Integrating series 549 / 625 \u00b7 213.6 images/sCancel processing",
+        "Integrating series 581 / 625 \u00b7 213.7 images/sCancel processing",
+        "Integrating series 613 / 625 \u00b7 214.1 images/sCancel processing"
+      ],
+      "seconds": 3.058,
+      "view": "batch"
+    },
+    {
+      "bins": 2000,
+      "diagnosticsDelta": {
+        "cakeIntegrations": 0,
+        "cakePlanBuilds": 0,
+        "combinedDecodes": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "frameParallelIntegrations": 0,
+        "lastPixelDecodeMs": -16.165375,
+        "parallelPixelDecodes": 33,
+        "patternOnlyDecodes": 0,
+        "patternPlanBuilds": 0,
+        "preparedHits": 0,
+        "processedFrameIntegrations": 0,
+        "residentIntegrations": 33,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0,
+        "seriesPendingPeak": 0,
+        "seriesPipelineRuns": 0,
+        "seriesWorkerStarts": 0
+      },
+      "fps": 74.94145199063232,
+      "frames": 32,
+      "method": "pyfai_full",
+      "nativeIpcSeconds": 0.372,
+      "pass": "first",
+      "poisson": false,
+      "preset": "compatibility-sample",
+      "progress": [
+        "Integrating series 13 / 32 \u00b7 87.6 images/sCancel processing",
+        "Integrating series 29 / 32 \u00b7 95.6 images/sCancel processing"
+      ],
+      "seconds": 0.427,
+      "view": "batch"
+    },
+    {
+      "bins": 2000,
+      "diagnosticsDelta": {
+        "cakeIntegrations": 0,
+        "cakePlanBuilds": 0,
+        "combinedDecodes": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "frameParallelIntegrations": 0,
+        "lastPixelDecodeMs": -0.011375000000000137,
+        "parallelPixelDecodes": 33,
+        "patternOnlyDecodes": 0,
+        "patternPlanBuilds": 0,
+        "preparedHits": 0,
+        "processedFrameIntegrations": 0,
+        "residentIntegrations": 33,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0,
+        "seriesPendingPeak": 0,
+        "seriesPipelineRuns": 0,
+        "seriesWorkerStarts": 0
+      },
+      "fps": 75.29411764705883,
+      "frames": 32,
+      "method": "pyfai_full",
+      "nativeIpcSeconds": 0.367,
+      "pass": "warm",
+      "poisson": false,
+      "preset": "compatibility-sample",
+      "progress": [
+        "Integrating series 13 / 32 \u00b7 88.3 images/sCancel processing",
+        "Integrating series 30 / 32 \u00b7 97.3 images/sCancel processing"
+      ],
+      "seconds": 0.425,
+      "view": "batch"
+    }
+  ],
+  "stage": "complete",
+  "summaries": {},
+  "viewport": [
+    1440,
+    908
+  ],
+  "sourcePid": 46310,
+  "testProfile": "/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/artifacts/native-profiles/navigation-timing-45899-1794311883656",
+  "captures": [
+    "/Users/clemens/Codex/dioptas-eiger-gui-extra-20261110/captures/eiger-native-navigation.png"
+  ],
+  "traceErrors": [],
+  "foregroundRequested": false,
+  "transport": "Tauri-owned stdio",
+  "nativeTracesSummary": {
+    "read-packet": {
+      "count": 155,
+      "totalPixelBytes": 67643480,
+      "maxPixelBytes": 50691480,
+      "totalHeaderBytes": 6913728,
+      "maxHeaderBytes": 1356272
+    },
+    "progress": {
+      "count": 108,
+      "totalElapsedMs": 61.23505300000001,
+      "maxElapsedMs": 29.892875
+    },
+    "state": {
+      "count": 1,
+      "totalElapsedMs": 202.249291,
+      "maxElapsedMs": 202.249291
+    },
+    "custom_command": {
+      "count": 14,
+      "totalElapsedMs": 21.482169000000003,
+      "maxElapsedMs": 2.3064999999999998
+    },
+    "__host__": {
+      "count": 1,
+      "totalElapsedMs": 0.1545,
+      "maxElapsedMs": 0.1545
+    },
+    "open_image": {
+      "count": 1,
+      "totalElapsedMs": 63.146708999999994,
+      "maxElapsedMs": 63.146708999999994
+    },
+    "open_calibration": {
+      "count": 1,
+      "totalElapsedMs": 696.627083,
+      "maxElapsedMs": 696.627083
+    },
+    "display_products": {
+      "count": 1,
+      "totalElapsedMs": 660.1627500000001,
+      "maxElapsedMs": 660.1627500000001
+    },
+    "integration_settings": {
+      "count": 4,
+      "totalElapsedMs": 2547.054959,
+      "maxElapsedMs": 1463.8245
+    },
+    "integration_diagnostics": {
+      "count": 12,
+      "totalElapsedMs": 1.370417,
+      "maxElapsedMs": 0.15187499999999998
+    },
+    "batch_load_data": {
+      "count": 6,
+      "totalElapsedMs": 13138.691374,
+      "maxElapsedMs": 3509.893791
+    },
+    "batch_snapshot": {
+      "count": 3,
+      "totalElapsedMs": 19.529916,
+      "maxElapsedMs": 9.565417
+    },
+    "batch_levels": {
+      "count": 3,
+      "totalElapsedMs": 18.855416,
+      "maxElapsedMs": 10.579208
+    }
+  },
+  "backendTracesSummary": {
+    "packet": {
+      "count": 155
+    },
+    "snapshot": {
+      "count": 14
+    },
+    "source-publish": {
+      "count": 71
+    },
+    "raster": {
+      "count": 15
+    },
+    "open-image": {
+      "count": 7
+    }
+  },
+  "rawReceipt": "/Users/clemens/Codex/dioptas-eiger-gui-extra-20261110/receipt.json",
+  "rawReceiptSha256": "baa469bc6f709535f828596e846736a9f1e18958f9a5c140929721bb42b27509"
+}

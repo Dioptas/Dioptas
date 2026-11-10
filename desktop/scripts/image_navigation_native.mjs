@@ -21,6 +21,12 @@ const output = value(
 const outputDirectory = path.resolve(output);
 await mkdir(outputDirectory, { recursive: true });
 const profile = await nativeTestProfile("navigation-timing");
+if (!args.includes("--foreground"))
+  profile.config.app.windows = profile.config.app.windows.map((window) => ({
+    ...window,
+    focus: false,
+    alwaysOnTop: args.includes("--keep-visible"),
+  }));
 profile.config.build = { beforeBuildCommand: null };
 const configFile = path.join(outputDirectory, "config.json");
 await writeFile(configFile, JSON.stringify(profile.config));
@@ -46,6 +52,9 @@ const foreground = args.includes("--foreground");
 const config = {
   root: path.resolve(desktop, ".."),
   foreground,
+  series: args.includes("--series"),
+  seriesExtra: args.includes("--series-extra"),
+  seriesMethod: value("--series-method", null),
   ...(eiger && (await stat(eiger).catch(() => null)) ? { eiger } : {}),
 };
 let executable = value("--app", "src-tauri/target/debug/dioptas-desktop");
@@ -105,7 +114,7 @@ const stopTest = () => {
     } catch {}
   }
 };
-const watchdog = setTimeout(stopTest, 180000);
+const watchdog = setTimeout(stopTest, 600000);
 console.log(
   `Isolated native benchmark PID ${child.pid}; foreground samples wait for its window to be visible and focused.`,
 );

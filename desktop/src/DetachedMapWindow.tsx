@@ -1,5 +1,6 @@
 import { Button } from "./ui";
 import { StatusMessage } from "./StatusMessage";
+import { processingProgressText } from "./processingProgress";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PanelLeftClose } from "lucide-react";
 import { isTauri } from "@tauri-apps/api/core";
@@ -197,7 +198,13 @@ export function DetachedMapWindow() {
         </span>
         <StatusMessage
           error={error || readError || status.error || null}
-          message={!status.ready ? "Processing…" : ""}
+          message={
+            status.progress?.running
+              ? processingProgressText(status.progress)
+              : !status.ready
+                ? "Processing…"
+                : ""
+          }
         />
       </footer>
     </div>

@@ -1,5 +1,6 @@
 import { Button } from "./ui";
 import { StatusMessage } from "./StatusMessage";
+import { processingProgressText } from "./processingProgress";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isTauri } from "@tauri-apps/api/core";
 import { connect } from "./bridge";
@@ -149,7 +150,7 @@ export function DetachedBatchWindow() {
           error={batchWindowError(error, status.error)}
           message={
             status.progress?.running
-              ? `${status.progress.label ?? "Processing"} ${status.progress.current} / ${status.progress.total}`
+              ? processingProgressText(status.progress)
               : !status.ready
                 ? "Processing…"
                 : ""

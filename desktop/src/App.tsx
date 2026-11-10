@@ -1,4 +1,5 @@
 import { ImageSourceControl } from "./ImageSourceControl";
+import { processingProgressText } from "./processingProgress";
 import { useBackendReload } from "./useBackendReload";
 import {
   requestedDisplayProducts,
@@ -1607,6 +1608,16 @@ export default function App() {
       largeText,
       error,
       revision: state?.revision,
+      progress: progress
+        ? {
+            running: progress.running,
+            current: progress.current,
+            total: progress.total,
+            label: progress.label,
+            fps: progress.fps,
+            elapsedSeconds: progress.elapsedSeconds,
+          }
+        : undefined,
     },
     onOpen: () => {
       setSettingsOpen(false);
@@ -1929,7 +1940,10 @@ export default function App() {
   const statusMessage =
     error ||
     (progress?.running
-      ? `${progress.label ?? (mode === "integration" ? "Processing" : "Refining ring")} ${progress.current} / ${progress.total}`
+      ? processingProgressText(
+          progress,
+          mode === "integration" ? "Processing" : "Refining ring",
+        )
       : busy ||
         notice ||
         maskSelection?.text ||
@@ -1993,6 +2007,8 @@ export default function App() {
             current: progress.current,
             total: progress.total,
             label: progress.label,
+            fps: progress.fps,
+            elapsedSeconds: progress.elapsedSeconds,
           }
         : undefined,
     },

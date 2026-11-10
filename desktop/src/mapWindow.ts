@@ -121,6 +121,7 @@ export function useMapWindow({
     status.largeText,
     status.error,
     status.revision,
+    status.progress,
   ]);
   const open = async () => {
     if (opening.current) return;
