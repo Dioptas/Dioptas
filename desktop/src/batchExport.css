@@ -1,0 +1,16 @@
+.batch-export-dialog {
+  width: min(480px, calc(100vw - 32px));
+}
+.batch-export-dialog > label {
+  display: grid;
+  gap: 8px;
+}
+.batch-export-dialog p {
+  color: var(--ui-muted);
+  line-height: 1.5;
+}
+.batch-export-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

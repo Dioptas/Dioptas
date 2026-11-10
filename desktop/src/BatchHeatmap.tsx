@@ -2,6 +2,7 @@ import {
   useBatchWaterfallDrag,
   type BatchWaterfallSelection,
 } from "./batchWaterfall";
+import { captureBatchCanvas, type BatchCaptureRef } from "./batchCapture";
 import { Equal } from "lucide-react";
 import { PlotToggle } from "./IntegrationPlotControls";
 import { usePlotTypography } from "./usePlotTypography";
@@ -35,6 +36,7 @@ import {
  */
 export function BatchHeatmap({
   batch,
+  captureRef,
   position,
   phaseLines,
   viewport,
@@ -52,6 +54,7 @@ export function BatchHeatmap({
 }: {
   batch: BatchData;
   waterfall?: BatchWaterfallSelection;
+  captureRef?: BatchCaptureRef;
   position?: PatternPosition;
   phaseLines?: Pattern["phaseLines"];
   viewport?: import("./plotViewport").PlotViewport;
@@ -68,6 +71,14 @@ export function BatchHeatmap({
 }) {
   const host = useRef<HTMLDivElement>(null),
     canvas = useRef<HTMLCanvasElement>(null);
+  useLayoutEffect(() => {
+    if (!captureRef) return;
+    captureRef.current = () =>
+      canvas.current ? captureBatchCanvas(canvas.current) : null;
+    return () => {
+      captureRef.current = null;
+    };
+  }, [captureRef]);
   const [size, setSize] = useState({ width: 600, height: 400 });
   const rows = batch.entries.length,
     cols = batch.x.length;

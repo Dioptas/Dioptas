@@ -646,6 +646,7 @@ try {
   await selected(child, 1);
   assert.equal((await invoke("state")).batch.entries.length, 3);
   await click(child, "Save batch data");
+  await child.getByRole("button", { name: "Choose file…", exact: true }).click();
   await child.waitForTimeout(200);
   await ready();
   // Source contrast and overview zoom survive docking across webviews.

@@ -1,7 +1,7 @@
 import { Button } from "./ui";
 import { scientificValue } from "./ScientificNumberInput";
 import { TabList } from "./TabList";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronDown,
   ChevronLeft,
@@ -12,11 +12,12 @@ import {
   ChartNoAxesColumn,
   Unlink,
   PanelBottomClose,
-  Save,
   Settings2,
   X,
 } from "lucide-react";
 import { DataTable, TableScroll } from "./DataTable";
+import { BatchExport } from "./BatchExport";
+import type { BatchCaptureRef } from "./batchCapture";
 import { BatchHeatmap } from "./BatchHeatmap";
 import { BatchSurfaceView } from "./BatchSurfaceView";
 import { batchSurfaceSeriesKey } from "./batchSurfaceGeometry";
@@ -52,8 +53,11 @@ export function BatchView({
   onDock,
   onHide,
   activeImagePath,
+  capture: externalCapture,
 }: {
   batch: BatchData | null;
+  /** Optional active renderer capture, e.g. the separate 3D view. */
+  capture?: BatchCaptureRef;
   activeImagePath?: string | null;
   position?: import("./linkedPosition").PatternPosition;
   calibrated: boolean;
@@ -77,6 +81,13 @@ export function BatchView({
   onDock?: () => void;
   onHide: () => void;
 }) {
+  const overviewCapture = useRef<import("./batchCapture").BatchCapture | null>(
+    null,
+  );
+  const noCapture = useRef<import("./batchCapture").BatchCapture | null>(null);
+  const surfaceCapture = useRef<import("./batchCapture").BatchCapture | null>(
+    null,
+  );
   const display = useBatchDisplay(batch);
   const waterfall = useBatchWaterfall(batch, run);
   const shownBatch = useMemo(
@@ -102,6 +113,8 @@ export function BatchView({
     }
     return batch ? "2D" : "Files";
   });
+  const capture =
+    externalCapture ?? (tab === "3D" ? surfaceCapture : overviewCapture);
   useEffect(() => {
     if (tab === "2D" || tab === "3D") {
       try {
@@ -264,14 +277,16 @@ export function BatchView({
           >
             <ChevronRight size={15} />
           </Button>
-          <Button
-            aria-label="Save batch data"
-            title="Save data"
-            disabled={!ready || !batch}
-            onClick={() => run("integration_save_batch", {}, "Saving batch…")}
-          >
-            <Save size={15} />
-          </Button>
+          <BatchExport
+            ready={ready && !!batch}
+            unit={shownBatch?.unit}
+            capture={
+              collapsed || tab === "Files" || tab === "Options"
+                ? noCapture
+                : capture
+            }
+            run={run}
+          />
         </div>
         <span className="batch-folder-label" title={folder}>
           <span>{folderLabel}</span>
@@ -470,6 +485,7 @@ export function BatchView({
                   />
                   {tab === "3D" ? (
                     <BatchSurfaceView
+                      captureRef={surfaceCapture}
                       key={batchSurfaceSeriesKey(batch)}
                       batch={shownBatch!}
                       position={position ?? batch.position ?? undefined}
@@ -493,6 +509,7 @@ export function BatchView({
                     />
                   ) : (
                     <BatchHeatmap
+                      captureRef={overviewCapture}
                       position={position ?? batch?.position ?? undefined}
                       phaseLines={
                         display.phases ? batch?.phaseLines : undefined

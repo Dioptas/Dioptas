@@ -8,6 +8,8 @@ use crate::{
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+#[path = "batch_export.rs"]
+mod batch_export;
 #[path = "batch_workflow.rs"]
 mod batch_workflow;
 #[path = "calibration.rs"]

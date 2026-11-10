@@ -83,6 +83,7 @@ if (selected.has("--ui")) {
     "native_integration_workflow_smoke",
     "batch_waterfall_smoke",
     "batch_surface_smoke",
+    "batch_export_smoke",
     "native_corrections_smoke",
     "native_project_smoke",
     "native_geometry_mask_smoke",

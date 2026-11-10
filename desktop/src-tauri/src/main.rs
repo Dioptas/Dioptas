@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod batch_export;
 mod calibration_tooltip;
 mod color_picker;
 mod processor;
@@ -182,7 +183,7 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
             "",
             false,
         ),
-        "integration_save_batch" => ("Integrated batch", &["h5", "csv"], "integrated.h5", true),
+        "integration_save_batch" => batch_export::file_choice(payload),
         "mask_file" => (
             "Detector mask",
             if payload["flipud"] == true {

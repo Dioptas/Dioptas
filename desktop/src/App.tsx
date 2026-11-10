@@ -671,7 +671,7 @@ export default function App() {
       if (result.savedPath || result.savedPaths?.length) {
         setNotice(
           result.savedPaths?.length
-            ? `Saved ${result.savedPaths.length} batch images`
+            ? `Saved ${result.savedPaths.length} batch files`
             : `Saved ${result.savedPath!.split(/[\\/]/).at(-1)}`,
         );
       }

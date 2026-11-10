@@ -21,6 +21,8 @@ There is no scientific HTTP service. Dioptrin is now the default native engine.
 - Imported patterns, SmoothBruckner/Chebyshev backgrounds and ROI; overlays with
   capture/update, scale/offset, colors/visibility, ordering, matching and waterfall;
   XY/XYE/CHI/DAT/FXYE pattern export and background/image/cake output.
+  [Batch Save](NATIVE_BATCH_EXPORT.md) adds transactional per-frame formats,
+  stored statistics/background copies and active-view PNG.
 - Linked detector/pattern/cake inspection uses subpixel coordinates and shared
   geometry; navigation retains reader options and dataset selection. Incoming-file
   polling waits for two stable observations, preserves the preceding state on a

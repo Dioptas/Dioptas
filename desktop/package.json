@@ -33,6 +33,7 @@
     "benchmark:pattern": "node scripts/pattern_benchmark.mjs",
     "benchmark:pattern:native": "node scripts/pattern_native_benchmark.mjs",
     "test:pattern-quality": "node scripts/pattern_quality.mjs",
+    "test:batch-export": "node scripts/batch_export_smoke.mjs",
     "test:native-integration": "node scripts/native_integration_workflow_smoke.mjs",
     "test:native-integration-transport": "node --test scripts/native_integration_transport.test.mjs",
     "test:native-project": "node scripts/native_project_smoke.mjs",

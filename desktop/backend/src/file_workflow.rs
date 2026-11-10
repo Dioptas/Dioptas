@@ -222,6 +222,14 @@ pub(super) fn export_curve(
     unit: &str,
     wavelength: f64,
 ) -> Result<(), String> {
+    atomic_write(path, &curve_bytes(path, curve, unit, wavelength)?)
+}
+pub(super) fn curve_bytes(
+    path: &Path,
+    curve: &Curve,
+    unit: &str,
+    wavelength: f64,
+) -> Result<Vec<u8>, String> {
     let extension = path
         .extension()
         .and_then(|s| s.to_str())
@@ -238,7 +246,11 @@ pub(super) fn export_curve(
     } else {
         format!(
             "# Dioptas native backend\n# wavelength_m: {wavelength:.17e}\n# {unit}\tI{}\n",
-            if curve.sigma.is_some() { "\tsigma" } else { "" }
+            if ["xye", "fxye"].contains(&extension.as_str()) {
+                "\tsigma"
+            } else {
+                ""
+            }
         )
     };
     let factor = if extension == "fxye" && unit != "q_A^-1" {
@@ -278,7 +290,7 @@ pub(super) fn export_curve(
             text.push_str(&format!("{x:.17e}\t{y:.17e}\n"));
         }
     }
-    atomic_write(path, text.as_bytes())
+    Ok(text.into_bytes())
 }
 pub(super) fn atomic_render(
     path: &Path,

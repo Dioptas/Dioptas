@@ -689,27 +689,7 @@ impl Session {
                 return Ok(Some(reply));
             }
             "integration_save_batch" => {
-                let file = path(args)?;
-                let file = if file.extension().is_none() {
-                    file.with_extension("h5")
-                } else {
-                    file.to_path_buf()
-                };
-                if !["csv", "h5", "hdf5", "nxs"].contains(
-                    &file
-                        .extension()
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .to_lowercase()
-                        .as_str(),
-                ) {
-                    return Err("Save a batch as HDF5 or CSV.".into());
-                }
-                self.batch
-                    .as_ref()
-                    .ok_or("Integrate a batch first.")?
-                    .save(&file)?;
-                return Ok(Some(Reply::metadata(json!({"ok":true,"savedPath":file}))));
+                return self.save_batch_export(args).map(Some);
             }
             "batch_select" => {
                 let b = self
