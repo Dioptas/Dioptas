@@ -461,13 +461,16 @@ impl Session {
                     if std::env::var("DIOPTAS_SERIES_PARALLEL").as_deref() != Ok("0")
                         && !selected_frames.is_empty()
                         && image.single_dataset_series()
-                        && (self.processing.active() || bulk_options.dynamic_mask)
+                        && (self.processing.active()
+                            || bulk_options.dynamic_mask
+                            || bulk_options.pyfai)
                         && let Some(base_mask) = static_mask.as_ref()
                         && let Some(plan) = self.engine.prepare_processed_series(
                             &image,
                             &self.settings.geometry,
                             base_mask,
                             &bulk_options,
+                            self.processing.active(),
                         )?
                     {
                         rows.publish_progress(&self.control);

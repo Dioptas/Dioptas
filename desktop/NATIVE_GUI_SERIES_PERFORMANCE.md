@@ -41,15 +41,19 @@ These cases also cover all 625 frames:
 | pyFAI-compatible full / no errors | 2,000 | 6.334 | 98.67 | 6.120 | 102.12 |
 | pyFAI-compatible full / Poisson | 2,000 | 6.228 | 100.35 | 6.280 | 99.52 |
 
+These measurements describe the baseline before the subsequent
+[parallel pyFAI-compatible series implementation](NATIVE_PYFAI_SERIES_PIPELINE.md).
+
 The original 1,000/no-errors versus 2,000/Poisson comparison changes **two
 settings**, so it does not isolate bin count. Polygon's full-frame pipeline
 reports 625 frame-parallel integrations, eight workers and one pipeline per
-command. The uncorrected, fixed-mask pyFAI-compatible case currently bypasses
+command. At this baseline, the uncorrected, fixed-mask pyFAI-compatible case bypassed
 that pipeline: it reports zero worker starts/pipeline runs and 626 resident
 integrations (625 series profiles plus final selected-frame integration).
 Its existing serial route is a separate throughput limitation, not a bin-count
 effect. This follow-up measures that route; it does not change its scientific
 implementation or claim that the user's current session uses this method.
+The linked follow-up now shares the same CSR plan across persistent frame workers.
 
 Initial Eiger image opening took 0.315–0.357 s through paint, followed by
 1.453–1.454 s for calibration loading and preparation. That approximately

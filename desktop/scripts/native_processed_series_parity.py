@@ -49,6 +49,14 @@ def main():
             ("spot", ["Spot Mask"], False, "polygon", True),
             ("combined", ["Threshold Mask", "Cosmic Ray Mask", "Spot Mask"], True, "polygon", True),
             ("pyfai", ["Threshold Mask"], True, "pyfai_full", True),
+            ("pyfai-fixed", [], False, "pyfai_full", True),
+            ("pyfai-fixed-no-errors", [], False, "pyfai_full", False),
+            ("pyfai-fixed-sector", [], False, "pyfai_full", True),
+            ("pyfai-fixed-spread", [], False, "pyfai_full", True),
+            ("pyfai-fixed-no-solid-angle", [], False, "pyfai_full", True),
+            ("pyfai-fixed-q", [], False, "pyfai_full", True),
+            ("pyfai-fixed-d", [], False, "pyfai_full", True),
+            ("pyfai-fixed-mask-disabled", [], False, "pyfai_full", True),
             ("subpixel", ["Spot Mask"], True, "subpixel", True),
             ("sector-spread", ["Threshold Mask"], True, "polygon", True),
             ("mask-disabled", ["Threshold Mask"], True, "polygon", True),
@@ -62,7 +70,12 @@ def main():
                     settings = dict(bins=64, cake_bins=16, trim_zeros=False, poisson_errors=errors, method=method, sparse_layout="csc")
                     if method == "subpixel": settings["supersampling"] = 2
                     if name == "sector-spread": settings.update(azimuth_range=[-130.,70.], azimuthal_std=True)
+                    if name == "pyfai-fixed-sector": settings["azimuth_range"] = [-130.,70.]
+                    if name == "pyfai-fixed-spread": settings["azimuthal_std"] = True
+                    if name == "pyfai-fixed-no-solid-angle": settings["solid_angle"] = False
                     native.call("integration_settings", **settings)
+                    if name in ("pyfai-fixed-q", "pyfai-fixed-d"):
+                        native.call("integration_settings", unit="q_A^-1" if name.endswith("-q") else "d_A")
                     native.call("open_image", path=paths[0])
                     native.call("mask_file", path=str(directory / "mask.npy"))
                     if corrected:
@@ -75,7 +88,7 @@ def main():
                     for plugin in plugins:
                         settings = {"above_enabled":True,"above_value":900.} if plugin=="Threshold Mask" else ({"iterations":2,"window_size":3} if plugin=="Cosmic Ray Mask" else {"num_bins":64,"smooth_sigma":0.3,"method":"median"})
                         native.call("mask_plugin", name=plugin, enabled=True, settings=settings)
-                    if name == "mask-disabled": native.call("integration_settings", use_mask=False)
+                    if name in ("mask-disabled", "pyfai-fixed-mask-disabled"): native.call("integration_settings", use_mask=False)
                     for view in ["batch", "map"]:
                         before = native.call("integration_diagnostics")["integrationDiagnostics"]
                         payload = dict(paths=paths)

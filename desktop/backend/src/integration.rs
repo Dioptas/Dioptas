@@ -90,7 +90,7 @@ struct Plan {
     fixed: Option<Arc<Fixed1dPlan>>,
     general_1d: Option<Arc<dioptrin::lut::Lut1d>>,
     dynamic_series: Option<Arc<Dynamic1dPlan>>,
-    compatibility_1d: Option<FixedCsr1dPlan>,
+    compatibility_1d: Option<Arc<FixedCsr1dPlan>>,
     compatibility_cake: Option<CompatibilityCake>,
     general_2d: Option<crate::sector::Grid>,
     normalization: Option<Arc<Vec<f64>>>,
@@ -122,9 +122,17 @@ pub struct CombinedSeriesPlan {
 }
 pub struct ProcessedSeriesPlan {
     key: Arc<Key>,
-    dynamic: Arc<Dynamic1dPlan>,
+    integration: SeriesIntegrationPlan,
     source: CombinedSource,
     options: Options,
+}
+enum SeriesIntegrationPlan {
+    Dynamic(Arc<Dynamic1dPlan>),
+    FixedCompatibility(Arc<FixedCsr1dPlan>),
+}
+enum SeriesFrameIntegrator<'a> {
+    Dynamic(Dynamic1dWorker<'a>),
+    FixedCompatibility(&'a FixedCsr1dPlan),
 }
 
 pub struct SeriesFrameContext {
@@ -135,7 +143,7 @@ pub struct SeriesFrameContext {
 }
 
 struct ProcessedFrameWorker<'a> {
-    integrator: Dynamic1dWorker<'a>,
+    integrator: SeriesFrameIntegrator<'a>,
     values: Vec<f64>,
     variance: Vec<f64>,
     plugins: crate::mask_plugins::Plugins,
@@ -308,6 +316,21 @@ impl Plan {
         }
         Ok(())
     }
+    fn fixed_compatibility(
+        &mut self,
+        o: &Options,
+        mask: &[u8],
+    ) -> Result<Arc<FixedCsr1dPlan>, String> {
+        self.prepare_general(o)?;
+        if self.compatibility_1d.is_none() {
+            self.compatibility_1d = Some(Arc::new(FixedCsr1dPlan::new(
+                self.general_1d.as_ref().unwrap().as_ref().clone(),
+                self.normalization.as_ref().unwrap().as_ref().clone(),
+                Some(mask.to_vec()),
+            )?));
+        }
+        Ok(self.compatibility_1d.as_ref().unwrap().clone())
+    }
     fn general_pattern(
         &mut self,
         data: &[f64],
@@ -316,20 +339,9 @@ impl Plan {
         o: &Options,
     ) -> Result<dioptrin::lut::AzimuthalIntegrationResult, String> {
         self.prepare_general(o)?;
-        let lut = self.general_1d.as_ref().unwrap();
-        let norm = self.normalization.as_ref().unwrap();
         if o.pyfai && !o.dynamic_mask && !o.spread && supplied_variance.is_none() {
-            if self.compatibility_1d.is_none() {
-                self.compatibility_1d = Some(FixedCsr1dPlan::new(
-                    lut.as_ref().clone(),
-                    norm.as_ref().clone(),
-                    Some(mask.to_vec()),
-                )?);
-            }
             let result = self
-                .compatibility_1d
-                .as_ref()
-                .unwrap()
+                .fixed_compatibility(o, mask)?
                 .integrate_frame(data, o.errors)?;
             return Ok(dioptrin::lut::AzimuthalIntegrationResult {
                 radial: result.radial,
@@ -338,6 +350,8 @@ impl Plan {
                 azimuthal_std: vec![],
             });
         }
+        let lut = self.general_1d.as_ref().unwrap();
+        let norm = self.normalization.as_ref().unwrap();
         let variance = (o.errors && supplied_variance.is_none())
             .then(|| data.iter().map(|&v| v.max(0.0)).collect::<Vec<_>>());
         let variance = supplied_variance.or(variance.as_deref());
@@ -445,6 +459,7 @@ impl Engine {
         p: &Parameters,
         mask: &[u8],
         options: &Options,
+        corrected: bool,
     ) -> Result<Option<ProcessedSeriesPlan>, String> {
         let Some(mut source) = image.combined_source(0)? else {
             return Ok(None);
@@ -474,7 +489,9 @@ impl Engine {
         }
         let k = key(image.shape, p, mask, options, false);
         let plan = self.pattern_plan(k.clone())?;
-        let built = plan.dynamic_series.is_none();
+        let fixed_compatibility =
+            options.pyfai && !corrected && !options.dynamic_mask && !options.spread;
+        let built = !fixed_compatibility && plan.dynamic_series.is_none();
         if built {
             let shape = (image.shape[0], image.shape[1]);
             let dynamic = if !options.pyfai && options.solid_angle && options.azimuth.is_none() {
@@ -501,7 +518,11 @@ impl Engine {
         }
         let result = ProcessedSeriesPlan {
             key: Arc::new(k),
-            dynamic: plan.dynamic_series.as_ref().unwrap().clone(),
+            integration: if fixed_compatibility {
+                SeriesIntegrationPlan::FixedCompatibility(plan.fixed_compatibility(options, mask)?)
+            } else {
+                SeriesIntegrationPlan::Dynamic(plan.dynamic_series.as_ref().unwrap().clone())
+            },
             source,
             options: options.clone(),
         };
@@ -523,8 +544,10 @@ impl Engine {
             return Err("A series source changed after plan preparation.".into());
         }
         let pixels = image.shape[0] * image.shape[1];
+        let supplied_variance =
+            plan.options.errors && matches!(plan.integration, SeriesIntegrationPlan::Dynamic(_));
         let extra = pixels
-            .saturating_mul(if plan.options.errors { 16 } else { 8 })
+            .saturating_mul(if supplied_variance { 16 } else { 8 })
             .saturating_add(context.plugins.series_scratch_bytes(image.shape));
         let stats = series_pipeline::execute(
             &raw.reader,
@@ -533,7 +556,14 @@ impl Engine {
             extra,
             || {
                 Ok(ProcessedFrameWorker {
-                    integrator: plan.dynamic.worker(plan.options.errors),
+                    integrator: match &plan.integration {
+                        SeriesIntegrationPlan::Dynamic(p) => {
+                            SeriesFrameIntegrator::Dynamic(p.worker(plan.options.errors))
+                        }
+                        SeriesIntegrationPlan::FixedCompatibility(p) => {
+                            SeriesFrameIntegrator::FixedCompatibility(p)
+                        }
+                    },
                     values: Vec::new(),
                     variance: Vec::new(),
                     plugins: context.plugins.clone(),
@@ -565,7 +595,7 @@ impl Engine {
                         plan.options.errors.then_some(&mut worker.variance),
                         child,
                     )?;
-                } else if plan.options.errors {
+                } else if supplied_variance {
                     worker.variance.clear();
                     worker
                         .variance
@@ -588,19 +618,33 @@ impl Engine {
                     std::borrow::Cow::Borrowed(context.base_mask.as_slice())
                 };
                 child.check()?;
-                let result = worker.pool.install(|| {
-                    worker.integrator.integrate(
-                        &worker.values,
-                        Some(&mask),
-                        plan.options.errors.then_some(worker.variance.as_slice()),
-                        plan.options.spread,
-                    )
-                })?;
+                let (radial, intensity, errors, spread) =
+                    worker.pool.install(|| match &mut worker.integrator {
+                        SeriesFrameIntegrator::Dynamic(integrator) => {
+                            let result = integrator.integrate(
+                                &worker.values,
+                                Some(&mask),
+                                plan.options.errors.then_some(worker.variance.as_slice()),
+                                plan.options.spread,
+                            )?;
+                            Ok::<_, String>((
+                                result.radial,
+                                result.intensity,
+                                result.errors,
+                                result.azimuthal_std,
+                            ))
+                        }
+                        SeriesFrameIntegrator::FixedCompatibility(integrator) => {
+                            let result =
+                                integrator.integrate_frame(&worker.values, plan.options.errors)?;
+                            Ok((result.radial, result.intensity, result.errors, None))
+                        }
+                    })?;
                 Self::finish_pattern(
-                    result.radial,
-                    result.intensity,
-                    result.errors,
-                    result.azimuthal_std,
+                    radial,
+                    intensity,
+                    errors,
+                    spread,
                     &plan.key.geometry,
                     &plan.options,
                 )

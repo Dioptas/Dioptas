@@ -1,0 +1,758 @@
+{
+  "source": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.h5",
+  "sourceBytes": 5687072680,
+  "sourceMtimeNs": 1772087934000000000,
+  "shape": [
+    625,
+    3262,
+    3108
+  ],
+  "method": "pyfai_full",
+  "bins": 2000,
+  "residentLayout": "csr",
+  "polarization": 0.965,
+  "requestedWorkers": 8,
+  "masks": "automatic named-detector acquisition mask; no dynamic or external user mask",
+  "corrections": "none",
+  "machine": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "scope": "Complete warm-plan native commands, including worker creation, ordered collection, final selection and Map previews/reduction. Detector/pattern requested, cake/rings hidden as in the normal Integration image view. Excludes initial geometry/plan warmup, process startup, export/parity checks and GUI rendering. OS pages warm; CPU not isolated.",
+  "executables": {
+    "before": {
+      "path": "/Users/clemens/Codex/dioptas-pyfai-series-20261110/dioptas-processor-before",
+      "sha256": "f465ea0a479e644d75e56db29837442f31f75ab2a61b1c2b81176d43b6bf6cc9"
+    },
+    "after": {
+      "path": "/Users/clemens/Codex/dioptas-pyfai-series-20261110/dioptas-processor-after",
+      "sha256": "ab0a57c1166562029c1410a640b51ecfa54bc0f8892dcc78c36950a589fe0f18"
+    }
+  },
+  "records": [
+    {
+      "repeat": 0,
+      "view": "batch",
+      "poisson": false,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 5.675990999909118,
+      "fps": 110.112930061025,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 626,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 626,
+        "lastPixelDecodeMs": -0.06079100000000004,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "processedFrameIntegrations": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      }
+    },
+    {
+      "repeat": 0,
+      "view": "batch",
+      "poisson": false,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 4.906319333007559,
+      "fps": 127.38673485748774,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 1,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 0.5039999999999996,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 4,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      }
+    },
+    {
+      "repeat": 0,
+      "view": "batch",
+      "poisson": true,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 5.94860050000716,
+      "fps": 105.0667295608854,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 626,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 626,
+        "lastPixelDecodeMs": -0.00037499999999912603,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "processedFrameIntegrations": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      }
+    },
+    {
+      "repeat": 0,
+      "view": "batch",
+      "poisson": true,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 4.817486040992662,
+      "fps": 129.73571582393546,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 1,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 0.7390409999999985,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 4,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      }
+    },
+    {
+      "repeat": 0,
+      "view": "map",
+      "poisson": false,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 5.952147917007096,
+      "fps": 105.00411090493652,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 625,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 626,
+        "lastPixelDecodeMs": 0.08820799999999895,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "processedFrameIntegrations": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      }
+    },
+    {
+      "repeat": 0,
+      "view": "map",
+      "poisson": false,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 5.002386957989074,
+      "fps": 124.94035452452198,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": -0.3931249999999995,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 3,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      }
+    },
+    {
+      "repeat": 0,
+      "view": "map",
+      "poisson": true,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 6.075702875037678,
+      "fps": 102.86875656277451,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 625,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 626,
+        "lastPixelDecodeMs": -0.7340410000000004,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "processedFrameIntegrations": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      }
+    },
+    {
+      "repeat": 0,
+      "view": "map",
+      "poisson": true,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 4.813189291046001,
+      "fps": 129.85153132512167,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 0.21183399999999875,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 5,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      }
+    },
+    {
+      "repeat": 1,
+      "view": "batch",
+      "poisson": false,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 4.828104749904014,
+      "fps": 129.45038112779665,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 1,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 0.5340409999999993,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 6,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      }
+    },
+    {
+      "repeat": 1,
+      "view": "batch",
+      "poisson": false,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 5.867449500015937,
+      "fps": 106.51987716269265,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 626,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 626,
+        "lastPixelDecodeMs": 0.06387500000000035,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "processedFrameIntegrations": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      }
+    },
+    {
+      "repeat": 1,
+      "view": "batch",
+      "poisson": true,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 4.843739625066519,
+      "fps": 129.03253444210824,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 1,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 0.6879590000000002,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 3,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      }
+    },
+    {
+      "repeat": 1,
+      "view": "batch",
+      "poisson": true,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 6.055166875012219,
+      "fps": 103.21763427845063,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 626,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 626,
+        "lastPixelDecodeMs": -0.013208000000000553,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "processedFrameIntegrations": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      }
+    },
+    {
+      "repeat": 1,
+      "view": "map",
+      "poisson": false,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 4.8342530420050025,
+      "fps": 129.28574374765904,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": -0.17558400000000063,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 4,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      }
+    },
+    {
+      "repeat": 1,
+      "view": "map",
+      "poisson": false,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 5.8426766250049695,
+      "fps": 106.97152009494765,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 625,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 626,
+        "lastPixelDecodeMs": 0.09712500000000013,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "processedFrameIntegrations": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      }
+    },
+    {
+      "repeat": 1,
+      "view": "map",
+      "poisson": true,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 4.880685417097993,
+      "fps": 128.05578450323864,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 0.549709,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 6,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      }
+    },
+    {
+      "repeat": 1,
+      "view": "map",
+      "poisson": true,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 6.251463624997996,
+      "fps": 99.97658748277534,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 625,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 626,
+        "lastPixelDecodeMs": 0.615208,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "processedFrameIntegrations": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      }
+    }
+  ],
+  "summaries": [
+    {
+      "view": "batch",
+      "poisson": false,
+      "medianSeconds": {
+        "before": 5.771720249962527,
+        "after": 4.867212041455787
+      },
+      "fps": {
+        "before": 108.28660658043117,
+        "after": 128.4102674542739
+      },
+      "speedup": 1.1858370255502988
+    },
+    {
+      "view": "batch",
+      "poisson": true,
+      "medianSeconds": {
+        "before": 6.0018836875096895,
+        "after": 4.8306128330295905
+      },
+      "fps": {
+        "before": 104.13397402229998,
+        "after": 129.3831697143118
+      },
+      "speedup": 1.242468377194601
+    },
+    {
+      "view": "map",
+      "poisson": false,
+      "medianSeconds": {
+        "before": 5.897412271006033,
+        "after": 4.918319999997038
+      },
+      "fps": {
+        "before": 105.97868544357031,
+        "after": 127.07591210014321
+      },
+      "speedup": 1.1990704693898697
+    },
+    {
+      "view": "map",
+      "poisson": true,
+      "medianSeconds": {
+        "before": 6.163583250017837,
+        "after": 4.846937354071997
+      },
+      "fps": {
+        "before": 101.40205374823019,
+        "after": 128.94740623683253
+      },
+      "speedup": 1.2716449171433384
+    }
+  ],
+  "sourceUnchanged": true
+}

@@ -9,6 +9,7 @@ for (const [compression, scenario] of [
   ["gzip", "raw"], ["bitshuffle-lz4", "raw"],
   ["bitshuffle-lz4", "corrected"], ["bitshuffle-lz4", "dynamic"], ["bitshuffle-lz4", "combined"],
   ["bitshuffle-lz4", "spot"], ["bitshuffle-lz4", "cosmic"],
+  ["bitshuffle-lz4", "pyfai"], ["bitshuffle-lz4", "pyfai-spread"],
 ])
   test(
     `${compression}/${scenario}: bulk cancellation and changed sources preserve the preceding complete series`,
@@ -66,6 +67,10 @@ np.save(sys.argv[1]+'.flat.npy',np.broadcast_to(np.linspace(0.8,1.2,448),(384,44
         });
         await invoke("integration_settings", { bins: 128, cake_bins: 24 });
         await invoke("open_image", { path: source, dataset: "frames" });
+        if (scenario.startsWith("pyfai")) {
+          await invoke("integration_settings", { method: "pyfai_full", poisson_errors: true,
+            azimuthal_std: scenario === "pyfai-spread" });
+        }
         if (["corrected", "combined"].includes(scenario)) {
           await invoke("integration_settings", { poisson_errors: true });
           await invoke("integration_image_background", { path: source + ".background.npy", scale: 0.7, poisson: true });

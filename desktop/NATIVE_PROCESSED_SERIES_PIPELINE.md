@@ -13,6 +13,9 @@ own signal, normalization and variance histograms, decoded native frame buffer,
 oriented float64 image, propagated variances and plugin caches. Masks and bin
 denominators change for each frame; neither is baked into a fixed-mask table.
 The fixed-mask, uncorrected route keeps its existing `Fixed1dPlan` pipeline.
+Uncorrected pyFAI-compatible series also run in parallel using a shared
+`FixedCsr1dPlan`, retaining their existing compatibility weights and arithmetic;
+see the [full-file pyFAI series comparison](NATIVE_PYFAI_SERIES_PIPELINE.md).
 
 ## Corrections and uncertainty
 

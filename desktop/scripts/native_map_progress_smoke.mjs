@@ -62,6 +62,7 @@ try {
         bins: 128,
         cake_bins: 24,
         trim_zeros: false,
+        method: process.env.DIOPTAS_MAP_TEST_METHOD ?? "polygon",
       });
       await call("open_image", { path: source, dataset: "frames" });
       // Seed a finished map and a non-default layer before loading again.
