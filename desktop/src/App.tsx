@@ -109,6 +109,8 @@ import { MaskView } from "./MaskView";
 import { MaskPanel } from "./MaskPanel";
 import { useMaskTools } from "./maskDomain";
 import { RasterView, type RasterExport } from "./RasterView";
+import { saveIntegrationPattern } from "./patternFigureSave";
+import type { PlotFigureExport } from "./plotFigureExport";
 import { PatternView } from "./PatternView";
 import { ORIGINAL_PATTERN_UID } from "./integration";
 import { useLiveBackground, DEFAULT_BACKGROUND } from "./useLiveBackground";
@@ -162,6 +164,7 @@ export default function App() {
   const [plotViews] = useState(createPlotViews);
   const detectorExport = useRef<RasterExport>(null);
   const cakeExport = useRef<RasterExport>(null);
+  const patternExport = useRef<PlotFigureExport>(null);
   const [overlayReveal, setOverlayReveal] = useState(0);
   const [integrationDisplay, setIntegrationDisplay] = useState("image");
   const [integrationControlsCollapsed, setIntegrationControlsCollapsed] =
@@ -2729,6 +2732,15 @@ export default function App() {
                               state={state}
                               ready={ready}
                               run={run}
+                              onSave={() =>
+                                void saveIntegrationPattern(run, () => {
+                                  if (!patternExport.current)
+                                    throw Error(
+                                      "The pattern has not been rendered yet.",
+                                    );
+                                  return patternExport.current.capture();
+                                })
+                              }
                             />
                             <IntegrationPatternTools
                               state={state}
@@ -2754,6 +2766,7 @@ export default function App() {
                         {pattern ? (
                           <PatternView
                             {...patternPlot!.props}
+                            exportRef={patternExport}
                             emphasizePattern={
                               mode === "integration" &&
                               selectedOverlayUid === ORIGINAL_PATTERN_UID

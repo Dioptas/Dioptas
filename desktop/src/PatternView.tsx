@@ -1,11 +1,22 @@
+import {
+  SvgRecording,
+  drawFigureLegends,
+  type PlotFigureExport,
+} from "./plotFigureExport";
 import { usePlotTypography } from "./usePlotTypography";
 import { navigationTrace } from "./navigationTiming";
-import { WebGLPattern, type PatternCurve } from "./WebGLPattern";
+import {
+  WebGLPattern,
+  type PatternCurve,
+  type PatternFrame,
+} from "./WebGLPattern";
 import { IntegrationPhaseLegend } from "./IntegrationPhaseLegend";
 import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useImperativeHandle,
+  type Ref,
   useId,
   useMemo,
   useRef,
@@ -75,6 +86,7 @@ const EMPTY_REFERENCES: NonNullable<Pattern["phaseLines"]> = [];
 export function PatternView({
   pattern,
   viewport,
+  exportRef,
   patternColor = "#ffffff",
   showPattern = true,
   emphasizePattern = false,
@@ -111,6 +123,7 @@ export function PatternView({
     ? "canvas2d"
     : "webgl2",
 }: {
+  exportRef?: Ref<PlotFigureExport>;
   curveRenderer?: "canvas2d" | "webgl2";
   onRender?: (sample: {
     cpuMs: number;
@@ -168,11 +181,25 @@ export function PatternView({
   if (!referenceLines.length) referenceLines = EMPTY_REFERENCES;
   const canvas = useRef<HTMLCanvasElement>(null),
     container = useRef<HTMLDivElement>(null);
+  const exportDraw =
+    useRef<() => ReturnType<PlotFigureExport["capture"]>>(null);
+  useImperativeHandle(
+    exportRef,
+    () => ({
+      capture: () => {
+        if (!exportDraw.current)
+          throw Error("The pattern has not been rendered yet.");
+        return exportDraw.current();
+      },
+    }),
+    [],
+  );
   const renderObserver = useRef(onRender);
   renderObserver.current = onRender;
   const backdrop = useRef<HTMLCanvasElement>(null);
   const gpuCanvas = useRef<HTMLCanvasElement>(null);
   const gpu = useRef<WebGLPattern | null>(null);
+  const gpuFrame = useRef<PatternFrame | null>(null);
   const [gpuVersion, setGpuVersion] = useState(0);
   const [activeRenderer, setActiveRenderer] = useState("canvas2d");
   useEffect(() => {
@@ -479,16 +506,26 @@ export function PatternView({
         : "grab"
       : undefined;
   // Submit the pattern in the same commit as the detector, before WebKit paints.
-  useLayoutEffect(() => {
+  const renderPattern = (exporting = false) => {
     const started = performance.now();
-    const backgroundContext = backdrop.current?.getContext("2d");
-    if (!backgroundContext || !backdrop.current || !canvas.current) return;
+    const back = exporting
+      ? document.createElement("canvas")
+      : backdrop.current;
+    const front = exporting ? document.createElement("canvas") : canvas.current;
+    if (!back || !front) throw Error("The pattern has not been rendered yet.");
+    const backRecording = exporting ? new SvgRecording(back) : null;
+    const frontRecording = exporting ? new SvgRecording(front) : null;
+    const cache = exporting
+      ? { current: null as typeof curveCache.current }
+      : curveCache;
+    const backgroundContext = backRecording?.context ?? back.getContext("2d");
+    if (!backgroundContext) throw Error("Plot drawing is unavailable.");
     let context: CanvasRenderingContext2D = backgroundContext;
     const dpr = window.devicePixelRatio || 1;
     const width = Math.max(1, Math.round(size.width * dpr));
     const height = Math.max(1, Math.round(size.height * dpr));
-    if (backdrop.current.width !== width) backdrop.current.width = width;
-    if (backdrop.current.height !== height) backdrop.current.height = height;
+    if (back.width !== width) back.width = width;
+    if (back.height !== height) back.height = height;
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.clearRect(0, 0, width, height);
     context.scale(dpr, dpr);
@@ -504,7 +541,7 @@ export function PatternView({
           sqrt ? inverse(ymax) : ymax,
           intervalsY,
         );
-    if (axisAnnotation !== !!yAxis.annotation)
+    if (!exporting && axisAnnotation !== !!yAxis.annotation)
       setAxisAnnotation(!!yAxis.annotation);
     const yTicks = sqrt
       ? yAxis.ticks.map((tick) => ({
@@ -518,7 +555,7 @@ export function PatternView({
       ...yTicks.map((tick) => context.measureText(tick.label).width),
     );
     const nextLeft = Math.max(64, Math.ceil(tickWidth) + 44);
-    if (nextLeft !== left) setLeft(nextLeft);
+    if (!exporting && nextLeft !== left) setLeft(nextLeft);
     let intervals = Math.max(1, Math.floor(w / 80));
     let xTicks = linearTicks(xmin, xmax, intervals);
     while (intervals > 1) {
@@ -631,9 +668,9 @@ export function PatternView({
     }
     context.restore();
     const backdropFont = context.font;
-    context = canvas.current.getContext("2d")!;
-    if (canvas.current.width !== width) canvas.current.width = width;
-    if (canvas.current.height !== height) canvas.current.height = height;
+    context = frontRecording?.context ?? front.getContext("2d")!;
+    if (front.width !== width) front.width = width;
+    if (front.height !== height) front.height = height;
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.clearRect(0, 0, width, height);
     context.scale(dpr, dpr);
@@ -675,15 +712,15 @@ export function PatternView({
       showNumbers,
     ];
     if (
-      !curveCache.current ||
-      curveKey.some((v, i) => !Object.is(v, curveCache.current!.key[i]))
+      !cache.current ||
+      curveKey.some((v, i) => !Object.is(v, cache.current!.key[i]))
     ) {
-      const layer =
-        curveCache.current?.canvas ?? document.createElement("canvas");
+      const layer = cache.current?.canvas ?? document.createElement("canvas");
       layer.dataset.testid = "pattern-curves";
       if (layer.width !== width) layer.width = width;
       if (layer.height !== height) layer.height = height;
-      const curveContext = layer.getContext("2d")!;
+      const curveRecording = exporting ? new SvgRecording(layer) : null;
+      const curveContext = curveRecording?.context ?? layer.getContext("2d")!;
       curveContext.setTransform(1, 0, 0, 1, 0, 0);
       curveContext.clearRect(0, 0, width, height);
       curveContext.scale(dpr, dpr);
@@ -697,6 +734,7 @@ export function PatternView({
         color: string,
         width: number,
       ) => {
+        if (curveRecording) curveRecording.crispEdges = !antialias;
         curveContext.strokeStyle = color;
         curveContext.fillStyle = color;
         curveContext.lineWidth = width;
@@ -720,7 +758,7 @@ export function PatternView({
             left + ((x - xmin) / (xmax - xmin)) * w,
             top + h - ((transform(y) - ymin) / yspan) * h,
           ];
-          if (antialias) {
+          if (antialias || exporting) {
             if (previous) curveContext.lineTo(...point);
             else curveContext.moveTo(...point);
           } else if (previous) {
@@ -760,10 +798,16 @@ export function PatternView({
           }
           previous = point;
         }
-        if (antialias) curveContext.stroke();
+        if (antialias || exporting) curveContext.stroke();
+        if (curveRecording) curveRecording.crispEdges = false;
       };
       let usingGPU = false;
-      if (curveRenderer === "webgl2" && gpu.current && antialias) {
+      if (
+        !exporting &&
+        curveRenderer === "webgl2" &&
+        gpu.current &&
+        antialias
+      ) {
         const ordered: PatternCurve[] = [];
         if (showPattern && !emphasizePattern)
           ordered.push({ ...pattern, color: patternColor, width: 1.4 });
@@ -774,19 +818,21 @@ export function PatternView({
         if (showPattern && emphasizePattern)
           ordered.push({ ...pattern, color: patternColor, width: 2.4 });
         try {
-          gpu.current.draw({
+          const frame: PatternFrame = {
             curves: ordered,
             scale: log ? "log" : sqrt ? "sqrt" : "linear",
             view: { xMin: xmin, xMax: xmax, yMin: ymin, yMax: ymax },
             bounds: { left, top, width: w, height: h },
             size: { ...size, dpr },
-          });
+          };
+          gpu.current.draw(frame);
+          gpuFrame.current = frame;
           usingGPU = true;
         } catch {
           usingGPU = false;
         }
       }
-      setActiveRenderer(usingGPU ? "webgl2" : "canvas2d");
+      if (!exporting) setActiveRenderer(usingGPU ? "webgl2" : "canvas2d");
       if (!usingGPU) {
         if (showPattern && !emphasizePattern)
           drawCurve(pattern, patternColor, 1.4);
@@ -853,19 +899,13 @@ export function PatternView({
         }
       }
       curveContext.restore();
-      curveCache.current = {
+      cache.current = {
         key: curveKey,
         canvas: layer,
         renderer: usingGPU ? "webgl2" : "canvas2d",
       };
     }
-    context.drawImage(
-      curveCache.current.canvas,
-      0,
-      0,
-      width / dpr,
-      height / dpr,
-    );
+    context.drawImage(cache.current.canvas, 0, 0, width / dpr, height / dpr);
     if (navigation.selection) {
       const { start, end } = navigation.selection;
       const x = Math.min(start.x, end.x),
@@ -921,18 +961,81 @@ export function PatternView({
     context.textBaseline = "middle";
     context.fillText("Intensity (a.u.)", 0, 0);
     context.restore();
+    if (exporting) {
+      const output = document.createElement("canvas");
+      output.width = width;
+      output.height = height;
+      const recording = new SvgRecording(output);
+      const result = recording.context;
+      // Paint the actual workspace background once; all curve layers stay transparent.
+      result.fillStyle =
+        getComputedStyle(container.current!)
+          .getPropertyValue("--ui-workspace")
+          .trim() || "#101518";
+      result.fillRect(0, 0, width, height);
+      result.drawImage(back, 0, 0);
+      result.drawImage(front, 0, 0);
+      result.scale(dpr, dpr);
+      drawFigureLegends(result, container.current!);
+      const svg = recording.svg(size.width, size.height);
+      // PNG uses the actual current renderer's layers, including GPU line AA.
+      // WebGL discards its drawing buffer after presentation, so repaint the
+      // identical retained frame immediately before compositing it.
+      const pixels = output.getContext("2d")!;
+      let useDisplayedLayers = false;
+      let gpuPixels: HTMLCanvasElement | null = null;
+      if (
+        curveCache.current?.renderer === "webgl2" &&
+        gpu.current &&
+        gpuFrame.current
+      ) {
+        try {
+          gpu.current.draw(gpuFrame.current);
+          gpuPixels = gpuCanvas.current;
+          useDisplayedLayers = true;
+        } catch {
+          /* Context loss retains the complete Canvas export above. */
+        }
+      } else if (curveCache.current?.renderer === "canvas2d") {
+        useDisplayedLayers = true;
+      }
+      if (useDisplayedLayers && backdrop.current && canvas.current) {
+        pixels.setTransform(1, 0, 0, 1, 0, 0);
+        pixels.fillStyle =
+          getComputedStyle(container.current!)
+            .getPropertyValue("--ui-workspace")
+            .trim() || "#101518";
+        pixels.fillRect(0, 0, width, height);
+        pixels.drawImage(backdrop.current, 0, 0);
+        if (gpuPixels) pixels.drawImage(gpuPixels, 0, 0);
+        pixels.drawImage(canvas.current, 0, 0);
+        pixels.scale(dpr, dpr);
+        drawFigureLegends(pixels, container.current!);
+      }
+      return {
+        png_data: output.toDataURL("image/png").split(",")[1],
+        svg_data: svg,
+      };
+    }
     navigationTrace("pattern-rendered", {
       cpuMs: performance.now() - started,
-      renderer: curveCache.current.renderer,
+      renderer: cache.current.renderer,
     });
     renderObserver.current?.({
       cpuMs: performance.now() - started,
-      renderer: curveCache.current.renderer,
+      renderer: cache.current.renderer,
       xMin: xmin,
       xMax: xmax,
       uploads: gpu.current?.stats.uploads,
       uploadBytes: gpu.current?.stats.uploadBytes,
     });
+  };
+  useLayoutEffect(() => {
+    renderPattern();
+    exportDraw.current = () => renderPattern(true)!;
+    return () => {
+      exportDraw.current = null;
+    };
   }, [
     typography.muted,
     typography.mono,

@@ -31,6 +31,7 @@ nalgebra = "0.35"
 tiff = "0.8"
 base64 = "0.22"
 png = "0.18"
+roxmltree = "0.21"
 csv = "1"
 hdf5 = { package = "hdf5-metno", version = "=0.15.1", features = ["static", "zlib", "lzf"] }
 blake3 = { version = "1", features = ["rayon"] }

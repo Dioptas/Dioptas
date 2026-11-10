@@ -196,10 +196,12 @@ export function IntegrationPatternActions({
   state,
   ready,
   run,
+  onSave,
 }: {
   state: State | null;
   ready: boolean;
   run: IntegrationRun;
+  onSave: () => void;
 }) {
   const hasPattern = !!state?.integration.patternName;
   const source = state?.calibrated
@@ -218,13 +220,9 @@ export function IntegrationPatternActions({
     >
       <Button
         aria-label="Save pattern"
-        title="Save displayed pattern"
+        title="Save pattern data or displayed figure (PNG/SVG)"
         disabled={!ready || !hasPattern}
-        onClick={() =>
-          void run("integration_save_pattern", {
-            subtract_background: true,
-          })
-        }
+        onClick={onSave}
       >
         <Save size={15} />
       </Button>
