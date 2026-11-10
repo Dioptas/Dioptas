@@ -6,8 +6,7 @@ import {
   surfaceCamera,
   surfaceProject,
   surfaceBarycentric,
-  SURFACE_VERTEX_LIMIT,
-  SURFACE_COLUMN_LIMIT,
+  surfaceResolutions,
 } from "../src/batchSurfaceGeometry.ts";
 
 test("Qt inclusive frame range and stride retain source indices", () => {
@@ -22,18 +21,19 @@ test("Qt inclusive frame range and stride retain source indices", () => {
   assert.equal(sample.lastRow, 14);
 });
 test("large surfaces stay bounded, including a one-frame long radial axis", () => {
-  for (const rows of [1, 2, 7, 999, 1_000_000])
-    for (const cols of [1, 2, 300, 30_000, 1_000_000]) {
-      const s = surfaceSampling(rows, cols, null, 1);
-      assert.ok(s.frames.length * s.columns.length <= SURFACE_VERTEX_LIMIT);
-      assert.ok(s.columns.length <= SURFACE_COLUMN_LIMIT);
-      assert.equal(s.columns[0], 0);
-      assert.equal(s.columns.at(-1), cols - 1);
-      assert.ok(
-        s.frameStep >= Math.max(1, Math.floor((rows * cols) / 500_000)),
-      );
-      assert.ok(s.frames.every((v, i) => v === i * s.frameStep && v < rows));
-    }
+  for (const [resolution, budget] of Object.entries(surfaceResolutions))
+    for (const rows of [1, 2, 7, 999, 1_000_000])
+      for (const cols of [1, 2, 300, 30_000, 1_000_000]) {
+        const s = surfaceSampling(rows, cols, null, 1, resolution);
+        assert.ok(s.frames.length * s.columns.length <= budget.vertices);
+        assert.ok(s.columns.length <= budget.columns);
+        assert.equal(s.columns[0], 0);
+        assert.equal(s.columns.at(-1), cols - 1);
+        assert.ok(
+          s.frameStep >= Math.max(1, Math.floor((rows * cols) / 500_000)),
+        );
+        assert.ok(s.frames.every((v, i) => v === i * s.frameStep && v < rows));
+      }
 });
 test("display transfer agrees with 2D, including clipping and negative sqrt", () => {
   assert.equal(surfaceIntensity(15, [10, 20], "linear"), 0.5);
@@ -44,6 +44,22 @@ test("display transfer agrees with 2D, including clipping and negative sqrt", ()
   assert.equal(surfaceIntensity(500, [1, 10], "log"), 1);
   assert.ok(Number.isNaN(surfaceIntensity(NaN, [0, 1], "linear")));
   assert.ok(Number.isFinite(surfaceIntensity(5, [5, 5], "linear")));
+});
+test("higher detail retains native radial samples and then the complete frame grid", () => {
+  const fast = surfaceSampling(64, 2048, null, 1, "fast");
+  const high = surfaceSampling(64, 2048, null, 1, "high");
+  const fine = surfaceSampling(64, 2048, null, 1, "fine");
+  assert.ok(!fast.columns.includes(1022));
+  assert.equal(high.columns.length, 2048);
+  assert.ok(high.columns.includes(1022));
+  assert.equal(high.frameStep, 2);
+  assert.equal(fine.frameStep, 1);
+  assert.equal(fine.frames.length, 64);
+  assert.equal(fine.frames.length * fine.columns.length, 131072);
+  assert.deepEqual(
+    surfaceSampling(64, 2048, null, 7, "fine").frames,
+    [0, 7, 14, 21, 28, 35, 42, 49, 56, 63],
+  );
 });
 test("surface display functions do not change source samples", () => {
   const data = new Float32Array([-10, 0, 5, 20, NaN]);

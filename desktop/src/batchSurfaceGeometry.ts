@@ -18,11 +18,21 @@ export function batchSurfaceSeriesKey(batch: BatchData) {
   return (hash >>> 0).toString(16);
 }
 
-// Qt raises frame stride above 500,000 values. Canvas also bounds radial
-// vertices and total geometry: these are display samples, never scientific data.
+// Qt raises frame stride above 500,000 values. Resolution presets additionally
+// bound the display mesh: these are source samples, never scientific changes.
 export const QT_SURFACE_SIZE = 500_000;
 export const SURFACE_VERTEX_LIMIT = 8_192;
 export const SURFACE_COLUMN_LIMIT = 256;
+export const surfaceResolutions = {
+  fast: {
+    label: "Fast",
+    vertices: SURFACE_VERTEX_LIMIT,
+    columns: SURFACE_COLUMN_LIMIT,
+  },
+  high: { label: "High", vertices: 65_536, columns: 2_048 },
+  fine: { label: "Very high", vertices: 262_144, columns: 8_192 },
+} as const;
+export type SurfaceResolution = keyof typeof surfaceResolutions;
 export type SurfaceScale = "linear" | "log" | "sqrt";
 export type SurfaceOrientation = "Front" | "Right" | "Top" | "Isometric";
 export interface SurfaceCamera {
@@ -51,7 +61,9 @@ export function surfaceSampling(
   columns: number,
   range: PlotRange | null,
   requestedStep = 1,
+  resolution: SurfaceResolution = "high",
 ) {
+  const budget = surfaceResolutions[resolution];
   const firstRow = clamp(
     Math.floor(range?.yMin ?? 0),
     0,
@@ -74,7 +86,7 @@ export function surfaceSampling(
   );
   const columnStep = Math.max(
     1,
-    Math.ceil((lastColumn - firstColumn) / (SURFACE_COLUMN_LIMIT - 1)),
+    Math.ceil((lastColumn - firstColumn) / (budget.columns - 1)),
   );
   const cols: number[] = [];
   if (columns > 0) {
@@ -92,10 +104,7 @@ export function surfaceSampling(
     qtStep,
     Math.ceil(
       rowCount /
-        Math.max(
-          1,
-          Math.floor(SURFACE_VERTEX_LIMIT / Math.max(1, cols.length)),
-        ),
+        Math.max(1, Math.floor(budget.vertices / Math.max(1, cols.length))),
     ),
   );
   const frames: number[] = [];

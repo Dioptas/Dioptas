@@ -33,17 +33,42 @@ const fixture = (rows = 4, cols = 5, invalid = false) => {
 };
 function Harness() {
   const [batch, setBatch] = useState(fixture()),
+    [visible, setVisible] = useState(true),
     [range, setRange] = useState(null),
     [limits, setLimits] = useState<[number, number]>([0, 20]),
     [scale, setScale] = useState("linear"),
     [palette, setPalette] = useState("viridis");
   Object.assign(window, {
+    surfaceBuffer: batch.raster.data,
+    setSurfaceVisible: setVisible,
     setSurfaceFixture: (rows, cols, invalid = false) => {
       setBatch(fixture(rows, cols, invalid));
       setRange(null);
     },
     setSurfaceScale: setScale,
     setSurfacePalette: setPalette,
+    setSurfacePeakFixture: () => {
+      const rows = 64,
+        cols = 2048,
+        b = fixture(rows, cols),
+        data = new Float32Array(rows * cols);
+      for (let r = 0; r < rows; r++)
+        for (let c = 0; c < cols; c++)
+          data[r * cols + c] =
+            100 *
+            Math.exp(-(((c - 1022) / 1.2) ** 2)) *
+            (1 + 0.4 * Math.sin(r / 10));
+      setBatch({
+        ...b,
+        x: Array.from({ length: cols }, (_, c) => 0.05 + c * 0.05),
+        unit: "2th_deg",
+        sourceUnit: "2th_deg",
+        raster: { ...b.raster, data: data.buffer },
+      });
+      setLimits([0, 150]);
+      setScale("linear");
+      setRange(null);
+    },
     setSurfaceAxisCase: ({
       x,
       unit = "2th_deg",
@@ -79,25 +104,27 @@ function Harness() {
         padding: 0,
       }}
     >
-      <BatchSurfaceView
-        batch={batch as any}
-        limits={limits}
-        log={scale === "log"}
-        sqrt={scale === "sqrt"}
-        palette={palette}
-        range={range}
-        step={1}
-        ready={true}
-        onRange={setRange as any}
-        onSelect={(selected, position) => {
-          Object.assign(window, { surfaceSelection: { selected, position } });
-          setBatch((b) => ({ ...b, selected }));
-        }}
-        onNormalize={() => {}}
-        reportPlot={(_, reading) =>
-          Object.assign(window, { surfaceReading: reading })
-        }
-      />
+      {visible && (
+        <BatchSurfaceView
+          batch={batch as any}
+          limits={limits}
+          log={scale === "log"}
+          sqrt={scale === "sqrt"}
+          palette={palette}
+          range={range}
+          step={1}
+          ready={true}
+          onRange={setRange as any}
+          onSelect={(selected, position) => {
+            Object.assign(window, { surfaceSelection: { selected, position } });
+            setBatch((b) => ({ ...b, selected }));
+          }}
+          onNormalize={() => {}}
+          reportPlot={(_, reading) =>
+            Object.assign(window, { surfaceReading: reading })
+          }
+        />
+      )}
     </div>
   );
 }

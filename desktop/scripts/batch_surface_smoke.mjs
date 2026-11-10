@@ -200,7 +200,7 @@ try {
       // A large float buffer is sampled, never copied/transformed as a full matrix.
       await page.evaluate(() => window.setSurfaceFixture(1000, 1024));
       await waitReady(page);
-      assert.ok(Number(await surface.getAttribute("data-vertices")) <= 8192);
+      assert.ok(Number(await surface.getAttribute("data-vertices")) <= 65536);
       assert.ok(Number(await surface.getAttribute("data-frame-step")) > 1);
       await page.setViewportSize({ width: 420, height: 220 });
       await page.waitForTimeout(100);

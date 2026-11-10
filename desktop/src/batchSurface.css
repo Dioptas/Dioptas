@@ -1,4 +1,5 @@
 .batch-surface-view {
+  container-type: inline-size;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -67,6 +68,9 @@
 .batch-surface-settings .scientific-number-input {
   width: 100px;
   flex-shrink: 0;
+}
+.batch-surface-settings select {
+  width: 120px;
 }
 .batch-surface-settings p {
   color: var(--ui-muted);

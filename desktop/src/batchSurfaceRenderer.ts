@@ -2,6 +2,7 @@ import { rasterColor } from "./colorMaps";
 import { batchRadialBin } from "./batchPlot";
 import { unitLabel } from "./types";
 import type { BatchData } from "./batchDomain";
+import { drawSurfaceGPU } from "./WebGLSurface";
 import {
   clamp,
   surfaceBarycentric,
@@ -19,6 +20,7 @@ import {
 } from "./batchSurfaceAxes";
 
 export interface SurfaceVertex extends SurfacePoint {
+  meshIndex: number;
   frame: number;
   radial: number;
   intensity: number;
@@ -28,6 +30,7 @@ export type SurfaceTriangle = [SurfaceVertex, SurfaceVertex, SurfaceVertex];
 export interface SurfaceScene {
   triangles: SurfaceTriangle[];
   vertices: SurfaceVertex[];
+  depthSorted: boolean;
 }
 export function drawBatchSurface(
   canvas: HTMLCanvasElement,
@@ -46,6 +49,7 @@ export function drawBatchSurface(
     muted: string;
   },
 ): SurfaceScene | null {
+  const started = performance.now();
   const {
     batch,
     values,
@@ -104,14 +108,27 @@ export function drawBatchSurface(
     limits,
     scale,
   });
-  const vertex = (frame: number, column: number): SurfaceVertex => {
+  const vertex = (
+    frame: number,
+    column: number,
+    meshIndex = -1,
+  ): SurfaceVertex => {
     const intensity = values[frame * batch.x.length + column];
     const z = surfaceIntensity(intensity, limits, scale);
     const radial = batch.x[column];
-    return { ...project(frame, radial, z), frame, radial, intensity, z };
+    return {
+      ...project(frame, radial, z),
+      frame,
+      radial,
+      intensity,
+      z,
+      meshIndex,
+    };
   };
-  const vertices = s.frames.flatMap((frame) =>
-    s.columns.map((column) => vertex(frame, column)),
+  const vertices = s.frames.flatMap((frame, r) =>
+    s.columns.map((column, c) =>
+      vertex(frame, column, r * s.columns.length + c),
+    ),
   );
   const triangles: SurfaceTriangle[] = [];
   const nc = s.columns.length;
@@ -129,12 +146,6 @@ export function drawBatchSurface(
           triangles.push(tri);
       }
     }
-  // Painter's order also defines hit testing: frontmost triangle wins.
-  triangles.sort(
-    (a, b) =>
-      a.reduce((sum, p) => sum + p.depth, 0) -
-      b.reduce((sum, p) => sum + p.depth, 0),
-  );
   const line = (points: SurfacePoint[], color: string, width = 1) => {
     ctx.strokeStyle = color;
     ctx.lineWidth = width;
@@ -156,15 +167,34 @@ export function drawBatchSurface(
     { length: 256 },
     (_, i) => `rgb(${rasterColor(i / 255, opts.palette).join(",")})`,
   );
-  for (const tri of triangles) {
-    ctx.fillStyle =
-      colors[Math.round((tri.reduce((sum, p) => sum + p.z, 0) / 3) * 255)];
-    ctx.beginPath();
-    ctx.moveTo(tri[0].x, tri[0].y);
-    ctx.lineTo(tri[1].x, tri[1].y);
-    ctx.lineTo(tri[2].x, tri[2].y);
-    ctx.closePath();
-    ctx.fill();
+  const gpu = triangles.length
+    ? drawSurfaceGPU(
+        canvas,
+        vertices,
+        triangles,
+        size.width,
+        size.height,
+        opts.palette,
+      )
+    : null;
+  if (gpu) ctx.drawImage(gpu, 0, 0, size.width, size.height);
+  else {
+    // Canvas is the explicit compatibility fallback for unavailable/lost GPU
+    // contexts. Its painter order also permits an early hit-test exit.
+    triangles.sort(
+      (a, b) =>
+        a.reduce((n, p) => n + p.depth, 0) - b.reduce((n, p) => n + p.depth, 0),
+    );
+    for (const tri of triangles) {
+      ctx.fillStyle =
+        colors[Math.round((tri.reduce((sum, p) => sum + p.z, 0) / 3) * 255)];
+      ctx.beginPath();
+      ctx.moveTo(tri[0].x, tri[0].y);
+      ctx.lineTo(tri[1].x, tri[1].y);
+      ctx.lineTo(tri[2].x, tri[2].y);
+      ctx.closePath();
+      ctx.fill();
+    }
   }
   // A one-frame or one-bin batch remains inspectable as a curve/point.
   if (!triangles.length) {
@@ -211,6 +241,15 @@ export function drawBatchSurface(
     );
   }
   canvas.dataset.triangles = String(triangles.length);
+  canvas.dataset.renderer = gpu ? "webgl2" : "canvas";
+  canvas.dataset.renderMs = String(performance.now() - started);
+  canvas.dataset.sampledMaximum = String(
+    vertices.reduce(
+      (maximum, p) =>
+        Number.isFinite(p.intensity) ? Math.max(maximum, p.intensity) : maximum,
+      -Infinity,
+    ),
+  );
   const sample = triangles.at(-1);
   canvas.dataset.hitSample = JSON.stringify(
     sample
@@ -220,7 +259,7 @@ export function drawBatchSurface(
         }
       : vertices[0],
   );
-  return { triangles, vertices };
+  return { triangles, vertices, depthSorted: !gpu };
 }
 
 export function hitBatchSurface(
@@ -229,15 +268,32 @@ export function hitBatchSurface(
   y: number,
 ) {
   if (!scene) return null;
+  let front: { frame: number; radial: number } | null = null,
+    depth = -Infinity;
   for (let i = scene.triangles.length - 1; i >= 0; i--) {
-    const tri = scene.triangles[i],
-      weights = surfaceBarycentric(x, y, ...tri);
-    if (weights)
-      return {
+    const tri = scene.triangles[i];
+    if (
+      x < Math.min(tri[0].x, tri[1].x, tri[2].x) ||
+      x > Math.max(tri[0].x, tri[1].x, tri[2].x) ||
+      y < Math.min(tri[0].y, tri[1].y, tri[2].y) ||
+      y > Math.max(tri[0].y, tri[1].y, tri[2].y)
+    )
+      continue;
+    const weights = surfaceBarycentric(x, y, ...tri);
+    if (weights) {
+      const hit = {
         frame: Math.round(tri.reduce((n, p, j) => n + p.frame * weights[j], 0)),
         radial: tri.reduce((n, p, j) => n + p.radial * weights[j], 0),
       };
+      if (scene.depthSorted) return hit;
+      const candidate = tri.reduce((n, p, j) => n + p.depth * weights[j], 0);
+      if (candidate > depth) {
+        depth = candidate;
+        front = hit;
+      }
+    }
   }
+  if (front) return front;
   let nearest: SurfaceVertex | null = null,
     distance = 12;
   for (const p of scene.vertices) {

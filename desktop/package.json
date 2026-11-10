@@ -22,6 +22,7 @@
     "build": "tsc --noEmit && vite build",
     "smoke": "node scripts/native_backend_smoke.mjs",
     "format": "prettier --write src 'scripts/*.{mjs,js}' vite.config.ts src-tauri/*.json src-tauri/capabilities/*.json",
+    "test:batch-surface-gpu": "node scripts/batch_surface_gpu_smoke.mjs",
     "test:batch-surface": "node scripts/batch_surface_smoke.mjs",
     "test:batch-surface-axes": "node scripts/batch_surface_axes_smoke.mjs",
     "test": "node --test scripts/overlay_color_scales.test.mjs scripts/plot_ticks.test.mjs scripts/raster_transfer.test.mjs scripts/phase_line_scaling.test.mjs scripts/readout_numbers.test.mjs scripts/radial_readout.test.mjs scripts/pattern_samples.test.mjs scripts/phase_command_queue.test.mjs scripts/phase_author_search.test.mjs scripts/prepare_detector_image.test.mjs scripts/map_pattern.test.mjs scripts/linked_position.test.mjs scripts/plot_viewport.test.mjs scripts/batch_display.test.mjs scripts/batch_export_naming.test.mjs scripts/batch_surface.test.mjs scripts/batch_surface_axes.test.mjs scripts/error_reporting.test.mjs scripts/ui_components.test.mjs scripts/history_labels.test.mjs scripts/display_products.test.mjs",

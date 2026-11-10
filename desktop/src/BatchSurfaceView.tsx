@@ -7,7 +7,8 @@ import {
   useState,
 } from "react";
 import { Equal, Settings2, X } from "lucide-react";
-import { Button, Popover } from "./ui";
+import { Button, Popover, Select } from "./ui";
+import { disposeSurfaceGPU } from "./WebGLSurface";
 import { ScientificNumberInput } from "./ScientificNumberInput";
 import { PlotToggle } from "./IntegrationPlotControls";
 import { decodeRaster } from "./rasterTransfer";
@@ -25,6 +26,8 @@ import {
   batchSurfaceSeriesKey,
   surfaceCamera,
   surfaceSampling,
+  surfaceResolutions,
+  type SurfaceResolution,
   type SurfaceCamera,
   type SurfaceOrientation,
 } from "./batchSurfaceGeometry";
@@ -114,6 +117,19 @@ export function BatchSurfaceView({
   const [view, setView] = useState(() => readCamera(seriesKey));
   const [settings, setSettings] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
+  const [renderer, setRenderer] = useState("canvas");
+  const [resolution, setResolution] = useState<SurfaceResolution>(() => {
+    try {
+      const saved = localStorage.getItem("dioptas-batch:surface-resolution");
+      if (saved === "fast" || saved === "fine") return saved;
+    } catch {
+      /* Default detail. */
+    }
+    return "high";
+  });
+  const [interacting, setInteracting] = useState(false);
+  const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastHover = useRef(-Infinity);
   const settingsId = useId();
   const settingsButton = useRef<HTMLButtonElement>(null);
   const drag = useRef<{
@@ -129,8 +145,22 @@ export function BatchSurfaceView({
     [batch.raster.data, batch.raster.dtype],
   );
   const sampling = useMemo(
-    () => surfaceSampling(batch.entries.length, batch.x.length, range, step),
-    [batch.entries.length, batch.x.length, range, step],
+    () =>
+      surfaceSampling(
+        batch.entries.length,
+        batch.x.length,
+        range,
+        step,
+        interacting ? "fast" : resolution,
+      ),
+    [
+      batch.entries.length,
+      batch.x.length,
+      range,
+      step,
+      interacting,
+      resolution,
+    ],
   );
   const marker =
     position &&
@@ -138,6 +168,20 @@ export function BatchSurfaceView({
       batch.unit
     ];
   const scale = log ? "log" : sqrt ? "sqrt" : "linear";
+  useEffect(() => {
+    try {
+      localStorage.setItem("dioptas-batch:surface-resolution", resolution);
+    } catch {
+      /* Keep session preference. */
+    }
+  }, [resolution]);
+  useEffect(() => {
+    const element = canvas.current!;
+    return () => {
+      if (settle.current) clearTimeout(settle.current);
+      disposeSurfaceGPU(element);
+    };
+  }, []);
   useEffect(() => {
     if (!captureRef) return;
     const capture = () =>
@@ -181,6 +225,7 @@ export function BatchSurfaceView({
       muted: typography.muted,
     });
     setUnavailable(scene.current === null);
+    setRenderer(canvas.current?.dataset.renderer ?? "canvas");
   }, [
     batch,
     values,
@@ -201,15 +246,21 @@ export function BatchSurfaceView({
     setView({ camera: surfaceCamera(), stretch: [1, 1, 1] });
     onRange(null);
   };
-  usePlotWheel(canvas, (e) =>
+  usePlotWheel(canvas, (e) => {
+    setInteracting(true);
+    if (settle.current) clearTimeout(settle.current);
+    settle.current = setTimeout(() => {
+      settle.current = null;
+      if (!drag.current?.moved) setInteracting(false);
+    }, 140);
     setView((v) => ({
       ...v,
       camera: {
         ...v.camera,
         zoom: clamp(v.camera.zoom * Math.exp(-e.deltaY * 0.001), 0.25, 5),
       },
-    })),
-  );
+    }));
+  });
   const pointerHit = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
     const hit = hitBatchSurface(
@@ -284,7 +335,7 @@ export function BatchSurfaceView({
         </PlotToggle>
         <span
           className="batch-surface-sampling"
-          title={`Display sampling only. Frame stride ${sampling.frameStep}; radial stride ${sampling.columnStep}. Stored data and exports retain every sample.`}
+          title={`${surfaceResolutions[resolution].label} display detail${interacting ? "; lighter mesh while moving" : ""}. Frame stride ${sampling.frameStep}; radial stride ${sampling.columnStep}. Stored data and exports retain every sample.`}
         >
           {sampling.frames.length} × {sampling.columns.length} · step{" "}
           {sampling.frameStep}
@@ -313,6 +364,27 @@ export function BatchSurfaceView({
           >
             <X size={15} />
           </Button>
+          <label>
+            Resolution
+            <Select
+              aria-label="Surface resolution"
+              value={resolution}
+              onChange={(e) =>
+                setResolution(e.currentTarget.value as SurfaceResolution)
+              }
+            >
+              {Object.entries(surfaceResolutions).map(([value, preset]) => (
+                <option key={value} value={value}>
+                  {preset.label}
+                </option>
+              ))}
+            </Select>
+          </label>
+          <p role="status">
+            {renderer === "webgl2" ? "GPU drawing" : "Canvas fallback"} · Higher
+            detail uses more stored samples. A lighter mesh is used while
+            moving.
+          </p>
           <SurfaceNumber
             label={`Surface radial minimum ${unitLabel(batch.unit)}`}
             value={radialMin}
@@ -359,6 +431,8 @@ export function BatchSurfaceView({
           data-frame-step={sampling.frameStep}
           data-column-step={sampling.columnStep}
           data-vertices={sampling.frames.length * sampling.columns.length}
+          data-resolution={resolution}
+          data-detail={interacting ? "moving" : "settled"}
           data-frame-first={sampling.firstRow + 1}
           data-frame-last={sampling.lastRow + 1}
           data-radial-first={radialEdges[0]}
@@ -377,6 +451,10 @@ export function BatchSurfaceView({
             if (e.button !== 0 && e.button !== 2) return;
             e.currentTarget.focus();
             e.currentTarget.setPointerCapture(e.pointerId);
+            if (settle.current) {
+              clearTimeout(settle.current);
+              settle.current = null;
+            }
             drag.current = {
               x: e.clientX,
               y: e.clientY,
@@ -391,7 +469,8 @@ export function BatchSurfaceView({
               const dx = e.clientX - d.x,
                 dy = e.clientY - d.y;
               d.moved ||= Math.hypot(dx, dy) > 3;
-              if (d.moved)
+              if (d.moved) {
+                setInteracting(true);
                 setView((v) => ({
                   ...v,
                   camera:
@@ -411,8 +490,12 @@ export function BatchSurfaceView({
                           ),
                         },
                 }));
+              }
               return;
             }
+            const now = performance.now();
+            if (now - lastHover.current < 75) return;
+            lastHover.current = now;
             const hit = pointerHit(e);
             if (!hit) {
               reportPlot("batch", null);
@@ -445,6 +528,7 @@ export function BatchSurfaceView({
           onPointerUp={(e) => {
             const d = drag.current;
             drag.current = null;
+            setInteracting(false);
             if (e.currentTarget.hasPointerCapture(e.pointerId))
               e.currentTarget.releasePointerCapture(e.pointerId);
             if (!d || d.moved) return;
@@ -464,6 +548,7 @@ export function BatchSurfaceView({
           }}
           onPointerCancel={() => {
             drag.current = null;
+            setInteracting(false);
           }}
           onPointerLeave={() => reportPlot("batch", null)}
           onDoubleClick={(e) => {

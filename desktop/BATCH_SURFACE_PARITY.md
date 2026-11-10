@@ -50,17 +50,38 @@ application commit `5aff6fdf`.
 
 Qt raises frame stride using `max(1, floor(selected_rows * full_columns /
 500000))`, then slices inclusive Start/Stop at that stride. The desktop retains
-that minimum, adds a strict 8,192-vertex budget and at most 256 radial vertices,
-and displays the effective frame/radial stride on hover. Selected rows retain
-their original indices; the radial endpoint is included. These are unaveraged
-display samples, so narrow peaks can be omitted at overview scale. Narrow the
-radial/frame range to inspect more detail; scientific outputs remain complete.
+that minimum and bounds the mesh according to the selected resolution:
 
-The bounded Canvas triangle renderer uses orthographic projection and physical
-radial spacing. Qt uses OpenGL/perspective and bin spacing, with its numeric 3D
-axis labels currently disabled. Desktop labels include the actual units and
-rounded major ticks, with exact integer frame range edges. Camera backing pixels are bounded to 2× device scale and 2,048
-pixels per side. There is no browser GPU/context requirement.
+| Resolution | Mesh points | Radial samples |
+| --- | ---: | ---: |
+| Fast | 8,192 | 256 |
+| High (default) | 65,536 | 2,048 |
+| Very high | 262,144 | 8,192 |
+
+Resolution is under the surface settings button and persists across tabs,
+docking and restart. These are unaveraged source samples; arrays within both
+limits retain all requested samples. Larger arrays raise the effective
+frame/radial strides, shown on hover. Selecting a narrower range increases its
+display detail. The original native arrays and scientific exports are untouched.
+During rotation, pan and wheel zoom the renderer temporarily uses Fast detail,
+then restores the requested mesh on pointer release or after wheel motion ends.
+The requested Step and stored frame identities are retained throughout.
+
+The surface now draws with **WebGL 2**, using indexed triangles, a depth buffer,
+antialiasing, and a palette texture interpolated from the shared color map. It
+uses orthographic projection and physical radial spacing. The readable axes,
+grid and selected/linked profiles remain Canvas overlays; the GPU image is
+composited into the same capture canvas, so existing PNG exports include all
+of them. Qt uses OpenGL/perspective and bin spacing, with its numeric 3D axis
+labels currently disabled. Desktop labels include actual units, rounded major
+ticks and exact integer frame range edges. Backing pixels remain bounded to
+2× device scale and 2,048 pixels per side.
+
+A missing/lost WebGL 2 context falls back to the Canvas renderer. Surface settings
+report **GPU drawing** or **Canvas fallback** explicitly. Contexts and graphics
+buffers are released when the view unmounts. GPU picking resolves the nearest
+projected triangle by depth instead of relying on array order. Hover picking is
+limited to approximately 13 Hz, while drag gestures use the lighter mesh.
 
 The log transfer intentionally matches desktop 2D's `log1p(max(0, I-lower)) /
 log1p(upper-lower)` rather than Qt's direct `log10` transform. Square root also
@@ -130,3 +151,24 @@ no additional Save control, file dialog or scientific export in this feature.
 Receipts and inspected screenshots are in ignored
 `desktop/artifacts/batch-surface/`. Native WKWebView/OS window behavior is covered
 by the existing Batch window owner; this feature adds no new native-window API.
+
+## GPU and resolution qualification
+
+`npm run test:batch-surface-gpu` passes in headless Chromium and WebKit, with
+WebGL 2 actually active in both. A generated 64 × 2,048 fixture contains a narrow
+radial peak between the old overview samples. Fast shows 7,328 mesh points and
+misses that peak (sampled maximum approximately 0.0021); High retains all 2,048
+radial bins with 65,536 points and a sampled maximum of 139.98. Very high retains
+the complete 131,072-point source grid. Source-buffer SHA-256 is identical after
+quality changes and rotation. This is an intentionally generated display fixture,
+not an experimental measurement or scientific interpolation.
+
+The check also covers detail restoration after motion, preference persistence,
+depth-aware selection, PNG capture, forced context loss, unavailable-GPU fallback,
+and context release on remount. The full frontend suite passes 95 tests, and
+the existing surface and 160 axis-layout checks still pass. Its receipt records per-pass timings, including
+CPU mesh/axis preparation and GPU image compositing. The captured headless WebKit
+passes were approximately 14 ms for High, 20 ms for Very high and 4 ms while moving;
+Chromium was slower. These are local headless measurements, not a native-display
+frame-rate or scanout guarantee. Receipts and inspected images are under
+`desktop/artifacts/batch-surface-gpu/`. The GPU check is part of the native UI gate.
