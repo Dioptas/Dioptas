@@ -16,12 +16,13 @@ import {
   detectorBufferId,
   detectorPacket,
   detectorPresentation,
+  detectorTools,
 } from "./detectorSnapshot";
 import {
   detectorWindowChannel,
   type DetectorWindowStatus,
 } from "./detectorWindowChannel";
-import type { Raster } from "./types";
+import type { Raster, Response } from "./types";
 import "./detector_window.css";
 
 type Surface = ReturnType<typeof detectorPresentation>;
@@ -49,6 +50,7 @@ export function useDetectorWindow(
     new Map<object, { value: Surface; priority: number }>(),
   );
   const published = useRef("");
+  const accessories = useRef<ReturnType<typeof detectorTools> | null>(null);
   const active = useRef(false);
   active.current = detached;
   const publishing = useRef(false),
@@ -97,20 +99,37 @@ export function useDetectorWindow(
       publishing.current = false;
     }
   };
-  // The surface remains owned by its original mode (including mask drafts).
-  const present = (token: object, value: Surface | null, priority = 0) => {
-    if (value) surfaces.current.set(token, { value, priority });
-    else surfaces.current.delete(token);
+  const compose = () => {
     const selected =
       [...surfaces.current.values()]
         .sort((a, b) => a.priority - b.priority)
         .at(-1)?.value ?? null;
-    surface.current = selected;
-    const signature = JSON.stringify(selected?.presentation ?? null);
+    const tools = accessories.current;
+    surface.current = selected
+      ? {
+          ...selected,
+          presentation: {
+            ...selected.presentation,
+            controls: tools?.controls,
+            profile: tools?.profile,
+          },
+          callbacks: new Map([
+            ...selected.callbacks,
+            ...(tools?.callbacks ?? []),
+          ]),
+        }
+      : null;
+    const signature = JSON.stringify(surface.current?.presentation ?? null);
     if (signature !== published.current) {
       published.current = signature;
       void publish();
     }
+  };
+  // The surface remains owned by its original mode (including mask drafts).
+  const present = (token: object, value: Surface | null, priority = 0) => {
+    if (value) surfaces.current.set(token, { value, priority });
+    else surfaces.current.delete(token);
+    compose();
   };
   const dock = async () => {
     try {
@@ -188,8 +207,8 @@ export function useDetectorWindow(
             const callback = surface.current.callbacks.get(message.callback);
             if (!callback)
               throw Error("This detector interaction is no longer available.");
-            await callback(...message.args);
-            transport.send({ type: "response", id: message.id });
+            const result = await callback(...message.args);
+            transport.send({ type: "response", id: message.id, result });
           } catch (error) {
             transport.send({
               type: "response",
@@ -277,6 +296,10 @@ export function useDetectorWindow(
     context,
     displayKey,
     present,
+    tools: (value: ReturnType<typeof detectorTools> | null) => {
+      accessories.current = value;
+      compose();
+    },
     open: () => void open(),
     dock: () => void dock(),
     png,
@@ -292,12 +315,20 @@ export function DetectorSurface({
   priority = 0,
   label,
   onBack,
+  active = true,
+  enabled = true,
+  showUndock = true,
+  cakeWavelength,
 }: {
   children: ReactNode;
   interactionKey?: string;
   priority?: number;
   label?: string;
   onBack?: () => void;
+  active?: boolean;
+  enabled?: boolean;
+  showUndock?: boolean;
+  cakeWavelength?: number;
 }) {
   const owner = useContext(DetectorWindowContext);
   const elements = Children.toArray(children) as ReactElement<
@@ -306,7 +337,7 @@ export function DetectorSurface({
   const raster = elements[0]?.props;
   const intensity = elements[1]?.props;
   const value =
-    raster && intensity && owner
+    raster && intensity && owner && enabled && active
       ? detectorPresentation(
           JSON.stringify([
             owner.context,
@@ -324,6 +355,12 @@ export function DetectorSurface({
       : null;
   if (value && owner) {
     value.presentation.intensityKey = `${owner.displayKey}:${interactionKey}`;
+    if (raster.radialAxis)
+      value.presentation.cakeAxis = {
+        requested: (raster.radialAxis as { requested: "2th_deg" | "q_A^-1" })
+          .requested,
+        wavelength: cakeWavelength,
+      };
     if (label) value.presentation.label = label;
     if (onBack) {
       value.callbacks.set("back", onBack);
@@ -334,7 +371,7 @@ export function DetectorSurface({
   const current = useRef(owner);
   current.current = owner;
   useLayoutEffect(() => {
-    if (value) current.current?.present(token.current, value, priority);
+    current.current?.present(token.current, value, priority);
   });
   useLayoutEffect(
     () => () => current.current?.present(token.current, null),
@@ -343,9 +380,9 @@ export function DetectorSurface({
   return (
     <div
       className="detector-surface"
-      data-detached={owner?.detached || undefined}
+      data-detached={(enabled && owner?.detached) || undefined}
     >
-      {owner?.detached ? (
+      {enabled && owner?.detached ? (
         <div className="detector-detached-placeholder">
           <p>Detector image is in its own window.</p>
           <Button onClick={owner.open}>Show detector window</Button>
@@ -354,7 +391,7 @@ export function DetectorSurface({
       ) : (
         <>
           <div className="detector-workspace">{children}</div>
-          {owner && (
+          {owner && enabled && showUndock && (
             <Button
               className="plot-tool-button detector-window-action"
               aria-label="Undock detector image"
@@ -367,5 +404,80 @@ export function DetectorSurface({
         </>
       )}
     </div>
+  );
+}
+
+/** Move the existing toolbar/profile with the selected image surface. */
+export function DetectorWindowTools({
+  controls,
+  profile,
+}: {
+  controls: ReactElement | null;
+  profile: ReactElement | null;
+}) {
+  const owner = useContext(DetectorWindowContext);
+  const latest = useRef(owner);
+  latest.current = owner;
+  const controlProps = controls?.props as Record<string, unknown> | undefined;
+  const profileProps = profile?.props as Record<string, unknown> | undefined;
+  const value = detectorTools(
+    controlProps
+      ? {
+          ...controlProps,
+          run: async (command: string, args: Record<string, unknown> = {}) => {
+            if (
+              command !== "settings" ||
+              !Object.keys(args).length ||
+              Object.entries(args).some(
+                ([key, value]) =>
+                  !["use_mask", "transparent_mask"].includes(key) ||
+                  typeof value !== "boolean",
+              )
+            )
+              throw Error("This image control is unavailable.");
+            await (controlProps.run as import("./integration").IntegrationRun)(
+              command,
+              args,
+            );
+          },
+        }
+      : null,
+    profileProps
+      ? {
+          ...profileProps,
+          run: async (
+            command: string,
+            args: Record<string, unknown> = {},
+            message = "",
+          ) => {
+            if (!["cake_profile", "save_cake_profile"].includes(command))
+              throw Error("This profile command is unavailable.");
+            let result: Response = { ok: false, cancelled: true };
+            await (profileProps.run as import("./integration").IntegrationRun)(
+              command,
+              args,
+              message,
+              (reply) => {
+                result = {
+                  ok: reply.ok,
+                  error: reply.error,
+                  cakeProfile: reply.cakeProfile,
+                };
+              },
+            );
+            return result;
+          },
+        }
+      : null,
+  );
+  useLayoutEffect(() => {
+    latest.current?.tools(value);
+  });
+  useLayoutEffect(() => () => latest.current?.tools(null), []);
+  return owner?.detached ? null : (
+    <>
+      {profile}
+      {controls}
+    </>
   );
 }

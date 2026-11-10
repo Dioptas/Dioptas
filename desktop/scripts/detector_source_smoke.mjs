@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtemp, rm, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, mkdir, writeFile, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -95,6 +95,8 @@ try {
       await context.exposeBinding("__nativeInvoke", async (_, a, p = {}) => {
         if (a === "integration_correction_preview") previewRequests++;
         if (a === "cake_profile") profileRequests++;
+        if (a === "save_cake_profile")
+          p = { ...p, path: path.join(temporary, `${name}-profile.xy`) };
         return native.browserResult(await native.invoke(a, p));
       });
       await context.addInitScript(() => {
@@ -165,16 +167,24 @@ try {
       await ready();
       await child.mouse.click(400, 300);
       await ready();
-      await page
+      await child
         .getByRole("button", { name: "Azimuthal profile", exact: true })
         .click();
       await ready();
-      const profile = page.getByRole("region", {
+      const profile = child.getByRole("region", {
         name: "Azimuthal profile",
         exact: true,
       });
       await profile.getByTestId("pattern-canvas").waitFor();
       assert.equal((await native.invoke("state")).state.unit, "q_A^-1");
+      await profile
+        .getByRole("button", { name: "Save azimuthal profile", exact: true })
+        .click();
+      await ready();
+      assert.match(
+        await readFile(path.join(temporary, `${name}-profile.xy`), "utf8"),
+        /[0-9]/,
+      );
       const sourceScience = await science();
       const sourceMaximum = await child
         .getByTestId("detector-canvas")
@@ -260,7 +270,6 @@ try {
       );
       const reopened = page.waitForEvent("popup");
       await page
-        .getByRole("region", { name: "Correction map preview" })
         .getByRole("button", { name: "Undock detector image", exact: true })
         .click();
       child = await reopened;
@@ -279,6 +288,10 @@ try {
       await child
         .locator(".detached-detector-heading")
         .waitFor({ state: "detached" });
+      await child
+        .getByRole("button", { name: "Azimuthal profile", exact: true })
+        .click();
+      await ready();
       await page.getByRole("tab", { name: "Image", exact: true }).click();
       await page
         .getByRole("button", { name: "Calibration", exact: true })

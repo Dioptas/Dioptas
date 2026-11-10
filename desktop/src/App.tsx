@@ -6,6 +6,7 @@ import { useCorrectionPreview } from "./useCorrectionPreview";
 import { CorrectionPreviewDetector } from "./CorrectionPreviewDetector";
 import {
   DetectorSurface,
+  DetectorWindowTools,
   DetectorWindowProvider,
   useDetectorWindow,
 } from "./DetectorWindow";
@@ -95,6 +96,7 @@ import { radialFields, radialValues } from "./radialReadout";
 import { detectorPlotSetup, patternPlotSetup } from "./diffractionPlotSetup";
 import {
   createPlotViews,
+  detectorViewport,
   patternViewport,
   plotViewContext,
 } from "./plotViewport";
@@ -175,6 +177,8 @@ function clickContext(state: State | null) {
 export default function App() {
   const beforePreviewCommand = useRef<(command: string) => void>(() => {});
   const [plotViews] = useState(createPlotViews);
+  const cakeWindowViewport =
+    useRef<import("./plotViewport").ViewportMemory["current"]>(null);
   const detectorExport = useRef<RasterExport>(null);
   const cakeExport = useRef<RasterExport>(null);
   const patternExport = useRef<PlotFigureExport>(null);
@@ -1707,7 +1711,11 @@ export default function App() {
   const detectorWindow = useDetectorWindow(
     {
       largeText,
-      reading: plotReading?.source === "detector" ? plotReading : null,
+      reading:
+        plotReading &&
+        ["detector", "cake", "profile"].includes(plotReading.source)
+          ? plotReading
+          : null,
       clicked: correctionPreview.map ? null : clickPositionReading,
       message: progress?.running
         ? processingProgressText(progress)
@@ -2161,6 +2169,108 @@ export default function App() {
   }, [batchOpenRequest]);
   const configurationControlsVisible =
     showConfigurationControls && !!state?.configurationLabels && !settingsOpen;
+  const runImageControl = useCallback<import("./integration").IntegrationRun>(
+    (command, args, message, done) =>
+      run(command, args, message, done, undefined, true),
+    [run],
+  );
+  const imageControls = (
+    <IntegrationImageControls
+      onUndock={detectorWindow.open}
+      profile={showCakeProfile}
+      onProfile={() => setShowCakeProfile((value) => !value)}
+      onSaveImage={async () => {
+        const source = integrationDisplay === "cake" ? "cake" : "image";
+        const exporter = (source === "cake" ? cakeExport : detectorExport)
+          .current;
+        if (!exporter && !detectorWindow.detached) return;
+        let png: string;
+        try {
+          png = detectorWindow.detached
+            ? await detectorWindow.png()
+            : exporter!.png();
+        } catch (error) {
+          setError(String(error));
+          return;
+        }
+        void runImageControl(
+          "integration_save_image",
+          {
+            source,
+            png_data: png,
+            suggested_name: `${state?.imageName?.replace(/\.[^.]+$/, "") ?? "image"}${source === "cake" ? "_cake" : ""}.png`,
+          },
+          "Saving image…",
+        );
+      }}
+      cakeShift={cakeShift}
+      onCakeShift={setCakeShift}
+      fullCake={
+        !!cake &&
+        (Math.abs(cake.azimuthRange[1] - cake.azimuthRange[0]) * cake.height) /
+          Math.max(1, cake.height - 1) >=
+          359
+      }
+      value={integrationDisplay}
+      onChange={(value) => {
+        correctionPreview.close();
+        setIntegrationDisplay(value);
+      }}
+      state={state}
+      ready={ready && !correctionPreview.map}
+      run={runImageControl}
+      showPhases={showImagePhases}
+      onShowPhases={() => setShowImagePhases((v) => !v)}
+      corrected={correctedImage}
+      onCorrected={() => {
+        setCorrectedImage((v) => !v);
+        if (detectorAutoActive.current)
+          setLimits((correctedImage ? rawImage : image)?.limits ?? limits);
+        onHover(null);
+      }}
+      roi={!!state?.integration.roi}
+      onRoi={() => {
+        const [h, w] = state?.shape ?? [1, 1];
+        void runImageControl("integration_roi", {
+          limits: state?.integration.roi
+            ? null
+            : [
+                Math.floor(h * 0.1),
+                Math.ceil(h * 0.9),
+                Math.floor(w * 0.1),
+                Math.ceil(w * 0.9),
+              ],
+        });
+      }}
+    />
+  );
+  const imageProfile = (
+    <CakeProfilePanel
+      state={state}
+      cake={cake}
+      linked={linked}
+      shift={cakeShift}
+      bins={cakeProfileBins}
+      onBins={setCakeProfileBins}
+      ready={ready && !settingsOpen}
+      run={runImageControl}
+      reportPlot={reportPlot}
+      onInspect={(azimuth) => {
+        if (!linked) return;
+        setLocalImageClick(null);
+        setClickedReading({
+          source: "profile",
+          text: `Azimuth ${azimuth}°`,
+        });
+        void runImageControl("validation_position", {
+          source: "cake",
+          unit: "2th_deg",
+          x: linked.twoTheta,
+          azimuth,
+        });
+      }}
+    />
+  );
   const workspace = (
     <div
       className="app"
@@ -2184,6 +2294,16 @@ export default function App() {
             }}
           />
           <div className="navigation-utilities">
+            {detectorWindow.detached && (
+              <Button
+                className="workspace-nav"
+                aria-label="Show detector window"
+                title="Show detector window"
+                onClick={detectorWindow.open}
+              >
+                <ArrowUpRight size={20} />
+              </Button>
+            )}
             <CustomCommandButtons
               controller={customCommands}
               ready={ready}
@@ -2269,6 +2389,7 @@ export default function App() {
             concealed={settingsOpen}
             active={mode === "integration"}
             controlsCollapsed={integrationControlsCollapsed}
+            detectorDetached={detectorWindow.detached}
             display={
               correctionPreview.map
                 ? "image"
@@ -2429,7 +2550,13 @@ export default function App() {
                           />
                         )}
                         {image ? (
-                          <DetectorSurface>
+                          <DetectorSurface
+                            active={
+                              mode !== "integration" ||
+                              integrationDisplay === "image"
+                            }
+                            showUndock={mode !== "integration"}
+                          >
                             <RasterView
                               exportRef={detectorExport}
                               raster={
@@ -2616,9 +2743,25 @@ export default function App() {
                       {(mode === "integration" || calibrationStep === 3) && (
                         <section className="panel cake-panel">
                           {cake ? (
-                            <div className="detector-workspace cake-workspace">
+                            <DetectorSurface
+                              enabled={mode === "integration"}
+                              active={integrationDisplay === "cake"}
+                              showUndock={false}
+                              interactionKey="cake"
+                              cakeWavelength={state?.geometry.wavelength}
+                            >
                               <RasterView
                                 exportRef={cakeExport}
+                                viewport={detectorViewport(
+                                  cakeWindowViewport,
+                                  JSON.stringify([
+                                    state?.configurationContext,
+                                    cake?.fullWidth,
+                                    cake?.fullHeight,
+                                    cake?.unit,
+                                    !!state?.combination?.cakes,
+                                  ]),
+                                )}
                                 raster={displayedCake ?? cake}
                                 radialAxis={cakeRadialAxis}
                                 onResolution={setCakePixelResolution}
@@ -2735,7 +2878,7 @@ export default function App() {
                                 palette={cakePalette}
                                 onPalette={setCakePalette}
                               />
-                            </div>
+                            </DetectorSurface>
                           ) : (
                             <div className="empty-view secondary-empty">
                               <Layers size={30} strokeWidth={1} />
@@ -2749,115 +2892,10 @@ export default function App() {
                           )}
                         </section>
                       )}
-                      {mode === "integration" && showCakeProfile && (
-                        <CakeProfilePanel
-                          state={state}
-                          cake={cake}
-                          linked={linked}
-                          shift={cakeShift}
-                          bins={cakeProfileBins}
-                          onBins={setCakeProfileBins}
-                          ready={ready && !settingsOpen}
-                          run={run}
-                          reportPlot={reportPlot}
-                          onInspect={(azimuth) => {
-                            if (!linked) return;
-                            setLocalImageClick(null);
-                            setClickedReading({
-                              source: "profile",
-                              text: `Azimuth ${azimuth}°`,
-                            });
-                            void run("validation_position", {
-                              source: "cake",
-                              unit: "2th_deg",
-                              x: linked.twoTheta,
-                              azimuth,
-                            });
-                          }}
-                        />
-                      )}
                       {mode === "integration" && (
-                        <IntegrationImageControls
-                          profile={showCakeProfile}
-                          onProfile={() =>
-                            setShowCakeProfile((value) => !value)
-                          }
-                          onSaveImage={async () => {
-                            const source =
-                              integrationDisplay === "cake" ? "cake" : "image";
-                            const exporter = (
-                              source === "cake" ? cakeExport : detectorExport
-                            ).current;
-                            if (
-                              !exporter &&
-                              !(source === "image" && detectorWindow.detached)
-                            )
-                              return;
-                            let png: string;
-                            try {
-                              png =
-                                source === "image" && detectorWindow.detached
-                                  ? await detectorWindow.png()
-                                  : exporter!.png();
-                            } catch (error) {
-                              setError(String(error));
-                              return;
-                            }
-                            void run(
-                              "integration_save_image",
-                              {
-                                source,
-                                png_data: png,
-                                suggested_name: `${state?.imageName?.replace(/\.[^.]+$/, "") ?? "image"}${source === "cake" ? "_cake" : ""}.png`,
-                              },
-                              "Saving image…",
-                            );
-                          }}
-                          cakeShift={cakeShift}
-                          onCakeShift={setCakeShift}
-                          fullCake={
-                            !!cake &&
-                            (Math.abs(
-                              cake.azimuthRange[1] - cake.azimuthRange[0],
-                            ) *
-                              cake.height) /
-                              Math.max(1, cake.height - 1) >=
-                              359
-                          }
-                          value={integrationDisplay}
-                          onChange={(value) => {
-                            correctionPreview.close();
-                            setIntegrationDisplay(value);
-                          }}
-                          state={state}
-                          ready={ready && !correctionPreview.map}
-                          run={run}
-                          showPhases={showImagePhases}
-                          onShowPhases={() => setShowImagePhases((v) => !v)}
-                          corrected={correctedImage}
-                          onCorrected={() => {
-                            setCorrectedImage((v) => !v);
-                            if (detectorAutoActive.current)
-                              setLimits(
-                                (correctedImage ? rawImage : image)?.limits ??
-                                  limits,
-                              );
-                            onHover(null);
-                          }}
-                          roi={!!state?.integration.roi}
-                          onRoi={() => {
-                            const [h, w] = state?.shape ?? [1, 1];
-                            void run("integration_roi", {
-                              limits: state?.integration.roi
-                                ? null
-                                : [
-                                    Math.floor(h * 0.1),
-                                    Math.ceil(h * 0.9),
-                                    Math.floor(w * 0.1),
-                                    Math.ceil(w * 0.9),
-                                  ],
-                            });
-                          }}
+                        <DetectorWindowTools
+                          controls={imageControls}
+                          profile={showCakeProfile ? imageProfile : null}
                         />
                       )}
                     </IntegrationLeftPane>

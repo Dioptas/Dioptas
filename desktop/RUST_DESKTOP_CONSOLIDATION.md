@@ -214,3 +214,26 @@ and Larger text sizes, including vertical, horizontal, nested and non-overflow
 cases. All 112 frontend tests and the production build pass. Application layout
 and scrollbar styles are unchanged; the earlier fixture failure is resolved.
 Receipts and screenshots are in `desktop/artifacts/ui-components/`.
+
+## Complete detached image workspace (main Tauri checkout)
+
+The Integration Undock action now sits at the lower right of the right-aligned
+image toolbar. All image controls and the optional azimuthal profile move into
+the companion; image/cake switching retains independent display state. Removing
+the main image pane gives its space to the pattern, and docking restores the
+saved split. Existing docked Batch stays usable in the main workspace pending a
+separate layout decision. Figure-editor, phase-controls and Spottiness changes
+already in this checkout are preserved.
+
+The follow-up also fixes a compact profile rendering loop caused by tick density
+depending on its own annotation margin. The same main Rust command queue owns
+ROI, display settings, profile extraction/export and image saving.
+
+Validation: production build, 112 frontend tests, and headless Chromium/WebKit
+shared controls (both text sizes), detached detector/source, correction previews,
+cake profile/Q, Integration responsive layout and Integration panel workflows.
+Tests cover 420/520 px complete detached toolbars, lower-right placement, freed
+pattern width and restored split, image/cake contrast separation, profile export,
+and an unchanged live Batch heatmap across image detaching/docking. See
+[detector-window evidence](DETECTOR_WINDOW_PARITY.md). No visible native window
+was opened for this UI follow-up.

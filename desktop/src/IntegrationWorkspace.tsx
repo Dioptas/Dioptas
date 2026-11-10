@@ -24,12 +24,14 @@ export function IntegrationWorkspace({
   active,
   concealed = false,
   controlsCollapsed = false,
+  detectorDetached = false,
   display,
   children,
 }: {
   active: boolean;
   concealed?: boolean;
   controlsCollapsed?: boolean;
+  detectorDetached?: boolean;
   display: string;
   children: ReactNode;
 }) {
@@ -113,6 +115,7 @@ export function IntegrationWorkspace({
         data-integration-display={display}
         data-integration-layout={narrow ? "top" : "right"}
         data-controls-collapsed={controlsCollapsed}
+        data-detector-detached={detectorDetached}
         style={
           active
             ? ({

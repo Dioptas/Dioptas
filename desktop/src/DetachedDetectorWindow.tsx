@@ -1,4 +1,14 @@
-import { useEffect, useRef, useState, type ComponentProps } from "react";
+import { IntegrationImageControls } from "./IntegrationPlotControls";
+import { CakeProfilePanel } from "./CakeProfilePanel";
+import { createCakeRadialAxis } from "./cakeRadialAxis";
+import type { Cake, Response } from "./types";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentProps,
+} from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { PanelLeftClose } from "lucide-react";
 import { Button } from "./ui";
@@ -40,34 +50,48 @@ export function DetachedDetectorWindow() {
     new Map<
       string,
       {
-        resolve: () => void;
+        resolve: (result: unknown) => void;
         reject: (e: Error) => void;
         timer: ReturnType<typeof setTimeout>;
       }
     >(),
   );
-  const event = (callback: string, args: unknown[]) =>
-    new Promise<void>((resolve, reject) => {
-      if (!current.current) {
-        resolve();
-        return;
-      }
-      const id = crypto.randomUUID();
-      const timer = setTimeout(() => {
-        pending.current.delete(id);
-        reject(Error("The main window did not respond."));
-      }, 120000);
-      pending.current.set(id, { resolve, reject, timer });
-      channel.current?.send({
-        type: "event",
-        identity: current.current.identity,
-        callback,
-        args,
-        id,
-      });
-    }).catch((e) => {
-      setError(String(e));
-    });
+  const event = useCallback(
+    (callback: string, args: unknown[]) =>
+      new Promise<unknown>((resolve, reject) => {
+        if (!current.current) {
+          resolve(undefined);
+          return;
+        }
+        const id = crypto.randomUUID();
+        const timer = setTimeout(() => {
+          pending.current.delete(id);
+          reject(Error("The main window did not respond."));
+        }, 120000);
+        pending.current.set(id, { resolve, reject, timer });
+        channel.current?.send({
+          type: "event",
+          identity: current.current.identity,
+          callback,
+          args,
+          id,
+        });
+      }).catch((e) => {
+        setError(String(e));
+      }),
+    [],
+  );
+  const profileRun = useCallback<import("./integration").IntegrationRun>(
+    async (command, args = {}, message = "", done) => {
+      const reply = (await event("profile.run", [command, args, message])) as
+        Response | undefined;
+      if (reply) done?.(reply);
+    },
+    [event],
+  );
+  const handlers = useRef(
+    new Map<string, (...args: unknown[]) => Promise<unknown>>(),
+  );
   useEffect(() => {
     let disposed = false,
       refreshing = false,
@@ -131,7 +155,9 @@ export function DetachedDetectorWindow() {
         if (task) {
           clearTimeout(task.timer);
           pending.current.delete(message.id);
-          message.error ? task.reject(Error(message.error)) : task.resolve();
+          message.error
+            ? task.reject(Error(message.error))
+            : task.resolve(message.result);
         }
       } else if (message.type === "export") {
         try {
@@ -190,7 +216,7 @@ export function DetachedDetectorWindow() {
       transport.close();
       for (const task of pending.current.values()) {
         clearTimeout(task.timer);
-        task.resolve();
+        task.resolve(undefined);
       }
       pending.current.clear();
     };
@@ -198,11 +224,15 @@ export function DetachedDetectorWindow() {
   const props = (input: Record<string, unknown>) =>
     Object.fromEntries(
       Object.entries(input).map(([key, value]) => {
-        if (value && typeof value === "object" && "callback" in value)
-          return [
-            key,
-            (...args: unknown[]) => event(String(value.callback), args),
-          ];
+        if (value && typeof value === "object" && "callback" in value) {
+          const name = String(value.callback);
+          let handler = handlers.current.get(name);
+          if (!handler) {
+            handler = (...args: unknown[]) => event(name, args);
+            handlers.current.set(name, handler);
+          }
+          return [key, handler];
+        }
         return [key, value];
       }),
     );
@@ -231,6 +261,15 @@ export function DetachedDetectorWindow() {
               {...(props(presentation.raster) as ComponentProps<
                 typeof RasterView
               >)}
+              radialAxis={
+                presentation.cakeAxis
+                  ? createCakeRadialAxis(
+                      presentation.raster.raster as Cake,
+                      presentation.cakeAxis.requested,
+                      presentation.cakeAxis.wavelength,
+                    )
+                  : undefined
+              }
               exportRef={exporter}
               viewport={
                 presentation.viewport
@@ -257,14 +296,44 @@ export function DetachedDetectorWindow() {
             <p>No detector image in the current workspace.</p>
           </div>
         )}
-        <Button
-          className="plot-tool-button detector-window-action"
-          aria-label="Dock detector image"
-          title="Return the detector image to the main window"
-          onClick={() => channel.current?.send({ type: "dock" })}
-        >
-          <PanelLeftClose size={16} />
-        </Button>
+        {presentation?.profile && (
+          <CakeProfilePanel
+            {...(props(presentation.profile) as ComponentProps<
+              typeof CakeProfilePanel
+            >)}
+            cake={
+              presentation.profile.cake
+                ? ({
+                    ...(presentation.profile.cake as object),
+                    bufferId: (
+                      presentation.profile.cake as { sourceBufferId: string }
+                    ).sourceBufferId,
+                  } as Cake)
+                : null
+            }
+            run={profileRun}
+          />
+        )}
+        {presentation?.controls ? (
+          <IntegrationImageControls
+            {...(props(presentation.controls) as ComponentProps<
+              typeof IntegrationImageControls
+            >)}
+            detached
+            onUndock={() => channel.current?.send({ type: "dock" })}
+          />
+        ) : (
+          <div className="detached-window-tools">
+            <Button
+              className="plot-tool-button"
+              aria-label="Dock detector image"
+              title="Return the image to the main window"
+              onClick={() => channel.current?.send({ type: "dock" })}
+            >
+              <PanelLeftClose size={16} />
+            </Button>
+          </div>
+        )}
       </div>
       <footer className="detached-detector-footer">
         <span data-testid="detector-readout" title={status.reading?.text}>

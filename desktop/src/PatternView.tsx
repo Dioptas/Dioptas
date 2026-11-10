@@ -557,7 +557,17 @@ export function PatternView<U extends PlotUnit = Unit>({
     context.lineWidth = 1;
     context.setLineDash([]);
     context.font = typography.mono;
-    const intervalsY = Math.max(1, Math.floor(h / (48 * typography.scale)));
+    // Tick density must not depend on the annotation it creates. At compact
+    // heights, changing the top gutter can otherwise toggle the annotation
+    // and synchronously redraw forever.
+    const tickHeight = Math.max(
+      1,
+      size.height - 18 * typography.scale - bottom,
+    );
+    const intervalsY = Math.max(
+      1,
+      Math.floor(tickHeight / (48 * typography.scale)),
+    );
     const inverse = (v: number) => Math.max(0, v) ** 2;
     const yAxis = log
       ? { ticks: logTicks(ymin, ymax, intervalsY), annotation: null }

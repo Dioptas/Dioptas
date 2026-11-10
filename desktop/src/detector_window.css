@@ -86,3 +86,111 @@
   flex: 1;
   height: auto;
 }
+
+/* The image toolbar travels with the view and keeps its window action last. */
+.app .integration-image-tools {
+  justify-content: flex-end;
+  align-content: flex-end;
+  flex: 0 0 auto;
+  padding: 6px 0 0;
+  gap: 4px 8px;
+}
+.app .integration-image-tools .image-toolbar-group {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+.app .integration-image-tools .integration-display-switch {
+  min-width: 44px;
+}
+.app .integration-image-tools button {
+  flex: 0 0 auto;
+  padding: 4px 5px;
+}
+.app .integration-image-tools .check-row {
+  margin: 0;
+  gap: 4px;
+}
+.app .integration-image-tools .plot-tool-divider {
+  margin: 0;
+}
+.app .integration-cake-shift[data-visible="false"] {
+  display: none;
+}
+.app .integration-image-tools .integration-cake-shift {
+  min-width: 0;
+  gap: 3px;
+}
+.app .integration-image-tools .integration-cake-shift input {
+  width: 52px;
+  min-width: 22px;
+  flex: 1 1 52px;
+}
+.app .integration-image-tools .integration-cake-shift > span:last-child {
+  width: 4ch;
+}
+.detached-window-tools {
+  display: flex;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  padding-top: 6px;
+}
+.detached-detector-content > .cake-profile-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 30%;
+  min-height: 115px;
+  max-height: 240px;
+  border-top: 1px solid var(--border);
+}
+
+/* Remove the image's place in Integration without changing saved splitters. */
+.app
+  .integration-layout[data-detector-detached="true"]
+  .integration-image-pane {
+  display: none;
+}
+.app .integration-layout[data-detector-detached="true"] .integration-left-tabs {
+  display: none;
+}
+.app
+  .integration-layout[data-detector-detached="true"]
+  .integration-batch-pane {
+  display: flex;
+  flex: 1;
+  opacity: 1;
+  pointer-events: auto;
+}
+.app .integration-layout[data-detector-detached="true"] .batch-dock {
+  flex: 1;
+  max-height: none;
+}
+.app
+  .workspace-content.integration-layout[data-detector-detached="true"]:not(
+    :has(.batch-dock)
+  ) {
+  grid-template-columns: minmax(0, 1fr);
+}
+.app
+  .integration-layout[data-detector-detached="true"]:not(:has(.batch-dock))
+  .integration-left-pane,
+.app
+  .integration-layout[data-detector-detached="true"]:not(:has(.batch-dock))
+  .integration-divider-image {
+  display: none;
+}
+.app
+  .integration-layout[data-detector-detached="true"]:not(:has(.batch-dock))
+  > .sidebar,
+.app
+  .integration-layout[data-detector-detached="true"]:not(:has(.batch-dock))
+  .pattern-panel,
+.app
+  .integration-layout[data-detector-detached="true"]:not(:has(.batch-dock))
+  .integration-divider-controls {
+  grid-column: 1;
+}

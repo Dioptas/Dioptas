@@ -5,6 +5,8 @@ import { PatternFreshness } from "./PatternFreshness";
 import { useMemo, type ReactNode } from "react";
 import { decodeRaster } from "./rasterTransfer";
 import {
+  ExternalLink,
+  PanelLeftClose,
   FolderOpen,
   ImageMinus,
   Image as ImageIcon,
@@ -38,7 +40,7 @@ export function PlotToggle({
       title={title}
       aria-pressed={pressed}
       disabled={disabled}
-      onClick={onClick}
+      onClick={() => onClick()}
     >
       {children}
     </Button>
@@ -63,6 +65,8 @@ export function IntegrationImageControls({
   onSaveImage,
   profile,
   onProfile,
+  onUndock,
+  detached = false,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -81,6 +85,8 @@ export function IntegrationImageControls({
   onSaveImage: () => void;
   profile: boolean;
   onProfile: () => void;
+  onUndock?: () => void;
+  detached?: boolean;
 }) {
   return (
     <div
@@ -88,125 +94,152 @@ export function IntegrationImageControls({
       role="group"
       aria-label="Integration image controls"
     >
-      <Button
-        className="plot-tool-button"
-        type="button"
-        aria-label="Save image"
-        title={
-          value === "cake"
-            ? "Save cake image or data"
-            : "Save detector image or data"
-        }
-        disabled={
-          !ready || !state?.hasImage || (value === "cake" && !state?.calibrated)
-        }
-        onClick={onSaveImage}
-      >
-        <Save size={15} />
-      </Button>
-      <PlotToggle
-        label="Image region of interest"
-        title="Restrict integration to a detector region; drag inside to move it or drag an edge or corner to resize"
-        pressed={roi}
-        disabled={!ready || !state?.hasImage || value === "cake"}
-        onClick={onRoi}
-      >
-        ROI
-      </PlotToggle>
-      <div
-        className="integration-image-mode"
-        role="group"
-        aria-label="Integration display"
-      >
+      <div className="image-toolbar-group image-toolbar-primary">
         <Button
-          className="plot-tool-button integration-display-switch"
+          className="plot-tool-button"
           type="button"
-          title={value === "image" ? "Show cake" : "Show image"}
-          onClick={() => onChange(value === "image" ? "cake" : "image")}
+          aria-label="Save image"
+          title={
+            value === "cake"
+              ? "Save cake image or data"
+              : "Save detector image or data"
+          }
+          disabled={
+            !ready ||
+            !state?.hasImage ||
+            (value === "cake" && !state?.calibrated)
+          }
+          onClick={() => onSaveImage()}
         >
-          {value === "image" ? "Cake" : "Image"}
+          <Save size={15} />
         </Button>
-      </div>
-      <PlotToggle
-        label="Azimuthal profile"
-        title="Show intensity versus azimuth at the linked radial position"
-        pressed={profile}
-        disabled={!ready || !state?.calibrated || !state?.hasImage}
-        onClick={onProfile}
-      >
-        Profile
-      </PlotToggle>
-      <span className="plot-tool-divider" />
-      <label
-        className="check-row"
-        title="Use the detector mask for integration and show it on the image"
-      >
-        <Input
-          aria-label="Apply detector mask"
-          type="checkbox"
-          checked={!!state?.useMask}
-          disabled={!ready || !state?.hasImage}
-          onChange={(event) =>
-            void run("settings", { use_mask: event.target.checked })
-          }
-        />
-        Mask
-      </label>
-      <label
-        className="check-row"
-        title="Show masked pixels through a transparent mask"
-      >
-        <Input
-          aria-label="Integration transparent mask"
-          type="checkbox"
-          checked={!!state?.transparentMask}
-          disabled={!ready || !state?.hasImage}
-          onChange={(event) =>
-            void run("settings", { transparent_mask: event.target.checked })
-          }
-        />
-        Transparent
-      </label>
-      <span className="plot-tool-divider" aria-hidden="true" />
-      {state?.integration.imageBackground.filename && (
         <PlotToggle
-          label="Show corrected image"
-          title="Display the background-subtracted and corrected detector image"
-          pressed={corrected}
-          disabled={!state?.hasImage || value === "cake"}
-          onClick={onCorrected}
+          label="Image region of interest"
+          title="Restrict integration to a detector region; drag inside to move it or drag an edge or corner to resize"
+          pressed={roi}
+          disabled={!ready || !state?.hasImage || value === "cake"}
+          onClick={onRoi}
         >
-          bkg
+          ROI
         </PlotToggle>
-      )}
-      <PlotToggle
-        label="Show image phases"
-        title="Show phase reference lines on the image or cake"
-        pressed={showPhases}
-        disabled={!state?.integration.phases.length}
-        onClick={onShowPhases}
-      >
-        Phases
-      </PlotToggle>
-      <label
-        className="integration-cake-shift"
-        data-visible={value === "cake"}
-        aria-hidden={value !== "cake"}
-        title="Roll the full cake in azimuth without reintegrating"
-      >
+        <div
+          className="integration-image-mode"
+          role="group"
+          aria-label="Integration display"
+        >
+          <Button
+            className="plot-tool-button integration-display-switch"
+            type="button"
+            title={value === "image" ? "Show cake" : "Show image"}
+            onClick={() => onChange(value === "image" ? "cake" : "image")}
+          >
+            {value === "image" ? "Cake" : "Image"}
+          </Button>
+        </div>
+        <PlotToggle
+          label="Azimuthal profile"
+          title="Show intensity versus azimuth at the linked radial position"
+          pressed={profile}
+          disabled={!ready || !state?.calibrated || !state?.hasImage}
+          onClick={onProfile}
+        >
+          Profile
+        </PlotToggle>
+        <label
+          className="integration-cake-shift"
+          data-visible={value === "cake"}
+          aria-hidden={value !== "cake"}
+          title="Roll the full cake in azimuth without reintegrating"
+        >
+          <span className="plot-tool-divider" aria-hidden="true" />
+          χ
+          <Input
+            aria-label="Cake azimuth shift"
+            type="range"
+            min={-180}
+            max={180}
+            value={cakeShift}
+            disabled={value !== "cake" || !fullCake}
+            onChange={(e) => onCakeShift(Number(e.target.value))}
+          />
+          <span>{cakeShift}°</span>
+        </label>
+      </div>
+      <div className="image-toolbar-group image-toolbar-display">
+        <label
+          className="check-row"
+          title="Use the detector mask for integration and show it on the image"
+        >
+          <Input
+            aria-label="Apply detector mask"
+            type="checkbox"
+            checked={!!state?.useMask}
+            disabled={!ready || !state?.hasImage}
+            onChange={(event) =>
+              void run("settings", { use_mask: event.target.checked })
+            }
+          />
+          Mask
+        </label>
+        <label
+          className="check-row"
+          title="Show masked pixels through a transparent mask"
+        >
+          <Input
+            aria-label="Integration transparent mask"
+            type="checkbox"
+            checked={!!state?.transparentMask}
+            disabled={!ready || !state?.hasImage}
+            onChange={(event) =>
+              void run("settings", { transparent_mask: event.target.checked })
+            }
+          />
+          Transparent
+        </label>
         <span className="plot-tool-divider" aria-hidden="true" />
-        χ
-        <Input
-          aria-label="Cake azimuth shift"
-          type="range"
-          min={-180}
-          max={180}
-          value={cakeShift}
-          disabled={value !== "cake" || !fullCake}
-          onChange={(e) => onCakeShift(Number(e.target.value))}
-        />
-        <span>{cakeShift}°</span>
-      </label>
+        {state?.integration.imageBackground.filename && (
+          <PlotToggle
+            label="Show corrected image"
+            title="Display the background-subtracted and corrected detector image"
+            pressed={corrected}
+            disabled={!state?.hasImage || value === "cake"}
+            onClick={onCorrected}
+          >
+            bkg
+          </PlotToggle>
+        )}
+        <PlotToggle
+          label="Show image phases"
+          title="Show phase reference lines on the image or cake"
+          pressed={showPhases}
+          disabled={!state?.integration.phases.length}
+          onClick={onShowPhases}
+        >
+          Phases
+        </PlotToggle>
+
+        {onUndock && (
+          <Button
+            className="plot-tool-button image-window-toggle"
+            aria-label={
+              detached ? "Dock detector image" : "Undock detector image"
+            }
+            title={
+              detached
+                ? "Return the image to the main window"
+                : "Undock image and its controls"
+            }
+            onClick={() => onUndock()}
+            disabled={!detached && !state?.hasImage}
+          >
+            {detached ? (
+              <PanelLeftClose size={16} />
+            ) : (
+              <ExternalLink size={16} />
+            )}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

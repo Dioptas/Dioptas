@@ -5,6 +5,9 @@ export type DetectorPresentation = {
   intensityKey?: string;
   label?: string;
   back?: boolean;
+  controls?: Record<string, unknown>;
+  profile?: Record<string, unknown>;
+  cakeAxis?: { requested: "2th_deg" | "q_A^-1"; wavelength?: number };
   raster: Record<string, unknown>;
   intensity: Record<string, unknown>;
   viewport?: { key: string; range: unknown };
@@ -41,7 +44,12 @@ export function detectorPresentation(
   const clean = (props: Record<string, unknown>, prefix: string) =>
     Object.fromEntries(
       Object.entries(props).flatMap(([key, value]) => {
-        if (key === "exportRef" || key === "viewport" || value === undefined)
+        if (
+          key === "exportRef" ||
+          key === "viewport" ||
+          key === "radialAxis" ||
+          value === undefined
+        )
           return [];
         if (typeof value === "function") {
           callbacks.set(
@@ -108,4 +116,43 @@ export function detectorPacket(
     offset += chunk.length;
   }
   return packet;
+}
+
+/** Toolbar callbacks stay with the main scientific command queue. */
+export function detectorTools(
+  controls: Record<string, unknown> | null,
+  profile: Record<string, unknown> | null,
+) {
+  const callbacks = new Map<string, (...args: any[]) => unknown>();
+  const clean = (props: Record<string, unknown> | null, prefix: string) =>
+    props
+      ? Object.fromEntries(
+          Object.entries(props).map(([key, value]) => {
+            if (typeof value === "function") {
+              callbacks.set(
+                `${prefix}.${key}`,
+                value as (...args: any[]) => unknown,
+              );
+              return [key, { callback: `${prefix}.${key}` }];
+            }
+            // Profile extraction uses the native grid identity and azimuth extent only.
+            if (key === "cake" && value) {
+              const cake = value as import("./types").Cake;
+              return [
+                key,
+                {
+                  sourceBufferId: cake.bufferId,
+                  azimuthRange: cake.azimuthRange,
+                },
+              ];
+            }
+            return [key, value];
+          }),
+        )
+      : undefined;
+  return {
+    controls: clean(controls, "controls"),
+    profile: clean(profile, "profile"),
+    callbacks,
+  };
 }

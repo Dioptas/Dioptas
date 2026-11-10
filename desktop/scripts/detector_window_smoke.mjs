@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import { chromium, webkit } from "playwright";
 import { nativeClient, root } from "./native_backend_client.mjs";
 import { selectIntegrationDisplay } from "./integration_display.mjs";
+import { setInterfaceTextSize } from "./plot_navigation.mjs";
 
 const artifacts = path.join(root, "desktop/artifacts/detector-window");
 await mkdir(artifacts, { recursive: true });
@@ -66,6 +67,7 @@ for (const [name, browserType] of [
       pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
     );
     const ready = async () => {
+      await page.waitForTimeout(150);
       await page.waitForFunction(() => !document.querySelector(".spin"));
       await page.waitForTimeout(120);
     };
@@ -87,7 +89,71 @@ for (const [name, browserType] of [
       await child.waitForTimeout(250);
       return child;
     };
+    const patternBefore = await page.locator(".pattern-panel").boundingBox();
+    const toolbarBefore = page.getByRole("group", {
+      name: "Integration image controls",
+      exact: true,
+    });
+    const placement = await toolbarBefore.evaluate((el) => {
+      const b = el.getBoundingClientRect(),
+        button = el
+          .querySelector('[aria-label="Undock detector image"]')
+          .getBoundingClientRect();
+      return {
+        right: b.right,
+        buttonRight: button.right,
+        bottom: b.bottom,
+        buttonBottom: button.bottom,
+        rows: [...el.querySelectorAll(".image-toolbar-group")].map(
+          (n) => n.getBoundingClientRect().y,
+        ),
+      };
+    });
+    assert.ok(
+      Math.abs(placement.right - placement.buttonRight) < 4 &&
+        Math.abs(placement.bottom - placement.buttonBottom) < 4,
+      "Undock is not at the lower-right of the image bar",
+    );
+    assert.ok(
+      new Set(placement.rows).size <= 2,
+      "Image toolbar uses more than two rows",
+    );
+    await page.screenshot({
+      path: path.join(artifacts, `${name}-docked-toolbar.png`),
+    });
     let child = await detach();
+    const patternDetached = await page.locator(".pattern-panel").boundingBox();
+    assert.ok(
+      patternDetached.width > patternBefore.width * 1.5,
+      "Detaching did not release the image's width for the pattern",
+    );
+    assert.equal(
+      await page
+        .getByRole("group", { name: "Integration image controls", exact: true })
+        .count(),
+      0,
+    );
+    for (const label of [
+      "Save image",
+      "Image region of interest",
+      "Azimuthal profile",
+      "Show image phases",
+      "Dock detector image",
+    ])
+      assert.equal(
+        await child
+          .getByRole("button", { name: label, exact: true })
+          .isVisible(),
+        true,
+      );
+    for (const label of ["Apply detector mask", "Integration transparent mask"])
+      assert.equal(
+        await child
+          .getByRole("checkbox", { name: label, exact: true })
+          .isVisible(),
+        true,
+      );
+
     assert.equal(await page.getByTestId("detector-canvas").count(), 0);
     assert.equal(await child.locator(".intensity-histogram").count(), 1);
     assert.equal(
@@ -113,6 +179,96 @@ for (const [name, browserType] of [
       2,
       "Repeated open created another window",
     );
+    const maskFlag = (await native.invoke("state")).state.useMask;
+    await child
+      .getByRole("checkbox", { name: "Apply detector mask", exact: true })
+      .click();
+    await ready();
+    assert.equal((await native.invoke("state")).state.useMask, !maskFlag);
+    await child
+      .getByRole("checkbox", { name: "Apply detector mask", exact: true })
+      .click();
+    await ready();
+    const transparent = (await native.invoke("state")).state.transparentMask;
+    await child
+      .getByRole("checkbox", {
+        name: "Integration transparent mask",
+        exact: true,
+      })
+      .click();
+    await ready();
+    assert.equal(
+      (await native.invoke("state")).state.transparentMask,
+      !transparent,
+    );
+    await child
+      .getByRole("checkbox", {
+        name: "Integration transparent mask",
+        exact: true,
+      })
+      .click();
+    await ready();
+    await child.getByRole("button", { name: "Cake", exact: true }).click();
+    await child.getByTestId("cake-canvas").waitFor();
+    assert.equal(await child.getByTestId("detector-canvas").count(), 0);
+    // The complete bar stays within two rows with the window action last,
+    // including the additional cake shift controls and larger interface text.
+    for (const large of [false, true]) {
+      await setInterfaceTextSize(page, large);
+      await child.waitForFunction(
+        (large) =>
+          document.querySelector(".app").dataset.textSize ===
+          (large ? "large" : "normal"),
+        large,
+      );
+      for (const width of [420, 520]) {
+        await child.setViewportSize({ width, height: 550 });
+        await child.waitForTimeout(100);
+        const layout = await child
+          .getByRole("group", {
+            name: "Integration image controls",
+            exact: true,
+          })
+          .evaluate((el) => {
+            const bar = el.getBoundingClientRect(),
+              dock = el
+                .querySelector('[aria-label="Dock detector image"]')
+                .getBoundingClientRect();
+            return {
+              rows: [...el.querySelectorAll(".image-toolbar-group")].map(
+                (g) => g.getBoundingClientRect().y,
+              ),
+              right: bar.right - dock.right,
+              bottom: bar.bottom - dock.bottom,
+              visible: [...el.querySelectorAll("button,input")].every((b) => {
+                const r = b.getBoundingClientRect();
+                return (
+                  r.left >= 0 &&
+                  r.right <= innerWidth &&
+                  r.bottom <= innerHeight
+                );
+              }),
+              overflow: document.documentElement.scrollWidth > innerWidth,
+            };
+          });
+        assert.ok(
+          new Set(layout.rows).size <= 2 && layout.visible && !layout.overflow,
+          JSON.stringify({ width, large, layout }),
+        );
+        assert.ok(Math.abs(layout.right) < 4 && Math.abs(layout.bottom) < 4);
+        if (width === 420)
+          await child.screenshot({
+            path: path.join(
+              artifacts,
+              `${name}-${large ? "larger" : "standard"}-cake-tools.png`,
+            ),
+          });
+      }
+    }
+    await setInterfaceTextSize(page, false);
+    await child.setViewportSize({ width: 900, height: 760 });
+    await child.getByRole("button", { name: "Image", exact: true }).click();
+    await child.getByTestId("detector-canvas").waitFor();
     let canvas = child.getByTestId("detector-canvas");
     const bounds = await canvas.boundingBox();
     const x = bounds.x + bounds.width * 0.48,
@@ -161,13 +317,16 @@ for (const [name, browserType] of [
     );
     assert.ok((await native.invoke("state")).linked?.imagePoint);
     // Main task controls still mutate the very same session and appear remotely.
-    await page
+    await child
       .getByRole("button", { name: "Image region of interest", exact: true })
       .click();
     await ready();
     await child.waitForFunction(
       () =>
-        !!document.querySelector('[data-testid="detector-canvas"]').dataset.roi,
+        !!document.querySelector('[data-testid="detector-canvas"]').dataset
+          .roi &&
+        !document.querySelector('[aria-label="Image region of interest"]')
+          .disabled,
     );
     const roiBefore = (await native.invoke("state")).state.integration.roi;
     assert.ok(roiBefore);
@@ -187,7 +346,7 @@ for (const [name, browserType] of [
       ((+roi.d.viewYMax - v) / (+roi.d.viewYMax - +roi.d.viewYMin)) *
         +roi.d.plotHeight;
     // F restores full extent before moving an ROI corner.
-    await canvas.click();
+    await canvas.focus();
     await child.keyboard.press("f");
     await child.waitForTimeout(100);
     const fitted = await canvas.evaluate((c) => ({
@@ -195,9 +354,9 @@ for (const [name, browserType] of [
       b: c.getBoundingClientRect().toJSON(),
     }));
     Object.assign(roi, fitted);
-    await child.mouse.move(sx(roi.roi[0]), sy(roi.roi[2]));
+    await child.mouse.move(sx(roi.roi[2]), sy(roi.roi[0]));
     await child.mouse.down();
-    await child.mouse.move(sx(roi.roi[0]) + 20, sy(roi.roi[2]) - 20, {
+    await child.mouse.move(sx(roi.roi[2]) + 20, sy(roi.roi[0]) - 20, {
       steps: 5,
     });
     await child.mouse.up();
@@ -223,10 +382,48 @@ for (const [name, browserType] of [
         exact: true,
       })
       .click();
+    await child.getByRole("button", { name: "Cake", exact: true }).click();
+    await child.getByTestId("cake-canvas").waitFor();
+    await child
+      .getByRole("button", { name: "Cake histogram settings", exact: true })
+      .click();
+    await child
+      .getByLabel("Cake maximum intensity", { exact: true })
+      .fill("4500");
+    await child
+      .getByLabel("Cake maximum intensity", { exact: true })
+      .press("Enter");
+    await child
+      .getByRole("button", {
+        name: "Close cake display settings",
+        exact: true,
+      })
+      .click();
+    await child.getByRole("button", { name: "Image", exact: true }).click();
+    await child.getByTestId("detector-canvas").waitFor();
+    assert.equal(
+      await child
+        .getByTestId("detector-canvas")
+        .getAttribute("data-intensity-max"),
+      "9000",
+    );
+    await child.getByRole("button", { name: "Cake", exact: true }).click();
+    await child.getByTestId("cake-canvas").waitFor();
+    assert.equal(
+      await child.getByTestId("cake-canvas").getAttribute("data-intensity-max"),
+      "4500",
+    );
+    await child.getByRole("button", { name: "Image", exact: true }).click();
+    await child.getByTestId("detector-canvas").waitFor();
     await child
       .getByRole("button", { name: "Dock detector image", exact: true })
       .click();
     await page.getByTestId("detector-canvas").waitFor();
+    const patternRedocked = await page.locator(".pattern-panel").boundingBox();
+    assert.ok(
+      Math.abs(patternRedocked.width - patternBefore.width) < 2,
+      "Docking did not restore the saved image/pattern split",
+    );
     assert.equal(
       await page
         .getByTestId("detector-canvas")
@@ -411,7 +608,9 @@ for (const [name, browserType] of [
         .evaluate((el) => el.getBoundingClientRect().width <= innerWidth),
       "Detached layout exceeds the viewport",
     );
-    await page.getByRole("button", { name: "Save image", exact: true }).click();
+    await child
+      .getByRole("button", { name: "Save image", exact: true })
+      .click();
     let exportTimer;
     const saved = await Promise.race([
       exported,
@@ -451,6 +650,9 @@ for (const [name, browserType] of [
       staleInteractionRejected: true,
       calibrationPicking: true,
       detectorPngExport: true,
+      completeDetachedToolbar: true,
+      patternUsesFreedImageSpace: true,
+      detachedCakeSwitch: true,
       sharedMapDetector: true,
       sourceCalibrated: state.calibrated,
       errors,

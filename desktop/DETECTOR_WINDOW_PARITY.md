@@ -2,12 +2,19 @@
 
 November 10, 2026. This focused feature commit is based on the committed
 correction-preview dependency `62473343`; integrate that dependency first.
-The detector image can be undocked with the corner icon in
-Calibration, Mask, Integration or Map. Show detector window raises/reuses the
-same companion. Dock and the operating system's close button return the view.
-The main workspace keeps its task controls and layout settings; its image slot
-shows Show/Dock actions while detached. This preserves the desktop splitters
-rather than reproducing Qt's temporary splitter collapse.
+The detector image can be undocked in Calibration, Mask, Integration or Map.
+Integration places Undock at the lower right of the right-aligned image toolbar;
+its two nonwrapping groups use at most two rows at compact widths. The complete
+Save, ROI, Image/Cake, Profile, Mask, transparency, background and Phases toolbar
+moves beneath the detached view, including the cake azimuth shift when applicable.
+Show detector window raises/reuses the same companion. Dock and the operating
+system's close button return the view.
+
+Integration removes the image pane and its divider while detached, giving its
+width to the pattern and task controls. Docking restores the saved split without
+overwriting it. An existing docked Batch remains in the main workspace and stays
+interactive; a future Batch layout redesign is deferred. Other modes retain their
+Show/Dock placeholder and existing layouts.
 
 ## Reference and ownership
 
@@ -22,15 +29,20 @@ props. Their callbacks, scientific drafts, mask selections, per-configuration
 contrast and shared viewport remain with their existing main-window owners.
 The child cannot call `desktop_invoke`, open a file dialog or create a processor.
 Picks, mask strokes/shapes, ROI edits and linked inspection therefore use the
-same ordered Rust commands as the docked view. Pattern and cake inspection stay
-in the main window, with linked green markers on the detached detector.
+same ordered Rust commands as the docked view. Integration can switch between
+image and cake inside the companion, including Q display, azimuth shifting and
+an optional azimuthal profile below it. The pattern stays in the main window;
+linked inspection and markers connect the views. The detached profile reads and
+exports through the main command queue. Its result contains profile samples,
+not another scientific session or a detector raster copy.
 
 The child uses the same square-pixel renderer, original image dimensions and
 orientation, histogram, palettes, linear/log and Auto controls. It has one
 readout footer. Standard navigation gestures and F stay local to the existing
 renderer; mask Enter/Escape and q/w are forwarded to the original mask owner.
-Saving a displayed detector PNG still uses the main Save image action: the
-child supplies the existing renderer's PNG, then the main owner opens its dialog.
+Save image beneath the detached image/cake supplies the existing renderer's PNG,
+then the main owner opens its dialog. Image and cake retain independent contrast,
+Auto state, histograms and viewports through switching and docking.
 In narrow Map layouts the detector owner remains mounted while detached even
 when the main Map task tab changes. Correction Plot/Back uses a higher-priority
 surface with its own viewport, histogram and units; returning or docking restores
@@ -80,8 +92,10 @@ Detaching does not modify Batch, Map or phase-editor window ownership.
 - `scripts/detector_window_smoke.mjs`: headless Chromium and WebKit with a real
   Rust processor, full-resolution CeO2 image, repeated open/close/dock, no extra
   Auto calculation on undock, square pixels, zoom/pan/readout, linked clicks,
-  main ROI controls and detached ROI drag, rectangle/polygon masks and Undo,
-  detached calibration picking, main PNG export using the detached renderer,
+  detached ROI controls and drag, rectangle/polygon masks and Undo,
+  detached calibration picking, detached Save using the original main owner,
+  complete lower-right toolbar at 420/520 px with both text sizes, independent
+  image/cake contrast, freed pattern width and restoration on docking,
   narrow Map, independent configuration contrast and rejection of an explicitly delayed old-configuration action.
 - `scripts/detector_source_smoke.mjs`: both browsers, real HDF5 source/frame
   clamping, transformed full-resolution dimensions, canceled calibrated source
@@ -100,15 +114,11 @@ Detaching does not modify Batch, Map or phase-editor window ownership.
   on final exit. The campaign's first wrapper report used the wrong PID field;
   the corrected run passes that check.
 
-Receipts and screenshots are in `artifacts/detector-window/`. The broad
-`test:ui-components` run fails the unrelated Phase parameters scrollbar
-assertion (12 px expected, 0 observed). The same failure reproduces with the
-original `b31e7650` fixture dependencies
-(the sole changed runtime import, ImageIntensity, was supplied from that commit
-through a temporary Vite loader). `artifacts/detector-window/ui-baseline.log`
-records the baseline failure. No shared scrollbar/phase implementation was
-changed by this feature. Windows/Linux native window semantics and physical
-display latency remain unqualified.
+Receipts and screenshots are in `artifacts/detector-window/`. The earlier
+Phase parameters scrollbar fixture failure was corrected in the consolidated
+checkout; the full shared-controls suite passes in Chromium and WebKit at both
+text sizes. Windows/Linux native window semantics and physical display latency
+remain unqualified.
 
 ## Consolidated desktop integration
 
@@ -122,3 +132,22 @@ read-only inspection commands. The merged tree passes 212 native processor
 checks (two existing ignored), 112 frontend tests, 29 host tests, strict Clippy,
 frontend build and the headless/native workflows described in the
 [consolidation record](RUST_DESKTOP_CONSOLIDATION.md).
+
+## Complete detached Integration workspace follow-up
+
+Implemented directly in the consolidated Tauri checkout. The compact detached
+profile exposed a tick-density/annotation-margin feedback loop in `PatternView`.
+Tick density now uses a stable reserved annotation height, so rendering no longer
+changes the tick count by changing its own gutter. The source regression covers
+this constant-intensity profile, width changes and profile export in the child.
+The source toolbar remains visible with processing/export actions disabled while
+a correction map is shown; the redundant preview-corner Undock icon is removed.
+
+Headless Chromium and WebKit pass `test:detector-window`,
+`test:correction-previews`, `test:cake-profile`, `test:cake-q-axis`,
+`test:integration-responsive`, `test:integration-panel` and `test:ui-components`.
+The responsive check also preserves the same Batch heatmap instance and usable
+main dock while the image is detached. All 112 frontend tests and the production
+build pass. No scientific Rust code or native window-management code changed in
+this follow-up; the earlier isolated native lifecycle campaign is historical
+qualification, not a newly repeated visible-window check.

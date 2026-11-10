@@ -506,6 +506,30 @@ try {
       );
       await page.setViewportSize({ width: 1000, height: 760 });
       await settle();
+      // Detaching the image keeps the existing Batch dock in the main workspace.
+      await left.getByRole("tab", { name: "Image", exact: true }).click();
+      const imagePopup = page.waitForEvent("popup");
+      await button("Undock detector image").click();
+      const imageChild = await imagePopup;
+      imageChild.on("pageerror", (e) => errors.push(e.message));
+      await imageChild.getByTestId("detector-canvas").waitFor();
+      assert.equal(await left.count(), 0);
+      assert.equal(
+        await page.locator(".integration-batch-pane").getAttribute("inert"),
+        null,
+      );
+      assert.ok(await page.getByTestId("batch-heatmap").isVisible());
+      assert.equal(
+        await page
+          .getByTestId("batch-heatmap")
+          .evaluate((el) => el === window.__responsiveBatch),
+        true,
+      );
+      await imageChild
+        .getByRole("button", { name: "Dock detector image", exact: true })
+        .click();
+      await left.waitFor();
+      await left.getByRole("tab", { name: "Batch", exact: true }).click();
       const popup = page.waitForEvent("popup");
       await button("Detach batch").click();
       const child = await popup;

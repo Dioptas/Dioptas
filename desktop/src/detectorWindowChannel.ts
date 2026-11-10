@@ -25,7 +25,7 @@ export type DetectorWindowMessage =
       args: unknown[];
       id: string;
     }
-  | { type: "response"; id: string; error?: string }
+  | { type: "response"; id: string; error?: string; result?: unknown }
   | { type: "key"; identity: string; key: string }
   | { type: "export"; id: string; identity: string }
   | { type: "exported"; id: string; png?: string; error?: string };

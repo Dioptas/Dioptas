@@ -63,6 +63,7 @@ export function CorrectionPreviewDetector({
       </div>
       <DetectorSurface
         priority={1}
+        showUndock={false}
         interactionKey={`correction-${map.kind}`}
         label={`${map.label} · ${map.units} · divisor`}
         onBack={onBack}

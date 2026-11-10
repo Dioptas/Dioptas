@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { useDetectorDetached } from "./DetectorWindow";
 import { TabList } from "./TabList";
 import { useIntegrationLayout } from "./IntegrationWorkspace";
 
@@ -12,13 +13,14 @@ export function IntegrationLeftPane({
   batch: ReactNode;
   children: ReactNode;
 }) {
+  const imageDetached = useDetectorDetached();
   const { narrow } = useIntegrationLayout();
   const [view, setView] = useState<"image" | "batch">("batch");
   const batchOpen = !!batch;
   useEffect(() => {
     if (batchOpen) setView("batch");
   }, [batchOpen]);
-  const switched = narrow && batchOpen;
+  const switched = narrow && batchOpen && !imageDetached;
   if (!active) return <div className="plot-group-contents">{children}</div>;
   return (
     <div className="integration-left-pane" data-switched={switched}>
