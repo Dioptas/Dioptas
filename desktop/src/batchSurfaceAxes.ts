@@ -119,6 +119,34 @@ export function surfaceProjectionMatrix(
   ]);
 }
 
+/** Keep the projected point under the mouse fixed at every height. Orthographic
+ * camera zoom needs no mesh pick or readback to preserve this anchor. */
+export function zoomSurfaceAt(
+  camera: SurfaceCamera,
+  stretch: Vector,
+  width: number,
+  height: number,
+  fontSize: number,
+  anchor: { x: number; y: number },
+  requestedZoom: number,
+): SurfaceCamera {
+  const zoom = clamp(requestedZoom, 0.25, 5),
+    factor = zoom / camera.zoom;
+  const center = surfaceAxisProjection(
+    camera,
+    stretch,
+    width,
+    height,
+    fontSize,
+  )(0.5, 0.5, 0.5);
+  return {
+    ...camera,
+    zoom,
+    panX: camera.panX + (1 - factor) * (anchor.x - center.x),
+    panY: camera.panY + (1 - factor) * (anchor.y - center.y),
+  };
+}
+
 function niceValue(value: number, lower: number, upper: number) {
   if (value === 0) return 0;
   const power = 10 ** Math.floor(Math.log10(Math.abs(value)));

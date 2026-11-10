@@ -9,6 +9,7 @@ import {
 import { Equal, Settings2, X } from "lucide-react";
 import { Button, Popover, Select } from "./ui";
 import { disposeSurfaceGPU } from "./WebGLSurface";
+import { zoomSurfaceAt } from "./batchSurfaceAxes";
 import {
   surfacePhaseFrameHeights,
   type SurfacePhaseStyle,
@@ -310,12 +311,19 @@ export function BatchSurfaceView({
   };
   usePlotWheel(canvas, (e) => {
     rightClick.current = null;
+    const bounds = canvas.current!.getBoundingClientRect();
+    const anchor = { x: e.clientX - bounds.left, y: e.clientY - bounds.top };
     setView((v) => ({
       ...v,
-      camera: {
-        ...v.camera,
-        zoom: clamp(v.camera.zoom * Math.exp(-e.deltaY * 0.001), 0.25, 5),
-      },
+      camera: zoomSurfaceAt(
+        v.camera,
+        v.stretch,
+        size.width,
+        size.height,
+        parseFloat(typography.mono) || 13,
+        anchor,
+        v.camera.zoom * Math.exp(-e.deltaY * 0.001),
+      ),
     }));
   });
   const pointerHit = (event: React.PointerEvent<HTMLCanvasElement>) => {

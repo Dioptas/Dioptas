@@ -7,6 +7,10 @@ upload occurs during navigation. Phase curves and plane geometry also remain
 resident. Their screen widths are calculated in the shader; translucent plane
 ordering updates a small guide index buffer when the camera direction changes.
 
+Wheel zoom anchors to the mouse position by adjusting camera pan with zoom.
+This preserves the projected point at any height without a pick or GPU readback.
+Zoom bounds apply before calculating pan, preserving the anchor at the limits.
+
 Native data, the sampled region/resolution, intensity limits or linear/log/sqrt
 mapping invalidate geometry. Phase changes invalidate guides. Palette changes
 update the color texture. CPU projection is deferred until a pick is requested;

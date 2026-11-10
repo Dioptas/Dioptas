@@ -6,11 +6,61 @@ import {
   layoutSurfaceAxes,
   surfaceLabelsOverlap,
   surfaceProjectionMatrix,
+  zoomSurfaceAt,
 } from "../src/batchSurfaceAxes.ts";
 import {
   surfaceCamera,
   surfaceIntensity,
 } from "../src/batchSurfaceGeometry.ts";
+
+test("mouse-anchored zoom preserves a surface point across camera angles, pan, stretch and zoom limits", () => {
+  const stretch = [1.4, 0.7, 1.2],
+    width = 970,
+    height = 650,
+    font = 13;
+  for (const azimuth of [-120, 0, 45, 90])
+    for (const elevation of [-45, 0, 30, 90])
+      for (const initialZoom of [0.25, 1, 5])
+        for (const requestedZoom of [0.01, 0.5, 2, 10]) {
+          const camera = {
+            ...surfaceCamera(),
+            azimuth,
+            elevation,
+            zoom: initialZoom,
+            panX: 31,
+            panY: -17,
+          };
+          const anchor = surfaceAxisProjection(
+            camera,
+            stretch,
+            width,
+            height,
+            font,
+          )(0.27, 0.81, 0.63);
+          const next = zoomSurfaceAt(
+            camera,
+            stretch,
+            width,
+            height,
+            font,
+            anchor,
+            requestedZoom,
+          );
+          const after = surfaceAxisProjection(
+            next,
+            stretch,
+            width,
+            height,
+            font,
+          )(0.27, 0.81, 0.63);
+          assert.ok(Math.hypot(after.x - anchor.x, after.y - anchor.y) < 1e-8);
+          assert.ok(next.zoom >= 0.25 && next.zoom <= 5);
+          if (next.zoom === camera.zoom) {
+            assert.equal(next.panX, camera.panX);
+            assert.equal(next.panY, camera.panY);
+          }
+        }
+});
 
 test("resident GPU camera matrix agrees with physical axes across rotation, stretch, zoom and pan", () => {
   for (const azimuth of [-140, 0, 45, 90, 210])

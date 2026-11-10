@@ -120,7 +120,8 @@ try {
         Buffer.from(png, "base64"),
       );
       const box = await surface.boundingBox();
-      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      const anchor = JSON.parse((await details(surface)).hitSample);
+      await page.mouse.move(box.x + anchor.x, box.y + anchor.y);
       // Observe every mesh transition, including any brief reduced-detail draw
       // that might already have finished by the time Playwright reads the canvas.
       await surface.evaluate((canvas) => {
@@ -157,6 +158,14 @@ try {
         "Zoom updates the camera without uploading mesh buffers",
       );
       assert.equal(zooming.geometryReused, "true");
+      const anchoredSample = JSON.parse(zooming.hitSample);
+      // Native wheel events round mouse coordinates; allow subpixel motion of
+      // the nearby sampled point. The camera arithmetic is checked exactly.
+      assert.ok(
+        Math.hypot(anchoredSample.x - anchor.x, anchoredSample.y - anchor.y) <
+          0.5,
+        `Off-center zoom anchor: ${JSON.stringify({ anchor, anchoredSample })}`,
+      );
       const zoomImage = await surface.evaluate((canvas) => canvas.toDataURL());
       await page.waitForTimeout(250);
       assert.equal(
@@ -173,6 +182,19 @@ try {
         assert.equal(sample.frameStep, fine.frameStep);
         assert.equal(sample.columnStep, fine.columnStep);
       }
+      await page.mouse.wheel(0, 120);
+      await page.waitForFunction(
+        (previous) =>
+          document.querySelector('[data-testid="batch-surface"]').dataset
+            .zoom !== previous,
+        zooming.zoom,
+      );
+      const zoomedOut = JSON.parse((await details(surface)).hitSample);
+      assert.ok(
+        Math.hypot(zoomedOut.x - anchor.x, zoomedOut.y - anchor.y) < 0.5,
+        "The same anchor stays fixed while zooming out",
+      );
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
       await page.mouse.down();
       await page.mouse.move(
         box.x + box.width / 2 + 45,

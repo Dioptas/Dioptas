@@ -619,6 +619,8 @@ calibration or original-pixel readouts.
 
 Batch's 3D view uses a filled GPU surface with antialiased intensity contours
 by default. Zooming, rotation and panning retain the selected mesh resolution.
+Wheel zoom keeps the surface point under the cursor fixed, including after
+rotation, panning and axis-proportion changes.
 The mesh and phase geometry stay in GPU buffers while navigation updates the
 camera projection; data, intensity mapping or sampling changes rebuild the
 geometry. Palette changes update only the color texture. Axes use the same
