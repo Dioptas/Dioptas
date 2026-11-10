@@ -20,6 +20,10 @@
     "allow-open-map-window",
     "allow-close-map-window",
     "allow-open-batch-window",
-    "allow-close-batch-window"
+    "allow-close-batch-window",
+    "allow-open-detector-window",
+    "allow-close-detector-window",
+    "allow-publish-detector-snapshot",
+    "core:event:allow-emit-to"
   ]
 }

@@ -111,7 +111,7 @@ try {
         name: "Correction map preview",
       });
       const image = page.locator(
-        ".detector-panel > .detector-workspace [data-testid=detector-canvas]",
+        ".detector-panel > .detector-surface > .detector-workspace [data-testid=detector-canvas]",
       );
       const cake = page.getByTestId("cake-canvas");
       const ready = () =>
@@ -167,7 +167,9 @@ try {
         .uncheck();
       await ready();
       await contrast(
-        page.locator(".detector-panel > .detector-workspace"),
+        page.locator(
+          ".detector-panel > .detector-surface > .detector-workspace",
+        ),
         180,
       );
       await image.hover();

@@ -155,7 +155,11 @@ Integration and Map use the same `RasterView` and `PatternView` renderers.
 and pattern colors, visibility, phase references, overlay legends, linked radial
 position and click sampling. Each mode supplies its own display data and tools;
 Map ROI editing, Integration background inspection, independent image levels
-and per-mode plot preferences remain with their existing owners. Detector zoom
+and per-mode plot preferences remain with their existing owners. The detector's corner Undock icon opens a standalone image window while the
+main task controls and plots keep working. Show detector window reuses it;
+Dock or its close button returns the view with images, calibration, contrast
+and zoom retained. See [detector-window behavior and evidence](DETECTOR_WINDOW_PARITY.md).
+Detector zoom
 and pan are shared across Calibration, Mask, Integration and Map during the
 session. Pattern ranges are shared across Calibration, Integration and Map,
 converting radial units and intensity scales as needed. Resizing keeps detector

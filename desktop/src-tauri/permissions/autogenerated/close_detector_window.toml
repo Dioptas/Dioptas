@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-close-detector-window"
+description = "Enables the close_detector_window command without any pre-configured scope."
+commands.allow = ["close_detector_window"]
+
+[[permission]]
+identifier = "deny-close-detector-window"
+description = "Denies the close_detector_window command without any pre-configured scope."
+commands.deny = ["close_detector_window"]

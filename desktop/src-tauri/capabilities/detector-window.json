@@ -1,0 +1,14 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "detector-window",
+  "description": "The detector companion renders immutable binary snapshots. All edits remain ordered by the main window.",
+  "windows": [
+    "detector-window"
+  ],
+  "permissions": [
+    "allow-detector-snapshot",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "core:event:allow-emit-to"
+  ]
+}

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-detector-snapshot"
+description = "Enables the detector_snapshot command without any pre-configured scope."
+commands.allow = ["detector_snapshot"]
+
+[[permission]]
+identifier = "deny-detector-snapshot"
+description = "Denies the detector_snapshot command without any pre-configured scope."
+commands.deny = ["detector_snapshot"]

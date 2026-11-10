@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { DetectorSurface } from "./DetectorWindow";
+import { detectorViewport, type ViewportMemory } from "./plotViewport";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "./ui";
 import { RasterView } from "./RasterView";
 import { ImageIntensity } from "./ImageIntensity";
@@ -30,6 +32,7 @@ export function CorrectionPreviewDetector({
   sampleGeometry: PreviewGeometrySample;
   wavelength?: number;
 }) {
+  const viewport = useRef<ViewportMemory>({ current: null });
   const [limits, setLimits] = useState(map.raster.limits);
   useEffect(() => setLimits(map.raster.limits), [map.raster]);
   const [log, setLog] = useState(false);
@@ -58,9 +61,18 @@ export function CorrectionPreviewDetector({
         </span>
         <Button onClick={onBack}>Back</Button>
       </div>
-      <div className="detector-workspace">
+      <DetectorSurface
+        priority={1}
+        interactionKey={`correction-${map.kind}`}
+        label={`${map.label} · ${map.units} · divisor`}
+        onBack={onBack}
+      >
         <RasterView
           raster={map.raster}
+          viewport={detectorViewport(
+            viewport.current,
+            `correction-${map.kind}`,
+          )}
           limits={limits}
           log={log}
           palette={palette}
@@ -88,7 +100,7 @@ export function CorrectionPreviewDetector({
             await onAuto({ ...settings, filter_gaps: false });
           }}
         />
-      </div>
+      </DetectorSurface>
     </div>
   );
 }

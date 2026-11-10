@@ -1,5 +1,10 @@
 import { useCorrectionPreview } from "./useCorrectionPreview";
 import { CorrectionPreviewDetector } from "./CorrectionPreviewDetector";
+import {
+  DetectorSurface,
+  DetectorWindowProvider,
+  useDetectorWindow,
+} from "./DetectorWindow";
 import { IntegrationLeftPane } from "./IntegrationLeftPane";
 import { ImageSourceControl } from "./ImageSourceControl";
 import { processingProgressText } from "./processingProgress";
@@ -1671,6 +1676,30 @@ export default function App() {
     },
     onError: setError,
   });
+  const detectorWindow = useDetectorWindow(
+    {
+      largeText,
+      reading: plotReading?.source === "detector" ? plotReading : null,
+      clicked: correctionPreview.map ? null : clickPositionReading,
+      message: progress?.running
+        ? processingProgressText(progress)
+        : busy || "",
+      error,
+    },
+    JSON.stringify([
+      mode,
+      state?.configurationContext ?? state?.configurationIndex,
+      state?.revision,
+      state?.selectedImageSource,
+      state?.shape,
+      state?.calibration.transformations,
+    ]),
+    setError,
+    JSON.stringify([
+      mode,
+      state?.configurationContext ?? state?.configurationIndex,
+    ]),
+  );
   const inspectDetector = (point: {
     x: number;
     y: number;
@@ -2104,7 +2133,7 @@ export default function App() {
   }, [batchOpenRequest]);
   const configurationControlsVisible =
     showConfigurationControls && !!state?.configurationLabels && !settingsOpen;
-  return (
+  const workspace = (
     <div
       className="app"
       data-text-size={largeText ? "large" : "normal"}
@@ -2372,7 +2401,7 @@ export default function App() {
                           />
                         )}
                         {image ? (
-                          <div className="detector-workspace">
+                          <DetectorSurface>
                             <RasterView
                               exportRef={detectorExport}
                               raster={
@@ -2505,7 +2534,7 @@ export default function App() {
                               palette={palette}
                               onPalette={setPalette}
                             />
-                          </div>
+                          </DetectorSurface>
                         ) : (
                           <div className="empty-view">
                             <div className="empty-icon">
@@ -2693,18 +2722,32 @@ export default function App() {
                       )}
                       {mode === "integration" && (
                         <IntegrationImageControls
-                          onSaveImage={() => {
+                          onSaveImage={async () => {
                             const source =
                               integrationDisplay === "cake" ? "cake" : "image";
                             const exporter = (
                               source === "cake" ? cakeExport : detectorExport
                             ).current;
-                            if (!exporter) return;
+                            if (
+                              !exporter &&
+                              !(source === "image" && detectorWindow.detached)
+                            )
+                              return;
+                            let png: string;
+                            try {
+                              png =
+                                source === "image" && detectorWindow.detached
+                                  ? await detectorWindow.png()
+                                  : exporter!.png();
+                            } catch (error) {
+                              setError(String(error));
+                              return;
+                            }
                             void run(
                               "integration_save_image",
                               {
                                 source,
-                                png_data: exporter.png(),
+                                png_data: png,
                                 suggested_name: `${state?.imageName?.replace(/\.[^.]+$/, "") ?? "image"}${source === "cake" ? "_cake" : ""}.png`,
                               },
                               "Saving image…",
@@ -3550,5 +3593,10 @@ export default function App() {
         </footer>
       </div>
     </div>
+  );
+  return (
+    <DetectorWindowProvider value={detectorWindow}>
+      {workspace}
+    </DetectorWindowProvider>
   );
 }

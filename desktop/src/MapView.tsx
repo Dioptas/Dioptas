@@ -1,3 +1,4 @@
+import { DetectorSurface, useDetectorDetached } from "./DetectorWindow";
 import { Input, Button } from "./ui";
 import { LayoutDivider } from "./LayoutDivider";
 import {
@@ -90,6 +91,7 @@ export function MapView({
   patternZoom: ZoomMode;
   onPatternZoom: (mode: ZoomMode) => void;
 }) {
+  const detectorDetached = useDetectorDetached();
   const [reintegrateSelected, setReintegrateSelected] =
     useMapPreference<boolean>("reintegrate-selected", true);
   const reintegrate =
@@ -303,7 +305,7 @@ export function MapView({
   const detectorPanel = (
     <section className="map-detector-panel" aria-label="Map detector image">
       {image && state?.hasImage ? (
-        <div className="detector-workspace">
+        <DetectorSurface>
           <RasterView
             raster={image}
             {...detectorPlotSetup({
@@ -322,7 +324,7 @@ export function MapView({
             rings={linked?.contours}
           />
           {intensity(image, detector, "detector")}
-        </div>
+        </DetectorSurface>
       ) : (
         <div className="empty-view">
           <p>
@@ -464,6 +466,7 @@ export function MapView({
                 reintegrateSelected={reintegrateSelected}
                 onReintegrateSelected={setReintegrateSelected}
                 windowUnit={viewPattern?.unit ?? map?.unit}
+                keepImageMounted={detectorDetached}
                 imageTab={tabbedImage ? detectorPanel : undefined}
               />
             </aside>

@@ -10,8 +10,8 @@ and writes a compact receipt under `artifacts/functional-coverage`.
 | Classification | Definitions | Meaning |
 | --- | ---: | --- |
 | Native scientific contract | 60 | A Rust integration test exercises the corresponding supported scientific behavior with actual native commands and data. This does not assert identical Qt widgets. |
-| Adapted behavior | 16 | The React/native workflow differs; evidence and the exact remaining difference are explicit in each entry. These are not counted as identical legacy UI parity. |
-| Unsupported feature | 2 | Batch rectangle-to-waterfall generation and standalone detector-image docking are not implemented by the native workspace. |
+| Adapted behavior | 17 | The React/native workflow differs; evidence and the exact remaining difference are explicit in each entry. These are not counted as identical legacy UI parity. |
+| Headless UI contract | 1 | Standalone detector-image docking shares the main Rust owner; Chromium/WebKit workflows and a separate isolated macOS window check qualify the implemented behavior. |
 | Platform-specific | 4 | Native Map window management/docking needs isolated OS-level tests. Detached data/progress is tested headlessly; native window semantics are not claimed by this CI. |
 
 ## Added native flows
@@ -144,3 +144,7 @@ real-detector/format qualification boundaries in the other `NATIVE_*_PARITY.md`
 ledgers still apply. Successful rejection of a legacy option does not implement
 that option, and the four native-window cases remain explicitly outside this
 headless gate.
+
+The standalone [detector-image window](DETECTOR_WINDOW_PARITY.md) now has a
+headless UI inventory entry. Its native open/reuse/close/placement check is a
+separate opt-in test; routine CI does not open visible application windows.
