@@ -15,7 +15,7 @@ export async function verifyPersistentScrollbars(page, screenshotPath) {
       ["Settings", "settings-general"],
       ["Scientific table", "data-table-scroll"],
       ["Dialog content", "ui-shortcuts-content"],
-      ["Horizontal tabs", "integration-tabs", "horizontal"],
+      ["Horizontal table", "data-table-scroll", "horizontal"],
       ["Both axes", "data-table-scroll", "both"],
       ["No overflow", "integration-fieldset", "none"],
     ];

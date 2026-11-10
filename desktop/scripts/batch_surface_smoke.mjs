@@ -258,6 +258,13 @@ try {
       assert.notEqual(await surface.evaluate((c) => c.toDataURL()), colored);
       // A large float buffer is sampled, never copied/transformed as a full matrix.
       await page.evaluate(() => window.setSurfaceFixture(1000, 1024));
+      // The previous scene can still report ready before React commits the new
+      // fixture. Wait for its dimensions before checking the new sampling.
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[data-testid="batch-surface"]')?.dataset
+            .frameLast === "1000",
+      );
       await waitReady(page);
       assert.ok(Number(await surface.getAttribute("data-vertices")) <= 65536);
       assert.ok(Number(await surface.getAttribute("data-frame-step")) > 1);
@@ -268,6 +275,11 @@ try {
         path: path.join(artifacts, `${name}-compact.png`),
       });
       await page.evaluate(() => window.setSurfaceFixture(1, 5));
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[data-testid="batch-surface"]')?.dataset
+            .frameLast === "1",
+      );
       await waitReady(page);
       assert.equal(await surface.getAttribute("data-triangles"), "0");
       await page.evaluate(() => window.setSurfaceFixture(3, 3, true));
