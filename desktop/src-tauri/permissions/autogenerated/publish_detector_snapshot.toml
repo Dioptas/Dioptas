@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-publish-detector-snapshot"
+description = "Enables the publish_detector_snapshot command without any pre-configured scope."
+commands.allow = ["publish_detector_snapshot"]
+
+[[permission]]
+identifier = "deny-publish-detector-snapshot"
+description = "Denies the publish_detector_snapshot command without any pre-configured scope."
+commands.deny = ["publish_detector_snapshot"]

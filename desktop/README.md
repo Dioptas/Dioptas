@@ -146,6 +146,9 @@ for transfer/plate/slab controls, project ownership, full data-flow tests and
 statistical assumptions. Cylinder, sphere and optional capillary-wall absorption are
 also native; see the [round-sample qualification](NATIVE_ROUND_SAMPLE_CORRECTION_PARITY.md)
 for their footprint models and legacy-project recalculation notice.
+Correction [Plot / Back previews](NATIVE_CORRECTION_PREVIEW_PARITY.md) show the actual
+native divisor map with independent display controls and restore the preceding
+image or Cake view.
 
 The pattern **2θ** and **Q** buttons also select the cake radial display axis,
 without rebinning its scientific pixels or changing the zoomed interval. A cake
@@ -164,7 +167,11 @@ Integration and Map use the same `RasterView` and `PatternView` renderers.
 and pattern colors, visibility, phase references, overlay legends, linked radial
 position and click sampling. Each mode supplies its own display data and tools;
 Map ROI editing, Integration background inspection, independent image levels
-and per-mode plot preferences remain with their existing owners. Detector zoom
+and per-mode plot preferences remain with their existing owners. The detector's corner Undock icon opens a standalone image window while the
+main task controls and plots keep working. Show detector window reuses it;
+Dock or its close button returns the view with images, calibration, contrast
+and zoom retained. See [detector-window behavior and evidence](DETECTOR_WINDOW_PARITY.md).
+Detector zoom
 and pan are shared across Calibration, Mask, Integration and Map during the
 session. Pattern ranges are shared across Calibration, Integration and Map,
 converting radial units and intensity scales as needed. Resizing keeps detector

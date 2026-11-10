@@ -21,6 +21,8 @@ let retainedOverlayReveal = 0;
 /** Qt control groups; all science is dispatched to IntegrationWorkflow on the existing worker. */
 export function IntegrationView({
   state,
+  correctionPreviewKind,
+  onCorrectionPreview,
   overlayReveal = 0,
   controlsCollapsed,
   onControlsCollapsedChange,
@@ -45,6 +47,8 @@ export function IntegrationView({
   setFileStep,
 }: {
   state: State | null;
+  correctionPreviewKind: string | null;
+  onCorrectionPreview: (kind: string) => void;
   overlayReveal?: number;
   controlsCollapsed: boolean;
   onControlsCollapsedChange: (collapsed: boolean) => void;
@@ -185,6 +189,8 @@ export function IntegrationView({
         </div>
         <div className="processing-pane" hidden={tab !== "Corrections"}>
           <IntegrationCorrectionControls
+            previewKind={correctionPreviewKind}
+            onPreview={onCorrectionPreview}
             key={`${state.projectName}:${state.configurationContext ?? state.configurationIndex}`}
             state={state}
             run={runProcessing}

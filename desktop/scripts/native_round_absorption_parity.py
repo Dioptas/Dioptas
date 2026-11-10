@@ -104,6 +104,9 @@ def main():
                            **(dict(container=dict(enabled=True)) if kind == "cylinder" else {}))
                 cold = time.perf_counter()-start
                 expected = transmission(kind, params, tth, azi)
+                preview = n.call("integration_correction_preview", kind=kind)["correctionPreview"]
+                preview_values = n.raster(preview, "raster")[row, col]
+                np.testing.assert_allclose(preview_values, expected, rtol=8e-5, atol=1e-9)
                 actual = np.array([100. / n.call("pixel", x=int(c), y=int(r))["pixel"]["value"] for r,c in pixels])
                 np.testing.assert_allclose(actual, expected, rtol=8e-5, atol=1e-9)
                 # A new frame reuses the geometry/material map, but propagates its
@@ -161,6 +164,8 @@ def main():
         np.testing.assert_allclose(actual_mu,mu,rtol=5e-12)
         params["container_absorption_coefficient"]=mu
         expected=transmission("cylinder",params,tth,azi)
+        preview = n.call("integration_correction_preview", kind="cylinder")["correctionPreview"]
+        np.testing.assert_allclose(n.raster(preview, "raster")[row, col], expected, rtol=8e-5)
         actual=np.array([100./n.call("pixel",x=int(c),y=int(r))["pixel"]["value"] for r,c in pixels])
         np.testing.assert_allclose(actual,expected,rtol=8e-5)
         receipts.append(dict(case="formula capillary with nonabsorbing sample",mu_per_mm=float(actual_mu)))
