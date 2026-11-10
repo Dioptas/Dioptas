@@ -64,8 +64,11 @@ Each configuration supplies its own physical detector geometry, dimensions,
 corrected/scaled f64 samples, effective mask and supersampling. The selected
 configuration supplies the radial unit/binning, cake resolution, polarization
 and azimuth sectors. Coverage spans all participating detectors, including gaps.
-Patterns support 2θ, Q and d. Cakes use Q in Q mode and 2θ in 2θ/d mode;
-readouts, linked guides and exports follow their actual coordinates.
+Patterns support 2θ, Q and d. New cake integrations initially use Q in Q mode
+and 2θ in 2θ/d mode. Display-unit changes retain an existing cake's scientific
+grid; 2θ/Q ticks, readouts and linked guides adapt from its explicit source unit.
+Numerical exports retain source coordinates, and project reopen restores that
+source grid. See [cake axis qualification](CAKE_Q_AXIS_PARITY.md).
 
 Combination requires calibrated images in every configuration and solid-angle
 correction. Unsupported detector/uncertainty settings fail explicitly and

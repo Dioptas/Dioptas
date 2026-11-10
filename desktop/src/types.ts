@@ -5,6 +5,18 @@ import type {
 } from "./integrationPhase";
 import type { MapData } from "./mapDomain";
 export type Unit = "2th_deg" | "q_A^-1" | "d_A";
+export type PlotUnit = Unit | "azimuth_deg";
+export interface CakeProfile {
+  x: number[];
+  y: (number | null)[];
+  unit: "azimuth_deg";
+  radial: number;
+  radialUnit: string;
+  twoTheta: number;
+  bins: number;
+  shiftBins: number;
+  clipped: boolean;
+}
 export type Tool = "pan" | "mask" | "erase" | "pick";
 export type Palette = string;
 export interface AutoLevels {
@@ -31,6 +43,8 @@ export interface Raster {
   histogram?: { edges: number[]; counts: number[]; finitePixels: number };
 }
 export interface Cake extends Raster {
+  // Scientific source grid: first/last bin centers in `unit`. Display-axis
+  // conversions belong to cakeRadialAxis and never replace this metadata.
   radialRange: [number, number];
   azimuthRange: [number, number];
   unit: Unit;
@@ -252,6 +266,7 @@ export interface Response {
   phaseGuides?: RingOverlay[];
   mask?: Raster;
   cake?: Cake | null;
+  cakeProfile?: CakeProfile;
   pattern?: Pattern | null;
   savedPath?: string;
   correctionNotice?: string;
@@ -306,7 +321,12 @@ declare global {
     pywebview?: { api: { invoke: Invoke } };
   }
 }
-export const unitLabel = (unit: Unit) =>
-  ({ "2th_deg": "2θ (°)", "q_A^-1": "Q (Å⁻¹)", d_A: "d (Å)" })[unit];
+export const unitLabel = (unit: PlotUnit) =>
+  ({
+    "2th_deg": "2θ (°)",
+    "q_A^-1": "Q (Å⁻¹)",
+    d_A: "d (Å)",
+    azimuth_deg: "Azimuth (°)",
+  })[unit];
 export const number = (value: number, digits = 2) =>
   value.toLocaleString("en-US", { maximumFractionDigits: digits });

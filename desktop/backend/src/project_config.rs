@@ -144,7 +144,7 @@ pub(super) fn save_overlays(
     Ok(())
 }
 pub(super) fn desktop_metadata(s: &Session) -> Value {
-    json!({"version":1,"combination":{"patterns":s.combination.patterns,"cakes":s.combination.cakes},"calibrant":s.calibration.reference.name,"fit_dirty":s.calibration.dirty,"rms_degrees":s.calibration.rms,
+    json!({"version":1,"combination":{"patterns":s.combination.patterns,"cakes":s.combination.cakes,"cake_source_unit":s.combination.cake.as_ref().and_then(|c|c.metadata["unit"].as_str()).or(s.combination.cake_source_unit.as_deref())},"calibrant":s.calibration.reference.name,"fit_dirty":s.calibration.dirty,"rms_degrees":s.calibration.rms,
         "custom_calibrant":s.calibration.custom.as_ref().map(|r|json!({"name":r.name,"content":r.content})),"setup_confirmed":s.calibration.confirmed,
         "workflow":s.workflow,"geometry_source":s.calibration.source})
 }

@@ -8,10 +8,38 @@ pub(super) struct State {
     pub pattern: Option<Arc<Value>>,
     pub cake: Option<Raster>,
     pub cake_values: Option<Arc<Vec<f64>>>,
+    pub cake_source_unit: Option<String>,
+    #[cfg(feature = "dioptrin")]
+    cake_inputs: Option<CakeInputs>,
+}
+
+/// Retain a combined cake's declared grid until a scientific input changes.
+/// Pattern/display unit changes alone must not resample its intensities.
+#[cfg(feature = "dioptrin")]
+#[derive(Clone)]
+struct CakeInputs {
+    key: Key,
+    images: Vec<Arc<Vec<f64>>>,
+}
+#[cfg(feature = "dioptrin")]
+impl CakeInputs {
+    fn matches(&self, key: &Key, images: &[DetectorImage]) -> bool {
+        self.key.detectors == key.detectors
+            && self.key.bins == key.bins
+            && self.key.cake_bins == key.cake_bins
+            && self.key.polarization == key.polarization
+            && self.key.cake_azimuth == key.cake_azimuth
+            && self.images.len() == images.len()
+            && self
+                .images
+                .iter()
+                .zip(images)
+                .all(|(a, (b, _, _))| Arc::ptr_eq(a, b))
+    }
 }
 
 #[cfg(feature = "dioptrin")]
-#[derive(PartialEq)]
+#[derive(Clone, PartialEq)]
 struct DetectorKey {
     geometry: Geometry,
     shape: [usize; 2],
@@ -20,7 +48,7 @@ struct DetectorKey {
     pyfai: bool,
 }
 #[cfg(feature = "dioptrin")]
-#[derive(PartialEq)]
+#[derive(Clone, PartialEq)]
 struct Key {
     detectors: Vec<DetectorKey>,
     unit: String,
@@ -292,6 +320,10 @@ impl Session {
             self.combination.pattern = None;
             self.combination.cake = None;
             self.combination.cake_values = None;
+            #[cfg(feature = "dioptrin")]
+            {
+                self.combination.cake_inputs = None;
+            }
         } else if active
             && self.combination_state()["ready"] == true
             && !matches!(
@@ -314,6 +346,10 @@ impl Session {
             self.combination.pattern = None;
             self.combination.cake = None;
             self.combination.cake_values = None;
+            #[cfg(feature = "dioptrin")]
+            {
+                self.combination.cake_inputs = None;
+            }
         }
         reply.result["state"]["combination"] = self.combination_state();
         if self.combination.patterns && reply.result.get("pattern").is_some() {
@@ -347,6 +383,25 @@ impl Session {
 
     #[cfg(feature = "dioptrin")]
     pub(super) fn refresh_combination(&mut self) -> Result<(), String> {
+        // A saved project may display Q over an angular cake (or vice versa).
+        // Reconstruct that scientific grid first, including for lazy products,
+        // then calculate the pattern in its independently selected unit.
+        if self.combination.cakes
+            && self.control.cake_requested()
+            && self.combination.cake.is_none()
+            && let Some(unit) = self.combination.cake_source_unit.clone()
+            && unit != self.settings.unit
+        {
+            let selected = std::mem::replace(&mut self.settings.unit, unit);
+            let restored = self.refresh_combination_products();
+            self.settings.unit = selected;
+            restored?;
+        }
+        self.refresh_combination_products()
+    }
+
+    #[cfg(feature = "dioptrin")]
+    fn refresh_combination_products(&mut self) -> Result<(), String> {
         use dioptrin::{
             integration::{IntegrationMethod, Integrator, RadialUnit},
             mask::Mask,
@@ -611,6 +666,15 @@ impl Session {
             self.combination.pattern = None;
         }
         if self.combination.cakes && self.control.cake_requested() {
+            if self.combination.cake.is_some()
+                && self
+                    .combination
+                    .cake_inputs
+                    .as_ref()
+                    .is_some_and(|inputs| inputs.matches(&plans.key, &images))
+            {
+                return Ok(());
+            }
             let p = integrate(
                 &plans.cake,
                 false,
@@ -628,11 +692,20 @@ impl Session {
             } else {
                 &self.settings.unit
             });
+            self.combination.cake_source_unit = raster.metadata["unit"].as_str().map(str::to_owned);
             self.combination.cake = Some(raster);
             self.combination.cake_values = Some(Arc::new(p.intensity));
+            self.combination.cake_inputs = Some(CakeInputs {
+                key: plans.key.clone(),
+                images: images.iter().map(|(pixels, _, _)| pixels.clone()).collect(),
+            });
         } else {
             self.combination.cake = None;
             self.combination.cake_values = None;
+            #[cfg(feature = "dioptrin")]
+            {
+                self.combination.cake_inputs = None;
+            }
         }
         Ok(())
     }

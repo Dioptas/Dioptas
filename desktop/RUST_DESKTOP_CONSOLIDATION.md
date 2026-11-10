@@ -123,3 +123,23 @@ The native functional coverage stage publishes the pinned dependency development
 branch, adds an automatic Rust/headless/reference CI gate and 19 additional Rust
 flow tests. See `NATIVE_FUNCTIONAL_COVERAGE.md`. The local-only dependency
 limitation above describes the original consolidation, before that stage.
+
+## Cake Q-axis and azimuthal-profile integration — November 10, 2026
+
+This integration combines `6ee8faf0` (cake Q display) and `b82067d4` (native
+azimuthal profiles), preserving both view hooks and native requested products.
+Cake metadata remains scientific source coordinates; rounded display ticks
+invert the nonlinear conversion without rebinning. Profile extraction continues
+using the owned float64 grid. Combined source units survive project reopen.
+Joint tests cover unchanged profile samples, buffers, physical selection and
+both viewports across angular/Q displays and d pattern selection.
+
+The merged tree passes 209 native tests (two existing ignored checks), 110
+frontend tests, 27 Tauri host tests, native Clippy and frontend build. Headless
+Chromium/WebKit pass both feature workflows, compact Standard/Larger layouts,
+real-image calibration and Integration. The global host rustfmt check reports
+pre-existing differences in unrelated modules; they were left intact. No user
+preview was closed or processing terminated. No package/release was published.
+See [cake-axis qualification](CAKE_Q_AXIS_PARITY.md) and
+[profile qualification](CAKE_PROFILE_PARITY.md); receipts and screenshots live
+under the ignored `desktop/artifacts/cake-q-axis/` and `cake-profile/` folders.

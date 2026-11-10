@@ -21,7 +21,7 @@ import {
 } from "./patternSamples";
 import type { PlotRange } from "./usePlotNavigation";
 import type { PlotViewport } from "./plotViewport";
-import type { Pattern } from "./types";
+import type { Pattern, PlotUnit, Unit } from "./types";
 import type { PatternHover } from "./plotReadout";
 import { unitLabel } from "./types";
 import { linearAxisTicks, linearTicks, logTicks } from "./plotTicks";
@@ -73,7 +73,7 @@ const EMPTY_CALIBRANTS: { x: number; ring: number }[] = [];
 const EMPTY_CURVES: NonNullable<Pattern["curves"]> = [];
 const EMPTY_REFERENCES: NonNullable<Pattern["phaseLines"]> = [];
 
-export function PatternView({
+export function PatternView<U extends PlotUnit = Unit>({
   pattern,
   yLabel = "Intensity (a.u.)",
   plotLabel = "Integrated diffraction pattern",
@@ -127,7 +127,7 @@ export function PatternView({
     uploads?: number;
     uploadBytes?: number;
   }) => void;
-  pattern: Pattern;
+  pattern: Omit<Pattern, "unit"> & { unit: U };
   yLabel?: string;
   plotLabel?: string;
   valueLabel?: string;
@@ -156,7 +156,7 @@ export function PatternView({
     mouseY: number,
     resolution: { x: number; y: number },
   ) => void;
-  onHover?: (point: PatternHover | null) => void;
+  onHover?: (point: PatternHover<U> | null) => void;
   onResolution?: (x: number) => void;
   hoverHint?: string;
   linkedPosition?: number;
@@ -1333,7 +1333,11 @@ export function PatternView({
           onChange={onZoomMode}
           left={left}
           bottom={bottom}
-          label="Pattern"
+          label={
+            plotLabel === "Integrated diffraction pattern"
+              ? "Pattern"
+              : plotLabel
+          }
         />
       )}
     </div>

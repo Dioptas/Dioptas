@@ -7,6 +7,7 @@ import {
 } from "react";
 import { PatternView } from "./PatternView";
 import type { PlotRange } from "./usePlotNavigation";
+import type { Unit } from "./types";
 import type { PlotViewport } from "./plotViewport";
 import "./spottiness.css";
 const same = (a: PlotRange, b: PlotRange) =>
@@ -20,7 +21,7 @@ export function SpottinessPattern({
   enabled,
   relative,
   ...props
-}: ComponentProps<typeof PatternView> & {
+}: ComponentProps<typeof PatternView<Unit>> & {
   enabled: boolean;
   relative: boolean;
 }) {

@@ -24,6 +24,9 @@ test("cake demand follows the displayed view, with explicit combination support"
   );
   assert.equal(wantsCake({ ...view, display: "cake", concealed: true }), false);
   assert.equal(wantsCake({ ...view, combinedCake: true }), true);
+  assert.equal(wantsCake({ ...view, profile: true }), true);
+  assert.equal(wantsCake({ ...view, profile: true, mode: "map" }), false);
+  assert.equal(wantsCake({ ...view, profile: true, concealed: true }), false);
   assert.deepEqual(requestedDisplayProducts({ ...view, showRings: true }), {
     cake: false,
     rings: false,

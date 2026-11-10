@@ -128,6 +128,7 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
         ),
         "open_project" => ("Dioptas project", &["dio"], "", false),
         "save_project" => ("Dioptas project", &["dio"], "experiment.dio", true),
+        "save_cake_profile" => ("Azimuthal profile (degrees, intensity)", &["xy", "dat", "txt", "csv"], "azimuthal-profile.xy", true),
         "export_pattern" => ("XY pattern", &["xy"], "pattern.xy", true),
         "integration_save_image" => (
             "Image or data",
@@ -326,7 +327,7 @@ async fn desktop_invoke(
             let selected = if choice.save {
                 let name = if action == "integration_save_batch" {
                     batch_export::suggested_name(&payload, choice.name)
-                } else if action == "integration_save_image" || action == "integration_phase_export" || action == "integration_save_spottiness" {
+                } else if matches!(action.as_str(), "integration_save_image" | "integration_phase_export" | "save_cake_profile" | "integration_save_spottiness") {
                     payload["suggested_name"].as_str().unwrap_or(choice.name)
                 } else {
                     choice.name
@@ -663,6 +664,11 @@ mod tests {
                 .unwrap()
                 .save
         );
+        let profile = file_choice("save_cake_profile", &json!({})).unwrap();
+        assert!(profile.save);
+        assert_eq!(profile.name, "azimuthal-profile.xy");
+        assert_eq!(profile.extensions, &["xy", "dat", "txt", "csv"]);
+        assert!(file_choice("save_cake_profile", &json!({"path":"/tmp/profile.xy"})).is_none());
         let image = file_choice("integration_save_image", &json!({"source": "image"})).unwrap();
         assert!(image.save);
         assert_eq!(image.name, "image.png");

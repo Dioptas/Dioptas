@@ -12,7 +12,7 @@ import type { Pattern, Raster, Response, State } from "./types";
 import { patternPositionInUnit, type PatternPosition } from "./linkedPosition";
 
 type DetectorProps = ComponentProps<typeof RasterView>;
-type PatternProps = ComponentProps<typeof PatternView>;
+type PatternProps = ComponentProps<typeof PatternView<Pattern["unit"]>>;
 
 /** Common detector setup; display levels and mode-specific tools stay with the caller. */
 export function detectorPlotSetup({

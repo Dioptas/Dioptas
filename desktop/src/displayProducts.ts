@@ -7,11 +7,13 @@ export function wantsCake(view: {
   calibrationStep: number;
   concealed: boolean;
   combinedCake: boolean;
+  profile?: boolean;
 }): boolean {
   return (
     view.combinedCake ||
     (!view.concealed &&
-      ((view.mode === "integration" && view.display === "cake") ||
+      ((view.mode === "integration" &&
+        (view.display === "cake" || view.profile === true)) ||
         (view.mode === "calibration" && view.calibrationStep === 3)))
   );
 }

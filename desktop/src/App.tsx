@@ -1,3 +1,7 @@
+import { useCakeRadialAxis } from "./useCakeRadialAxis";
+import { cakeSourcePixel } from "./cakeRadialAxis";
+
+import { CakeProfilePanel } from "./CakeProfilePanel";
 import { IntegrationLeftPane } from "./IntegrationLeftPane";
 import { ImageSourceControl } from "./ImageSourceControl";
 import { processingProgressText } from "./processingProgress";
@@ -164,6 +168,8 @@ export default function App() {
   const cakeExport = useRef<RasterExport>(null);
   const [overlayReveal, setOverlayReveal] = useState(0);
   const [integrationDisplay, setIntegrationDisplay] = useState("image");
+  const [showCakeProfile, setShowCakeProfile] = useState(false);
+  const [cakeProfileBins, setCakeProfileBins] = useState(1);
   const [integrationControlsCollapsed, setIntegrationControlsCollapsed] =
     useState(false);
   const [sqrtPattern, setSqrtPattern] = useState(false);
@@ -373,6 +379,7 @@ export default function App() {
     requestedDisplayProducts({
       mode,
       display: integrationDisplay,
+      profile: showCakeProfile,
       calibrationStep,
       concealed: settingsOpen,
       combinedCake: !!state?.combination?.cakes,
@@ -416,6 +423,12 @@ export default function App() {
   const displayedCake = useShiftedCake(
     cake,
     mode === "integration" ? cakeShift : 0,
+  );
+
+  const cakeRadialAxis = useCakeRadialAxis(
+    displayedCake ?? cake,
+    state?.unit,
+    state?.geometry.wavelength,
   );
   const [busy, setBusy] = useState("Connecting to Dioptas…"),
     [error, setError] = useState<string | null>(null);
@@ -762,6 +775,7 @@ export default function App() {
           !liveCorrection &&
           !liveBackground &&
           !livePhaseConditions &&
+          command !== "cake_profile" &&
           command !== "integration_phase_state" &&
           command !== "integration_phase_guides" &&
           command !== "image_levels" &&
@@ -825,6 +839,7 @@ export default function App() {
         command === "integration_phase_guides" ||
         command === "integration_autoprocess_poll" ||
         frameSelection ||
+        command === "cake_profile" ||
         command === "validation_position" ||
         command === "image_levels" ||
         command === "image_batch_mode";
@@ -935,7 +950,13 @@ export default function App() {
           action: command,
           bufferId: result.image?.bufferId,
         });
-        apply(result, true, retainMapClick);
+        // Qt's unit buttons relabel the existing cake. Retain the same pixel
+        // viewport while its axis changes (the pattern owns its unit adapter).
+        const unitOnly =
+          ["settings", "integration_settings"].includes(command) &&
+          Object.keys(args).length === 1 &&
+          "unit" in args;
+        apply(result, !unitOnly, retainMapClick);
         navigationTrace("command-applied", {
           action: command,
           bufferId: result.image?.bufferId,
@@ -1522,14 +1543,14 @@ export default function App() {
         ? low + ((((linked.azimuth - low) % 360) + 360) % 360)
         : linked.azimuth;
     if (azi < low || azi > high) return null;
+    const source = radialValues(
+      linked.twoTheta,
+      "2th_deg",
+      state?.geometry.wavelength,
+    )[view.unit];
+    if (source == null || !Number.isFinite(source)) return null;
     return {
-      x:
-        ((radialValues(linked.twoTheta, "2th_deg", state?.geometry.wavelength)[
-          view.unit
-        ]! -
-          view.radialRange[0]) /
-          (view.radialRange[1] - view.radialRange[0])) *
-        view.fullWidth,
+      x: cakeSourcePixel(view, source),
       y: ((azi - low) / (high - low)) * view.fullHeight,
     };
   }, [linked, displayedCake, cake, state?.geometry.wavelength]);
@@ -2528,6 +2549,7 @@ export default function App() {
                               <RasterView
                                 exportRef={cakeExport}
                                 raster={displayedCake ?? cake}
+                                radialAxis={cakeRadialAxis}
                                 onResolution={setCakePixelResolution}
                                 busy={!!busy}
                                 onHover={(point) =>
@@ -2656,8 +2678,39 @@ export default function App() {
                           )}
                         </section>
                       )}
+                      {mode === "integration" && showCakeProfile && (
+                        <CakeProfilePanel
+                          state={state}
+                          cake={cake}
+                          linked={linked}
+                          shift={cakeShift}
+                          bins={cakeProfileBins}
+                          onBins={setCakeProfileBins}
+                          ready={ready && !settingsOpen}
+                          run={run}
+                          reportPlot={reportPlot}
+                          onInspect={(azimuth) => {
+                            if (!linked) return;
+                            setLocalImageClick(null);
+                            setClickedReading({
+                              source: "profile",
+                              text: `Azimuth ${azimuth}°`,
+                            });
+                            void run("validation_position", {
+                              source: "cake",
+                              unit: "2th_deg",
+                              x: linked.twoTheta,
+                              azimuth,
+                            });
+                          }}
+                        />
+                      )}
                       {mode === "integration" && (
                         <IntegrationImageControls
+                          profile={showCakeProfile}
+                          onProfile={() =>
+                            setShowCakeProfile((value) => !value)
+                          }
                           onSaveImage={() => {
                             const source =
                               integrationDisplay === "cake" ? "cake" : "image";

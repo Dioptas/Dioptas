@@ -40,7 +40,7 @@ project storage are unchanged; task controls stay in the Integration workspace.
 | Image intensity controls | Independent ImageIntensity for detector and cake, both default above the images; full-resolution arrays, original orientation, top-origin display rows, square detector pixels and existing gestures |
 | Radial units and automatic/manual binning | Existing Configuration integration for 2θ, Q, d; Auto passes None to model; actual count displayed; manual counts 1–100000 |
 | Supersampling | Existing CalibrationModel.set_supersampling, with fresh cake geometry to invalidate old pyFAI array caches; original image is still displayed at source resolution |
-| 1D / cake azimuth options | Independent full/custom ranges, including sectors crossing ±180°; cake azimuth bin count; cake radial axis stays 2θ as in the synchronous Qt configuration model |
+| 1D / cake azimuth options | Independent full/custom ranges, including sectors crossing ±180°; cake azimuth bin count; cake radial display follows Qt’s 2θ/Q buttons while retaining its scientific source grid; see [cake axis qualification](CAKE_Q_AXIS_PARITY.md) |
 | Integration corrections | Solid angle, polarization and Poisson errors; XYE/FXYE require calculated errors; trim trailing zeros |
 | Shared mask | Apply, transparency, native load/save; existing brush/eraser and stroke undo preserved; full dedicated Mask workspace belongs to the separate branch |
 | Image background | Native load/remove and scale/offset, using ImgModel's subtraction pipeline; wrong-shape files are rejected before replacing the active background |

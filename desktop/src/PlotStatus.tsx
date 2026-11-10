@@ -1,3 +1,4 @@
+import { cakeSourceCoordinate } from "./cakeRadialAxis";
 import type { Cake, Response } from "./types";
 import type {
   PatternHover,
@@ -68,9 +69,7 @@ export function patternReading(
 }
 export function cakeCoordinates(cake: Cake, point: { x: number; y: number }) {
   return {
-    x:
-      cake.radialRange[0] +
-      (point.x / cake.fullWidth) * (cake.radialRange[1] - cake.radialRange[0]),
+    x: cakeSourceCoordinate(cake, point.x),
     azimuth:
       cake.azimuthRange[0] +
       (point.y / cake.fullHeight) *
@@ -94,7 +93,7 @@ export function cakeReading(
       coords.x,
       cake.unit,
       wavelength,
-      ((point.xResolution ?? 1) / cake.fullWidth) *
+      ((point.xResolution ?? 1) / Math.max(1, cake.fullWidth - 1)) *
         (cake.radialRange[1] - cake.radialRange[0]),
     ),
     {
@@ -158,6 +157,7 @@ export const sourceLabel = (source: PlotSource) =>
   ({
     detector: "Image",
     cake: "Cake",
+    profile: "Azimuthal profile",
     pattern: "Pattern",
     map: "Map",
     batch: "Batch",
