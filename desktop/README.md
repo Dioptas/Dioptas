@@ -147,6 +147,12 @@ statistical assumptions. Cylinder, sphere and optional capillary-wall absorption
 also native; see the [round-sample qualification](NATIVE_ROUND_SAMPLE_CORRECTION_PARITY.md)
 for their footprint models and legacy-project recalculation notice.
 
+The pattern **2θ** and **Q** buttons also select the cake radial display axis,
+without rebinning its scientific pixels or changing the zoomed interval. A cake
+retains its own source unit, including combined Q cakes. Selecting d leaves the
+last cake axis selected; missing wavelength uses an explicit source-unit fallback.
+See [cake axis qualification](CAKE_Q_AXIS_PARITY.md) for coordinate and export semantics.
+
 Integration and Map use the same `RasterView` and `PatternView` renderers.
 `diffractionPlotSetup.ts` prepares their common detector mask/click properties
 and pattern colors, visibility, phase references, overlay legends, linked radial

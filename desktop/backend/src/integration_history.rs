@@ -215,6 +215,10 @@ impl Session {
             self.integration_history.redo.push(e.clone());
             e
         };
+        let mut unit_only_settings = entry.before.settings.clone();
+        unit_only_settings.unit = entry.after.settings.unit.clone();
+        let unit_only = unit_only_settings == entry.after.settings
+            && entry.before.processing == entry.after.processing;
         let snap = if redo {
             entry.after.clone()
         } else {
@@ -247,7 +251,11 @@ impl Session {
         self.patterns.unit = unit;
         self.patterns.imported = imported;
         if entry.calculate && self.image.is_some() {
-            self.calculate(false)?;
+            if unit_only {
+                self.calculate_preserving_cake()?;
+            } else {
+                self.calculate(false)?;
+            }
         } else {
             self.rebuild_pattern()?;
         }

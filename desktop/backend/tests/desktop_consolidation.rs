@@ -283,7 +283,12 @@ fn unequal_detectors_and_combined_units_keep_independent_geometry() {
     assert_eq!(combined.result["cake"]["unit"], "q_A^-1");
     assert!(y(&combined).iter().all(|v| v.is_finite()));
     let d = call(&mut s, "settings", json!({"unit":"d_A"}));
-    assert_eq!(d.result["cake"]["unit"], "2th_deg");
+    // Unit buttons retain the shared cake's scientific source grid.
+    assert_eq!(d.result["cake"]["unit"], "q_A^-1");
+    assert_eq!(
+        d.result["cake"]["bufferId"],
+        combined.result["cake"]["bufferId"]
+    );
     let x = d.result["pattern"]["x"].as_array().unwrap();
     assert!(x[0].as_f64().unwrap() > x.last().unwrap().as_f64().unwrap());
     let one = call(
@@ -361,11 +366,7 @@ fn individual_and_combined_cake_clicks_respect_radial_units_and_preserve_inspect
             let state = call(&mut s, "settings", json!({"unit":display_unit}));
             assert_eq!(
                 state.result["cake"]["unit"],
-                if combined && display_unit == "q_A^-1" {
-                    "q_A^-1"
-                } else {
-                    "2th_deg"
-                }
+                "2th_deg" // This cake was created on the angular grid; display units do not rebin it.
             );
             for (unit, x) in [("2th_deg", theta), ("q_A^-1", q), ("d_A", spacing)] {
                 let selected = call(

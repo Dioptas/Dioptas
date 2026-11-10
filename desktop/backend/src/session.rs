@@ -932,8 +932,19 @@ impl Session {
                     self.patterns
                         .convert_unit(&candidate.unit, candidate.geometry.wavelength)?;
                 }
+                // Unit buttons change the 1D grid but only relabel an existing
+                // cake. Retain its source coordinates and scientific pixels.
+                let unit_only = args
+                    .as_object()
+                    .unwrap()
+                    .keys()
+                    .all(|k| k == "unit" || (k == "defer_integration" && !defer));
                 self.settings = candidate;
-                self.calculate(defer)?;
+                if unit_only && !defer {
+                    self.calculate_preserving_cake()?;
+                } else {
+                    self.calculate(defer)?;
+                }
             }
             "integrate" => {
                 if self.image.is_none() || !self.settings.calibrated {
@@ -1744,6 +1755,20 @@ impl Session {
     }
     fn calculate(&mut self, defer: bool) -> Result<(), String> {
         self.calculate_products(defer, true)
+    }
+    pub(super) fn calculate_preserving_cake(&mut self) -> Result<(), String> {
+        let retained = (self.cake.take(), self.cake_values.take());
+        self.calculate_products(false, false)?;
+        (self.cake, self.cake_values) = retained;
+        if self.control.cake_requested()
+            && self.cake.is_none()
+            && self.image.is_some()
+            && self.settings.calibrated
+            && !self.combination.cakes
+        {
+            self.ensure_cake()?;
+        }
+        Ok(())
     }
     pub(super) fn ensure_cake(&mut self) -> Result<(), String> {
         self.control.request_cake(true);

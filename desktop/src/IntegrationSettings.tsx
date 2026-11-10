@@ -311,7 +311,8 @@ export function IntegrationSettings({
             onChange={(v) => set("cakeAzimuthRange", v)}
           />
           <p className="integration-note">
-            Cake radial axis uses 2θ (°), independent of the pattern coordinate.
+            Cake follows the 2θ or Q selection. Selecting d keeps the last cake
+            axis. Text/data exports retain the source radial grid.
           </p>
         </Group>
         <Group title="Integration corrections" open>

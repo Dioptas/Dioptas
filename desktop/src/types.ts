@@ -31,6 +31,8 @@ export interface Raster {
   histogram?: { edges: number[]; counts: number[]; finitePixels: number };
 }
 export interface Cake extends Raster {
+  // Scientific source grid: first/last bin centers in `unit`. Display-axis
+  // conversions belong to cakeRadialAxis and never replace this metadata.
   radialRange: [number, number];
   azimuthRange: [number, number];
   unit: Unit;

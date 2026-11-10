@@ -12,13 +12,18 @@ import {
 } from "react";
 import type { Cake, Palette, Raster, Tool, RingOverlay } from "./types";
 import type { MaskOverlay } from "./maskDomain";
+import {
+  cakeSourcePixel,
+  createCakeRadialAxis,
+  type CakeRadialAxis,
+} from "./cakeRadialAxis";
 import type { PlotViewport } from "./plotViewport";
 import { decodeRaster } from "./rasterTransfer";
 import { colorsFor } from "./colorMaps";
 import { WebGLRaster } from "./WebGLRaster";
 import { rasterCanvas } from "./rasterCanvas";
 import { number, unitLabel } from "./types";
-import { linearAxisTicks, linearTicks } from "./plotTicks";
+import { linearAxisTicks } from "./plotTicks";
 import { PlotZoomControls } from "./PlotZoomControls";
 import {
   roiHandles,
@@ -67,6 +72,7 @@ export function RasterView({
   onHover,
   onResolution,
   cake = false,
+  radialAxis,
   zoomMode = "rectangle",
   onZoomMode,
   onPick,
@@ -99,6 +105,7 @@ export function RasterView({
   busy?: boolean;
   resetKey?: number;
   cake?: boolean;
+  radialAxis?: CakeRadialAxis;
   zoomMode?: ZoomMode;
   onZoomMode?: (mode: ZoomMode) => void;
   onStroke?: (points: number[][], erase: boolean) => void;
@@ -142,6 +149,17 @@ export function RasterView({
     canvas = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ width: 500, height: 380 });
   const [cakeAxisWidth, setCakeAxisWidth] = useState(60);
+  const cakeAxis = useMemo(
+    () =>
+      radialAxis ??
+      (cake
+        ? createCakeRadialAxis(
+            raster as Cake,
+            (raster as Cake).unit === "q_A^-1" ? "q_A^-1" : "2th_deg",
+          )
+        : undefined),
+    [radialAxis, cake, raster],
+  );
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
   const [stroke, setStroke] = useState<number[][]>([]);
   const painting = tool === "mask" || tool === "erase";
@@ -561,16 +579,12 @@ export function RasterView({
         }
       }
       if (cake) {
-        const range = (raster as Cake).radialRange;
         const calibrantWidthBoost = Math.min(
           2,
           0.6 * Math.log2(Math.max(1, zoom)),
         );
         const lineX = (twoTheta: number) =>
-          ox +
-          ((twoTheta - range[0]) / (range[1] - range[0])) *
-            raster.fullWidth *
-            sx;
+          ox + cakeSourcePixel(raster as Cake, twoTheta) * sx;
         let lastLabelRight = -Infinity;
         context.font = typography.text;
         context.textAlign = "left";
@@ -770,13 +784,9 @@ export function RasterView({
         context.fillStyle = typography.muted;
         context.strokeStyle = "#35404a";
         context.lineWidth = 1;
-        const { radialRange: xr, azimuthRange: yr } = raster as Cake;
-        const radial = (pixel: number) =>
-          xr[0] + (pixel / raster.fullWidth) * (xr[1] - xr[0]);
+        const { azimuthRange: yr } = raster as Cake;
         const azimuth = (pixel: number) =>
           yr[0] + (pixel / raster.fullHeight) * (yr[1] - yr[0]);
-        const xMin = radial(view.xMin),
-          xMax = radial(view.xMax);
         const yMin = azimuth(view.yMin),
           yMax = azimuth(view.yMax);
         const yAxis = linearAxisTicks(
@@ -791,7 +801,7 @@ export function RasterView({
         // Reserve separate space for the rotated title even without an offset.
         setCakeAxisWidth(Math.max(60, Math.ceil(tickWidth) + 36));
         let intervals = Math.max(1, Math.floor(plotWidth / 80));
-        let xTicks = linearTicks(xMin, xMax, intervals);
+        let xTicks = cakeAxis!.ticks(view.xMin, view.xMax, intervals);
         while (intervals > 1) {
           const widest = Math.max(
             0,
@@ -799,15 +809,20 @@ export function RasterView({
           );
           const spacing =
             xTicks.length > 1
-              ? ((xTicks[1].value - xTicks[0].value) / (xMax - xMin)) *
-                plotWidth
+              ? Math.min(
+                  ...xTicks
+                    .slice(1)
+                    .map(
+                      (tick, index) => (tick.pixel - xTicks[index].pixel) * sx,
+                    ),
+                )
               : plotWidth;
           if (spacing >= widest + 18) break;
-          xTicks = linearTicks(xMin, xMax, --intervals);
+          xTicks = cakeAxis!.ticks(view.xMin, view.xMax, --intervals);
         }
         context.textAlign = "center";
         for (const tick of xTicks) {
-          const x = left + ((tick.value - xMin) / (xMax - xMin)) * plotWidth;
+          const x = ox + tick.pixel * sx;
           context.beginPath();
           context.moveTo(x, top + plotHeight);
           context.lineTo(x, top + plotHeight + 4);
@@ -835,7 +850,8 @@ export function RasterView({
         context.fillStyle = typography.muted;
         context.textAlign = "center";
         context.fillText(
-          unitLabel((raster as Cake).unit),
+          unitLabel(cakeAxis!.unit) +
+            (cakeAxis!.note ? " · conversion unavailable" : ""),
           left + plotWidth / 2,
           size.height - 3,
         );
@@ -863,6 +879,7 @@ export function RasterView({
       radius,
       tool,
       cake,
+      cakeAxis,
       raster,
       sx,
       sy,
@@ -969,6 +986,24 @@ export function RasterView({
         data-colour-map={palette}
         data-intensity-min={lower}
         data-intensity-max={upper}
+        title={cakeAxis?.note}
+        data-radial-source-unit={cake ? (raster as Cake).unit : undefined}
+        data-radial-display-unit={cakeAxis?.unit}
+        data-radial-axis-bounds={cakeAxis
+          ?.bounds(view.xMin, view.xMax)
+          ?.join(",")}
+        data-radial-axis-ticks={
+          cakeAxis
+            ? JSON.stringify(
+                cakeAxis.ticks(
+                  view.xMin,
+                  view.xMax,
+                  Math.max(1, Math.floor(plotWidth / 80)),
+                ),
+              )
+            : undefined
+        }
+        data-radial-axis-note={cakeAxis?.note}
         data-azimuth-min={cake ? (raster as Cake).azimuthRange[0] : undefined}
         data-azimuth-max={cake ? (raster as Cake).azimuthRange[1] : undefined}
         data-ring-count={cake ? calibrantLines.length : rings.length}
