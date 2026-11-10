@@ -4,7 +4,7 @@ use crate::control::Control;
 use rayon::prelude::*;
 use serde_json::json;
 use std::sync::{
-    Mutex, OnceLock,
+    Mutex,
     atomic::{AtomicBool, Ordering},
 };
 use std::time::{Duration, Instant};
@@ -25,22 +25,9 @@ where
     if output.is_empty() {
         return control.check();
     }
-    static POOL: OnceLock<Option<rayon::ThreadPool>> = OnceLock::new();
-    let pool = POOL.get_or_init(|| {
-        let threads = std::thread::available_parallelism()
-            .map_or(1, usize::from)
-            .min(3);
-        rayon::ThreadPoolBuilder::new()
-            .num_threads(threads)
-            .thread_name(|i| format!("background-{i}"))
-            .build()
-            .ok()
-    });
+    let pool = crate::worker_pool::current();
     let count = output.len() / bins;
-    let workers = pool
-        .as_ref()
-        .map_or(1, |p| p.current_num_threads())
-        .min(count);
+    let workers = pool.current_num_threads().min(count);
     let chunk_rows = count.div_ceil(workers);
     let progress = Mutex::new((start, Instant::now()));
     let failed = AtomicBool::new(false);
@@ -68,19 +55,12 @@ where
         }
         Ok(())
     };
-    if let Some(pool) = pool.as_ref().filter(|_| workers > 1) {
-        pool.install(|| {
-            output
-                .par_chunks_mut(chunk_rows * bins)
-                .enumerate()
-                .try_for_each(chunk)
-        })?;
-    } else {
+    pool.install(|| {
         output
-            .chunks_mut(chunk_rows * bins)
+            .par_chunks_mut(chunk_rows * bins)
             .enumerate()
-            .try_for_each(chunk)?;
-    }
+            .try_for_each(chunk)
+    })?;
     control.check()
 }
 

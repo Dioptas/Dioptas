@@ -43,5 +43,6 @@ pub mod session;
 mod transform;
 pub mod transport;
 mod waterfall_spacing;
+mod worker_pool;
 
 pub use session::Session;

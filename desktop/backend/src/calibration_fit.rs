@@ -19,6 +19,14 @@ fn fit_once(
     restart: bool,
     control: &Control,
 ) -> Result<(), String> {
+    crate::worker_pool::install(|| fit_once_in_pool(candidate, shape, restart, control))
+}
+fn fit_once_in_pool(
+    candidate: &mut Snapshot,
+    shape: [usize; 2],
+    restart: bool,
+    control: &Control,
+) -> Result<(), String> {
     let mut trace = crate::frame_trace::FrameTrace::new("calibration-fit", 0);
     control.check()?;
     let count = candidate
@@ -261,12 +269,10 @@ impl Session {
                     }
                 })
                 .collect();
-            let prepared = PreparedMassif::new(
-                clean,
-                image.shape[0],
-                image.shape[1],
-                MassifOptions::default(),
-            );
+            let shape = image.shape;
+            let prepared = crate::worker_pool::install(|| {
+                PreparedMassif::new(clean, shape[0], shape[1], MassifOptions::default())
+            });
             self.control.check()?;
             *cache = Some(MassifCache {
                 values,

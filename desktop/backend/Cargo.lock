@@ -267,6 +267,7 @@ dependencies = [
  "dioptrin-io",
  "half",
  "hdf5-metno",
+ "libc",
  "nalgebra",
  "peritheos",
  "phasesmith-core",

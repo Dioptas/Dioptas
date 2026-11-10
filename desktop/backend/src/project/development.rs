@@ -18,6 +18,8 @@ struct RuntimeConfiguration {
 #[derive(Serialize, Deserialize)]
 struct Handoff {
     version: u32,
+    #[serde(default)]
+    worker_count: Option<usize>,
     project_path: Option<PathBuf>,
     configurations: Vec<RuntimeConfiguration>,
 }
@@ -143,7 +145,7 @@ impl Session {
         write_json_dataset(
             &file,
             "development_session",
-            &json!({"version":2,"project_path":self.project.path,"history_generation":generation,"configuration_ids":configurations.iter().map(|c|c.runtime.id).collect::<Vec<_>>()}),
+            &json!({"version":2,"worker_count":self.worker_count,"project_path":self.project.path,"history_generation":generation,"configuration_ids":configurations.iter().map(|c|c.runtime.id).collect::<Vec<_>>()}),
         )?;
         file.flush().native()?;
         Ok(Reply::metadata(json!({"ok":true})))
@@ -215,6 +217,7 @@ impl Session {
             }
             Handoff {
                 version: 2,
+                worker_count: metadata["worker_count"].as_u64().map(|n| n as usize),
                 project_path: serde_json::from_value(metadata["project_path"].clone())
                     .map_err(|e| e.to_string())?,
                 configurations: histories.iter().map(|h| h.runtime.clone()).collect(),
@@ -231,10 +234,16 @@ impl Session {
                 return Err("Invalid checkpoint configuration identity.".into());
             }
         }
+        let worker_count = handoff
+            .worker_count
+            .map(|n| n.clamp(1, crate::worker_pool::available()));
+        let worker_pool = crate::worker_pool::pool(worker_count)?;
         self.open_native_project(path(args)?)?;
         if self.project.configurations.len() != handoff.configurations.len() {
             return Err("Checkpoint configuration counts differ.".into());
         }
+        self.worker_count = worker_count;
+        self.worker_pool = Some(worker_pool);
         let selected = self.project.selected;
         for (i, runtime) in handoff.configurations.into_iter().enumerate() {
             let mut configuration = if i == selected {
@@ -318,6 +327,7 @@ mod tests {
         old.save_native_project(&p).unwrap();
         let legacy = Handoff {
             version: 1,
+            worker_count: None,
             project_path: None,
             configurations: vec![RuntimeConfiguration::capture(&old.capture_configuration())],
         };

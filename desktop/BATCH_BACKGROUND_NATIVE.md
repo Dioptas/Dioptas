@@ -160,9 +160,13 @@ Performance optimization (November 10, 2026):
 
 The shared-axis Chebyshev matrix and column-scaled SVD are now prepared once per
 operation, rather than once per pattern. Each row still receives its own
-Bruckner smoothing and least-squares solve. A private Rayon pool uses up to three
-workers for independent rows in both automatic updates and separate extraction.
-The actual pattern pipeline prepares the first row, including ROI and loaded
+Bruckner smoothing and least-squares solve. The application-wide Rayon pool processes independent rows in both automatic
+updates and separate extraction. Settings → General → Processing workers owns
+the common choice; there is no separate Background worker pool or cap.
+Automatic reserves two performance cores where detected, otherwise two available
+CPU cores (at least one worker). The shared runtime and Settings behavior are
+documented in `PROCESSING_WORKERS.md`. The initial three-worker cap was replaced
+after the scaling measurements below. The actual pattern pipeline prepares the first row, including ROI and loaded
 background overlap, then shares its immutable fit plan with worker-local pattern
 state. The smoothing scan and floating-point operation order inside every row
 are unchanged. Workers write disjoint scratch rows; only a complete successful
@@ -195,3 +199,40 @@ plus a new bitwise serial/parallel comparison with 37 unevenly partitioned rows.
 The independent Qt fixtures continue to cover descending d, normalization and
 order 50. JavaScript's 95 tests, frontend build, Clippy with warnings denied,
 Chromium/WebKit background controls and native stdio cancellation passed.
+
+
+Higher worker counts (November 10, 2026):
+
+The same complete automatic-background operation was measured with 1, 3, 4, 6,
+8, 10, 12, 13 and 14 workers on an Apple M4 Pro (10 performance + 4 efficiency
+cores). Each count received one untimed full fit and five measured fits. Counts
+ran sequentially, alternating ascending/descending order between rounds. The
+same private stored matrix, ROI and parameters were used throughout.
+
+| Workers | Median update time |
+| ---: | ---: |
+| 1 | 431 ms |
+| 3 | 173 ms |
+| 4 | 138 ms |
+| 6 | 103 ms |
+| 8 | 85 ms |
+| 10 | 76 ms |
+| 12 | 79 ms |
+| 13 | 80 ms |
+| 14 | 81 ms |
+
+Ten workers was fastest on this workload, about 2.3× faster than three and
+about 32× faster than the original per-row-decomposition implementation.
+Automatic selection now defaults to eight workers on this machine, reserving
+two of its ten performance cores as requested. Ten remains a manual option for
+maximum measured throughput; fourteen was slower on this workload. There is no
+fixed eight-worker cap on manual selection or machines with more cores. All numeric datasets from every worker count,
+including every retained background and original intensity sample, were compared
+bit for bit against the original executable output and matched.
+
+The aggregate receipt is `artifacts/batch-background-performance/scaling.json`.
+The reproducible driver is `scripts/batch_background_scaling_benchmark.mjs`;
+its optional output directory retains private HDF5 outputs for independent
+comparison. No input/output scientific matrices are committed. Default-count,
+capacity-limited and single-core selection are covered alongside the existing
+serial/parallel numerical, rollback and cancellation tests.

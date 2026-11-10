@@ -133,6 +133,8 @@ impl Default for Settings {
 /// A session is constructed and used exclusively on the processing worker.
 pub struct Session {
     root: PathBuf,
+    worker_count: Option<usize>,
+    worker_pool: Option<Arc<rayon::ThreadPool>>,
     settings: Settings,
     project: project::Project,
     combination: combination::State,
@@ -207,6 +209,8 @@ impl Session {
     pub fn new(root: PathBuf) -> Self {
         Self {
             root,
+            worker_count: crate::worker_pool::initial(),
+            worker_pool: None,
             settings: Settings::default(),
             project: project::Project::default(),
             combination: Default::default(),
@@ -266,6 +270,19 @@ impl Session {
         self.invoke_controlled(request, Arc::new(Control::default()))
     }
     pub fn invoke_controlled(&mut self, request: &Request, control: Arc<Control>) -> Reply {
+        let pool = match &self.worker_pool {
+            Some(pool) => pool.clone(),
+            None => match crate::worker_pool::pool(self.worker_count) {
+                Ok(pool) => {
+                    self.worker_pool = Some(pool.clone());
+                    pool
+                }
+                Err(error) => return Reply::error(error),
+            },
+        };
+        crate::worker_pool::enter(pool, || self.invoke_in_pool(request, control))
+    }
+    fn invoke_in_pool(&mut self, request: &Request, control: Arc<Control>) -> Reply {
         self.control = control;
         if let Err(error) = request.validate() {
             return Reply::error(error);
@@ -509,6 +526,19 @@ impl Session {
                 "engine": if cfg!(feature="dioptrin") { Some("dioptrin") } else { None },
                 "capabilities": ["requested-products", "image-input", "hdf5-image-sources", "frame-navigation", "binary-rasters", "display-statistics", "mask-brush", "mask-history", "mask-plugins", "calibration-peaks", "calibration-history", "uniform-poni", "manual-pyfai-geometry", "xy-export", "project-format-2", "configuration-management", "image-transformations", "geometric-masks", "mask-lacosmic","detector-definitions","detector-orientations","distortion-splines","fit2d-geometry"]}),
                 ));
+            }
+            "processing_workers" => {
+                check_keys(args, &["workers"])?;
+                let requested = if args["workers"].is_null() {
+                    None
+                } else {
+                    Some(args["workers"].as_u64().filter(|&n| n > 0 && n <= crate::worker_pool::available() as u64)
+                        .ok_or("Choose Automatic or a worker count within the available CPU capacity.")? as usize)
+                };
+                let pool = crate::worker_pool::pool(requested)?;
+                self.worker_count = requested;
+                self.worker_pool = Some(pool);
+                return Ok(self.snapshot(false));
             }
             "state" => return Ok(self.snapshot(true)),
             "display_products" => {
@@ -2003,6 +2033,7 @@ impl Session {
         }, "pattern":self.pattern, "cake":null, "rings":[], "linked":null, "batch":null, "map":null});
         trace.mark("base state");
         let mut buffers = Vec::new();
+        result["state"]["processingWorkers"] = crate::worker_pool::metadata(self.worker_count);
         for (key, value) in self.patterns.details().as_object().unwrap() {
             result["state"]["integration"][key] = value.clone();
         }

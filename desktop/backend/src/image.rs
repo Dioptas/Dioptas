@@ -5,6 +5,7 @@ use dioptrin_io::{
     PixelBuffer,
     wrapped::{FrameBuffer, Input, Reader},
 };
+use rayon::prelude::*;
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -809,18 +810,16 @@ fn oriented_values(pixels: &PixelBuffer, shape: [usize; 2]) -> Result<Vec<f64>, 
             }
         };
         if data.len() >= 1_000_000 {
-            let workers = std::thread::available_parallelism()
-                .map_or(1, |n| n.get())
-                .min(8);
+            let workers = crate::worker_pool::threads();
             let rows = h.div_ceil(workers);
-            std::thread::scope(|scope| {
-                for (part, target) in out.chunks_mut(rows * w).enumerate() {
-                    let end = h - part * rows;
-                    let begin = end - target.len() / w;
-                    let source = &data[begin * w..end * w];
-                    let write = &write;
-                    scope.spawn(move || write(source, target));
-                }
+            crate::worker_pool::install(|| {
+                out.par_chunks_mut(rows * w)
+                    .enumerate()
+                    .for_each(|(part, target)| {
+                        let end = h - part * rows;
+                        let begin = end - target.len() / w;
+                        write(&data[begin * w..end * w], target);
+                    });
             });
         } else {
             write(data, &mut out);

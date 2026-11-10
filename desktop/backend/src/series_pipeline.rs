@@ -1,5 +1,5 @@
 //! Bounded, ordered frame execution over one immutable reader and CSC plan.
-//! Threads and decoder/integration scratch live for the entire source, not a frame.
+//! Shared-pool tasks reuse decoder/integration scratch for the entire source.
 use crate::control::Control;
 use dioptrin::integration::{Fixed1dPlan, Fixed1dResult, InputOrder};
 use dioptrin_io::{
@@ -7,7 +7,6 @@ use dioptrin_io::{
     hdf5::raw::{FrameBuffer, RawReader},
 };
 use std::sync::{
-    Arc, Mutex,
     atomic::{AtomicBool, Ordering},
     mpsc,
 };
@@ -58,11 +57,8 @@ pub(super) fn execute<S: Send, R: Send>(
     process: impl Fn(&mut S, &PixelBuffer, usize, &Control) -> Result<R, String> + Sync,
     mut consume: impl FnMut(usize, R) -> Result<(), String>,
 ) -> Result<Stats, String> {
-    let requested = std::env::var("DIOPTAS_INTEGRATION_THREADS")
-        .ok()
-        .and_then(|v| v.parse::<usize>().ok())
-        .unwrap_or(8)
-        .clamp(1, 256);
+    let pool = crate::worker_pool::current();
+    let requested = pool.current_num_threads();
     let workers = requested.min(frames.len()).min(
         WORKER_BUDGET
             / reader
@@ -82,79 +78,72 @@ pub(super) fn execute<S: Send, R: Send>(
     }
     control.check()?;
     let stop = AtomicBool::new(false);
-    std::thread::scope(|scope| {
-        let (jobs, incoming) = mpsc::channel::<(usize, usize)>();
-        let incoming = Arc::new(Mutex::new(incoming));
+    let create = &create;
+    let process = &process;
+    pool.in_place_scope(|scope| {
+        // Each submitted frame is a finite task: no pool thread waits for more
+        // jobs. Scratch ownership returns with its result and is reused when an
+        // ordered queue slot opens, retaining the existing bounded pipeline.
         let (results, completed) = mpsc::sync_channel(workers);
-        let mut handles = Vec::with_capacity(workers);
-        for _ in 0..workers {
-            let incoming = incoming.clone();
+        let dispatch = |ordinal, frame, scratch: Option<(FrameBuffer, S)>| {
             let results = results.clone();
             let stop = &stop;
-            let (create, process) = (&create, &process);
-            handles.push(scope.spawn(move || {
-                // Convert a worker panic to a failed operation, so an ordered
-                // collector never waits forever for the missing frame.
+            scope.spawn(move |_| {
                 let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                    let mut decoder = FrameBuffer::default();
-                    let mut state = create()?;
-                    let child_control = control.silent_child();
-                    while !stop.load(Ordering::Acquire) {
-                        let Ok((ordinal, frame)) = incoming.lock().unwrap().recv() else {
-                            break;
-                        };
-                        control.check()?;
-                        if stop.load(Ordering::Acquire) {
-                            break;
-                        }
-                        reader
-                            .read_frame_into(frame, &mut decoder)
-                            .map_err(|e| e.to_string())?;
-                        control.check()?;
-                        let result = process(
-                            &mut state,
-                            decoder.pixels().ok_or("Incomplete series frame.")?,
-                            frame,
-                            &child_control,
-                        )?;
-                        if results.send(Ok((ordinal, result))).is_err() {
-                            break;
-                        }
+                    if stop.load(Ordering::Acquire) {
+                        return Ok(None);
                     }
-                    Ok::<_, String>(())
+                    control.check()?;
+                    let (mut decoder, mut state) = match scratch {
+                        Some(scratch) => scratch,
+                        None => (FrameBuffer::default(), create()?),
+                    };
+                    reader
+                        .read_frame_into(frame, &mut decoder)
+                        .map_err(|e| e.to_string())?;
+                    control.check()?;
+                    let result = process(
+                        &mut state,
+                        decoder.pixels().ok_or("Incomplete series frame.")?,
+                        frame,
+                        &control.silent_child(),
+                    )?;
+                    Ok::<_, String>(Some((ordinal, result, (decoder, state))))
                 }))
                 .unwrap_or_else(|_| Err("Series frame worker panicked.".into()));
-                if let Err(error) = outcome {
-                    stop.store(true, Ordering::Release);
-                    let _ = results.send(Err(error));
+                match outcome {
+                    Ok(Some(value)) => {
+                        let _ = results.send(Ok(value));
+                    }
+                    Ok(None) => {}
+                    Err(error) => {
+                        stop.store(true, Ordering::Release);
+                        let _ = results.send(Err(error));
+                    }
                 }
-            }));
-        }
-        drop(results);
+            });
+        };
         let outcome = (|| {
             let mut dispatched = workers;
             for (ordinal, &frame) in frames.iter().take(workers).enumerate() {
-                jobs.send((ordinal, frame)).map_err(|e| e.to_string())?;
+                dispatch(ordinal, frame, None);
             }
             let mut pending = std::collections::BTreeMap::new();
             let mut next = 0;
             let mut pending_peak = 0;
             while next < frames.len() {
                 control.check()?;
-                let (ordinal, result) = completed
+                let (ordinal, result, scratch) = completed
                     .recv()
                     .map_err(|_| "Series workers stopped before completing the source.")??;
-                pending.insert(ordinal, result);
+                pending.insert(ordinal, (result, scratch));
                 pending_peak = pending_peak.max(pending.len());
-                while let Some(result) = pending.remove(&next) {
+                while let Some((result, scratch)) = pending.remove(&next) {
                     control.check()?;
                     consume(frames[next], result)?;
                     next += 1;
-                    // Only ordered consumption releases a queue slot. Even a
-                    // slow first frame cannot create an unbounded reorder queue.
                     if dispatched < frames.len() {
-                        jobs.send((dispatched, frames[dispatched]))
-                            .map_err(|e| e.to_string())?;
+                        dispatch(dispatched, frames[dispatched], Some(scratch));
                         dispatched += 1;
                     }
                 }
@@ -166,14 +155,8 @@ pub(super) fn execute<S: Send, R: Send>(
             })
         })();
         stop.store(true, Ordering::Release);
-        drop(jobs);
-        // Release blocked senders before joining on cancellation/consumer error.
+        // Disconnect before the scope joins, releasing senders on cancellation.
         drop(completed);
-        for handle in handles {
-            handle
-                .join()
-                .map_err(|_| "Series worker failed to shut down.")?;
-        }
         outcome
     })
 }
@@ -323,6 +306,27 @@ mod tests {
         );
     }
 
+    #[test]
+    fn integration_uses_the_shared_selected_pool_without_exceeding_its_budget() {
+        let (_temp, reader, plan) = fixture(true);
+        for workers in [1, crate::worker_pool::available().min(4)] {
+            let pool = crate::worker_pool::pool(Some(workers)).unwrap();
+            crate::worker_pool::enter(pool, || {
+                let stats = run(
+                    &reader,
+                    &plan,
+                    true,
+                    &(0..19).collect::<Vec<_>>(),
+                    &Control::default(),
+                    |_, _| Ok(()),
+                )
+                .unwrap();
+                assert_eq!(stats.workers, workers);
+                assert_eq!(stats.frames, 19);
+                assert!(stats.pending_peak <= workers);
+            });
+        }
+    }
     #[test]
     fn source_mutation_discards_provisional_frames() {
         let (temp, reader, plan) = fixture(false);

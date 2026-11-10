@@ -208,6 +208,20 @@ impl Plugins {
         user: &[u8],
         control: &Control,
     ) -> Result<Vec<u8>, String> {
+        crate::worker_pool::install(|| {
+            self.refresh_in_pool(data, shape, generation, geometry, user, control)
+        })
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn refresh_in_pool(
+        &mut self,
+        data: &[f64],
+        shape: [usize; 2],
+        generation: u64,
+        geometry: Option<&Geometry>,
+        user: &[u8],
+        control: &Control,
+    ) -> Result<Vec<u8>, String> {
         let mut combined = user.to_vec();
         let user_id = if self.states[2].enabled {
             self.fixed_user_id

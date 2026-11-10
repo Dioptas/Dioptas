@@ -39,6 +39,7 @@
     "test:pattern-quality": "node scripts/pattern_quality.mjs",
     "test:batch-export": "node scripts/batch_export_smoke.mjs",
     "test:batch-background-export": "node scripts/batch_export_smoke.mjs --background",
+    "test:processing-workers": "node scripts/processing_workers_smoke.mjs",
     "test:batch-background": "node scripts/batch_background_smoke.mjs && node --test scripts/batch_background_transport.test.mjs",
     "test:native-integration": "node scripts/native_integration_workflow_smoke.mjs",
     "test:native-integration-transport": "node --test scripts/native_integration_transport.test.mjs",

@@ -1,9 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use std::{
-    collections::HashSet,
-    sync::{Arc, OnceLock},
-};
+use std::{collections::HashSet, sync::Arc};
 
 pub const MAX_REQUEST_BYTES: usize = 16 * 1024 * 1024;
 
@@ -129,25 +126,9 @@ impl Buffer {
         // SHA256 identities stored in .dio project files.
         let mut hash = blake3::Hasher::new();
         if bytes.len() >= 1_000_000 {
-            static POOL: OnceLock<Option<rayon::ThreadPool>> = OnceLock::new();
-            let pool = POOL.get_or_init(|| {
-                rayon::ThreadPoolBuilder::new()
-                    .num_threads(
-                        std::thread::available_parallelism()
-                            .map_or(1, |n| n.get())
-                            .min(8),
-                    )
-                    .thread_name(|i| format!("display-hash-{i}"))
-                    .build()
-                    .ok()
+            crate::worker_pool::install(|| {
+                hash.update_rayon(bytes.as_slice());
             });
-            if let Some(pool) = pool {
-                pool.install(|| {
-                    hash.update_rayon(bytes.as_slice());
-                });
-            } else {
-                hash.update(bytes.as_slice());
-            }
         } else {
             hash.update(bytes.as_slice());
         }

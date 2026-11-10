@@ -62,6 +62,12 @@ export interface Pattern {
   }[];
 }
 export interface State {
+  processingWorkers?: {
+    requested: number | null;
+    effective: number;
+    available: number;
+    automatic: number;
+  };
   supportsRequestedProducts?: boolean;
   revision: number;
   hasImage: boolean;

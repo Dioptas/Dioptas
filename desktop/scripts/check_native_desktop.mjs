@@ -88,6 +88,7 @@ if (selected.has("--ui")) {
     "batch_surface_axes_smoke",
     "batch_export_smoke",
     "batch_background_smoke",
+    "processing_workers_smoke",
     "native_corrections_smoke",
     "native_project_smoke",
     "native_geometry_mask_smoke",

@@ -1,5 +1,6 @@
 //! Full-resolution display copies; statistics always use scientific f64 values.
 use crate::protocol::Buffer;
+use rayon::prelude::*;
 use serde_json::{Value, json};
 use std::{collections::HashMap, sync::Arc};
 
@@ -73,14 +74,13 @@ fn display_bytes(values: &[f64]) -> Vec<u8> {
         }
     };
     if values.len() >= 1_000_000 {
-        let workers = std::thread::available_parallelism()
-            .map_or(1, |n| n.get())
-            .min(8);
+        let workers = crate::worker_pool::threads();
         let chunk = values.len().div_ceil(workers);
-        std::thread::scope(|scope| {
-            for (source, target) in values.chunks(chunk).zip(bytes.chunks_mut(chunk * 4)) {
-                scope.spawn(move || convert(source, target));
-            }
+        crate::worker_pool::install(|| {
+            values
+                .par_chunks(chunk)
+                .zip(bytes.par_chunks_mut(chunk * 4))
+                .for_each(|(source, target)| convert(source, target))
         });
     } else {
         convert(values, &mut bytes);
@@ -129,24 +129,17 @@ impl CountTable {
 impl ImageStatistics {
     fn new(values: &[f64], shape: [usize; 2]) -> Option<Self> {
         let workers = if values.len() >= 1_000_000 {
-            std::thread::available_parallelism()
-                .map_or(1, |n| n.get())
-                .min(8)
+            crate::worker_pool::threads()
         } else {
             1
         };
         let mut table = if workers == 1 {
             CountTable::new(values)?
         } else {
-            std::thread::scope(|scope| {
-                let handles: Vec<_> = values
-                    .chunks(values.len().div_ceil(workers))
-                    .map(|part| scope.spawn(move || CountTable::new(part)))
-                    .collect();
-                // Join every worker before deciding whether to use the fallback.
-                let tables: Option<Vec<_>> = handles
-                    .into_iter()
-                    .map(|handle| handle.join().unwrap())
+            crate::worker_pool::install(|| {
+                let tables: Option<Vec<_>> = values
+                    .par_chunks(values.len().div_ceil(workers))
+                    .map(CountTable::new)
                     .collect();
                 let mut tables = tables?.into_iter();
                 let mut result = tables.next()?;
@@ -433,17 +426,15 @@ fn histogram(values: &[f64]) -> Value {
         counts
     };
     let counts = if values.len() >= 1_000_000 {
-        let workers = std::thread::available_parallelism()
-            .map_or(1, |n| n.get())
-            .min(8);
-        std::thread::scope(|scope| {
-            let handles: Vec<_> = values
-                .chunks(values.len().div_ceil(workers))
-                .map(|part| scope.spawn(move || buckets(part)))
+        let workers = crate::worker_pool::threads();
+        crate::worker_pool::install(|| {
+            let tables: Vec<_> = values
+                .par_chunks(values.len().div_ceil(workers))
+                .map(buckets)
                 .collect();
             let mut result = vec![0_u64; 256];
-            for handle in handles {
-                for (a, b) in result.iter_mut().zip(handle.join().unwrap()) {
+            for table in tables {
+                for (a, b) in result.iter_mut().zip(table) {
                     *a += b;
                 }
             }

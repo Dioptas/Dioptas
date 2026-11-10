@@ -1,0 +1,22 @@
+[
+  {
+    "browser": "chromium",
+    "available": 14,
+    "manualWorkers": 4,
+    "automaticWorkers": 8,
+    "persistedAcrossReload": true,
+    "resetToDefault": true,
+    "errors": [],
+    "settingsCalls": 5
+  },
+  {
+    "browser": "webkit",
+    "available": 14,
+    "manualWorkers": 4,
+    "automaticWorkers": 8,
+    "persistedAcrossReload": true,
+    "resetToDefault": true,
+    "errors": [],
+    "settingsCalls": 5
+  }
+]

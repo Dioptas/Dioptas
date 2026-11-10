@@ -1,6 +1,7 @@
 //! Acquisition gap margins can be wider than the generic detector catalogue.
 //! Infer structural margins and acquisition dummy codes corroborated by known
 //! gaps. Zero-valued interior pixels and high measured counts remain valid.
+use rayon::prelude::*;
 pub(crate) fn extend_gaps(mask: &mut [u8], image: &[f64], [h, w]: [usize; 2], dtype: &str) -> bool {
     if h == 0 || w == 0 || mask.len() != h * w || image.len() != mask.len() {
         return false;
@@ -95,15 +96,12 @@ pub(crate) fn extend_gaps(mask: &mut [u8], image: &[f64], [h, w]: [usize; 2], dt
             }
         };
         if image.len() >= 1_000_000 {
-            let workers = std::thread::available_parallelism()
-                .map_or(1, |n| n.get())
-                .min(8);
+            let workers = crate::worker_pool::threads();
             let chunk = image.len().div_ceil(workers);
-            std::thread::scope(|scope| {
-                for (out, data) in mask.chunks_mut(chunk).zip(image.chunks(chunk)) {
-                    let mark = &mark;
-                    scope.spawn(move || mark(out, data));
-                }
+            crate::worker_pool::install(|| {
+                mask.par_chunks_mut(chunk)
+                    .zip(image.par_chunks(chunk))
+                    .for_each(|(out, data)| mark(out, data))
             });
         } else {
             mark(mask, image);

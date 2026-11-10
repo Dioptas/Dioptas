@@ -63,6 +63,7 @@ import {
 import { connect, updateWindowTitle } from "./bridge";
 import { fileOperationFailure, recordAction } from "./errorReporting";
 import { SettingsWorkspace } from "./SettingsWorkspace";
+import { useProcessingWorkerPreference } from "./ProcessingWorkerSettings";
 import { useCustomCommands } from "./customCommands";
 import { CustomCommandButtons } from "./CustomCommandButtons";
 import "./sharedFooter.css";
@@ -870,6 +871,7 @@ export default function App() {
               "combination_settings",
               "configuration_navigation",
               "save_combined_pattern",
+              "processing_workers",
             ].includes(command)
             ? { ...args, defer_integration: true }
             : command === "map_select"
@@ -1045,6 +1047,7 @@ export default function App() {
       draftReplacement.request,
     ],
   );
+  useProcessingWorkerPreference(state, !busy, run);
   const changeConfigurationControls = useCallback(
     (show: boolean) => {
       if (

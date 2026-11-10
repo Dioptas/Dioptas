@@ -206,6 +206,9 @@ fn key(shape: [usize; 2], p: &Parameters, m: &[u8], o: &Options, cake: bool) -> 
 }
 impl Plan {
     fn new(key: Key) -> Result<Self, String> {
+        crate::worker_pool::install(|| Self::new_in_pool(key))
+    }
+    fn new_in_pool(key: Key) -> Result<Self, String> {
         let [h, w] = key.shape;
         let mut engine = Integrator::new(key.geometry.native_geometry([h, w])?)
             .with_method(if key.pyfai {
@@ -529,6 +532,19 @@ impl Engine {
         options: &Options,
         corrected: bool,
     ) -> Result<Option<ProcessedSeriesPlan>, String> {
+        crate::worker_pool::install(|| {
+            self.prepare_processed_series_in_pool(image, p, mask, options, corrected)
+        })
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn prepare_processed_series_in_pool(
+        &mut self,
+        image: &Image,
+        p: &Parameters,
+        mask: &[u8],
+        options: &Options,
+        corrected: bool,
+    ) -> Result<Option<ProcessedSeriesPlan>, String> {
         let Some(mut source) = image.combined_source(0)? else {
             return Ok(None);
         };
@@ -818,11 +834,7 @@ impl Engine {
             PixelType::U32 => PixelBuffer::U32(Vec::with_capacity(n)),
             _ => unreachable!(),
         };
-        let workers = std::env::var("DIOPTAS_INTEGRATION_THREADS")
-            .ok()
-            .and_then(|v| v.parse::<usize>().ok())
-            .unwrap_or(8)
-            .clamp(1, 256);
+        let workers = crate::worker_pool::threads();
         let parts = raw
             .reader
             .fold_frame_blocks(
@@ -865,6 +877,20 @@ impl Engine {
     }
 
     pub fn prepare_combined_series(
+        &mut self,
+        image: &mut Image,
+        index: usize,
+        p: &Parameters,
+        mask: &[u8],
+        options: &Options,
+        c: &Control,
+    ) -> Result<Option<CombinedSeriesPlan>, String> {
+        crate::worker_pool::install(|| {
+            self.prepare_combined_series_in_pool(image, index, p, mask, options, c)
+        })
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn prepare_combined_series_in_pool(
         &mut self,
         image: &mut Image,
         index: usize,
@@ -950,11 +976,7 @@ impl Engine {
         let plan = &context.fixed;
         let raw = self.raw.as_mut().unwrap();
         let kind = raw.reader.pixel_type();
-        let workers = std::env::var("DIOPTAS_INTEGRATION_THREADS")
-            .ok()
-            .and_then(|v| v.parse::<usize>().ok())
-            .unwrap_or(8)
-            .clamp(1, 256);
+        let workers = crate::worker_pool::threads();
         let states = raw
             .reader
             .fold_frame_blocks(
@@ -1031,6 +1053,23 @@ impl Engine {
     }
     #[allow(clippy::too_many_arguments)]
     pub fn integrate_pattern_with_variance(
+        &mut self,
+        data: &[f64],
+        variance: Option<&[f64]>,
+        shape: [usize; 2],
+        p: &Parameters,
+        mask: &[u8],
+        o: &Options,
+        prepared: Option<Prepared>,
+    ) -> Result<(Value, Option<Vec<f64>>), String> {
+        crate::worker_pool::install(|| {
+            self.integrate_pattern_with_variance_in_pool(
+                data, variance, shape, p, mask, o, prepared,
+            )
+        })
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn integrate_pattern_with_variance_in_pool(
         &mut self,
         data: &[f64],
         variance: Option<&[f64]>,
@@ -1133,6 +1172,17 @@ impl Engine {
     }
     /// Both full integration and lazy display/export use this same cake kernel.
     pub fn integrate_cake(
+        &mut self,
+        data: &[f64],
+        shape: [usize; 2],
+        p: &Parameters,
+        mask: &[u8],
+        o: &Options,
+    ) -> Result<(Raster, Vec<f64>), String> {
+        crate::worker_pool::install(|| self.integrate_cake_in_pool(data, shape, p, mask, o))
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn integrate_cake_in_pool(
         &mut self,
         data: &[f64],
         shape: [usize; 2],

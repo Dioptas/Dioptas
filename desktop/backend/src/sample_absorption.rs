@@ -378,6 +378,15 @@ pub(crate) fn build(
     azi: &[f64],
     control: &Control,
 ) -> Result<Vec<f64>, String> {
+    crate::worker_pool::install(|| build_in_pool(kind, p, tth, azi, control))
+}
+fn build_in_pool(
+    kind: &str,
+    p: &Value,
+    tth: &[f64],
+    azi: &[f64],
+    control: &Control,
+) -> Result<Vec<f64>, String> {
     control.check()?;
     if tth.is_empty() || tth.len() != azi.len() || tth.iter().chain(azi).any(|v| !v.is_finite()) {
         return Err("Sample absorption requires matching, finite detector angles.".into());

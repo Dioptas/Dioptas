@@ -21,6 +21,7 @@ import {
 import "./settings.css";
 import { CustomCommandSettings } from "./CustomCommandSettings";
 import { ConfigurationBrowsingSettings } from "./ConfigurationBrowsingSettings";
+import { ProcessingWorkerSettings } from "./ProcessingWorkerSettings";
 import type { CustomCommandController } from "./customCommands";
 
 const categories = [
@@ -205,6 +206,7 @@ export function SettingsWorkspace({
                 ))}
               </div>
             </section>
+            <ProcessingWorkerSettings state={state} ready={ready} run={run} />
             <p className="settings-save-note">
               <Check size={14} /> General preferences take effect immediately.
             </p>

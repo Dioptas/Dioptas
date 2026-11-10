@@ -1,0 +1,214 @@
+{
+  "frames": 625,
+  "bins": 1000,
+  "parameters": {
+    "enabled": true,
+    "smoothing": 0.1,
+    "iterations": 150,
+    "order": 50,
+    "range": [
+      3.7883893507483744,
+      42.34610394855096
+    ]
+  },
+  "rounds": 5,
+  "untimedFitsPerCount": 1,
+  "order": "ascending/descending alternating",
+  "results": [
+    {
+      "workers": 1,
+      "milliseconds": [
+        462.8701660000006,
+        430.9380000000001,
+        426.10450000000037,
+        430.77166599999873,
+        429.9071249999997
+      ],
+      "medianMilliseconds": 430.77166599999873,
+      "bitwiseEqualToOriginal": true,
+      "comparedDatasets": [
+        "processed/process/bkg",
+        "processed/process/file_map",
+        "processed/process/pos_map",
+        "processed/process/pos_map_all",
+        "processed/result/binning",
+        "processed/result/data",
+        "processed/result/desktop_metadata"
+      ]
+    },
+    {
+      "workers": 3,
+      "milliseconds": [
+        172.57166700000016,
+        172.73562500000025,
+        174.6371249999993,
+        173.1337079999994,
+        174.85733299999993
+      ],
+      "medianMilliseconds": 173.1337079999994,
+      "bitwiseEqualToOriginal": true,
+      "comparedDatasets": [
+        "processed/process/bkg",
+        "processed/process/file_map",
+        "processed/process/pos_map",
+        "processed/process/pos_map_all",
+        "processed/result/binning",
+        "processed/result/data",
+        "processed/result/desktop_metadata"
+      ]
+    },
+    {
+      "workers": 4,
+      "milliseconds": [
+        137.68495799999982,
+        138.12583300000006,
+        137.34520900000007,
+        138.04712499999914,
+        136.957042
+      ],
+      "medianMilliseconds": 137.68495799999982,
+      "bitwiseEqualToOriginal": true,
+      "comparedDatasets": [
+        "processed/process/bkg",
+        "processed/process/file_map",
+        "processed/process/pos_map",
+        "processed/process/pos_map_all",
+        "processed/result/binning",
+        "processed/result/data",
+        "processed/result/desktop_metadata"
+      ]
+    },
+    {
+      "workers": 6,
+      "milliseconds": [
+        103.29891700000007,
+        103.42374999999993,
+        102.01220900000044,
+        102.96104099999866,
+        102.22749999999905
+      ],
+      "medianMilliseconds": 102.96104099999866,
+      "bitwiseEqualToOriginal": true,
+      "comparedDatasets": [
+        "processed/process/bkg",
+        "processed/process/file_map",
+        "processed/process/pos_map",
+        "processed/process/pos_map_all",
+        "processed/result/binning",
+        "processed/result/data",
+        "processed/result/desktop_metadata"
+      ]
+    },
+    {
+      "workers": 8,
+      "milliseconds": [
+        86.75166600000011,
+        85.34358400000019,
+        85.57470900000044,
+        85.37504099999933,
+        85.42116700000042
+      ],
+      "medianMilliseconds": 85.42116700000042,
+      "bitwiseEqualToOriginal": true,
+      "comparedDatasets": [
+        "processed/process/bkg",
+        "processed/process/file_map",
+        "processed/process/pos_map",
+        "processed/process/pos_map_all",
+        "processed/result/binning",
+        "processed/result/data",
+        "processed/result/desktop_metadata"
+      ]
+    },
+    {
+      "workers": 10,
+      "milliseconds": [
+        76.28554199999962,
+        76.34629200000018,
+        75.6632499999996,
+        75.35179199999948,
+        76.25741700000071
+      ],
+      "medianMilliseconds": 76.25741700000071,
+      "bitwiseEqualToOriginal": true,
+      "comparedDatasets": [
+        "processed/process/bkg",
+        "processed/process/file_map",
+        "processed/process/pos_map",
+        "processed/process/pos_map_all",
+        "processed/result/binning",
+        "processed/result/data",
+        "processed/result/desktop_metadata"
+      ]
+    },
+    {
+      "workers": 12,
+      "milliseconds": [
+        76.7095419999996,
+        75.31554200000028,
+        78.94483300000047,
+        80.81837500000074,
+        78.71104100000048
+      ],
+      "medianMilliseconds": 78.71104100000048,
+      "bitwiseEqualToOriginal": true,
+      "comparedDatasets": [
+        "processed/process/bkg",
+        "processed/process/file_map",
+        "processed/process/pos_map",
+        "processed/process/pos_map_all",
+        "processed/result/binning",
+        "processed/result/data",
+        "processed/result/desktop_metadata"
+      ]
+    },
+    {
+      "workers": 13,
+      "milliseconds": [
+        80.8050830000002,
+        79.97633300000052,
+        84.07629199999974,
+        79.62016699999913,
+        76.43775000000096
+      ],
+      "medianMilliseconds": 79.97633300000052,
+      "bitwiseEqualToOriginal": true,
+      "comparedDatasets": [
+        "processed/process/bkg",
+        "processed/process/file_map",
+        "processed/process/pos_map",
+        "processed/process/pos_map_all",
+        "processed/result/binning",
+        "processed/result/data",
+        "processed/result/desktop_metadata"
+      ]
+    },
+    {
+      "workers": 14,
+      "milliseconds": [
+        83.9126669999996,
+        81.01679200000035,
+        85.21166699999958,
+        79.92370800000026,
+        77.8221250000006
+      ],
+      "medianMilliseconds": 81.01679200000035,
+      "bitwiseEqualToOriginal": true,
+      "comparedDatasets": [
+        "processed/process/bkg",
+        "processed/process/file_map",
+        "processed/process/pos_map",
+        "processed/process/pos_map_all",
+        "processed/result/binning",
+        "processed/result/data",
+        "processed/result/desktop_metadata"
+      ]
+    }
+  ],
+  "cpu": "Apple M4 Pro",
+  "logicalCores": 14,
+  "performanceCores": 10,
+  "efficiencyCores": 4,
+  "date": "2026-11-10",
+  "scope": "Sequential full Rust stdio updates on the same private 625x1000 batch; excludes React paint. All worker counts compared against the original pre-optimization binary output. Private input/output matrices are not committed."
+}
