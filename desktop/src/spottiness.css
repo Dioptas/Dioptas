@@ -21,7 +21,7 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-rows: minmax(0, 3fr) minmax(115px, 2fr);
+  grid-template-rows: minmax(0, 3fr) 8px minmax(0, 2fr);
 }
 .spottiness-main,
 .spottiness-diagnostic {
@@ -29,8 +29,8 @@
   min-width: 0;
   min-height: 0;
 }
-.spottiness-diagnostic {
-  border-top: 1px solid var(--border, #3d444c);
+.spottiness-divider {
+  cursor: row-resize;
 }
 .integration-layout .spottiness-plots {
   grid-column: 1;

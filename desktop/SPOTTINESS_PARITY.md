@@ -7,6 +7,13 @@ existing worker. No second image processing session or alternative spread
 estimator is created. The two preferences belong to each configuration and
 survive format-2 project save/reopen and development checkpoints.
 
+The plots have a draggable horizontal divider; arrow keys resize it and Home or
+a double-click restores the default 60:40 split. The ratio is remembered as a
+local layout preference across restart, and constrained on small windows to
+keep both plots usable. When Spottiness is visible, only the lower plot shows
+radial tick marks, tick labels and the radial-axis title. The upper intensity
+y axis remains visible; disabling Spottiness restores its radial axis.
+
 The companion reuses PatternView, its shared gestures and linear y axis. Its
 radial range follows the main pattern in both directions; y navigation remains
 independent. Radial units, click markers, phase positions and the shared footer
@@ -123,3 +130,12 @@ checks that successful, cancelled and failed exports retain an open correction
 map. The pre-existing general Phase scrollbar-gutter failure documented in
 RUST_DESKTOP_CONSOLIDATION.md is outside this integration and was not rerun.
 Scientific limits described above remain unchanged.
+
+## Shared-axis layout update — November 10, 2026
+
+Headless Chromium/WebKit verify pointer and keyboard resizing, reset, saved-ratio
+restoration after reload, minimum pane sizes, retained full/manual zoom and
+shared x ranges, upper-axis removal and restoration on hide, and compact
+Standard/Larger text. Visual screenshots are under `artifacts/spottiness/`.
+Frontend build, 112 unit/architecture tests and the standalone pattern figure
+export checks also pass. No scientific calculation or data export changed.

@@ -1,6 +1,7 @@
 /** Local window layout preferences, separate from scientific project contents. */
 export const layoutKeys = {
   imageShare: "dioptas-layout:image-share",
+  spottinessShare: "dioptas-layout:spottiness-main-share",
   controlsShare: "dioptas-layout:controls-share",
   configurationControls: "dioptas-layout:configuration-controls",
   batchOpen: "dioptas-batch:open",

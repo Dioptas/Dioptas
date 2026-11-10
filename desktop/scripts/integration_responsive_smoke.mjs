@@ -113,6 +113,11 @@ try {
       };
       await button("Integration").click();
       await tab("Phase").click();
+      assert.deepEqual(
+        (await state()).integration.phases.map((p) => p.color),
+        ["#cc8028", "#5dcc28", "#28ccae"],
+        "New phase colors match Qt's first orange, green and teal",
+      );
       const pressure = page.getByRole("spinbutton", {
         name: "Phase 2 pressure (GPa)",
         exact: true,
@@ -138,7 +143,7 @@ try {
       });
       await enter(temperature, 1200);
       await waitFor((s) => s.integration.phases[1].temperature === 1200);
-      await button("Phase steps").click();
+
       await page.screenshot({
         path: path.join(artifacts, `${name}-steps.png`),
       });
@@ -150,9 +155,7 @@ try {
         page.getByRole("spinbutton", { name: "T Step", exact: true }),
         50,
       );
-      await page
-        .getByRole("dialog", { name: "Phase steps", exact: true })
-        .press("Escape");
+
       await pressure.press("ArrowUp");
       await waitFor((s) => s.integration.phases[1].pressure === 12.845);
       await temperature.press("ArrowUp");
@@ -181,11 +184,9 @@ try {
         })
         .click();
       await waitFor((s) => s.integration.sameConditions === false);
-      await button("Phase list").click();
+
       assert.equal(await button("Save List").isDisabled(), true);
-      await page
-        .getByRole("dialog", { name: "Phase list", exact: true })
-        .press("Escape");
+
       // Resize without replacing scientific canvases or discarding plot zoom.
       const detector = page.getByTestId("detector-canvas"),
         pattern = page.getByTestId("pattern-canvas");
@@ -252,6 +253,57 @@ try {
                 ...el.querySelectorAll(".phase-condition-value input"),
               ].map((n) => n.getBoundingClientRect().width),
             }));
+          const arrangement = await page
+            .getByTestId("phase-controls")
+            .evaluate((el) => {
+              const box = (s) => el.querySelector(s).getBoundingClientRect();
+              const table = box(".phase-table-scroll"),
+                actions = box(".phase-toolbar"),
+                parameters = box(".phase-parameters");
+              return {
+                table: { x: table.x, y: table.y, right: table.right },
+                actions: {
+                  x: actions.x,
+                  y: actions.y,
+                  right: actions.right,
+                  bottom: actions.bottom,
+                },
+                parameters: { x: parameters.x, y: parameters.y },
+                centering: [...el.querySelectorAll('input[type="color"]')].map(
+                  (input) => {
+                    const swatch = input.getBoundingClientRect(),
+                      cell = input.closest("td").getBoundingClientRect();
+                    return Math.abs(
+                      swatch.y + swatch.height / 2 - cell.y - cell.height / 2,
+                    );
+                  },
+                ),
+              };
+            });
+          assert.ok(
+            arrangement.actions.right <= arrangement.table.x,
+            "Ordinary widths retain the left action rail",
+          );
+          assert.ok(
+            arrangement.parameters.x >= arrangement.table.right,
+            "Ordinary widths retain step controls on the right",
+          );
+          assert.ok(
+            arrangement.centering.every((d) => d < 1),
+            "Color swatches are centered with the row text",
+          );
+          assert.equal(
+            await page
+              .getByRole("spinbutton", { name: "P step", exact: true })
+              .isVisible(),
+            true,
+          );
+          assert.equal(
+            await page
+              .getByRole("spinbutton", { name: "T Step", exact: true })
+              .isVisible(),
+            true,
+          );
           assert.equal(geometry.overflow, false);
           assert.equal(geometry.tableOverflow, false);
           assert.ok(
@@ -304,6 +356,44 @@ try {
           });
         }
       }
+      // Only a genuinely narrow task panel moves its rail and steps above the table.
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      const imageDivider = page.getByRole("separator", {
+        name: "Image and analysis divider",
+        exact: true,
+      });
+      await imageDivider.press("End");
+      await settle();
+      const compact = await page
+        .getByTestId("phase-controls")
+        .evaluate((el) => {
+          const box = (s) => el.querySelector(s).getBoundingClientRect();
+          const table = box(".phase-table-scroll"),
+            rail = box(".phase-toolbar"),
+            parameters = box(".phase-parameters");
+          return {
+            width: el.clientWidth,
+            above: rail.bottom <= table.top && parameters.bottom <= table.top,
+            overflow: el.scrollWidth > el.clientWidth + 1,
+          };
+        });
+      assert.ok(
+        compact.width < 600 && compact.above && !compact.overflow,
+        "Only the constrained phase panel uses top actions and visible step fields",
+      );
+      const pStep = page.getByRole("spinbutton", {
+        name: "P step",
+        exact: true,
+      });
+      await enter(pStep, 2);
+      const beforeStep = (await state()).integration.phases[1].pressure;
+      await pressure.press("ArrowUp");
+      await waitFor((s) => s.integration.phases[1].pressure === beforeStep + 2);
+      await page.screenshot({
+        path: path.join(artifacts, `${name}-compact-phase.png`),
+      });
+      await imageDivider.press("Home");
+      await settle();
       await page.setViewportSize({ width: 1000, height: 760 });
       await settle();
       // A wide phase panel keeps references in each row; a narrow right panel
@@ -447,7 +537,7 @@ try {
       reports.push({
         browser: name,
         checks:
-          "Full-width compact controls; wide right panel; full phase names; native P/T editing and shared steps; apply-all; references; Batch frame selection, keyboard switch and renderer preservation",
+          "Full-width compact controls; wide right panel; full phase names; Qt phase colors; aligned swatches; Qt rail/steps except constrained panels; directly accessible P/T steps; apply-all; references; Batch frame selection, keyboard switch and renderer preservation",
         errors,
       });
     } finally {

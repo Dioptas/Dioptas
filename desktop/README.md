@@ -925,7 +925,12 @@ panes; Image/Cake switches the detector display and preserves its independent
 intensity controls.
 
 The Phase table wraps full phase names and labels P/P₀ and T units in its column
-headers. Apply P/T to all stays visible; Steps and List open compact dialogs.
+headers. The normal Phase layout retains Qt's left action rail and right-side
+P/T step fields, apply-to-all and list buttons. Only below 600 px of phase-panel
+width do actions and parameters move above the table; step fields remain
+immediately accessible in both layouts. New phases use Qt's generated color
+sequence (starting with muted orange, green and teal), and swatches are centered
+vertically with each row. Stored or manually selected colors are preserved.
 Narrow phase tables show references for the selected phase below the table,
 while wider tables retain a reference selector in each row. The native phase
 commands and numeric editing behavior are unchanged. `npm run test:integration-responsive`
