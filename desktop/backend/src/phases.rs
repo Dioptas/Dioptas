@@ -43,6 +43,48 @@ impl Default for Phases {
         }
     }
 }
+// Qt PhaseModel.add_jcpds_object uses calculate_color(counter + 9):
+// HelperModule.py sets hue = (0.19 * (index + 2)) % 1, s = v = 0.8.
+// PhaseController converts RGB to hex by truncating each channel to an integer.
+fn initial_color(index: u64) -> String {
+    let hue = (0.19 * (index as f64 + 11.0)).fract() * 6.0;
+    let sector = hue.floor() as u8;
+    let fraction = hue - hue.floor();
+    let value = 0.8;
+    let saturation = 0.8;
+    let p = value * (1.0 - saturation);
+    let q = value * (1.0 - saturation * fraction);
+    let t = value * (1.0 - saturation * (1.0 - fraction));
+    let (r, g, b) = match sector {
+        0 => (value, t, p),
+        1 => (q, value, p),
+        2 => (p, value, t),
+        3 => (p, q, value),
+        4 => (t, p, value),
+        _ => (value, p, q),
+    };
+    format!(
+        "#{:02x}{:02x}{:02x}",
+        (r * 255.0) as u8,
+        (g * 255.0) as u8,
+        (b * 255.0) as u8
+    )
+}
+
+#[cfg(test)]
+mod color_tests {
+    #[test]
+    fn initial_colors_match_qt_phase_model_and_hex_conversion() {
+        let expected = [
+            "#cc8028", "#5dcc28", "#28ccae", "#282fcc", "#cc28bb", "#cc4f28", "#8dcc28", "#28cc7d",
+            "#2860cc", "#ab28cc", "#cc2832", "#becc28",
+        ];
+        for (index, color) in expected.iter().enumerate() {
+            assert_eq!(super::initial_color(index as u64), *color);
+        }
+    }
+}
+
 pub(crate) fn catalog() -> &'static Vec<Value> {
     static C: OnceLock<Vec<Value>> = OnceLock::new();
     C.get_or_init(|| {
@@ -384,10 +426,7 @@ impl Phases {
             pressure,
             temperature,
             visible: true,
-            color: [
-                "#ff0000", "#00ffff", "#ffff00", "#ff00ff", "#00ff00", "#ffffff",
-            ][i % 6]
-                .into(),
+            color: initial_color(self.next_uid - 1),
             reference,
             modified: false,
             reflections: Arc::new(vec![]),
