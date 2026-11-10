@@ -390,7 +390,7 @@ export function drawBatchSurface(
       for (const level of contourLevels) {
         const points = sliceSurfaceTriangle(tri, "z", level.fraction);
         if (points) {
-          line(points, "rgba(0,0,0,.14)", 1);
+          line(points, "rgba(0,0,0,.07)", 1);
         }
       }
       for (const reference of references.length

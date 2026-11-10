@@ -27,7 +27,7 @@ void main() {
       float distance = abs(value - contourLevels[i]) / gradient;
       coverage = max(coverage, 1.0 - smoothstep(0.25 * contourWidth, 1.05 * contourWidth, distance));
     }
-    color.rgb *= 1.0 - coverage * 0.14;
+    color.rgb *= 1.0 - coverage * 0.07;
   }
 }`;
 const guideVertexSource = `#version 300 es
