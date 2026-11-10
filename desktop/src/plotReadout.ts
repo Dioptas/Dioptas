@@ -22,6 +22,7 @@ export type ReportPlot = (
   reading: PlotReading | null,
 ) => void;
 export type PatternHover = {
+  valueLabel?: string;
   x: number;
   y: number | null;
   mouseY: number;

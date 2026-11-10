@@ -19,6 +19,7 @@ import {
   sampleInspectionOrder,
   type InspectionDirection,
 } from "./patternSamples";
+import type { PlotRange } from "./usePlotNavigation";
 import type { PlotViewport } from "./plotViewport";
 import type { Pattern } from "./types";
 import type { PatternHover } from "./plotReadout";
@@ -74,6 +75,12 @@ const EMPTY_REFERENCES: NonNullable<Pattern["phaseLines"]> = [];
 
 export function PatternView({
   pattern,
+  yLabel = "Intensity (a.u.)",
+  plotLabel = "Integrated diffraction pattern",
+  valueLabel,
+  onViewChange,
+  axisLeft,
+  referenceMode = "scaled",
   viewport,
   patternColor = "#ffffff",
   showPattern = true,
@@ -121,6 +128,12 @@ export function PatternView({
     uploadBytes?: number;
   }) => void;
   pattern: Pattern;
+  yLabel?: string;
+  plotLabel?: string;
+  valueLabel?: string;
+  onViewChange?: (range: PlotRange) => void;
+  axisLeft?: number;
+  referenceMode?: "scaled" | "full-height";
   viewport?: PlotViewport;
   patternColor?: string;
   showPattern?: boolean;
@@ -403,6 +416,9 @@ export function PatternView({
     navigation.onWheel(event);
   });
   const { xMin: xmin, xMax: xmax, yMin: ymin, yMax: ymax } = navigation.view;
+  useEffect(() => {
+    onViewChange?.({ xMin: xmin, xMax: xmax, yMin: ymin, yMax: ymax });
+  }, [xmin, xmax, ymin, ymax, onViewChange]);
   const yspan = ymax - ymin;
   const regionAt = (x: number) => {
     const tolerance = ((xmax - xmin) * 9) / w;
@@ -517,7 +533,7 @@ export function PatternView({
       0,
       ...yTicks.map((tick) => context.measureText(tick.label).width),
     );
-    const nextLeft = Math.max(64, Math.ceil(tickWidth) + 44);
+    const nextLeft = axisLeft ?? Math.max(64, Math.ceil(tickWidth) + 44);
     if (nextLeft !== left) setLeft(nextLeft);
     let intervals = Math.max(1, Math.floor(w / 80));
     let xTicks = linearTicks(xmin, xmax, intervals);
@@ -670,6 +686,7 @@ export function PatternView({
       ymax,
       curves,
       referenceLines,
+      referenceMode,
       calibrantLines,
       activeRing,
       showNumbers,
@@ -814,7 +831,9 @@ export function PatternView({
         curveContext.moveTo(x, top + h);
         curveContext.lineTo(
           x,
-          top + h - ((phaseLineTops[index] - ymin) / yspan) * h,
+          referenceMode === "full-height"
+            ? top
+            : top + h - ((phaseLineTops[index] - ymin) / yspan) * h,
         );
         curveContext.stroke();
       }
@@ -919,7 +938,7 @@ export function PatternView({
     context.translate(16, top + h / 2);
     context.rotate(-Math.PI / 2);
     context.textBaseline = "middle";
-    context.fillText("Intensity (a.u.)", 0, 0);
+    context.fillText(yLabel, 0, 0);
     context.restore();
     navigationTrace("pattern-rendered", {
       cpuMs: performance.now() - started,
@@ -934,6 +953,9 @@ export function PatternView({
       uploadBytes: gpu.current?.stats.uploadBytes,
     });
   }, [
+    yLabel,
+    axisLeft,
+    referenceMode,
     typography.muted,
     typography.mono,
     gpuVersion,
@@ -1047,6 +1069,7 @@ export function PatternView({
             xResolution,
             yResolution,
             unit: pattern.unit,
+            valueLabel,
             hint: `${inspected.name} · sample ${inspected.index + 1} of ${inspected.sourceX.length}`,
           }
         : nearest >= 0
@@ -1057,6 +1080,7 @@ export function PatternView({
               xResolution,
               yResolution,
               unit: pattern.unit,
+              valueLabel,
               hint: hoverHint,
             }
           : null,
@@ -1071,15 +1095,18 @@ export function PatternView({
     pattern,
     onHover,
     hoverHint,
+    valueLabel,
   ]);
   return (
     <div ref={container} className="pattern-container">
-      <IntegrationPhaseLegend
-        lines={referenceLines}
-        left={left}
-        top={top + 5}
-        bounds={{ left, top, width: w, height: h }}
-      />
+      {referenceMode === "scaled" && (
+        <IntegrationPhaseLegend
+          lines={referenceLines}
+          left={left}
+          top={top + 5}
+          bounds={{ left, top, width: w, height: h }}
+        />
+      )}
       <canvas
         ref={backdrop}
         className="pattern-background-layer"
@@ -1135,7 +1162,7 @@ export function PatternView({
         data-testid="pattern-canvas"
         data-curve-renderer={activeRenderer}
         data-requested-curve-renderer={curveRenderer}
-        aria-label={`Integrated diffraction pattern; left-drag ${zoomMode} zoom, right-drag pan, right-click zoom out; keyboard arrows pan, +/- zoom, F restores view`}
+        aria-label={`${plotLabel}; left-drag ${zoomMode} zoom, right-drag pan, right-click zoom out; keyboard arrows pan, +/- zoom, F restores view`}
         style={{ width: "100%", height: "100%", cursor: regionCursor }}
         data-regions={JSON.stringify(
           regions.map((r) =>
@@ -1286,7 +1313,7 @@ export function PatternView({
         aria-atomic="true"
       >
         {inspected
-          ? `${inspected.name}, sample ${inspected.index + 1} of ${inspected.sourceX.length}. ${unitLabel(pattern.unit)} ${scientificValue(inspected.x, 8)}. Intensity ${scientificValue(inspected.y, 8)} a.u.`
+          ? `${inspected.name}, sample ${inspected.index + 1} of ${inspected.sourceX.length}. ${unitLabel(pattern.unit)} ${scientificValue(inspected.x, 8)}. ${valueLabel ?? "Intensity"} ${scientificValue(inspected.y, 8)}${valueLabel ? "" : " a.u."}.`
           : ""}
       </span>
       {overlayLegend && (

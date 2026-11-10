@@ -402,7 +402,7 @@ pub(super) fn load(
     let mut settings = json!({"unit":p["integration_unit"],"bins":p["integration_rad_points"],"cake_bins":p["cake_azimuth_points"],
         "use_mask":p["use_mask"],"transparent_mask":p["transparent_mask"],"polarization":cal["polarization_factor"],"poisson_errors":p["calculate_poisson_errors"],
         "solid_angle":cal["correct_solid_angle"],"supersampling":cal["supersampling_factor"],"trim_zeros":p["trim_trailing_zeros"],
-        "azimuthal_std":p["calculate_azimuthal_std"],"azimuth_range":p["oned_azimuth_range"],"cake_azimuth_range":p["cake_azimuth_range"],
+        "azimuthal_std":p["calculate_azimuthal_std"],"spottiness_relative":p["spottiness_relative"].as_bool().unwrap_or(false),"azimuth_range":p["oned_azimuth_range"],"cake_azimuth_range":p["cake_azimuth_range"],
         "formats":p["integrated_patterns_file_formats"],"defer_integration":true});
     if let Some(method) = doc["native_desktop"].get("integration_method") {
         settings["method"] = method.clone();
@@ -857,7 +857,7 @@ pub(super) fn save(
         &json!({"use_mask":settings.use_mask,"transparent_mask":settings.transparent_mask,"integration_unit":settings.unit,
         "integration_rad_points":if settings.automatic_binning{Value::Null}else{json!(settings.bins)},"oned_azimuth_range":settings.azimuth,
         "cake_azimuth_range":settings.cake_azimuth,"cake_azimuth_points":settings.cake_bins,"trim_trailing_zeros":settings.trim_zeros,
-        "calculate_poisson_errors":settings.errors,"calculate_azimuthal_std":settings.spread,"auto_save_integrated_pattern":settings.auto_save,
+        "calculate_poisson_errors":settings.errors,"calculate_azimuthal_std":settings.spread,"spottiness_relative":settings.spottiness_relative,"auto_save_integrated_pattern":settings.auto_save,
         "integrated_patterns_file_formats":settings.formats}),
     );
     for (key, value) in [

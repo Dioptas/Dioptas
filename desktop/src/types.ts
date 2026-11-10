@@ -35,7 +35,17 @@ export interface Cake extends Raster {
   azimuthRange: [number, number];
   unit: Unit;
 }
+export interface Spottiness {
+  x: number[];
+  mean: (number | null)[];
+  std: (number | null)[];
+  relative: (number | null)[];
+}
 export interface Pattern {
+  /** Original integrated observables, before any pattern-background operations. */
+  spottiness?: Spottiness | null;
+  sigma?: (number | null)[] | null;
+  azimuthalStd?: (number | null)[] | null;
   x: number[];
   y: (number | null)[];
   unit: Unit;

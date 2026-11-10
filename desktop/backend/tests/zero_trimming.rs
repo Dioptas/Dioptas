@@ -37,6 +37,16 @@ fn assert_trimmed(full: &Reply, trimmed: &Reply) -> usize {
             assert_eq!(values(trimmed, key), values(full, key)[start..end], "{key}");
         }
     }
+    for reply in [full, trimmed] {
+        if reply.result["pattern"]["spottiness"].is_object() {
+            for (diagnostic, pattern) in [("x", "x"), ("mean", "y"), ("std", "azimuthalStd")] {
+                assert_eq!(
+                    reply.result["pattern"]["spottiness"][diagnostic],
+                    reply.result["pattern"][pattern]
+                );
+            }
+        }
+    }
     y.len() - (end - start)
 }
 

@@ -155,6 +155,7 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
             "pattern.xy",
             true,
         ),
+        "integration_save_spottiness" => ("Spottiness", &["csv"], "pattern_spottiness.csv", true),
         "integration_save_background" => (
             "Background pattern",
             &["xy", "chi", "dat"],
@@ -325,7 +326,7 @@ async fn desktop_invoke(
             let selected = if choice.save {
                 let name = if action == "integration_save_batch" {
                     batch_export::suggested_name(&payload, choice.name)
-                } else if action == "integration_save_image" || action == "integration_phase_export" {
+                } else if action == "integration_save_image" || action == "integration_phase_export" || action == "integration_save_spottiness" {
                     payload["suggested_name"].as_str().unwrap_or(choice.name)
                 } else {
                     choice.name
@@ -590,6 +591,15 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn spottiness_save_uses_csv_dialog() {
+        let choice = file_choice("integration_save_spottiness", &json!({})).unwrap();
+        assert!(choice.save);
+        assert_eq!(choice.extensions, &["csv"]);
+        assert_eq!(choice.name, "pattern_spottiness.csv");
+        assert!(file_choice("integration_save_spottiness", &json!({"path":"/tmp/spread.csv"})).is_none());
+    }
+
     #[test]
     fn companion_windows_read_only_and_unknown_windows_rejected() {
         assert!(window_action_allowed("batch-window", "batch_snapshot"));

@@ -20,6 +20,9 @@ export interface IntegrationState {
   polarization: number;
   poissonErrors: boolean;
   trimZeros: boolean;
+  azimuthalStd?: boolean;
+  spottinessRelative?: boolean;
+  spottinessAvailable?: boolean;
   autoSave: boolean;
   formats: string[];
   outputDirectory: string;

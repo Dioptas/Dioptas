@@ -1,3 +1,4 @@
+import { SpottinessControls } from "./SpottinessControls";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "./ui";
 import { TabList } from "./TabList";
@@ -158,12 +159,15 @@ export function IntegrationView({
           />
         )}
         {tab === "Pattern" && (
-          <IntegrationPatternControls
-            source={source}
-            action={action}
-            step={patternStep}
-            setStep={setPatternStep}
-          />
+          <div className="spottiness-pattern-controls">
+            <IntegrationPatternControls
+              source={source}
+              action={action}
+              step={patternStep}
+              setStep={setPatternStep}
+            />
+            <SpottinessControls state={state} action={action} />
+          </div>
         )}
         <div className="processing-pane" hidden={tab !== "Background"}>
           <IntegrationBackgroundControls

@@ -46,13 +46,17 @@ export function patternReading(
     {
       label: "y",
       value: coordinateValue(point.mouseY, point.yResolution),
-      title: "Mouse intensity coordinate",
+      title: point.valueLabel
+        ? `Mouse ${point.valueLabel} coordinate`
+        : "Mouse intensity coordinate",
       kind: "coordinate",
     },
     {
-      label: "I",
+      label: point.valueLabel ?? "I",
       value: value(point.y),
-      title: "Pattern intensity at the nearest radial sample",
+      title: point.valueLabel
+        ? `${point.valueLabel} at the nearest radial sample`
+        : "Pattern intensity at the nearest radial sample",
       kind: "intensity",
     },
   ];
