@@ -34,6 +34,7 @@ try {
       await invoke("open_image", {
         path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
       });
+      await invoke("integration_correction", { kind: "oiadac", enabled: true });
       await invoke("integration_phase", {
         operation: "load",
         path: path.join(root, "dioptas/tests/data/jcpds/mo.jcpds"),
@@ -177,6 +178,19 @@ try {
       const reset = await bounds(main);
       assert.equal(reset["x-min"], full["x-min"]);
       assert.equal(reset["x-max"], full["x-max"]);
+      await page.getByRole("tab", { name: "Corrections", exact: true }).click();
+      await page
+        .getByRole("button", { name: "Detector absorption", exact: true })
+        .click();
+      await page
+        .getByRole("button", { name: "Plot correction", exact: true })
+        .click();
+      const preview = page.getByRole("region", {
+        name: "Correction map preview",
+        exact: true,
+      });
+      await preview.waitFor();
+      await page.getByRole("tab", { name: "Pattern", exact: true }).click();
       await save.click();
       await page.waitForFunction(
         () =>
@@ -184,12 +198,22 @@ try {
             (b) => b.textContent === "Save Spottiness…",
           )?.disabled,
       );
+      assert.equal(
+        await preview.isVisible(),
+        true,
+        "Cancelling Spottiness save must retain a correction preview",
+      );
       exportMode = "save";
       await save.click();
       await page.waitForTimeout(250);
       assert.match(
         await readFile(path.join(temp, `${name}.csv`), "utf8"),
         /integrated_mean,azimuthal_std,relative_spread/,
+      );
+      assert.equal(
+        await preview.isVisible(),
+        true,
+        "Saving Spottiness must retain a correction preview",
       );
       exportMode = "error";
       await save.click();
@@ -201,6 +225,8 @@ try {
       await page
         .getByRole("button", { name: "Dismiss error", exact: true })
         .click();
+      assert.equal(await preview.isVisible(), true);
+      await preview.getByRole("button", { name: "Back", exact: true }).click();
       for (const label of ["Q", "d", "2θ"]) {
         await page
           .getByRole("button", { name: `Pattern unit ${label}`, exact: true })
@@ -299,7 +325,7 @@ try {
       );
       assert.deepEqual(errors, []);
       console.log(
-        `${name}: linked zoom/reset, relative footer, CSV/cancel/error, compact Standard/Larger passed`,
+        `${name}: linked zoom/reset, relative footer, CSV/cancel/error with preview retained, compact Standard/Larger passed`,
       );
     } finally {
       await browser.close();

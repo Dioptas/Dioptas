@@ -100,6 +100,26 @@ Run from desktop with `npm run build`, `npm test`, `npm run test:spottiness`,
 `npm run test:spottiness-reference` (explicit independent Python environment),
 and from the repository root with `cargo test --locked --manifest-path
  desktop/backend/Cargo.toml --test spottiness --test zero_trimming`.
-No visible/native application window was opened. No release or publishing work
-is included; this feature is committed on its assigned isolated branch for
-coordinated integration with the other parity features.
+No visible/native application window was opened for these Spottiness checks.
+No release or publishing work is included.
+
+## Primary integration — November 10, 2026
+
+Integrated into `codex/rust-desktop` as `132061d9`, preserving the primary's
+cake Q-axis/profile and correction-preview/detector-window integrations and
+subsequent preview control fix. Shared plotting keeps the generic azimuth type
+while Spottiness's radial plot explicitly uses radial units. Unit-only native
+changes retain the scientific cake; relative-spread display changes reuse the
+original samples without recalculating the cake or profile. Both diagnostics
+can remain open together. The native Spottiness save command is included in
+the correction-preview read-only command set.
+
+Checks repeated in the primary checkout: production frontend build, 112 frontend
+tests, 86 relevant native tests (plus two existing opt-in checks ignored), strict
+backend Clippy/formatting, the Tauri CSV chooser contract, and seven independent
+reference cases. Headless Chromium/WebKit pass Spottiness, cake profile, cake Q,
+detached detector and correction-preview workflows. The Spottiness smoke also
+checks that successful, cancelled and failed exports retain an open correction
+map. The pre-existing general Phase scrollbar-gutter failure documented in
+RUST_DESKTOP_CONSOLIDATION.md is outside this integration and was not rerun.
+Scientific limits described above remain unchanged.

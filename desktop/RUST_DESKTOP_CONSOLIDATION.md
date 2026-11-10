@@ -179,3 +179,24 @@ Windows/Linux native window behavior remains unqualified. No package or release
 was published. Receipts and screenshots are under the ignored
 `desktop/artifacts/detector-window/`, `correction-previews/`, `cake-profile/`,
 `cake-q-axis/`, `native-calibration/`, and Integration test artifact folders.
+
+
+## Spottiness integration — November 10, 2026
+
+`132061d9` integrates the native Spottiness controls, linked population std or
+std/mean diagnostic and atomic single-pattern CSV export. Reconciliation retains
+the generic azimuthal profile plot, source-preserving cake unit changes, shared
+clicks, detector-window controls and correction previews. Relative display
+switches reuse the same native samples; Spottiness exports preserve an open
+correction map on success, cancellation or failure. Background subtraction and
+clipping do not alter the original mean/std observables. A descending d-spacing
+background path now reverses std along with the other radial arrays.
+
+Primary checks pass: frontend build and 112 tests; 86 relevant native tests
+(two existing opt-in checks ignored); strict backend Clippy/formatting; the
+Tauri CSV dialog contract; seven independent scientific reference cases; and
+headless Chromium/WebKit Spottiness, cake-profile, cake-Q, detached-detector and
+correction-preview workflows. No visible test windows were opened, existing
+previews were preserved, and no package/release was published. See
+[Spottiness qualification](SPOTTINESS_PARITY.md) for statistics, coverage and
+remaining combined-pattern/splitting limitations.
