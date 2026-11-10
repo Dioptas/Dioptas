@@ -139,6 +139,64 @@ try {
         });
         await page.mouse.up();
       }
+      assert.equal(await main.getAttribute("data-show-x-axis"), "false");
+      assert.equal(await diag.getAttribute("data-show-x-axis"), "true");
+      const divider = page.getByRole("separator", {
+        name: "Pattern and Spottiness divider",
+        exact: true,
+      });
+      const originalMain = await main.boundingBox();
+      const originalDiagnostic = await diag.boundingBox();
+      const beforeResize = await bounds(main);
+      const grip = await divider.boundingBox();
+      await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(
+        grip.x + grip.width / 2,
+        grip.y + grip.height / 2 - 40,
+        { steps: 8 },
+      );
+      await page.mouse.up();
+      await page.waitForFunction(
+        (height) =>
+          document.querySelector(".spottiness-main").clientHeight < height - 20,
+        originalMain.height,
+      );
+      assert(
+        (await diag.boundingBox()).height > originalDiagnostic.height + 20,
+      );
+      await aligned();
+      assert.deepEqual(
+        await bounds(main),
+        beforeResize,
+        "Resizing must retain the linked scientific view",
+      );
+      await divider.focus();
+      await page.keyboard.press("Home");
+      await page.keyboard.press("ArrowUp");
+      const savedShare = Number(await divider.getAttribute("aria-valuenow"));
+      assert(savedShare < 60);
+      assert.equal(
+        await page.evaluate(() =>
+          Number(localStorage.getItem("dioptas-layout:spottiness-main-share")),
+        ),
+        savedShare,
+      );
+      await page.reload();
+      await page
+        .getByRole("button", { name: "Integration", exact: true })
+        .click();
+      await page.getByRole("tab", { name: "Pattern", exact: true }).click();
+      await divider.waitFor();
+      assert.equal(
+        Number(await divider.getAttribute("aria-valuenow")),
+        savedShare,
+      );
+      await divider.focus();
+      await page.keyboard.press("End");
+      assert((await diag.boundingBox()).height >= 100);
+      await divider.dblclick();
+      await aligned();
       assert(Number(await diag.getAttribute("data-reference-count")) > 0);
       assert.equal(
         await diag.getAttribute("data-reference-count"),
@@ -153,6 +211,14 @@ try {
       await aligned();
       const zoom2 = await bounds(main);
       assert(zoom2["x-max"] - zoom2["x-min"] < zoom["x-max"] - zoom["x-min"]);
+      await divider.focus();
+      await page.keyboard.press("ArrowUp");
+      await aligned();
+      assert.deepEqual(
+        await bounds(main),
+        zoom2,
+        "Resizing must preserve manual zoom too",
+      );
       const diagBox = await diag.boundingBox();
       await page.mouse.move(
         diagBox.x + diagBox.width * 0.55,
@@ -302,6 +368,12 @@ try {
         .waitFor({ state: "detached" });
       assert.equal(await relative.isEnabled(), false);
       assert.equal(await save.isEnabled(), false);
+      assert.equal(
+        await page
+          .locator('.pattern-panel canvas[data-testid="pattern-canvas"]')
+          .getAttribute("data-show-x-axis"),
+        "true",
+      );
       // A combined curve cannot inherit one detector's population statistic.
       await invoke("integration_settings", { azimuthal_std: true });
       await invoke("configuration", { operation: "duplicate" });
@@ -325,7 +397,7 @@ try {
       );
       assert.deepEqual(errors, []);
       console.log(
-        `${name}: linked zoom/reset, relative footer, CSV/cancel/error with preview retained, compact Standard/Larger passed`,
+        `${name}: resizable linked plots and shared radial axis, relative footer, CSV/cancel/error with preview retained, compact Standard/Larger passed`,
       );
     } finally {
       await browser.close();

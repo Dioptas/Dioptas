@@ -88,6 +88,7 @@ const EMPTY_REFERENCES: NonNullable<Pattern["phaseLines"]> = [];
 export function PatternView<U extends PlotUnit = Unit>({
   pattern,
   yLabel = "Intensity (a.u.)",
+  showXAxis = true,
   plotLabel = "Integrated diffraction pattern",
   valueLabel,
   onViewChange,
@@ -143,6 +144,7 @@ export function PatternView<U extends PlotUnit = Unit>({
   }) => void;
   pattern: Omit<Pattern, "unit"> & { unit: U };
   yLabel?: string;
+  showXAxis?: boolean;
   plotLabel?: string;
   valueLabel?: string;
   onViewChange?: (range: PlotRange) => void;
@@ -343,7 +345,7 @@ export function PatternView<U extends PlotUnit = Unit>({
   // Reserve space for exponents only; legends float inside the data view.
   const right = compact ? 0 : 32,
     top = (compact && !axisAnnotation ? 6 : 18) * typography.scale,
-    bottom = 52 * typography.scale;
+    bottom = (showXAxis ? 52 : 8) * typography.scale;
   const w = Math.max(1, size.width - left - right),
     h = Math.max(1, size.height - top - bottom);
   const visibleCurves = useMemo(
@@ -617,6 +619,7 @@ export function PatternView<U extends PlotUnit = Unit>({
       context.moveTo(x, top);
       context.lineTo(x, top + h);
       context.stroke();
+      if (!showXAxis) continue;
       context.strokeStyle = "#65717d";
       context.beginPath();
       context.moveTo(x, top + h);
@@ -980,7 +983,8 @@ export function PatternView<U extends PlotUnit = Unit>({
     context.restore();
     context.fillStyle = typography.muted;
     context.textAlign = "center";
-    context.fillText(unitLabel(pattern.unit), left + w / 2, size.height - 8);
+    if (showXAxis)
+      context.fillText(unitLabel(pattern.unit), left + w / 2, size.height - 8);
     context.save();
     context.translate(16, top + h / 2);
     context.rotate(-Math.PI / 2);
@@ -1064,6 +1068,7 @@ export function PatternView<U extends PlotUnit = Unit>({
     };
   }, [
     yLabel,
+    showXAxis,
     axisLeft,
     referenceMode,
     typography.muted,
@@ -1309,6 +1314,7 @@ export function PatternView<U extends PlotUnit = Unit>({
         )}
         data-edit-regions={editRegions}
         data-region-updating={regionsUpdating}
+        data-show-x-axis={showXAxis}
         data-intensity-scale={log ? "log" : sqrt ? "sqrt" : "linear"}
         data-plot-font-size={typography.size}
         data-antialias={antialias}
@@ -1470,7 +1476,7 @@ export function PatternView<U extends PlotUnit = Unit>({
           mode={zoomMode}
           onChange={onZoomMode}
           left={left}
-          bottom={bottom}
+          bottom={showXAxis ? bottom : 28 * typography.scale}
           label={
             plotLabel === "Integrated diffraction pattern"
               ? "Pattern"

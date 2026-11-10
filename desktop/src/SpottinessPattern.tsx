@@ -1,10 +1,17 @@
 import {
   useCallback,
   useMemo,
+  useLayoutEffect,
   useRef,
   useState,
   type ComponentProps,
 } from "react";
+import { LayoutDivider } from "./LayoutDivider";
+import {
+  layoutKeys,
+  readLayoutNumber,
+  saveLayoutValue,
+} from "./layoutPreferences";
 import { PatternView } from "./PatternView";
 import type { PlotRange } from "./usePlotNavigation";
 import type { Unit } from "./types";
@@ -25,6 +32,32 @@ export function SpottinessPattern({
   enabled: boolean;
   relative: boolean;
 }) {
+  const container = useRef<HTMLDivElement>(null);
+  const [preferredShare, setPreferredShare] = useState(() =>
+    readLayoutNumber(layoutKeys.spottinessShare, 60, 10, 90),
+  );
+  const [height, setHeight] = useState(360);
+  const visible = enabled && !!props.pattern.spottiness;
+  useLayoutEffect(() => {
+    const node = container.current;
+    if (!visible || !node) return;
+    const measure = () => setHeight(node.clientHeight);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [visible]);
+  // Keep both plots usable in a compact workspace, retaining the preferred
+  // ratio when a temporarily smaller window constrains either pane.
+  const available = Math.max(1, height - 8);
+  const minShare = Math.min(45, (100 * 100) / available);
+  const maxShare = 100 - Math.min(45, (112 * 100) / available);
+  const share = Math.max(minShare, Math.min(maxShare, preferredShare));
+  const changeShare = (next: number) => {
+    const value = Math.max(minShare, Math.min(maxShare, next));
+    setPreferredShare(value);
+    saveLayoutValue(layoutKeys.spottinessShare, value);
+  };
   const key = props.viewport?.key ?? props.pattern.unit;
   const [reported, setReported] = useState<{
     key: string;
@@ -113,15 +146,37 @@ export function SpottinessPattern({
   };
   if (!enabled || !diagnostic) return <PatternView {...props} />;
   return (
-    <div className="spottiness-plots" data-testid="spottiness-plots">
+    <div
+      ref={container}
+      className="spottiness-plots"
+      data-testid="spottiness-plots"
+      style={{
+        gridTemplateRows: `minmax(0, ${share}fr) 8px minmax(0, ${100 - share}fr)`,
+      }}
+    >
       <div className="spottiness-main">
         <PatternView
           {...props}
           viewport={mainViewport}
           onViewChange={report}
           axisLeft={90}
+          showXAxis={false}
         />
       </div>
+      <LayoutDivider
+        className="integration-divider integration-divider-horizontal spottiness-divider"
+        label="Pattern and Spottiness divider"
+        orientation="horizontal"
+        value={share}
+        min={minShare}
+        max={maxShare}
+        defaultValue={60}
+        onChange={changeShare}
+        pointerValue={(event) => {
+          const box = container.current?.getBoundingClientRect();
+          return box ? ((event.clientY - box.top - 4) / available) * 100 : null;
+        }}
+      />
       <section
         className="spottiness-diagnostic"
         aria-label="Spottiness diagnostic"
