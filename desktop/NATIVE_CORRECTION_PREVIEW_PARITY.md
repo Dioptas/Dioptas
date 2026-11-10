@@ -101,3 +101,29 @@ This feature does not change global scrollbar styling or that fixture.
 Routine checks are headless; no native preview windows or user processes were
 opened, moved or terminated. Python is used only as an explicit independent
 reference in this checkout's own environment, never as a production fallback.
+
+## Primary integration — November 10, 2026
+
+The original preview commit `62473343` is included in primary merge `186db6f0`,
+alongside the detached detector window and the previously integrated cake Q-axis
+and azimuthal-profile work. Read-only profile extraction/export now retains an
+open correction preview. The source renderer still stays mounted; `4a6b8709`
+extends its visibility guard to the new detector-surface wrapper, and `0d04b168`
+checks that the underlying source canvas is hidden while a preview is visible.
+
+The integrated primary tree passes frontend build, 112 frontend tests, three
+native preview tests, two cake-axis tests, five native cake-profile tests,
+strict native Clippy, and both independent correction/reference scripts.
+Clippy used a fresh target under `backend/target/correction-preview-integration`
+because an older copied HDF5 CMake cache retained its former worktree path;
+no existing target or user preview was deleted or stopped.
+
+Headless Chromium and WebKit pass the complete correction-preview workflow,
+responsive Integration regression and the joint detector/source workflow. The
+joint checks cover preview Plot/Back in the detached display, preserved source
+and preview zoom, unchanged science, no duplicate map calculations, Q display,
+profile-width updates while a correction remains visible, HDF5 source/frame
+clamping, source resets and compact Standard/Larger layouts. Receipts remain in
+`artifacts/correction-previews/`, `artifacts/detector-window/` and
+`artifacts/integration-responsive/`. The existing shared scrollbar-test failure
+recorded above remains separate from these passing feature checks.
