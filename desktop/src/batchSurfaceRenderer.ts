@@ -2,17 +2,21 @@ import { rasterColor } from "./colorMaps";
 import { batchRadialBin } from "./batchPlot";
 import { unitLabel } from "./types";
 import type { BatchData } from "./batchDomain";
-import { scientificValue } from "./ScientificNumberInput";
 import {
   clamp,
   surfaceBarycentric,
   surfaceIntensity,
-  surfaceProject,
   type SurfaceCamera,
   type SurfacePoint,
   type SurfaceScale,
   type surfaceSampling,
 } from "./batchSurfaceGeometry";
+
+import {
+  surfaceAxisProjection,
+  layoutSurfaceAxes,
+  drawSurfaceAxes,
+} from "./batchSurfaceAxes";
 
 export interface SurfaceVertex extends SurfacePoint {
   frame: number;
@@ -68,21 +72,38 @@ export function drawBatchSurface(
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = "#17191e";
   ctx.fillRect(0, 0, size.width, size.height);
+  ctx.font = opts.font;
+  const fontSize = parseFloat(opts.font) || 13;
+  const projectBox = surfaceAxisProjection(
+    camera,
+    stretch,
+    size.width,
+    size.height,
+    fontSize,
+  );
   const radialFirst = batch.x[s.firstColumn],
     radialLast = batch.x[s.lastColumn];
   const radialSpan = radialLast - radialFirst;
   const project = (frame: number, radial: number, z: number) =>
-    surfaceProject(
+    projectBox(
       s.firstRow === s.lastRow
         ? 0.5
         : (frame - s.firstRow) / (s.lastRow - s.firstRow),
       radialSpan === 0 ? 0.5 : (radial - radialFirst) / radialSpan,
       z,
-      camera,
-      size.width,
-      size.height,
-      stretch,
     );
+  const axes = layoutSurfaceAxes({
+    project: projectBox,
+    width: size.width,
+    height: size.height,
+    fontSize,
+    measure: (text) => ctx.measureText(text).width,
+    frames: [s.firstRow + 1, s.lastRow + 1],
+    radial: [radialFirst, radialLast],
+    radialTitle: unitLabel(batch.unit),
+    limits,
+    scale,
+  });
   const vertex = (frame: number, column: number): SurfaceVertex => {
     const intensity = values[frame * batch.x.length + column];
     const z = surfaceIntensity(intensity, limits, scale);
@@ -130,22 +151,7 @@ export function drawBatchSurface(
     }
     ctx.stroke();
   };
-  for (let t = 0; t <= 1; t += 0.25) {
-    line(
-      [
-        surfaceProject(t, 0, 0, camera, size.width, size.height, stretch),
-        surfaceProject(t, 1, 0, camera, size.width, size.height, stretch),
-      ],
-      "#343a43",
-    );
-    line(
-      [
-        surfaceProject(0, t, 0, camera, size.width, size.height, stretch),
-        surfaceProject(1, t, 0, camera, size.width, size.height, stretch),
-      ],
-      "#343a43",
-    );
-  }
+  for (const grid of axes.grids) line(grid, "#343a43");
   const colors = Array.from(
     { length: 256 },
     (_, i) => `rgb(${rasterColor(i / 255, opts.palette).join(",")})`,
@@ -186,85 +192,14 @@ export function drawBatchSurface(
         2,
       );
   }
-  ctx.font = opts.font;
-  ctx.fillStyle = opts.muted;
-  ctx.textAlign = "center";
-  const text = (label: string, p: SurfacePoint, offset = 0) =>
-    ctx.fillText(
-      label,
-      clamp(
-        p.x,
-        Math.min(65, size.width / 2),
-        Math.max(size.width / 2, size.width - 65),
-      ),
-      clamp(p.y + offset, 14, Math.max(14, size.height - 6)),
-    );
-  const origin = surfaceProject(
-    0,
-    0,
-    0,
-    camera,
-    size.width,
-    size.height,
-    stretch,
-  );
-  const frameEnd = surfaceProject(
-    1,
-    0,
-    0,
-    camera,
-    size.width,
-    size.height,
-    stretch,
-  );
-  const radialEnd = surfaceProject(
-    0,
-    1,
-    0,
-    camera,
-    size.width,
-    size.height,
-    stretch,
-  );
-  const zEnd = surfaceProject(
-    0,
-    0,
-    1,
-    camera,
-    size.width,
-    size.height,
-    stretch,
-  );
-  for (const end of [frameEnd, radialEnd, zEnd])
-    line([origin, end], opts.muted);
-  // Suppress a collapsed axis in an orthogonal view. The fixed label above
-  // still identifies the scale and clipping limits, including top orientation.
-  if (Math.hypot(frameEnd.x - origin.x, frameEnd.y - origin.y) > 30) {
-    text(String(s.firstRow + 1), origin, 16);
-    text(String(s.lastRow + 1), frameEnd, 16);
-    text(
-      "Frame",
-      surfaceProject(0.5, 0, 0, camera, size.width, size.height, stretch),
-      32,
-    );
-  }
-  if (Math.hypot(radialEnd.x - origin.x, radialEnd.y - origin.y) > 30) {
-    text(scientificValue(radialFirst), origin, -8);
-    text(scientificValue(radialLast), radialEnd, -8);
-    text(
-      unitLabel(batch.unit),
-      surfaceProject(0, 0.5, 0, camera, size.width, size.height, stretch),
-      -24,
-    );
-  }
-  if (Math.hypot(zEnd.x - origin.x, zEnd.y - origin.y) > 30)
-    text(scientificValue(limits[1]), zEnd, -8);
-  ctx.textAlign = "left";
-  ctx.fillText(
-    `I · ${scale === "log" ? "log" : scale === "sqrt" ? "√" : "linear"} · ${scientificValue(limits[0])}–${scientificValue(limits[1])}`,
-    8,
-    18,
-  );
+  drawSurfaceAxes(ctx, axes, opts.muted);
+  canvas.dataset.axisLayout = JSON.stringify({
+    axes: axes.axes,
+    labels: axes.labels,
+    box: [0, 1].flatMap((f) =>
+      [0, 1].flatMap((r) => [0, 1].map((z) => projectBox(f, r, z))),
+    ),
+  });
   const finite = vertices.some((p) => Number.isFinite(p.z));
   canvas.dataset.renderState = finite ? "ready" : "empty";
   if (!finite) {

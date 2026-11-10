@@ -34,6 +34,7 @@ const fixture = (rows = 4, cols = 5, invalid = false) => {
 function Harness() {
   const [batch, setBatch] = useState(fixture()),
     [range, setRange] = useState(null),
+    [limits, setLimits] = useState<[number, number]>([0, 20]),
     [scale, setScale] = useState("linear"),
     [palette, setPalette] = useState("viridis");
   Object.assign(window, {
@@ -43,6 +44,19 @@ function Harness() {
     },
     setSurfaceScale: setScale,
     setSurfacePalette: setPalette,
+    setSurfaceAxisCase: ({
+      x,
+      unit = "2th_deg",
+      limits: nextLimits = [0, 20],
+      rows = 11,
+      scale = "linear",
+    }) => {
+      const b = fixture(rows, x.length);
+      setBatch({ ...b, x, unit, sourceUnit: unit });
+      setLimits(nextLimits);
+      setScale(scale);
+      setRange(null);
+    },
     setSurfaceConstant: (value: number) =>
       setBatch((b) => ({
         ...b,
@@ -67,7 +81,7 @@ function Harness() {
     >
       <BatchSurfaceView
         batch={batch as any}
-        limits={[0, 20]}
+        limits={limits}
         log={scale === "log"}
         sqrt={scale === "sqrt"}
         palette={palette}
