@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import os from "node:os";
-import { mkdtemp, writeFile, rm, mkdir } from "node:fs/promises";
+import { mkdtemp, writeFile, readFile, rm, mkdir } from "node:fs/promises";
 import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
 import { nativeClient, root } from "./native_backend_client.mjs";
@@ -48,6 +48,7 @@ try {
     let completed = 0;
     const call = async (action, payload = {}) => {
       requests.push({ action, payload });
+      if (action === "batch_load_data") payload = { paths };
       const r = await native.invoke(action, {
         ...payload,
         requested_products: { cake: false, rings: false },
@@ -166,6 +167,37 @@ try {
         [0, 2, 4],
       );
       await page.getByRole("tab", { name: "2D", exact: true }).click();
+      // A replacement with the same files/count retains the visible Step.
+      // The tool cancels its old region but must not secretly reset that stride.
+      const replacement = await readFile(paths[0]);
+      const headerLength = replacement.readUInt16LE(8);
+      for (let i = 10 + headerLength; i < replacement.length; i += 8)
+        replacement.writeDoubleLE(replacement.readDoubleLE(i) + 200, i);
+      await writeFile(paths[0], replacement);
+      await page
+        .getByRole("button", { name: "Load raw/proc data", exact: true })
+        .click();
+      await canvas.waitFor();
+      await page.waitForFunction(
+        () =>
+          document
+            .querySelector('[data-testid="batch-heatmap"]')
+            ?.getAttribute("data-waterfall-active") === "false",
+      );
+      await page.getByRole("tab", { name: "Options", exact: true }).click();
+      assert.equal(await step.inputValue(), "2");
+      await page.getByRole("tab", { name: "2D", exact: true }).click();
+      await page
+        .getByRole("button", { name: "Batch waterfall", exact: true })
+        .click();
+      await drag(page, canvas, [0.1, 0.1], [0.9, 0.95]);
+      await waitAction(page, 4);
+      assert.deepEqual(
+        (await call("state")).state.integration.overlays.map(
+          (o) => o.batchSource.row,
+        ),
+        [0, 2, 4],
+      );
       const start = await point(canvas, 0.15, 0.15),
         end = await point(canvas, 0.8, 0.8);
       await page.mouse.move(start.x, start.y);
@@ -173,7 +205,7 @@ try {
       await page.mouse.move(end.x, end.y, { steps: 6 });
       await canvas.press("Escape");
       await page.mouse.up();
-      assert.equal(count(), 3);
+      assert.equal(count(), 4);
       assert.equal(await canvas.getAttribute("data-waterfall-active"), "false");
       await page
         .getByRole("button", { name: "Batch waterfall", exact: true })
@@ -183,7 +215,7 @@ try {
       await page.mouse.move(end.x, end.y, { steps: 6 });
       await canvas.dispatchEvent("pointercancel", { pointerId: 1 });
       await page.mouse.up();
-      assert.equal(count(), 3);
+      assert.equal(count(), 4);
       await canvas.press("Escape");
       await drag(page, canvas, [0.15, 0.15], [0.8, 0.8]);
       assert.ok(
@@ -197,7 +229,7 @@ try {
       await page.mouse.wheel(0, -150);
       await canvas.press("f");
       assert.equal(await canvas.getAttribute("data-view-x-max"), initial);
-      assert.equal(count(), 3);
+      assert.equal(count(), 4);
       const popup = page.waitForEvent("popup");
       await page
         .getByRole("button", { name: "Detach batch", exact: true })
@@ -210,8 +242,8 @@ try {
         .click();
       await drag(child, childCanvas, [0.1, 0.1], [0.9, 0.95]);
       await settled(child);
-      await waitAction(child, 4);
-      assert.equal(count(), 4);
+      await waitAction(child, 5);
+      assert.equal(count(), 5);
       // Detaching retains the visible requested stride of 2.
       assert.equal((await call("state")).state.integration.overlays.length, 3);
       await page.screenshot({ path: path.join(artifacts, `${name}-main.png`) });
