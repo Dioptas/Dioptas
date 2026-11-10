@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Unit } from "./types";
+import type { PlotUnit, Unit } from "./types";
 
-export type PlotSource = "detector" | "cake" | "pattern" | "map" | "batch";
+export type PlotSource =
+  "detector" | "cake" | "pattern" | "map" | "batch" | "profile";
 export type PlotField = {
   label: string;
   value: string;
@@ -21,13 +22,13 @@ export type ReportPlot = (
   source: PlotSource,
   reading: PlotReading | null,
 ) => void;
-export type PatternHover = {
+export type PatternHover<U extends PlotUnit = Unit> = {
   x: number;
   y: number | null;
   mouseY: number;
   xResolution?: number;
   yResolution?: number;
-  unit: Unit;
+  unit: U;
   hint?: string;
 };
 

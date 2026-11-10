@@ -154,6 +154,7 @@ export const sourceLabel = (source: PlotSource) =>
   ({
     detector: "Image",
     cake: "Cake",
+    profile: "Azimuthal profile",
     pattern: "Pattern",
     map: "Map",
     batch: "Batch",

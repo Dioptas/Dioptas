@@ -55,6 +55,8 @@ export function IntegrationImageControls({
   onCakeShift,
   fullCake,
   onSaveImage,
+  profile,
+  onProfile,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -71,6 +73,8 @@ export function IntegrationImageControls({
   onCakeShift: (shift: number) => void;
   fullCake: boolean;
   onSaveImage: () => void;
+  profile: boolean;
+  onProfile: () => void;
 }) {
   return (
     <div
@@ -117,6 +121,15 @@ export function IntegrationImageControls({
           {value === "image" ? "Cake" : "Image"}
         </Button>
       </div>
+      <PlotToggle
+        label="Azimuthal profile"
+        title="Show intensity versus azimuth at the linked radial position"
+        pressed={profile}
+        disabled={!ready || !state?.calibrated || !state?.hasImage}
+        onClick={onProfile}
+      >
+        Profile
+      </PlotToggle>
       <span className="plot-tool-divider" />
       <label
         className="check-row"

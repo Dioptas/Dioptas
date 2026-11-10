@@ -14,6 +14,8 @@ mod batch_background_commands;
 mod batch_export;
 #[path = "batch_workflow.rs"]
 mod batch_workflow;
+#[path = "cake_profile.rs"]
+mod cake_profile;
 #[path = "calibration.rs"]
 mod calibration;
 #[path = "checkpoint.rs"]
@@ -541,6 +543,9 @@ impl Session {
                 return Ok(self.snapshot(false));
             }
             "state" => return Ok(self.snapshot(true)),
+            "cake_profile" | "save_cake_profile" => {
+                return self.cake_profile(args, action == "save_cake_profile");
+            }
             "display_products" => {
                 check_keys(args, &["cake", "rings"])?;
                 let cake = boolean(&args["cake"], "Request cake")?;

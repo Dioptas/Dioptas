@@ -20,7 +20,7 @@ import {
   type InspectionDirection,
 } from "./patternSamples";
 import type { PlotViewport } from "./plotViewport";
-import type { Pattern } from "./types";
+import type { Pattern, PlotUnit, Unit } from "./types";
 import type { PatternHover } from "./plotReadout";
 import { unitLabel } from "./types";
 import { linearAxisTicks, linearTicks, logTicks } from "./plotTicks";
@@ -72,8 +72,9 @@ const EMPTY_CALIBRANTS: { x: number; ring: number }[] = [];
 const EMPTY_CURVES: NonNullable<Pattern["curves"]> = [];
 const EMPTY_REFERENCES: NonNullable<Pattern["phaseLines"]> = [];
 
-export function PatternView({
+export function PatternView<U extends PlotUnit = Unit>({
   pattern,
+  plotLabel = "Integrated diffraction pattern",
   viewport,
   patternColor = "#ffffff",
   showPattern = true,
@@ -120,7 +121,8 @@ export function PatternView({
     uploads?: number;
     uploadBytes?: number;
   }) => void;
-  pattern: Pattern;
+  pattern: Omit<Pattern, "unit"> & { unit: U };
+  plotLabel?: string;
   viewport?: PlotViewport;
   patternColor?: string;
   showPattern?: boolean;
@@ -143,7 +145,7 @@ export function PatternView({
     mouseY: number,
     resolution: { x: number; y: number },
   ) => void;
-  onHover?: (point: PatternHover | null) => void;
+  onHover?: (point: PatternHover<U> | null) => void;
   onResolution?: (x: number) => void;
   hoverHint?: string;
   linkedPosition?: number;
@@ -1135,7 +1137,7 @@ export function PatternView({
         data-testid="pattern-canvas"
         data-curve-renderer={activeRenderer}
         data-requested-curve-renderer={curveRenderer}
-        aria-label={`Integrated diffraction pattern; left-drag ${zoomMode} zoom, right-drag pan, right-click zoom out; keyboard arrows pan, +/- zoom, F restores view`}
+        aria-label={`${plotLabel}; left-drag ${zoomMode} zoom, right-drag pan, right-click zoom out; keyboard arrows pan, +/- zoom, F restores view`}
         style={{ width: "100%", height: "100%", cursor: regionCursor }}
         data-regions={JSON.stringify(
           regions.map((r) =>
@@ -1306,7 +1308,11 @@ export function PatternView({
           onChange={onZoomMode}
           left={left}
           bottom={bottom}
-          label="Pattern"
+          label={
+            plotLabel === "Integrated diffraction pattern"
+              ? "Pattern"
+              : plotLabel
+          }
         />
       )}
     </div>

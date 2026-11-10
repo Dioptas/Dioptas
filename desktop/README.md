@@ -147,6 +147,12 @@ statistical assumptions. Cylinder, sphere and optional capillary-wall absorption
 also native; see the [round-sample qualification](NATIVE_ROUND_SAMPLE_CORRECTION_PARITY.md)
 for their footprint models and legacy-project recalculation notice.
 
+Integration's **Profile** toggle shows native intensity versus azimuth at the
+linked detector/cake/pattern radial position. **Width (bins)** controls the
+fractional radial average; its save icon exports azimuth in degrees and intensity
+through the native chooser. Profile explicitly requests a hidden cake when needed.
+See [azimuthal-profile semantics and checks](CAKE_PROFILE_PARITY.md).
+
 Integration and Map use the same `RasterView` and `PatternView` renderers.
 `diffractionPlotSetup.ts` prepares their common detector mask/click properties
 and pattern colors, visibility, phase references, overlay legends, linked radial
