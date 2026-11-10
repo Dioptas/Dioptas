@@ -618,7 +618,9 @@ the GPU. Display rendering does not change scientific arrays, integration,
 calibration or original-pixel readouts.
 
 Batch's 3D view uses a filled GPU surface with antialiased intensity contours
-by default. Surface settings switch contours off or choose phase guides as
+by default. Zooming retains the selected mesh resolution throughout the gesture,
+so there is no detail change when zooming stops. Surface settings switch contours
+off or choose phase guides as
 surface lines or translucent reference planes. The existing icon-only Phases
 toggle controls visibility in both 2D and 3D. References reuse native phase
 d spacings and colors, converting with the acquired series wavelength; their

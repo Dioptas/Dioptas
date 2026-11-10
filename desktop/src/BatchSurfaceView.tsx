@@ -164,7 +164,6 @@ export function BatchSurfaceView({
     return "high";
   });
   const [interacting, setInteracting] = useState(false);
-  const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastHover = useRef(-Infinity);
   const rightClick = useRef<{ time: number; x: number; y: number } | null>(
     null,
@@ -240,7 +239,6 @@ export function BatchSurfaceView({
   useEffect(() => {
     const element = canvas.current!;
     return () => {
-      if (settle.current) clearTimeout(settle.current);
       disposeSurfaceGPU(element);
     };
   }, []);
@@ -320,12 +318,6 @@ export function BatchSurfaceView({
   };
   usePlotWheel(canvas, (e) => {
     rightClick.current = null;
-    setInteracting(true);
-    if (settle.current) clearTimeout(settle.current);
-    settle.current = setTimeout(() => {
-      settle.current = null;
-      if (!drag.current?.moved) setInteracting(false);
-    }, 140);
     setView((v) => ({
       ...v,
       camera: {
@@ -506,8 +498,8 @@ export function BatchSurfaceView({
           </label>
           <p role="status">
             {renderer === "webgl2" ? "GPU drawing" : "Canvas fallback"} · Higher
-            detail uses more stored samples. A lighter mesh is used while
-            moving.
+            detail uses more stored samples. Zooming keeps the selected detail;
+            rotation and panning use a lighter mesh while moving.
           </p>
           <SurfaceNumber
             label={`Surface radial minimum ${unitLabel(batch.unit)}`}
@@ -579,10 +571,6 @@ export function BatchSurfaceView({
             if (!secondary) rightClick.current = null;
             e.currentTarget.focus();
             e.currentTarget.setPointerCapture(e.pointerId);
-            if (settle.current) {
-              clearTimeout(settle.current);
-              settle.current = null;
-            }
             drag.current = {
               x: e.clientX,
               y: e.clientY,

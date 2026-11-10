@@ -121,6 +121,52 @@ try {
       );
       const box = await surface.boundingBox();
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      // Observe every mesh transition, including any brief reduced-detail draw
+      // that might already have finished by the time Playwright reads the canvas.
+      await surface.evaluate((canvas) => {
+        window.zoomMeshSnapshots = [];
+        window.zoomMeshObserver = new MutationObserver(() =>
+          window.zoomMeshSnapshots.push({ ...canvas.dataset }),
+        );
+        window.zoomMeshObserver.observe(canvas, {
+          attributes: true,
+          attributeFilter: [
+            "data-vertices",
+            "data-frame-step",
+            "data-column-step",
+          ],
+        });
+      });
+      const beforeZoom = +(await details(surface)).zoom;
+      await page.mouse.wheel(0, -180);
+      await page.waitForFunction(
+        (before) =>
+          +document.querySelector('[data-testid="batch-surface"]').dataset
+            .zoom > before,
+        beforeZoom,
+      );
+      const zooming = await details(surface);
+      assert.equal(
+        zooming.vertices,
+        fine.vertices,
+        "Zoom keeps the selected mesh resolution",
+      );
+      const zoomImage = await surface.evaluate((canvas) => canvas.toDataURL());
+      await page.waitForTimeout(250);
+      assert.equal(
+        await surface.evaluate((canvas) => canvas.toDataURL()),
+        zoomImage,
+        "Finishing zoom does not replace the rendered surface",
+      );
+      const zoomMeshes = await page.evaluate(() => {
+        window.zoomMeshObserver.disconnect();
+        return window.zoomMeshSnapshots;
+      });
+      for (const sample of zoomMeshes) {
+        assert.equal(sample.vertices, fine.vertices);
+        assert.equal(sample.frameStep, fine.frameStep);
+        assert.equal(sample.columnStep, fine.columnStep);
+      }
       await page.mouse.down();
       await page.mouse.move(
         box.x + box.width / 2 + 45,
