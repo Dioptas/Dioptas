@@ -50,6 +50,7 @@ export function retainsCorrectionPreview(command: string) {
     "validation_position",
     "cake_profile",
     "save_cake_profile",
+    "integration_save_spottiness",
     "integration_phase_state",
     "integration_phase_guides",
     "integration_diagnostics",

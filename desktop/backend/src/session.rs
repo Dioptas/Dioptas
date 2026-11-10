@@ -23,7 +23,7 @@ mod checkpoint;
 #[path = "combination.rs"]
 mod combination;
 #[path = "file_workflow.rs"]
-mod file_workflow;
+pub(crate) mod file_workflow;
 #[path = "geometric_mask.rs"]
 mod geometric_mask;
 #[path = "image_batch.rs"]
@@ -91,6 +91,8 @@ struct Settings {
     cake_azimuth: Option<[f64; 2]>,
     trim_zeros: bool,
     spread: bool,
+    #[serde(default)]
+    spottiness_relative: bool,
     csc: bool,
     #[serde(default)]
     auto_layout: bool,
@@ -123,6 +125,7 @@ impl Default for Settings {
             cake_azimuth: None,
             trim_zeros: true,
             spread: false,
+            spottiness_relative: false,
             csc: false,
             auto_layout: false,
             roi: None,
@@ -889,6 +892,9 @@ impl Session {
                         "trim_zeros" => candidate.trim_zeros = boolean(value, key)?,
                         "auto_save" => candidate.auto_save = boolean(value, key)?,
                         "azimuthal_std" => candidate.spread = boolean(value, key)?,
+                        "spottiness_relative" => {
+                            candidate.spottiness_relative = boolean(value, key)?
+                        }
                         "sparse_layout" => {
                             candidate.csc = match value.as_str() {
                                 Some("csc" | "auto") => true,
@@ -972,15 +978,19 @@ impl Session {
                     self.patterns
                         .convert_unit(&candidate.unit, candidate.geometry.wavelength)?;
                 }
-                // Unit buttons change the 1D grid but only relabel an existing
-                // cake. Retain its source coordinates and scientific pixels.
+                let display_only = args
+                    .as_object()
+                    .is_some_and(|a| a.len() == 1 && a.contains_key("spottiness_relative"));
+                // Unit buttons change the 1D grid but only relabel an existing cake.
                 let unit_only = args
                     .as_object()
                     .unwrap()
                     .keys()
                     .all(|k| k == "unit" || (k == "defer_integration" && !defer));
                 self.settings = candidate;
-                if unit_only && !defer {
+                if display_only {
+                    // Changing the diagnostic statistic uses the same native samples.
+                } else if unit_only && !defer {
                     self.calculate_preserving_cake()?;
                 } else {
                     self.calculate(defer)?;
@@ -2124,7 +2134,8 @@ impl Session {
             "integration": {
                 "roi":s.roi, "automaticBinning": s.automatic_binning, "actualBins": if s.automatic_binning {self.automatic_bins()}else{s.bins}, "supersampling":s.supersampling, "method":if s.pyfai_splitting {"pyfai_full"} else if s.supersampling > 1 {"subpixel"} else {"polygon"}, "azimuthRange":s.azimuth, "cakeAzimuthRange":s.cake_azimuth,
                 "sparseLayout":if s.auto_layout {"auto"}else if s.csc {"csc"}else{"csr"},
-                "cakeBins": s.cake_bins, "solidAngle":s.solid_angle, "polarization":s.polarization, "poissonErrors":s.errors, "trimZeros":s.trim_zeros,
+                "cakeBins": s.cake_bins, "solidAngle":s.solid_angle, "polarization":s.polarization, "poissonErrors":s.errors, "trimZeros":s.trim_zeros, "azimuthalStd":s.spread, "spottinessRelative":s.spottiness_relative,
+                "spottinessAvailable":!self.combination.patterns && self.patterns.raw.as_ref().is_some_and(|c| c.spread.is_some()),
                 "autoSave":s.auto_save, "formats":s.formats, "outputDirectory":"", "imageBackground":{"filename":null,"scale":1,"offset":0},
                 "patternBackground":{"enabled":false,"smoothing":1,"iterations":1,"order":1,"range":null,"overlay":false},
                 "flatField":{"filename":null,"enabled":false}, "corrections":serde_json::from_str::<Value>(include_str!("correction_defaults.json")).expect("checked correction schema"), "overlayDirectory":"", "waterfallSeparation":100, "overlays":[], "sameConditions":true,

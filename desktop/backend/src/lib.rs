@@ -42,6 +42,7 @@ mod scan;
 mod sector;
 mod series;
 pub mod session;
+mod spottiness;
 mod transform;
 pub mod transport;
 mod waterfall_spacing;

@@ -120,7 +120,7 @@ import { MaskView } from "./MaskView";
 import { MaskPanel } from "./MaskPanel";
 import { useMaskTools } from "./maskDomain";
 import { RasterView, type RasterExport } from "./RasterView";
-import { PatternView } from "./PatternView";
+import { SpottinessPattern } from "./SpottinessPattern";
 import { ORIGINAL_PATTERN_UID } from "./integration";
 import { useLiveBackground, DEFAULT_BACKGROUND } from "./useLiveBackground";
 import { BACKGROUND_RANGE_COLOR } from "./drawRangeSelection";
@@ -2886,7 +2886,12 @@ export default function App() {
                           </>
                         )}
                         {pattern ? (
-                          <PatternView
+                          <SpottinessPattern
+                            enabled={
+                              mode === "integration" &&
+                              !!state?.integration.azimuthalStd
+                            }
+                            relative={!!state?.integration.spottinessRelative}
                             {...patternPlot!.props}
                             emphasizePattern={
                               mode === "integration" &&
