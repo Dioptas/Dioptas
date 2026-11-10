@@ -38,6 +38,7 @@ test(
       });
       await call("batch_select", { index: 2 });
       for (const action of [
+        "integration_background",
         "batch_background_extract",
         "batch_background_from_pattern",
       ]) {
@@ -53,18 +54,20 @@ test(
         const batch = await call("batch_snapshot");
         const running = native.invoke(
           action,
-          action === "batch_background_extract"
-            ? {
-                parameters: { smoothing: 0.2, iterations: 99999, order: 7 },
-              }
-            : {},
+          action === "integration_background"
+            ? { enabled: true, smoothing: 0.2, iterations: 99999, order: 7 }
+            : action === "batch_background_extract"
+              ? {
+                  parameters: { smoothing: 0.2, iterations: 99999, order: 7 },
+                }
+              : {},
         );
         const label =
           action === "batch_background_extract"
             ? "Extracting batch background"
             : "Applying pattern background to batch";
         let progress;
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < 2000; i++) {
           progress = (await call("progress")).progress;
           if (progress.running && progress.label === label) break;
           await new Promise((r) => setTimeout(r, 2));

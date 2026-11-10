@@ -14,6 +14,33 @@ pub(crate) fn active(patterns: &Patterns) -> bool {
         || patterns.background_uid.is_some()
         || patterns.anonymous_background.is_some()
 }
+/// Changes to ordinary overlay colors, names or visibility do not refit a
+/// series. The designated background's actual values and transforms do.
+pub(crate) fn changed(before: &Patterns, after: &Patterns) -> bool {
+    let before_overlay = before
+        .overlays
+        .iter()
+        .find(|o| Some(&o.uid) == before.background_uid.as_ref());
+    let after_overlay = after
+        .overlays
+        .iter()
+        .find(|o| Some(&o.uid) == after.background_uid.as_ref());
+    let same_overlay = match (before_overlay, after_overlay) {
+        (None, None) => true,
+        (Some(a), Some(b)) => {
+            a.data == b.data
+                && a.scale == b.scale
+                && a.offset == b.offset
+                && a.batch_source == b.batch_source
+        }
+        _ => false,
+    };
+    before.background != after.background
+        || before.background_uid != after.background_uid
+        || before.anonymous_background != after.anonymous_background
+        || !same_overlay
+        || (before.unit != after.unit && (active(before) || active(after)))
+}
 impl Series {
     pub(crate) fn apply_pattern_background(
         &mut self,

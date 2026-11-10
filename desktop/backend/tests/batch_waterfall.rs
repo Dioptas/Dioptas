@@ -202,7 +202,8 @@ fn normalized_waterfalls_replace_repeat_and_round_trip_with_overlay_edits() {
     fixture(&input, "2th_deg", true);
     let mut s = Session::new(root());
     let opened = call(&mut s, "batch_open", json!({"path":input}));
-    // Existing overlays are replaced like Qt. Extraction is independent of main-pattern fitting.
+    // Existing overlays are replaced like Qt. Choose Original explicitly to
+    // verify source-based extraction while pattern fitting remains enabled.
     call(
         &mut s,
         "integration_overlay",
@@ -212,6 +213,11 @@ fn normalized_waterfalls_replace_repeat_and_round_trip_with_overlay_edits() {
         &mut s,
         "integration_background",
         json!({"enabled":true,"smoothing":0.1,"iterations":1,"order":1}),
+    );
+    call(
+        &mut s,
+        "batch_background_display",
+        json!({"subtract":false,"cut":false}),
     );
     let normalized = call(
         &mut s,
@@ -271,6 +277,11 @@ fn normalized_waterfalls_replace_repeat_and_round_trip_with_overlay_edits() {
     assert_eq!(r.result["state"]["integration"]["overlays"], metadata);
     assert_eq!(r.result["batch"]["normalized"], true);
     // Raw matrix and reversible normalization remain owned by Batch, not overlays.
+    call(
+        &mut restored,
+        "batch_background_display",
+        json!({"subtract":false,"cut":false}),
+    );
     let restored_data = call(&mut restored, "batch_normalize", json!({"enabled":false}));
     assert_eq!(
         restored_data.result["batch"]["id"],

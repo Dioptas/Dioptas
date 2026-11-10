@@ -384,6 +384,7 @@ for the numerical references, progress/cancellation, headless checks and bounds.
 
 Batch pattern-background inheritance: new raw integrations now use the active
 Integration pattern background, including its ROI and loaded background, and
-start subtracted. Existing batches expose **Options → Use pattern background**.
+start subtracted. Existing batches now update automatically on background edits and Undo/Redo,
+with serialized live edits and shared progress/cancellation.
 The same per-pattern calculation is reused; sources, counting std, Map ownership
 and reversible originals remain intact. See [the background qualification](BATCH_BACKGROUND_NATIVE.md).

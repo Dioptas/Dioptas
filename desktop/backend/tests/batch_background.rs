@@ -483,3 +483,157 @@ fn loaded_overlay_and_automatic_pattern_background_use_the_same_batch_pipeline()
     call(&mut s, "batch_background_from_pattern", json!({}));
     assert_batch_background_matches_pattern(&mut s, &output);
 }
+
+#[test]
+fn pattern_edits_automatically_update_batch_and_history_without_touching_sources() {
+    let temp = tempfile::tempdir().unwrap();
+    let input = temp.path().join("live.h5");
+    let output = temp.path().join("out.h5");
+    let project = temp.path().join("live.dio");
+    let reference = fixture(&input, 0);
+    let mut s = session();
+    call(&mut s, "batch_open", json!({"path":input}));
+    call(
+        &mut s,
+        "batch_normalize",
+        json!({"enabled":true,"start":5,"stop":70,"reference":2}),
+    );
+    let source = saved(&mut s, &output, "processed/result/data");
+    call(&mut s, "map_batch", json!({"path":output}));
+    let map = call(&mut s, "state", json!({})).result["map"].clone();
+    let first = call(
+        &mut s,
+        "integration_background",
+        json!({"enabled":true,"smoothing":0.37,"iterations":11,"order":5,"range":null}),
+    );
+    assert_eq!(first.result["batch"]["backgroundState"]["subtract"], true);
+    assert_batch_background_matches_pattern(&mut s, &output);
+    let a = batch(&mut s);
+    let second = call(
+        &mut s,
+        "integration_background",
+        json!({"enabled":true,"smoothing":0.44,"iterations":13,"order":6,"range":[2.,8.]}),
+    );
+    assert_eq!(second.result["batch"]["backgroundState"]["cut"], true);
+    assert_batch_background_matches_pattern(&mut s, &output);
+    let b = batch(&mut s);
+    assert_ne!(a["raster"], b["raster"]);
+    let undo = call(&mut s, "undo_calibration", json!({}));
+    assert_eq!(undo.result["batch"]["raster"], a["raster"]);
+    let redo = call(&mut s, "redo_calibration", json!({}));
+    assert_eq!(redo.result["batch"]["raster"], b["raster"]);
+    let disabled = call(&mut s, "integration_background", json!({"enabled":false}));
+    assert_eq!(
+        disabled.result["batch"]["backgroundState"]["subtract"],
+        false
+    );
+    assert_eq!(disabled.result["batch"]["backgroundState"]["cut"], false);
+    assert_eq!(saved(&mut s, &output, "processed/result/data"), source);
+    assert_eq!(call(&mut s, "state", json!({})).result["map"], map);
+    call(
+        &mut s,
+        "integration_background",
+        json!({"enabled":true,"smoothing":0.4,"iterations":10,"order":6}),
+    );
+    // A saved explicit Original choice is restored; opening a project is not a
+    // new background edit and must not silently recompute its scientific data.
+    call(
+        &mut s,
+        "batch_background_display",
+        json!({"subtract":false}),
+    );
+    let saved_state = batch(&mut s);
+    call(&mut s, "save_project", json!({"path":project}));
+    let mut reopened = session();
+    call(&mut reopened, "open_project", json!({"path":project}));
+    assert_eq!(batch(&mut reopened), saved_state);
+    call(
+        &mut reopened,
+        "integration_background",
+        json!({"enabled":true,"smoothing":0.5,"iterations":10,"order":6}),
+    );
+    assert_eq!(batch(&mut reopened)["backgroundState"]["subtract"], true);
+    call(&mut reopened, "batch_normalize", json!({"enabled":false}));
+    let original: Vec<f64> = serde_json::from_value(reference["data"].clone()).unwrap();
+    assert_eq!(
+        saved(&mut reopened, &output, "processed/result/data"),
+        original
+    );
+}
+
+#[test]
+fn background_overlay_edits_update_batch_but_appearance_edits_do_not_refit() {
+    let temp = tempfile::tempdir().unwrap();
+    let input = temp.path().join("live.h5");
+    let overlay = temp.path().join("flat.xy");
+    let output = temp.path().join("out.h5");
+    let reference = fixture(&input, 0);
+    let x: Vec<f64> = serde_json::from_value(reference["x"].clone()).unwrap();
+    std::fs::write(
+        &overlay,
+        x.iter()
+            .map(|v| format!("{v:.17e} 5\n"))
+            .collect::<String>(),
+    )
+    .unwrap();
+    let mut s = session();
+    call(&mut s, "batch_open", json!({"path":input}));
+    call(
+        &mut s,
+        "integration_overlay",
+        json!({"operation":"load","path":overlay}),
+    );
+    let selected = call(
+        &mut s,
+        "integration_overlay",
+        json!({"operation":"background","index":0}),
+    );
+    assert_eq!(
+        selected.result["batch"]["backgroundState"]["subtract"],
+        true
+    );
+    let before = batch(&mut s);
+    let styled = call(
+        &mut s,
+        "integration_overlay",
+        json!({"operation":"update","index":0,"color":"#ff0000"}),
+    );
+    assert!(styled.result.get("batch").is_none());
+    assert_eq!(batch(&mut s), before);
+    let scaled = call(
+        &mut s,
+        "integration_overlay",
+        json!({"operation":"update","index":0,"scale":1.7,"offset":2.0}),
+    );
+    assert_ne!(scaled.result["batch"]["raster"], before["raster"]);
+    assert_batch_background_matches_pattern(&mut s, &output);
+    let cleared = call(&mut s, "integration_clear_background", json!({}));
+    assert_eq!(
+        cleared.result["batch"]["backgroundState"]["subtract"],
+        false
+    );
+}
+
+#[test]
+fn failed_automatic_batch_refit_restores_pattern_settings_and_previous_batch() {
+    let temp = tempfile::tempdir().unwrap();
+    let input = temp.path().join("invalid_row.h5");
+    fixture(&input, 0);
+    {
+        let file = hdf5::File::open_rw(&input).unwrap();
+        let d = file.dataset("data").unwrap();
+        let mut values = d.read_raw::<f64>().unwrap();
+        values[210] = f64::NAN;
+        d.write_raw(&values).unwrap();
+    }
+    let mut s = session();
+    call(&mut s, "batch_open", json!({"path":input}));
+    let before = call(&mut s, "state", json!({})).result;
+    let result = s.invoke(&request(
+        "integration_background",
+        json!({"enabled":true,"smoothing":0.3,"iterations":10,"order":5}),
+    ));
+    assert_eq!(result.result["ok"], false);
+    assert!(result.result["error"].as_str().unwrap().contains("finite"));
+    assert_eq!(call(&mut s, "state", json!({})).result, before);
+}

@@ -21,6 +21,22 @@ pub(super) fn normalization_bins(b: &crate::series::Series, args: &Value) -> Res
     Ok(converted)
 }
 impl Session {
+    pub(super) fn synchronize_batch_background(
+        &mut self,
+        before: &crate::pattern::Patterns,
+    ) -> Result<bool, String> {
+        if self.batch.is_none() || !crate::batch_pattern_background::changed(before, &self.patterns)
+        {
+            return Ok(false);
+        }
+        let b = self.batch.as_mut().unwrap();
+        if crate::batch_pattern_background::active(&self.patterns) {
+            b.apply_pattern_background(&self.patterns, &self.control)?;
+        } else {
+            b.configure_batch_background(&json!({"subtract":false,"cut":false}))?;
+        }
+        Ok(true)
+    }
     pub(super) fn integrate_batch_with_background(
         &mut self,
         paths: Vec<String>,

@@ -325,9 +325,28 @@ impl Session {
         )
         .then(|| self.calibration_snapshot());
         let calibration_head = self.calibration_history.undo.last().cloned();
+        // Configuration/project restore owns its saved Batch display choice.
+        // Only explicit pattern-background edits and their undo/redo follow live.
+        let background_before = matches!(
+            request.action.as_str(),
+            "integration_background"
+                | "integration_clear_background"
+                | "integration_overlay"
+                | "integration_settings"
+                | "settings"
+                | "batch_unit"
+                | "undo_calibration"
+                | "redo_calibration"
+        )
+        .then(|| self.patterns.clone());
         let dispatched = self
             .dispatch(&request.action, &payload)
             .and_then(|mut reply| {
+                if let Some(before) = &background_before
+                    && self.synchronize_batch_background(before)?
+                {
+                    self.attach_batch(&mut reply);
+                }
                 self.update_combination_reply(&mut reply, &request.action, &payload)?;
                 Ok(reply)
             });
@@ -400,7 +419,8 @@ impl Session {
                     self.restore_checkpoint(checkpoint);
                 }
                 if error.starts_with("Operation cancelled")
-                    && (request.action.starts_with("batch_")
+                    && (background_before.is_some()
+                        || request.action.starts_with("batch_")
                         || request.action.starts_with("map_")
                         || request.action == "open_project"
                         || request.action == "save_project"

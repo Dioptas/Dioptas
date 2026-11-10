@@ -249,6 +249,8 @@ export default function App() {
   });
   const [progress, setProgress] = useState<Response["progress"]>();
   const progressGeneration = useRef(0);
+  const [quietBackgroundProcessing, setQuietBackgroundProcessing] =
+    useState(false);
   const [patternZoom, setPatternZoom] = usePlotZoomPreference("pattern");
   const [cakeZoom, setCakeZoom] = usePlotZoomPreference("cake");
   const [setupDirty, setSetupDirty] = useState(false);
@@ -829,6 +831,12 @@ export default function App() {
         document.activeElement instanceof HTMLElement
       )
         calibrationResetOpener.current = document.activeElement;
+      const quietBackgroundJob = quiet && (liveBackground || overlayEditing);
+      if (quietBackgroundJob) {
+        ++progressGeneration.current;
+        setProgress(undefined);
+        setQuietBackgroundProcessing(true);
+      }
       if (!quiet) {
         ++progressGeneration.current;
         setProgress(undefined);
@@ -1006,6 +1014,11 @@ export default function App() {
           /* Keep the original error visible. */
         }
       } finally {
+        if (quietBackgroundJob) {
+          ++progressGeneration.current;
+          setProgress(undefined);
+          setQuietBackgroundProcessing(false);
+        }
         if (!quiet) {
           ++progressGeneration.current;
           setProgress(undefined);
@@ -1195,16 +1208,18 @@ export default function App() {
     };
   }, [run]);
   useEffect(() => {
-    if (!busy) {
+    if (!busy && !quietBackgroundProcessing) {
       setProgress(undefined);
       return;
     }
     let active = true;
     let polling = false;
-    const generation = progressGeneration.current;
     const timer = setInterval(() => {
       if (polling) return;
       polling = true;
+      // Consecutive quiet edits can share a render; capture the active job
+      // for each poll so a completed edit cannot suppress its successor.
+      const generation = progressGeneration.current;
       void bridge
         .current?.("progress")
         .then((r) => {
@@ -1220,7 +1235,7 @@ export default function App() {
       active = false;
       clearInterval(timer);
     };
-  }, [busy]);
+  }, [busy, quietBackgroundProcessing]);
   useEffect(() => {
     function keyboard(event: KeyboardEvent) {
       const target =

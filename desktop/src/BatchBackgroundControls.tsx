@@ -88,23 +88,9 @@ export function BatchBackgroundControls({
     <fieldset className="batch-background-settings">
       <legend>Batch background</legend>
       <p>
-        New integrations use the active pattern background. Apply it here to
-        update an existing batch.
+        Changes to the pattern background update this batch automatically. You
+        can also extract a separate background below.
       </p>
-      <Button
-        disabled={!ready || !batch}
-        title="Apply the current Integration pattern background; show originals when it is disabled"
-        onClick={() =>
-          run(
-            "batch_background_from_pattern",
-            {},
-            "Applying pattern background to batch…",
-          )
-        }
-      >
-        Use pattern background
-      </Button>
-      <p>Or extract a separate Smooth Bruckner background for every frame.</p>
       <label>
         Smooth width{" "}
         {unitLabel(state?.parametersUnit ?? batch?.sourceUnit ?? "2th_deg")}
@@ -223,7 +209,7 @@ export function BatchBackgroundControls({
       </div>
       <BatchBackgroundDisplay batch={batch} ready={ready} run={run} />
       <p>
-        Use pattern background again after changing the pattern settings.
+        The batch follows changes to the pattern background automatically.
         Original intensities remain available. Counting std does not include
         uncertainty in the fitted background.
       </p>

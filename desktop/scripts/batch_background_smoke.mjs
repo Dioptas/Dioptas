@@ -27,8 +27,16 @@ try {
     });
     const commands = [],
       errors = [];
+    let backgroundGate = null;
+    let backgroundStarted = null;
     const invoke = async (action, payload = {}) => {
       commands.push(action);
+      if (action === "integration_background" && backgroundGate) {
+        const gate = backgroundGate;
+        backgroundGate = null;
+        backgroundStarted?.();
+        await gate;
+      }
       if (action === "batch_load_data" && !payload.paths)
         payload = {
           ...payload,
@@ -88,7 +96,10 @@ try {
         .click();
       const dock = page.locator(".batch-dock");
       await dock.getByTestId("batch-heatmap").waitFor();
-      const options = dock.getByRole("button", { name: "Options", exact: true });
+      const options = dock.getByRole("button", {
+        name: "Options",
+        exact: true,
+      });
       await options.click();
       await dock
         .getByLabel("Batch background smooth width", { exact: true })
@@ -264,10 +275,12 @@ try {
             .regionUpdating === "false",
       );
       await ready();
-      await dock
-        .getByRole("button", { name: "Use pattern background", exact: true })
-        .click();
-      await ready();
+      assert.equal(
+        await dock
+          .getByRole("button", { name: "Use pattern background", exact: true })
+          .count(),
+        0,
+      );
       const inherited = (await invoke("batch_snapshot")).batch;
       assert.equal(inherited.backgroundState.subtract, true);
       assert.equal(inherited.backgroundState.patternSettings, true);
@@ -281,6 +294,66 @@ try {
       await page.screenshot({
         path: path.join(artifacts, `${name}-pattern-background.png`),
       });
+      // While one background request is held, additional edits are coalesced
+      // into the newest full settings, with no overlapping scientific request.
+      const autoPopup = context.waitForEvent("page");
+      await dock
+        .getByRole("button", { name: "Detach batch", exact: true })
+        .click();
+      const autoChild = await autoPopup;
+      await autoChild.getByTestId("batch-heatmap").waitFor();
+      const callsBefore = commands.filter(
+        (c) => c === "integration_background",
+      ).length;
+      let releaseBackground;
+      backgroundGate = new Promise((resolve) => (releaseBackground = resolve));
+      const started = new Promise((resolve) => (backgroundStarted = resolve));
+      await page.getByLabel("Smooth width", { exact: true }).fill("0.4");
+      await started;
+      assert.equal(
+        await page.getByLabel("Iterations", { exact: true }).isEnabled(),
+        true,
+      );
+      await page.getByLabel("Iterations", { exact: true }).fill("17");
+      await page.getByLabel("Polynomial order", { exact: true }).fill("6");
+      await page.getByLabel("Smooth width", { exact: true }).fill("0.48");
+      await page.getByLabel("Iterations", { exact: true }).fill("23");
+      releaseBackground();
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[data-testid="pattern-canvas"]')?.dataset
+            .regionUpdating === "false",
+      );
+      await ready();
+      const updated = (await invoke("batch_snapshot")).batch;
+      assert.deepEqual(updated.backgroundState.parameters, {
+        smoothing: 0.48,
+        iterations: 23,
+        order: 6,
+      });
+      assert.equal(
+        commands.filter((c) => c === "integration_background").length -
+          callsBefore,
+        2,
+      );
+      await autoChild
+        .getByRole("button", { name: "Options", exact: true })
+        .click();
+      await autoChild.waitForFunction(
+        () =>
+          document.querySelector('[aria-label="Batch background smooth width"]')
+            ?.value === "0.48",
+      );
+      assert.equal(
+        await autoChild
+          .getByLabel("Batch background iterations", { exact: true })
+          .inputValue(),
+        "23",
+      );
+      await autoChild
+        .getByRole("button", { name: "Dock batch below image", exact: true })
+        .click();
+      await dock.getByRole("tab", { name: "2D", exact: true }).click();
       // New stored files keep their persisted choice. Disable the live pattern
       // subtraction before loading the long cancellation input below.
       await page
@@ -289,7 +362,16 @@ try {
           exact: true,
         })
         .uncheck();
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[data-testid="pattern-canvas"]')?.dataset
+            .regionUpdating === "false",
+      );
       await ready();
+      assert.equal(
+        (await invoke("batch_snapshot")).batch.backgroundState.subtract,
+        false,
+      );
       // Exercise the existing footer progress/cancel path through real UI.
       await dock
         .getByRole("button", { name: "Load raw/proc data", exact: true })
@@ -314,6 +396,54 @@ try {
         .click();
       await ready();
       assert.deepEqual((await invoke("batch_snapshot")).batch, beforeCancel);
+      // A live edit stays editable while its automatic Batch fit exposes
+      // progress/cancel in the footer, without global busy-state dimming.
+      await page.getByLabel("Smooth width", { exact: true }).fill("0.2");
+      await page.getByLabel("Polynomial order", { exact: true }).fill("7");
+      await page.getByLabel("Iterations", { exact: true }).fill("99999");
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[data-testid="pattern-canvas"]')?.dataset
+            .regionUpdating === "false",
+      );
+      await ready();
+      const beforeAutoCancel = (await invoke("batch_snapshot")).batch;
+      await page
+        .getByRole("checkbox", {
+          name: "Subtract automatic pattern background",
+          exact: true,
+        })
+        .check();
+      const cancelAuto = page.getByRole("button", {
+        name: "Cancel processing",
+        exact: true,
+      });
+      await cancelAuto.waitFor();
+      assert.equal(
+        await page.getByLabel("Iterations", { exact: true }).isEnabled(),
+        true,
+      );
+      await cancelAuto.click();
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[data-testid="pattern-canvas"]')?.dataset
+            .regionUpdating === "false",
+      );
+      await ready();
+      assert.deepEqual(
+        (await invoke("batch_snapshot")).batch,
+        beforeAutoCancel,
+      );
+      assert.equal(
+        await page
+          .getByRole("checkbox", {
+            name: "Subtract automatic pattern background",
+            exact: true,
+          })
+          .isChecked(),
+        false,
+      );
+      assert.equal(await cancelAuto.count(), 0);
       assert.deepEqual(errors, []);
       receipts.push({
         browser: name,
@@ -323,7 +453,35 @@ try {
         detachedRouting: true,
         footerCancellation: true,
         patternBackground: true,
+        automaticUpdates: true,
+        coalescedEdits: true,
+        automaticCancellation: true,
       });
+    } catch (error) {
+      const diagnostics = [];
+      for (const [i, p] of context.pages().entries()) {
+        diagnostics.push({
+          url: p.url(),
+          text: await p
+            .locator("body")
+            .innerText()
+            .catch(() => "closed"),
+        });
+        await p
+          .screenshot({
+            path: path.join(artifacts, `${name}-failure-${i}.png`),
+          })
+          .catch(() => {});
+      }
+      await writeFile(
+        path.join(artifacts, `${name}-failure.json`),
+        JSON.stringify(
+          { error: String(error), diagnostics, commands: commands.slice(-30) },
+          null,
+          2,
+        ),
+      );
+      throw error;
     } finally {
       await context.close();
       await browser.close();
