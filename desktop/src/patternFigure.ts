@@ -661,7 +661,7 @@ export function renderPatternFigure(
   }
   ctx.restore();
   const axisBottom = bottom + rowsHeight;
-  line(L, top, L, bottom);
+  line(L, top, L, axisBottom);
   line(L, axisBottom, R, axisBottom);
   if (o.box) {
     line(L, top, R, top);

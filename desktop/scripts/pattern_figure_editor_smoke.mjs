@@ -200,6 +200,36 @@ try {
             });
             if (baselines.some((y, i) => i && y <= baselines[i - 1]))
               throw Error("Reference rows are not stacked below each other");
+            const frameSegments = [...xml.documentElement.children]
+              .filter((el) => el.tagName === "path")
+              .map((el) =>
+                el
+                  .getAttribute("d")
+                  .match(/^M([\d.e+-]+) ([\d.e+-]+)L([\d.e+-]+) ([\d.e+-]+)$/),
+              )
+              .filter(Boolean)
+              .map((match) => match.slice(1).map(Number));
+            const lowerAxis = frameSegments.find(
+              ([x0, y0, x1, y1]) =>
+                Math.abs(x0 - left) < 1e-7 &&
+                Math.abs(x1 - left - width) < 1e-7 &&
+                y0 === y1 &&
+                y0 > Math.max(...baselines),
+            );
+            if (
+              !lowerAxis ||
+              !frameSegments.some(
+                ([x0, y0, x1, y1]) =>
+                  Math.abs(x0 - left) < 1e-7 &&
+                  x0 === x1 &&
+                  y0 === Number(clip[2]) &&
+                  y1 === lowerAxis[1],
+              )
+            )
+              throw Error(
+                "The left frame must remain continuous through the phase reference rows",
+              );
+
             settings.options.phases = "plot";
             settings.options.scale = "log";
             settings.options.yRange = "auto";

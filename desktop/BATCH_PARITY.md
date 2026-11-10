@@ -64,6 +64,14 @@ while detached raises and restores the existing window, including if minimized.
 Automatic opening after integration and layout restoration always show Batch.
 The detached toolbar has no duplicate close button; use the native window close
 control. The dock retains its Hide button.
+When the detector image is detached, the docked Batch fills the entire freed
+left column in wide and compact layouts. Its normal fixed height, image/Batch
+divider and Collapse action are suspended for that layout. Docking the image
+restores the saved Batch height and collapsed state. If Batch is also detached
+or hidden, the empty column and divider disappear, leaving the task tabs and
+pattern across the main window. Docking Batch while the image remains detached
+restores the full-height series beside the pattern.
+
 Dock preference, open/closed state, height and collapsed state persist.
 Both Integration splitters retain their preferred percentages. A smaller window
 clamps the displayed sizes without overwriting preferences, so expanding it
@@ -249,3 +257,19 @@ compares saved native bounds, besides floating/closed/docked/collapsed layout an
 splitter state. Private WebKit stores isolate test preferences; each processing
 child is reaped. The old failures remain archived. See
 [NATIVE_VERIFICATION.md](NATIVE_VERIFICATION.md) for current scope and commands.
+
+## Detached-image layout follow-up (2026-11-10)
+
+The wide-layout Batch dock previously kept its 320 px inline height inside a
+952 px column after image detaching. It now uses the same fill layout as the
+compact dock, with a column flex container so the plot receives the available
+height. Saved dock height/collapse preferences remain unchanged.
+
+Headless `test:integration-responsive` passes in Chromium and WebKit at 1440 and
+1000 px. Bounds checks require the dock to fill its pane and the heatmap to use
+most of it. The workflow also covers both views detached, full-width task tabs
+and pattern, Batch re-docking while the image stays detached, preserved heatmap
+identity through the image-only transition, and restoring a resized/collapsed
+dock when the image returns. Screenshots and receipts are under
+`artifacts/integration-responsive/`. The Integration panel workflow, all 113
+frontend tests and the production build also pass.

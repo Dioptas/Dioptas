@@ -166,7 +166,10 @@
   .integration-layout[data-detector-detached="true"]
   .integration-batch-pane {
   display: flex;
+  flex-direction: column;
   flex: 1;
+  min-width: 0;
+  min-height: 0;
   opacity: 1;
   pointer-events: auto;
 }

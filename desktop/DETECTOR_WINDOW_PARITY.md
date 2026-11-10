@@ -13,9 +13,10 @@ system's close button return the view.
 
 Integration removes the image pane and its divider while detached, giving its
 width to the pattern and task controls. Docking restores the saved split without
-overwriting it. An existing docked Batch remains in the main workspace and stays
-interactive; a future Batch layout redesign is deferred. Other modes retain their
-Show/Dock placeholder and existing layouts.
+overwriting it. A docked Batch fills the freed image column in the main workspace.
+If Batch is also detached or hidden, only the full-width task tabs and pattern
+remain. Docking the image restores the saved Batch height and collapsed state.
+Other modes retain their Show/Dock placeholder and existing layouts.
 
 ## Reference and ownership
 

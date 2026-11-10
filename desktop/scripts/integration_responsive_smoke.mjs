@@ -525,9 +525,130 @@ try {
           .evaluate((el) => el === window.__responsiveBatch),
         true,
       );
+      for (const width of [1440, 1000]) {
+        await page.setViewportSize({
+          width,
+          height: width === 1440 ? 1000 : 760,
+        });
+        await page.waitForTimeout(150);
+        const bounds = await page
+          .locator(".integration-left-pane")
+          .evaluate((pane) => {
+            const p = pane.getBoundingClientRect(),
+              dock = pane.querySelector(".batch-dock").getBoundingClientRect(),
+              plot = pane
+                .querySelector('[data-testid="batch-heatmap"]')
+                .getBoundingClientRect();
+            return {
+              pane: p.toJSON(),
+              dock: dock.toJSON(),
+              plot: plot.toJSON(),
+            };
+          });
+        await page.screenshot({
+          path: path.join(
+            artifacts,
+            `${name}-${width}-image-detached-batch.png`,
+          ),
+        });
+        assert.ok(
+          Math.abs(bounds.dock.width - bounds.pane.width) < 2 &&
+            Math.abs(bounds.dock.height - bounds.pane.height) < 2,
+          `Batch does not fill the freed image pane: ${JSON.stringify(bounds)}`,
+        );
+        assert.ok(
+          bounds.plot.width > bounds.pane.width * 0.7 &&
+            bounds.plot.height > bounds.pane.height * 0.7,
+        );
+      }
+      // Floating both views leaves only full-width task controls and pattern.
+      const patternWithBatch = await page
+        .locator(".pattern-panel")
+        .boundingBox();
+      const floatingBatch = page.waitForEvent("popup");
+      await button("Detach batch").click();
+      const batchChild = await floatingBatch;
+      batchChild.on("pageerror", (e) => errors.push(e.message));
+      await batchChild.getByTestId("batch-heatmap").waitFor();
+      await page.waitForTimeout(150);
+      assert.equal(
+        await page.locator(".integration-left-pane").isVisible(),
+        false,
+      );
+      assert.equal(
+        await page
+          .getByRole("separator", {
+            name: "Image and analysis divider",
+            exact: true,
+          })
+          .isVisible(),
+        false,
+      );
+      const patternAlone = await page.locator(".pattern-panel").boundingBox(),
+        controlsAlone = await page
+          .locator(".workspace-content > .sidebar")
+          .boundingBox();
+      assert.ok(patternAlone.width > patternWithBatch.width * 1.5);
+      assert.ok(
+        Math.abs(controlsAlone.width - patternAlone.width) < 2 &&
+          Math.abs(controlsAlone.x - patternAlone.x) < 2,
+      );
+      assert.equal(await page.getByTestId("detector-canvas").count(), 0);
+      assert.equal(await page.getByTestId("batch-heatmap").count(), 0);
+      await page.screenshot({
+        path: path.join(artifacts, `${name}-both-views-detached.png`),
+      });
+      await batchChild
+        .getByRole("button", { name: "Dock batch below image", exact: true })
+        .click();
+      await page.getByTestId("batch-heatmap").waitFor();
+      await page.waitForTimeout(150);
+      const refilledDock = await page.locator(".batch-dock").boundingBox(),
+        refilledPane = await page
+          .locator(".integration-left-pane")
+          .boundingBox();
+      assert.ok(Math.abs(refilledDock.height - refilledPane.height) < 2);
       await imageChild
         .getByRole("button", { name: "Dock detector image", exact: true })
         .click();
+      await left.waitFor();
+      await left.getByRole("tab", { name: "Batch", exact: true }).click();
+      // Full-height mode temporarily overrides, rather than saves over, the
+      // user's normal resized/collapsed dock preferences.
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      await page.waitForTimeout(150);
+      const batchDivider = page.getByRole("separator", {
+        name: "Image and batch divider",
+        exact: true,
+      });
+      await batchDivider.press("ArrowUp");
+      const savedHeight = await page
+        .locator(".batch-dock")
+        .evaluate((el) => el.style.height);
+      await button("Collapse batch overview").click();
+      const collapsedPopup = page.waitForEvent("popup");
+      await button("Undock detector image").click();
+      const collapsedImage = await collapsedPopup;
+      collapsedImage.on("pageerror", (e) => errors.push(e.message));
+      await collapsedImage.getByTestId("detector-canvas").waitFor();
+      await page.getByTestId("batch-heatmap").waitFor();
+      const expandedDock = await page.locator(".batch-dock").boundingBox(),
+        expandedPane = await page
+          .locator(".integration-left-pane")
+          .boundingBox();
+      assert.ok(Math.abs(expandedDock.height - expandedPane.height) < 2);
+      assert.equal(await batchDivider.count(), 0);
+      assert.equal(await button("Collapse batch overview").count(), 0);
+      await collapsedImage
+        .getByRole("button", { name: "Dock detector image", exact: true })
+        .click();
+      await button("Expand batch overview").waitFor();
+      await button("Expand batch overview").click();
+      assert.equal(
+        await page.locator(".batch-dock").evaluate((el) => el.style.height),
+        savedHeight,
+      );
+      await page.setViewportSize({ width: 1000, height: 760 });
       await left.waitFor();
       await left.getByRole("tab", { name: "Batch", exact: true }).click();
       const popup = page.waitForEvent("popup");
@@ -561,7 +682,7 @@ try {
       reports.push({
         browser: name,
         checks:
-          "Full-width compact controls; wide right panel; full phase names; Qt phase colors; aligned swatches; Qt rail/steps except constrained panels; directly accessible P/T steps; apply-all; references; Batch frame selection, keyboard switch and renderer preservation",
+          "Full-width compact controls; wide right panel; full phase names; Qt phase colors; aligned swatches; Qt rail/steps except constrained panels; directly accessible P/T steps; apply-all; references; Batch frame selection, keyboard switch and renderer preservation; full-height dock with detached image; full-width controls/pattern with both detached; restored dock size/collapse",
         errors,
       });
     } finally {
