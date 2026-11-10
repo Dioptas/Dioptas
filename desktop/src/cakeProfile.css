@@ -1,52 +1,96 @@
-.integration-image-pane > .cake-profile-panel {
-  flex: 0 0 30%;
-  min-height: 150px;
-  max-height: 270px;
+/* A shared plot row keeps the profile and cake aligned with either histogram layout. */
+.detector-workspace:has(> .cake-profile-panel) {
+  display: grid;
+  grid-template-columns: clamp(140px, 26%, 190px) minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr);
   min-width: 0;
+}
+.detector-workspace:has(> .cake-profile-panel) > .cake-profile-panel {
+  grid-column: 1;
+  grid-row: 1;
+}
+.detector-workspace:has(> .cake-profile-panel) > .raster-container {
+  grid-column: 2;
+  grid-row: 1;
+  margin-top: 34px;
+}
+.detector-workspace:has(> .cake-profile-panel) > .image-intensity {
+  grid-column: 3;
+  grid-row: 1;
+}
+.detector-workspace:has(> .cake-profile-panel):has(
+    > .image-intensity[data-orientation="horizontal"]
+  ) {
+  grid-template-columns: clamp(140px, 26%, 190px) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.detector-workspace:has(> .cake-profile-panel):has(
+    > .image-intensity[data-orientation="horizontal"]
+  )
+  > .image-intensity {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+.detector-workspace:has(> .cake-profile-panel):has(
+    > .image-intensity[data-orientation="horizontal"]
+  )
+  > :is(.cake-profile-panel, .raster-container) {
+  grid-row: 2;
+}
+.detector-workspace > .cake-profile-panel {
+  position: relative;
   display: flex;
   flex-direction: column;
-  border-top: 1px solid var(--border);
+  min-width: 0;
+  min-height: 0;
 }
 .cake-profile-tools {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 5px 10px;
-  flex: 0 0 auto;
-  padding: 3px 6px;
-}
-.cake-profile-tools > span:first-child {
-  margin-right: auto;
+  gap: 4px;
+  height: 34px;
+  flex: 0 0 34px;
+  padding: 0 3px;
+  margin: 0;
 }
 .cake-profile-tools .field-label {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   margin: 0;
+  min-width: 0;
 }
 .cake-profile-tools .field-label input {
-  width: 76px;
+  width: 60px;
+  min-width: 0;
 }
 .cake-profile-tools button {
-  padding: 5px;
+  padding: 4px;
+  flex: 0 0 auto;
 }
 .cake-profile-edge {
   font-size: var(--text-meta);
   color: var(--muted);
 }
 .cake-profile-empty {
-  display: grid;
-  place-content: center;
-  flex: 1;
-  padding: 8px;
+  position: absolute;
+  top: 40%;
+  left: 5px;
+  right: 5px;
+  pointer-events: none;
+  text-align: center;
   color: var(--muted);
 }
-.cake-profile-panel > .pattern-container {
+.cake-profile-view {
   flex: 1;
-  min-height: 80px;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
 }
-/* Leave room for the existing wrapped image tools at compact window heights. */
-.integration-image-pane:has(.cake-profile-panel) > .detector-panel,
-.integration-image-pane:has(.cake-profile-panel) > .cake-panel {
-  min-height: 100px;
+.cake-profile-view canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  overscroll-behavior: contain;
 }

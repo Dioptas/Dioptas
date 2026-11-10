@@ -37,6 +37,7 @@ export function DetachedDetectorWindow() {
     message: "",
     error: null,
   });
+  const [, renderViewport] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const channel = useRef<ReturnType<typeof detectorWindowChannel> | null>(null);
   const current = useRef(presentation);
@@ -257,6 +258,46 @@ export function DetachedDetectorWindow() {
         )}
         {presentation ? (
           <div className="detector-workspace">
+            {presentation?.profile && presentation.raster.cake === true && (
+              <CakeProfilePanel
+                {...(props(presentation.profile) as ComponentProps<
+                  typeof CakeProfilePanel
+                >)}
+                cake={
+                  presentation.profile.cake
+                    ? ({
+                        ...(presentation.profile.cake as object),
+                        bufferId: (
+                          presentation.profile.cake as {
+                            sourceBufferId: string;
+                          }
+                        ).sourceBufferId,
+                      } as Cake)
+                    : null
+                }
+                run={profileRun}
+                cakeView={
+                  viewport.current.range ?? {
+                    xMin: 0,
+                    xMax: (presentation.raster.raster as Cake).fullWidth,
+                    yMin: 0,
+                    yMax: (presentation.raster.raster as Cake).fullHeight,
+                  }
+                }
+                onAzimuthRange={(range) => {
+                  const prior = viewport.current.range ?? {
+                    xMin: 0,
+                    xMax: (presentation.raster.raster as Cake).fullWidth,
+                    yMin: 0,
+                    yMax: (presentation.raster.raster as Cake).fullHeight,
+                  };
+                  const next = { ...prior, yMin: range[0], yMax: range[1] };
+                  viewport.current.range = next;
+                  renderViewport((v) => v + 1);
+                  void event("viewport", [next]);
+                }}
+              />
+            )}
             <RasterView
               {...(props(presentation.raster) as ComponentProps<
                 typeof RasterView
@@ -278,6 +319,7 @@ export function DetachedDetectorWindow() {
                       read: () => viewport.current.range,
                       write: (range) => {
                         viewport.current.range = range;
+                        renderViewport((v) => v + 1);
                         void event("viewport", [range]);
                       },
                     }
@@ -295,24 +337,6 @@ export function DetachedDetectorWindow() {
           <div className="empty-view">
             <p>No detector image in the current workspace.</p>
           </div>
-        )}
-        {presentation?.profile && (
-          <CakeProfilePanel
-            {...(props(presentation.profile) as ComponentProps<
-              typeof CakeProfilePanel
-            >)}
-            cake={
-              presentation.profile.cake
-                ? ({
-                    ...(presentation.profile.cake as object),
-                    bufferId: (
-                      presentation.profile.cake as { sourceBufferId: string }
-                    ).sourceBufferId,
-                  } as Cake)
-                : null
-            }
-            run={profileRun}
-          />
         )}
         {presentation?.controls ? (
           <IntegrationImageControls

@@ -1,3 +1,4 @@
+import { useCakeProfileNavigation } from "./useCakeProfileNavigation";
 import { useCakeRadialAxis } from "./useCakeRadialAxis";
 import { cakeSourcePixel } from "./cakeRadialAxis";
 
@@ -398,7 +399,7 @@ export default function App() {
     requestedDisplayProducts({
       mode,
       display: integrationDisplay,
-      profile: showCakeProfile,
+      profile: showCakeProfile && integrationDisplay === "cake",
       calibrationStep,
       concealed: settingsOpen,
       combinedCake: !!state?.combination?.cakes,
@@ -2177,8 +2178,15 @@ export default function App() {
   const imageControls = (
     <IntegrationImageControls
       onUndock={detectorWindow.open}
-      profile={showCakeProfile}
-      onProfile={() => setShowCakeProfile((value) => !value)}
+      profile={showCakeProfile && integrationDisplay === "cake"}
+      onProfile={() => {
+        const enabled = showCakeProfile && integrationDisplay === "cake";
+        if (!enabled) {
+          setIntegrationDisplay("cake");
+          correctionPreview.close();
+        }
+        setShowCakeProfile(!enabled);
+      }}
       onSaveImage={async () => {
         const source = integrationDisplay === "cake" ? "cake" : "image";
         const exporter = (source === "cake" ? cakeExport : detectorExport)
@@ -2244,15 +2252,34 @@ export default function App() {
       }}
     />
   );
+  const cakeNavigation = useCakeProfileNavigation(
+    cakeWindowViewport,
+    JSON.stringify([
+      state?.configurationContext,
+      cake?.fullWidth,
+      cake?.fullHeight,
+      cake?.unit,
+      !!state?.combination?.cakes,
+    ]),
+    cake,
+  );
+  const profileVisible =
+    showCakeProfile && integrationDisplay === "cake" && !correctionPreview.map;
   const imageProfile = (
     <CakeProfilePanel
       state={state}
-      cake={cake}
+      cake={
+        cake
+          ? { ...cake, azimuthRange: (displayedCake ?? cake).azimuthRange }
+          : null
+      }
+      cakeView={cakeNavigation.cakeView}
+      onAzimuthRange={cakeNavigation.onAzimuthRange}
       linked={linked}
       shift={cakeShift}
       bins={cakeProfileBins}
       onBins={setCakeProfileBins}
-      ready={ready && !settingsOpen}
+      ready={ready && !settingsOpen && profileVisible}
       run={runImageControl}
       reportPlot={reportPlot}
       onInspect={(azimuth) => {
@@ -2749,19 +2776,15 @@ export default function App() {
                               showUndock={false}
                               interactionKey="cake"
                               cakeWavelength={state?.geometry.wavelength}
+                              profile={
+                                mode === "integration" && profileVisible
+                                  ? imageProfile
+                                  : null
+                              }
                             >
                               <RasterView
                                 exportRef={cakeExport}
-                                viewport={detectorViewport(
-                                  cakeWindowViewport,
-                                  JSON.stringify([
-                                    state?.configurationContext,
-                                    cake?.fullWidth,
-                                    cake?.fullHeight,
-                                    cake?.unit,
-                                    !!state?.combination?.cakes,
-                                  ]),
-                                )}
+                                viewport={cakeNavigation.viewport}
                                 raster={displayedCake ?? cake}
                                 radialAxis={cakeRadialAxis}
                                 onResolution={setCakePixelResolution}
@@ -2895,7 +2918,7 @@ export default function App() {
                       {mode === "integration" && (
                         <DetectorWindowTools
                           controls={imageControls}
-                          profile={showCakeProfile ? imageProfile : null}
+                          profile={profileVisible ? imageProfile : null}
                         />
                       )}
                     </IntegrationLeftPane>

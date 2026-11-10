@@ -1,11 +1,15 @@
 # Native azimuthal cake profile — 2026-11-10
 
-Integration's **Profile** toggle opens intensity versus azimuth below the
-image/cake. Select a radial position by clicking the detector, cake or pattern.
+Integration's **Profile** toggle opens the azimuthal profile to the left of the
+cake, with intensity horizontally and the shared cake azimuth axis vertically.
+Turning it on from Image switches to Cake. The profile is hidden in Image mode
+and during correction-map previews. Select a radial position by clicking the
+detector, cake or pattern.
 **Width (bins)** commits on Enter/blur (1–1,000,000). The save icon writes XY,
 DAT, TXT or CSV through the existing Tauri chooser and Rust atomic file writer.
-Invalid width drafts cannot submit a save. The profile can remain visible with
-the detector image; it explicitly requests the required hidden cake.
+Invalid width drafts cannot submit a save. The profile is shown only with the
+cake; hiding the cake stops profile requests and restores ordinary lazy cake
+demand.
 
 ## Scientific ownership and Qt reference
 
@@ -42,13 +46,16 @@ relabeling is separate from these source coordinates.
   native path accepts both endpoint centers, clips missing columns to zero,
   keeps the requested-width divisor and marks **Edge clipped**. Positions outside
   the center range return an empty profile and cannot be saved.
-- Qt puts intensity horizontally beside the cake and links its vertical pixel
-  coordinate to cake zoom. This compact desktop panel puts azimuth on x and
-  intensity on y, reusing `PatternView`, shared gestures, zoom controls and
-  viewport memory. Its zoom is independent of the cake; radial selection and
-  linked azimuth markers remain shared. Radial clicks/width updates retain the
-  profile viewport; a new configuration, wavelength or shifted azimuth extent
-  resets its view context. No separate drawing/navigation implementation exists.
+- The layout follows Qt: intensity is horizontal to the left of the cake and
+  azimuth is shared vertically. `CakeProfileView` draws each native profile
+  sample at its cake-row center (`i + 0.5`), using the same plot insets and a
+  common source-pixel y viewport. The cake owns the single visible azimuth axis.
+  Gestures, tick generation and typography reuse the shared plot primitives.
+  Cake navigation updates the profile; profile navigation updates cake azimuth
+  without changing the radial interval. F in the profile restores full azimuth
+  and automatic intensity limits; F in the cake fits the cake. Width/radial
+  changes preserve manual intensity zoom. Both main and detached cake views use
+  the same layout and source-row convention, including azimuth shifts.
 - Qt's plot changes nonpositive intensities to NaN and its save action uses the
   plotted intensity/pixel arrays. Native plots and saves retain zero and signed
   numerical intensities. Files contain actual azimuth bin centers in degrees,
@@ -115,3 +122,26 @@ Both headless browsers pass cake axis/profile, real-image calibration and
 Integration checks. Host-wide rustfmt checking still finds pre-existing
 formatting in unrelated host files; no broad reformatting was included.
 See [cake-axis integration details](CAKE_Q_AXIS_PARITY.md).
+
+## Shared cake azimuth layout — November 10, 2026
+
+The profile now occupies the left column of the cake workspace rather than a
+separate panel below the image. It is mounted only in Cake view, including in the
+detached image window. Image mode and correction previews do not render it or
+request profile products. The native Rust extraction, signed intensities, width
+edge handling and degree/intensity export are unchanged.
+
+The headless profile workflow checks exact top/bottom alignment and shared y
+limits at 1440×900 and 1000×668, Standard and Larger text, through profile/cake
+zoom, profile pan/F reset, widths, radial clicks, shifts, units and configuration
+changes. It also checks that profile gestures retain the cake radial interval,
+and image mode suppresses profile reads and hidden-cake demand. Detached-source
+checks exercise both directions of linked navigation and profile visibility
+across Image/Cake and correction preview/Back. No visible windows are used.
+
+Validation for this layout update: frontend build and 113 frontend tests pass;
+five native profile tests and two source-axis tests pass. Chromium and WebKit
+pass the updated profile workflow (both histogram orientations), cake-Q-axis,
+correction-preview and detached-source workflows. The detached checks include
+close/reopen and Back from a correction preview, keeping the selected source,
+scientific results and detector orientation intact.

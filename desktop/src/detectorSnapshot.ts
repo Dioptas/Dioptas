@@ -143,6 +143,8 @@ export function detectorTools(
                 {
                   sourceBufferId: cake.bufferId,
                   azimuthRange: cake.azimuthRange,
+                  fullHeight: cake.fullHeight,
+                  fullWidth: cake.fullWidth,
                 },
               ];
             }

@@ -1,15 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Save } from "lucide-react";
 import { Button } from "./ui";
 import { Field } from "./IntegrationFields";
-import { PatternView } from "./PatternView";
+import { CakeProfileView } from "./CakeProfileView";
 import { coordinateValue, intensityValue } from "./readoutNumbers";
 import { radialFields } from "./radialReadout";
 import type { Cake, CakeProfile, Response, State } from "./types";
 import type { IntegrationRun } from "./integration";
 import type { ReportPlot } from "./plotReadout";
-import { detectorViewport, type ViewportMemory } from "./plotViewport";
-import type { ZoomMode } from "./usePlotNavigation";
+import type { PlotRange } from "./usePlotNavigation";
 import "./cakeProfile.css";
 
 /** Only the native owner extracts samples. Local state is view/draft state. */
@@ -24,6 +23,8 @@ export function CakeProfilePanel({
   run,
   reportPlot,
   onInspect,
+  cakeView,
+  onAzimuthRange,
 }: {
   state: State | null;
   cake: Cake | null;
@@ -35,24 +36,13 @@ export function CakeProfilePanel({
   run: IntegrationRun;
   reportPlot: ReportPlot;
   onInspect: (azimuth: number) => void;
+  cakeView: PlotRange;
+  onAzimuthRange: (range: [number, number]) => void;
 }) {
   const [result, setResult] = useState<{
     key: string;
     profile: CakeProfile;
   } | null>(null);
-  const viewMemory = useRef<ViewportMemory["current"]>(null);
-  const viewContext = JSON.stringify([
-    state?.configurationContext ?? state?.configurationIndex,
-    state?.combination?.cakes,
-    state?.geometry.wavelength,
-    cake?.azimuthRange,
-    shift,
-  ]);
-  const viewport = useMemo(
-    () => detectorViewport(viewMemory, viewContext),
-    [viewContext],
-  );
-  const [zoom, setZoom] = useState<ZoomMode>("rectangle");
   const args = useMemo(
     () => ({ two_theta: linked?.twoTheta, bins, shift }),
     [linked?.twoTheta, bins, shift],
@@ -85,27 +75,6 @@ export function CakeProfilePanel({
   useEffect(() => () => reportPlot("profile", null), [reportPlot]);
   const profile = eligible && result?.key === key ? result.profile : null;
   const available = !!profile?.x.length;
-  const pattern = useMemo(
-    () => profile && { x: profile.x, y: profile.y, unit: profile.unit },
-    [profile],
-  );
-  const azimuth = linked?.azimuth;
-  const low = profile?.x[0] ?? 0;
-  const high = profile?.x.at(-1) ?? 0;
-  const period =
-    profile && profile.x.length > 1
-      ? ((high - low) * profile.x.length) / (profile.x.length - 1)
-      : 0;
-  const candidate =
-    azimuth == null
-      ? undefined
-      : period >= 359
-        ? low + ((((azimuth - low) % 360) + 360) % 360)
-        : azimuth;
-  const selectedAzimuth =
-    candidate != null && candidate >= low && candidate <= high
-      ? candidate
-      : undefined;
   return (
     <section className="cake-profile-panel" aria-label="Azimuthal profile">
       <form
@@ -124,10 +93,9 @@ export function CakeProfilePanel({
           );
         }}
       >
-        <span>Azimuthal profile</span>
         <Field
           label="Integral width"
-          displayLabel="Width (bins)"
+          displayLabel="Bins"
           value={bins}
           min={1}
           max={1000000}
@@ -145,66 +113,66 @@ export function CakeProfilePanel({
         </Button>
         {profile?.clipped && (
           <span
+            aria-label="Edge clipped"
             className="cake-profile-edge"
             title="The window extends beyond the cake; missing columns contribute zero to the requested-width average"
           >
-            Edge clipped
+            ⋯
           </span>
         )}
       </form>
-      {available && pattern ? (
-        <PatternView
-          pattern={pattern}
-          viewport={viewport}
-          plotLabel="Azimuthal profile"
-          compact
-          log={false}
-          zoomMode={zoom}
-          onZoomMode={setZoom}
-          linkedPosition={selectedAzimuth}
-          onInspect={(x) => onInspect(x)}
-          onHover={(point) =>
-            reportPlot(
-              "profile",
-              point
-                ? {
-                    text: `χ ${coordinateValue(point.x, point.xResolution)}° · I ${intensityValue(point.y)}`,
-                    fields: [
-                      ...radialFields(
-                        profile.twoTheta,
-                        "2th_deg",
-                        state?.geometry.wavelength,
-                      ),
-                      {
-                        label: "χ",
-                        value: coordinateValue(point.x, point.xResolution),
-                        title: "Azimuth (°)",
-                        kind: "coordinate",
-                      },
-                      {
-                        label: "y",
-                        value: intensityValue(point.mouseY),
-                        kind: "intensity",
-                      },
-                      {
-                        label: "I",
-                        value: intensityValue(point.y),
-                        kind: "intensity",
-                      },
-                    ],
-                    hint: "Left drag zooms · right drag pans · right double-click or F fits · Alt+arrows inspects samples.",
-                  }
-                : null,
-            )
-          }
-        />
-      ) : (
-        <div className="cake-profile-empty">
+      <CakeProfileView
+        profile={available ? profile : null}
+        cake={cake}
+        cakeView={cakeView}
+        onAzimuthRange={onAzimuthRange}
+        context={JSON.stringify([
+          state?.configurationContext ?? state?.configurationIndex,
+          cake?.fullHeight,
+          !!state?.combination?.cakes,
+          state?.geometry.wavelength,
+        ])}
+        selectedAzimuth={linked?.azimuth}
+        onInspect={(azimuth) => {
+          if (ready && available) onInspect(azimuth);
+        }}
+        onHover={(point) =>
+          reportPlot(
+            "profile",
+            point && profile
+              ? {
+                  text: `χ ${coordinateValue(point.azimuth, point.resolution)}° · I ${intensityValue(point.intensity)}`,
+                  fields: [
+                    ...radialFields(
+                      profile.twoTheta,
+                      "2th_deg",
+                      state?.geometry.wavelength,
+                    ),
+                    {
+                      label: "χ",
+                      value: coordinateValue(point.azimuth, point.resolution),
+                      title: "Azimuth (°)",
+                      kind: "coordinate",
+                    },
+                    {
+                      label: "I",
+                      value: intensityValue(point.intensity),
+                      kind: "intensity",
+                    },
+                  ],
+                  hint: "Azimuth is shared with the cake · left drag zooms · right drag pans · F fits.",
+                }
+              : null,
+          )
+        }
+      />
+      {!available && (
+        <div className="cake-profile-empty" role="status">
           {!eligible
-            ? "Click a calibrated detector, cake or pattern position."
+            ? "Click a ring."
             : profile
-              ? "Selected radial position is outside the cake."
-              : "Preparing azimuthal profile…"}
+              ? "Outside cake."
+              : "Preparing…"}
         </div>
       )}
     </section>

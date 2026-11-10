@@ -156,10 +156,13 @@ retains its own source unit, including combined Q cakes. Selecting d leaves the
 last cake axis selected; missing wavelength uses an explicit source-unit fallback.
 See [cake axis qualification](CAKE_Q_AXIS_PARITY.md) for coordinate and export semantics.
 
-Integration's **Profile** toggle shows native intensity versus azimuth at the
-linked detector/cake/pattern radial position. **Width (bins)** controls the
+Integration's **Profile** toggle shows the native azimuthal profile to the left
+of the cake, with intensity horizontally and a shared vertical azimuth axis.
+It appears only in Cake view at the linked detector/cake/pattern radial position.
+**Width (bins)** controls the
 fractional radial average; its save icon exports azimuth in degrees and intensity
-through the native chooser. Profile explicitly requests a hidden cake when needed.
+through the native chooser. Turning Profile on from Image switches to Cake;
+Image mode hides the profile.
 See [azimuthal-profile semantics and checks](CAKE_PROFILE_PARITY.md).
 
 Integration and Map use the same `RasterView` and `PatternView` renderers.

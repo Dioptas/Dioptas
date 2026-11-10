@@ -94,11 +94,7 @@ try {
         exact: true,
       });
       assert.ok(await panel.isVisible());
-      assert.ok(
-        await panel
-          .getByText("Click a calibrated detector, cake or pattern position.")
-          .isVisible(),
-      );
+      assert.ok(await panel.getByText("Click a ring.").isVisible());
       const radialPlot = page
         .locator(".pattern-panel")
         .getByTestId("pattern-canvas");
@@ -173,11 +169,25 @@ try {
         await profilePlot.press("f");
         await idle();
       };
-      // Detector and radial-plot clicks select the same native physical position.
+      // Profile belongs exclusively to the cake, including when it is enabled from Image.
+      assert.ok(await page.getByTestId("cake-canvas").isVisible());
+      await button("Image").click();
+      await idle();
+      assert.equal(await panel.isVisible(), false);
+      const hiddenReads = profiles.length;
+      await button("Pattern unit Q").click();
+      await idle();
+      assert.equal(
+        calls.filter(([a]) => a === "integration_settings").at(-1)[1]
+          .requested_products.cake,
+        false,
+      );
       await clickPlot(page.getByTestId("detector-canvas"));
-      await panel.getByTestId("pattern-canvas").waitFor();
+      assert.equal(profiles.length, hiddenReads);
+      await button("Cake").click();
+      await idle();
       await clickPlot(radialPlot);
-      const profilePlot = panel.getByTestId("pattern-canvas");
+      const profilePlot = panel.getByTestId("cake-profile-canvas");
       await profilePlot.waitFor();
       await idle();
       assert.ok(profiles.length > 0);
@@ -204,6 +214,46 @@ try {
       await field.fill("3");
       await field.press("Enter");
       await idle();
+      const cakeCanvas = page.getByTestId("cake-canvas");
+      const assertShared = async () => {
+        const read = async (canvas) =>
+          canvas.evaluate((el) => {
+            const r = el.getBoundingClientRect(),
+              d = el.dataset;
+            return {
+              x: r.x,
+              width: r.width,
+              top: r.y + +d.plotTop,
+              bottom: r.y + +d.plotTop + +d.plotHeight,
+              yMin: +d.viewYMin,
+              yMax: +d.viewYMax,
+            };
+          });
+        const a = await read(profilePlot),
+          b = await read(cakeCanvas);
+        assert.ok(a.x + a.width <= b.x + 1, JSON.stringify({ a, b }));
+        assert.ok(
+          Math.abs(a.top - b.top) < 1.1 && Math.abs(a.bottom - b.bottom) < 1.1,
+          JSON.stringify({ a, b }),
+        );
+        assert.ok(
+          Math.abs(a.yMin - b.yMin) < 1e-8 && Math.abs(a.yMax - b.yMax) < 1e-8,
+          JSON.stringify({ a, b }),
+        );
+      };
+      await assertShared();
+      for (const orientation of ["vertical", "horizontal"]) {
+        await button("Cake histogram settings").click();
+        await page
+          .getByLabel("Cake histogram orientation", { exact: true })
+          .selectOption(orientation);
+        await button("Close cake display settings").click();
+        await idle();
+        await assertShared();
+      }
+      const originalY = +(await cakeCanvas.getAttribute("data-view-y-max"));
+      const radialBeforeProfileZoom =
+        await cakeCanvas.getAttribute("data-view-x-max");
       const fullView = await profilePlot.getAttribute("data-view-x-max");
       // The profile uses shared navigation and keeps zoom when the radial selection changes.
       await profilePlot.focus();
@@ -211,10 +261,35 @@ try {
       await idle();
       const zoomView = await profilePlot.getAttribute("data-view-x-max");
       assert.ok(+zoomView < +fullView);
+      await assertShared();
+      assert.ok(
+        +(await cakeCanvas.getAttribute("data-view-y-max")) < originalY,
+      );
+      assert.equal(
+        await cakeCanvas.getAttribute("data-view-x-max"),
+        radialBeforeProfileZoom,
+      );
+      await cakeCanvas.press("+");
+      await idle();
+      await assertShared();
+      await profilePlot.press("ArrowUp");
+      await idle();
+      await assertShared();
+      await profilePlot.press("f");
+      await idle();
+      await assertShared();
+      assert.equal(+(await cakeCanvas.getAttribute("data-view-y-max")), 36);
+      await profilePlot.press("+");
+      await idle();
+
+      const retainedX = await profilePlot.getAttribute("data-view-x-max");
       await clickPlot(radialPlot, 0.65);
       await profilePlot.waitFor();
       await idle();
-      assert.equal(await profilePlot.getAttribute("data-view-x-max"), zoomView);
+      assert.equal(
+        await profilePlot.getAttribute("data-view-x-max"),
+        retainedX,
+      );
       await profilePlot.press("f");
       await idle();
       await clickPlot(profilePlot, 0.55);
@@ -228,8 +303,6 @@ try {
       assert.match(footer, /χ/);
       assert.match(footer, /Q/);
       assert.match(footer, /2θ/);
-      await button("Cake").click();
-      await idle();
       await clickPlot(page.getByTestId("cake-canvas"));
       await page.getByLabel("Cake azimuth shift", { exact: true }).fill("90");
       await idle();
@@ -267,9 +340,10 @@ try {
         }
         await idle();
         await profilePlot.waitFor();
+        await assertShared();
         const layout = await panel.evaluate((el) => {
           const r = el.getBoundingClientRect(),
-            p = el.parentElement.getBoundingClientRect();
+            p = el.closest(".integration-image-pane").getBoundingClientRect();
           const controls = [...el.querySelectorAll("input,button")]
             .filter((e) => e.offsetParent)
             .map((e) => ({
@@ -365,6 +439,8 @@ try {
         lazyDemandRestored: true,
         combinedQProfileAndConfigurationSelection: true,
         unitTransitionsKeepSourceProfileAndBothViewports: true,
+        profileLeftOfCakeWithSharedAzimuth: true,
+        profileHiddenInImageMode: true,
         errors,
       });
     } finally {

@@ -32,7 +32,9 @@ The child cannot call `desktop_invoke`, open a file dialog or create a processor
 Picks, mask strokes/shapes, ROI edits and linked inspection therefore use the
 same ordered Rust commands as the docked view. Integration can switch between
 image and cake inside the companion, including Q display, azimuth shifting and
-an optional azimuthal profile below it. The pattern stays in the main window;
+an optional azimuthal profile to the left of the cake, sharing its vertical
+azimuth axis. The profile is hidden in Image mode and correction previews.
+The pattern stays in the main window;
 linked inspection and markers connect the views. The detached profile reads and
 exports through the main command queue. Its result contains profile samples,
 not another scientific session or a detector raster copy.

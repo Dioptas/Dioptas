@@ -171,11 +171,21 @@ try {
         .getByRole("button", { name: "Azimuthal profile", exact: true })
         .click();
       await ready();
-      const profile = child.getByRole("region", {
+      let profile = child.getByRole("region", {
         name: "Azimuthal profile",
         exact: true,
       });
-      await profile.getByTestId("pattern-canvas").waitFor();
+      await profile.getByTestId("cake-profile-canvas").waitFor();
+      await child.getByRole("button", { name: "Image", exact: true }).click();
+      await ready();
+      assert.equal(await profile.isVisible(), false);
+      const hiddenProfileReads = profileRequests;
+      await child.getByTestId("detector-canvas").click();
+      await ready();
+      assert.equal(profileRequests, hiddenProfileReads);
+      await child.getByRole("button", { name: "Cake", exact: true }).click();
+      await ready();
+      await profile.getByTestId("cake-profile-canvas").waitFor();
       assert.equal((await native.invoke("state")).state.unit, "q_A^-1");
       await profile
         .getByRole("button", { name: "Save azimuthal profile", exact: true })
@@ -186,8 +196,46 @@ try {
         /[0-9]/,
       );
       const sourceScience = await science();
+      const checkProfileAlignment = async () => {
+        const read = async (node) =>
+          node.evaluate((el) => {
+            const r = el.getBoundingClientRect(),
+              d = el.dataset;
+            return {
+              x: r.x,
+              right: r.right,
+              top: r.y + +d.plotTop,
+              bottom: r.y + +d.plotTop + +d.plotHeight,
+              min: +d.viewYMin,
+              max: +d.viewYMax,
+            };
+          });
+        const p = await read(profile.getByTestId("cake-profile-canvas")),
+          c = await read(child.getByTestId("cake-canvas"));
+        assert.ok(
+          p.right <= c.x + 1 &&
+            Math.abs(p.top - c.top) < 1.1 &&
+            Math.abs(p.bottom - c.bottom) < 1.1,
+          JSON.stringify({ p, c }),
+        );
+        assert.equal(p.min, c.min);
+        assert.equal(p.max, c.max);
+      };
+      await checkProfileAlignment();
+      await profile.getByTestId("cake-profile-canvas").press("+");
+      await ready();
+      await checkProfileAlignment();
+      await child.getByTestId("cake-canvas").press("+");
+      await ready();
+      await checkProfileAlignment();
+      await profile.getByTestId("cake-profile-canvas").press("f");
+      await ready();
+      await checkProfileAlignment();
+      await child.screenshot({
+        path: path.join(artifacts, `${name}-shared-profile.png`),
+      });
       const sourceMaximum = await child
-        .getByTestId("detector-canvas")
+        .getByTestId("cake-canvas")
         .getAttribute("data-intensity-max");
       await page.getByRole("tab", { name: "Corrections", exact: true }).click();
       await page
@@ -210,22 +258,14 @@ try {
         /Factor/,
       );
       assert.equal(previewRequests, 1, "Detached preview was calculated twice");
-      const readsBeforeWidth = profileRequests;
-      await profile.getByLabel("Integral width", { exact: true }).fill("2");
-      await profile
-        .getByLabel("Integral width", { exact: true })
-        .press("Enter");
-      await profile.getByTestId("pattern-canvas").waitFor();
-      await ready();
-      assert.ok(
-        profileRequests > readsBeforeWidth,
-        "Profile width did not reach the native owner",
-      );
+      const readsDuringPreview = profileRequests;
       assert.equal(
-        await child.locator(".detached-detector-heading").count(),
-        1,
-        "Reading the profile dismissed the detached correction map",
+        await profile.isVisible(),
+        false,
+        "Profile is only shown beside a cake, not a correction map",
       );
+      await ready();
+      assert.equal(profileRequests, readsDuringPreview);
 
       assert.deepEqual(
         await science(),
@@ -243,7 +283,7 @@ try {
         .waitFor({ state: "detached" });
       await child.waitForFunction(
         (max) =>
-          document.querySelector('[data-testid="detector-canvas"]').dataset
+          document.querySelector('[data-testid="cake-canvas"]')?.dataset
             .intensityMax === max,
         sourceMaximum,
       );
@@ -273,6 +313,10 @@ try {
         .getByRole("button", { name: "Undock detector image", exact: true })
         .click();
       child = await reopened;
+      profile = child.getByRole("region", {
+        name: "Azimuthal profile",
+        exact: true,
+      });
       await child.locator(".detached-detector-heading").waitFor();
       assert.equal(
         previewRequests,
@@ -292,6 +336,9 @@ try {
         .getByRole("button", { name: "Azimuthal profile", exact: true })
         .click();
       await ready();
+      await child.getByRole("button", { name: "Image", exact: true }).click();
+      await ready();
+      assert.equal(await profile.isVisible(), false);
       await page.getByRole("tab", { name: "Image", exact: true }).click();
       await page
         .getByRole("button", { name: "Calibration", exact: true })
@@ -397,6 +444,8 @@ try {
         previewScienceUnchanged: true,
         noDuplicatePreviewCalculation: true,
         retainedCakeQAndProfile: true,
+        sharedAzimuth: true,
+        profileOnlyInCake: true,
         orientation: true,
         calibratedSourceCancel: true,
         sourceReset: true,

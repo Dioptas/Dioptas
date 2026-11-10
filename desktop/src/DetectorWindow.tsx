@@ -111,7 +111,9 @@ export function useDetectorWindow(
           presentation: {
             ...selected.presentation,
             controls: tools?.controls,
-            profile: tools?.profile,
+            profile: selected.presentation.raster.cake
+              ? tools?.profile
+              : undefined,
           },
           callbacks: new Map([
             ...selected.callbacks,
@@ -319,6 +321,7 @@ export function DetectorSurface({
   enabled = true,
   showUndock = true,
   cakeWavelength,
+  profile,
 }: {
   children: ReactNode;
   interactionKey?: string;
@@ -329,6 +332,7 @@ export function DetectorSurface({
   enabled?: boolean;
   showUndock?: boolean;
   cakeWavelength?: number;
+  profile?: ReactNode;
 }) {
   const owner = useContext(DetectorWindowContext);
   const elements = Children.toArray(children) as ReactElement<
@@ -390,7 +394,10 @@ export function DetectorSurface({
         </div>
       ) : (
         <>
-          <div className="detector-workspace">{children}</div>
+          <div className="detector-workspace">
+            {profile}
+            {children}
+          </div>
           {owner && enabled && showUndock && (
             <Button
               className="plot-tool-button detector-window-action"
@@ -474,10 +481,5 @@ export function DetectorWindowTools({
     latest.current?.tools(value);
   });
   useLayoutEffect(() => () => latest.current?.tools(null), []);
-  return owner?.detached ? null : (
-    <>
-      {profile}
-      {controls}
-    </>
-  );
+  return owner?.detached ? null : <>{controls}</>;
 }
