@@ -99,3 +99,11 @@ subtracted intensities match the overview, counting std stays aligned, and a
 background/cut change invalidates pending rectangles. A native interoperability
 test covers these cases alongside the waterfall feature's original tests. No
 new waterfall, 3D, or export workflow was added by the background implementation.
+
+Combined qualification after reconciliation with the existing waterfall, 3D and
+export commits: **169 native tests passed, one opt-in benchmark ignored; 85
+JavaScript tests passed**. Frontend build and Clippy with warnings denied passed.
+Background, waterfall, 3D and export headless checks passed in Chromium and WebKit;
+background stdio and footer cancellation passed. The broader native Integration
+browser regression also passed. These are headless/native-processor checks, not
+OS-window or release-packaging qualification.
