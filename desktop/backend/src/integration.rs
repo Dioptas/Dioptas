@@ -450,6 +450,18 @@ impl Engine {
         options: &Options,
         control: &Control,
     ) -> Result<Option<Prepared>, String> {
+        crate::worker_pool::install(|| {
+            self.prepare_compatibility_image_in_pool(image, p, mask, options, control)
+        })
+    }
+    fn prepare_compatibility_image_in_pool(
+        &mut self,
+        image: &Image,
+        p: &Parameters,
+        mask: &[u8],
+        options: &Options,
+        control: &Control,
+    ) -> Result<Option<Prepared>, String> {
         if !options.pyfai
             || options.dynamic_mask
             || options.spread

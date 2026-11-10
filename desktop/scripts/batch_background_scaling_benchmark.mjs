@@ -38,7 +38,8 @@ try {
       frames: opened.batch.raster.height,
       bins: opened.batch.x.length,
     };
-    await call(native, "processing_workers", { workers });
+    const selected = await call(native, "processing_workers", { workers });
+    assert.equal(selected.state.processingWorkers.effective, workers);
     // One complete untimed fit initializes each worker pool and fit path.
     await call(native, "integration_background", {
       ...parameters,

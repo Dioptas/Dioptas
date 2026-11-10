@@ -1,0 +1,131 @@
+{
+  "frames": 625,
+  "bins": 1000,
+  "parameters": {
+    "enabled": true,
+    "smoothing": 0.1,
+    "iterations": 150,
+    "order": 50,
+    "range": [
+      3.7883893507483744,
+      42.34610394855096
+    ]
+  },
+  "rounds": 5,
+  "untimedFitsPerCount": 1,
+  "order": "ascending/descending alternating",
+  "results": [
+    {
+      "workers": 1,
+      "milliseconds": [
+        474.6689580000002,
+        507.4200000000001,
+        482.2764580000003,
+        573.7364579999994,
+        490.99012500000026
+      ],
+      "medianMilliseconds": 490.99012500000026,
+      "bitwiseEqualToOriginal": true
+    },
+    {
+      "workers": 3,
+      "milliseconds": [
+        182.3337500000007,
+        190.71937499999967,
+        187.60416600000008,
+        194.5960840000007,
+        183.04854200000045
+      ],
+      "medianMilliseconds": 187.60416600000008,
+      "bitwiseEqualToOriginal": true
+    },
+    {
+      "workers": 4,
+      "milliseconds": [
+        144.66133399999944,
+        155.84870899999987,
+        173.5734169999996,
+        150.25187499999993,
+        149.29500000000007
+      ],
+      "medianMilliseconds": 150.25187499999993,
+      "bitwiseEqualToOriginal": true
+    },
+    {
+      "workers": 6,
+      "milliseconds": [
+        108.61041600000044,
+        116.57683300000008,
+        108.87966700000015,
+        109.84879199999887,
+        118.08529200000157
+      ],
+      "medianMilliseconds": 109.84879199999887,
+      "bitwiseEqualToOriginal": true
+    },
+    {
+      "workers": 8,
+      "milliseconds": [
+        94.11354200000005,
+        125.74254199999996,
+        101.01858399999946,
+        92.24395800000093,
+        95.76287499999853
+      ],
+      "medianMilliseconds": 95.76287499999853,
+      "bitwiseEqualToOriginal": true
+    },
+    {
+      "workers": 10,
+      "milliseconds": [
+        84.81058399999984,
+        126.26012499999979,
+        86.51920899999914,
+        89.47112500000003,
+        91.76312500000131
+      ],
+      "medianMilliseconds": 89.47112500000003,
+      "bitwiseEqualToOriginal": true
+    },
+    {
+      "workers": 12,
+      "milliseconds": [
+        81.23920799999996,
+        181.43791599999986,
+        86.30212500000016,
+        82.35629100000006,
+        84.17400000000089
+      ],
+      "medianMilliseconds": 84.17400000000089,
+      "bitwiseEqualToOriginal": true
+    },
+    {
+      "workers": 13,
+      "milliseconds": [
+        80.57008399999995,
+        96.00754200000029,
+        79.21420799999942,
+        80.19579200000044,
+        78.90241699999933
+      ],
+      "medianMilliseconds": 80.19579200000044,
+      "bitwiseEqualToOriginal": true
+    },
+    {
+      "workers": 14,
+      "milliseconds": [
+        77.97016699999949,
+        78.71262500000012,
+        89.33316600000035,
+        79.97949999999946,
+        86.71500000000015
+      ],
+      "medianMilliseconds": 79.97949999999946,
+      "bitwiseEqualToOriginal": true
+    }
+  ],
+  "date": "2026-11-10",
+  "scope": "Worker counts selected with the processing_workers API used by Settings. Full Rust stdio commands on identical stored matrices and settings. CPU was not isolated; timings are contextual, not a recommendation or a controlled comparison with earlier scaling measurements. Private matrices and source paths are not committed.",
+  "automaticDefault": 8,
+  "allCountsBitwiseEqualToOriginal": true
+}

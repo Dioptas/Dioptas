@@ -57,3 +57,17 @@ unmodified retained products, project independence, development handoff, and
 bounded ordered integration with cancellation/failure. Headless Chromium and
 WebKit exercise manual selection, startup persistence from Mask mode, Use default
 and large text. The GUI check is registered in `test:ci-native`.
+
+
+Qualification after reconciliation with the typed-integer integration update:
+195 native tests passed (two opt-in performance tests ignored); 98 JavaScript
+tests, frontend build and Clippy with warnings denied passed. Both headless
+browsers passed worker Settings, native Integration and automatic Batch background
+checks; native stdio cancellation passed. The shared pool was also checked on the
+complete 625-frame Eiger source in Batch/Map, Poisson errors off/on, two before/
+after repeats: all 16 runs had bitwise identical intensities, axes, counting std
+where present, and Map values. The source file was unchanged. The aggregate
+receipt is `artifacts/shared-processing-workers/validation.json`. Timing was not
+isolated from concurrent work, so it is not a new throughput qualification.
+The final API-based background sweep also retained exact original values at all
+nine worker counts (`artifacts/batch-background-performance/shared-pool-scaling.json`).

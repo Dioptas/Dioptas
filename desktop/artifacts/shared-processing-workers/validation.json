@@ -1,0 +1,384 @@
+{
+  "date": "2026-11-10",
+  "scope": "Complete 625-frame Batch and Map, Poisson errors off/on, two repeats per variant at 8 workers. Compared the pre-consolidation executable with the shared-pool executable. CPU was not isolated, so timing is contextual and no throughput claim is made.",
+  "frames": 625,
+  "detectorShape": [
+    3262,
+    3108
+  ],
+  "bins": 2000,
+  "workers": 8,
+  "sourceUnchanged": true,
+  "runs": 16,
+  "allBitwiseEqual": true,
+  "records": [
+    {
+      "repeat": 0,
+      "view": "batch",
+      "poisson": false,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 3.3593932091025636,
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true
+    },
+    {
+      "repeat": 0,
+      "view": "batch",
+      "poisson": false,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 3.412088416982442,
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true
+    },
+    {
+      "repeat": 0,
+      "view": "batch",
+      "poisson": true,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 3.1990884579718113,
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true
+    },
+    {
+      "repeat": 0,
+      "view": "batch",
+      "poisson": true,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 3.7364297909662127,
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true
+    },
+    {
+      "repeat": 0,
+      "view": "map",
+      "poisson": false,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 3.172030832967721,
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true
+    },
+    {
+      "repeat": 0,
+      "view": "map",
+      "poisson": false,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 3.2564156660810113,
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true
+    },
+    {
+      "repeat": 0,
+      "view": "map",
+      "poisson": true,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 3.0877528749406338,
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true
+    },
+    {
+      "repeat": 0,
+      "view": "map",
+      "poisson": true,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 3.1130591250257567,
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true
+    },
+    {
+      "repeat": 1,
+      "view": "batch",
+      "poisson": false,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 3.096255792072043,
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true
+    },
+    {
+      "repeat": 1,
+      "view": "batch",
+      "poisson": false,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 3.193601916078478,
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true
+    },
+    {
+      "repeat": 1,
+      "view": "batch",
+      "poisson": true,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 3.2451410420471802,
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true
+    },
+    {
+      "repeat": 1,
+      "view": "batch",
+      "poisson": true,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 3.4635002920404077,
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true
+    },
+    {
+      "repeat": 1,
+      "view": "map",
+      "poisson": false,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 3.4671821660595015,
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true
+    },
+    {
+      "repeat": 1,
+      "view": "map",
+      "poisson": false,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 4.582155582960695,
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true
+    },
+    {
+      "repeat": 1,
+      "view": "map",
+      "poisson": true,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 3.326595832942985,
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true
+    },
+    {
+      "repeat": 1,
+      "view": "map",
+      "poisson": true,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 3.85764979198575,
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true
+    }
+  ]
+}
