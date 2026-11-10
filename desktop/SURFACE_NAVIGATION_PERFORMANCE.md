@@ -7,7 +7,7 @@ upload occurs during navigation. Phase curves and plane geometry also remain
 resident. Their screen widths are calculated in the shader; translucent plane
 ordering updates a small guide index buffer when the camera direction changes.
 
-Wheel zoom anchors to the mouse position by adjusting camera pan with zoom.
+Wheel zoom and right-click zoom-out anchor to the mouse position by adjusting camera pan with zoom.
 This preserves the projected point at any height without a pick or GPU readback.
 Zoom bounds apply before calculating pan, preserving the anchor at the limits.
 

@@ -662,12 +662,22 @@ export function BatchSurfaceView({
                 x: e.clientX,
                 y: e.clientY,
               };
+              const bounds = e.currentTarget.getBoundingClientRect();
+              const anchor = {
+                x: e.clientX - bounds.left,
+                y: e.clientY - bounds.top,
+              };
               setView((v) => ({
                 ...v,
-                camera: {
-                  ...v.camera,
-                  zoom: clamp(v.camera.zoom / 2, 0.25, 5),
-                },
+                camera: zoomSurfaceAt(
+                  v.camera,
+                  v.stretch,
+                  size.width,
+                  size.height,
+                  parseFloat(typography.mono) || 13,
+                  anchor,
+                  v.camera.zoom / 2,
+                ),
               }));
               return;
             }

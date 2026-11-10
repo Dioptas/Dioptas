@@ -194,6 +194,26 @@ try {
         Math.hypot(zoomedOut.x - anchor.x, zoomedOut.y - anchor.y) < 0.5,
         "The same anchor stays fixed while zooming out",
       );
+      const beforeRight = await details(surface),
+        sampleBeforeRight = JSON.parse(beforeRight.hitSample);
+      const clientX = Math.round(box.x + anchor.x),
+        clientY = Math.round(box.y + anchor.y);
+      const pointer = { x: clientX - box.x, y: clientY - box.y };
+      await page.mouse.click(clientX, clientY, { button: "right" });
+      const afterRight = await details(surface),
+        sampleAfterRight = JSON.parse(afterRight.hitSample);
+      assert.equal(+afterRight.zoom, +beforeRight.zoom / 2);
+      const factor = +afterRight.zoom / +beforeRight.zoom;
+      assert.ok(
+        Math.hypot(
+          sampleAfterRight.x -
+            (pointer.x + (sampleBeforeRight.x - pointer.x) * factor),
+          sampleAfterRight.y -
+            (pointer.y + (sampleBeforeRight.y - pointer.y) * factor),
+        ) < 1e-6,
+        "Right-click zoom-out uses the same cursor anchor",
+      );
+      assert.equal(afterRight.meshUploads, fine.meshUploads);
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
       await page.mouse.down();
       await page.mouse.move(
