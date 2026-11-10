@@ -7,5 +7,13 @@
   "numericalScenarios": 18,
   "transportTestsPassed": 9,
   "fullFileBitwiseCommands": 16,
-  "polygonControlCommands": 8
+  "polygonControlCommands": 8,
+  "mainCheckoutTestsPassed": 188,
+  "mainCheckoutClippy": true,
+  "mainCheckoutFullFileBitwiseCommands": 4,
+  "headlessBrowsers": [
+    "chromium",
+    "webkit"
+  ],
+  "progressFixtureFrames": 8192
 }

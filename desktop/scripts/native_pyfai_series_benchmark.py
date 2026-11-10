@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import platform
+import shutil
 import statistics
 import subprocess
 import tempfile
@@ -19,6 +20,8 @@ from native_spatial_mask_benchmark import compare
 
 
 def cpu_context(processor_pid):
+    if shutil.which("ps") is None:
+        return []
     output = subprocess.check_output(["ps","-axo","pid,pcpu,comm"],text=True)
     active = []
     for line in output.splitlines()[1:]:
@@ -61,9 +64,12 @@ def main():
     p.add_argument("--variants", nargs="+", choices=["before","after"], default=["before","after"])
     p.add_argument("--bitwise", action="store_true", help="Require identical float64 bits for every exported result")
     p.add_argument("--wait-idle", action="store_true", help="Wait for unrelated heavy CPU work, and retry visibly contended measurements")
+    p.add_argument("--reference", type=Path, help="Compare with existing float64 oracles without overwriting them")
     args = p.parse_args()
+    if args.wait_idle and shutil.which("ps") is None:
+        p.error("--wait-idle requires the ps process-status utility")
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    oracles = args.output.parent / "oracles"
+    oracles = args.reference or args.output.parent / "oracles"
     oracles.mkdir(exist_ok=True)
     initial = args.source.stat()
     with h5py.File(args.source) as f:
@@ -74,6 +80,7 @@ def main():
                   variants=args.variants,
                   bitwiseRequired=args.bitwise,
                   waitForIdle=args.wait_idle, contendedAttempts=[],
+                  reference=str(args.reference) if args.reference else None,
                   polarization=0.965, requestedWorkers=args.threads,
                   masks="automatic named-detector acquisition mask; no dynamic or external user mask",
                   corrections="none", machine=platform.platform(),
@@ -130,7 +137,7 @@ def main():
                             else:
                                 assert result["map"]["points"]==shape[0]
                                 arrays["map_values"]=np.asarray(result["map"]["values"],dtype=float)
-                            if repeat==0 and variant==args.variants[0]:
+                            if not args.reference and repeat==0 and variant==args.variants[0]:
                                 np.savez(oracles/(view+"-"+case+".npz"),**arrays)
                             comparison = compare(oracles,view,case,arrays)
                             with np.load(oracles/(view+"-"+case+".npz")) as expected:

@@ -1,0 +1,22 @@
+[
+  {
+    "browser": "chromium",
+    "partialMapWhileBusy": true,
+    "blankUnfinishedCells": true,
+    "previewEqualsFinishedCells": true,
+    "regionsAndExpressionPreserved": true,
+    "detachedPreview": true,
+    "liveRateDisplayed": true,
+    "completed": 8192
+  },
+  {
+    "browser": "webkit",
+    "partialMapWhileBusy": true,
+    "blankUnfinishedCells": true,
+    "previewEqualsFinishedCells": true,
+    "regionsAndExpressionPreserved": true,
+    "detachedPreview": true,
+    "liveRateDisplayed": true,
+    "completed": 8192
+  }
+]

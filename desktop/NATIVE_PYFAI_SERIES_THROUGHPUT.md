@@ -93,6 +93,39 @@ These are native-command images/s, not display-refresh rates.
 [Paired compatibility receipt](artifacts/native-pyfai-throughput/paired.json) ·
 [Polygon control](artifacts/native-pyfai-throughput/polygon.json).
 
+## GUI observations and main-checkout integration
+
+A fresh main-checkout build also passes four full-file bitwise comparisons
+against the preserved preceding reference, after integrating other concurrent
+desktop changes. Its 188 Rust tests and strict Clippy pass. This validation ran
+under background CPU activity; its timings are not used in the quiet-CPU table.
+[Main-checkout validation](artifacts/native-pyfai-throughput/main-bitwise-validation.json).
+
+An isolated Tauri/WKWebView run of the normal Batch load action uses the current
+main checkout, production binary IPC and GPU rendering for all 625 frames:
+
+| Poisson errors | First load, seconds | First load, images/s | Repeated load, seconds | Repeated load, images/s |
+| --- | ---: | ---: | ---: | ---: |
+| Off | 5.984 | 104.45 | 3.905 | 160.05 |
+| On | 3.280 | 190.55 | 3.240 | 192.90 |
+
+These are unisolated GUI observations while background indexing and other
+checks were active, rather than a controlled Poisson-error cost comparison.
+The repeated Poisson run reaches about 193 images/s, versus approximately 115
+in the previous GUI measurement. Use the paired quiet-CPU commands above to
+assess the core optimization. GUI rates include native execution, normal React
+processing, GPU completion and paint opportunities; initial image/calibration
+setup and the OS picker are excluded. Physical LCD scanout is not measured.
+[GUI receipt](artifacts/native-pyfai-throughput/gui.json).
+
+All four GUI commands report 625 parallel frames, eight workers and visible
+live rates. The private test window requested no keyboard focus and was closed
+with only its own processing child; a user preview is still running.
+Headless Chromium/WebKit Map checks also pass, including detached previews,
+unfinished cells, retained regions/expressions and live rate arithmetic. The
+synthetic progress fixture now has 8,192 frames so the faster kernels leave a
+reliably observable interval for polling. [Headless receipt](artifacts/native-pyfai-throughput/headless-map.json).
+
 ## Validation and reproduction
 
 All **215 Dioptrin library tests** and strict library/test Clippy pass, including
@@ -107,6 +140,7 @@ numerical scenarios across Batch/Map, and nine cancellation/source-mutation
 transport scenarios pass with the pinned public dependency. Numerical scenarios
 include corrections, dynamic/disabled masks, sectors, spread, Q/d units,
 solid-angle correction disabled, multiple sources and strided selection.
+[Validation summary](artifacts/native-pyfai-throughput/validation.json).
 
 ```sh
 python desktop/scripts/native_pyfai_series_benchmark.py \

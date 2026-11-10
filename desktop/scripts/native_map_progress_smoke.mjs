@@ -10,6 +10,8 @@ const artifacts = path.join(root, "desktop/artifacts/native-map-progress");
 await mkdir(artifacts, { recursive: true });
 const temp = await mkdtemp(path.join(os.tmpdir(), "dioptas-map-progress-"));
 const source = path.join(temp, "scan.h5");
+// Keep real native work long enough for progress polling in fast kernels.
+const frameCount = 8192;
 execFileSync(
   process.env.DIOPTAS_REFERENCE_PYTHON ?? path.join(root, ".venv/bin/python"),
   [
@@ -19,11 +21,12 @@ os.environ['HDF5_PLUGIN_PRELOAD']='::'
 import numpy as np,h5py,bitshuffle
 y,x=np.indices((384,448));frame=(100+x*2+y*3).astype('uint16')
 with h5py.File(sys.argv[1],'w') as f:
- d=f.create_dataset('frames',shape=(2048,384,448),dtype='uint16',chunks=(1,384,448),compression=32008,compression_opts=(0,4,2,2048,2),allow_unknown_filter=True)
+ d=f.create_dataset('frames',shape=(int(sys.argv[2]),384,448),dtype='uint16',chunks=(1,384,448),compression=32008,compression_opts=(0,4,2,2048,2),allow_unknown_filter=True)
  data=struct.pack('>QI',frame.nbytes,4096)+bitshuffle.compress_lz4(frame,block_size=2048).tobytes()
- for i in range(2048):d.id.write_direct_chunk((i,0,0),data)
+ for i in range(int(sys.argv[2])):d.id.write_direct_chunk((i,0,0),data)
 `,
     source,
+    String(frameCount),
   ],
 );
 const receipts = [];
@@ -253,7 +256,7 @@ try {
         regionsAndExpressionPreserved: true,
         detachedPreview: true,
         liveRateDisplayed: rates.length > 0,
-        completed: 2048,
+        completed: frameCount,
       });
     } finally {
       await browser.close();
