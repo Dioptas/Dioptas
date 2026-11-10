@@ -200,3 +200,17 @@ correction-preview workflows. No visible test windows were opened, existing
 previews were preserved, and no package/release was published. See
 [Spottiness qualification](SPOTTINESS_PARITY.md) for statistics, coverage and
 remaining combined-pattern/splitting limitations.
+
+## Shared-controls scrollbar fixture correction
+
+The previously reported Phase parameters gutter failure came from a stale test
+fixture: `.phase-step-controls` is a two-field menu grid, not a scroll container.
+The fixture now exercises the editor's `.pe-parameter-scroll` container and
+explicitly checks computed overflow behavior before measuring scrollbar space.
+The existing 12 px gutter and idle-visibility assertions remain unchanged.
+
+`npm run test:ui-components` passes in headless Chromium and WebKit at Standard
+and Larger text sizes, including vertical, horizontal, nested and non-overflow
+cases. All 112 frontend tests and the production build pass. Application layout
+and scrollbar styles are unchanged; the earlier fixture failure is resolved.
+Receipts and screenshots are in `desktop/artifacts/ui-components/`.

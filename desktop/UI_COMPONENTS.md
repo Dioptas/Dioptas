@@ -80,8 +80,11 @@ components in headless Chromium and WebKit at both text sizes, including table
 and detached-editor fields, popup inheritance, refs, form submission, nested
 dialogs, Escape/backdrop dismissal, focus and scientific numeric editing.
 It also checks idle vertical, horizontal and nested scrollbars, reserved gutter
-space, and content that fits without overflow. Chromium is launched without its
-headless-only `--hide-scrollbars` default for accurate layout and screenshots.
+space, and content that fits without overflow. The Phase parameters case uses
+`.pe-parameter-scroll`, the actual editor page container; `.phase-step-controls`
+is a non-scrolling menu grid. Overflow cases also assert that their computed
+axis permits scrolling before measuring the 12 px gutter. Chromium is launched
+without its headless-only `--hide-scrollbars` default for accurate layout and screenshots.
 Screenshots and the result report are written to `artifacts/ui-components/`.
 The existing calibration, mask, integration, phase, map, batch and custom-action
 smoke suites cover the migrated workflows.
