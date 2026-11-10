@@ -1,0 +1,169 @@
+{
+  "scope": "macOS sample, 2 seconds at 1 ms intervals over 300 warm next_image commands per preserved executable; sampled runs are not used for headline timings. No GUI or physical scanout. Counts are hotspot attribution, not normalized throughput percentages.",
+  "variants": {
+    "before": {
+      "rawSample": {
+        "path": "/Users/clemens/Codex/dioptas-pyfai-single-20261110/before-final.sample",
+        "sha256": "bc8551f0b1ae3ff7cd65c87968df82b0d83ce7502a57c7a700f0d0b748d9511b"
+      },
+      "rawTrace": {
+        "path": "/Users/clemens/Codex/dioptas-pyfai-single-20261110/before-final.trace",
+        "sha256": "6d46e0a0cfcbcc0c5128c70a08f95e16184f654024020195f3970b510dfa20dd"
+      },
+      "physicalFootprint": "3.0G",
+      "collapsedHotspotSamples": {
+        "strict CSR": 1554,
+        "display fingerprint": 851,
+        "count statistics": 489,
+        "orientation to f64": 300,
+        "display to f32": 193,
+        "bitshuffle": 317,
+        "packet write": 311
+      },
+      "tracedSteps": {
+        "packet/encode response": {
+          "count": 305,
+          "medianMs": 0.25425
+        },
+        "packet/write and flush": {
+          "count": 305,
+          "medianMs": 7.094666999999999
+        },
+        "snapshot/base state": {
+          "count": 303,
+          "medianMs": 0.37825000000000003
+        },
+        "snapshot/processing and calibration metadata": {
+          "count": 303,
+          "medianMs": 0.726541
+        },
+        "snapshot/ring display metadata": {
+          "count": 303,
+          "medianMs": 8.4e-05
+        },
+        "snapshot/display buffers and series metadata": {
+          "count": 303,
+          "medianMs": 0.011333
+        },
+        "source-publish/validate source": {
+          "count": 301,
+          "medianMs": 0.035500000000000004
+        },
+        "source-publish/typed to oriented f64": {
+          "count": 301,
+          "medianMs": 1.273792
+        },
+        "source-publish/publish metadata": {
+          "count": 301,
+          "medianMs": 0.01875
+        },
+        "raster/f32 conversion": {
+          "count": 301,
+          "medianMs": 1.179916
+        },
+        "raster/buffer fingerprint and shared storage": {
+          "count": 301,
+          "medianMs": 3.164
+        },
+        "raster/shared count distribution": {
+          "count": 301,
+          "medianMs": 5.2918330000000005
+        },
+        "raster/exact auto levels": {
+          "count": 301,
+          "medianMs": 0.015833
+        },
+        "raster/full pixel histogram": {
+          "count": 301,
+          "medianMs": 0.025791
+        }
+      }
+    },
+    "after": {
+      "rawSample": {
+        "path": "/Users/clemens/Codex/dioptas-pyfai-single-20261110/after-final.sample",
+        "sha256": "211d608ddbdc9cc0294bcabbf6a2dc49c6cae1dde4c29fc25a8b570ef97f44a6"
+      },
+      "rawTrace": {
+        "path": "/Users/clemens/Codex/dioptas-pyfai-single-20261110/after-final.trace",
+        "sha256": "e581213aa44dc4d0c9d3e6c16501c486de65d6bff9e0aeb8786979859674d237"
+      },
+      "physicalFootprint": "3.0G",
+      "collapsedHotspotSamples": {
+        "strict CSR": 1213,
+        "display fingerprint": 253,
+        "count statistics": 254,
+        "orientation to f64": 38,
+        "display to f32": 39,
+        "bitshuffle": 110,
+        "packet write": 405
+      },
+      "tracedSteps": {
+        "packet/encode response": {
+          "count": 305,
+          "medianMs": 0.25395799999999996
+        },
+        "packet/write and flush": {
+          "count": 305,
+          "medianMs": 7.399709
+        },
+        "snapshot/base state": {
+          "count": 303,
+          "medianMs": 0.365334
+        },
+        "snapshot/processing and calibration metadata": {
+          "count": 303,
+          "medianMs": 0.718708
+        },
+        "snapshot/ring display metadata": {
+          "count": 303,
+          "medianMs": 8.3e-05
+        },
+        "snapshot/display buffers and series metadata": {
+          "count": 303,
+          "medianMs": 0.011375
+        },
+        "source-publish/validate source": {
+          "count": 301,
+          "medianMs": 0.036083
+        },
+        "source-publish/typed to oriented f64": {
+          "count": 301,
+          "medianMs": 1.135166
+        },
+        "source-publish/publish metadata": {
+          "count": 301,
+          "medianMs": 0.019708
+        },
+        "raster/f32 conversion": {
+          "count": 301,
+          "medianMs": 1.1601249999999999
+        },
+        "raster/buffer fingerprint and shared storage": {
+          "count": 301,
+          "medianMs": 2.5561249999999998
+        },
+        "raster/shared count distribution": {
+          "count": 301,
+          "medianMs": 5.923917
+        },
+        "raster/exact auto levels": {
+          "count": 301,
+          "medianMs": 0.014542000000000001
+        },
+        "raster/full pixel histogram": {
+          "count": 301,
+          "medianMs": 0.027125
+        },
+        "pyfai-typed-image/prepare plan": {
+          "count": 301,
+          "medianMs": 0.481958
+        },
+        "pyfai-typed-image/strict typed CSR": {
+          "count": 301,
+          "medianMs": 3.42075
+        }
+      }
+    }
+  }
+}

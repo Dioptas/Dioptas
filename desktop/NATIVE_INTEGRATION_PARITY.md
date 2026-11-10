@@ -388,3 +388,15 @@ start subtracted. Existing batches now update automatically on background edits 
 with serialized live edits and shared progress/cancellation.
 The same per-pattern calculation is reused; sources, counting std, Map ownership
 and reversible originals remain intact. See [the background qualification](BATCH_BACKGROUND_NATIVE.md).
+
+## Single-image compatibility input (2026-11-10)
+
+Fixed-mask, uncorrected uint16/uint32 single-image pyFAI-compatible patterns now
+read decoder pixels directly and schedule independent strict CSR bins in
+parallel. This applies to file opens, frame navigation and explicit/setting-driven
+recalculation in Rust Dioptas. Corrected/transformed/derived inputs, dynamic masks
+and azimuthal spread retain their existing resident route. Full Eiger before/after
+results are bitwise identical: the integration stage improves by approximately
+12%, while complete detector-loading latency remains near 29–30 ms. First-use
+source-address preparation adds work. See the [full single-image profile,
+benchmarks and verification](NATIVE_PYFAI_SINGLE_IMAGE_PERFORMANCE.md).

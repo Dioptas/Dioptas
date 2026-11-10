@@ -1,0 +1,127 @@
+{
+  "applicationCommit": "47a0049b",
+  "sourceCheckoutCommit": "23544087",
+  "dioptrinCommit": "0c0d4fccc2b38a5f53b481ebf507c80cfb9a44c6",
+  "platform": "Apple M4 Pro, macOS 26.6.2",
+  "libraryTests": 215,
+  "backendTests": 190,
+  "backendIgnoredExistingOptInTests": 2,
+  "libraryClippy": "pass, lib/tests, warnings denied",
+  "backendClippy": "pass, all features/all targets, warnings denied",
+  "backendTestBuild": "all features/lib/tests, debug info disabled for workspace package only; same optimized numerical arithmetic",
+  "typescriptViteBuild": "pass",
+  "nativeTransportTests": 9,
+  "frozenExecutableCases": 81,
+  "frozenComparison": "All transported scientific f64 values and raster bytes/metadata identical",
+  "headlessBrowsers": [
+    "chromium",
+    "webkit"
+  ],
+  "mainInteractiveRegression": "pass",
+  "rawLogs": {
+    "library-tests": {
+      "path": "/Users/clemens/Codex/dioptas-pyfai-single-20261110/library-tests.log",
+      "sha256": "72a6bde04ba321f2320dc115cddc1df2f148fbd17c36a996455a8c62c73c862c"
+    },
+    "library-clippy": {
+      "path": "/Users/clemens/Codex/dioptas-pyfai-single-20261110/library-clippy.log",
+      "sha256": "e5fc3b250180dfbb3dd31d0928e0d81d84868fb90168fbf49025bb6c58b88d41"
+    },
+    "backend-tests": {
+      "path": "/Users/clemens/Codex/dioptas-pyfai-single-20261110/backend-tests.log",
+      "sha256": "31aa8d94e3f08a916c50e78a432cfc34f764bfd53187aaa7be95085a1f4868e8"
+    },
+    "backend-clippy": {
+      "path": "/Users/clemens/Codex/dioptas-pyfai-single-20261110/backend-clippy.log",
+      "sha256": "0e66c3b89446e4e06710c3b7436deea179bb193c2761a20af94e7f3cc64de24b"
+    },
+    "backend-typed-test": {
+      "path": "/Users/clemens/Codex/dioptas-pyfai-single-20261110/backend-typed-test.log",
+      "sha256": "db041d1fceda457106e15ce65d2577ac3e3d889b213e2e57db1d07e2aef0f554"
+    },
+    "ui-build": {
+      "path": "/Users/clemens/Codex/dioptas-pyfai-single-20261110/ui-build.log",
+      "sha256": "4e39901c6d0d7ee94bdeea2002ca3e3bb58405028d2bf995c21e43e45d7d888c"
+    },
+    "transport": {
+      "path": "/Users/clemens/Codex/dioptas-pyfai-single-20261110/transport.log",
+      "sha256": "5f0b5294725d023ce1964bc720d67d42f205f681b641025216ed01884f6dc862"
+    },
+    "headless": {
+      "path": "/Users/clemens/Codex/dioptas-pyfai-single-20261110/headless.log",
+      "sha256": "296b8463b752a826bbb848dd9c53e056080a80b253a667c42069e815a9742ae0"
+    },
+    "main-typed-test": {
+      "path": "/Users/clemens/Codex/dioptas-pyfai-single-20261110/main-typed-test.log",
+      "sha256": "6dc1403910c2aa4b8f8e9795bf0451f755f54df2f817d1a89c4a8ba639d220eb"
+    },
+    "pinned-parity": {
+      "path": "/Users/clemens/Codex/dioptas-pyfai-single-20261110/pinned-parity.log",
+      "sha256": "648a01dc709716a2f918d92e07df51661fc67718ec8d36ef4897cada05954f1e"
+    },
+    "pinned-build": {
+      "path": "/Users/clemens/Codex/dioptas-pyfai-single-20261110/pinned-build.log",
+      "sha256": "0554ba8305937541aa283efa9c38c83120ecf4fe3f17d07aea1cc09cfcf3f979"
+    }
+  },
+  "headlessWorkflow": [
+    {
+      "browser": "chromium",
+      "runtime": "rust",
+      "pythonInChild": false,
+      "commands": [
+        "open_calibration",
+        "integration_settings",
+        "open_image",
+        "integration_phase",
+        "batch_load",
+        "integration_save_batch",
+        "map_batch",
+        "state",
+        "progress",
+        "custom_command",
+        "display_products",
+        "integration_phase_catalog",
+        "integration_phase_editor",
+        "map_levels"
+      ],
+      "errors": []
+    },
+    {
+      "browser": "webkit",
+      "runtime": "rust",
+      "pythonInChild": false,
+      "commands": [
+        "open_calibration",
+        "integration_settings",
+        "open_image",
+        "integration_phase",
+        "batch_load",
+        "integration_save_batch",
+        "map_batch",
+        "state",
+        "progress",
+        "custom_command",
+        "display_products",
+        "integration_phase_catalog",
+        "integration_phase_editor",
+        "map_levels"
+      ],
+      "errors": []
+    }
+  ],
+  "mainEigerBitwiseComparison": {
+    "frames": [
+      0,
+      312,
+      624
+    ],
+    "poisson": [
+      false,
+      true
+    ],
+    "pass": true,
+    "sourceUnchanged": true,
+    "receipt": "main-validation.json"
+  }
+}

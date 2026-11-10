@@ -1,0 +1,410 @@
+{
+  "cases": [
+    {
+      "dtype": "uint16",
+      "case": "open",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "errors-True",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "next-True-0",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "next-True-1",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "resident-True",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "errors-False",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "next-False-0",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "next-False-1",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "resident-False",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "mask",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "roi",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "q",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "d",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "sector",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "bin-change",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "spread",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "restore-fixed",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "dynamic",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "dynamic-next",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "dynamic-disabled",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "background",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "flat",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "corrected-next",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "background-disabled",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "flat-disabled",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "transform",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint16",
+      "case": "transformed-next",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "open",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "errors-True",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "next-True-0",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "next-True-1",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "resident-True",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "errors-False",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "next-False-0",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "next-False-1",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "resident-False",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "mask",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "roi",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "q",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "d",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "sector",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "bin-change",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "spread",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "restore-fixed",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "dynamic",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "dynamic-next",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "dynamic-disabled",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "background",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "flat",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "corrected-next",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "background-disabled",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "flat-disabled",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "transform",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "uint32",
+      "case": "transformed-next",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "open",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "errors-True",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "next-True-0",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "next-True-1",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "resident-True",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "errors-False",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "next-False-0",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "next-False-1",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "resident-False",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "mask",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "roi",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "q",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "d",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "sector",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "bin-change",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "spread",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "restore-fixed",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "dynamic",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "dynamic-next",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "dynamic-disabled",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "background",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "flat",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "corrected-next",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "background-disabled",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "flat-disabled",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "transform",
+      "bitwiseEqual": true
+    },
+    {
+      "dtype": "float64",
+      "case": "transformed-next",
+      "bitwiseEqual": true
+    }
+  ],
+  "bitwiseEqual": true
+}
