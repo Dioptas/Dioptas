@@ -121,10 +121,36 @@ fn combined_cakes_retain_either_source_grid_on_unit_change_and_inspection() {
             true,
         );
         assert_eq!(original.result["cake"]["unit"], source);
+        let profile = call(
+            &mut s,
+            "cake_profile",
+            json!({"two_theta":1.,"bins":3,"shift":90}),
+            true,
+        )
+        .result["cakeProfile"]
+            .clone();
+        assert_eq!(profile["radialUnit"], source);
+        assert!(
+            profile["y"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|v| v.as_f64().unwrap() > 0.)
+        );
         for unit in ["q_A^-1", "2th_deg", "d_A"] {
             let changed = call(&mut s, "integration_settings", json!({"unit":unit}), true);
             assert_same_cake(&original, &changed);
             assert_eq!(changed.result["pattern"]["unit"], unit);
+            let relabeled_profile = call(
+                &mut s,
+                "cake_profile",
+                json!({"two_theta":1.,"bins":3,"shift":90}),
+                true,
+            );
+            assert_eq!(
+                relabeled_profile.result["cakeProfile"], profile,
+                "The display axis must not alter fractional radial extraction."
+            );
             let linked = call(
                 &mut s,
                 "validation_position",
@@ -146,6 +172,16 @@ fn combined_cakes_retain_either_source_grid_on_unit_change_and_inspection() {
         let mut reopened = Session::new(root());
         let opened = call(&mut reopened, "open_project", json!({"path":project}), true);
         assert_eq!(opened.result["state"]["unit"], "d_A");
+        assert_eq!(
+            call(
+                &mut reopened,
+                "cake_profile",
+                json!({"two_theta":1.,"bins":3,"shift":90}),
+                true
+            )
+            .result["cakeProfile"],
+            profile
+        );
         assert_eq!(
             opened.result["cake"]["unit"],
             original.result["cake"]["unit"]

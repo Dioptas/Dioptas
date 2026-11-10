@@ -1,0 +1,52 @@
+.integration-image-pane > .cake-profile-panel {
+  flex: 0 0 30%;
+  min-height: 150px;
+  max-height: 270px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
+}
+.cake-profile-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 10px;
+  flex: 0 0 auto;
+  padding: 3px 6px;
+}
+.cake-profile-tools > span:first-child {
+  margin-right: auto;
+}
+.cake-profile-tools .field-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+.cake-profile-tools .field-label input {
+  width: 76px;
+}
+.cake-profile-tools button {
+  padding: 5px;
+}
+.cake-profile-edge {
+  font-size: var(--text-meta);
+  color: var(--muted);
+}
+.cake-profile-empty {
+  display: grid;
+  place-content: center;
+  flex: 1;
+  padding: 8px;
+  color: var(--muted);
+}
+.cake-profile-panel > .pattern-container {
+  flex: 1;
+  min-height: 80px;
+}
+/* Leave room for the existing wrapped image tools at compact window heights. */
+.integration-image-pane:has(.cake-profile-panel) > .detector-panel,
+.integration-image-pane:has(.cake-profile-panel) > .cake-panel {
+  min-height: 100px;
+}

@@ -859,7 +859,9 @@ export function RasterView({
         context.translate(11, top + plotHeight / 2);
         context.rotate(-Math.PI / 2);
         context.textBaseline = "middle";
-        context.fillText("Azimuth (°)", 0, 0);
+        // The optional profile shares this pane at compact window heights.
+        // Keep the title inside the canvas when the cake is shallow.
+        context.fillText(plotHeight < 120 ? "χ (°)" : "Azimuth (°)", 0, 0);
         context.restore();
       }
     },

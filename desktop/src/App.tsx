@@ -1,5 +1,7 @@
 import { useCakeRadialAxis } from "./useCakeRadialAxis";
 import { cakeSourcePixel } from "./cakeRadialAxis";
+
+import { CakeProfilePanel } from "./CakeProfilePanel";
 import { IntegrationLeftPane } from "./IntegrationLeftPane";
 import { ImageSourceControl } from "./ImageSourceControl";
 import { processingProgressText } from "./processingProgress";
@@ -166,6 +168,8 @@ export default function App() {
   const cakeExport = useRef<RasterExport>(null);
   const [overlayReveal, setOverlayReveal] = useState(0);
   const [integrationDisplay, setIntegrationDisplay] = useState("image");
+  const [showCakeProfile, setShowCakeProfile] = useState(false);
+  const [cakeProfileBins, setCakeProfileBins] = useState(1);
   const [integrationControlsCollapsed, setIntegrationControlsCollapsed] =
     useState(false);
   const [sqrtPattern, setSqrtPattern] = useState(false);
@@ -375,6 +379,7 @@ export default function App() {
     requestedDisplayProducts({
       mode,
       display: integrationDisplay,
+      profile: showCakeProfile,
       calibrationStep,
       concealed: settingsOpen,
       combinedCake: !!state?.combination?.cakes,
@@ -770,6 +775,7 @@ export default function App() {
           !liveCorrection &&
           !liveBackground &&
           !livePhaseConditions &&
+          command !== "cake_profile" &&
           command !== "integration_phase_state" &&
           command !== "integration_phase_guides" &&
           command !== "image_levels" &&
@@ -833,6 +839,7 @@ export default function App() {
         command === "integration_phase_guides" ||
         command === "integration_autoprocess_poll" ||
         frameSelection ||
+        command === "cake_profile" ||
         command === "validation_position" ||
         command === "image_levels" ||
         command === "image_batch_mode";
@@ -2671,8 +2678,39 @@ export default function App() {
                           )}
                         </section>
                       )}
+                      {mode === "integration" && showCakeProfile && (
+                        <CakeProfilePanel
+                          state={state}
+                          cake={cake}
+                          linked={linked}
+                          shift={cakeShift}
+                          bins={cakeProfileBins}
+                          onBins={setCakeProfileBins}
+                          ready={ready && !settingsOpen}
+                          run={run}
+                          reportPlot={reportPlot}
+                          onInspect={(azimuth) => {
+                            if (!linked) return;
+                            setLocalImageClick(null);
+                            setClickedReading({
+                              source: "profile",
+                              text: `Azimuth ${azimuth}°`,
+                            });
+                            void run("validation_position", {
+                              source: "cake",
+                              unit: "2th_deg",
+                              x: linked.twoTheta,
+                              azimuth,
+                            });
+                          }}
+                        />
+                      )}
                       {mode === "integration" && (
                         <IntegrationImageControls
+                          profile={showCakeProfile}
+                          onProfile={() =>
+                            setShowCakeProfile((value) => !value)
+                          }
                           onSaveImage={() => {
                             const source =
                               integrationDisplay === "cake" ? "cake" : "image";

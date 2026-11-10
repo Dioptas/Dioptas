@@ -79,14 +79,24 @@ change, project reopen, source-grid CSV and a 2048-pixel PNG. Screenshots cover
 `artifacts/cake-q-axis/`. Existing real-image headless native calibration checks
 also pass. No native/headed windows were opened and no user preview was stopped.
 
-## Integration boundary
+## Consolidated integration — November 10, 2026
 
-This feature is committed on `codex/cake-q-axis`, based on `b31e7650`, for
-integration into the consolidated desktop. The primary checkout was inspected
-read-only and remained at that baseline, clean, during this feature's validation.
-The concurrent azimuthal-profile feature must continue reading `Cake.unit` and
-`Cake.radialRange` as scientific source metadata; its radial windows must not
-use the display adapter's converted ticks. Its existing expectation that every
-unit change rebuilds a combined grid needs reconciliation with buffer retention.
-App/PlotStatus/types/package/session touchpoints are intentionally small and
-must be combined with that feature's own hooks rather than replacing them.
+Combined with azimuthal-profile commit `b82067d4` in the consolidated desktop.
+Both hooks and their requested-product ownership are retained. `Cake.unit` and
+`Cake.radialRange` remain scientific source metadata; profile windows never use
+converted display ticks. Shared App imports, PlotStatus, types and command
+routing preserve both features. Shallow cakes abbreviate the azimuth title to
+χ (°) so it fits beside the optional profile at compact window heights.
+
+Joint Rust checks assert unchanged float64 profile samples across 2θ/Q/d
+selection and project reopen for angular and Q combined grids. The extended
+profile browser check asserts unchanged samples, cake buffers and both plot
+viewports through the same transitions, alongside the original width, shift,
+export, lazy-demand, configuration and Standard/Larger layout checks.
+
+Merged validation: 209 native tests passed (two existing ignored checks),
+110 frontend tests and 27 Tauri host tests passed. Native Clippy, frontend build
+and headless Chromium/WebKit cake-axis, profile, calibration and Integration
+workflows passed. Host-wide rustfmt checking reports existing formatting
+in unrelated host modules; those files were preserved. No visible windows
+were opened, no user processing was stopped and no release was published.
