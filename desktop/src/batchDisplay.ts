@@ -16,6 +16,7 @@ interface Display {
   phases: boolean;
   auto: boolean;
   initialized: boolean;
+  surfaceStep: number;
 }
 
 /** Preserve the physical region while labelling limits in the plot's axis. */
@@ -49,12 +50,18 @@ function read(batch: BatchData | null): Display {
     phases: false,
     auto: true,
     initialized: false,
+    surfaceStep: 1,
   };
   try {
     const saved = JSON.parse(localStorage.getItem(key) ?? "null");
     fallback.zoomMode =
       saved?.zoomMode === "horizontal" ? "horizontal" : "rectangle";
     fallback.phases = saved?.phases === true;
+    if (Number.isInteger(saved?.surfaceStep) && saved.surfaceStep > 0)
+      fallback.surfaceStep = Math.min(
+        saved.surfaceStep,
+        batch?.entries.length ?? saved.surfaceStep,
+      );
     if (
       saved?.id === batch?.id &&
       saved.limits?.length === 2 &&
@@ -63,6 +70,10 @@ function read(batch: BatchData | null): Display {
     )
       return {
         ...saved,
+        surfaceStep:
+          Number.isInteger(saved.surfaceStep) && saved.surfaceStep > 0
+            ? saved.surfaceStep
+            : 1,
         zoomMode: fallback.zoomMode,
         phases: fallback.phases,
       };

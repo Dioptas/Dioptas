@@ -1,7 +1,7 @@
 import { Button } from "./ui";
 import { scientificValue } from "./ScientificNumberInput";
 import { TabList } from "./TabList";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ChevronDown,
   ChevronLeft,
@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { DataTable, TableScroll } from "./DataTable";
 import { BatchHeatmap } from "./BatchHeatmap";
+import { BatchSurfaceView } from "./BatchSurfaceView";
+import { batchSurfaceSeriesKey } from "./batchSurfaceGeometry";
 import { BatchControls } from "./BatchControls";
 import { PlotToggle } from "./IntegrationPlotControls";
 import { ImageIntensity } from "./ImageIntensity";
@@ -86,15 +88,35 @@ export function BatchView({
     "vertical",
     false,
   );
-  const [tab, setTab] = useState<"Files" | "2D" | "Options">(
-    batch ? "2D" : "Files",
-  );
-  const rangeRef = useRef<[number, number]>([
-    0,
-    Math.max(0, (batch?.entries.length ?? 1) - 1),
-  ]);
+  const [tab, setTab] = useState<"Files" | "2D" | "3D" | "Options">(() => {
+    try {
+      const saved = localStorage.getItem("dioptas-batch:view");
+      if (batch && (saved === "2D" || saved === "3D")) return saved;
+    } catch {
+      /* Session preference only. */
+    }
+    return batch ? "2D" : "Files";
+  });
   useEffect(() => {
-    if (batch) setTab((tab) => (tab === "Options" ? tab : "2D"));
+    if (tab === "2D" || tab === "3D") {
+      try {
+        localStorage.setItem("dioptas-batch:view", tab);
+      } catch {
+        /* Session still works. */
+      }
+    }
+  }, [tab]);
+  useEffect(() => {
+    if (batch)
+      setTab((tab) => {
+        if (tab !== "Files") return tab;
+        try {
+          if (localStorage.getItem("dioptas-batch:view") === "3D") return "3D";
+        } catch {
+          /* Default view. */
+        }
+        return "2D";
+      });
   }, [batch?.id]);
   const select = (
     index: number,
@@ -119,9 +141,6 @@ export function BatchView({
   const onRange = (start: number, stop: number) => {
     if (!batch || start < 0 || stop < start || stop >= batch.entries.length)
       return;
-    const old = rangeRef.current;
-    rangeRef.current = [start, stop];
-    if (old[0] === start && old[1] === stop) return;
     display.update({
       range: {
         xMin: display.range?.xMin ?? 0,
@@ -283,7 +302,7 @@ export function BatchView({
           label="Batch view"
           value={tab}
           onChange={setTab}
-          options={(["Files", "2D", "Options"] as const).map((name) => ({
+          options={(["Files", "2D", "3D", "Options"] as const).map((name) => ({
             value: name,
             name,
             label: name === "Options" ? <Settings2 size={15} /> : name,
@@ -295,7 +314,7 @@ export function BatchView({
           label="Show batch phases"
           title="Show phase lines on the batch overview"
           pressed={display.phases}
-          disabled={!batch?.phaseLines?.length}
+          disabled={tab === "3D" || !batch?.phaseLines?.length}
           onClick={() => display.update({ phases: !display.phases })}
         >
           <ChartNoAxesColumn size={15} aria-hidden="true" />
@@ -409,7 +428,7 @@ export function BatchView({
             <div
               className="batch-2d-view"
               role="tabpanel"
-              aria-label="Batch 2D view"
+              aria-label={tab === "3D" ? "Batch 3D view" : "Batch 2D view"}
             >
               <div className="batch-overview-column">
                 <div className="batch-overview-image detector-workspace">
@@ -437,28 +456,55 @@ export function BatchView({
                     onAutoActiveChange={(auto) => display.update({ auto })}
                     onAuto={auto}
                   />
-                  <BatchHeatmap
-                    position={position ?? batch?.position ?? undefined}
-                    phaseLines={display.phases ? batch?.phaseLines : undefined}
-                    batch={shownBatch!}
-                    limits={display.limits}
-                    log={shownLog}
-                    sqrt={shownSqrt}
-                    palette={display.palette}
-                    viewport={display.viewport}
-                    zoomMode={display.zoomMode}
-                    onZoomMode={(zoomMode) => display.update({ zoomMode })}
-                    ready={ready}
-                    onSelect={select}
-                    onNormalize={() =>
-                      run(
-                        "batch_normalize",
-                        { enabled: !batch.normalized },
-                        "Updating normalization…",
-                      )
-                    }
-                    reportPlot={reportPlot}
-                  />
+                  {tab === "3D" ? (
+                    <BatchSurfaceView
+                      key={batchSurfaceSeriesKey(batch)}
+                      batch={shownBatch!}
+                      position={position ?? batch.position ?? undefined}
+                      limits={display.limits}
+                      log={shownLog}
+                      sqrt={shownSqrt}
+                      palette={display.palette}
+                      range={display.range}
+                      step={display.surfaceStep}
+                      ready={ready}
+                      onRange={(range) => display.update({ range })}
+                      onSelect={select}
+                      onNormalize={() =>
+                        run(
+                          "batch_normalize",
+                          { enabled: !batch.normalized },
+                          "Updating normalization…",
+                        )
+                      }
+                      reportPlot={reportPlot}
+                    />
+                  ) : (
+                    <BatchHeatmap
+                      position={position ?? batch?.position ?? undefined}
+                      phaseLines={
+                        display.phases ? batch?.phaseLines : undefined
+                      }
+                      batch={shownBatch!}
+                      limits={display.limits}
+                      log={shownLog}
+                      sqrt={shownSqrt}
+                      palette={display.palette}
+                      viewport={display.viewport}
+                      zoomMode={display.zoomMode}
+                      onZoomMode={(zoomMode) => display.update({ zoomMode })}
+                      ready={ready}
+                      onSelect={select}
+                      onNormalize={() =>
+                        run(
+                          "batch_normalize",
+                          { enabled: !batch.normalized },
+                          "Updating normalization…",
+                        )
+                      }
+                      reportPlot={reportPlot}
+                    />
+                  )}
                 </div>
               </div>
               {!linkedDisplay && plotOptions}
@@ -476,6 +522,9 @@ export function BatchView({
           filesView={tab === "Files"}
           run={run}
           onRange={onRange}
+          displayStep={display.surfaceStep}
+          displayRange={display.range}
+          onStep={(surfaceStep) => display.update({ surfaceStep })}
         />
       )}
     </section>

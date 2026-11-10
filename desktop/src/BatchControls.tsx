@@ -16,6 +16,9 @@ export function BatchControls({
   filesView,
   run,
   onRange,
+  displayStep = 1,
+  onStep,
+  displayRange,
 }: {
   batch: BatchData | null;
   docked?: boolean;
@@ -25,6 +28,9 @@ export function BatchControls({
   filesView: boolean;
   run: BatchRun;
   onRange: (start: number, stop: number) => void;
+  displayStep?: number;
+  onStep?: (step: number) => void;
+  displayRange?: import("./usePlotNavigation").PlotRange | null;
 }) {
   const count = batch?.entries.length ?? 0,
     max = filesView ? (batch?.total ?? 1) - 1 : count - 1;
@@ -45,12 +51,25 @@ export function BatchControls({
   useEffect(() => {
     setStart(0);
     setStop(Math.max(0, max));
-    setStep(1);
+    setStep(filesView ? 1 : displayStep);
   }, [max, filesView, batch?.files[0]?.path]);
   useEffect(
     () => setJump(String((batch?.selected ?? 0) + 1)),
     [batch?.selected],
   );
+  useEffect(() => {
+    if (filesView) return;
+    setStep(displayStep);
+    setStart(
+      Math.max(0, Math.min(count - 1, Math.floor(displayRange?.yMin ?? 0))),
+    );
+    setStop(
+      Math.max(
+        0,
+        Math.min(count - 1, Math.ceil(displayRange?.yMax ?? count) - 1),
+      ),
+    );
+  }, [filesView, count, displayStep, displayRange?.yMin, displayRange?.yMax]);
   const normalizationValid =
     minimum.trim() !== "" &&
     maximum.trim() !== "" &&
@@ -189,7 +208,10 @@ export function BatchControls({
           max={Math.max(1, max + 1)}
           value={step}
           disabled={!batch}
-          onCommit={setStep}
+          onCommit={(value) => {
+            setStep(value);
+            if (!filesView) onStep?.(value);
+          }}
         />
       </label>
     </div>

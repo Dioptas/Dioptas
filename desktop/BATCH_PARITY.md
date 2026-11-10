@@ -5,9 +5,11 @@ The opt-in Rust implementation has a separate [native qualification ledger](NATI
 Batch starts from Qt's `dioptas/widgets/integration/BatchWidget.py` and its
 controllers, and reuses `BatchModel` and the current Python integration pipeline.
 It is a separate companion window linked to Integration. There is no Batch mode
-in the left sidebar. Qt's Files and 2D views provide the layout baseline; 3D is
-intentionally omitted. React's existing typography, plot gestures, image controls
-and neutral charcoal/orange styling apply.
+in the left sidebar. Qt's Files and 2D views provide the layout baseline.
+React's existing typography, plot gestures, image controls
+and neutral charcoal/orange styling apply. The optional native 3D tab is now
+implemented; see [3D surface qualification](BATCH_SURFACE_PARITY.md) for current
+behavior, bounded display sampling, export capture and intentional Qt differences.
 
 ## Qt layout and docking
 
