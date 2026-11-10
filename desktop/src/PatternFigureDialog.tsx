@@ -6,6 +6,7 @@ import type { Response } from "./types";
 import {
   defaultPatternFigureSettings,
   patternFigurePng,
+  patternFigurePresets,
   rememberPatternFigure,
   renderPatternFigure,
   restorePatternFigure,
@@ -235,7 +236,7 @@ export function PatternFigureDialog({
               aria-pressed={magnify}
               onClick={() => setMagnify((v) => !v)}
             >
-              Magnify preview
+              Actual-size preview
             </Button>
           </div>
           <div
@@ -308,14 +309,17 @@ export function PatternFigureDialog({
                         : "custom"
                     }
                     onChange={(e) => {
-                      if (e.target.value !== "custom") {
-                        const [width, height] = e.target.value
-                          .split("x")
-                          .map(Number);
+                      const preset =
+                        patternFigurePresets[
+                          e.target.value as keyof typeof patternFigurePresets
+                        ];
+                      if (preset) {
                         setSettings((s) => ({
                           ...s,
-                          options: { ...s.options, width, height },
+                          options: { ...s.options, ...preset },
                         }));
+                        setNotice("");
+                        setSaveError("");
                       }
                     }}
                   >
@@ -329,6 +333,10 @@ export function PatternFigureDialog({
                   {field("Width (mm)", "width", 50, 400)}
                   {field("Height (mm)", "height", 45, 400)}
                 </div>
+                <p className="pattern-figure-caption">
+                  Presets include print typography: 8 pt for single column, 10
+                  pt for double column, and 14 pt for presentations.
+                </p>
                 {textField("Title", "title")}
                 <div className="pattern-figure-pair">
                   <label>
@@ -367,9 +375,9 @@ export function PatternFigureDialog({
                   </Select>
                 </label>
                 <label>
-                  Legend
+                  Curve legend
                   <Select
-                    aria-label="Figure legend position"
+                    aria-label="Curve legend position"
                     value={o.legend}
                     onChange={(e) =>
                       change(
@@ -379,7 +387,7 @@ export function PatternFigureDialog({
                     }
                   >
                     {[
-                      ["auto", "Inside · Find open corner"],
+                      ["auto", "Auto · Open space or below plot"],
                       ["top-left", "Inside · Upper left"],
                       ["top-right", "Inside · Upper right"],
                       ["bottom-left", "Inside · Lower left"],
@@ -606,12 +614,24 @@ export function PatternFigureDialog({
                   <Select
                     aria-label="Figure phase placement"
                     value={o.phases}
-                    onChange={(e) =>
-                      change(
-                        "phases",
-                        e.target.value as PatternFigureOptions["phases"],
-                      )
-                    }
+                    onChange={(e) => {
+                      const phases = e.target
+                        .value as PatternFigureOptions["phases"];
+                      setSettings((s) => ({
+                        ...s,
+                        options: {
+                          ...s.options,
+                          phases,
+                          phaseLegend:
+                            phases === "plot" &&
+                            s.options.phaseLegend === "rows"
+                              ? "auto"
+                              : s.options.phaseLegend,
+                        },
+                      }));
+                      setNotice("");
+                      setSaveError("");
+                    }}
                     disabled={!o.phaseStyles.length}
                   >
                     <option value="rows">Separate rows below pattern</option>
@@ -619,12 +639,73 @@ export function PatternFigureDialog({
                     <option value="none">Hidden</option>
                   </Select>
                 </label>
+                <label>
+                  Phase labels
+                  <Select
+                    aria-label="Figure phase legend"
+                    value={o.phaseLegend}
+                    disabled={!o.phaseStyles.length || o.phases === "none"}
+                    onChange={(e) =>
+                      change(
+                        "phaseLegend",
+                        e.target.value as PatternFigureOptions["phaseLegend"],
+                      )
+                    }
+                  >
+                    <option value="rows" disabled={o.phases !== "rows"}>
+                      Beside each reference row
+                    </option>
+                    <option value="auto">
+                      Separate legend · Auto placement
+                    </option>
+                    <option value="top-left">
+                      Separate legend · Upper left
+                    </option>
+                    <option value="top-right">
+                      Separate legend · Upper right
+                    </option>
+                    <option value="bottom-left">
+                      Separate legend · Lower left
+                    </option>
+                    <option value="bottom-right">
+                      Separate legend · Lower right
+                    </option>
+                    <option value="above">Separate legend · Above plot</option>
+                    <option value="below">Separate legend · Below plot</option>
+                    <option value="right">
+                      Separate legend · To the right
+                    </option>
+                    <option value="none">Hidden</option>
+                  </Select>
+                </label>
+                <label>
+                  Tick thickness
+                  <Select
+                    aria-label="Figure phase tick thickness"
+                    value={o.phaseTickWeight}
+                    disabled={o.phases !== "rows"}
+                    onChange={(e) =>
+                      change(
+                        "phaseTickWeight",
+                        e.target
+                          .value as PatternFigureOptions["phaseTickWeight"],
+                      )
+                    }
+                  >
+                    <option value="intensity">
+                      Relative reflection intensity
+                    </option>
+                    <option value="uniform">Uniform</option>
+                  </Select>
+                </label>
                 {!o.phaseStyles.length && (
                   <p>No visible phase references in the source plot.</p>
                 )}
                 <p className="pattern-figure-caption">
-                  Separate rows share the exact horizontal axis. Stick heights
-                  show relative reflection strengths within each phase.
+                  Each phase has its own row below the patterns, aligned to the
+                  same horizontal axis. Ticks have equal height; their thickness
+                  can show relative reflection intensity. Phase legends stay
+                  separate from the curve legend.
                 </p>
                 {o.phaseStyles.map((p, i) => (
                   <div className="pattern-figure-entry" key={p.id}>

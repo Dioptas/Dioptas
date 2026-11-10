@@ -90,14 +90,32 @@ try {
                   y: y.map((v) => (v === null ? null : v * 0.65)),
                 },
               ],
-              phases: [19, 27].map((a, i) => ({
-                phaseIndex: 0,
-                name: "CeO₂",
-                x: convert(a),
-                intensity: 100 / (i + 1),
-                color: "#008844",
-                hkl: [i + 1, 1, 1],
-              })),
+              phases: [
+                ...[19, 27].map((a, i) => ({
+                  phaseIndex: 0,
+                  name: "CeO₂",
+                  x: convert(a),
+                  intensity: 100 / (i + 1),
+                  color: "#008844",
+                  hkl: [i + 1, 1, 1],
+                })),
+                ...[16.5, 22.4, 29].map((a, i) => ({
+                  phaseIndex: 1,
+                  name: "MgO",
+                  x: convert(a),
+                  intensity: [100, 25, 2][i],
+                  color: "#b63b60",
+                  hkl: [i + 1, 1, 1],
+                })),
+                ...[18, 24].map((a, i) => ({
+                  phaseIndex: 2,
+                  name: "Fe₃O₄",
+                  x: convert(a),
+                  intensity: [100, 10][i],
+                  color: "#7662a2",
+                  hkl: [i + 1, 1, 1],
+                })),
+              ],
             };
             const before = JSON.stringify(source);
             const settings = patternFigure.defaultPatternFigureSettings(source);
@@ -119,7 +137,7 @@ try {
             const phaseXs = [
               ...xml.querySelectorAll('path[stroke="#008844"]'),
             ].map((p) => Number(p.getAttribute("d").match(/^M([\d.e+-]+)/)[1]));
-            for (const p of source.phases) {
+            for (const p of source.phases.filter((p) => p.phaseIndex === 0)) {
               const expected =
                 left +
                 ((p.x - source.view.xMin) /
@@ -128,6 +146,60 @@ try {
               if (!phaseXs.some((x) => Math.abs(x - expected) < 1e-8))
                 throw Error("Phase positions moved in figure export");
             }
+            if (
+              [...xml.querySelectorAll("text")].some(
+                (text) =>
+                  !text.hasAttribute("font-size") ||
+                  !text.hasAttribute("font-family") ||
+                  text.hasAttribute("style"),
+              )
+            )
+              throw Error(
+                "SVG typography must use explicit portable font attributes",
+              );
+            const rows = [
+              ...xml.querySelectorAll('g[aria-label^="Phase reference row:"]'),
+            ];
+            if (rows.length !== 3)
+              throw Error("Each phase needs its own stacked reference row");
+            const baselines = [];
+            rows.forEach((row, phase) => {
+              const ticks = [...row.querySelectorAll("path")].filter(
+                (p) =>
+                  p.getAttribute("stroke") ===
+                  settings.options.phaseStyles[phase].color,
+              );
+              if (
+                ticks.length !==
+                source.phases.filter((p) => p.phaseIndex === phase).length
+              )
+                throw Error("A reflection was lost from the reference row");
+              const segments = ticks.map((p) =>
+                p
+                  .getAttribute("d")
+                  .match(/^M([\d.e+-]+) ([\d.e+-]+)L([\d.e+-]+) ([\d.e+-]+)/)
+                  .slice(1)
+                  .map(Number),
+              );
+              if (
+                segments.some(
+                  ([x0, y0, x1, y1]) =>
+                    x0 !== x1 ||
+                    Math.abs(y0 - y1 - settings.options.fontSize * 0.85) > 1e-7,
+                )
+              )
+                throw Error("Reference ticks must have equal height");
+              baselines.push(segments[0][1]);
+              const widths = ticks.map((p) =>
+                Number(p.getAttribute("stroke-width")),
+              );
+              if (Math.max(...widths) <= Math.min(...widths))
+                throw Error(
+                  "Intensity weighting should change tick thickness, not tick height",
+                );
+            });
+            if (baselines.some((y, i) => i && y <= baselines[i - 1]))
+              throw Error("Reference rows are not stacked below each other");
             settings.options.phases = "plot";
             settings.options.scale = "log";
             settings.options.yRange = "auto";
@@ -135,6 +207,59 @@ try {
             if (JSON.stringify(source) !== before)
               throw Error("Figure modified scientific source");
             results.push({ unit, scale, svg });
+            if (unit === "2th_deg" && scale === "linear") {
+              const single = {
+                ...patternFigure.defaultPatternFigureSettings(source).options,
+                ...patternFigure.patternFigurePresets["90x80"],
+              };
+              results.push({
+                unit: "single-column",
+                scale: "rows",
+                svg: patternFigure.renderPatternFigure(source, single),
+              });
+              single.phaseTickWeight = "uniform";
+              const uniform = new DOMParser().parseFromString(
+                patternFigure.renderPatternFigure(source, single),
+                "image/svg+xml",
+              );
+              const tickWidths = [
+                ...uniform.querySelectorAll(
+                  'g[aria-label^="Phase reference row:"] path',
+                ),
+              ]
+                .filter((p) => p.getAttribute("stroke") !== "#c5c5c5")
+                .map((p) => Number(p.getAttribute("stroke-width")));
+              if (tickWidths.some((width) => Math.abs(width - 0.75) > 1e-6))
+                throw Error("Uniform reference tick thickness changed");
+              single.phases = "plot";
+              single.phaseLegend = "auto";
+              const separate = patternFigure.renderPatternFigure(
+                source,
+                single,
+              );
+              const legends = new DOMParser().parseFromString(
+                separate,
+                "image/svg+xml",
+              );
+              const curveLegend = legends.querySelector(
+                'g[aria-label="Curve legend"]',
+              );
+              const phaseLegend = legends.querySelector(
+                'g[aria-label="Phase legend"]',
+              );
+              if (
+                !curveLegend ||
+                !phaseLegend ||
+                curveLegend.textContent.includes("MgO") ||
+                phaseLegend.textContent.includes("Sample A")
+              )
+                throw Error("Curve and phase legends must be independent");
+              results.push({
+                unit: "single-column",
+                scale: "separate-legends",
+                svg: separate,
+              });
+            }
             if (unit === "2th_deg" && scale === "linear")
               window.figureSource = source;
           }
@@ -147,6 +272,11 @@ try {
         }).render();
         assert(independent.height > 100);
         await writeFile(new URL(`${prefix}.svg`, artifacts), item.svg);
+        if (item.unit === "single-column")
+          await writeFile(
+            new URL(`${prefix}-actual-size.png`, artifacts),
+            new Resvg(item.svg).render().asPng(),
+          );
         await writeFile(
           new URL(`${prefix}.png`, artifacts),
           independent.asPng(),
@@ -177,10 +307,87 @@ try {
       });
       await dialog.waitFor();
       await page
+        .getByRole("combobox", { name: "Figure size preset", exact: true })
+        .selectOption("90x80");
+      assert.equal(
+        await page
+          .getByRole("spinbutton", {
+            name: "Figure font size (pt)",
+            exact: true,
+          })
+          .inputValue(),
+        "8",
+      );
+      await page.getByRole("tab", { name: "Phases", exact: true }).click();
+      await page
+        .getByRole("combobox", { name: "Figure phase legend", exact: true })
+        .selectOption("auto");
+      assert.equal(
+        await page
+          .getByTestId("pattern-figure-artwork")
+          .locator('g[aria-label="Phase legend"]')
+          .count(),
+        1,
+      );
+      await page
+        .getByRole("combobox", { name: "Figure phase legend", exact: true })
+        .selectOption("rows");
+      await page
+        .getByRole("combobox", {
+          name: "Figure phase tick thickness",
+          exact: true,
+        })
+        .selectOption("uniform");
+      await page
+        .getByRole("combobox", {
+          name: "Figure phase tick thickness",
+          exact: true,
+        })
+        .selectOption("intensity");
+      await page.screenshot({
+        path: fileURLToPath(
+          new URL(`${name}-single-column-editor.png`, artifacts),
+        ),
+      });
+      await page
+        .getByRole("button", { name: "Actual-size preview", exact: true })
+        .click();
+      const physicalTextSize = await page
+        .getByTestId("pattern-figure-artwork")
+        .locator("svg text")
+        .first()
+        .evaluate((el) => {
+          const matrix = el.getScreenCTM();
+          return (
+            parseFloat(el.getAttribute("font-size")) *
+            Math.hypot(matrix.a, matrix.b)
+          );
+        });
+      assert(
+        Math.abs(physicalTextSize - (8 * 96) / 72) < 0.1,
+        "Single-column text must be 8 pt at actual size",
+      );
+      await page
+        .getByRole("button", { name: "Actual-size preview", exact: true })
+        .click();
+      await page.getByRole("tab", { name: "Layout", exact: true }).click();
+      await page
+        .getByRole("combobox", { name: "Figure size preset", exact: true })
+        .selectOption("180x115");
+      assert.equal(
+        await page
+          .getByRole("spinbutton", {
+            name: "Figure font size (pt)",
+            exact: true,
+          })
+          .inputValue(),
+        "10",
+      );
+      await page
         .getByRole("textbox", { name: "Figure title", exact: true })
         .fill("CeO₂ at 300 K");
       await page
-        .getByRole("combobox", { name: "Figure legend position", exact: true })
+        .getByRole("combobox", { name: "Curve legend position", exact: true })
         .selectOption("below");
       await page
         .getByRole("spinbutton", { name: "Figure width (mm)", exact: true })
@@ -415,6 +622,31 @@ try {
           throw Error(
             "A new source inherited stale figure labels/ranges or invisible colors",
           );
+        figure.rememberPatternFigure(window.figureSource, saved);
+        const legacy = JSON.parse(
+          localStorage.getItem("dioptas-pattern-figure-v1"),
+        );
+        legacy.version = 1;
+        Object.assign(legacy.settings.options, {
+          width: 90,
+          height: 80,
+          fontSize: 10,
+        });
+        delete legacy.settings.options.phaseLegend;
+        delete legacy.settings.options.phaseTickWeight;
+        localStorage.setItem(
+          "dioptas-pattern-figure-v1",
+          JSON.stringify(legacy),
+        );
+        const migrated = figure.restorePatternFigure(
+          window.figureSource,
+          "svg",
+        );
+        if (
+          migrated.options.fontSize !== 8 ||
+          migrated.options.phaseLegend !== "rows"
+        )
+          throw Error("The legacy single-column preset was not migrated");
         localStorage.setItem("dioptas-pattern-figure-v1", "invalid");
         if (
           figure.restorePatternFigure(window.figureSource, "svg").options
