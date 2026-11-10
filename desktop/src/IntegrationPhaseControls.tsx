@@ -7,7 +7,7 @@ import type { EditorData } from "./phaseEditorTypes";
 import { DataTable, TableScroll, TableActions } from "./DataTable";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-import { Database, FolderOpen, Pencil, RotateCcw, Trash2 } from "lucide-react";
+import { Database, FolderOpen, Pencil, Trash2 } from "lucide-react";
 import type { IntegrationRun, IntegrationState } from "./integration";
 import type {
   PhaseEditorData,
@@ -19,7 +19,7 @@ import { useSpinBoxWheel } from "./spinBoxWheel";
 import { createPhaseCommandQueue } from "./phaseCommandQueue";
 import "./integrationPhaseControls.css";
 
-/** Qt's PhaseWidget: action rail, row table, P/T steps and list files. */
+/** Phase table with full names and compact, secondary settings. */
 export function IntegrationPhaseControls({
   source,
   ready,
@@ -113,6 +113,39 @@ export function IntegrationPhaseControls({
     if (files.paths.some((p) => /\.cif$/i.test(p))) setImportFiles(files);
     else action("load", { paths: files.paths });
   };
+  const reference = (
+    p: IntegrationState["phases"][number],
+    index: number,
+    label: string,
+  ) => (
+    <Select
+      aria-label={label}
+      title={
+        p.referenceDetails[p.reference]?.detail ||
+        "No alternative references (legacy jcpds file)"
+      }
+      disabled={p.references.length < 2}
+      value={p.references.length ? p.reference : -1}
+      onChange={(e) =>
+        action("update", {
+          index,
+          reference: Number(e.target.value),
+        })
+      }
+    >
+      {!p.references.length && <option value={-1}>—</option>}
+      {p.references.map((ref, i) => (
+        <option key={i} value={i} title={p.referenceDetails[i]?.detail}>
+          {["Not reproduced", "Do not use"].includes(
+            p.referenceDetails[i]?.assessment,
+          )
+            ? "⚠ "
+            : ""}
+          {ref}
+        </option>
+      ))}
+    </Select>
+  );
   return (
     <div
       className="phase-controls"
@@ -120,8 +153,7 @@ export function IntegrationPhaseControls({
       data-testid="phase-controls"
     >
       <TableActions
-        orientation="vertical"
-        className="phase-action-rail"
+        className="phase-toolbar"
         role="toolbar"
         aria-label="Phase actions"
       >
@@ -158,7 +190,6 @@ export function IntegrationPhaseControls({
         >
           <Pencil />
         </PhaseIcon>
-        <hr />
         <PhaseIcon
           label="Removes currently selected phase"
           disabled={!phase}
@@ -166,17 +197,102 @@ export function IntegrationPhaseControls({
         >
           <Trash2 />
         </PhaseIcon>
-        <hr />
-        <PhaseIcon
-          label="Removes all phases"
-          disabled={!source.phases.length}
-          onClick={() => {
-            action("clear");
-            setEditor(null);
-          }}
+        <label
+          className="phase-apply-all"
+          title="Whether individual changes in P or T are applied to all other phases"
         >
-          <RotateCcw />
-        </PhaseIcon>
+          <Input
+            type="checkbox"
+            aria-label="Apply conditions to all phases"
+            checked={source.sameConditions}
+            onChange={(e) =>
+              action("same_conditions", { enabled: e.target.checked })
+            }
+          />
+          Apply P/T to all
+        </label>
+
+        <PhaseMenu label="Steps" active={active}>
+          <div className="phase-step-controls">
+            <label className="phase-condition-step">
+              <span title="Pressure step">P</span>
+              <PhaseNumber
+                label="P step"
+                title="Pressure step (GPa)"
+                multiply
+                value={pressureStep}
+                min={0.001}
+                max={9999999}
+                step={pressureStep}
+                onCommit={setPressureStep}
+              />
+              <span className="integration-number-unit" aria-hidden="true">
+                GPa
+              </span>
+            </label>
+            <label className="phase-condition-step">
+              <span title="Temperature step">T</span>
+              <PhaseNumber
+                label="T Step"
+                title="Temperature step (K)"
+                multiply
+                value={temperatureStep}
+                min={1}
+                max={1000}
+                step={temperatureStep}
+                onCommit={setTemperatureStep}
+              />
+              <span className="integration-number-unit" aria-hidden="true">
+                K
+              </span>
+            </label>
+          </div>
+        </PhaseMenu>
+        <PhaseMenu label="List" active={active}>
+          <div className="phase-list-actions">
+            <Button
+              disabled={
+                !source.phases.length ||
+                source.phases.some((p) => !p.fileBacked)
+              }
+              title={
+                source.phases.some((p) => !p.fileBacked)
+                  ? "Phase lists reference files on disk. Save a project to retain database or unsaved phases."
+                  : "Save Phase List"
+              }
+              onClick={() =>
+                void run(
+                  "integration_phase_list",
+                  { save: true },
+                  "Saving phase list…",
+                )
+              }
+            >
+              Save List
+            </Button>
+            <Button
+              onClick={() =>
+                void run(
+                  "integration_phase_list",
+                  { save: false },
+                  "Loading phase list…",
+                )
+              }
+            >
+              Load List
+            </Button>
+            <Button
+              aria-label="Removes all phases"
+              disabled={!source.phases.length}
+              onClick={() => {
+                action("clear");
+                setEditor(null);
+              }}
+            >
+              Clear phases
+            </Button>
+          </div>
+        </PhaseMenu>
       </TableActions>
       <TableScroll className="phase-table-scroll">
         <DataTable ref={tableRef} className="phase-table" aria-label="Phases">
@@ -214,10 +330,10 @@ export function IntegrationPhaseControls({
                     : "Pressure"
                 }
               >
-                {source.phaseColdPressure ? "P₀" : "P"}
+                {source.phaseColdPressure ? "P₀" : "P"} (GPa)
               </th>
-              <th title="Temperature (K)">T</th>
-              <th>Ref</th>
+              <th title="Temperature (K)">T (K)</th>
+              <th className="phase-reference-cell">Ref</th>
             </tr>
           </thead>
           <tbody>
@@ -301,12 +417,6 @@ export function IntegrationPhaseControls({
                         action("update", { index, editor_uid: p.uid, pressure })
                       }
                     />
-                    <span
-                      className="integration-number-unit"
-                      aria-hidden="true"
-                    >
-                      GPa
-                    </span>
                   </div>
                 </td>
                 <td>
@@ -327,46 +437,10 @@ export function IntegrationPhaseControls({
                         })
                       }
                     />
-                    <span
-                      className="integration-number-unit"
-                      aria-hidden="true"
-                    >
-                      K
-                    </span>
                   </div>
                 </td>
-                <td>
-                  <Select
-                    aria-label={`Phase ${index + 1} reference`}
-                    title={
-                      p.referenceDetails[p.reference]?.detail ||
-                      "No alternative references (legacy jcpds file)"
-                    }
-                    disabled={p.references.length < 2}
-                    value={p.references.length ? p.reference : -1}
-                    onChange={(e) =>
-                      action("update", {
-                        index,
-                        reference: Number(e.target.value),
-                      })
-                    }
-                  >
-                    {!p.references.length && <option value={-1}>—</option>}
-                    {p.references.map((ref, i) => (
-                      <option
-                        key={i}
-                        value={i}
-                        title={p.referenceDetails[i]?.detail}
-                      >
-                        {["Not reproduced", "Do not use"].includes(
-                          p.referenceDetails[i]?.assessment,
-                        )
-                          ? "⚠ "
-                          : ""}
-                        {ref}
-                      </option>
-                    ))}
-                  </Select>
+                <td className="phase-reference-cell">
+                  {reference(p, index, `Phase ${index + 1} reference`)}
                 </td>
               </tr>
             ))}
@@ -379,90 +453,12 @@ export function IntegrationPhaseControls({
           </p>
         )}
       </TableScroll>
-      <div className="phase-parameters">
-        <div className="phase-step-controls">
-          <span className="integration-parameter-caption">Step sizes</span>
-          <label className="phase-condition-step">
-            <span title="Pressure step">P</span>
-            <PhaseNumber
-              label="P step"
-              title="Pressure step (GPa)"
-              multiply
-              value={pressureStep}
-              min={0.001}
-              max={9999999}
-              step={pressureStep}
-              onCommit={setPressureStep}
-            />
-            <span className="integration-number-unit" aria-hidden="true">
-              GPa
-            </span>
-          </label>
-          <label className="phase-condition-step">
-            <span title="Temperature step">T</span>
-            <PhaseNumber
-              label="T Step"
-              title="Temperature step (K)"
-              multiply
-              value={temperatureStep}
-              min={1}
-              max={1000}
-              step={temperatureStep}
-              onCommit={setTemperatureStep}
-            />
-            <span className="integration-number-unit" aria-hidden="true">
-              K
-            </span>
-          </label>
-          <label
-            className="phase-apply-all"
-            title="Whether individual changes in P or T are applied to all other phases"
-          >
-            <Input
-              type="checkbox"
-              aria-label="Apply conditions to all phases"
-              checked={source.sameConditions}
-              onChange={(e) =>
-                action("same_conditions", { enabled: e.target.checked })
-              }
-            />
-            apply to all
-          </label>
-          <hr />
-        </div>
-        <div className="phase-list-actions">
-          <Button
-            disabled={
-              !source.phases.length || source.phases.some((p) => !p.fileBacked)
-            }
-            title={
-              source.phases.some((p) => !p.fileBacked)
-                ? "Phase lists reference files on disk. Save a project to retain database or unsaved phases."
-                : "Save Phase List"
-            }
-            onClick={() =>
-              void run(
-                "integration_phase_list",
-                { save: true },
-                "Saving phase list…",
-              )
-            }
-          >
-            Save List
-          </Button>
-          <Button
-            onClick={() =>
-              void run(
-                "integration_phase_list",
-                { save: false },
-                "Loading phase list…",
-              )
-            }
-          >
-            Load List
-          </Button>
-        </div>
-      </div>
+      {phase && (
+        <label className="phase-selected-reference">
+          <span>Reference</span>
+          {reference(phase, selected, "Selected phase reference")}
+        </label>
+      )}
       {importFiles && (
         <PhaseImportDialog
           files={importFiles}
@@ -492,6 +488,61 @@ export function IntegrationPhaseControls({
         />
       )}
     </div>
+  );
+}
+
+/** Same anchored native dialog pattern as the shared color-scale picker. */
+function PhaseMenu({
+  label,
+  active,
+  children,
+}: {
+  label: string;
+  active: boolean;
+  children: ReactNode;
+}) {
+  const button = useRef<HTMLButtonElement>(null);
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (!active) dialog.current?.close();
+  }, [active]);
+  useEffect(() => {
+    const close = () => dialog.current?.close();
+    window.addEventListener("resize", close);
+    return () => window.removeEventListener("resize", close);
+  }, []);
+  return (
+    <>
+      <Button
+        ref={button}
+        aria-label={`Phase ${label.toLowerCase()}`}
+        aria-haspopup="dialog"
+        onClick={() => {
+          const menu = dialog.current,
+            anchor = button.current?.getBoundingClientRect();
+          if (!menu || !anchor) return;
+          menu.showModal();
+          menu.style.left = `${Math.max(8, Math.min(anchor.left, innerWidth - menu.offsetWidth - 8))}px`;
+          menu.style.top = `${Math.max(8, Math.min(anchor.bottom + 6, innerHeight - menu.offsetHeight - 8))}px`;
+        }}
+      >
+        {label} ▾
+      </Button>
+      <Dialog
+        dialogRef={dialog}
+        autoOpen={false}
+        returnFocusRef={button}
+        className="phase-menu"
+        aria-label={`Phase ${label.toLowerCase()}`}
+      >
+        <DialogHeader
+          title={label === "Steps" ? "P/T step sizes" : "Phase list"}
+          closeLabel={`Close phase ${label.toLowerCase()}`}
+          onClose={() => dialog.current?.close()}
+        />
+        <div className="phase-menu-body">{children}</div>
+      </Dialog>
+    </>
   );
 }
 

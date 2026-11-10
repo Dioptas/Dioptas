@@ -1,3 +1,4 @@
+import { useIntegrationLayout } from "./IntegrationWorkspace";
 import { LayoutDivider } from "./LayoutDivider";
 import {
   layoutKeys,
@@ -13,6 +14,7 @@ export function BatchDock(
     "collapsed" | "onCollapse" | "docked"
   >,
 ) {
+  const { narrow } = useIntegrationLayout();
   const container = useRef<HTMLDivElement>(null),
     start = useRef({ y: 0, height: 0 });
   const [collapsed, setCollapsed] = useState(() =>
@@ -24,14 +26,14 @@ export function BatchDock(
   const [availableHeight, setAvailableHeight] = useState(600);
   const height = Math.min(preferredHeight, availableHeight);
   const maximum = () => {
-    const parent = container.current?.parentElement;
+    const parent = container.current?.closest(".integration-left-pane");
     const toolbar =
       parent?.querySelector(".integration-image-tools")?.getBoundingClientRect()
         .height ?? 40;
     return Math.max(220, (parent?.clientHeight ?? 650) - toolbar - 180);
   };
   useEffect(() => {
-    const parent = container.current?.parentElement;
+    const parent = container.current?.closest(".integration-left-pane");
     if (!parent) return;
     const observer = new ResizeObserver(() => setAvailableHeight(maximum()));
     observer.observe(parent);
@@ -48,10 +50,10 @@ export function BatchDock(
   return (
     <div
       ref={container}
-      className={`batch-dock ${collapsed ? "batch-dock-collapsed" : ""}`}
-      style={{ height: collapsed ? 36 : height }}
+      className={`batch-dock ${narrow ? "batch-dock-fill" : ""} ${!narrow && collapsed ? "batch-dock-collapsed" : ""}`}
+      style={narrow ? undefined : { height: collapsed ? 36 : height }}
     >
-      {!collapsed && (
+      {!narrow && !collapsed && (
         <LayoutDivider
           className="integration-divider integration-divider-horizontal batch-dock-divider"
           label="Image and batch divider"
@@ -78,11 +80,15 @@ export function BatchDock(
       <BatchView
         {...props}
         docked
-        collapsed={collapsed}
-        onCollapse={() => {
-          setCollapsed(!collapsed);
-          saveLayoutValue(layoutKeys.batchCollapsed, !collapsed);
-        }}
+        collapsed={!narrow && collapsed}
+        onCollapse={
+          narrow
+            ? undefined
+            : () => {
+                setCollapsed(!collapsed);
+                saveLayoutValue(layoutKeys.batchCollapsed, !collapsed);
+              }
+        }
       />
     </div>
   );

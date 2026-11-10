@@ -32,6 +32,7 @@
     "test:plot-legend": "node scripts/plot_legend_smoke.mjs",
     "test:rendering": "node scripts/rendering_smoke.mjs",
     "test:integration-panel": "node scripts/integration_panel_smoke.mjs",
+    "test:integration-responsive": "node scripts/integration_responsive_smoke.mjs",
     "test:integration-processing": "node scripts/integration_processing_smoke.mjs",
     "test:custom-commands": "node scripts/custom_commands_smoke.mjs",
     "benchmark:pattern": "node scripts/pattern_benchmark.mjs",

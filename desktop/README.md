@@ -896,10 +896,24 @@ counting errors and azimuthal std are sliced together. Internal zeros, negative
 intensities and entirely zero patterns are retained. Cakes and the shared stored
 Batch/Map grids keep their full binning.
 
-Integration follows Qt's pane arrangement: a full-height image/cake on the left,
-with tabbed controls above the integrated pattern on the right. Drag either
-divider to resize the panes; Image/Cake switches the left display and preserves
-its independent intensity controls. The save icon at the far left of the lower
+At wider widths Integration follows Qt's pane arrangement: a full-height image/cake
+on the left, with tabbed controls above the integrated pattern on the right.
+Below 1160 px of workspace width, the controls span above both plots. A docked
+Batch then shares the left plot area with Image through an Image/Batch switch;
+wider windows retain the image and Batch stack. Switching or resizing keeps
+renderers mounted and preserves plot zoom. Drag either divider to resize the
+panes; Image/Cake switches the detector display and preserves its independent
+intensity controls.
+
+The Phase table wraps full phase names and labels P/P₀ and T units in its column
+headers. Apply P/T to all stays visible; Steps and List open compact dialogs.
+Narrow phase tables show references for the selected phase below the table,
+while wider tables retain a reference selector in each row. The native phase
+commands and numeric editing behavior are unchanged. `npm run test:integration-responsive`
+checks these layouts, real phase edits and Batch switching in headless Chromium
+and WebKit.
+
+The save icon at the far left of the lower
 image toolbar saves the current Image/Cake view as PNG, scientific image/cake data
 as TIFF, or cake data as TXT/CSV through the native file dialog. PNG preserves the
 current view and colour settings and omits ROI/inspection markers, matching Qt's

@@ -1,3 +1,4 @@
+import { IntegrationLeftPane } from "./IntegrationLeftPane";
 import { ImageSourceControl } from "./ImageSourceControl";
 import { processingProgressText } from "./processingProgress";
 import { useBackendReload } from "./useBackendReload";
@@ -2299,11 +2300,39 @@ export default function App() {
                   <div
                     className={`views-grid ${mode === "calibration" ? (calibrationStep === 3 ? "validation-views" : "image-only") : ""}`}
                   >
-                    <div
-                      className={
-                        mode === "integration"
-                          ? "integration-left-pane"
-                          : "plot-group-contents"
+                    <IntegrationLeftPane
+                      active={mode === "integration"}
+                      batch={
+                        mode === "integration" && batchDockVisible ? (
+                          <BatchDock
+                            activeImagePath={state?.imagePath}
+                            position={
+                              linked
+                                ? { x: linked.twoTheta, unit: "2th_deg" }
+                                : localPatternClick
+                            }
+                            batch={batch}
+                            calibrated={!!state?.calibrated}
+                            ready={ready}
+                            run={run}
+                            request={requestMap}
+                            reportPlot={reportPlot}
+                            onDetach={() => batchWindow.open()}
+                            linkedDisplay={{
+                              unit: state?.unit ?? batch?.unit ?? "2th_deg",
+                              log: logPattern,
+                              sqrt: sqrtPattern,
+                              onScale: (scale) => {
+                                setLogPattern(scale === "log");
+                                setSqrtPattern(scale === "sqrt");
+                              },
+                            }}
+                            onHide={() => {
+                              setBatchDockVisible(false);
+                              saveLayoutValue(layoutKeys.batchOpen, false);
+                            }}
+                          />
+                        ) : null
                       }
                     >
                       <section className="panel detector-panel">
@@ -2690,37 +2719,7 @@ export default function App() {
                           }}
                         />
                       )}
-                      {mode === "integration" && batchDockVisible && (
-                        <BatchDock
-                          activeImagePath={state?.imagePath}
-                          position={
-                            linked
-                              ? { x: linked.twoTheta, unit: "2th_deg" }
-                              : localPatternClick
-                          }
-                          batch={batch}
-                          calibrated={!!state?.calibrated}
-                          ready={ready}
-                          run={run}
-                          request={requestMap}
-                          reportPlot={reportPlot}
-                          onDetach={() => batchWindow.open()}
-                          linkedDisplay={{
-                            unit: state?.unit ?? batch?.unit ?? "2th_deg",
-                            log: logPattern,
-                            sqrt: sqrtPattern,
-                            onScale: (scale) => {
-                              setLogPattern(scale === "log");
-                              setSqrtPattern(scale === "sqrt");
-                            },
-                          }}
-                          onHide={() => {
-                            setBatchDockVisible(false);
-                            saveLayoutValue(layoutKeys.batchOpen, false);
-                          }}
-                        />
-                      )}
-                    </div>
+                    </IntegrationLeftPane>
                     {((pattern && calibrationStep === 3) ||
                       mode === "integration") && (
                       <section className="panel pattern-panel">

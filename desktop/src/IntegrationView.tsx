@@ -200,7 +200,7 @@ export function IntegrationView({
           />
         </div>
         <IntegrationPhaseControls
-          active={tab === "Phase"}
+          active={!controlsCollapsed && tab === "Phase"}
           source={source}
           ready={ready}
           run={run}

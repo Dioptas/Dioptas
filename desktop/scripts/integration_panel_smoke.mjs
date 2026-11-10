@@ -217,7 +217,7 @@ try {
           { width: 1000, height: 760 },
         ]) {
           await page.setViewportSize(viewport);
-          await verifyTabRows(viewport.width === 1440 ? 1 : 2);
+          await verifyTabRows(1);
           for (const label of [
             "Image",
             "Pattern",
@@ -249,7 +249,7 @@ try {
             ),
           });
           await expanded().click();
-          await verifyTabRows(viewport.width === 1440 ? 1 : 2);
+          await verifyTabRows(1);
           const box = await collapsed().boundingBox();
           assert.ok(
             box &&

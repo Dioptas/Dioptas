@@ -511,3 +511,18 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* On compact workspaces the task panel spans both scientific plots. */
+.app
+  .workspace-content.integration-layout[data-integration-layout="top"]
+  > .sidebar {
+  grid-column: 1 / -1;
+}
+.integration-layout[data-integration-layout="top"] .integration-left-pane,
+.integration-layout[data-integration-layout="top"] .integration-divider-image {
+  grid-row: 3 / 5;
+}
+.integration-layout[data-integration-layout="top"]
+  .integration-divider-controls {
+  grid-column: 1 / -1;
+}

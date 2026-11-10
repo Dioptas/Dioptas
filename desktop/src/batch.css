@@ -11,8 +11,8 @@
   min-height: 0;
   overflow: hidden;
 }
-.integration-left-pane > .detector-panel,
-.integration-left-pane > .cake-panel {
+.integration-image-pane > .detector-panel,
+.integration-image-pane > .cake-panel {
   flex: 1;
   min-height: 180px;
   min-width: 0;
@@ -33,11 +33,11 @@
   flex: 0 0 8px;
   cursor: row-resize;
 }
-.integration-left-pane:has(> .batch-dock)
+.integration-left-pane:has(.batch-dock)
   .integration-cake-shift[data-visible="false"] {
   display: none;
 }
-.integration-left-pane:has(> .batch-dock) > .integration-image-tools {
+.integration-left-pane:has(.batch-dock) .integration-image-tools {
   padding-top: 2px;
   flex-shrink: 0;
 }
@@ -432,4 +432,49 @@
 .batch-frame-settings legend {
   font-weight: 600;
   margin-bottom: 6px;
+}
+
+.integration-left-content,
+.integration-image-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.integration-batch-pane {
+  display: contents;
+}
+.integration-left-tabs {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  padding: 0 0 5px;
+}
+.integration-left-tabs button {
+  flex: 1;
+}
+.integration-left-tabs [aria-selected="true"] {
+  color: var(--accent);
+}
+.integration-left-pane[data-switched="true"] .integration-left-content {
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+}
+.integration-left-pane[data-switched="true"] .integration-image-pane,
+.integration-left-pane[data-switched="true"] .integration-batch-pane {
+  grid-area: 1 / 1;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+.integration-left-pane[data-switched="true"] [data-left-concealed="true"] {
+  opacity: 0;
+  pointer-events: none;
+}
+.batch-dock.batch-dock-fill {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
 }

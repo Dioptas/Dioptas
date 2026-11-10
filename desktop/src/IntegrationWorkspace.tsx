@@ -5,12 +5,17 @@ import {
   saveLayoutValue,
 } from "./layoutPreferences";
 import {
+  createContext,
+  useContext,
   useLayoutEffect,
   useRef,
   useState,
   type CSSProperties,
   type ReactNode,
 } from "react";
+
+const IntegrationLayout = createContext({ narrow: false });
+export const useIntegrationLayout = () => useContext(IntegrationLayout);
 
 /** Qt's horizontal image/right splitter and vertical controls/pattern splitter.
  * Renderers remain in App and retain their instances when these dividers move.
@@ -50,6 +55,7 @@ export function IntegrationWorkspace({
     observer.observe(node);
     return () => observer.disconnect();
   }, [active]);
+  const narrow = active && size.width < 1160;
   const constrain = (value: number, axis: "image" | "controls") => {
     const total = axis === "image" ? size.width - 20 : size.height - 16;
     const minimum = axis === "image" ? 300 : 208;
@@ -97,30 +103,33 @@ export function IntegrationWorkspace({
     );
   };
   return (
-    <div
-      ref={container}
-      inert={concealed}
-      aria-hidden={concealed || undefined}
-      data-concealed={concealed}
-      className={`workspace-content ${active ? "integration-layout" : ""}`}
-      data-integration-display={display}
-      data-controls-collapsed={controlsCollapsed}
-      style={
-        active
-          ? ({
-              "--integration-image-share": `${imageShare}%`,
-              "--integration-controls-share": `${controlsShare}%`,
-            } as CSSProperties)
-          : undefined
-      }
-    >
-      {children}
-      {active && (
-        <>
-          {divider("image")}
-          {!controlsCollapsed && divider("controls")}
-        </>
-      )}
-    </div>
+    <IntegrationLayout.Provider value={{ narrow }}>
+      <div
+        ref={container}
+        inert={concealed}
+        aria-hidden={concealed || undefined}
+        data-concealed={concealed}
+        className={`workspace-content ${active ? "integration-layout" : ""}`}
+        data-integration-display={display}
+        data-integration-layout={narrow ? "top" : "right"}
+        data-controls-collapsed={controlsCollapsed}
+        style={
+          active
+            ? ({
+                "--integration-image-share": `${imageShare}%`,
+                "--integration-controls-share": `${controlsShare}%`,
+              } as CSSProperties)
+            : undefined
+        }
+      >
+        {children}
+        {active && (
+          <>
+            {divider("image")}
+            {!controlsCollapsed && divider("controls")}
+          </>
+        )}
+      </div>
+    </IntegrationLayout.Provider>
   );
 }

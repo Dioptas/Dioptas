@@ -1,133 +1,144 @@
-/* PhaseWidget's two narrow tool columns flank a single, scrollable phase table. */
+/* Full phase names and readable conditions share the available task width. */
 .integration-tab-phase {
   padding: 6px;
   display: flex;
   overflow: hidden;
 }
 .phase-controls {
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) 128px;
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
   gap: 6px;
   min-width: 0;
   min-height: 0;
   width: 100%;
   font-size: var(--text-small);
 }
-.phase-action-rail {
+.phase-controls[hidden] {
+  display: none;
+}
+.phase-toolbar {
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  gap: 5px;
+}
+.phase-toolbar button {
+  padding: 3px 6px;
+}
+.phase-toolbar svg {
+  width: 16px;
+  height: 16px;
+}
+.phase-apply-all {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 6px;
-}
-.phase-action-rail button {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  min-height: 28px;
-  padding: 4px;
-  background: transparent;
-}
-.phase-action-rail svg {
-  width: 17px;
-  height: 17px;
-}
-.phase-action-rail button:hover {
-  background: #ffffff0b;
-}
-.phase-controls hr {
-  width: 100%;
-  border: 0;
-  border-top: 1px solid var(--border);
-  margin: 0;
+  gap: 5px;
+  margin-left: auto;
+  white-space: nowrap;
 }
 .phase-table-scroll {
+  flex: 1;
   min-width: 0;
   min-height: 0;
 }
 .phase-controls table {
   width: 100%;
-  min-width: 457px;
+  min-width: 0;
   table-layout: fixed;
   font-size: inherit;
 }
 .phase-show-col {
-  width: 24px;
+  width: 26px;
 }
 .phase-color-col {
-  width: 26px;
+  width: 28px;
 }
 .phase-name-col {
   width: auto;
 }
 .phase-pressure-col {
-  width: 104px;
-}
-.phase-temperature-col {
-  width: 88px;
-}
-.phase-reference-col {
   width: 110px;
 }
+.phase-temperature-col {
+  width: 100px;
+}
+.phase-reference-col {
+  width: 150px;
+}
 .phase-controls .phase-name {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
   cursor: default;
-}
-.phase-parameters input[type="number"] {
-  width: 100%;
-  min-width: 0;
-  height: 28px;
-  padding: 2px 3px;
-  font-size: inherit;
-}
-.phase-parameters input[type="checkbox"] {
-  margin: 0;
-  width: 15px;
-  height: 15px;
-  vertical-align: middle;
+  line-height: 1.35;
 }
 .phase-controls .phase-show-all {
   padding: 0;
   width: 100%;
-  background: transparent;
   min-height: 24px;
 }
-.phase-parameters {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-height: 0;
-  overflow: auto;
+.phase-condition-value {
+  min-width: 0;
 }
-.phase-step-controls > label {
-  display: grid;
-  gap: 2px;
-}
-.phase-parameters .phase-apply-all {
-  display: flex;
+.phase-selected-reference {
+  display: none;
   align-items: center;
-  white-space: nowrap;
-  gap: 4px;
-  font-size: var(--text-meta);
-  margin: 3px 0;
+  gap: 8px;
+  min-width: 0;
 }
-.phase-list-actions {
-  margin-top: auto;
-  padding-top: 5px;
-  display: grid;
-  gap: 4px;
+.phase-selected-reference select {
+  flex: 1;
+  min-width: 0;
 }
-.phase-list-actions button {
-  padding: 4px 5px;
-  white-space: nowrap;
-  font-size: inherit;
+@container (max-width: 680px) {
+  .phase-reference-col,
+  .phase-reference-cell {
+    display: none;
+  }
+  .phase-selected-reference {
+    display: flex;
+  }
 }
 .phase-empty {
   color: var(--muted);
   line-height: 1.5;
   padding: 0 8px;
+}
+.phase-menu {
+  position: fixed;
+  margin: 0;
+  width: 260px;
+  max-width: calc(100vw - 16px);
+  padding: 0;
+}
+.phase-menu > .ui-dialog-header {
+  padding: 6px 10px;
+  margin: 0;
+}
+.phase-menu-body {
+  padding: 10px;
+}
+.phase-step-controls,
+.phase-list-actions {
+  display: grid;
+  gap: 8px;
+}
+.phase-condition-step {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) 30px;
+  gap: 6px;
+  align-items: center;
+}
+.phase-condition-step input {
+  width: 100%;
+  min-width: 0;
+}
+.phase-list-actions button {
+  width: 100%;
+}
+@media (max-width: 1100px) {
+  .phase-editor-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .phase-dialog {
   color: var(--text);
@@ -272,100 +283,6 @@
   min-width: 60px;
   padding: 3px;
   text-align: right;
-}
-@media (max-width: 1100px) {
-  .phase-controls {
-    grid-template-columns: 28px minmax(0, 1fr) 128px;
-    gap: 4px;
-  }
-  .phase-editor-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-.phase-controls[hidden] {
-  display: none;
-}
-.phase-action-rail {
-  overflow-y: auto;
-}
-.phase-action-rail button {
-  width: 25px;
-  height: 25px;
-  min-height: 25px;
-  flex-shrink: 0;
-}
-.phase-step-controls > label {
-  line-height: 1.15;
-}
-.phase-parameters input[type="number"] {
-  height: 24px;
-}
-.phase-list-actions button {
-  min-height: 25px;
-  padding: 3px;
-}
-/* Override the generic Integration form heights without shrinking its other tabs. */
-.integration-controls .phase-action-rail button {
-  min-height: 25px;
-}
-.integration-controls .phase-parameters input[type="number"] {
-  height: 24px;
-}
-.integration-controls .phase-list-actions button {
-  min-height: 25px;
-  padding: 3px;
-}
-
-.phase-parameters {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  overflow: hidden;
-  gap: 0;
-}
-.phase-step-controls {
-  min-height: 0;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.phase-step-controls > label {
-  flex-shrink: 0;
-}
-.phase-list-actions {
-  margin-top: 0;
-  padding-top: 3px;
-}
-
-.phase-step-controls {
-  gap: 1px;
-}
-.phase-step-controls > label {
-  gap: 0;
-}
-.phase-step-controls .phase-apply-all {
-  margin: 1px 0;
-}
-
-.phase-condition-value {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 4px;
-}
-.phase-step-controls > .phase-condition-step {
-  display: grid;
-  grid-template-columns: 14px minmax(0, 1fr) 26px;
-  align-items: center;
-  gap: 4px;
-  text-align: right;
-}
-.integration-controls .phase-condition-step input[type="number"] {
-  height: 28px;
-  min-height: 28px;
-  margin: 0;
-  padding: 3px 5px;
 }
 .phase-import-fields label {
   text-align: right;
