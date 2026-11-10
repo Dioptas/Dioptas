@@ -80,6 +80,47 @@ Receipts: [before](artifacts/native-spatial-masks/before.json),
 [after](artifacts/native-spatial-masks/after.json),
 [controlled three-worker run](artifacts/native-spatial-masks/after-3-workers.json).
 
+## Background and flat-field corrections
+
+A follow-up pass measures all **625 original Eiger frames** with background and
+flat-field corrections enabled before mask generation. It uses the same
+processor (`1ce6e96a`), detector geometry, 2,000-bin integration, Poisson errors
+and unchanged mask defaults as above. The synthetic correction fixture matches
+the [earlier corrected-series benchmark](NATIVE_PROCESSED_SERIES_PIPELINE.md):
+a 7-count background, scale 0.7, offset 1.2, background counting noise enabled,
+and a mean-normalized flat field varying linearly from 0.8 to 1.2 across columns.
+Both enabled masks evaluate the same corrected pixels and combine their masks
+using the established union semantics.
+
+| Masks, with both corrections enabled | Batch, images/s | Batch, seconds | Map, images/s | Map, seconds | Workers |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Spot | 33.65 | 18.57 | 35.25 | 17.73 | 8 |
+| Cosmic | 34.97 | 17.87 | 35.56 | 17.58 | 8 |
+| Spot + Cosmic | 20.32 | 30.76 | 20.97 | 29.80 | 7 |
+
+Each complete command processes all 625 corrected frames through one source
+pipeline, with **zero additional dynamic-plan builds after warmup**. Seven
+workers fit the combined masks under the existing 4 GiB payload cap; eight fit
+each individual mask. The timing boundaries and warm-file/CPU caveats above
+also apply here. These six commands ran sequentially, without profiler sampling.
+All stored Batch and Map profiles, axes and counting std agree exactly for
+each case. The source's size and modification time remain unchanged.
+
+The preserved pre-optimization processor (`3333736d`) provides the additional
+full-file numerical oracle: it integrates all 625 corrected frames for each
+mask case in Batch, then imports those exported profiles through its own Map
+code to check Map values and stored profiles. This avoids repeating the same
+slow frame integration merely to build a Map reference; imported-Map work is
+outside the Batch timing, and no old raw-image Map throughput is claimed for
+these corrected cases.
+All three pre-optimization checks pass with **zero absolute difference** for
+every stored intensity, radial coordinate, counting std and Map value. Batch
+reference rates are 5.33, 3.46 and 2.19 images/s for Spot, Cosmic and both;
+the corresponding optimized Batch rates improve by 6.31×, 10.10× and 9.28×.
+
+Receipts: [six corrected timings](artifacts/native-spatial-masks/corrected-after.json)
+and [pre-optimization numerical checks](artifacts/native-spatial-masks/corrected-before.json).
+
 ## Numerical and workflow checks
 
 Every exported float64 intensity, radial coordinate and counting std across all
@@ -126,6 +167,22 @@ python desktop/scripts/native_spatial_mask_benchmark.py \
 DIOPTAS_EIGER_FILE=/path/to/eiger_0000.h5 \
   cargo test --locked --manifest-path desktop/backend/Cargo.toml --lib \
   measured_eiger_mask_bits_match_frozen_kernels -- --ignored --nocapture
+```
+
+For the corrected benchmark, run the optimized six-case measurement first,
+then check all its arrays using the preserved processor's Batch and imported
+Map results:
+
+```sh
+python desktop/scripts/native_spatial_mask_benchmark.py \
+  --source /path/to/eiger_0000.h5 --processor /path/to/new/dioptas-processor \
+  --label corrected-after --corrections --cases spot cosmic both \
+  --directory /tmp/spatial-corrected-after
+python desktop/scripts/native_spatial_mask_benchmark.py \
+  --source /path/to/eiger_0000.h5 --processor /path/to/old/dioptas-processor \
+  --label corrected-before --corrections --cases spot cosmic both \
+  --views batch --check-map-from-batch \
+  --directory /tmp/spatial-corrected-before --reference /tmp/spatial-corrected-after
 ```
 
 The Python scripts are explicit benchmark/reference clients. Production mask

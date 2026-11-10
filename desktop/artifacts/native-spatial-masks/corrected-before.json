@@ -1,0 +1,202 @@
+{
+  "source": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.h5",
+  "sourceBytes": 5687072680,
+  "shape": [
+    625,
+    3262,
+    3108
+  ],
+  "label": "corrected-before",
+  "processor": "/Users/clemens/Codex/dioptas-spatial-masks-20261110/dioptas-processor-before",
+  "executableSha256": "8c7e6a193051d203ff395b01caca2fd2016e9870a532bbc059840f4dd6899da1",
+  "requestedWorkers": 8,
+  "bins": 2000,
+  "poisson": true,
+  "corrections": {
+    "backgroundCounts": 7.0,
+    "backgroundScale": 0.7,
+    "backgroundOffset": 1.2,
+    "backgroundPoisson": true,
+    "flatField": "mean-normalized, linear 0.8\u20131.2 across columns"
+  },
+  "reference": "/Users/clemens/Codex/dioptas-spatial-masks-corrected-20261110/optimized",
+  "machine": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "records": [
+    {
+      "view": "batch",
+      "case": "spot",
+      "frames": 625,
+      "seconds": 117.24710670800414,
+      "fps": 5.330621944953572,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 1,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": -0.34441700000000086,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 3,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 2,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "mapFromBatchComparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      }
+    },
+    {
+      "view": "batch",
+      "case": "cosmic",
+      "frames": 625,
+      "seconds": 180.5521121249767,
+      "fps": 3.4616044788630336,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 1,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": -0.7393330000000002,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 3,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 1,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "mapFromBatchComparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      }
+    },
+    {
+      "view": "batch",
+      "case": "both",
+      "frames": 625,
+      "seconds": 285.3139772089198,
+      "fps": 2.190569162135182,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 1,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 0.4587909999999997,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 3,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 2,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "mapFromBatchComparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      }
+    }
+  ],
+  "scope": "All original frames; warm-plan complete native stdio commands, including mask generation, worker startup, integration, final selection and Map preview/reduction. Excludes initial setup, export/parity checks, process startup and Tauri rendering. OS file pages warm; CPU not isolated.",
+  "sourceUnchanged": true
+}
