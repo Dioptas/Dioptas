@@ -99,20 +99,14 @@ export function IntegrationImageControls({
   const shape = state.shape;
   const message = frameError || source.autoProcessError || sourceNotice;
   return (
-    <div className="integration-file-controls integration-image-files-aligned">
+    <div className="integration-file-controls integration-files-aligned integration-image-files-aligned">
       <IntegrationFileNavigator
-        aligned
         kind="image"
         step={fileStep}
         onStepChange={setFileStep}
         canNavigate={state.hasImage}
         order={source.fileIteration}
         onOrderChange={(mode) => send("integration_navigation", { mode })}
-        checkboxLabel="Autoprocess"
-        checked={source.autoProcess}
-        onCheckedChange={(enabled) =>
-          send("integration_autoprocess", { enabled })
-        }
         onLoad={() => {
           if (fileDraft.trim() && fileDraft !== filename) loadFilename();
           else
@@ -210,7 +204,7 @@ export function IntegrationImageControls({
           </span>
         )}
       </div>
-      <div className="integration-image-options">
+      <div className="integration-file-options integration-image-options">
         <div className="integration-file-actions">
           <Button
             type="button"

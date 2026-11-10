@@ -76,6 +76,11 @@ opening frame 1 of each destination even when the current file has more frames.
 Page Up / Page Down (Fn+↑ / Fn+↓ on a Mac) perform the same file navigation
 in Calibration and Integration, using File step in Integration. Shortcuts pause
 in fields, menus, dialogs and Settings. Unmodified arrows retain plot navigation.
+Image and Pattern share the same neutral Load/Folder buttons and aligned file
+browser: Load, arrows, Step and Browse by above the filename and Folder action.
+Pattern retains its editable input/autocreate output folder, with Autocreate and
+format choices grouped below the browser. Long filenames retain their useful
+counter and extension while remaining fully editable.
 The Image tab uses aligned File, Source and Frame rows. **Folder…** beside the
 filename selects the input folder without a permanent directory field.
 Autoprocess shows **Watching:** with the processor's confirmed folder; opening a

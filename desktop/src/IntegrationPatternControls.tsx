@@ -1,4 +1,5 @@
 import { Input, Button } from "./ui";
+import { MiddleElidedInput } from "./MiddleElidedInput";
 import { PathInput } from "./PathInput";
 import { useEffect, useState } from "react";
 import type { IntegrationState } from "./integration";
@@ -35,7 +36,7 @@ export function IntegrationPatternControls({
       });
   };
   return (
-    <div className="integration-file-controls integration-pattern-files">
+    <div className="integration-file-controls integration-files-aligned integration-pattern-files">
       <IntegrationFileNavigator
         kind="pattern"
         step={step}
@@ -44,14 +45,6 @@ export function IntegrationPatternControls({
         order={source.patternFileIteration ?? "number"}
         onOrderChange={(mode) =>
           action("integration_pattern_navigation", { mode })
-        }
-        checkboxLabel="Autocreate"
-        checked={source.autoSave}
-        onCheckedChange={(enabled) =>
-          action("integration_autocreate", {
-            enabled,
-            directory: directoryDraft,
-          })
         }
         onLoad={() => {
           if (fileDraft.trim() && fileDraft !== filename) loadFilename();
@@ -62,7 +55,7 @@ export function IntegrationPatternControls({
           action("integration_open_pattern", { direction, step })
         }
         filenameControl={
-          <Input
+          <MiddleElidedInput
             className="integration-file-path"
             aria-label="Pattern filename"
             value={fileDraft}
@@ -74,60 +67,76 @@ export function IntegrationPatternControls({
               }
               if (event.key === "Escape") setFileDraft(filename);
             }}
-            title="Enter a filename, then press Enter or Load pattern"
+            title={fileDraft === filename ? path || filename : fileDraft}
+            aria-description="Enter a filename, then press Enter or Load pattern"
             placeholder="Pattern filename"
             spellCheck={false}
           />
+        }
+        folderControl={
+          <Button
+            aria-label="Choose pattern folder"
+            title="Choose pattern input and autocreate output folder"
+            onClick={() => action("integration_output_directory")}
+          >
+            Folder…
+          </Button>
         }
       />
 
       <div className="integration-folder-row">
         <span className="integration-browse-label">Folder</span>
-        <div className="integration-file-directory">
-          <PathInput
-            className="integration-file-path"
-            aria-label="Pattern directory"
-            value={directoryDraft}
-            onChange={(event) => setDirectoryDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                action("integration_output_directory", {
-                  path: directoryDraft,
-                });
-              }
-              if (event.key === "Escape")
-                setDirectoryDraft(source.outputDirectory);
-            }}
-            title="Pattern input folder and autocreate output folder"
-            placeholder="Pattern directory"
-            spellCheck={false}
-          />
-          <Button
-            aria-label="Choose pattern folder"
-            title="Choose pattern folder"
-            onClick={() => action("integration_output_directory")}
-          >
-            …
-          </Button>
-        </div>
+        <PathInput
+          className="integration-file-path"
+          aria-label="Pattern directory"
+          value={directoryDraft}
+          onChange={(event) => setDirectoryDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              action("integration_output_directory", {
+                path: directoryDraft,
+              });
+            }
+            if (event.key === "Escape")
+              setDirectoryDraft(source.outputDirectory);
+          }}
+          title="Pattern input folder and autocreate output folder"
+          placeholder="Pattern directory"
+          spellCheck={false}
+        />
       </div>
-      <div className="integration-pattern-types">
-        <span>Pattern types:</span>
-        {[".xy", ".xye", ".chi", ".dat", ".fxye"].map((format) => (
-          <Check
-            key={format}
-            label={format}
-            checked={source.formats.includes(format)}
-            onChange={(enabled) =>
-              action("integration_settings", {
-                formats: enabled
-                  ? [...source.formats, format]
-                  : source.formats.filter((entry) => entry !== format),
+      <div className="integration-file-options integration-pattern-options">
+        <div className="integration-pattern-types">
+          <span>Pattern types:</span>
+          {[".xy", ".xye", ".chi", ".dat", ".fxye"].map((format) => (
+            <Check
+              key={format}
+              label={format}
+              checked={source.formats.includes(format)}
+              onChange={(enabled) =>
+                action("integration_settings", {
+                  formats: enabled
+                    ? [...source.formats, format]
+                    : source.formats.filter((entry) => entry !== format),
+                })
+              }
+            />
+          ))}
+        </div>
+        <label className="check-row integration-autocreate">
+          <Input
+            type="checkbox"
+            checked={source.autoSave}
+            onChange={(event) =>
+              action("integration_autocreate", {
+                enabled: event.target.checked,
+                directory: directoryDraft,
               })
             }
           />
-        ))}
+          Autocreate
+        </label>
       </div>
     </div>
   );

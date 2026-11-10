@@ -1,9 +1,9 @@
-import { Button, Input, Select } from "./ui";
+import { Button, Select } from "./ui";
 import type { ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { NavigationStep } from "./NavigationStep";
 
-/** Qt BrowseFileWidget's shared load/checkbox, step and file-order rows. */
+/** Shared file browser for Image and Pattern; task-specific options follow below. */
 export function IntegrationFileNavigator({
   kind,
   step,
@@ -11,13 +11,9 @@ export function IntegrationFileNavigator({
   canNavigate,
   order,
   onOrderChange,
-  checkboxLabel,
-  checked,
-  onCheckedChange,
   onLoad,
   onNavigate,
   filenameControl,
-  aligned = false,
   folderControl,
 }: {
   kind: "image" | "pattern";
@@ -26,26 +22,16 @@ export function IntegrationFileNavigator({
   canNavigate: boolean;
   order: string;
   onOrderChange: (mode: string) => void;
-  checkboxLabel: string;
-  checked: boolean;
-  onCheckedChange: (value: boolean) => void;
   onLoad: () => void;
   onNavigate: (direction: number) => void;
   filenameControl: ReactNode;
-  aligned?: boolean;
-  folderControl?: ReactNode;
+  folderControl: ReactNode;
 }) {
   const title = kind === "image" ? "Image" : "Pattern";
   return (
-    <div
-      className={`integration-file-browser${aligned ? " integration-file-browser-aligned" : ""}`}
-    >
+    <div className="integration-file-browser integration-file-browser-aligned">
       <div className="integration-file-toolbar">
-        <Button
-          variant="secondary"
-          className="integration-file-load"
-          onClick={onLoad}
-        >
+        <Button className="integration-file-load" onClick={onLoad}>
           Load {kind}…
         </Button>
         <div className="integration-file-arrows">
@@ -75,30 +61,18 @@ export function IntegrationFileNavigator({
           value={step}
           onChange={onStepChange}
         />
-        {!aligned && (
-          <label className="check-row">
-            <Input
-              type="checkbox"
-              checked={checked}
-              onChange={(event) => onCheckedChange(event.target.checked)}
-            />
-            {checkboxLabel}
-          </label>
-        )}
-        {aligned && (
-          <label className="integration-file-order">
-            <span>Browse by</span>
-            <Select
-              aria-label={`${title} file order`}
-              title="Browse files by filename number or creation time"
-              value={order}
-              onChange={(event) => onOrderChange(event.target.value)}
-            >
-              <option value="number">Name</option>
-              <option value="time">Time</option>
-            </Select>
-          </label>
-        )}
+        <label className="integration-file-order">
+          <span>Browse by</span>
+          <Select
+            aria-label={`${title} file order`}
+            title="Browse files by filename number or creation time"
+            value={order}
+            onChange={(event) => onOrderChange(event.target.value)}
+          >
+            <option value="number">Name</option>
+            <option value="time">Time</option>
+          </Select>
+        </label>
       </div>
       <div
         className="integration-browse-row"
@@ -107,22 +81,7 @@ export function IntegrationFileNavigator({
       >
         <span className="integration-browse-label">File</span>
         {filenameControl}
-        {aligned ? (
-          folderControl
-        ) : (
-          <label className="integration-file-order">
-            <span>Browse by</span>
-            <Select
-              aria-label={`${title} file order`}
-              title="Browse files by filename number or creation time"
-              value={order}
-              onChange={(event) => onOrderChange(event.target.value)}
-            >
-              <option value="number">Name</option>
-              <option value="time">Time</option>
-            </Select>
-          </label>
-        )}
+        {folderControl}
       </div>
     </div>
   );

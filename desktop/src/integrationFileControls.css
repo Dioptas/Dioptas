@@ -30,19 +30,19 @@
 }
 .integration-controls .integration-file-order select {
   width: 80px;
-  height: 28px;
-  min-height: 28px;
+  height: 30px;
+  min-height: 30px;
   padding-block: 3px;
   padding-left: 7px;
 }
-.integration-controls .integration-file-load {
-  min-height: 28px;
-  padding: 4px 9px;
+.integration-controls .integration-file-controls button {
+  min-height: 30px;
+  height: 30px;
+  padding: 3px 9px;
   white-space: nowrap;
 }
-.integration-file-browser .check-row {
-  min-height: 28px;
-  white-space: nowrap;
+.integration-controls .integration-file-load {
+  min-width: 8.5em;
 }
 .integration-browse-row {
   display: grid;
@@ -79,8 +79,8 @@
 }
 .integration-controls .integration-file-step input {
   width: 64px;
-  height: 28px;
-  min-height: 28px;
+  height: 30px;
+  min-height: 30px;
   appearance: auto;
   -moz-appearance: auto;
   padding: 3px 4px;
@@ -91,8 +91,8 @@
 .integration-file-controls .integration-file-path {
   width: 100%;
   min-width: 0;
-  height: 28px;
-  min-height: 28px;
+  height: 30px;
+  min-height: 30px;
   padding: 3px 7px;
   font: inherit;
   text-overflow: ellipsis;
@@ -101,12 +101,6 @@
   display: grid;
   grid-template-columns: var(--browse-label-width) minmax(0, 1fr);
   gap: 8px;
-}
-.integration-file-directory {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 28px;
-  gap: 4px;
-  min-width: 0;
 }
 .integration-image-location,
 .integration-image-options {
@@ -131,10 +125,6 @@
 .integration-image-options {
   align-items: center;
   margin-top: 2px;
-}
-.integration-controls .integration-file-directory button {
-  min-height: 28px;
-  padding: 0;
 }
 .integration-frame-navigation {
   display: flex;
@@ -186,8 +176,8 @@
 }
 .integration-controls .integration-image-batch-modes select {
   width: 110px;
-  height: 28px;
-  min-height: 28px;
+  height: 30px;
+  min-height: 30px;
   padding-block: 3px;
 }
 .integration-file-actions button[aria-pressed="true"] {
@@ -220,8 +210,8 @@
   min-height: 28px;
 }
 
-/* Approved aligned Image inspector. Pattern retains its existing file layout. */
-.integration-image-files-aligned {
+/* Shared alignment and control sizing for Image and Pattern file browsers. */
+.integration-files-aligned {
   --browse-label-width: 56px;
   gap: 6px;
 }
@@ -234,7 +224,8 @@
 .integration-file-browser-aligned .integration-file-order {
   margin-left: auto;
 }
-.integration-image-files-aligned .integration-browse-row,
+.integration-files-aligned .integration-folder-row,
+.integration-files-aligned .integration-browse-row,
 .integration-image-files-aligned .integration-aligned-row {
   display: grid;
   grid-template-columns: var(--browse-label-width) minmax(0, 1fr);
@@ -242,12 +233,12 @@
   gap: 10px;
   min-width: 0;
 }
-.integration-image-files-aligned
+.integration-files-aligned
   .integration-file-browser-aligned
   .integration-browse-row {
   grid-template-columns: var(--browse-label-width) minmax(0, 1fr) auto;
 }
-.integration-image-files-aligned .integration-browse-label {
+.integration-files-aligned .integration-browse-label {
   justify-content: flex-end;
   align-items: flex-start;
   padding-top: 5px;
@@ -269,7 +260,7 @@
   .integration-number-field {
   gap: 0;
 }
-.integration-image-files-aligned .integration-file-path {
+.integration-files-aligned .integration-file-path {
   min-height: 30px;
 }
 .middle-elided-input {
@@ -371,11 +362,6 @@
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
-.integration-image-files-aligned .integration-image-options {
-  padding-top: 6px;
-  margin-top: 0;
-  border-top: 1px solid var(--border);
-}
 .integration-image-options .integration-autoprocess {
   margin-left: auto;
   white-space: nowrap;
@@ -394,11 +380,31 @@
   overflow-wrap: anywhere;
   user-select: text;
 }
+
+.integration-file-options {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding-top: 6px;
+  margin-top: 0;
+  border-top: 1px solid var(--border);
+}
+.integration-pattern-options .integration-autocreate {
+  margin-left: auto;
+  min-height: 30px;
+  white-space: nowrap;
+}
+
 @container (max-width: 540px) {
   .integration-file-browser-aligned .integration-file-order {
     margin-left: 0;
   }
-  .integration-image-options .integration-autoprocess {
+  .integration-image-options .integration-autoprocess,
+  .integration-pattern-options .integration-autocreate {
     margin-left: 0;
+  }
+  .integration-pattern-options .integration-autocreate {
+    order: -1;
   }
 }
