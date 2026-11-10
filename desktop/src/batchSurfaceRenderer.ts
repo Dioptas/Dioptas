@@ -291,14 +291,7 @@ export function drawBatchSurface(
       for (const level of contourLevels) {
         const points = sliceSurfaceTriangle(tri, "z", level.fraction);
         if (points) {
-          const rgb = rasterColor(level.fraction, opts.palette),
-            luminance =
-              (rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722) / 255;
-          line(
-            points,
-            luminance > 0.42 ? "rgba(20,20,20,.62)" : "rgba(240,240,240,.62)",
-            1,
-          );
+          line(points, "rgba(0,0,0,.14)", 1);
         }
       }
       for (const reference of references.length

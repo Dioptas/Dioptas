@@ -627,6 +627,8 @@ these maxima include every source column in range regardless of mesh detail.
 Curves intersect the displayed triangles exactly, and the GPU
 depth buffer hides references behind opaque peaks. Contour levels use rounded
 physical intensities with the same linear/log/square-root transfer as the axes.
+Their subtle darkening preserves the surface hue without switching to a
+contrasting light or dark line color.
 Both preferences persist and PNG capture includes the guides. On GPU failure,
 Canvas draws contours and surface phase lines; settings identify the plane
 fallback. This changes display geometry only, retaining the native arrays.

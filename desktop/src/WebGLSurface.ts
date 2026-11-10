@@ -28,9 +28,8 @@ void main() {
       float distance = abs(value - contourLevels[i]) / gradient;
       coverage = max(coverage, 1.0 - smoothstep(0.25 * contourWidth, 1.05 * contourWidth, distance));
     }
-    float luminance = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
-    vec3 ink = luminance > 0.42 ? vec3(0.08) : vec3(0.94);
-    color.rgb = mix(color.rgb, ink, coverage * 0.62);
+    // Preserve the surface hue: contours are a faint tonal crease.
+    color.rgb *= 1.0 - coverage * 0.14;
   }
 }`;
 
