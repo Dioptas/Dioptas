@@ -2,6 +2,10 @@ import { surfaceAxisTicks } from "./batchSurfaceAxes.ts";
 import { radialValues } from "./radialReadout.ts";
 import type { BatchData } from "./batchDomain";
 import type { SurfacePoint, SurfaceScale } from "./batchSurfaceGeometry";
+import {
+  surfaceIntensity,
+  type surfaceSampling,
+} from "./batchSurfaceGeometry.ts";
 import type { SurfaceTriangle, SurfaceVertex } from "./batchSurfaceRenderer";
 
 export type SurfacePhaseStyle = "lines" | "planes";
@@ -19,6 +23,31 @@ export interface SurfaceGuides {
   contours: number[];
   segments: SurfaceGuideSegment[];
   planes: SurfaceGuidePlane[];
+}
+
+/** Display heights of each sampled frame's visible native pattern maximum.
+ * Scan every source column in the range so mesh decimation cannot change the
+ * reference scale. The view memoizes this independently of camera movement. */
+export function surfacePhaseFrameHeights(
+  values: Float32Array | Uint8Array,
+  columns: number,
+  sampling: Pick<
+    ReturnType<typeof surfaceSampling>,
+    "frames" | "firstColumn" | "lastColumn"
+  >,
+  limits: [number, number],
+  scale: SurfaceScale,
+) {
+  return sampling.frames.map((frame) => {
+    let maximum = -Infinity;
+    for (let c = sampling.firstColumn; c <= sampling.lastColumn; c++) {
+      const value = values[frame * columns + c];
+      if (Number.isFinite(value)) maximum = Math.max(maximum, value);
+    }
+    return Number.isFinite(maximum)
+      ? surfaceIntensity(maximum, limits, scale)
+      : 0;
+  });
 }
 
 /** Rounded physical intensity levels, transformed by the very same mapping as

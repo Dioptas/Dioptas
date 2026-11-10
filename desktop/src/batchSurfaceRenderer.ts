@@ -7,9 +7,11 @@ import {
   sliceSurfaceTriangle,
   surfaceContourLevels,
   surfacePhaseReferences,
+  surfacePhaseFrameHeights,
   type SurfaceGuides,
   type SurfacePhaseStyle,
 } from "./batchSurfaceGuides";
+import { scalePhaseReflections } from "./phaseLineScaling";
 import {
   clamp,
   surfaceBarycentric,
@@ -57,6 +59,7 @@ export function drawBatchSurface(
     contours?: boolean;
     phaseLines?: BatchData["phaseLines"];
     phaseStyle?: SurfacePhaseStyle;
+    phaseHeights?: number[];
   },
 ): SurfaceScene | null {
   const started = performance.now();
@@ -209,30 +212,42 @@ export function drawBatchSurface(
     segments: [],
     planes: [],
   };
+  const strengths = scalePhaseReflections(references, 1);
+  const frameHeights =
+    opts.phaseStyle === "planes" && references.length
+      ? (opts.phaseHeights ??
+        surfacePhaseFrameHeights(values, batch.x.length, s, limits, scale))
+      : [];
   if (opts.phaseStyle === "planes") {
-    for (const reference of references) {
-      const points = [
-        project(s.firstRow, reference.radial, 0),
-        project(s.lastRow, reference.radial, 0),
-        project(s.firstRow, reference.radial, 1),
-        project(s.lastRow, reference.radial, 1),
-      ] as const;
-      guides.planes.push({
-        points: [...points],
-        color: reference.color,
-        opacity: 0.13,
-      });
-      for (const [a, b] of [
-        [0, 1],
-        [1, 3],
-        [3, 2],
-        [2, 0],
-      ])
+    for (const [index, reference] of references.entries()) {
+      const strength = strengths[index];
+      if (strength <= 0) continue;
+      const tops = s.frames.map((frame, i) =>
+        project(frame, reference.radial, frameHeights[i] * strength),
+      );
+      const floor = s.frames.map((frame) =>
+        project(frame, reference.radial, 0),
+      );
+      for (let i = 0; i < tops.length - 1; i++) {
+        if (frameHeights[i] <= 0 && frameHeights[i + 1] <= 0) continue;
+        guides.planes.push({
+          points: [floor[i], floor[i + 1], tops[i], tops[i + 1]],
+          color: reference.color,
+          opacity: 0.13,
+        });
         guides.segments.push({
-          points: [points[a], points[b]],
+          points: [tops[i], tops[i + 1]],
           color: reference.color,
           width: 1,
         });
+      }
+      if (tops.length)
+        for (const points of [
+          [floor[0], floor.at(-1)!],
+          [floor[0], tops[0]],
+          [floor.at(-1)!, tops.at(-1)!],
+        ] as [SurfacePoint, SurfacePoint][])
+          guides.segments.push({ points, color: reference.color, width: 1 });
     }
   } else if (references.length) {
     for (const tri of triangles)
@@ -377,6 +392,16 @@ export function drawBatchSurface(
     contourLevels.map((t) => t.value),
   );
   canvas.dataset.phaseReferences = String(references.length);
+  canvas.dataset.phasePlaneHeights = JSON.stringify(
+    opts.phaseStyle === "planes"
+      ? strengths.map((strength) =>
+          frameHeights.reduce(
+            (maximum, height) => Math.max(maximum, height * strength),
+            0,
+          ),
+        )
+      : [],
+  );
   canvas.dataset.phaseSegments = String(
     gpu ? guides.segments.length : fallbackPhaseSegments,
   );

@@ -14,7 +14,7 @@ await server.listen();
 const url = server.resolvedUrls.local[0] + "scripts/batch_surface_harness.html";
 const refs = [2.2, 4.4].map((q, i) => ({
   x: (2 * Math.PI) / q,
-  intensity: 100,
+  intensity: i === 0 ? 100 : 25,
   name: "Reference phase",
   color: "#ff66dd",
   phaseIndex: 0,
@@ -110,6 +110,16 @@ try {
         .getByRole("combobox", { name: "Surface phase guides", exact: true })
         .selectOption("planes");
       assert.equal((await state(surface)).phaseStyle, "planes");
+      const heights = JSON.parse((await state(surface)).phasePlaneHeights);
+      assert.equal(heights.length, 2);
+      assert.ok(
+        heights[0] > 0 && heights[0] < 1,
+        "Strong plane is bounded by the measured pattern maximum",
+      );
+      assert.ok(
+        Math.abs(heights[1] / heights[0] - 0.25) < 1e-8,
+        "Weak plane uses its relative reflection intensity",
+      );
       await page
         .getByRole("button", { name: "Close surface settings", exact: true })
         .click();

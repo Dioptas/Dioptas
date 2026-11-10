@@ -9,7 +9,10 @@ import {
 import { Equal, Settings2, X } from "lucide-react";
 import { Button, Popover, Select } from "./ui";
 import { disposeSurfaceGPU } from "./WebGLSurface";
-import type { SurfacePhaseStyle } from "./batchSurfaceGuides";
+import {
+  surfacePhaseFrameHeights,
+  type SurfacePhaseStyle,
+} from "./batchSurfaceGuides";
 import { ScientificNumberInput } from "./ScientificNumberInput";
 import { PlotToggle } from "./IntegrationPlotControls";
 import { decodeRaster } from "./rasterTransfer";
@@ -204,6 +207,29 @@ export function BatchSurfaceView({
       batch.unit
     ];
   const scale = log ? "log" : sqrt ? "sqrt" : "linear";
+  const hasPhases = !!phaseLines?.length;
+  const phaseHeights = useMemo(
+    () =>
+      appearance.phaseStyle === "planes" && hasPhases
+        ? surfacePhaseFrameHeights(
+            values,
+            batch.x.length,
+            sampling,
+            limits,
+            scale,
+          )
+        : undefined,
+    [
+      values,
+      batch.x.length,
+      sampling,
+      limits[0],
+      limits[1],
+      scale,
+      appearance.phaseStyle,
+      hasPhases,
+    ],
+  );
   useEffect(() => {
     try {
       localStorage.setItem("dioptas-batch:surface-resolution", resolution);
@@ -262,6 +288,7 @@ export function BatchSurfaceView({
       contours: appearance.contours,
       phaseStyle: appearance.phaseStyle,
       phaseLines,
+      phaseHeights,
     });
     setUnavailable(scene.current === null);
     setRenderer(canvas.current?.dataset.renderer ?? "canvas");
@@ -280,6 +307,7 @@ export function BatchSurfaceView({
     typography.muted,
     appearance,
     phaseLines,
+    phaseHeights,
   ]);
   const orient = (orientation: SurfaceOrientation) => {
     rightClick.current = null;
@@ -449,6 +477,12 @@ export function BatchSurfaceView({
             Use the Phases icon to show the visible reference phases in their
             existing colors.
           </p>
+          {appearance.phaseStyle === "planes" && (
+            <p>
+              Plane heights follow relative reflection intensities, scaled to
+              each frame’s visible pattern maximum.
+            </p>
+          )}
           {renderer !== "webgl2" && appearance.phaseStyle === "planes" && (
             <p role="status">
               Reference planes require GPU drawing; showing surface lines.

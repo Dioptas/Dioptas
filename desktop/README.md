@@ -620,7 +620,11 @@ surface lines or translucent reference planes. The existing icon-only Phases
 toggle controls visibility in both 2D and 3D. References reuse native phase
 d spacings and colors, converting with the acquired series wavelength; their
 positions follow the current phase model rather than per-frame pressure or
-temperature. Curves intersect the displayed triangles exactly, and the GPU
+temperature. Plane heights use the same relative reflection intensities as the
+pattern view, normalized independently for each visible phase. Their top edges
+follow each frame's visible measured maximum, capped by the intensity limits;
+these maxima include every source column in range regardless of mesh detail.
+Curves intersect the displayed triangles exactly, and the GPU
 depth buffer hides references behind opaque peaks. Contour levels use rounded
 physical intensities with the same linear/log/square-root transfer as the axes.
 Both preferences persist and PNG capture includes the guides. On GPU failure,

@@ -12,7 +12,117 @@ import {
   sliceSurfaceTriangle,
   surfaceContourLevels,
   surfacePhaseReferences,
+  surfacePhaseFrameHeights,
 } from "../src/batchSurfaceGuides.ts";
+import { scalePhaseReflections } from "../src/phaseLineScaling.ts";
+
+test("phase plane heights share pattern reflection strengths and each frame's visible native maximum", () => {
+  const lines = [
+    {
+      x: 1,
+      intensity: 100,
+      phaseIndex: 0,
+      name: "Phase",
+      color: "#fff",
+      hkl: [],
+    },
+    {
+      x: 2,
+      intensity: 25,
+      phaseIndex: 0,
+      name: "Phase",
+      color: "#fff",
+      hkl: [],
+    },
+    {
+      x: 3,
+      intensity: 2,
+      phaseIndex: 1,
+      name: "Phase",
+      color: "#fff",
+      hkl: [],
+    },
+    {
+      x: 4,
+      intensity: 1,
+      phaseIndex: 1,
+      name: "Phase",
+      color: "#fff",
+      hkl: [],
+    },
+    {
+      x: 5,
+      intensity: NaN,
+      phaseIndex: 1,
+      name: "Phase",
+      color: "#fff",
+      hkl: [],
+    },
+  ];
+  assert.deepEqual(scalePhaseReflections(lines, 1), [1, 0.25, 1, 0.5, 0]);
+  const values = new Float32Array([
+    999,
+    10,
+    80,
+    5,
+    30,
+    999,
+    999,
+    2,
+    20,
+    4,
+    10,
+    999,
+    NaN,
+    NaN,
+    NaN,
+    NaN,
+    NaN,
+    NaN,
+  ]);
+  const before = new Uint8Array(values.buffer.slice(0));
+  const sampling = { frames: [0, 1, 2], firstColumn: 1, lastColumn: 4 };
+  for (const scale of ["linear", "log", "sqrt"]) {
+    const heights = surfacePhaseFrameHeights(
+      values,
+      6,
+      sampling,
+      [0, 100],
+      scale,
+    );
+    assert.deepEqual(heights, [
+      surfaceIntensity(80, [0, 100], scale),
+      surfaceIntensity(20, [0, 100], scale),
+      0,
+    ]);
+    assert.equal(
+      heights[0] * scalePhaseReflections(lines, 1)[1],
+      heights[0] * 0.25,
+    );
+  }
+  assert.deepEqual(
+    surfacePhaseFrameHeights(
+      values,
+      6,
+      { ...sampling, frames: [0, 1] },
+      [10, 50],
+      "linear",
+    ),
+    [1, 0.25],
+  );
+  assert.deepEqual(
+    surfacePhaseFrameHeights(
+      values,
+      6,
+      { frames: [0], firstColumn: 3, lastColumn: 4 },
+      [0, 100],
+      "linear",
+    ),
+    [0.3],
+    "Radial zoom excludes offscreen strong peaks",
+  );
+  assert.deepEqual(new Uint8Array(values.buffer), before);
+});
 
 test("surface contour levels stay in physical intensity units across linear, log and sqrt", () => {
   assert.deepEqual(
