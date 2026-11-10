@@ -12,7 +12,6 @@ export function useBatchWaterfall(batch: BatchData | null, run: BatchRun) {
   useEffect(() => {
     setRegion(null);
     setActive(false);
-    setStep(1);
   }, [batch?.waterfallKey, batch?.id]);
   const create = (selection: BatchWaterfallRegion, stride = step) => {
     if (!batch) return;

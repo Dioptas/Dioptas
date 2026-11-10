@@ -77,7 +77,7 @@ resulting overlays and their editing/separation state persist normally.
 - `npm run test:batch-waterfall` passed in headless Chromium and WebKit against
   the real Rust stdio worker: reverse/repeated drags, Step regeneration, Escape
   and pointer cancellation, normal zoom/pan/wheel/F, detached command routing,
-  overlay panel reveal and redocking. Screenshots are saved under ignored
+  overlay panel reveal, source replacement with retained Step, and redocking. Screenshots are saved under ignored
   `desktop/artifacts/batch-waterfall/`.
 - `node desktop/scripts/batch_navigation_smoke.mjs` passed in both engines,
   retaining frame selection and snapshot ownership behavior.
