@@ -300,10 +300,19 @@ fn background_cut_keeps_existing_waterfall_coordinates_errors_and_stale_selectio
     let data: Vec<f64> = serde_json::from_value(reference["data"].clone()).unwrap();
     let background: Vec<f64> = serde_json::from_value(reference["background"].clone()).unwrap();
     let x: Vec<f64> = serde_json::from_value(reference["x"].clone()).unwrap();
-    for (curve, row) in curves.iter().zip([0, 2]) {
+    assert!(
+        result.result["state"]["integration"]["waterfallSeparation"]
+            .as_f64()
+            .unwrap()
+            > 0.0
+    );
+    for (index, (curve, row)) in curves.iter().zip([0, 2]).enumerate() {
+        let offset = result.result["state"]["integration"]["overlays"][index]["offset"]
+            .as_f64()
+            .unwrap();
         let actual: Vec<f64> = serde_json::from_value(curve["y"].clone()).unwrap();
         let expected: Vec<_> = (start..start + 4)
-            .map(|col| data[row * 97 + col] - background[row * 97 + col])
+            .map(|col| data[row * 97 + col] - background[row * 97 + col] + offset)
             .collect();
         assert_eq!(curve["x"], json!(x[start..start + 4]));
         for (a, e) in actual.iter().zip(expected) {

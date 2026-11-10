@@ -13,8 +13,15 @@ pub(crate) fn estimate<'a>(curves: impl IntoIterator<Item = (&'a [f64], f64)>) -
             high = high.max(v);
         }
         if low < high && scale != 0.0 {
-            // Divide before subtracting so opposite large endpoints don't overflow.
-            spacing = spacing.max((high / 10.0 - low / 10.0) * scale.abs());
+            let range = high - low;
+            // Subtract first for ordinary ranges so constant baselines don't
+            // perturb a nice-step boundary. Scale endpoints only on overflow.
+            let tenth = if range.is_finite() {
+                range * 0.1
+            } else {
+                high * 0.1 - low * 0.1
+            };
+            spacing = spacing.max(tenth * scale.abs());
         }
     }
     if spacing == 0.0 {
@@ -22,7 +29,8 @@ pub(crate) fn estimate<'a>(curves: impl IntoIterator<Item = (&'a [f64], f64)>) -
     }
     let spacing = spacing.clamp(0.01, 100_000.0);
     let base = 10.0_f64.powf(spacing.log10().floor());
-    let ratio = spacing / base;
+    // A display estimate should not jump a whole step on floating-point noise.
+    let ratio = spacing / base / (1.0 + 1e-12);
     let step = if ratio <= 1.0 {
         1.0
     } else if ratio <= 2.0 {
@@ -44,6 +52,7 @@ mod tests {
         assert_eq!(estimate([(&[1000., 1020., 1100.][..], 1.)]), 10.);
         assert_eq!(estimate([(&[-20., -10., 0.][..], 2.)]), 5.);
         assert_eq!(estimate([(&[0., 1.][..], 1.)]), 0.1);
+        assert_eq!(estimate([(&[40.25, 41.25][..], 1.)]), 0.1);
         assert_eq!(estimate([(&[0., 1.][..], 1.), (&[0., 7.][..], 10.)]), 10.);
     }
     #[test]

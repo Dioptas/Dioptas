@@ -150,11 +150,13 @@ try {
         state.state.integration.overlays.map((o) => o.batchSource.row),
         [0, 1, 2, 3, 4],
       );
-      assert.equal(state.state.integration.waterfallSeparation, 100);
+      const generatedSpacing = state.state.integration.waterfallSeparation;
+      assert.ok(generatedSpacing > 0 && generatedSpacing !== 100);
       assert.deepEqual(
         state.state.integration.overlays.map((o) => o.offset),
-        [-500, -400, -300, -200, -100],
+        [5, 4, 3, 2, 1].map((i) => -i * generatedSpacing),
       );
+      const first = state.pattern.curves;
       assert.equal(
         await page
           .getByRole("button", { name: "Auto waterfall spacing", exact: true })
@@ -204,7 +206,7 @@ try {
         name: "Waterfall separation",
         exact: true,
       });
-      assert.equal(await spacing.inputValue(), "100");
+      assert.equal(Number(await spacing.inputValue()), generatedSpacing);
       const range =
         Math.max(
           ...state.pattern.curves.map(
@@ -214,6 +216,7 @@ try {
       const base = 10 ** Math.floor(Math.log10(range));
       const expectedSpacing =
         base * [1, 2, 5, 10].find((v) => v >= range / base);
+      assert.equal(generatedSpacing, expectedSpacing);
       await page
         .getByRole("button", { name: "Auto waterfall spacing", exact: true })
         .click();
@@ -243,7 +246,6 @@ try {
         state.state.integration.overlays.map((o) => o.offset),
         [-500, -400, -300, -200, -100],
       );
-      const first = state.pattern.curves;
       await drag(page, canvas, [0.1, 0.1], [0.9, 0.95]);
       await settled(page);
       await waitAction(page, 2);

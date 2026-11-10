@@ -137,12 +137,13 @@ fn rectangle_uses_exact_rows_bins_units_and_recorded_wavelength() {
             let before = call(&mut s, "batch_snapshot", json!({}));
             let r = call(&mut s, "batch_waterfall", selection(id, 2));
             assert_eq!(curves(&r).len(), 2);
+            assert_eq!(r.result["state"]["integration"]["waterfallSeparation"], 0.1);
             for (i, row) in [1usize, 3].iter().enumerate() {
                 let selected = call(&mut s, "batch_select", json!({"index":row}));
                 let x = numbers(&selected.result["pattern"]["x"]);
                 close(&numbers(&curves(&r)[i]["x"]), &x[1..6]);
                 let y: Vec<_> = (1..6)
-                    .map(|col| (*row + 1) as f64 * 10. + col as f64 * 0.25 - 4.5 * (2 - i) as f64)
+                    .map(|col| (*row + 1) as f64 * 10. + col as f64 * 0.25 - 0.1 * (2 - i) as f64)
                     .collect();
                 assert_eq!(numbers(&curves(&r)[i]["y"]), y);
                 close(
@@ -218,7 +219,7 @@ fn normalized_waterfalls_replace_repeat_and_round_trip_with_overlay_edits() {
         json!({"enabled":true,"start":2,"stop":5}),
     );
     let id = &normalized.result["batch"]["waterfallKey"];
-    // Explicit zero remains supported; inspect the normalized samples without display offsets.
+    // Generation re-estimates even if the previous spacing was explicitly zero.
     call(
         &mut s,
         "integration_overlay",
@@ -236,7 +237,7 @@ fn normalized_waterfalls_replace_repeat_and_round_trip_with_overlay_edits() {
     close(
         &numbers(&curves(&a)[0]["y"]),
         &(1..6)
-            .map(|col| (20. + col as f64 * 0.25) * factor)
+            .map(|col| (20. + col as f64 * 0.25) * factor - 0.2)
             .collect::<Vec<_>>(),
     );
     close(
@@ -386,8 +387,23 @@ fn default_and_automatic_spacing_apply_offsets_and_preserve_project_choices() {
         "batch_waterfall",
         selection(&opened.result["batch"]["waterfallKey"], 2),
     );
-    assert_eq!(overlays(&r)[0]["offset"], -200.);
-    assert_eq!(overlays(&r)[1]["offset"], -100.);
+    assert_eq!(r.result["state"]["integration"]["waterfallSeparation"], 0.1);
+    assert_eq!(overlays(&r)[0]["offset"], -0.2);
+    assert_eq!(overlays(&r)[1]["offset"], -0.1);
+    let narrow = call(
+        &mut s,
+        "batch_waterfall",
+        json!({"series":opened.result["batch"]["waterfallKey"],"bins":[1,3],"rows":[1,5],"step":2}),
+    );
+    assert_eq!(
+        narrow.result["state"]["integration"]["waterfallSeparation"],
+        0.05
+    );
+    call(
+        &mut s,
+        "batch_waterfall",
+        selection(&opened.result["batch"]["waterfallKey"], 2),
+    );
     call(
         &mut s,
         "integration_overlay",

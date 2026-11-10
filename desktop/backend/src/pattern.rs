@@ -796,7 +796,7 @@ impl Patterns {
             self.add(curve, name);
             self.overlays.last_mut().unwrap().batch_source = Some(source);
         }
-        self.edit_overlay(&json!({"operation":"waterfall"}), None)
+        self.edit_overlay(&json!({"operation":"waterfall_auto"}), None)
     }
     fn add(&mut self, data: Curve, name: String) {
         let palette = ["#f0b66c", "#73bba6", "#82a6d6", "#d38fa5", "#b6a1da"];
