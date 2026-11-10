@@ -471,8 +471,11 @@ impl Session {
                             })
                             .transpose()?;
                         let plugins = if bulk_options.dynamic_mask {
-                            self.plugins
-                                .series_snapshot(&self.settings.geometry, image.shape)?
+                            self.plugins.series_snapshot(
+                                &self.settings.geometry,
+                                image.shape,
+                                &self.mask,
+                            )?
                         } else {
                             Plugins::default()
                         };

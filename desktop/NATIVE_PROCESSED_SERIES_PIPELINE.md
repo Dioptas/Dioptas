@@ -43,6 +43,9 @@ Threshold, Cosmic Ray and Spot masks are computed from each frame's corrected
 float64 values. User masks, detector acquisition masks and ROI restrictions
 keep their existing combination semantics. Spot's geometry-dependent angular
 bin indices are shared; plugin masks and caches remain private to workers.
+Spot's user-mask-dependent bin membership is also shared. Spatial kernels reuse
+private compact scratch and process contiguous rows; see the
+[spatial-mask optimization and full-file measurements](NATIVE_SPATIAL_MASK_PERFORMANCE.md).
 Threshold/Cosmic settings are extracted before pixel loops, avoiding repeated
 JSON lookups without changing comparisons or statistics.
 
@@ -129,7 +132,8 @@ Map values. Maximum absolute differences were 1.04e-8, 6.93e-14 and 7.96e-12,
 respectively; comparisons use rtol 3e-12 and atol 1e-8. The source stayed unchanged.
 [Full-file receipt](artifacts/native-series-pipeline/processed-eiger-results.json).
 
-Default spatial plugins were also measured on **the first 16 original Eiger
+Before the subsequent [spatial-kernel optimization](NATIVE_SPATIAL_MASK_PERFORMANCE.md),
+default spatial plugins were measured on **the first 16 original Eiger
 frames**, in Batch with Poisson errors. These are sampled measurements, not
 full-file or Map throughput claims. The payload budget admitted three workers:
 

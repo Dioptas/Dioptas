@@ -8,6 +8,7 @@ import { nativeClient, root } from "./native_backend_client.mjs";
 for (const [compression, scenario] of [
   ["gzip", "raw"], ["bitshuffle-lz4", "raw"],
   ["bitshuffle-lz4", "corrected"], ["bitshuffle-lz4", "dynamic"], ["bitshuffle-lz4", "combined"],
+  ["bitshuffle-lz4", "spot"], ["bitshuffle-lz4", "cosmic"],
 ])
   test(
     `${compression}/${scenario}: bulk cancellation and changed sources preserve the preceding complete series`,
@@ -73,6 +74,12 @@ np.save(sys.argv[1]+'.flat.npy',np.broadcast_to(np.linspace(0.8,1.2,448),(384,44
         if (["dynamic", "combined"].includes(scenario)) {
           await invoke("mask_plugin", { name: "Threshold Mask", enabled: true,
             settings: { above_enabled: true, above_value: 900 } });
+        }
+        if (["spot", "cosmic"].includes(scenario)) {
+          await invoke("mask_plugin", {
+            name: scenario === "spot" ? "Spot Mask" : "Cosmic Ray Mask",
+            enabled: true,
+          });
         }
         await invoke("batch_load", { paths: [source], start: 1, stop: 2 });
         if (compression === "bitshuffle-lz4") {

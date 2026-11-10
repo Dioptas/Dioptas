@@ -1,0 +1,11 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Running unittests src/lib.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/dioptas_backend-ae60760cd376b54a)
+
+running 1 test
+Full-resolution mask bits match: frame 0
+Full-resolution mask bits match: frame 1
+Full-resolution mask bits match: frame 312
+Full-resolution mask bits match: frame 624
+test mask_plugins::tests::measured_eiger_mask_bits_match_frozen_kernels ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 58 filtered out; finished in 6.01s

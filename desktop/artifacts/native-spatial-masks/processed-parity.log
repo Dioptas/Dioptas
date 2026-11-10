@@ -1,0 +1,11 @@
+PASS corrected
+PASS corrected-no-errors
+PASS threshold
+PASS cosmic
+PASS spot
+PASS combined
+PASS pyfai
+PASS subpixel
+PASS sector-spread
+PASS mask-disabled
+{"cases": ["corrected", "corrected-no-errors", "threshold", "cosmic", "spot", "combined", "pyfai", "subpixel", "sector-spread", "mask-disabled"], "views": ["batch", "map"], "multiSource": true, "stride": true}

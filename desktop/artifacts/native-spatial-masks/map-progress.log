@@ -1,0 +1,20 @@
+[
+  {
+    "browser": "chromium",
+    "partialMapWhileBusy": true,
+    "blankUnfinishedCells": true,
+    "previewEqualsFinishedCells": true,
+    "regionsAndExpressionPreserved": true,
+    "detachedPreview": true,
+    "completed": 2048
+  },
+  {
+    "browser": "webkit",
+    "partialMapWhileBusy": true,
+    "blankUnfinishedCells": true,
+    "previewEqualsFinishedCells": true,
+    "regionsAndExpressionPreserved": true,
+    "detachedPreview": true,
+    "completed": 2048
+  }
+]

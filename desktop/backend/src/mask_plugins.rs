@@ -3,6 +3,11 @@
 use crate::{control::Control, geometry::Geometry, protocol::Buffer};
 use serde_json::{Value, json};
 use std::sync::Arc;
+#[cfg(test)]
+#[path = "mask_plugins_reference.rs"]
+mod reference;
+#[path = "spatial_masks.rs"]
+mod spatial;
 
 #[derive(Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct State {
@@ -27,6 +32,7 @@ struct BinPlan {
     shape: [usize; 2],
     count: usize,
     indices: Arc<Vec<usize>>,
+    groups: Option<Arc<spatial::Groups>>,
 }
 #[derive(Clone)]
 pub(crate) struct Plugins {
@@ -34,6 +40,8 @@ pub(crate) struct Plugins {
     cache: Vec<Option<Cached>>,
     // The bin plan is geometry dependent, not image dependent.
     bins: Option<BinPlan>,
+    fixed_user_id: Option<String>,
+    workspace: spatial::Workspace,
 }
 fn catalog() -> Vec<Value> {
     serde_json::from_str(include_str!("mask_plugins.json")).expect("embedded plugin schema")
@@ -50,6 +58,8 @@ impl Default for Plugins {
                 .collect(),
             cache: vec![None; 3],
             bins: None,
+            fixed_user_id: None,
+            workspace: spatial::Workspace::default(),
         }
     }
 }
@@ -60,9 +70,11 @@ impl Plugins {
         &self,
         geometry: &Geometry,
         shape: [usize; 2],
+        user: &[u8],
     ) -> Result<Self, String> {
         let mut snapshot = self.clone();
         snapshot.cache = vec![None; 3];
+        snapshot.fixed_user_id = None;
         if snapshot.states[2].enabled {
             let count = number(&snapshot.states[2].settings, "num_bins") as usize;
             if snapshot
@@ -75,21 +87,48 @@ impl Plugins {
                     shape,
                     count,
                     indices: Arc::new(bin_indices(geometry, shape, count)?),
+                    groups: None,
                 });
             }
+        }
+        if snapshot.states[2].enabled {
+            let id = Buffer::new(user.to_vec()).id;
+            let bins = snapshot.bins.as_mut().unwrap();
+            if bins.groups.as_ref().is_none_or(|g| g.user != id) {
+                bins.groups = Some(Arc::new(spatial::Groups::new(
+                    &bins.indices,
+                    user,
+                    bins.count,
+                    id.clone(),
+                )?));
+            }
+            snapshot.fixed_user_id = Some(id);
         }
         Ok(snapshot)
     }
 
-    /// Conservative per-pixel allowance for retained masks and simultaneous
-    /// plugin temporaries (including Vec growth in Spot's bin lists).
-    pub(crate) fn series_scratch_bytes(&self, pixels: usize) -> usize {
-        let bytes = if self.states[1].enabled || self.states[2].enabled {
-            96
-        } else {
-            8
-        };
-        pixels.saturating_mul(bytes)
+    /// Account for retained masks, compact row workspaces and the largest
+    /// bin's median/MAD scratch; geometry/user bin membership is shared.
+    pub(crate) fn series_scratch_bytes(&self, shape: [usize; 2]) -> usize {
+        let pixels = shape[0].saturating_mul(shape[1]);
+        let mut bytes = pixels.saturating_mul(8);
+        if self.states[1].enabled {
+            bytes = bytes
+                .saturating_add(pixels.saturating_mul(8))
+                .saturating_add(shape[1].saturating_mul(48));
+        }
+        if self.states[2].enabled {
+            let largest = self
+                .bins
+                .as_ref()
+                .and_then(|b| b.groups.as_ref())
+                .map_or(pixels, |g| g.largest);
+            bytes = bytes
+                .saturating_add(pixels.saturating_mul(12))
+                .saturating_add(largest.saturating_mul(16))
+                .saturating_add(shape[1].saturating_mul(12) + 1024);
+        }
+        bytes
     }
     pub fn edit(
         &mut self,
@@ -171,7 +210,9 @@ impl Plugins {
     ) -> Result<Vec<u8>, String> {
         let mut combined = user.to_vec();
         let user_id = if self.states[2].enabled {
-            Buffer::new(user.to_vec()).id
+            self.fixed_user_id
+                .clone()
+                .unwrap_or_else(|| Buffer::new(user.to_vec()).id)
         } else {
             String::new()
         };
@@ -210,7 +251,7 @@ impl Plugins {
                             .map(|&v| u8::from((above && v > high) || (below && v < low)))
                             .collect()
                     }
-                    1 => cosmic(data, shape, p, control)?,
+                    1 => spatial::cosmic(data, shape, p, control, &mut self.workspace)?,
                     _ => {
                         if let Some(g) = geometry {
                             let count = number(p, "num_bins") as usize;
@@ -222,15 +263,26 @@ impl Plugins {
                                     shape,
                                     count,
                                     indices: Arc::new(bin_indices(g, shape, count)?),
+                                    groups: None,
                                 });
                             }
-                            spot(
+                            let bins = self.bins.as_mut().unwrap();
+                            if bins.groups.as_ref().is_none_or(|g| g.user != user_id) {
+                                bins.groups = Some(Arc::new(spatial::Groups::new(
+                                    &bins.indices,
+                                    user,
+                                    count,
+                                    user_id.clone(),
+                                )?));
+                            }
+                            spatial::spot(
                                 data,
                                 shape,
                                 user,
-                                &self.bins.as_ref().unwrap().indices,
+                                bins.groups.as_ref().unwrap(),
                                 p,
                                 control,
+                                &mut self.workspace,
                             )?
                         } else {
                             vec![0; data.len()]
@@ -254,104 +306,10 @@ fn number(p: &Value, name: &str) -> f64 {
     p[name].as_f64().unwrap()
 }
 
-// scipy.ndimage's default half-sample symmetric boundary (including even windows).
+// scipy.ndimage half-sample symmetric reflection.
 fn reflect(i: isize, n: usize) -> usize {
     let r = i.rem_euclid(2 * n as isize) as usize;
     if r < n { r } else { 2 * n - r - 1 }
-}
-fn uniform_axis(
-    data: &[f64],
-    shape: [usize; 2],
-    window: usize,
-    axis: usize,
-    control: &Control,
-) -> Result<Vec<f64>, String> {
-    let [h, w] = shape;
-    let (lines, length, stride) = if axis == 0 { (w, h, w) } else { (h, w, 1) };
-    let left = window as isize / 2;
-    let mut out = vec![0.0; data.len()];
-    for line in 0..lines {
-        if line % 128 == 0 {
-            control.check()?;
-        }
-        let base = if axis == 0 { line } else { line * w };
-        let at = |j| data[base + reflect(j, length) * stride];
-        let mut sum = (-left..window as isize - left).map(at).sum::<f64>();
-        for j in 0..length {
-            out[base + j * stride] = sum / window as f64;
-            sum += at(j as isize + window as isize - left) - at(j as isize - left);
-        }
-    }
-    Ok(out)
-}
-fn uniform(
-    data: &[f64],
-    shape: [usize; 2],
-    window: usize,
-    c: &Control,
-) -> Result<Vec<f64>, String> {
-    uniform_axis(
-        &uniform_axis(data, shape, window, 0, c)?,
-        shape,
-        window,
-        1,
-        c,
-    )
-}
-fn cosmic(data: &[f64], shape: [usize; 2], p: &Value, c: &Control) -> Result<Vec<u8>, String> {
-    let mut image = data.to_vec();
-    let mut mask = vec![0; data.len()];
-    let window = number(p, "window_size") as usize;
-    let iterations = number(p, "iterations") as usize;
-    let minimum = number(p, "min_intensity");
-    let sigma = number(p, "sigma");
-    for iteration in 0..iterations {
-        c.check()?;
-        c.publish(json!({"running":true,"current":iteration,"total":iterations,"label":"Computing Cosmic Ray Mask"}));
-        let positive: Vec<_> = image
-            .iter()
-            .map(|&v| if v > 0.0 { v } else { 0.0 })
-            .collect();
-        let counts = uniform(
-            &image
-                .iter()
-                .map(|&v| if v > 0.0 { 1.0 } else { 0.0 })
-                .collect::<Vec<_>>(),
-            shape,
-            window,
-            c,
-        )?;
-        let sums = uniform(&positive, shape, window, c)?;
-        let squares = uniform(
-            &positive.iter().map(|v| v * v).collect::<Vec<_>>(),
-            shape,
-            window,
-            c,
-        )?;
-        for i in 0..image.len() {
-            let mean = if counts[i] > 0.0 {
-                sums[i] / counts[i]
-            } else {
-                0.0
-            };
-            let std = if counts[i] > 0.0 {
-                (squares[i] / counts[i] - mean * mean).max(0.0).sqrt()
-            } else {
-                0.0
-            };
-            let v = image[i];
-            let z = if v > 0.0 && std > 0.0 {
-                (v - mean) / (std + 1e-10)
-            } else {
-                0.0
-            };
-            if v > minimum && v > 0.0 && (z > sigma || v > 2.0 * mean) {
-                mask[i] = 1;
-                image[i] = f64::NAN;
-            }
-        }
-    }
-    Ok(mask)
 }
 #[cfg(feature = "dioptrin")]
 fn bin_indices(g: &Geometry, shape: [usize; 2], bins: usize) -> Result<Vec<usize>, String> {
@@ -374,151 +332,214 @@ fn bin_indices(g: &Geometry, shape: [usize; 2], bins: usize) -> Result<Vec<usize
 fn bin_indices(_: &Geometry, _: [usize; 2], _: usize) -> Result<Vec<usize>, String> {
     Err("Spot Mask requires the optional Dioptrin geometry engine.".into())
 }
-fn upper_median(values: &mut [f64]) -> f64 {
-    let mid = values.len() / 2;
-    *values.select_nth_unstable_by(mid, f64::total_cmp).1
-}
-fn spot(
-    data: &[f64],
-    shape: [usize; 2],
-    user: &[u8],
-    indices: &[usize],
-    p: &Value,
-    c: &Control,
-) -> Result<Vec<u8>, String> {
-    let mut bins = vec![Vec::new(); number(p, "num_bins") as usize];
-    for (i, &b) in indices.iter().enumerate() {
-        if user[i] == 0 {
-            bins[b].push(i);
-        }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn settings(i: usize) -> Value {
+        catalog()[i]["settings"].clone()
     }
-    let mut mask = vec![0; data.len()];
-    for (b, ids) in bins.iter().enumerate() {
-        if b % 64 == 0 {
-            c.check()?;
-        }
-        if ids.len() < 3 {
-            continue;
-        }
-        let vals: Vec<_> = ids.iter().map(|&i| data[i]).collect();
-        let mean = vals.iter().sum::<f64>() / vals.len() as f64;
-        let std = (vals.iter().map(|v| v * v).sum::<f64>() / vals.len() as f64 - mean * mean)
-            .max(0.0)
-            .sqrt();
-        let (center, spread) = if p["method"] == "median" {
-            let center = upper_median(&mut vals.clone());
-            let mad =
-                upper_median(&mut vals.iter().map(|v| (v - center).abs()).collect::<Vec<_>>())
-                    * 1.4826;
-            (center, if mad <= 0.0 { std } else { mad })
-        } else {
-            (mean, std)
-        };
-        if spread <= 0.0 {
-            continue;
-        }
-        let threshold = center + number(p, "esdmul") * spread;
-        for &i in ids {
-            mask[i] = u8::from(data[i] > threshold);
-        }
+    fn data(shape: [usize; 2]) -> Vec<f64> {
+        (0..shape[0] * shape[1])
+            .map(|i| {
+                if i % 37 == 0 {
+                    10000.
+                } else if i % 31 == 0 {
+                    f64::NAN
+                } else if i % 17 == 0 {
+                    -7.
+                } else {
+                    ((i * 997) % 541) as f64 / 13.
+                }
+            })
+            .collect()
     }
-    let sigma = number(p, "smooth_sigma");
-    if sigma > 0.0 {
-        smooth(&mask, shape, user, sigma, number(p, "smooth_threshold"), c)
-    } else {
-        Ok(mask)
-    }
-}
-fn dilate(
-    mask: &[u8],
-    shape: [usize; 2],
-    iterations: usize,
-    c: &Control,
-) -> Result<Vec<u8>, String> {
-    let [h, w] = shape;
-    let mut out = mask.to_vec();
-    for _ in 0..iterations {
-        c.check()?;
-        let before = out.clone();
-        for row in 0..h {
-            for col in 0..w {
-                let i = row * w + col;
-                out[i] = before[i]
-                    | if row > 0 { before[i - w] } else { 0 }
-                    | if row + 1 < h { before[i + w] } else { 0 }
-                    | if col > 0 { before[i - 1] } else { 0 }
-                    | if col + 1 < w { before[i + 1] } else { 0 };
+    #[test]
+    fn streaming_cosmic_matches_frozen_filters_at_edges_and_across_passes() {
+        let c = Control::default();
+        let mut work = spatial::Workspace::default();
+        for shape in [[1, 1], [2, 3], [7, 9], [32, 47], [128, 163]] {
+            let values = data(shape);
+            for window in [3, 4, 5, 11, 51] {
+                for iterations in [1, 2, 4] {
+                    let mut p = settings(1);
+                    p["window_size"] = json!(window);
+                    p["iterations"] = json!(iterations);
+                    assert_eq!(
+                        spatial::cosmic(&values, shape, &p, &c, &mut work).unwrap(),
+                        reference::cosmic(&values, shape, &p, &c).unwrap(),
+                        "{shape:?}, window {window}, iterations {iterations}"
+                    );
+                }
             }
         }
     }
-    Ok(out)
-}
-// SciPy fallback Gaussian: reflect boundaries, truncate=4, float32 between axes.
-fn smooth(
-    mask: &[u8],
-    shape: [usize; 2],
-    gap: &[u8],
-    sigma: f64,
-    threshold: f64,
-    c: &Control,
-) -> Result<Vec<u8>, String> {
-    let gap_active = gap.iter().any(|&v| v != 0);
-    let mut input: Vec<f32> = mask.iter().map(|&v| v as f32).collect();
-    let reach = if gap_active {
-        let deep = dilate(mask, shape, (sigma * 3.0).ceil().max(1.0) as usize, c)?;
-        for (i, &v) in gap.iter().enumerate() {
-            if v != 0 {
-                input[i] = deep[i] as f32;
+    #[test]
+    fn row_major_gaussian_preserves_reflection_float32_rounding_and_gap_reach() {
+        let c = Control::default();
+        let mut work = spatial::Workspace::default();
+        for shape in [[1, 1], [2, 3], [7, 9], [32, 47]] {
+            let mask: Vec<_> = (0..shape[0] * shape[1])
+                .map(|i| u8::from(i % 7 == 0 || i % 23 == 0))
+                .collect();
+            for gap_active in [false, true] {
+                let gap: Vec<_> = (0..mask.len())
+                    .map(|i| u8::from(gap_active && i % 11 == 0))
+                    .collect();
+                for sigma in [0.1, 0.3, 1., 2.6, 10.] {
+                    for threshold in [0.0001, 0.5, 0.9] {
+                        assert_eq!(
+                            spatial::smooth(&mask, shape, &gap, sigma, threshold, &c, &mut work)
+                                .unwrap(),
+                            reference::smooth(&mask, shape, &gap, sigma, threshold, &c).unwrap(),
+                            "{shape:?}, sigma {sigma}, threshold {threshold}"
+                        );
+                    }
+                }
             }
         }
-        Some(dilate(
-            mask,
-            shape,
-            sigma.round_ties_even().max(1.0) as usize,
-            c,
-        )?)
-    } else {
-        None
-    };
-    let radius = (sigma * 4.0 + 0.5).floor() as isize;
-    let mut kernel: Vec<_> = (-radius..=radius)
-        .map(|x| (-0.5 * (x as f64 / sigma).powi(2)).exp())
-        .collect();
-    let sum = kernel.iter().sum::<f64>();
-    for v in &mut kernel {
-        *v /= sum;
     }
-    let [h, w] = shape;
-    for axis in 0..2 {
-        let mut output = vec![0f32; input.len()];
-        for row in 0..h {
-            if row % 32 == 0 {
-                c.check()?;
-            }
-            for col in 0..w {
-                output[row * w + col] = (-radius..=radius)
-                    .zip(&kernel)
-                    .map(|(d, &k)| {
-                        let i = if axis == 0 {
-                            reflect(row as isize + d, h) * w + col
-                        } else {
-                            row * w + reflect(col as isize + d, w)
-                        };
-                        input[i] as f64 * k
-                    })
-                    .sum::<f64>() as f32;
+    #[test]
+    fn shared_groups_and_reused_medians_preserve_statistical_masks() {
+        let shape = [97, 113];
+        let mut values = data(shape);
+        let indices: Vec<_> = (0..values.len()).map(|i| (i * 13) % 64).collect();
+        let c = Control::default();
+        let mut work = spatial::Workspace::default();
+        for masked in [false, true] {
+            let user: Vec<_> = (0..values.len())
+                .map(|i| u8::from(masked && i % 17 == 0))
+                .collect();
+            let groups = spatial::Groups::new(&indices, &user, 64, "test".into()).unwrap();
+            for finite in [false, true] {
+                if finite {
+                    for v in &mut values {
+                        if !v.is_finite() {
+                            *v = 0.;
+                        }
+                    }
+                }
+                for method in ["mean", "median"] {
+                    for sigma in [0., 0.3, 1.] {
+                        let mut p = settings(2);
+                        p["num_bins"] = json!(64);
+                        p["method"] = json!(method);
+                        p["smooth_sigma"] = json!(sigma);
+                        assert_eq!(
+                            spatial::spot(&values, shape, &user, &groups, &p, &c, &mut work)
+                                .unwrap(),
+                            reference::spot(&values, shape, &user, &indices, &p, &c).unwrap()
+                        );
+                    }
+                }
             }
         }
-        input = output;
     }
-    // NumPy casts a scalar to the float32 array's dtype for this comparison.
-    Ok(input
-        .iter()
-        .enumerate()
-        .map(|(i, &v)| {
-            u8::from(
-                v > threshold as f32 && reach.as_ref().is_none_or(|r| r[i] != 0 && gap[i] == 0),
+
+    #[cfg(feature = "dioptrin")]
+    #[test]
+    fn spot_membership_invalidates_on_user_geometry_and_bin_edits() {
+        let mut plugins = Plugins::default();
+        plugins
+            .edit(
+                "Spot Mask",
+                Some(&json!(true)),
+                Some(&json!({"num_bins":64})),
             )
-        })
-        .collect())
+            .unwrap();
+        let mut geometry = Geometry::default();
+        let shape = [32, 47];
+        let values = data(shape);
+        let mut user = vec![0; values.len()];
+        let c = Control::default();
+        for stage in 0..4 {
+            match stage {
+                1 => user
+                    .iter_mut()
+                    .enumerate()
+                    .for_each(|(i, v)| *v = u8::from(i % 7 == 0)),
+                2 => geometry.poni1 = 0.001,
+                3 => {
+                    plugins
+                        .edit("Spot Mask", None, Some(&json!({"num_bins":128})))
+                        .unwrap();
+                }
+                _ => {}
+            }
+            // Keep generation constant: cache invalidation must come from the
+            // edited user mask, geometry or bin settings, not a new frame.
+            let actual = plugins
+                .refresh(&values, shape, 1, Some(&geometry), &user, &c)
+                .unwrap();
+            let p = &plugins.states[2].settings;
+            let indices = bin_indices(&geometry, shape, number(p, "num_bins") as usize).unwrap();
+            let mut expected = reference::spot(&values, shape, &user, &indices, p, &c).unwrap();
+            for (m, &u) in expected.iter_mut().zip(&user) {
+                *m |= u;
+            }
+            assert_eq!(actual, expected, "edit stage {stage}");
+            let snapshot = plugins.series_snapshot(&geometry, shape, &user).unwrap();
+            let clone = snapshot.clone();
+            assert!(Arc::ptr_eq(
+                snapshot.bins.as_ref().unwrap().groups.as_ref().unwrap(),
+                clone.bins.as_ref().unwrap().groups.as_ref().unwrap(),
+            ));
+        }
+    }
+
+    #[cfg(feature = "dioptrin")]
+    #[test]
+    #[ignore = "requires DIOPTAS_EIGER_FILE; full-resolution mask oracle"]
+    fn measured_eiger_mask_bits_match_frozen_kernels() {
+        use dioptrin_io::{
+            PixelBuffer,
+            hdf5::{
+                Limits,
+                raw::{FrameBuffer, RawReader},
+            },
+        };
+        let path = std::path::PathBuf::from(std::env::var("DIOPTAS_EIGER_FILE").unwrap());
+        let geometry = Geometry::load(&path.with_extension("poni")).unwrap();
+        let reader =
+            RawReader::open_snapshot(&path, "entry_0000/instrument/eiger/data", Limits::default())
+                .unwrap();
+        let [_, h, w] = reader.shape();
+        let shape = [h, w];
+        let mut decoded = FrameBuffer::default();
+        let c = Control::default();
+        let p_spot = settings(2);
+        let p_cosmic = settings(1);
+        let indices = bin_indices(&geometry, shape, number(&p_spot, "num_bins") as usize).unwrap();
+        let user = vec![0; h * w];
+        let groups = spatial::Groups::new(
+            &indices,
+            &user,
+            number(&p_spot, "num_bins") as usize,
+            "oracle".into(),
+        )
+        .unwrap();
+        let mut work = spatial::Workspace::default();
+        for frame in [0, 1, 312, 624] {
+            reader.read_frame_into(frame, &mut decoded).unwrap();
+            let PixelBuffer::U32(pixels) = decoded.pixels().unwrap() else {
+                panic!("Expected Eiger uint32");
+            };
+            let values: Vec<_> = pixels
+                .chunks_exact(w)
+                .rev()
+                .flat_map(|r| r.iter().map(|&v| f64::from(v)))
+                .collect();
+            assert_eq!(
+                spatial::spot(&values, shape, &user, &groups, &p_spot, &c, &mut work).unwrap(),
+                reference::spot(&values, shape, &user, &indices, &p_spot, &c).unwrap(),
+                "Spot frame {frame}"
+            );
+            assert_eq!(
+                spatial::cosmic(&values, shape, &p_cosmic, &c, &mut work).unwrap(),
+                reference::cosmic(&values, shape, &p_cosmic, &c).unwrap(),
+                "Cosmic frame {frame}"
+            );
+            eprintln!("Full-resolution mask bits match: frame {frame}");
+        }
+    }
 }

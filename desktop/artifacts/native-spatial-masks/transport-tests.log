@@ -1,0 +1,15 @@
+✔ gzip/raw: bulk cancellation and changed sources preserve the preceding complete series (572.113875ms)
+✔ bitshuffle-lz4/raw: bulk cancellation and changed sources preserve the preceding complete series (390.467584ms)
+✔ bitshuffle-lz4/corrected: bulk cancellation and changed sources preserve the preceding complete series (466.152916ms)
+✔ bitshuffle-lz4/dynamic: bulk cancellation and changed sources preserve the preceding complete series (488.653ms)
+✔ bitshuffle-lz4/combined: bulk cancellation and changed sources preserve the preceding complete series (709.521834ms)
+✔ bitshuffle-lz4/spot: bulk cancellation and changed sources preserve the preceding complete series (960.704625ms)
+✔ bitshuffle-lz4/cosmic: bulk cancellation and changed sources preserve the preceding complete series (1122.372125ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4775.185792

@@ -1,0 +1,6 @@
+{
+  "comparisons": 26,
+  "differentPixels": 0,
+  "reference": "bundled Python Threshold/Cosmic; Spot C accelerator and SciPy Gaussian",
+  "receipts": "/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/artifacts/native-mask/parity-results.json"
+}

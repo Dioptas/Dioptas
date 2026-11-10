@@ -1,0 +1,30 @@
+{
+  "rustTests": 182,
+  "defaultIgnoredTests": 2,
+  "eigerMaskOracle": {
+    "frames": [
+      0,
+      1,
+      312,
+      624
+    ],
+    "plugins": [
+      "Spot Mask",
+      "Cosmic Ray Mask"
+    ],
+    "differentPixels": 0
+  },
+  "independentMaskComparisons": 26,
+  "differentPixels": 0,
+  "integrationParityScenarios": 10,
+  "integrationParityViews": [
+    "batch",
+    "map"
+  ],
+  "transportTests": 7,
+  "headlessBrowsers": [
+    "chromium",
+    "webkit"
+  ],
+  "visibleTestWindows": 0
+}

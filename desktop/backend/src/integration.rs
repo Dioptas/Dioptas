@@ -525,7 +525,7 @@ impl Engine {
         let pixels = image.shape[0] * image.shape[1];
         let extra = pixels
             .saturating_mul(if plan.options.errors { 16 } else { 8 })
-            .saturating_add(context.plugins.series_scratch_bytes(pixels));
+            .saturating_add(context.plugins.series_scratch_bytes(image.shape));
         let stats = series_pipeline::execute(
             &raw.reader,
             frames,

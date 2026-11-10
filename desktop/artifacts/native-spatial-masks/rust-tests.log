@@ -1,0 +1,317 @@
+   Compiling dioptas-backend v0.1.0 (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/spatial-mask-performance/desktop/backend)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 17.00s
+     Running unittests src/lib.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/dioptas_backend-ae60760cd376b54a)
+
+running 60 tests
+test detector_mask::optional_benchmark::time_full_resolution_gap_extension ... ignored, requires an external full-resolution Eiger test image
+test display::statistics_tests::mean_limits_use_population_variance_without_large_offset_cancellation ... ok
+test display::statistics_tests::dense_order_statistics_match_known_interpolated_quantiles_and_reject_float_data ... ok
+test detector_mask::tests::margins_follow_max_zero_and_minus_one_but_not_valid_zero_pixels_or_dark_frames ... ok
+test contours::tests::plane_and_low_connected_saddle ... ok
+test control::tests::child_shares_cancellation_and_preserves_owner_progress ... ok
+test image::orientation_conversion_tests::direct_orientation_preserves_scalar_precision_and_special_values ... ok
+test geometry::tests::appended_poni_records_use_the_last_field_like_pyfai ... ok
+test batch_background::tests::cancelled_or_failed_extraction_never_publishes_a_partial_background ... ok
+test display::statistics_tests::parallel_display_conversion_preserves_scalar_bytes_including_nonfinite_samples ... ok
+test batch_background::tests::qt_backgrounds_match_including_descending_d_and_default_polynomial_order ... ok
+test integration::zero_trimming_tests::edges_keep_internal_zeros_negative_counts_and_aligned_diagnostics ... ok
+test integration::zero_trimming_tests::empty_all_zero_and_single_point_patterns_keep_valid_grids ... ok
+test lacosmic::tests::cleaning_uses_frozen_unmasked_neighbors_and_full_image_fallback ... ok
+test mask_plugins::tests::measured_eiger_mask_bits_match_frozen_kernels ... ignored, requires DIOPTAS_EIGER_FILE; full-resolution mask oracle
+test display::statistics_tests::shared_integer_counts_preserve_full_histogram_and_filtered_exact_levels ... ok
+test batch_background::tests::normalization_subtraction_and_cutting_never_compound_or_change_source_axis_and_std ... ok
+test image::orientation_conversion_tests::parallel_orientation_handles_odd_heights_and_partial_row_ranges ... ok
+test mask_plugins::tests::spot_membership_invalidates_on_user_geometry_and_bin_edits ... ok
+test mask_plugins::tests::row_major_gaussian_preserves_reflection_float32_rounding_and_gap_reach ... ok
+test processing::tests::slab_equal_path_limit_is_stable_and_zero_absorption_matches_reference ... ok
+test contours::tests::indexed_strips_preserve_full_resolution_contours_and_saddle_order ... ok
+test protocol::packet_write_tests::streamed_packets_preserve_framing_bytes_duplicates_and_cache_omission ... ok
+test sample_absorption::tests::cancellation_and_undefined_infinite_cylinder_fail_explicitly ... ok
+test sample_absorption::tests::full_sphere_forward_volume_average_matches_closed_integral ... ok
+test sample_absorption::tests::sphere_pencil_forward_and_backscatter_match_closed_integrals ... ok
+test sample_absorption::tests::tilted_cylinder_forward_path_and_single_wall_crossings_are_exact ... ok
+test integration::series_pipeline::tests::source_mutation_discards_provisional_frames ... ok
+test display::statistics_tests::parallel_counts_preserve_every_sample_and_fallback_is_bounded ... ok
+test mask_plugins::tests::shared_groups_and_reused_medians_preserve_statistical_masks ... ok
+test mask_plugins::tests::streaming_cosmic_matches_frozen_filters_at_edges_and_across_passes ... ok
+test history_transfer::tests::shared_arrays_are_stored_once_and_retain_all_float_bits_and_arc_identity ... ok
+test contours::tests::sampled_strip_skipping_preserves_exact_paths_for_all_steps ... ok
+test session::batch_workflow::map_progress_tests::incremental_map_matches_finished_layers_and_keeps_unfinished_cells_blank ... ok
+test batch_background::tests::saved_background_state_reopens_and_normalization_restores_original_f64_values ... ok
+test integration::series_pipeline::tests::ordered_strided_u16_u32_and_poisson_share_one_plan ... ok
+test integration::series_pipeline::tests::errors_cancel_and_consumer_failure_join_workers_and_allow_reuse ... ok
+test session::batch_export::tests::stored_only_missing_errors_and_invalid_data_fail_without_outputs ... ok
+test session::batch_export::tests::collision_before_and_during_publication_preserves_existing_files ... ok
+test session::batch_export::tests::absent_statistics_are_not_fabricated_and_spread_ratios_follow_qt_cutoff ... ok
+test session::file_workflow::navigation_tests::time_order_filters_entries_preserves_steps_and_finds_new_arrivals ... ok
+test session::batch_export::tests::session_success_is_reported_only_for_complete_exports ... ok
+test session::file_workflow::navigation_tests::time_order_resolves_directory_and_file_symlinks ... ok
+test processing::series_tests::prepared_operations_preserve_pixel_bits_and_variances_for_all_corrections ... ok
+test session::project::config::detector_options_tests::legacy_factory_options_are_retained_or_rejected_explicitly ... ok
+test session::detector_mask_cache_tests::source_gap_mask_is_reused_across_frames_and_invalidated_for_new_sources ... ok
+test geometry::tests::eiger_poni_accepts_its_detector_shape_and_explains_pilatus_mismatch ... ok
+test waterfall_spacing::tests::degenerate_nonfinite_and_extreme_curves_keep_bounded_useful_spacing ... ok
+test waterfall_spacing::tests::spacing_tracks_scaled_ranges_without_baseline_or_outdated_offsets ... ok
+test session::calibration::native::massif_cache_tests::massif_cache_reuses_pixels_across_seeds_and_calibration_edits ... ok
+test session::calibration::native::massif_cache_tests::massif_cache_rebuilds_for_a_different_frame_of_the_same_file ... ok
+test session::calibration::native::massif_cache_tests::massif_cache_keeps_copy_on_write_inputs_immutable_and_rejects_masked_seeds ... ok
+test transport::panic_tests::native_panic_returns_fatal_diagnostics_instead_of_losing_the_pending_reply ... ok
+test geometry::tests::legacy_v2_orientation_and_transformed_spline_exports_keep_their_geometry ... ok
+test session::project::development::tests::version_one_checkpoints_remain_readable_during_the_one_time_worker_upgrade ... ok
+test session::batch_export::tests::normalized_export_and_processed_formats_keep_metadata_and_originals ... ok
+test session::batch_export::tests::cancellation_at_every_stage_rolls_back_outputs ... ok
+test session::calibration::native::massif_cache_tests::massif_cache_invalidates_on_image_orientation_corrections_and_masks ... ok
+test session::batch_export::tests::qt_names_units_errors_spread_background_and_f64_readback ... ok
+test session::image_batch::tests::derived_images_keep_input_gap_union_and_do_not_pollute_original_source_cache ... ok
+
+test result: ok. 58 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 3.71s
+
+     Running unittests src/main.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/dioptas_processor-3382b1f471a8f6e6)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/batch_background.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/batch_background-8db12db8f814dcde)
+
+running 4 tests
+test running_background_exposes_progress_and_cancels_without_replacing_any_state ... ok
+test background_cut_keeps_existing_waterfall_coordinates_errors_and_stale_selection_guard_coherent ... ok
+test settings_and_failures_are_atomic_and_batch_display_leaves_linked_pattern_and_map_alone ... ok
+test physical_normalization_limits_and_descending_background_cut_survive_configuration_project_reopen ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+
+     Running tests/batch_export_background.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/batch_export_background-2b628c7701dec053)
+
+running 1 test
+test integrated_background_normalization_and_cut_export_full_f64_data_without_state_changes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.89s
+
+     Running tests/batch_waterfall.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/batch_waterfall-0e4d341635eb7c8b)
+
+running 5 tests
+test identical_display_pixels_cannot_reuse_a_different_scientific_source_selection ... ok
+test invalid_or_stale_rectangles_leave_the_previous_overlay_owner_unchanged ... ok
+test normalized_waterfalls_replace_repeat_and_round_trip_with_overlay_edits ... ok
+test rectangle_uses_exact_rows_bins_units_and_recorded_wavelength ... ok
+test default_and_automatic_spacing_apply_offsets_and_preserve_project_choices ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+
+     Running tests/calibration.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/calibration-a7f11a60b4dcdc08)
+
+running 10 tests
+test custom_calibrants_are_session_owned_and_invalid_files_do_not_replace_them ... ok
+test seeded_massif_picking_recovers_subpixel_positions_on_original_samples ... ok
+test setup_and_fit_drafts_validate_atomically_and_preserve_defaults ... ok
+test missed_peak_picks_leave_calibration_and_history_unchanged ... ok
+test single_peak_groups_reassign_delete_undo_redo_and_files_match_the_existing_schema ... ok
+test distance_tilts_and_free_wavelength_constraints_are_honored ... ok
+test live_progress_is_detached_and_cancellation_restores_geometry_picks_and_history ... ok
+test fitting_recovers_known_geometry_and_history_restores_the_entire_fit ... ok
+test fixed_rotations_keep_their_entered_interval_and_all_fixed_fits_are_valid ... ok
+test automatic_massif_and_blob_search_keep_controls_and_rollback_empty_searches ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.55s
+
+     Running tests/combined_workflows.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/combined_workflows-4a2cb1749368f606)
+
+running 2 tests
+test map_inspection_contours_survive_frame_changes_but_follow_geometry_changes ... ok
+test mask_integration_batch_map_and_multiple_configurations_share_project_state ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.52s
+
+     Running tests/configuration_navigation.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/configuration_navigation-c81e800322b26284)
+
+running 7 tests
+test configurable_steps_and_active_scope_leave_other_detectors_in_place ... ok
+test grouped_filename_position_counts_from_right ... ok
+test generic_folder_rules_select_number_and_independent_filename_step ... ok
+test invalid_generic_rules_preserve_the_session ... ok
+test grouped_navigation_rolls_back_all_detectors_on_bad_data_or_shape_change ... ok
+test grouped_folders_and_mec_keep_each_detector_directory ... ok
+test grouped_files_keep_selection_geometry_masks_factors_and_combined_results ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+
+     Running tests/desktop_consolidation.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/desktop_consolidation-07331eabe33e818d)
+
+running 6 tests
+test variable_size_frames_use_the_same_change_confirmation ... ok
+test same_shape_and_unreadable_image_preserve_geometry_and_rotations ... ok
+test image_size_prompt_is_readonly_and_reset_keeps_references ... ok
+test unequal_detectors_and_combined_units_keep_independent_geometry ... ok
+test individual_and_combined_cake_clicks_respect_radial_units_and_preserve_inspection_on_error ... ok
+test native_combination_scales_raw_contributions_keeps_masks_and_roundtrips ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+
+     Running tests/detector_gap_margins.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/detector_gap_margins-c5b6a7e55eb6e52c)
+
+running 1 test
+test eiger_gap_margins_follow_source_flags_and_survive_projects_and_series ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
+
+     Running tests/detectors.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/detectors-fd9c6a36a3c1ac91)
+
+running 5 tests
+test missing_spline_and_incompatible_detector_fail_atomically ... ok
+test fit2d_conversion_and_detector_orientation_are_undoable ... ok
+test first_load_uses_metadata_but_respects_custom_and_reports_ambiguous_shapes ... ok
+test nexus_geometry_masks_transforms_projects_and_portable_poni_keep_owned_resources ... ok
+test binned_perkin_poni_does_not_double_the_recorded_pixel_pitch ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.37s
+
+     Running tests/development_reload.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/development_reload-ad6e69794845decc)
+
+running 6 tests
+test upgrading_an_older_host_can_adopt_a_private_project_without_using_it_as_the_save_target ... ok
+test empty_untitled_sessions_survive_a_development_handoff ... ok
+test a_mismatched_or_missing_history_file_does_not_damage_the_existing_session_or_its_redo_stack ... ok
+test history_owns_removed_correction_planes_and_restores_shared_overlay_and_phase_edits ... ok
+test development_handoff_owns_all_images_and_retains_settings_identities_and_project_path ... ok
+test mask_and_mixed_calibration_integration_undo_redo_survive_multiple_reloads_in_each_configuration ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
+
+     Running tests/functional_flows.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/functional_flows-fd5d7e02fa2b7bcc)
+
+running 31 tests
+test batch_discovery_uses_natural_order_and_bad_input_cannot_replace_results ... ok
+test configuration_selection_and_removal_restore_independent_maps_and_clicks ... ok
+test batch_normalization_is_reversible_and_saved_f64_data_reopens ... ok
+test error_export_requires_current_errors_and_does_not_overwrite_on_failure ... ok
+test corrections_reject_invalid_planes_and_extreme_absorption_atomically ... ok
+test averaged_images_preserve_independent_counting_variance_offline ... ok
+test binning_sectors_supersampling_and_roi_reintegrate_without_replacing_pixels ... ok
+test combined_corrected_detector_errors_follow_gain_and_survive_project_reopen ... ok
+test linked_detector_and_cake_positions_retain_physical_angle_across_units ... ok
+test counting_variance_survives_background_transfer_factor_masks_and_units ... ok
+test incoming_file_integration_autosaves_and_mismatch_stops_without_mutation ... ok
+test image_add_average_and_staged_tiff_export_preserve_sources ... ok
+test corrected_image_to_export_and_offline_project_in_q ... ok
+test corrected_image_to_export_and_offline_project_in_2theta ... ok
+test corrected_image_to_export_and_offline_project_in_d ... ok
+test batch_stride_save_reload_missing_raw_and_fresh_reintegration ... ok
+test formula_attenuation_tracks_wavelength_and_retains_material_settings_offline ... ok
+test round_sample_invalid_parameters_and_cancellation_preserve_science_and_redo ... ok
+test phases_overlays_background_and_corrections_survive_a_fresh_project_owner ... ok
+test corrected_batch_and_map_retain_counting_std_through_normalization_and_offline_storage ... ok
+test multiple_hdf5_files_keep_dataset_frame_order_across_stride_and_map_selection ... ok
+test phase_lattice_pressure_and_name_edits_reach_pattern_and_export ... ok
+test unsupported_legacy_corrections_fail_atomically_instead_of_becoming_noops ... ok
+test map_dropped_frame_layers_selection_and_units_follow_stored_data ... ok
+test mask_file_formats_flips_and_undo_preserve_exact_detector_coordinates ... ok
+test reflection_editing_add_remove_and_export_preserve_actual_peak_values ... ok
+test watched_folder_survives_reference_browsing_and_changes_only_explicitly ... ok
+test transfer_plate_and_slab_project_owns_references_errors_and_disabled_drafts ... ok
+test round_sample_batch_map_and_combined_errors_survive_offline_projects ... ok
+test cylinder_correction_exports_and_reopens_without_sources ... ok
+test sphere_correction_exports_and_reopens_without_sources ... ok
+
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.79s
+
+     Running tests/geometry_masks.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/geometry_masks-d01386f4a18a68c4)
+
+running 3 tests
+test geometric_edits_are_atomic_and_history_covers_unmask_mode ... ok
+test transforms_retain_source_precision_picks_and_mask_history_in_both_feature_modes ... ok
+test transformed_configurations_and_offline_project_caches_are_independent ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+
+     Running tests/hdf5_sources.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/hdf5_sources-edde210ce6de8550)
+
+running 9 tests
+test link_opt_in_does_not_change_non_hdf5_loading ... ok
+test selected_source_is_retained_across_files_and_missing_source_never_substitutes ... ok
+test relative_frame_steps_stay_in_the_selected_source_and_update_products ... ok
+test generic_discovery_source_frame_navigation_and_scientific_products ... ok
+test automatic_eiger_series_and_explicit_link_policy_are_preserved ... ok
+test size_confirmation_failures_and_cancellation_restore_entire_session ... ok
+test independent_configurations_and_owned_project_sources_round_trip ... ok
+test file_only_steps_skip_stacks_and_open_the_first_frame ... ok
+test source_switch_preserves_display_demand_and_new_project_integration_settings ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.37s
+
+     Running tests/lacosmic.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/lacosmic-e55f0cc3656c3c8c)
+
+running 2 tests
+test cancelled_or_nonfinite_cosmic_keeps_pixels_masks_and_redo ... ok
+test cosmic_adds_one_owned_mask_edit_and_never_changes_source_or_calibration ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+
+     Running tests/mask_plugins.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/mask_plugins-e365bc6afba6d3ee)
+
+running 5 tests
+test spot_geometry_requirement_is_explicit_without_the_optional_engine ... ok
+test threshold_settings_combination_and_imprint_are_one_undo_step ... ok
+test dynamic_plugins_recompute_on_same_shape_images_and_after_disabled_intervals ... ok
+test plugin_validation_and_cancellation_preserve_mask_settings_products_and_redo ... ok
+test plugins_feed_integration_and_peak_picking_and_imprints_preserve_products ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+
+     Running tests/native_session.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/native_session-5e251da4f04341bc)
+
+running 15 tests
+test actual_tiff_fixture_has_original_full_resolution ... ok
+test histogram_and_levels_use_original_precision_and_every_finite_sample ... ok
+test original_samples_stay_in_stored_order_and_scientific_rows_flip_once ... ok
+test detached_phase_refresh_preserves_detector_buffers_and_revision ... ok
+test failed_open_and_changed_source_keep_the_preceding_frame ... ok
+test mask_edits_are_original_resolution_and_undo_restores_content_identity ... ok
+test frame_shape_changes_confirm_before_reset_even_with_the_same_number_of_pixels ... ok
+test packets_deduplicate_raw_image_and_only_omit_advertised_buffers ... ok
+test unsupported_geometry_and_options_fail_without_publishing_partial_changes ... ok
+test loaded_poni_roundtrips_without_a_python_runtime ... ok
+test native_hdf5_stack_retains_integer_dtype_and_tracks_selected_frame ... ok
+test corrected_constant_image_integrates_to_its_known_intensity_and_exports_xy ... ok
+test image_file_boundaries_are_noops_and_later_arrivals_remain_browsable ... ok
+test packaged_resources_support_example_integration_and_project_without_a_checkout ... ok
+test real_stdio_processor_runs_with_python_and_path_unavailable ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.86s
+
+     Running tests/projects.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/projects-87e473da8f472771)
+
+running 5 tests
+test project_caches_retain_nonfinite_detector_samples_and_display_identity ... ok
+test failed_or_cancelled_projects_preserve_session_and_existing_file ... ok
+test shared_overlays_keep_unique_ids_after_project_reload_and_undo ... ok
+test removing_a_shared_background_does_not_leave_unloadable_inactive_configurations ... ok
+test configurations_and_owned_project_pixels_survive_without_sources ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.35s
+
+     Running tests/requested_products.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/requested_products-8fa16ac0f5fa70d3)
+
+running 5 tests
+test invalid_demand_is_rejected_and_legacy_requests_keep_complete_products ... ok
+test calibration_contours_are_requested_separately_without_a_cake ... ok
+test lazy_cake_matches_eager_pixels_without_changing_the_pattern_or_history ... ok
+test batch_map_settings_and_explicit_export_obey_the_same_product_demand ... ok
+test restored_projects_and_combined_detectors_do_not_rebuild_hidden_cakes ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+
+     Running tests/zero_trimming.rs (/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/backend/target/debug/deps/zero_trimming-65655c42b1fdf458)
+
+running 2 tests
+test zero_edges_and_diagnostics_follow_warm_plans_and_series_keep_a_shared_grid ... ok
+test image_002_trims_default_pattern_and_export_without_changing_cake ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.17s
+
+   Doc-tests dioptas_backend
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
