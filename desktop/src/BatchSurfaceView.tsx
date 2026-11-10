@@ -16,7 +16,11 @@ import { batchRadialBin } from "./batchPlot";
 import { radialFields, radialValues } from "./radialReadout";
 import { intensityValue } from "./readoutNumbers";
 import { usePlotTypography } from "./usePlotTypography";
-import { usePlotWheel, type PlotRange } from "./usePlotNavigation";
+import {
+  isPlotSecondaryGesture,
+  usePlotWheel,
+  type PlotRange,
+} from "./usePlotNavigation";
 import { unitLabel } from "./types";
 import type { BatchData } from "./batchDomain";
 import type { PatternPosition } from "./linkedPosition";
@@ -130,6 +134,9 @@ export function BatchSurfaceView({
   const [interacting, setInteracting] = useState(false);
   const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastHover = useRef(-Infinity);
+  const rightClick = useRef<{ time: number; x: number; y: number } | null>(
+    null,
+  );
   const settingsId = useId();
   const settingsButton = useRef<HTMLButtonElement>(null);
   const drag = useRef<{
@@ -240,13 +247,17 @@ export function BatchSurfaceView({
     typography.mono,
     typography.muted,
   ]);
-  const orient = (orientation: SurfaceOrientation) =>
+  const orient = (orientation: SurfaceOrientation) => {
+    rightClick.current = null;
     setView((v) => ({ ...v, camera: surfaceCamera(orientation) }));
+  };
   const reset = () => {
+    rightClick.current = null;
     setView({ camera: surfaceCamera(), stretch: [1, 1, 1] });
     onRange(null);
   };
   usePlotWheel(canvas, (e) => {
+    rightClick.current = null;
     setInteracting(true);
     if (settle.current) clearTimeout(settle.current);
     settle.current = setTimeout(() => {
@@ -296,7 +307,7 @@ export function BatchSurfaceView({
   return (
     <div className="batch-surface-view">
       <div
-        className="batch-surface-toolbar"
+        className="batch-surface-toolbar plot-controls"
         role="toolbar"
         aria-label="Surface orientation"
       >
@@ -314,16 +325,6 @@ export function BatchSurfaceView({
             {name === "Isometric" ? "Iso" : name}
           </PlotToggle>
         ))}
-        <Button
-          ref={settingsButton}
-          aria-label="Surface ranges and proportions"
-          title="Radial range and axis proportions"
-          aria-expanded={settings}
-          aria-controls={settingsId}
-          onClick={() => setSettings((v) => !v)}
-        >
-          <Settings2 size={15} />
-        </Button>
         <PlotToggle
           label="Normalize batch surface"
           title="Normalize using the Batch region"
@@ -340,6 +341,18 @@ export function BatchSurfaceView({
           {sampling.frames.length} × {sampling.columns.length} · step{" "}
           {sampling.frameStep}
         </span>
+        <Button
+          ref={settingsButton}
+          className="batch-surface-settings-toggle"
+          aria-label="Surface ranges and proportions"
+          title="Radial range and axis proportions"
+          aria-expanded={settings}
+          aria-pressed={settings}
+          aria-controls={settingsId}
+          onClick={() => setSettings((v) => !v)}
+        >
+          <Settings2 size={15} />
+        </Button>
       </div>
       {settings && (
         <Popover
@@ -440,6 +453,8 @@ export function BatchSurfaceView({
           data-azimuth={view.camera.azimuth}
           data-elevation={view.camera.elevation}
           data-zoom={view.camera.zoom}
+          data-pan-x={view.camera.panX}
+          data-pan-y={view.camera.panY}
           data-selected-frame={batch.selected + 1}
           data-linked-position={marker ?? undefined}
           data-normalized={batch.normalized}
@@ -449,6 +464,8 @@ export function BatchSurfaceView({
           onContextMenu={(e) => e.preventDefault()}
           onPointerDown={(e) => {
             if (e.button !== 0 && e.button !== 2) return;
+            const secondary = isPlotSecondaryGesture(e);
+            if (!secondary) rightClick.current = null;
             e.currentTarget.focus();
             e.currentTarget.setPointerCapture(e.pointerId);
             if (settle.current) {
@@ -458,7 +475,7 @@ export function BatchSurfaceView({
             drag.current = {
               x: e.clientX,
               y: e.clientY,
-              button: e.button,
+              button: secondary ? 2 : 0,
               camera: view.camera,
               moved: false,
             };
@@ -470,6 +487,7 @@ export function BatchSurfaceView({
                 dy = e.clientY - d.y;
               d.moved ||= Math.hypot(dx, dy) > 3;
               if (d.moved) {
+                rightClick.current = null;
                 setInteracting(true);
                 setView((v) => ({
                   ...v,
@@ -533,6 +551,20 @@ export function BatchSurfaceView({
               e.currentTarget.releasePointerCapture(e.pointerId);
             if (!d || d.moved) return;
             if (d.button === 2) {
+              const previous = rightClick.current;
+              if (
+                previous &&
+                e.timeStamp - previous.time <= 450 &&
+                Math.hypot(e.clientX - previous.x, e.clientY - previous.y) <= 6
+              ) {
+                reset();
+                return;
+              }
+              rightClick.current = {
+                time: e.timeStamp,
+                x: e.clientX,
+                y: e.clientY,
+              };
               setView((v) => ({
                 ...v,
                 camera: {
@@ -547,16 +579,11 @@ export function BatchSurfaceView({
               onSelect(hit.frame, { x: batch.x[hit.column], unit: batch.unit });
           }}
           onPointerCancel={() => {
+            rightClick.current = null;
             drag.current = null;
             setInteracting(false);
           }}
           onPointerLeave={() => reportPlot("batch", null)}
-          onDoubleClick={(e) => {
-            if (e.button === 2) {
-              e.preventDefault();
-              reset();
-            }
-          }}
           onKeyDown={(e) => {
             const key = e.key.toLowerCase();
             if (key === "f") {

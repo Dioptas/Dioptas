@@ -122,6 +122,12 @@ try {
           ) > before,
         beforeZoom,
       );
+      const zoomBeforeClick = Number(await surface.getAttribute("data-zoom"));
+      await surface.click({ button: "right" });
+      assert.equal(
+        Number(await surface.getAttribute("data-zoom")),
+        zoomBeforeClick / 2,
+      );
       const rect = await surface.boundingBox();
       await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height / 2);
       await page.mouse.down();
@@ -157,6 +163,59 @@ try {
       await minimum.fill("6");
       await minimum.press("Enter");
       assert.ok(Number(await surface.getAttribute("data-radial-last")) >= 6);
+      await page
+        .getByRole("button", { name: "Close surface settings", exact: true })
+        .click();
+      const selectedBeforeReset = await page.evaluate(
+        () => window.surfaceSelection.selected,
+      );
+      await surface.hover();
+      await page.mouse.wheel(0, -500);
+      await page.waitForFunction(
+        () =>
+          Number(
+            document.querySelector('[data-testid="batch-surface"]').dataset
+              .zoom,
+          ) > 1,
+      );
+      const box = await surface.boundingBox();
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.down({ button: "right" });
+      await page.mouse.move(
+        box.x + box.width / 2 + 32,
+        box.y + box.height / 2 - 18,
+        { steps: 4 },
+      );
+      await page.mouse.up({ button: "right" });
+      assert.notEqual(await surface.getAttribute("data-pan-x"), "0");
+      await surface.dblclick({ button: "right" });
+      assert.equal(await surface.getAttribute("data-zoom"), "1");
+      assert.equal(await surface.getAttribute("data-pan-x"), "0");
+      assert.equal(await surface.getAttribute("data-pan-y"), "0");
+      assert.equal(await surface.getAttribute("data-radial-last"), "4");
+      assert.equal(await surface.getAttribute("data-frame-first"), "1");
+      assert.equal(await surface.getAttribute("data-frame-last"), "4");
+      assert.equal(
+        await page.evaluate(() => window.surfaceSelection.selected),
+        selectedBeforeReset,
+      );
+      await surface.hover();
+      await page.mouse.wheel(0, -300);
+      await page.waitForFunction(
+        () =>
+          Number(
+            document.querySelector('[data-testid="batch-surface"]').dataset
+              .zoom,
+          ) > 1,
+      );
+      await surface.dblclick({ modifiers: ["Control"] });
+      assert.equal(await surface.getAttribute("data-zoom"), "1");
+      await page
+        .getByRole("button", {
+          name: "Surface ranges and proportions",
+          exact: true,
+        })
+        .click();
       await page
         .getByRole("button", { name: "Reset surface and ranges", exact: true })
         .click();
@@ -289,6 +348,53 @@ try {
           .click();
         await app.getByRole("tab", { name: "3D", exact: true }).click();
         await waitReady(app);
+        await app.getByRole("button", { name: "Options", exact: true }).click();
+        await app
+          .getByRole("tabpanel", { name: "Batch options", exact: true })
+          .waitFor();
+        await app.getByRole("button", { name: "Options", exact: true }).click();
+        await waitReady(app);
+        const header = await app
+          .locator(".batch-series-toolbar")
+          .evaluate((el) => {
+            const buttons = [...el.querySelectorAll("button")];
+            return {
+              last: buttons.at(-1).getAttribute("aria-label"),
+              phases: el
+                .querySelector('[aria-label="Show batch phases"]')
+                .textContent.trim(),
+            };
+          });
+        assert.equal(header.last, "Options");
+        assert.equal(header.phases, "");
+        const surfaceOrder = await app
+          .locator(".batch-surface-toolbar button")
+          .evaluateAll((buttons) => buttons.at(-1).getAttribute("aria-label"));
+        assert.equal(surfaceOrder, "Surface ranges and proportions");
+        await app.mouse.move(2, 2);
+        await app.waitForTimeout(150);
+        const styles = await app.evaluate(() => {
+          const read = (label) => {
+            const style = getComputedStyle(
+              document.querySelector(`[aria-label="${label}"]`),
+            );
+            return [
+              style.backgroundColor,
+              style.color,
+              style.borderTopWidth,
+              style.borderTopLeftRadius,
+            ];
+          };
+          return {
+            surfaceActive: read("Isometric surface view"),
+            unitActive: read("Pattern unit 2θ"),
+            surfaceIdle: read("Front surface view"),
+            unitIdle: read("Pattern unit Q"),
+          };
+        });
+        assert.deepEqual(styles.surfaceActive, styles.unitActive);
+        assert.deepEqual(styles.surfaceIdle, styles.unitIdle);
+
         await app.getByTestId("batch-surface").focus();
         await app.getByTestId("batch-surface").press("End");
         await app.waitForFunction(
@@ -297,7 +403,7 @@ try {
               .selectedFrame === "4",
         );
         assert.equal((await call("state")).batch.selected, 3);
-        await app.getByRole("tab", { name: "Options", exact: true }).click();
+        await app.getByRole("button", { name: "Options", exact: true }).click();
         const start = app.getByRole("spinbutton", {
           name: "Batch start frame",
           exact: true,

@@ -19,11 +19,9 @@
   flex-shrink: 0;
   min-height: 26px;
   padding: 2px 5px;
-  display: grid;
-  place-items: center;
-}
-.batch-surface-toolbar button[aria-pressed="true"] {
-  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .batch-surface-sampling {
   margin-left: auto;
@@ -93,5 +91,8 @@
 @container (max-width: 430px) {
   .batch-surface-sampling {
     display: none;
+  }
+  .batch-surface-settings-toggle {
+    margin-left: auto;
   }
 }

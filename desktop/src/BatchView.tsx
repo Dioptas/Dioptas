@@ -117,7 +117,9 @@ export function BatchView({
   });
   const capture =
     externalCapture ?? (tab === "3D" ? surfaceCapture : overviewCapture);
+  const previousTab = useRef<"Files" | "2D" | "3D">(batch ? "2D" : "Files");
   useEffect(() => {
+    if (tab !== "Options") previousTab.current = tab;
     if (tab === "2D" || tab === "3D") {
       try {
         localStorage.setItem("dioptas-batch:view", tab);
@@ -325,11 +327,10 @@ export function BatchView({
           label="Batch view"
           value={tab}
           onChange={setTab}
-          options={(["Files", "2D", "3D", "Options"] as const).map((name) => ({
+          options={(["Files", "2D", "3D"] as const).map((name) => ({
             value: name,
             name,
-            label: name === "Options" ? <Settings2 size={15} /> : name,
-            title: name === "Options" ? "Options" : undefined,
+            label: name,
             disabled: name !== "Files" && !batch,
           }))}
         />
@@ -341,7 +342,6 @@ export function BatchView({
           onClick={() => display.update({ phases: !display.phases })}
         >
           <ChartNoAxesColumn size={15} aria-hidden="true" />
-          <span className="plot-toolbar-label">Phases</span>
         </PlotToggle>
         {tab === "2D" && (
           <BatchWaterfallControls
@@ -389,6 +389,18 @@ export function BatchView({
               <X size={15} />
             </Button>
           )}
+          <Button
+            className="batch-options-toggle"
+            aria-label="Options"
+            title="Batch options"
+            aria-pressed={tab === "Options"}
+            disabled={!batch}
+            onClick={() =>
+              setTab(tab === "Options" ? previousTab.current : "Options")
+            }
+          >
+            <Settings2 size={15} />
+          </Button>
         </div>
       </header>
       <div className="batch-qt-content" hidden={collapsed || tab === "Options"}>

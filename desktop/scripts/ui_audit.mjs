@@ -767,7 +767,7 @@ try {
       );
       await child.keyboard.press("Escape");
     }
-    await child.getByRole("tab", { name: "Options", exact: true }).click();
+    await child.getByRole("button", { name: "Options", exact: true }).click();
     await capture("batch-normalization", child);
     await child.getByRole("tab", { name: "2D", exact: true }).click();
     await child
@@ -805,13 +805,13 @@ try {
       await page.keyboard.press("ArrowRight");
       assert.equal(
         await batchTabs
-          .getByRole("tab", { name: "Options", exact: true })
+          .getByRole("tab", { name: "3D", exact: true })
           .getAttribute("aria-selected"),
         "true",
       );
       assert(
         await batchTabs
-          .getByRole("tab", { name: "Options", exact: true })
+          .getByRole("tab", { name: "3D", exact: true })
           .evaluate((e) => e === document.activeElement),
       );
       checks.push("Batch tabs: arrows and actual roving focus");
@@ -905,7 +905,7 @@ try {
       await ready();
       await tab("Image");
       const dock = page.locator(".batch-docked");
-      await dock.getByRole("tab", { name: "Options", exact: true }).click();
+      await dock.getByRole("button", { name: "Options", exact: true }).click();
       await capture("batch-normalization-compact" + suffix);
       const popupBox = await dock
         .locator(".batch-settings-content")

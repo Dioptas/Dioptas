@@ -76,8 +76,9 @@
   background: transparent;
 }
 .app .batch-series-toolbar button {
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 3px;
   min-width: 26px;
   min-height: 26px;

@@ -318,7 +318,8 @@ button.quiet {
   :is(
     .integration-image-tools .plot-tool-button,
     .integration-pattern-tools button,
-    .integration-pattern-actions button
+    .integration-pattern-actions button,
+    .plot-controls button
   ) {
   --button-fill: transparent;
   --button-edge: transparent;
@@ -335,7 +336,8 @@ button.quiet {
   :is(
     .integration-image-tools .plot-tool-button,
     .integration-pattern-tools button,
-    .integration-pattern-actions button
+    .integration-pattern-actions button,
+    .plot-controls button
   ) {
   color: #aab4be;
 }
@@ -344,7 +346,8 @@ button.quiet {
   :is(
     .integration-image-tools .plot-tool-button,
     .integration-pattern-tools button,
-    .integration-pattern-actions button
+    .integration-pattern-actions button,
+    .plot-controls button
   ):not(:disabled):hover {
   --button-fill: rgb(255 255 255 / 4%);
   background: var(--button-fill);
@@ -356,13 +359,15 @@ button.quiet {
   :is(
     .integration-image-tools .plot-tool-button,
     .integration-pattern-tools button,
-    .integration-pattern-actions button
+    .integration-pattern-actions button,
+    .plot-controls button
   )[aria-pressed="true"],
 .app
   :is(
     .integration-image-tools .plot-tool-button,
     .integration-pattern-tools button,
-    .integration-pattern-actions button
+    .integration-pattern-actions button,
+    .plot-controls button
   )[aria-pressed="true"]:not(:disabled):hover {
   color: var(--accent);
 }
@@ -371,7 +376,8 @@ button.quiet {
   :is(
     .integration-image-tools .plot-tool-button,
     .integration-pattern-tools button,
-    .integration-pattern-actions button
+    .integration-pattern-actions button,
+    .plot-controls button
   ):active {
   box-shadow: none;
 }

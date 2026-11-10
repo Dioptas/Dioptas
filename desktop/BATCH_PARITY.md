@@ -72,7 +72,7 @@ its closed state; quitting the app with Batch open preserves the open state.
 Startup restores the layout once the main window is ready, including an empty
 Batch panel before a scientific project is loaded. Project data still comes from
 the normal Load/Save project workflow.
-The settings icon (accessible as **Options**) beside Files/2D holds normalization
+The rightmost settings icon in the Batch header (accessible as **Options**) holds normalization
 limits and Start/Stop/Step in both layouts. The docked 2D tab has no bottom browsing row or slider: the header
 shows the selected frame number and total frame count (n/N in narrow panes).
 The header stays on one row; secondary captions become tooltip-labelled icons

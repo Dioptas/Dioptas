@@ -88,7 +88,7 @@ try {
         .click();
       const dock = page.locator(".batch-dock");
       await dock.getByTestId("batch-heatmap").waitFor();
-      const options = dock.getByRole("tab", { name: "Options", exact: true });
+      const options = dock.getByRole("button", { name: "Options", exact: true });
       await options.click();
       await dock
         .getByLabel("Batch background smooth width", { exact: true })
@@ -210,7 +210,7 @@ try {
           .getAttribute("aria-pressed"),
         "true",
       );
-      await dock.getByRole("tab", { name: "Options", exact: true }).click();
+      await dock.getByRole("button", { name: "Options", exact: true }).click();
       await dock
         .getByLabel("Batch background iterations", { exact: true })
         .fill("0");

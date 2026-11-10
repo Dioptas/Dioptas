@@ -252,7 +252,7 @@ try {
       assert.equal(count(), 2);
       state = await call("state");
       assert.deepEqual(state.pattern.curves, first);
-      await page.getByRole("tab", { name: "Options", exact: true }).click();
+      await page.getByRole("button", { name: "Options", exact: true }).click();
       const step = page.getByRole("spinbutton", {
         name: "Batch frame step",
         exact: true,
@@ -285,7 +285,7 @@ try {
             .querySelector('[data-testid="batch-heatmap"]')
             ?.getAttribute("data-waterfall-active") === "false",
       );
-      await page.getByRole("tab", { name: "Options", exact: true }).click();
+      await page.getByRole("button", { name: "Options", exact: true }).click();
       assert.equal(await step.inputValue(), "2");
       await page.getByRole("tab", { name: "2D", exact: true }).click();
       await page

@@ -490,7 +490,7 @@ try {
   await selected(child, 3);
   await child.getByRole("tab", { name: "2D", exact: true }).click();
   assert.equal(await canvas.getAttribute("data-zoom-mode"), "horizontal");
-  await child.getByRole("tab", { name: "Options", exact: true }).click();
+  await child.getByRole("button", { name: "Options", exact: true }).click();
   assert(await child.getByRole("button", { name: "Apply normalization region", exact: true }).isDisabled());
   const maximumAngle = child.getByLabel("Normalization maximum 2θ", { exact: true });
   await maximumAngle.fill("-1");
@@ -537,7 +537,7 @@ try {
   );
   assert.equal((await invoke("state")).pattern.unit, "q_A^-1");
   await ready();
-  await child.getByRole("tab", { name: "Options", exact: true }).click();
+  await child.getByRole("button", { name: "Options", exact: true }).click();
   await child
     .getByLabel("Normalization minimum Q", { exact: true })
     .fill("0.5");
@@ -574,7 +574,7 @@ try {
         ?.getAttribute("aria-pressed") === "true",
   );
   await ready();
-  await child.getByRole("tab", { name: "Options", exact: true }).click();
+  await child.getByRole("button", { name: "Options", exact: true }).click();
   const minimumD = Number(
     await child
       .getByLabel("Normalization minimum d", { exact: true })
@@ -736,7 +736,7 @@ try {
   );
   await phaseToggle.click();
   await page.getByRole("tab", { name: "Image", exact: true }).click();
-  await dock.getByRole("tab", { name: "Options", exact: true }).click();
+  await dock.getByRole("button", { name: "Options", exact: true }).click();
   assert(
     await dock.getByLabel("Batch start frame", { exact: true }).isVisible(),
   );
@@ -790,7 +790,7 @@ try {
   await ready();
   await dock.getByRole("tab", { name: "2D", exact: true }).click();
   sameRange(await readRange(page), range);
-  await dock.getByRole("tab", { name: "Options", exact: true }).click();
+  await dock.getByRole("button", { name: "Options", exact: true }).click();
   assert.equal(
     await dock.getByLabel("Batch frame step", { exact: true }).inputValue(),
     "2",
@@ -902,7 +902,7 @@ try {
       ),
       JSON.stringify(boxes),
     );
-    await dock.getByRole("tab", { name: "Options", exact: true }).click();
+    await dock.getByRole("button", { name: "Options", exact: true }).click();
     const optionBounds = await dock
       .locator(".batch-settings-content")
       .boundingBox();

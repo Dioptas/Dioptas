@@ -172,3 +172,26 @@ passes were approximately 14 ms for High, 20 ms for Very high and 4 ms while mov
 Chromium was slower. These are local headless measurements, not a native-display
 frame-rate or scanout guarantee. Receipts and inspected images are under
 `desktop/artifacts/batch-surface-gpu/`. The GPU check is part of the native UI gate.
+
+## Navigation and toolbar follow-up
+
+Right double-click restores the complete radial/frame view, camera fit and
+proportions, matching F. It is detected from two secondary pointer clicks within
+450 ms and 6 px (the same contract as the shared plot navigator); browser
+`dblclick` events do not reliably cover secondary buttons. A single right click
+zooms out 2×, right drag pans, and Control/Command + primary gestures provide
+the secondary-button equivalent. Drag, wheel, cancellation and primary clicks
+clear a pending secondary click so they cannot accidentally trigger a reset.
+
+Surface orientation/normalization/settings controls now share the same quiet,
+transparent style as the 2θ/Q/d controls, including selected and hover states.
+The surface settings gear is the last control at the right of its row; Batch
+Options is a separate, rightmost header button that toggles back to the previous
+Files/2D/3D view. The Phases icon has no visible caption at any width, while
+retaining its accessible name and tooltip. Header controls remain inline.
+
+The headless surface check in Chromium and WebKit covers physical right-button
+double-click and Control-double-click after zoom/pan/radial cropping, full-range
+restoration without selection changes, both gear positions, icon-only Phases,
+settings toggle/return, and style equality against active/inactive 2θ/Q buttons.
+The shared UI component checks also pass.
