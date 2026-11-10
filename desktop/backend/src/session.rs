@@ -336,11 +336,11 @@ impl Session {
         ) {
             self.integration_history.break_group();
         }
-        let before = matches!(
+        let before = (matches!(
             request.action.as_str(),
             "manual_geometry" | "open_calibration"
-        )
-        .then(|| self.calibration_snapshot());
+        ) && request.payload["clear_image"] != true)
+            .then(|| self.calibration_snapshot());
         let calibration_head = self.calibration_history.undo.last().cloned();
         // Configuration/project restore owns its saved Batch display choice.
         // Only explicit pattern-background edits and their undo/redo follow live.
@@ -721,11 +721,30 @@ impl Session {
                 self.calculate(defer)?;
             }
             "open_calibration" => {
-                check_keys(args, &["path", "defer_integration"])?;
+                check_keys(args, &["path", "defer_integration", "clear_image"])?;
                 let file = path(args)?;
                 let mut candidate = Geometry::load(file)?;
+                let clear = args
+                    .get("clear_image")
+                    .map(|v| boolean(v, "Clear image"))
+                    .transpose()?
+                    .unwrap_or(false);
                 if let Some(image) = &self.image {
-                    candidate.sync_shape(image.shape)?;
+                    if candidate.validate_shape(image.shape).is_err() && !clear {
+                        return Ok(Reply::metadata(json!({"ok":true,"cancelled":true,
+                            "calibrationChange":{"path":file,"imageShape":image.shape,
+                                "calibrationShape":candidate.detector.as_ref().and_then(|d|d.max_shape)}})));
+                    }
+                    if !clear {
+                        candidate.sync_shape(image.shape)?;
+                    }
+                }
+                if clear {
+                    self.reset_detector_state()?;
+                    self.image = None;
+                    self.image_raster = None;
+                    self.mask = Arc::new(Vec::new());
+                    self.effective_mask = self.mask.clone();
                 }
                 self.settings.geometry = candidate;
                 self.settings.original_pixels = None;
@@ -740,6 +759,13 @@ impl Session {
                 self.rebase_detector_reset()?;
                 self.loaded_geometry("loaded");
                 self.calculate(defer)?;
+                if clear {
+                    self.revision += 1;
+                    let mut reply = self.snapshot(true);
+                    reply.result["clearImage"] = json!(true);
+                    reply.result["imageStateReset"] = json!(true);
+                    return Ok(reply);
+                }
             }
             "manual_geometry" => {
                 check_keys(args, &["convention", "values", "defer_integration"])?;
@@ -1337,6 +1363,7 @@ impl Session {
                 "batch_mode",
                 "output_directory",
                 "reset_calibration",
+                "keep_calibration",
             ],
         )?;
         let file = path(args)?;
@@ -1354,8 +1381,15 @@ impl Session {
         if let Some(reply) = self.image_change(&image, args)? {
             return Ok(Some(reply));
         }
+        let coordinates_changed = self
+            .image
+            .as_ref()
+            .is_some_and(|old| old.source_shape != image.source_shape);
         if args["reset_calibration"].as_bool() == Some(true) {
             self.reset_detector_state()?;
+        }
+        if coordinates_changed && args["reset_calibration"] != true {
+            self.reset_image_coordinates(image.source_shape);
         }
         self.assign_image_detector(&image)?;
 
@@ -1365,6 +1399,7 @@ impl Session {
         let prepared = {
             let options = self.integration_options();
             let load_mask = if self.settings.calibrated
+                && !coordinates_changed
                 && !defer
                 && !self.processing.active()
                 && !options.pyfai
@@ -1379,11 +1414,11 @@ impl Session {
             self.engine.load_frame(
                 &mut image,
                 args.get("frame").and_then(Value::as_u64).unwrap_or(0) as usize,
-                (self.settings.calibrated && !defer && !self.processing.active()).then_some((
-                    &self.settings.geometry,
-                    load_mask.as_slice(),
-                    &options,
-                )),
+                (self.settings.calibrated
+                    && !coordinates_changed
+                    && !defer
+                    && !self.processing.active())
+                .then_some((&self.settings.geometry, load_mask.as_slice(), &options)),
                 &self.control,
             )?
         };
@@ -1407,6 +1442,12 @@ impl Session {
             self.revision += 1;
             let mut reply = self.snapshot(true);
             reply.result["calibrationReset"] = json!(true);
+            return Ok(Some(reply));
+        }
+        if coordinates_changed {
+            self.revision += 1;
+            let mut reply = self.snapshot(true);
+            reply.result["imageStateReset"] = json!(true);
             return Ok(Some(reply));
         }
         Ok(None)

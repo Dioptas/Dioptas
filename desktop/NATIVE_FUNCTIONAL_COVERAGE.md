@@ -68,6 +68,11 @@ Batch/Map std storage and offline data-flow qualification. The
 sphere and optional capillary absorption, corrected legacy geometry, explicit
 convergence checks, project migration and independent volume/ray integration.
 
+Additional detector-switch flows in `backend/tests/detector_switch.rs` cover
+both loading orders, calibration-only offline projects, uncalibrated coordinate
+resets, compatible-calibration reuse/binning, image averages and rollback. The
+headless image-change check exercises the corresponding GUI in both browsers.
+
 ## Gates
 
 `.github/workflows/CI_rust_desktop.yml` runs on relevant pushes, pull requests

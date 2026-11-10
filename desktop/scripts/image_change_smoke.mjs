@@ -15,6 +15,26 @@ await mkdir(artifacts, { recursive: true });
 const temporary = await mkdtemp(path.join(tmpdir(), "dioptas-image-change-"));
 const small = path.join(temporary, "small.edf");
 const same = path.join(temporary, "same.edf");
+const largeImage = path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif");
+const legacyCalibration = path.join(
+  root,
+  "dioptas/tests/data/CeO2_Pilatus1M.poni",
+);
+const largeCalibration = path.join(temporary, "large.poni");
+await writeFile(
+  largeCalibration,
+  `poni_version: 2.1
+Detector: Detector
+Detector_config: {"pixel1":0.0001,"pixel2":0.0001,"max_shape":[1043,981],"orientation":3}
+Distance: 0.2
+Poni1: 0.04
+Poni2: 0.04
+Rot1: 0
+Rot2: 0
+Rot3: 0
+Wavelength: 5e-11
+`,
+);
 const native = nativeClient();
 const diagnostics = native.diagnostics;
 const invoke = native.invoke;
@@ -45,13 +65,14 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 let selectedImage = small;
+let selectedCalibration = legacyCalibration;
 await page.exposeFunction("__dioptasInvoke", async (action, payload = {}) => {
   if (action === "open_image" && !payload.path)
     payload = { ...payload, path: selectedImage };
-  if (action === "open_calibration")
+  if (action === "open_calibration" && !payload.path)
     payload = {
       ...payload,
-      path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+      path: selectedCalibration,
     };
   const result = await invoke(action, payload);
   if (!result.ok) console.error(action, JSON.stringify(result));
@@ -195,6 +216,75 @@ try {
   assert.equal(await page.getByRole("dialog").count(), 0);
   assert.equal((await call("state")).state.calibrated, true);
   report.checks.push("same-size image retains calibration without prompting");
+  // A dimension-bearing calibration can be selected before its new image.
+  selectedCalibration = largeCalibration;
+  const current = (await call("state")).state;
+  for (const large of [false, true]) {
+    await setInterfaceTextSize(page, large);
+    await button("Load .poni").focus();
+    await button("Load .poni").click();
+    const dialog = page.getByRole("dialog", {
+      name: "Calibration uses a different detector",
+    });
+    await dialog.waitFor({ state: "visible" });
+    assert.deepEqual((await call("state")).state, current);
+    const box = await dialog.boundingBox();
+    assert.ok(
+      box.x >= 0 &&
+        box.y >= 0 &&
+        box.x + box.width <= 1000 &&
+        box.y + box.height <= 668,
+    );
+    await page.screenshot({
+      path: path.join(
+        artifacts,
+        `calibration-first-${browserName}-${large ? "large" : "normal"}.png`,
+      ),
+    });
+    await page.keyboard.press("Escape");
+    await dialog.waitFor({ state: "detached" });
+    assert.deepEqual((await call("state")).state, current);
+    await page.waitForFunction(() =>
+      document.activeElement?.textContent?.includes("Load .poni"),
+    );
+  }
+  await button("Load .poni").click();
+  await button("Load calibration and clear image").click();
+  await ready();
+  result = await call("state");
+  assert.equal(result.state.hasImage, false);
+  assert.equal(result.state.calibrated, true);
+  assert.equal(result.state.calibrationName, "large.poni");
+  assert.equal(result.pattern, null);
+  assert.equal(result.cake, null);
+  selectedImage = largeImage;
+  await button("Open image").click();
+  await ready();
+  result = await call("state");
+  assert.equal(result.state.calibrationName, "large.poni");
+  assert.equal(result.state.calibrated, true);
+  assert.deepEqual(result.state.shape, [1043, 981]);
+  assert.equal(await page.getByRole("dialog").count(), 0);
+  assert.ok(result.pattern?.y.length);
+  report.checks.push(
+    "calibration-first Cancel/Escape, clear stale image, matching image integrates",
+  );
+  // A legacy calibration without dimensions needs an explicit keep choice.
+  selectedCalibration = legacyCalibration;
+  await button("Load .poni").click();
+  await ready();
+  selectedImage = same;
+  await page.keyboard.press("ControlOrMeta+o");
+  await button("Open with current calibration").click();
+  await ready();
+  result = await call("state");
+  assert.equal(result.state.calibrated, true);
+  assert.equal(result.state.calibrationName, path.basename(legacyCalibration));
+  assert.deepEqual(result.state.shape, [96, 128]);
+  assert.deepEqual(result.state.calibration.transformations, []);
+  report.checks.push(
+    "legacy calibration can be kept explicitly across dimension change",
+  );
   await button("Reset calibration").click();
   await page
     .getByRole("dialog", { name: "Reset calibration?" })
@@ -216,14 +306,22 @@ try {
       name: "Step 2: Pick rings",
       exact: true,
     });
-    if (mode === "Calibration") await calibrationTab.click();
+    if (mode === "Calibration") {
+      await page
+        .getByRole("tab", { name: "Step 3: Calibrate", exact: true })
+        .click();
+      await page
+        .getByLabel("Distance constraint value", { exact: true })
+        .fill("321.5");
+      await calibrationTab.click();
+    }
     selectedImage =
       mode === "Integration" || mode === "Mask"
         ? path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif")
         : small;
     await page.keyboard.press("ControlOrMeta+o");
-    await button("Open and reset calibration").click();
     await ready();
+    assert.equal(await page.getByRole("dialog").count(), 0);
     assert.equal(await button(mode).getAttribute("aria-pressed"), "true");
     result = await call("state");
     assert.equal(result.state.imageName, path.basename(selectedImage));
@@ -231,7 +329,24 @@ try {
     assert.equal(result.state.maskedPixels, 0);
     if (mode === "Calibration")
       assert.equal(await calibrationTab.getAttribute("aria-selected"), "true");
-    report.checks.push(`dimension reset retains ${mode} workspace and tab`);
+    assert.deepEqual(result.state.calibration.transformations, []);
+    report.checks.push(
+      `uncalibrated size change has no reset prompt in ${mode}`,
+    );
+    if (mode === "Calibration") {
+      await page
+        .getByRole("tab", { name: "Step 3: Calibrate", exact: true })
+        .click();
+      assert.equal(
+        await page
+          .getByLabel("Distance constraint value", { exact: true })
+          .inputValue(),
+        "321.5",
+      );
+      report.checks.push(
+        "unapplied fit starting value survives uncalibrated size change",
+      );
+    }
   }
   assert.deepEqual(errors, []);
   await writeFile(

@@ -331,7 +331,7 @@ fn image_file_boundaries_are_noops_and_later_arrivals_remain_browsable() {
 }
 
 #[test]
-fn frame_shape_changes_confirm_before_reset_even_with_the_same_number_of_pixels() {
+fn uncalibrated_frame_shape_changes_reset_coordinates_even_with_the_same_number_of_pixels() {
     let temp = tempfile::tempdir().unwrap();
     let path = temp.path().join("different-shapes.tif");
     {
@@ -351,15 +351,9 @@ fn frame_shape_changes_confirm_before_reset_even_with_the_same_number_of_pixels(
         "mask_stroke",
         json!({"points":[[1,1]],"radius":1}),
     );
-    let before = call(&mut session, "state", json!({}));
-    let pending = call(&mut session, "next_image", json!({"direction":1}));
-    assert_eq!(pending.result["imageChange"]["newShape"], json!([4, 3]));
-    assert_eq!(call(&mut session, "state", json!({})).result, before.result);
-    let next = call(
-        &mut session,
-        "open_image",
-        json!({"path":path,"frame":1,"reset_calibration":true}),
-    );
+    let next = call(&mut session, "next_image", json!({"direction":1}));
+    assert!(next.result.get("imageChange").is_none());
+    assert!(next.result.get("calibrationReset").is_none());
     assert_eq!(next.result["state"]["shape"], json!([4, 3]));
     assert_eq!(next.result["mask"]["width"], 3);
     assert_eq!(next.result["mask"]["height"], 4);

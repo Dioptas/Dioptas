@@ -187,7 +187,14 @@ export interface Response {
   imageUnavailable?: boolean;
   configurationNavigation?: { advanced: number[]; skipped: number[] };
   configurationReset?: boolean;
+  calibrationChange?: {
+    path: string;
+    imageShape: [number, number];
+    calibrationShape: [number, number] | null;
+  };
+  imageStateReset?: boolean;
   imageChange?: {
+    canKeepCalibration?: boolean;
     options?: Record<string, unknown>;
     path: string;
     frame: number;

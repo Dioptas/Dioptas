@@ -101,16 +101,28 @@ fresh app session. File order
 and Batch mode use compact dropdowns. File and frame arrows use 32 × 30 px targets
 at both text sizes, with each step field directly beside its browsing controls.
 
-Changing source image dimensions asks for **Cancel** or **Open and reset
-calibration** before changing the session, including variable-size frames within
-one file. Accepting clears detector geometry, orientation, masks, corrections,
-picks and stale integration results while keeping the current workspace and tab. It retains
-phase and overlay references. **Reset calibration** beside Load .poni performs
-the same detector reset while keeping the current image. Same-size images retain
-calibration; a physical detector change with identical dimensions still requires
-an explicit reset. Manufacturer-supported binning can resolve the first image
-against a named detector; later size changes always prompt. Autoprocess stops
-on a mismatch so it cannot integrate using the wrong detector geometry.
+Changing source dimensions **without a calibration** opens the new image directly,
+resetting its orientation, mask, picked coordinates and ROI. Experiment/fit
+preferences, integration settings and correction drafts remain available.
+An incompatible remembered detector is replaced by image detection; background,
+flat and transfer references with incompatible dimensions are discarded.
+
+With a calibration loaded, a size change asks before replacing the image.
+**Open and reset calibration** clears detector geometry and image-dependent
+processing, keeping the current workspace/tab, phases and overlays. When the
+geometry accepts the new dimensions, **Open with current calibration** keeps
+that calibration and resets image coordinates. This explicit choice also
+supports legacy PONIs without dimensions and manufacturer-supported binning.
+Same-size images retain their calibration; changing physical detectors with
+identical dimensions still needs an explicit calibration change or reset.
+
+Either loading order works when switching detectors. Loading an incompatible
+PONI offers **Load calibration and clear image**: the new calibration stays
+loaded while the old image and its products are removed. Then open the matching
+image. A project can save/reopen this calibration-only state without the old
+source files. Cancel/Escape preserve the preceding session. **Reset calibration**
+beside Load .poni still resets the detector while retaining the current image.
+Autoprocess stops on an unresolved calibrated size mismatch.
 
 With configuration controls enabled, the top bar provides detector factors,
 **Combine patterns**, **Combined cake** (calibrated 2D cakes), and combined-pattern

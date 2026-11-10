@@ -551,6 +551,8 @@ export default function App() {
         if (result.calibrationReset) {
           resetFitDraft(result.state.calibration);
           resetGeometryDraft(result.state.calibration);
+        }
+        if (result.calibrationReset || result.imageStateReset) {
           setSelectedPicks([]);
           setPhaseGuides([]);
         }
@@ -882,13 +884,15 @@ export default function App() {
           action: command,
           bufferId: result.image?.bufferId,
         });
-        if (result.imageChange) {
+        if (result.imageChange || result.calibrationChange) {
           if (
             document.activeElement instanceof HTMLElement &&
             document.activeElement !== document.body
           )
             calibrationResetOpener.current = document.activeElement;
-          setCalibrationResetRequest(result.imageChange);
+          setCalibrationResetRequest(
+            result.imageChange ?? result.calibrationChange,
+          );
           return;
         }
         // Stored-only map projects can be inspected even when their raw files are unavailable.
@@ -972,7 +976,7 @@ export default function App() {
           setNotice("No peaks found in this area");
         if (command === "open_calibration" && !result.cancelled) {
           setNotice(
-            `Loaded calibration: ${result.state?.calibrationName ?? "PONI"}`,
+            `Loaded calibration: ${result.state?.calibrationName ?? "PONI"}${result.state?.hasImage ? "" : " · Load a matching detector image"}`,
           );
         }
         if (isScientificHistoryCommand(command)) {
@@ -1001,7 +1005,9 @@ export default function App() {
           !result.cancelled &&
           ["calibrate", "manual_geometry", "open_calibration"].includes(command)
         ) {
-          setCalibrationStep(3);
+          setCalibrationStep(
+            command === "open_calibration" && !result.state?.hasImage ? 0 : 3,
+          );
         }
         onSuccess?.(result);
       } catch (e) {
@@ -3335,11 +3341,17 @@ export default function App() {
                 const opener = calibrationResetOpener.current;
                 requestAnimationFrame(() => opener?.focus());
               }}
-              onConfirm={() => {
+              onConfirm={(keepCalibration = false) => {
                 const request = calibrationResetRequest;
                 setCalibrationResetRequest(undefined);
                 if (request === "reset")
                   void run("reset_calibration", {}, "Resetting calibration…");
+                else if ("calibrationShape" in request)
+                  void run(
+                    "open_calibration",
+                    { path: request.path, clear_image: true },
+                    "Loading calibration for a different detector…",
+                  );
                 else
                   void run(
                     "open_image",
@@ -3347,9 +3359,13 @@ export default function App() {
                       ...request.options,
                       path: request.path,
                       frame: request.frame,
-                      reset_calibration: true,
+                      ...(keepCalibration
+                        ? { keep_calibration: true }
+                        : { reset_calibration: true }),
                     },
-                    "Opening image and resetting calibration…",
+                    keepCalibration
+                      ? "Opening image with current calibration…"
+                      : "Opening image and resetting calibration…",
                   );
               }}
             />
