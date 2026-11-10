@@ -252,6 +252,24 @@ try {
           ),
         });
       }
+      await page
+        .getByRole("button", { name: "Azimuthal profile", exact: true })
+        .click();
+      const profile = page.getByRole("region", {
+        name: "Azimuthal profile",
+        exact: true,
+      });
+      await profile.getByTestId("pattern-canvas").waitFor();
+      assert.equal(
+        await page
+          .getByRole("region", { name: "Spottiness diagnostic", exact: true })
+          .count(),
+        1,
+      );
+      await aligned();
+      await page
+        .getByRole("button", { name: "Azimuthal profile", exact: true })
+        .click();
       await show.click();
       await page
         .getByRole("region", { name: "Spottiness diagnostic", exact: true })

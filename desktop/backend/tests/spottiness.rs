@@ -232,3 +232,52 @@ fn normalized_stored_rows_keep_mean_std_and_relative_paired() {
     );
     assert!(imported.result["pattern"]["spottiness"].is_null());
 }
+
+#[test]
+fn diagnostic_preferences_preserve_owned_cake_and_azimuthal_profile() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let mut s = Session::new(root.clone());
+    call(
+        &mut s,
+        "open_calibration",
+        json!({"path":root.join("dioptas/tests/data/CeO2_Pilatus1M.poni")}),
+    );
+    call(
+        &mut s,
+        "integration_settings",
+        json!({"bins":96,"cake_bins":36,"azimuthal_std":true}),
+    );
+    call(
+        &mut s,
+        "open_image",
+        json!({"path":root.join("dioptas/tests/data/CeO2_Pilatus1M.tif")}),
+    );
+    let profile = call(
+        &mut s,
+        "cake_profile",
+        json!({"two_theta":10.,"bins":3,"shift":0}),
+    );
+    let original = profile.result["cakeProfile"].clone();
+    assert!(original.is_object(), "{}", profile.result);
+    let before = call(&mut s, "integration_diagnostics", json!({}));
+    let curve = call(&mut s, "state", json!({})).result["pattern"]["spottiness"].clone();
+    for relative in [true, false] {
+        let updated = call(
+            &mut s,
+            "integration_settings",
+            json!({"spottiness_relative":relative}),
+        );
+        assert_eq!(updated.result["pattern"]["spottiness"], curve);
+        let profile = call(
+            &mut s,
+            "cake_profile",
+            json!({"two_theta":10.,"bins":3,"shift":0}),
+        );
+        assert_eq!(profile.result["cakeProfile"], original);
+    }
+    let after = call(&mut s, "integration_diagnostics", json!({}));
+    assert_eq!(
+        before.result["integrationDiagnostics"],
+        after.result["integrationDiagnostics"]
+    );
+}
