@@ -4,6 +4,7 @@ import { Button, Dialog, DialogHeader, Select } from "./ui";
 import type { BatchRun } from "./batchDomain";
 import type { BatchCaptureRef } from "./batchCapture";
 import type { Unit } from "./types";
+import { isBatchMultifile } from "./batchExportNaming";
 import "./batchExport.css";
 
 const formats = [
@@ -18,11 +19,13 @@ const formats = [
 
 export function BatchExport({
   ready,
+  baseName,
   unit,
   capture,
   run,
 }: {
   ready: boolean;
+  baseName: string;
   unit?: Unit;
   capture: BatchCaptureRef;
   run: BatchRun;
@@ -37,6 +40,7 @@ export function BatchExport({
     trigger.current?.focus();
   };
   const imageAvailable = !!capture.current;
+  const multifile = isBatchMultifile(format);
   return (
     <>
       <Button
@@ -77,10 +81,19 @@ export function BatchExport({
             ))}
           </Select>
         </label>
-        <p>
-          Per-frame files use name_000, name_001, … in stored frame order. All
-          integrated frames are saved. Existing per-frame files are preserved.
-        </p>
+        {multifile ? (
+          <p>
+            Choose an output basename. For example, {baseName} produces{" "}
+            {baseName}_000.{format}, {baseName}_001.{format}, … in stored frame
+            order. The basename itself is not written. All integrated frames are
+            saved; existing per-frame files are preserved.
+          </p>
+        ) : (
+          <p>
+            Save the batch {format === "png" ? "view" : "data"} to a single
+            file.
+          </p>
+        )}
         {format === "fxye" && (
           <p>
             FXYE saves Q in Å⁻¹ or 2θ in centidegrees. Saving a d view requires
@@ -109,12 +122,17 @@ export function BatchExport({
               close();
               void run(
                 "integration_save_batch",
-                { format, unit, ...(png ? { png_data: png } : {}) },
+                {
+                  format,
+                  unit,
+                  suggested_name: `${baseName}.${format}`,
+                  ...(png ? { png_data: png } : {}),
+                },
                 "Saving batch…",
               );
             }}
           >
-            Choose file…
+            {multifile ? "Choose basename…" : "Choose file…"}
           </Button>
         </div>
       </Dialog>

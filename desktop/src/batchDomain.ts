@@ -1,6 +1,8 @@
 import type { Raster, Unit } from "./types";
 export interface BatchData {
   id: string;
+  /** Stem of the explicitly opened processed file; preserved in projects. */
+  exportBaseName?: string | null;
   waterfallKey?: string;
   raster: Raster;
   pattern: import("./types").Pattern;

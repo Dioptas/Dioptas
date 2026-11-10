@@ -1,5 +1,15 @@
 import type { BatchData } from "./batchDomain";
 
+export const BATCH_BUSY_MESSAGE =
+  "The main window is busy. Try again when processing finishes.";
+
+/** The main window owns scientific errors; a fallback RPC busy message must
+ * not hide its subsequently published export failure. Keep real local errors.
+ */
+export function batchWindowError(local: string | null, parent: string | null) {
+  return local === BATCH_BUSY_MESSAGE ? parent || local : local || parent;
+}
+
 // Binary matrix data stays on the native raster bridge. Only the changing
 // selection/pattern/guide fields cross the window notification channel.
 type Version = { base: number; sequence: number };

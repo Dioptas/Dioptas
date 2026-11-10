@@ -31,6 +31,7 @@ pub(crate) struct Series {
     pub reference: usize,
     pub normalized: bool,
     pub raster: Raster,
+    pub export_name: Option<String>,
     pub calibration: String,
     pub mask: String,
 }
@@ -176,6 +177,7 @@ impl Series {
             reference: 0,
             normalized: false,
             raster,
+            export_name: None,
             calibration: String::new(),
             mask: String::new(),
             sigma: None,
@@ -324,7 +326,7 @@ impl Series {
             .or_else(|_| self.profile(self.selected, &self.unit))
             .unwrap();
         let files:Vec<_>=self.paths.iter().enumerate().filter(|(_,p)|!p.is_empty()).map(|(i,p)|json!({"path":p,"name":Path::new(p).file_name().unwrap_or_default().to_string_lossy(),"frames":self.file_counts.get(i).copied().unwrap_or_else(||self.entries.iter().filter(|e|e.path==*p).count()),"first":self.entries.iter().position(|e|e.path==*p)})).collect();
-        json!({"id":self.background_raster().buffer.id,"waterfallKey":crate::batch_waterfall::identity(self),"raster":self.background_raster().metadata,"backgroundState":self.background_metadata(),"sourceBins":self.background_bins(),"x":&curve.x[self.background_bins()[0]..self.background_bins()[1]],"wavelength":self.wavelength,"unit":unit,"sourceUnit":self.unit,"entries":self.entries.iter().map(|e|json!({"path":e.path,"name":if e.path.is_empty(){"Stored pattern".into()}else{Path::new(&e.path).file_name().unwrap_or_default().to_string_lossy()},"frame":e.frame+1})).collect::<Vec<_>>(),"files":files,"pattern":{"x":curve.x,"y":curve.y,"sigma":curve.sigma,"unit":unit},"selected":self.selected,"total":self.total,"canReintegrate":self.paths.iter().any(|p|!p.is_empty()&&Path::new(p).is_file()),"normalized":self.normalized,"normalizationRange":self.normalization,"normalizationReference":self.reference,"normalizationReferenceName":self.entries.get(self.reference).map(|e|if e.path.is_empty(){format!("Stored pattern · frame {}", self.reference+1)}else{Path::new(&e.path).file_name().unwrap_or_default().to_string_lossy().into_owned()}),"normalizationRegion":{"minimum":self.x[self.normalization[0]].min(self.x[self.normalization[1]-1]),"maximum":self.x[self.normalization[0]].max(self.x[self.normalization[1]-1]),"unit":self.unit},"calibration":self.calibration,"mask":self.mask,"phaseLines":phases,"position":null})
+        json!({"id":self.background_raster().buffer.id,"exportBaseName":self.export_name,"waterfallKey":crate::batch_waterfall::identity(self),"raster":self.background_raster().metadata,"backgroundState":self.background_metadata(),"sourceBins":self.background_bins(),"x":&curve.x[self.background_bins()[0]..self.background_bins()[1]],"wavelength":self.wavelength,"unit":unit,"sourceUnit":self.unit,"entries":self.entries.iter().map(|e|json!({"path":e.path,"name":if e.path.is_empty(){"Stored pattern".into()}else{Path::new(&e.path).file_name().unwrap_or_default().to_string_lossy()},"frame":e.frame+1})).collect::<Vec<_>>(),"files":files,"pattern":{"x":curve.x,"y":curve.y,"sigma":curve.sigma,"unit":unit},"selected":self.selected,"total":self.total,"canReintegrate":self.paths.iter().any(|p|!p.is_empty()&&Path::new(p).is_file()),"normalized":self.normalized,"normalizationRange":self.normalization,"normalizationReference":self.reference,"normalizationReferenceName":self.entries.get(self.reference).map(|e|if e.path.is_empty(){format!("Stored pattern · frame {}", self.reference+1)}else{Path::new(&e.path).file_name().unwrap_or_default().to_string_lossy().into_owned()}),"normalizationRegion":{"minimum":self.x[self.normalization[0]].min(self.x[self.normalization[1]-1]),"maximum":self.x[self.normalization[0]].max(self.x[self.normalization[1]-1]),"unit":self.unit},"calibration":self.calibration,"mask":self.mask,"phaseLines":phases,"position":null})
     }
     pub fn save(&self, path: &Path) -> Result<(), String> {
         let mut temp = tempfile::NamedTempFile::new_in(path.parent().unwrap_or(Path::new(".")))
@@ -489,7 +491,7 @@ impl Series {
                     .and_then(|a| a.write_scalar(&w))
                     .map_err(|e| e.to_string())?;
             }
-            let metadata = json!({"entries":self.entries,"paths":paths,"file_counts":self.file_counts,"total":self.total,"selected":self.selected,"normalization":self.normalization,"reference":self.reference,"normalized":self.normalized,"batch_background":self.batch_background});
+            let metadata = json!({"entries":self.entries,"paths":paths,"file_counts":self.file_counts,"total":self.total,"selected":self.selected,"normalization":self.normalization,"reference":self.reference,"normalized":self.normalized,"batch_background":self.batch_background,"export_name":self.export_name});
             let meta = serde_json::to_vec(&metadata).map_err(|e| e.to_string())?;
             result
                 .new_dataset_builder()
@@ -532,6 +534,15 @@ impl Series {
         }
         temp.persist(path).map_err(|e| e.to_string())?;
         Ok(())
+    }
+    /// Explicit processed-file opening records its user-facing basename. Embedded
+    /// project loads retain the recorded name instead of a temporary .h5 filename.
+    pub fn load_processed(path: &Path) -> Result<Self, String> {
+        let mut series = Self::load(path)?;
+        series.export_name = path
+            .file_stem()
+            .map(|name| name.to_string_lossy().into_owned());
+        Ok(series)
     }
     pub fn load(path: &Path) -> Result<Self, String> {
         let f = hdf5::File::open(path).map_err(|e| e.to_string())?;
@@ -748,6 +759,10 @@ impl Series {
                     ));
                 }
             }
+            s.export_name = v["export_name"]
+                .as_str()
+                .filter(|s| !s.is_empty())
+                .map(str::to_owned);
             s.restore_batch_background(&v["batch_background"])?;
         }
         Ok(s)

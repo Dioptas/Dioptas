@@ -95,6 +95,7 @@ if (selected.has("--ui")) {
     "hdf5_sources_smoke",
   ])
     node(script, `${script}.mjs`);
+  node("batch_background_export", "batch_export_smoke.mjs", "--background");
   node("image_change_webkit", "image_change_smoke.mjs", "--webkit");
   run("native-transport", process.execPath, [
     "--test",

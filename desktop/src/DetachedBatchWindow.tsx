@@ -9,7 +9,7 @@ import { BatchView } from "./BatchView";
 import { usePlotReadout } from "./plotReadout";
 import type { BatchData, BatchRun } from "./batchDomain";
 import type { Invoke, Response } from "./types";
-import { BatchWindowSync } from "./batchWindowState";
+import { BatchWindowSync, batchWindowError } from "./batchWindowState";
 import { ReadingFields } from "./PlotStatus";
 
 export function DetachedBatchWindow() {
@@ -146,7 +146,7 @@ export function DetachedBatchWindow() {
           )}
         </span>
         <StatusMessage
-          error={error || status.error || null}
+          error={batchWindowError(error, status.error)}
           message={
             status.progress?.running
               ? `${status.progress.label ?? "Processing"} ${status.progress.current} / ${status.progress.total}`

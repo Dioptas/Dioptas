@@ -713,7 +713,7 @@ impl Session {
                     && paths.len() == 1
                     && is_processed(Path::new(&paths[0]))
                 {
-                    self.batch = Some(Series::load(Path::new(&paths[0]))?);
+                    self.batch = Some(Series::load_processed(Path::new(&paths[0]))?);
                 } else {
                     self.batch = Some(self.integrate_series(paths, args)?);
                 }
@@ -725,7 +725,7 @@ impl Session {
                 return Ok(Some(reply));
             }
             "batch_open" => {
-                self.batch = Some(Series::load(path(args)?)?);
+                self.batch = Some(Series::load_processed(path(args)?)?);
                 self.batch.as_mut().unwrap().selected = 0;
                 let b = self.batch.as_ref().unwrap().clone();
                 let mut reply = self.select_series(&b, 0, false, true, None)?;

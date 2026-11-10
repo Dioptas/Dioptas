@@ -15,7 +15,11 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium, webkit } from "playwright";
 import { nativeClient, root } from "./native_backend_client.mjs";
-const artifacts = path.join(root, "desktop/artifacts/batch-export");
+const verifyBackground = process.argv.includes("--background");
+const artifacts = path.join(
+  root,
+  `desktop/artifacts/${verifyBackground ? "batch-background-export" : "batch-export"}`,
+);
 await mkdir(artifacts, { recursive: true });
 const temp = await mkdtemp(path.join(tmpdir(), "dioptas-batch-export-"));
 const sources = [];
@@ -51,17 +55,61 @@ try {
       return result;
     };
     try {
-      await call("open_calibration", {
-        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
-      });
-      await call("integration_settings", {
-        bins: 64,
-        cake_bins: 16,
-        poisson_errors: true,
-      });
-      await call("open_image", { path: sources[0] });
-      await call("batch_load", { paths: sources, start: 2, stop: 3, step: 1 });
+      if (verifyBackground) {
+        const source = path.join(temp, "garnet_processed_042.nxs");
+        await copyFile(
+          path.join(
+            root,
+            "desktop/backend/tests/fixtures/batch_background_input.h5",
+          ),
+          source,
+        );
+        await call("batch_load_data", { paths: [source] });
+        await call("batch_background_extract", {
+          parameters: { smoothing: 0.37, iterations: 31, order: 8 },
+        });
+        await call("batch_normalization_settings", {
+          start: 9,
+          stop: 79,
+          reference: 1,
+        });
+        await call("batch_normalize", { enabled: true });
+        await call("batch_background_extract", {
+          parameters: { smoothing: 0.37, iterations: 31, order: 8 },
+        });
+        await call("batch_background_display", {
+          range: [2, 8],
+          unit: "2th_deg",
+          subtract: true,
+          cut: true,
+        });
+      } else {
+        await call("open_calibration", {
+          path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+        });
+        await call("integration_settings", {
+          bins: 64,
+          cake_bins: 16,
+          poisson_errors: true,
+        });
+        await call("open_image", { path: sources[0] });
+        await call("batch_load", {
+          paths: sources,
+          start: 2,
+          stop: 3,
+          step: 1,
+        });
+      }
       const before = await call("state");
+      const frameCount = before.batch.entries.length;
+      const binCount = before.batch.pattern.x.length;
+      if (verifyBackground) {
+        assert.equal(before.batch.exportBaseName, "garnet_processed_042");
+        assert.equal(before.batch.normalized, true);
+        assert.equal(before.batch.backgroundState.subtract, true);
+        assert.equal(before.batch.backgroundState.cut, true);
+        assert(before.batch.x.length < binCount);
+      }
       const page = await context.newPage();
       context.on("page", (p) =>
         p.on("pageerror", (e) => errors.push(e.message)),
@@ -139,7 +187,12 @@ try {
           .getByRole("combobox", { name: "Batch export format", exact: true })
           .selectOption(format);
         await dialog
-          .getByRole("button", { name: "Choose file…", exact: true })
+          .getByRole("button", {
+            name: ["xy", "chi", "dat", "fxye"].includes(format)
+              ? "Choose basename…"
+              : "Choose file…",
+            exact: true,
+          })
           .click();
         await page.waitForFunction(
           (n) => (window.__completedBatchSaves ?? 0) >= n,
@@ -180,26 +233,43 @@ try {
           ).includes("source_frame"),
         );
         await readFile(path.join(temp, `${name}_001.${format}`));
-        await assert.rejects(
-          readFile(path.join(temp, `${name}_002.${format}`)),
+        await readFile(
+          path.join(
+            temp,
+            `${name}_${String(frameCount - 1).padStart(3, "0")}.${format}`,
+          ),
         );
+        await assert.rejects(
+          readFile(
+            path.join(
+              temp,
+              `${name}_${String(frameCount).padStart(3, "0")}.${format}`,
+            ),
+          ),
+        );
+        if (verifyBackground)
+          await readFile(
+            path.join(temp, `bkg_subtracted/${name}_000.${format}`),
+          );
       }
       assert.equal(
         (await readFile(path.join(temp, `${name}.csv`), "utf8"))
           .trim()
           .split("\n").length,
-        1 + 2 * 64,
+        1 + frameCount * binCount,
       );
       // Non-default unit, scale, zoom and palette must be captured as rendered.
-      await batch
-        .getByRole("button", { name: "Batch unit Q", exact: true })
-        .click();
-      await ready();
-      await batch.waitForFunction(
-        () =>
-          document.querySelector('[data-testid="batch-heatmap"]')?.dataset
-            .unit === "q_A^-1",
-      );
+      if (!verifyBackground) {
+        await batch
+          .getByRole("button", { name: "Batch unit Q", exact: true })
+          .click();
+        await ready();
+        await batch.waitForFunction(
+          () =>
+            document.querySelector('[data-testid="batch-heatmap"]')?.dataset
+              .unit === "q_A^-1",
+        );
+      }
       await batch
         .getByRole("button", {
           name: "Square root batch intensity",
@@ -267,7 +337,7 @@ try {
           xMin: Number(c.dataset.viewXMin),
         };
       });
-      assert.equal(expected.unit, "q_A^-1");
+      assert.equal(expected.unit, verifyBackground ? "2th_deg" : "q_A^-1");
       assert.equal(expected.scale, "sqrt");
       assert(expected.xMin > 0);
       assert(expected.axisPixels > 100);
@@ -326,6 +396,11 @@ try {
       assert.equal(failure.ok, false);
       assert.match(failure.error, /already exists/);
       assert.equal(failure.savedPaths, undefined);
+      await batch.waitForFunction(() =>
+        document
+          .querySelector('.detached-batch-footer [role="alert"]')
+          ?.textContent?.includes("already exists"),
+      );
       assert.deepEqual(
         await readFile(path.join(temp, `${name}_000.xy`)),
         original,
@@ -350,6 +425,17 @@ try {
       const after = await call("state");
       assert.deepEqual(after.batch.raster, before.batch.raster);
       assert.deepEqual(after.batch.entries, before.batch.entries);
+      assert.deepEqual(
+        after.batch.backgroundState,
+        before.batch.backgroundState,
+      );
+      assert.equal(after.batch.normalized, before.batch.normalized);
+      assert.deepEqual(after.batch.sourceBins, before.batch.sourceBins);
+      for (const saved of saves)
+        assert.equal(
+          saved.suggested_name,
+          `${verifyBackground ? "garnet_processed_042" : "scan"}.${saved.format}`,
+        );
       assert.equal(after.batch.selected, before.batch.selected);
       assert.deepEqual(after.state.geometry, before.state.geometry);
       receipts.push({
@@ -362,6 +448,10 @@ try {
         },
         axisPixels: expected.axisPixels,
         frames: after.batch.entries.length,
+        normalized: after.batch.normalized,
+        background: after.batch.backgroundState,
+        sourceBins: after.batch.sourceBins,
+        suggestedName: saves[0].suggested_name,
         errors,
       });
     } finally {

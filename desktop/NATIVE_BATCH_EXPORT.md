@@ -7,6 +7,17 @@ separate Batch window. Explicit paths continue to bypass the chooser. The
 existing HDF5/NXS and CSV writers and their normalization/background metadata
 are retained.
 
+For per-frame formats, the action reads **Choose basename…** and the native
+panel is titled **Choose Batch export basename**. The example explains that the
+chosen template itself is not created; `source_000.xy`, `source_001.xy`, etc.
+are written. Single-file formats retain **Choose file…**. Defaults use the
+explicitly opened processed file's stem (e.g. `garnet_processed_042.nxs` suggests
+`garnet_processed_042.xy`), or the shared raw-series prefix (`scan_001.tif`,
+`scan_002.tif` → `scan`). A lone raw file keeps its stem. Processed naming
+provenance survives HDF5/project persistence; explicitly opening a renamed
+processed file adopts its new stem. Native dialogs use the frontend suggestion
+and reject path components in that suggestion.
+
 ## Numerical ownership and Qt behavior
 
 `backend/src/batch_export.rs` reads the owned `Series` f64 arrays. It does not
@@ -26,7 +37,9 @@ conversion information is an error before publication. CHI retains its four-line
 header. Data rows use 17-place exponential output to preserve f64 values.
 Comment metadata records source path/frame, row, stored/requested/output units,
 wavelength availability, calibration/mask, normalization interval/reference and
-whether errors, azimuthal std and a background are available.
+whether errors, azimuthal std and a background are available. It also records
+the background owner's parameters, extracted parameters, range, unit,
+subtraction/cut flags and stale status.
 
 FXYE uses stored propagated **counting std**, never azimuthal std or
 `sqrt(abs(intensity))`. Missing/nonfinite counting errors reject the export
@@ -48,11 +61,10 @@ files contain current intensities minus that frame's stored background. This
 uses the native series background directly, including normalization, rather than
 Qt's side effect of replacing/fitting the live pattern during export. Stored
 counting errors are retained; fitted-background uncertainty is not estimated.
-Export does not extract or fit backgrounds. The concurrent background feature
-owns fitting, subtraction/cut display flags and its persistence extensions;
-its current implementation retains `Series.data` and supplies normalized
-`Series.background`, matching this boundary. HDF5 continues to call `Series.save`
-so subsequent background persistence fields are preserved by their owner.
+Export does not extract or fit backgrounds. The integrated background feature owns fitting, subtraction/cut display flags
+and its persistence extensions. It retains un-subtracted `Series.data` and
+supplies the current normalized `Series.background`. HDF5 calls `Series.save`
+and preserves the background owner's complete state.
 
 ## Publication and images
 
@@ -62,7 +74,8 @@ prevent clobbering, including concurrent collisions. An error or cancellation
 rolls back files created by that attempt and removes a newly created empty
 background folder. Cleanup failure explicitly lists remaining incomplete output.
 Success returns the complete `savedPaths` list only after final cancellation
-checking. A process crash can leave a subset of files but cannot report a
+checking. The detached window displays the main window's actual export failure
+instead of allowing its generic RPC busy fallback to hide that error. A process crash can leave a subset of files but cannot report a
 successful export; a later attempt refuses those names. Single-file exports
 retain their existing atomic replacement convention.
 
@@ -92,12 +105,12 @@ separate surface feature.
   after the last file; tests assert no completed output. Existing/concurrent
   collisions, nonfinite samples, unavailable angular conversion, missing errors
   and invalid/missing PNG captures cannot return successful saved-file lists.
-- The reconciled processor suite passes 161 tests (one optional performance
+- The reconciled processor suite passes 176 tests (one optional performance
   benchmark ignored), including the seven focused export tests; native Clippy
   passes for all targets with warnings denied.
-- Tauri's 26 headless host tests pass, including native per-format filters,
+- Tauri's 27 headless host tests pass, including native per-format filters,
   suggested extensions, explicit-path bypass and companion-window restrictions.
-- Frontend production build and 85 JavaScript/architecture checks pass.
+- Frontend production build and 86 JavaScript/architecture checks pass.
 - `npm run test:batch-export` uses the real native processor and Chromium/WebKit
   headlessly. It exercises the detached-to-main save route, every format, source
   range, modal Escape/Cancel, chooser cancellation, failed existing-file export,
@@ -110,3 +123,30 @@ separate surface feature.
 Native OS save panels themselves are covered through routing/unit checks here;
 no visible/native test windows were opened. Windows/Linux filesystem and native
 save-panel behavior are not newly qualified by this macOS/headless run.
+
+## Integrated background export verification
+
+The integrated background implementation (`744a7da1`, followed by the source-bin
+alignment fixes) is exercised through actual Rust commands, not manually
+attached background arrays. `backend/tests/batch_export_background.rs` fits the
+independent Qt-reference 2θ and descending-d datasets, normalizes them, and
+enables subtraction and cutting. It tests both normalizing an existing fit and
+extracting again while normalized; Qt fits on the current intensity scale and
+those operation orders are checked against their respective Qt references. It
+independently reads every XY/CHI/DAT/FXYE row, HDF5/NXS datasets and CSV records.
+All 97 source bins are retained in numerical exports. Normalization factors and
+counting errors are checked against the original fixture; fitted backgrounds
+match the independent Qt reference within its qualified tolerance. Per-frame
+subtracted values match the f64 HDF5 background subtraction exactly. No live
+selection, source/cut interval, normalization or background setting changes.
+The same test checks processed-name persistence across an offline project and
+renamed processed-file opening.
+
+`npm run test:batch-background-export` repeats the shared native/headless export
+flow with a stored-only processed file, real extraction, normalization to a
+reference frame and subtraction/cutting enabled. Chromium and WebKit verify
+complete file sets, full numerical matrix dimensions, derived basename payloads,
+unchanged scientific/background state and exact 2D/3D active-view PNG readback.
+The snapshots include the crop, zoom, Viridis and square-root scale; no source
+wavelength is invented. Visually inspected images and receipts are in
+`artifacts/batch-background-export/`. This check also runs in the native UI gate.

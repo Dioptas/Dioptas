@@ -146,6 +146,7 @@
         "desktop/backend/tests/functional_flows.rs#batch_stride_save_reload_missing_raw_and_fresh_reintegration",
         "desktop/backend/src/batch_export.rs#qt_names_units_errors_spread_background_and_f64_readback",
         "desktop/backend/src/batch_export.rs#cancellation_at_every_stage_rolls_back_outputs",
+        "desktop/backend/tests/batch_export_background.rs#integrated_background_normalization_and_cut_export_full_f64_data_without_state_changes",
         "desktop/scripts/batch_export_smoke.mjs"
       ],
       "note": "Native HDF5/NXS/CSV, per-frame XY/CHI/DAT/FXYE, spottiness/background copies and active Batch PNG. Independent f64 file readback, cancellation/collision rollback and Chromium/WebKit image readback. FXYE requires stored counting errors and converts d to 2theta; see NATIVE_BATCH_EXPORT.md for the intentional Qt differences."

@@ -8,6 +8,7 @@
 .batch-export-dialog p {
   color: var(--ui-muted);
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 .batch-export-actions {
   display: flex;

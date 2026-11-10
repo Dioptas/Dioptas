@@ -297,6 +297,9 @@ async fn desktop_invoke(
                 .file()
                 .add_filter(choice.label, choice.extensions)
                 .add_filter("All files", &["*"]);
+            if action == "integration_save_batch" {
+                dialog = dialog.set_title(if batch_export::multifile(&payload) { "Choose Batch export basename" } else { "Save Batch data" });
+            }
             if let Some(directory) = payload["directory"].as_str() {
                 dialog = dialog.set_directory(directory);
             }
@@ -320,7 +323,9 @@ async fn desktop_invoke(
                 return finish_packet(processor.request_packet(&action, payload, cached), &action);
             }
             let selected = if choice.save {
-                let name = if action == "integration_save_image" || action == "integration_phase_export" {
+                let name = if action == "integration_save_batch" {
+                    batch_export::suggested_name(&payload, choice.name)
+                } else if action == "integration_save_image" || action == "integration_phase_export" {
                     payload["suggested_name"].as_str().unwrap_or(choice.name)
                 } else {
                     choice.name

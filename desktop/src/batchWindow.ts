@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { mapWindowChannel, type MapWindowStatus } from "./mapWindowChannel";
 import type { IntegrationRun } from "./integration";
-import { batchWindowUpdate } from "./batchWindowState";
+import { batchWindowUpdate, BATCH_BUSY_MESSAGE } from "./batchWindowState";
 import type { BatchData } from "./batchDomain";
 import type { Response } from "./types";
 
@@ -137,7 +137,7 @@ export function useBatchWindow({
         const { id, command, args, read } = message;
         let result: Response = {
           ok: false,
-          error: "The main window is busy. Try again when processing finishes.",
+          error: BATCH_BUSY_MESSAGE,
         };
         try {
           if (read && reads.has(command))

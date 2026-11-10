@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { DataTable, TableScroll } from "./DataTable";
 import { BatchExport } from "./BatchExport";
+import { batchExportBaseName } from "./batchExportNaming";
 import type { BatchCaptureRef } from "./batchCapture";
 import { BatchHeatmap } from "./BatchHeatmap";
 import { BatchSurfaceView } from "./BatchSurfaceView";
@@ -279,6 +280,7 @@ export function BatchView({
             <ChevronRight size={15} />
           </Button>
           <BatchExport
+            baseName={batchExportBaseName(batch)}
             ready={ready && !!batch}
             unit={shownBatch?.unit}
             capture={

@@ -25,10 +25,36 @@ pub(super) fn file_choice(payload: &Value) -> Choice {
         ),
     }
 }
+pub(super) fn multifile(payload: &Value) -> bool {
+    matches!(
+        payload["format"].as_str(),
+        Some("xy" | "chi" | "dat" | "fxye")
+    )
+}
+pub(super) fn suggested_name<'a>(payload: &'a Value, fallback: &'a str) -> &'a str {
+    payload["suggested_name"]
+        .as_str()
+        .filter(|name| !name.is_empty() && !name.contains(['/', '\\', '\0']))
+        .unwrap_or(fallback)
+}
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
+    #[test]
+    fn basename_dialog_uses_the_source_suggestion_without_path_components() {
+        let payload = json!({"format":"xy","suggested_name":"garnet_processed_042.xy"});
+        assert!(multifile(&payload));
+        assert_eq!(
+            suggested_name(&payload, "batch.xy"),
+            "garnet_processed_042.xy"
+        );
+        assert!(!multifile(&json!({"format":"png"})));
+        assert_eq!(
+            suggested_name(&json!({"suggested_name":"../data.xy"}), "batch.xy"),
+            "batch.xy"
+        );
+    }
     #[test]
     fn native_batch_filters_and_suggested_names() {
         for format in ["csv", "xy", "chi", "dat", "fxye", "png"] {

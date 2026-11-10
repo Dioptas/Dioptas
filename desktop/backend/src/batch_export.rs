@@ -153,11 +153,11 @@ fn export_patterns(
         check(row, total)?;
         let curve = series.profile(row, unit)?;
         let metadata = json!({"series_row":row,"source":series.entries[row].path,
-            "source_frame":series.entries[row].frame,"radial_unit":unit,"requested_radial_unit":requested_unit,"source_radial_unit":series.unit,
+            "source_frame":series.entries[row].frame,"processed_source_stem":series.export_name,"radial_unit":unit,"requested_radial_unit":requested_unit,"source_radial_unit":series.unit,
             "wavelength_m":series.wavelength,"normalized":series.normalized,
             "normalization_bins":series.normalization,"normalization_reference":series.reference,
             "calibration":series.calibration,"mask":series.mask,"background_available":series.background.is_some(),
-            "counting_errors":series.sigma.is_some(),"azimuthal_std":series.spread.is_some()});
+            "background":series.background_metadata(),"counting_errors":series.sigma.is_some(),"azimuthal_std":series.spread.is_some()});
         let mut write = |bytes: Vec<u8>| -> Result<(), String> {
             let p = stage.path().join(staged.len().to_string());
             let mut f = std::fs::File::create(&p).map_err(|e| e.to_string())?;
