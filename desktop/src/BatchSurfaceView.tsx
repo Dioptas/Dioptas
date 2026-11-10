@@ -334,13 +334,6 @@ export function BatchSurfaceView({
         >
           <Equal size={15} />
         </PlotToggle>
-        <span
-          className="batch-surface-sampling"
-          title={`${surfaceResolutions[resolution].label} display detail${interacting ? "; lighter mesh while moving" : ""}. Frame stride ${sampling.frameStep}; radial stride ${sampling.columnStep}. Stored data and exports retain every sample.`}
-        >
-          {sampling.frames.length} × {sampling.columns.length} · step{" "}
-          {sampling.frameStep}
-        </span>
         <Button
           ref={settingsButton}
           className="batch-surface-settings-toggle"
@@ -353,6 +346,13 @@ export function BatchSurfaceView({
         >
           <Settings2 size={15} />
         </Button>
+        <span
+          className="batch-surface-sampling"
+          title={`${surfaceResolutions[resolution].label} display detail${interacting ? "; lighter mesh while moving" : ""}. Frame stride ${sampling.frameStep}; radial stride ${sampling.columnStep}. Stored data and exports retain every sample.`}
+        >
+          {sampling.frames.length} × {sampling.columns.length} · step{" "}
+          {sampling.frameStep}
+        </span>
       </div>
       {settings && (
         <Popover

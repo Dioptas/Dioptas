@@ -357,20 +357,23 @@ try {
         const header = await app
           .locator(".batch-series-toolbar")
           .evaluate((el) => {
-            const buttons = [...el.querySelectorAll("button")];
             return {
-              last: buttons.at(-1).getAttribute("aria-label"),
+              optionsNext: el
+                .querySelector('[aria-label="Options"]')
+                .nextElementSibling?.getAttribute("aria-label"),
               phases: el
                 .querySelector('[aria-label="Show batch phases"]')
                 .textContent.trim(),
             };
           });
-        assert.equal(header.last, "Options");
+        assert.equal(header.optionsNext, "Collapse batch overview");
         assert.equal(header.phases, "");
-        const surfaceOrder = await app
-          .locator(".batch-surface-toolbar button")
-          .evaluateAll((buttons) => buttons.at(-1).getAttribute("aria-label"));
-        assert.equal(surfaceOrder, "Surface ranges and proportions");
+        const surfaceSettings = await app
+          .getByRole("button", { name: "Normalize batch surface", exact: true })
+          .evaluate((button) =>
+            button.nextElementSibling?.getAttribute("aria-label"),
+          );
+        assert.equal(surfaceSettings, "Surface ranges and proportions");
         await app.mouse.move(2, 2);
         await app.waitForTimeout(150);
         const styles = await app.evaluate(() => {

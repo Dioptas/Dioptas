@@ -351,6 +351,18 @@ export function BatchView({
           />
         )}
         <div className="batch-window-actions">
+          <Button
+            className="batch-options-toggle"
+            aria-label="Options"
+            title="Batch options"
+            aria-pressed={tab === "Options"}
+            disabled={!batch}
+            onClick={() =>
+              setTab(tab === "Options" ? previousTab.current : "Options")
+            }
+          >
+            <Settings2 size={15} />
+          </Button>
           {onCollapse && (
             <Button
               aria-label={
@@ -389,18 +401,6 @@ export function BatchView({
               <X size={15} />
             </Button>
           )}
-          <Button
-            className="batch-options-toggle"
-            aria-label="Options"
-            title="Batch options"
-            aria-pressed={tab === "Options"}
-            disabled={!batch}
-            onClick={() =>
-              setTab(tab === "Options" ? previousTab.current : "Options")
-            }
-          >
-            <Settings2 size={15} />
-          </Button>
         </div>
       </header>
       <div className="batch-qt-content" hidden={collapsed || tab === "Options"}>

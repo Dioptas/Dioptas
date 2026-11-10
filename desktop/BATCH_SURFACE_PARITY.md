@@ -185,8 +185,8 @@ clear a pending secondary click so they cannot accidentally trigger a reset.
 
 Surface orientation/normalization/settings controls now share the same quiet,
 transparent style as the 2θ/Q/d controls, including selected and hover states.
-The surface settings gear is the last control at the right of its row; Batch
-Options is a separate, rightmost header button that toggles back to the previous
+The surface settings gear sits immediately after Normalize; Batch
+Options sits just before Collapse in the window-action group and toggles back to the previous
 Files/2D/3D view. The Phases icon has no visible caption at any width, while
 retaining its accessible name and tooltip. Header controls remain inline.
 
