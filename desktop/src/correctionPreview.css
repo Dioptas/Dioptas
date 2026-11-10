@@ -1,7 +1,8 @@
 .detector-panel:has(> .correction-preview) {
   position: relative;
 }
-.detector-panel:has(> .correction-preview) > .detector-workspace {
+.detector-panel:has(> .correction-preview)
+  > :is(.detector-workspace, .detector-surface) {
   visibility: hidden;
   pointer-events: none;
 }
