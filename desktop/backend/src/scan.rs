@@ -132,6 +132,7 @@ impl Scan {
         // Qt Map consumes Batch data, not its separately extracted background.
         series.background = None;
         series.raw_background = None;
+        series.batch_background = Default::default();
         let dims = dimensions(series.count());
         let dimension = dims[0];
         let analysis = Self::analysis(

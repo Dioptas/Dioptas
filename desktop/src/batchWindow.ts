@@ -27,6 +27,9 @@ const edits = new Set([
   "batch_select",
   "batch_waterfall",
   "batch_normalize",
+  "batch_background_settings",
+  "batch_background_extract",
+  "batch_background_display",
   "integration_save_batch",
 ]);
 export function useBatchWindow({

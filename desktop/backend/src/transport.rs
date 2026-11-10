@@ -272,6 +272,7 @@ fn controlled(action: &str) -> bool {
             | "integration_phase"
             | "batch_load"
             | "batch_load_data"
+            | "batch_background_extract"
             | "batch_folder"
             | "integration_batch"
             | "batch_folder_step"

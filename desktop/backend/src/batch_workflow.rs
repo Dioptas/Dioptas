@@ -508,7 +508,7 @@ impl Session {
                 self.phases
                     .lines("d_A", self.settings.geometry.wavelength * 1e10),
             );
-            reply.buffers.push(b.raster.buffer.clone());
+            reply.buffers.push(b.background_raster().buffer.clone());
         } else {
             reply.result["batch"] = Value::Null;
         }
@@ -741,9 +741,20 @@ impl Session {
                     .batch
                     .as_mut()
                     .ok_or("Load and integrate batch images first.")?;
+                let converted;
+                let args = if args.get("minimum").is_some() || args.get("maximum").is_some() {
+                    converted = super::batch_background_commands::normalization_bins(b, args)?;
+                    &converted
+                } else {
+                    args
+                };
                 let zero = action == "batch_normalization_settings";
                 let start = args.get("start").map_or(
-                    Ok(if zero { b.normalization[0] } else { 1 }),
+                    Ok(if zero {
+                        b.normalization[0]
+                    } else {
+                        b.normalization[0] + 1
+                    }),
                     |v| {
                         integer(
                             v,
@@ -757,7 +768,7 @@ impl Session {
                     Ok(if zero {
                         b.normalization[1] - 1
                     } else {
-                        b.x.len()
+                        b.normalization[1]
                     }),
                     |v| {
                         integer(
@@ -768,17 +779,17 @@ impl Session {
                         )
                     },
                 )? + usize::from(zero);
-                let reference =
-                    args.get("reference")
-                        .map_or(Ok(if zero { b.reference } else { 1 }), |v| {
-                            integer(
-                                v,
-                                "Reference frame",
-                                if zero { 0 } else { 1 },
-                                b.count() - usize::from(zero),
-                            )
-                        })?
-                        - usize::from(!zero);
+                let reference = args.get("reference").map_or(
+                    Ok(if zero { b.reference } else { b.reference + 1 }),
+                    |v| {
+                        integer(
+                            v,
+                            "Reference frame",
+                            if zero { 0 } else { 1 },
+                            b.count() - usize::from(zero),
+                        )
+                    },
+                )? - usize::from(!zero);
                 let enabled = if zero {
                     b.normalized
                 } else {
@@ -794,10 +805,15 @@ impl Session {
                 self.attach_batch(&mut reply);
                 return Ok(Some(reply));
             }
+            "batch_background_settings"
+            | "batch_background_extract"
+            | "batch_background_display" => {
+                return self.batch_background_command(action, args).map(Some);
+            }
             "batch_levels" => {
                 let b = self.batch.as_ref().ok_or("Load a series first.")?;
                 return Ok(Some(Reply::metadata(
-                    json!({"ok":true,"batchLevels":series_levels(&b.data,[b.count(),b.x.len()],args)?}),
+                    json!({"ok":true,"batchLevels":series_levels(b.background_data(),[b.count(),b.background_bins()[1]-b.background_bins()[0]],args)?}),
                 )));
             }
             "batch_folder_step" => {

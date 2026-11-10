@@ -14,6 +14,8 @@ export interface BatchData {
   selected: number;
   total: number;
   canReintegrate: boolean;
+  backgroundState?: import("./BatchBackgroundControls").BatchBackgroundState;
+  sourceBins?: [number, number];
   normalized: boolean;
   normalizationRange: [number, number];
   normalizationReference: number;

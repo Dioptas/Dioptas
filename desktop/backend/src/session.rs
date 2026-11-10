@@ -10,6 +10,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 #[path = "batch_export.rs"]
 mod batch_export;
+#[path = "batch_background_commands.rs"]
+mod batch_background_commands;
 #[path = "batch_workflow.rs"]
 mod batch_workflow;
 #[path = "calibration.rs"]

@@ -483,6 +483,7 @@ fn load_react_batch(g: &hdf5::Group) -> Result<Series, String> {
         }
         s.normalize(true, range, reference)?;
     }
+    s.restore_batch_background(&meta["batch_background"])?;
     Ok(s)
 }
 pub(super) fn save_active_extensions(s: &Session, file: &hdf5::File) -> Result<(), String> {
@@ -551,7 +552,7 @@ pub(super) fn save_active_extensions(s: &Session, file: &hdf5::File) -> Result<(
         }
         write_array(&g, "file_map", &[map.len()], &map)?;
         let meta = json!({"unit":b.unit,"wavelength":b.wavelength,"selected":b.selected,"total":b.total,"raw":b.entries.iter().any(|e|Path::new(&e.path).is_file()),
-            "calibration":b.calibration,"mask":b.mask,"mask_shape":s.image.as_ref().map(|i|i.shape),"normalized":b.normalized,"normalization_range":b.normalization,"normalization_reference":b.reference});
+            "calibration":b.calibration,"mask":b.mask,"mask_shape":s.image.as_ref().map(|i|i.shape),"normalized":b.normalized,"normalization_range":b.normalization,"normalization_reference":b.reference,"batch_background":b.batch_background});
         write_text_attr(&g, "metadata", &meta.to_string())?;
         if b.normalized {
             let source = g.create_group("normalization_source").native()?;

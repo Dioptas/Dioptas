@@ -26,6 +26,7 @@ import {
   useBatchWaterfall,
 } from "./BatchWaterfallControls";
 import { BatchControls } from "./BatchControls";
+import { BatchBackgroundDisplay } from "./BatchBackgroundControls";
 import { PlotToggle } from "./IntegrationPlotControls";
 import { ImageIntensity } from "./ImageIntensity";
 import { useImageDisplayPreferences } from "./useImageDisplayPreferences";
@@ -536,6 +537,7 @@ export function BatchView({
                     />
                   )}
                 </div>
+                <BatchBackgroundDisplay batch={batch} ready={ready} run={run} />
               </div>
               {!linkedDisplay && plotOptions}
             </div>

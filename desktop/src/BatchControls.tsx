@@ -1,4 +1,5 @@
 import { Button, Input } from "./ui";
+import { BatchBackgroundControls } from "./BatchBackgroundControls";
 import { useEffect, useId, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ScientificNumberInput } from "./ScientificNumberInput";
@@ -292,6 +293,7 @@ export function BatchControls({
     >
       {optionsVisible ? (
         <div className="batch-settings-content">
+          <BatchBackgroundControls batch={batch} ready={ready} run={run} />
           {normalization}
           <fieldset className="batch-frame-settings">
             <legend>Frame range</legend>

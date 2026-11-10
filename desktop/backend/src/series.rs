@@ -19,6 +19,7 @@ pub(crate) struct Series {
     pub raw_spread: Option<Arc<Vec<f64>>>,
     pub background: Option<Arc<Vec<f64>>>,
     pub raw_background: Option<Arc<Vec<f64>>>,
+    pub batch_background: crate::batch_background::State,
     pub unit: String,
     pub wavelength: Option<f64>,
     pub entries: Arc<Vec<Entry>>,
@@ -183,6 +184,7 @@ impl Series {
             raw_spread: None,
             background: None,
             raw_background: None,
+            batch_background: Default::default(),
         })
     }
     pub fn count(&self) -> usize {
@@ -305,6 +307,7 @@ impl Series {
         self.normalized = enabled;
         self.normalization = range;
         self.reference = reference;
+        self.refresh_batch_background()?;
         Ok(())
     }
     pub fn metadata(&self, unit: &str, phases: Value) -> Value {
@@ -320,8 +323,8 @@ impl Series {
             .profile(self.selected, unit)
             .or_else(|_| self.profile(self.selected, &self.unit))
             .unwrap();
-        let files:Vec<_>=self.paths.iter().enumerate().map(|(i,p)|json!({"path":p,"name":Path::new(p).file_name().unwrap_or_default().to_string_lossy(),"frames":self.file_counts.get(i).copied().unwrap_or_else(||self.entries.iter().filter(|e|e.path==*p).count()),"first":self.entries.iter().position(|e|e.path==*p)})).collect();
-        json!({"id":self.raster.buffer.id,"waterfallKey":crate::batch_waterfall::identity(self),"raster":self.raster.metadata,"x":curve.x,"wavelength":self.wavelength,"unit":unit,"sourceUnit":self.unit,"entries":self.entries.iter().map(|e|json!({"path":e.path,"name":if e.path.is_empty(){"Stored pattern".into()}else{Path::new(&e.path).file_name().unwrap_or_default().to_string_lossy()},"frame":e.frame+1})).collect::<Vec<_>>(),"files":files,"pattern":{"x":curve.x,"y":curve.y,"sigma":curve.sigma,"unit":unit},"selected":self.selected,"total":self.total,"canReintegrate":self.paths.iter().any(|p|!p.is_empty()&&Path::new(p).is_file()),"normalized":self.normalized,"normalizationRange":self.normalization,"normalizationReference":self.reference,"calibration":self.calibration,"mask":self.mask,"phaseLines":phases,"position":null})
+        let files:Vec<_>=self.paths.iter().enumerate().filter(|(_,p)|!p.is_empty()).map(|(i,p)|json!({"path":p,"name":Path::new(p).file_name().unwrap_or_default().to_string_lossy(),"frames":self.file_counts.get(i).copied().unwrap_or_else(||self.entries.iter().filter(|e|e.path==*p).count()),"first":self.entries.iter().position(|e|e.path==*p)})).collect();
+        json!({"id":self.background_raster().buffer.id,"waterfallKey":crate::batch_waterfall::identity(self),"raster":self.background_raster().metadata,"backgroundState":self.background_metadata(),"sourceBins":self.background_bins(),"x":&curve.x[self.background_bins()[0]..self.background_bins()[1]],"wavelength":self.wavelength,"unit":unit,"sourceUnit":self.unit,"entries":self.entries.iter().map(|e|json!({"path":e.path,"name":if e.path.is_empty(){"Stored pattern".into()}else{Path::new(&e.path).file_name().unwrap_or_default().to_string_lossy()},"frame":e.frame+1})).collect::<Vec<_>>(),"files":files,"pattern":{"x":curve.x,"y":curve.y,"sigma":curve.sigma,"unit":unit},"selected":self.selected,"total":self.total,"canReintegrate":self.paths.iter().any(|p|!p.is_empty()&&Path::new(p).is_file()),"normalized":self.normalized,"normalizationRange":self.normalization,"normalizationReference":self.reference,"normalizationReferenceName":self.entries.get(self.reference).map(|e|if e.path.is_empty(){format!("Stored pattern · frame {}", self.reference+1)}else{Path::new(&e.path).file_name().unwrap_or_default().to_string_lossy().into_owned()}),"normalizationRegion":{"minimum":self.x[self.normalization[0]].min(self.x[self.normalization[1]-1]),"maximum":self.x[self.normalization[0]].max(self.x[self.normalization[1]-1]),"unit":self.unit},"calibration":self.calibration,"mask":self.mask,"phaseLines":phases,"position":null})
     }
     pub fn save(&self, path: &Path) -> Result<(), String> {
         let mut temp = tempfile::NamedTempFile::new_in(path.parent().unwrap_or(Path::new(".")))
@@ -486,7 +489,7 @@ impl Series {
                     .and_then(|a| a.write_scalar(&w))
                     .map_err(|e| e.to_string())?;
             }
-            let metadata = json!({"entries":self.entries,"paths":paths,"file_counts":self.file_counts,"total":self.total,"selected":self.selected,"normalization":self.normalization,"reference":self.reference,"normalized":self.normalized});
+            let metadata = json!({"entries":self.entries,"paths":paths,"file_counts":self.file_counts,"total":self.total,"selected":self.selected,"normalization":self.normalization,"reference":self.reference,"normalized":self.normalized,"batch_background":self.batch_background});
             let meta = serde_json::to_vec(&metadata).map_err(|e| e.to_string())?;
             result
                 .new_dataset_builder()
@@ -685,6 +688,20 @@ impl Series {
                 }
                 s.selected = selected as usize;
             }
+            if let Some(range) = v.get("normalization") {
+                s.normalization =
+                    serde_json::from_value(range.clone()).map_err(|e| e.to_string())?;
+                s.reference = v["reference"]
+                    .as_u64()
+                    .ok_or("Invalid normalization reference.")?
+                    as usize;
+                if s.normalization[0] >= s.normalization[1]
+                    || s.normalization[1] > s.x.len()
+                    || s.reference >= s.count()
+                {
+                    return Err("Invalid stored normalization.".into());
+                }
+            }
             if v["normalized"] == true {
                 let original = group
                     .dataset("desktop_original")
@@ -731,6 +748,7 @@ impl Series {
                     ));
                 }
             }
+            s.restore_batch_background(&v["batch_background"])?;
         }
         Ok(s)
     }

@@ -1,0 +1,39 @@
+.batch-background-settings {
+  border: 0;
+  margin: 0;
+  padding: 4px 0 12px;
+  min-width: 0;
+  width: 100%;
+  max-width: 420px;
+}
+.batch-background-settings legend {
+  font-weight: 600;
+}
+.batch-background-settings p {
+  font-size: var(--text-meta);
+  color: var(--ui-muted);
+  margin: 6px 0;
+}
+.batch-background-settings label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 6px 0;
+}
+.batch-background-settings .scientific-number-input {
+  width: 120px;
+}
+.batch-background-display,
+.batch-background-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.batch-background-display {
+  flex: 0 0 auto;
+  padding: 4px 0;
+}
+.batch-background-display button[aria-pressed="true"] {
+  color: var(--accent);
+}

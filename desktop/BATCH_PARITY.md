@@ -2,6 +2,10 @@
 
 The native Batch Save workflow now includes per-frame XY/CHI/DAT/FXYE and active-view PNG, alongside HDF5/NXS and CSV; see [native Batch export](NATIVE_BATCH_EXPORT.md) for numerical ownership, error handling, Qt differences and verification.
 
+For the current Rust background extraction, reversible overview subtraction and
+range-cutting workflow, see [native Batch backgrounds](BATCH_BACKGROUND_NATIVE.md).
+The older Python runtime and remaining-scope descriptions below are historical.
+
 The opt-in Rust implementation has a separate [native qualification ledger](NATIVE_INTEGRATION_PARITY.md), including the integration, phase and Batch/Map migration. The Python/Qt behavior and historical checks below remain reference evidence.
 
 Batch starts from Qt's `dioptas/widgets/integration/BatchWidget.py` and its

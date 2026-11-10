@@ -811,7 +811,7 @@ impl Patterns {
         });
     }
 }
-fn chebyshev(x: &[f64], y: &[f64], degree: usize) -> Result<Vec<f64>, String> {
+pub(crate) fn chebyshev(x: &[f64], y: &[f64], degree: usize) -> Result<Vec<f64>, String> {
     let terms = degree + 1;
     if x.len()
         .checked_mul(terms)
@@ -823,8 +823,8 @@ fn chebyshev(x: &[f64], y: &[f64], degree: usize) -> Result<Vec<f64>, String> {
         );
     }
     let extent = x[x.len() - 1] - x[0];
-    if extent <= 0.0 {
-        return Err("Background fit needs increasing, distinct coordinates.".into());
+    if extent == 0.0 || !extent.is_finite() {
+        return Err("Background fit needs distinct, finite endpoints.".into());
     }
     let mut matrix = DMatrix::zeros(x.len(), terms);
     for (i, &v) in x.iter().enumerate() {

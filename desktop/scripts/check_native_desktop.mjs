@@ -84,6 +84,7 @@ if (selected.has("--ui")) {
     "batch_waterfall_smoke",
     "batch_surface_smoke",
     "batch_export_smoke",
+    "batch_background_smoke",
     "native_corrections_smoke",
     "native_project_smoke",
     "native_geometry_mask_smoke",
@@ -101,6 +102,7 @@ if (selected.has("--ui")) {
     "scripts/native_mask_transport.test.mjs",
     "scripts/native_geometry_mask_transport.test.mjs",
     "scripts/native_lacosmic_transport.test.mjs",
+    "scripts/batch_background_transport.test.mjs",
   ]);
 }
 if (selected.has("--references")) {

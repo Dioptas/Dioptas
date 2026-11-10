@@ -368,3 +368,11 @@ polygon/subpixel 1D execution layout. Forced CSC retains its original arithmetic
 ordinary CSR can differ by floating-point reduction order. Automatic uses a broad size/bin estimate for
 resident frames, leaving streamed/parallel workers on
 CSC. See [the matched detector/bin study](INTEGRATION_LAYOUT_CROSSOVER.md).
+
+## Batch backgrounds (November 10, 2026)
+
+Native per-series Smooth Bruckner/Chebyshev extraction, original/subtracted
+overview display and source-axis range cutting are now qualified independently
+against Qt. Source intensities, normalization, counting std, Map ownership and
+project/configuration state remain separate. See [native Batch backgrounds](BATCH_BACKGROUND_NATIVE.md)
+for the numerical references, progress/cancellation, headless checks and bounds.
