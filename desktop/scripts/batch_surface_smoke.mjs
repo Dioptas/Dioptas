@@ -131,7 +131,16 @@ try {
         { steps: 4 },
       );
       await page.mouse.up();
-      assert.notEqual(await surface.getAttribute("data-azimuth"), "45");
+      assert.equal(await surface.getAttribute("data-azimuth"), "25");
+      assert.equal(await surface.getAttribute("data-elevation"), "45");
+      // Qt orbit(-dx, dy): dragging back reverses the rotation in both axes.
+      await page.mouse.down();
+      await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height / 2, {
+        steps: 4,
+      });
+      await page.mouse.up();
+      assert.equal(await surface.getAttribute("data-azimuth"), "45");
+      assert.equal(await surface.getAttribute("data-elevation"), "30");
       await surface.focus();
       await surface.press("f");
       assert.equal(await surface.getAttribute("data-zoom"), "1");

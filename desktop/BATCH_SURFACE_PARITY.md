@@ -19,6 +19,8 @@ application commit `5aff6fdf`.
   Isometric: 45°, 30°. Qt's axes are frame/radial/intensity. Camera and axis
   proportions persist across tabs, docking and display-buffer replacement.
 - Left drag rotates; right drag pans; wheel zooms without scrolling the shell.
+  Rightward drag decreases azimuth, and downward drag increases elevation,
+  following Qt's orbit direction.
   Right click zooms out; right double click or F fits. R/T/I select Right/Top/Iso.
   The Front button remains available because desktop F consistently means Fit.
   Axis proportions and physical radial bounds are available under the adjacent

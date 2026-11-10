@@ -403,7 +403,7 @@ export function BatchSurfaceView({
                         }
                       : {
                           ...d.camera,
-                          azimuth: d.camera.azimuth + dx * 0.5,
+                          azimuth: d.camera.azimuth - dx * 0.5,
                           elevation: clamp(
                             d.camera.elevation + dy * 0.5,
                             -89,
