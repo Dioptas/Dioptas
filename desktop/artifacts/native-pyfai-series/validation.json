@@ -1,0 +1,16 @@
+{
+  "rustTestsPassed": 182,
+  "strictClippy": true,
+  "numericalScenarios": 18,
+  "numericalViews": [
+    "batch",
+    "map"
+  ],
+  "multiSource": true,
+  "stride": true,
+  "transportTestsPassed": 9,
+  "headlessBrowsers": [
+    "chromium",
+    "webkit"
+  ]
+}

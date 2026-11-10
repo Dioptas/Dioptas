@@ -1,0 +1,386 @@
+{
+  "devicePixelRatio": 2,
+  "errors": [],
+  "loading": [
+    {
+      "calibrationToPaintMs": 1387,
+      "image": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.h5",
+      "openToPaintMs": 345
+    }
+  ],
+  "ok": true,
+  "processingPid": 54841,
+  "reports": [],
+  "scope": "Actual React App Batch load action in Tauri WKWebView, production binary IPC, GUI processing and GPU renderers; complete command through GPU completion and paint opportunities; excludes OS file picker and initial image/calibration setup; physical LCD scanout unmeasured",
+  "series": [
+    {
+      "bins": 2000,
+      "diagnosticsDelta": {
+        "cakeIntegrations": 0,
+        "cakePlanBuilds": 0,
+        "combinedDecodes": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "frameParallelIntegrations": 625,
+        "lastPixelDecodeMs": -17.637,
+        "parallelPixelDecodes": 1,
+        "patternOnlyDecodes": 0,
+        "patternPlanBuilds": 0,
+        "preparedHits": 0,
+        "processedFrameIntegrations": 625,
+        "residentIntegrations": 1,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0,
+        "seriesPendingPeak": 5,
+        "seriesPipelineRuns": 1,
+        "seriesWorkerStarts": 8
+      },
+      "fps": 112.34945173467554,
+      "frames": 625,
+      "method": "pyfai_full",
+      "nativeIpcSeconds": 5.438,
+      "pass": "first",
+      "poisson": false,
+      "preset": "method-no-errors",
+      "progress": [
+        "Integrating series 8 / 625 \u00b7 71.5 images/sCancel processing",
+        "Integrating series 26 / 625 \u00b7 85.9 images/sCancel processing",
+        "Integrating series 38 / 625 \u00b7 86.0 images/sCancel processing",
+        "Integrating series 55 / 625 \u00b7 90.7 images/sCancel processing",
+        "Integrating series 74 / 625 \u00b7 98.2 images/sCancel processing",
+        "Integrating series 85 / 625 \u00b7 95.0 images/sCancel processing",
+        "Integrating series 98 / 625 \u00b7 93.2 images/sCancel processing",
+        "Integrating series 114 / 625 \u00b7 94.0 images/sCancel processing",
+        "Integrating series 131 / 625 \u00b7 96.8 images/sCancel processing",
+        "Integrating series 147 / 625 \u00b7 97.3 images/sCancel processing",
+        "Integrating series 162 / 625 \u00b7 99.6 images/sCancel processing",
+        "Integrating series 179 / 625 \u00b7 98.3 images/sCancel processing",
+        "Integrating series 201 / 625 \u00b7 102.0 images/sCancel processing",
+        "Integrating series 218 / 625 \u00b7 103.8 images/sCancel processing",
+        "Integrating series 234 / 625 \u00b7 104.3 images/sCancel processing",
+        "Integrating series 256 / 625 \u00b7 105.8 images/sCancel processing",
+        "Integrating series 274 / 625 \u00b7 106.8 images/sCancel processing",
+        "Integrating series 291 / 625 \u00b7 106.7 images/sCancel processing",
+        "Integrating series 313 / 625 \u00b7 109.1 images/sCancel processing",
+        "Integrating series 330 / 625 \u00b7 109.6 images/sCancel processing",
+        "Integrating series 351 / 625 \u00b7 110.1 images/sCancel processing",
+        "Integrating series 369 / 625 \u00b7 110.8 images/sCancel processing",
+        "Integrating series 386 / 625 \u00b7 111.1 images/sCancel processing",
+        "Integrating series 407 / 625 \u00b7 111.8 images/sCancel processing",
+        "Integrating series 426 / 625 \u00b7 112.4 images/sCancel processing",
+        "Integrating series 445 / 625 \u00b7 112.8 images/sCancel processing",
+        "Integrating series 466 / 625 \u00b7 113.8 images/sCancel processing",
+        "Integrating series 482 / 625 \u00b7 114.1 images/sCancel processing",
+        "Integrating series 503 / 625 \u00b7 114.1 images/sCancel processing",
+        "Integrating series 522 / 625 \u00b7 114.6 images/sCancel processing",
+        "Integrating series 538 / 625 \u00b7 115.1 images/sCancel processing",
+        "Integrating series 562 / 625 \u00b7 115.6 images/sCancel processing",
+        "Integrating series 578 / 625 \u00b7 115.9 images/sCancel processing",
+        "Integrating series 599 / 625 \u00b7 116.0 images/sCancel processing",
+        "Integrating series 618 / 625 \u00b7 116.4 images/sCancel processing"
+      ],
+      "seconds": 5.563,
+      "view": "batch"
+    },
+    {
+      "bins": 2000,
+      "diagnosticsDelta": {
+        "cakeIntegrations": 0,
+        "cakePlanBuilds": 0,
+        "combinedDecodes": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "frameParallelIntegrations": 625,
+        "lastPixelDecodeMs": 0.6295409999999997,
+        "parallelPixelDecodes": 1,
+        "patternOnlyDecodes": 0,
+        "patternPlanBuilds": 0,
+        "preparedHits": 0,
+        "processedFrameIntegrations": 625,
+        "residentIntegrations": 1,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0,
+        "seriesPendingPeak": 0,
+        "seriesPipelineRuns": 1,
+        "seriesWorkerStarts": 8
+      },
+      "fps": 119.86958189489836,
+      "frames": 625,
+      "method": "pyfai_full",
+      "nativeIpcSeconds": 5.165000000000002,
+      "pass": "warm",
+      "poisson": false,
+      "preset": "method-no-errors",
+      "progress": [
+        "Integrating series 8 / 625 \u00b7 54.8 images/sCancel processing",
+        "Integrating series 18 / 625 \u00b7 61.0 images/sCancel processing",
+        "Integrating series 35 / 625 \u00b7 77.2 images/sCancel processing",
+        "Integrating series 55 / 625 \u00b7 90.7 images/sCancel processing",
+        "Integrating series 74 / 625 \u00b7 100.2 images/sCancel processing",
+        "Integrating series 94 / 625 \u00b7 104.8 images/sCancel processing",
+        "Integrating series 114 / 625 \u00b7 109.1 images/sCancel processing",
+        "Integrating series 134 / 625 \u00b7 112.0 images/sCancel processing",
+        "Integrating series 154 / 625 \u00b7 113.4 images/sCancel processing",
+        "Integrating series 175 / 625 \u00b7 115.2 images/sCancel processing",
+        "Integrating series 194 / 625 \u00b7 117.0 images/sCancel processing",
+        "Integrating series 213 / 625 \u00b7 117.4 images/sCancel processing",
+        "Integrating series 233 / 625 \u00b7 118.7 images/sCancel processing",
+        "Integrating series 253 / 625 \u00b7 119.0 images/sCancel processing",
+        "Integrating series 273 / 625 \u00b7 120.4 images/sCancel processing",
+        "Integrating series 292 / 625 \u00b7 120.1 images/sCancel processing",
+        "Integrating series 313 / 625 \u00b7 121.6 images/sCancel processing",
+        "Integrating series 330 / 625 \u00b7 121.1 images/sCancel processing",
+        "Integrating series 341 / 625 \u00b7 117.9 images/sCancel processing",
+        "Integrating series 352 / 625 \u00b7 116.7 images/sCancel processing",
+        "Integrating series 373 / 625 \u00b7 117.2 images/sCancel processing",
+        "Integrating series 392 / 625 \u00b7 117.6 images/sCancel processing",
+        "Integrating series 414 / 625 \u00b7 118.5 images/sCancel processing",
+        "Integrating series 432 / 625 \u00b7 118.8 images/sCancel processing",
+        "Integrating series 455 / 625 \u00b7 119.8 images/sCancel processing",
+        "Integrating series 473 / 625 \u00b7 119.8 images/sCancel processing",
+        "Integrating series 495 / 625 \u00b7 120.8 images/sCancel processing",
+        "Integrating series 513 / 625 \u00b7 120.8 images/sCancel processing",
+        "Integrating series 535 / 625 \u00b7 121.7 images/sCancel processing",
+        "Integrating series 553 / 625 \u00b7 121.5 images/sCancel processing",
+        "Integrating series 575 / 625 \u00b7 122.6 images/sCancel processing",
+        "Integrating series 595 / 625 \u00b7 122.4 images/sCancel processing",
+        "Integrating series 615 / 625 \u00b7 123.2 images/sCancel processing"
+      ],
+      "seconds": 5.214,
+      "view": "batch"
+    },
+    {
+      "bins": 2000,
+      "diagnosticsDelta": {
+        "cakeIntegrations": 0,
+        "cakePlanBuilds": 0,
+        "combinedDecodes": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "frameParallelIntegrations": 625,
+        "lastPixelDecodeMs": 1.0502089999999995,
+        "parallelPixelDecodes": 1,
+        "patternOnlyDecodes": 0,
+        "patternPlanBuilds": 0,
+        "preparedHits": 0,
+        "processedFrameIntegrations": 625,
+        "residentIntegrations": 1,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0,
+        "seriesPendingPeak": 2,
+        "seriesPipelineRuns": 1,
+        "seriesWorkerStarts": 8
+      },
+      "fps": 124.87512487512478,
+      "frames": 625,
+      "method": "pyfai_full",
+      "nativeIpcSeconds": 4.953,
+      "pass": "first",
+      "poisson": true,
+      "preset": "method-poisson",
+      "progress": [
+        "Integrating series 8 / 625 \u00b7 63.1 images/sCancel processing",
+        "Integrating series 24 / 625 \u00b7 85.8 images/sCancel processing",
+        "Integrating series 42 / 625 \u00b7 93.8 images/sCancel processing",
+        "Integrating series 64 / 625 \u00b7 108.7 images/sCancel processing",
+        "Integrating series 83 / 625 \u00b7 109.6 images/sCancel processing",
+        "Integrating series 104 / 625 \u00b7 116.2 images/sCancel processing",
+        "Integrating series 121 / 625 \u00b7 115.5 images/sCancel processing",
+        "Integrating series 142 / 625 \u00b7 116.8 images/sCancel processing",
+        "Integrating series 161 / 625 \u00b7 119.4 images/sCancel processing",
+        "Integrating series 181 / 625 \u00b7 119.8 images/sCancel processing",
+        "Integrating series 203 / 625 \u00b7 121.5 images/sCancel processing",
+        "Integrating series 225 / 625 \u00b7 123.4 images/sCancel processing",
+        "Integrating series 243 / 625 \u00b7 123.5 images/sCancel processing",
+        "Integrating series 265 / 625 \u00b7 124.5 images/sCancel processing",
+        "Integrating series 284 / 625 \u00b7 124.8 images/sCancel processing",
+        "Integrating series 303 / 625 \u00b7 124.8 images/sCancel processing",
+        "Integrating series 324 / 625 \u00b7 125.8 images/sCancel processing",
+        "Integrating series 342 / 625 \u00b7 125.4 images/sCancel processing",
+        "Integrating series 364 / 625 \u00b7 126.2 images/sCancel processing",
+        "Integrating series 382 / 625 \u00b7 126.1 images/sCancel processing",
+        "Integrating series 405 / 625 \u00b7 127.0 images/sCancel processing",
+        "Integrating series 424 / 625 \u00b7 127.0 images/sCancel processing",
+        "Integrating series 445 / 625 \u00b7 127.3 images/sCancel processing",
+        "Integrating series 466 / 625 \u00b7 127.7 images/sCancel processing",
+        "Integrating series 486 / 625 \u00b7 128.0 images/sCancel processing",
+        "Integrating series 506 / 625 \u00b7 128.1 images/sCancel processing",
+        "Integrating series 525 / 625 \u00b7 128.0 images/sCancel processing",
+        "Integrating series 543 / 625 \u00b7 127.6 images/sCancel processing",
+        "Integrating series 564 / 625 \u00b7 128.4 images/sCancel processing",
+        "Integrating series 583 / 625 \u00b7 127.9 images/sCancel processing",
+        "Integrating series 604 / 625 \u00b7 128.5 images/sCancel processing",
+        "Integrating series 623 / 625 \u00b7 128.1 images/sCancel processing"
+      ],
+      "seconds": 5.0050000000000034,
+      "view": "batch"
+    },
+    {
+      "bins": 2000,
+      "diagnosticsDelta": {
+        "cakeIntegrations": 0,
+        "cakePlanBuilds": 0,
+        "combinedDecodes": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "frameParallelIntegrations": 625,
+        "lastPixelDecodeMs": 2.8733330000000006,
+        "parallelPixelDecodes": 1,
+        "patternOnlyDecodes": 0,
+        "patternPlanBuilds": 0,
+        "preparedHits": 0,
+        "processedFrameIntegrations": 625,
+        "residentIntegrations": 1,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0,
+        "seriesPendingPeak": 0,
+        "seriesPipelineRuns": 1,
+        "seriesWorkerStarts": 8
+      },
+      "fps": 115.24986170016597,
+      "frames": 625,
+      "method": "pyfai_full",
+      "nativeIpcSeconds": 5.374,
+      "pass": "warm",
+      "poisson": true,
+      "preset": "method-poisson",
+      "progress": [
+        "Integrating series 8 / 625 \u00b7 58.3 images/sCancel processing",
+        "Integrating series 17 / 625 \u00b7 61.2 images/sCancel processing",
+        "Integrating series 40 / 625 \u00b7 87.6 images/sCancel processing",
+        "Integrating series 55 / 625 \u00b7 91.0 images/sCancel processing",
+        "Integrating series 73 / 625 \u00b7 97.0 images/sCancel processing",
+        "Integrating series 89 / 625 \u00b7 98.0 images/sCancel processing",
+        "Integrating series 97 / 625 \u00b7 95.3 images/sCancel processing",
+        "Integrating series 117 / 625 \u00b7 97.0 images/sCancel processing",
+        "Integrating series 132 / 625 \u00b7 97.1 images/sCancel processing",
+        "Integrating series 150 / 625 \u00b7 99.1 images/sCancel processing",
+        "Integrating series 169 / 625 \u00b7 101.5 images/sCancel processing",
+        "Integrating series 186 / 625 \u00b7 102.2 images/sCancel processing",
+        "Integrating series 204 / 625 \u00b7 103.8 images/sCancel processing",
+        "Integrating series 223 / 625 \u00b7 105.5 images/sCancel processing",
+        "Integrating series 241 / 625 \u00b7 106.1 images/sCancel processing",
+        "Integrating series 258 / 625 \u00b7 106.3 images/sCancel processing",
+        "Integrating series 278 / 625 \u00b7 107.9 images/sCancel processing",
+        "Integrating series 298 / 625 \u00b7 109.1 images/sCancel processing",
+        "Integrating series 318 / 625 \u00b7 110.5 images/sCancel processing",
+        "Integrating series 336 / 625 \u00b7 110.7 images/sCancel processing",
+        "Integrating series 355 / 625 \u00b7 111.5 images/sCancel processing",
+        "Integrating series 375 / 625 \u00b7 112.7 images/sCancel processing",
+        "Integrating series 393 / 625 \u00b7 112.6 images/sCancel processing",
+        "Integrating series 413 / 625 \u00b7 113.3 images/sCancel processing",
+        "Integrating series 431 / 625 \u00b7 114.0 images/sCancel processing",
+        "Integrating series 451 / 625 \u00b7 114.2 images/sCancel processing",
+        "Integrating series 471 / 625 \u00b7 114.9 images/sCancel processing",
+        "Integrating series 489 / 625 \u00b7 115.1 images/sCancel processing",
+        "Integrating series 508 / 625 \u00b7 115.7 images/sCancel processing",
+        "Integrating series 529 / 625 \u00b7 116.3 images/sCancel processing",
+        "Integrating series 548 / 625 \u00b7 116.7 images/sCancel processing",
+        "Integrating series 570 / 625 \u00b7 117.3 images/sCancel processing",
+        "Integrating series 588 / 625 \u00b7 117.5 images/sCancel processing",
+        "Integrating series 610 / 625 \u00b7 118.3 images/sCancel processing",
+        "Integrating series 625 / 625 \u00b7 118.5 images/sCancel processing"
+      ],
+      "seconds": 5.423,
+      "view": "batch"
+    }
+  ],
+  "stage": "complete",
+  "summaries": {},
+  "viewport": [
+    1440,
+    908
+  ],
+  "sourcePid": 54834,
+  "testProfile": "/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/artifacts/native-profiles/navigation-timing-54823-1794313641417",
+  "captures": [
+    "/Users/clemens/Codex/dioptas-pyfai-series-20261110/gui/captures/eiger-native-navigation.png"
+  ],
+  "traceErrors": [],
+  "foregroundRequested": false,
+  "transport": "Tauri-owned stdio",
+  "nativeTracesSummary": {
+    "read-packet": {
+      "count": 187,
+      "totalPixelBytes": 62131480,
+      "maxPixelBytes": 50691480,
+      "totalHeaderBytes": 6537367,
+      "maxHeaderBytes": 1356272
+    },
+    "progress": {
+      "count": 153,
+      "totalElapsedMs": 229.98345400000005,
+      "maxElapsedMs": 184.438
+    },
+    "state": {
+      "count": 1,
+      "totalElapsedMs": 561.1695,
+      "maxElapsedMs": 561.1695
+    },
+    "custom_command": {
+      "count": 11,
+      "totalElapsedMs": 19.340332999999998,
+      "maxElapsedMs": 4.280583
+    },
+    "__host__": {
+      "count": 1,
+      "totalElapsedMs": 0.11699999999999999,
+      "maxElapsedMs": 0.11699999999999999
+    },
+    "open_image": {
+      "count": 1,
+      "totalElapsedMs": 76.47125,
+      "maxElapsedMs": 76.47125
+    },
+    "open_calibration": {
+      "count": 1,
+      "totalElapsedMs": 737.1051669999999,
+      "maxElapsedMs": 737.1051669999999
+    },
+    "display_products": {
+      "count": 1,
+      "totalElapsedMs": 537.2447500000001,
+      "maxElapsedMs": 537.2447500000001
+    },
+    "integration_settings": {
+      "count": 3,
+      "totalElapsedMs": 1315.016416,
+      "maxElapsedMs": 1261.071708
+    },
+    "integration_diagnostics": {
+      "count": 8,
+      "totalElapsedMs": 1.0069590000000002,
+      "maxElapsedMs": 0.153458
+    },
+    "batch_load_data": {
+      "count": 4,
+      "totalElapsedMs": 20926.144624,
+      "maxElapsedMs": 5436.1022920000005
+    },
+    "batch_snapshot": {
+      "count": 2,
+      "totalElapsedMs": 24.6785,
+      "maxElapsedMs": 14.70425
+    },
+    "batch_levels": {
+      "count": 1,
+      "totalElapsedMs": 11.053458000000001,
+      "maxElapsedMs": 11.053458000000001
+    }
+  },
+  "backendTracesSummary": {
+    "packet": {
+      "count": 187
+    },
+    "snapshot": {
+      "count": 11
+    },
+    "source-publish": {
+      "count": 5
+    },
+    "raster": {
+      "count": 11
+    },
+    "open-image": {
+      "count": 5
+    }
+  },
+  "rawReceipt": "/Users/clemens/Codex/dioptas-pyfai-series-20261110/gui/receipt.json",
+  "rawReceiptSha256": "d53a07cc2c62bb8e1cbfa9feadff9f1ada9e6e4710808bc790f4a2ec135fb9f4"
+}

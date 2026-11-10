@@ -68,6 +68,31 @@ Map value, is **identical** across all 16 full-file runs: maximum absolute
 difference zero. All frames and their order are checked. The source size and
 modification time remain unchanged. [Full receipt](artifacts/native-pyfai-series/results.json).
 
+## Native GUI follow-up
+
+An isolated Tauri WKWebView run of the normal Batch load action confirms the
+new processor route through production binary IPC, normal React processing,
+GPU completion and paint opportunities. All commands process the full 625
+frames at 2,000 bins, with no corrections or dynamic masks:
+
+| Poisson errors | First load, seconds | First load, images/s | Repeated load, seconds | Repeated load, images/s |
+| --- | ---: | ---: | ---: | ---: |
+| Off | 5.563 | 112.35 | 5.214 | 119.87 |
+| On | 5.005 | 124.88 | 5.423 | 115.25 |
+
+Each run reports 625 frame-parallel integrations, eight workers and visible
+live images/s in the status line. The previous full-file native GUI baseline
+was approximately 100 images/s. These are single GUI passes without CPU
+isolation; differences between first and repeated loads are not a scaling law.
+Initial image/calibration setup and the OS picker are excluded. Physical LCD
+scanout is not measured. [GUI receipt](artifacts/native-pyfai-series/gui.json).
+
+The test reused the existing GUI harness with the newly built processor and
+a private WebKit store, kept its own window visible without requesting keyboard
+focus, and closed only that test's app/processing child. The existing user
+preview remained running. Detailed native traces and captures are retained at
+`/Users/clemens/Codex/dioptas-pyfai-series-20261110/gui`.
+
 ## Regression checks and reproduction
 
 All 182 Rust tests and strict all-target Clippy pass. Eighteen preserved-binary
@@ -76,6 +101,10 @@ static/dynamic/disabled masks, errors on/off, corrected data, Q/d units,
 sectors, azimuthal spread and solid-angle correction disabled. Nine real-stdio
 transport scenarios verify cancellation and changed-source rollback, including
 raw pyFAI-compatible integration and its spread path.
+Headless Chromium/WebKit checks with `DIOPTAS_MAP_TEST_METHOD=pyfai_full` also
+pass, including partial/unfinished Map cells, retained regions/expressions,
+detached previews and measured progress rates. [Validation summary](artifacts/native-pyfai-series/validation.json),
+[headless receipt](artifacts/native-pyfai-series/headless-map.json).
 
 ```sh
 python desktop/scripts/native_pyfai_series_benchmark.py \
@@ -86,6 +115,11 @@ python desktop/scripts/native_pyfai_series_benchmark.py \
 python desktop/scripts/native_processed_series_parity.py \
   --before /path/to/preserved/dioptas-processor \
   --after desktop/backend/target/debug/dioptas-processor
+DIOPTAS_MAP_TEST_METHOD=pyfai_full node desktop/scripts/native_map_progress_smoke.mjs
+# Explicit isolated native GUI benchmark (opens a test window):
+node desktop/scripts/image_navigation_native.mjs \
+  --eiger /path/to/eiger_0000.h5 --series --series-method pyfai_full \
+  --keep-visible --output /tmp/pyfai-gui
 ```
 
 The first command writes the compact timing/parity receipt and uncompressed
