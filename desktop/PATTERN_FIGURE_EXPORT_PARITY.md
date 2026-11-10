@@ -104,7 +104,7 @@ Spottiness, cake Q/profile, correction previews and the detached detector window
 The image-button/editor changes remain confined to the pattern export path;
 `SpottinessPattern` forwards the export hook only to the measured pattern.
 Generic plot-unit support and the diagnostic's fixed axis gutter are retained.
-The primary worktree itself has not been edited by this chat.
+Initial reconciliation took place in the isolated worktree; primary integration is recorded below.
 
 After reconciliation, the frontend build and 112 unit/architecture checks pass,
 as do the complete Rust processor suite (external-image opt-in checks remain
@@ -113,3 +113,20 @@ and correction-preview headless checks in both browsers, and the shared Chromium
 rendering regression. The export check explicitly asserts that the image icon is
 immediately right of numerical Save and opens the editor without a chooser.
 The three Rust figure-publication tests cover the new resolution and suffix rules.
+
+
+## Primary integration for testing
+
+At the user's request, `codex/rust-desktop` was fast-forwarded from `feee6f2c`
+to the reconciled feature commit `9827debd`. The primary checkout was clean
+before integration. Its frontend build and 112 unit checks pass. All three
+headless figure scripts pass from primary, including real native data/figure
+writes in Chromium and WebKit; the three Rust figure-publication tests pass.
+The native Save/editor checks were run after rebuilding the primary processor.
+
+The primary debug `Dioptas Desktop.app` was rebuilt with the matching processor
+and embedded UI, then locally ad-hoc signed and verified. The artifact is
+`desktop/src-tauri/target/debug/bundle/macos/Dioptas Desktop.app`.
+No application windows were opened or user processes stopped. Open the rebuilt
+app and use the image icon immediately right of Save above the Integration
+pattern. This is a local testing build, not a published or notarized release.
