@@ -21,6 +21,18 @@ pub(super) fn normalization_bins(b: &crate::series::Series, args: &Value) -> Res
     Ok(converted)
 }
 impl Session {
+    pub(super) fn integrate_batch_with_background(
+        &mut self,
+        paths: Vec<String>,
+        args: &Value,
+    ) -> Result<crate::series::Series, String> {
+        let mut series = self.integrate_series(paths, args)?;
+        if crate::batch_pattern_background::active(&self.patterns) {
+            series.apply_pattern_background(&self.patterns, &self.control)?;
+        }
+        Ok(series)
+    }
+
     pub(super) fn batch_background_command(
         &mut self,
         action: &str,
@@ -31,9 +43,17 @@ impl Session {
             .batch
             .as_mut()
             .ok_or("Load and integrate batch images first.")?;
-        b.configure_batch_background(args)?;
-        if action == "batch_background_extract" {
-            b.extract_batch_background(&control)?;
+        if action == "batch_background_from_pattern" {
+            if crate::batch_pattern_background::active(&self.patterns) {
+                b.apply_pattern_background(&self.patterns, &control)?;
+            } else {
+                b.configure_batch_background(&json!({"subtract":false,"cut":false}))?;
+            }
+        } else {
+            b.configure_batch_background(args)?;
+            if action == "batch_background_extract" {
+                b.extract_batch_background(&control)?;
+            }
         }
         // A background display change never reloads detector images, reruns
         // Integration's own background, changes selection, or touches Map.

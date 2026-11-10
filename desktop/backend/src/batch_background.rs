@@ -45,6 +45,8 @@ pub(crate) struct State {
     pub range: Option<[f64; 2]>,
     pub subtract: bool,
     pub cut: bool,
+    pub parameters_unit: Option<String>,
+    pub pattern_settings: bool,
     #[serde(skip)]
     view: Option<View>,
 }
@@ -57,7 +59,7 @@ struct View {
 /// The xypattern Cython/PhaseSmith Bruckner scan, with cancellation checkpoints
 /// inside a long row. Padding stays fixed for the entire extraction; calling
 /// the ordinary smoother in iteration chunks would change those boundaries.
-fn smooth_cancellable(
+pub(crate) fn smooth_cancellable(
     y: &[f64],
     points: usize,
     iterations: usize,
@@ -107,6 +109,7 @@ impl Series {
     pub fn background_metadata(&self) -> Value {
         json!({"parameters":self.batch_background.parameters,"extracted":self.batch_background.extracted,
             "range":self.batch_background.range,"unit":self.unit,"available":self.background.is_some(),
+            "parametersUnit":self.batch_background.parameters_unit.as_deref().unwrap_or(&self.unit),"patternSettings":self.batch_background.pattern_settings,
             "subtract":self.batch_background.subtract,"cut":self.batch_background.cut,
             "stale":self.background.is_some() && self.batch_background.extracted.as_ref().is_some_and(|p|p != &self.batch_background.parameters)})
     }
@@ -133,6 +136,9 @@ impl Series {
         if let Some(parameters) = args.get("parameters") {
             state.parameters =
                 serde_json::from_value(parameters.clone()).map_err(|e| e.to_string())?;
+            if state.parameters != self.batch_background.parameters {
+                state.pattern_settings = false;
+            }
         }
         state.parameters.validate()?;
         if let Some(value) = args.get("range") {
@@ -189,7 +195,16 @@ impl Series {
         // xypattern preserves the source sample order, including descending d.
         // Bruckner's one-sided in-place scan makes reversing that order change
         // the result, so use the stored axis exactly as Qt BatchModel does.
-        let x = self.x.as_slice();
+        let fit_axis = self
+            .profile(
+                0,
+                self.batch_background
+                    .parameters_unit
+                    .as_deref()
+                    .unwrap_or(&self.unit),
+            )?
+            .x;
+        let x = fit_axis.as_slice();
         let ascending = x[1] > x[0];
         if x.windows(2)
             .any(|w| w[0] == w[1] || (w[1] > w[0]) != ascending)
@@ -241,6 +256,7 @@ impl Series {
         // Commit only a complete extraction. The intensity source stays exact.
         self.raw_background = Some(Arc::new(background));
         self.batch_background.extracted = Some(parameters);
+        self.batch_background.pattern_settings = false;
         self.normalize(self.normalized, self.normalization, self.reference)
     }
     pub fn refresh_batch_background(&mut self) -> Result<(), String> {

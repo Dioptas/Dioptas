@@ -237,6 +237,59 @@ try {
         (await invoke("batch_snapshot")).batch.backgroundState.stale,
         true,
       );
+      // Reproduce the reported workflow through the actual pattern controls.
+      await page.getByRole("tab", { name: "Background", exact: true }).click();
+      await page
+        .getByRole("navigation", { name: "Background type" })
+        .getByRole("button", { name: "Pattern", exact: true })
+        .click();
+      await page.getByLabel("Smooth width", { exact: true }).fill("0.37");
+      await page.getByLabel("Iterations", { exact: true }).fill("31");
+      await page.getByLabel("Polynomial order", { exact: true }).fill("8");
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[data-testid="pattern-canvas"]')?.dataset
+            .regionUpdating === "false",
+      );
+      await ready();
+      await page
+        .getByRole("checkbox", {
+          name: "Subtract automatic pattern background",
+          exact: true,
+        })
+        .check();
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[data-testid="pattern-canvas"]')?.dataset
+            .regionUpdating === "false",
+      );
+      await ready();
+      await dock
+        .getByRole("button", { name: "Use pattern background", exact: true })
+        .click();
+      await ready();
+      const inherited = (await invoke("batch_snapshot")).batch;
+      assert.equal(inherited.backgroundState.subtract, true);
+      assert.equal(inherited.backgroundState.patternSettings, true);
+      await dock.getByRole("tab", { name: "2D", exact: true }).click();
+      assert.equal(
+        await dock
+          .getByRole("button", { name: "Background subtracted", exact: true })
+          .getAttribute("aria-pressed"),
+        "true",
+      );
+      await page.screenshot({
+        path: path.join(artifacts, `${name}-pattern-background.png`),
+      });
+      // New stored files keep their persisted choice. Disable the live pattern
+      // subtraction before loading the long cancellation input below.
+      await page
+        .getByRole("checkbox", {
+          name: "Subtract automatic pattern background",
+          exact: true,
+        })
+        .uncheck();
+      await ready();
       // Exercise the existing footer progress/cancel path through real UI.
       await dock
         .getByRole("button", { name: "Load raw/proc data", exact: true })
@@ -269,6 +322,7 @@ try {
         storedOnly: true,
         detachedRouting: true,
         footerCancellation: true,
+        patternBackground: true,
       });
     } finally {
       await context.close();

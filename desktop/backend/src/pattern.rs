@@ -473,6 +473,19 @@ impl Patterns {
         Ok(())
     }
     pub fn build(&mut self, control: &Control) -> Result<Option<Value>, String> {
+        self.build_with_progress(control, true)
+    }
+    pub(crate) fn build_background_row(
+        &mut self,
+        control: &Control,
+    ) -> Result<Option<Value>, String> {
+        self.build_with_progress(control, false)
+    }
+    fn build_with_progress(
+        &mut self,
+        control: &Control,
+        progress: bool,
+    ) -> Result<Option<Value>, String> {
         let mut curves = vec![];
         for o in &self.overlays {
             if o.visible {
@@ -542,7 +555,9 @@ impl Patterns {
                 cached.clone()
             } else {
                 control.check()?;
-                control.publish(json!({"running":true,"current":0,"total":2,"label":"Smoothing pattern background"}));
+                if progress {
+                    control.publish(json!({"running":true,"current":0,"total":2,"label":"Smoothing pattern background"}));
+                }
                 let points = (self.background.smoothing / (x[1] - x[0])).abs() as usize;
                 if points > 2_000_000 {
                     return Err(
@@ -550,11 +565,16 @@ impl Patterns {
                             .into(),
                     );
                 }
-                let smoothed =
-                    phasesmith_core::smooth_bruckner(&y, points, self.background.iterations)
-                        .map_err(|e| e.to_string())?;
+                let smoothed = crate::batch_background::smooth_cancellable(
+                    &y,
+                    points,
+                    self.background.iterations,
+                    control,
+                )?;
                 control.check()?;
-                control.publish(json!({"running":true,"current":1,"total":2,"label":"Fitting background polynomial"}));
+                if progress {
+                    control.publish(json!({"running":true,"current":1,"total":2,"label":"Fitting background polynomial"}));
+                }
                 let bg = Arc::new(Curve {
                     x: Arc::new(x.clone()),
                     y: Arc::new(chebyshev(&x, &smoothed, self.background.order)?),

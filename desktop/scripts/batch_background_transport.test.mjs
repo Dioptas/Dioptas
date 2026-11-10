@@ -37,33 +37,51 @@ test(
         cut: true,
       });
       await call("batch_select", { index: 2 });
-      const before = await call("state");
-      const batch = await call("batch_snapshot");
-      const running = native.invoke("batch_background_extract", {
-        parameters: { smoothing: 0.2, iterations: 99999, order: 7 },
-      });
-      let progress;
-      for (let i = 0; i < 100; i++) {
-        progress = (await call("progress")).progress;
-        if (
-          progress.running &&
-          progress.label === "Extracting batch background"
-        )
-          break;
-        await new Promise((r) => setTimeout(r, 2));
+      for (const action of [
+        "batch_background_extract",
+        "batch_background_from_pattern",
+      ]) {
+        if (action === "batch_background_from_pattern") {
+          await call("integration_background", {
+            enabled: true,
+            smoothing: 0.2,
+            iterations: 99999,
+            order: 7,
+          });
+        }
+        const before = await call("state");
+        const batch = await call("batch_snapshot");
+        const running = native.invoke(
+          action,
+          action === "batch_background_extract"
+            ? {
+                parameters: { smoothing: 0.2, iterations: 99999, order: 7 },
+              }
+            : {},
+        );
+        const label =
+          action === "batch_background_extract"
+            ? "Extracting batch background"
+            : "Applying pattern background to batch";
+        let progress;
+        for (let i = 0; i < 100; i++) {
+          progress = (await call("progress")).progress;
+          if (progress.running && progress.label === label) break;
+          await new Promise((r) => setTimeout(r, 2));
+        }
+        assert.equal(progress.label, label);
+        assert.ok(progress.current < progress.total);
+        const start = performance.now();
+        await call("cancel_refinement");
+        assert.equal((await running).cancelled, true);
+        assert.ok(
+          performance.now() - start < 2000,
+          "Cancellation interrupts smoothing within a row",
+        );
+        assert.deepEqual(await call("batch_snapshot"), batch);
+        assert.deepEqual(await call("state"), before);
+        assert.equal((await call("progress")).progress.running, false);
       }
-      assert.equal(progress.label, "Extracting batch background");
-      assert.ok(progress.current < progress.total);
-      const start = performance.now();
-      await call("cancel_refinement");
-      assert.equal((await running).cancelled, true);
-      assert.ok(
-        performance.now() - start < 2000,
-        "Cancellation interrupts smoothing within a row",
-      );
-      assert.deepEqual(await call("batch_snapshot"), batch);
-      assert.deepEqual(await call("state"), before);
-      assert.equal((await call("progress")).progress.running, false);
     } finally {
       await native.close();
       await rm(temp, { recursive: true, force: true });

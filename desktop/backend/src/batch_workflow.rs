@@ -731,17 +731,13 @@ impl Session {
                 self.settings.unit.clone()
             };
             let curve = series.profile(index, &unit)?;
-            self.patterns.ingest(
-                curve,
-                &unit,
-                Path::new(&entry.path)
-                    .file_name()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .as_ref(),
-                Some(entry.path.clone()),
-                false,
-            );
+            let name = Path::new(&entry.path)
+                .file_name()
+                .map(|s| s.to_string_lossy().into_owned())
+                .filter(|s| !s.is_empty())
+                .unwrap_or_else(|| "Stored pattern".into());
+            self.patterns
+                .ingest(curve, &unit, &name, Some(entry.path.clone()), false);
             self.rebuild_pattern()?;
         }
         self.revision += 1;
@@ -783,7 +779,7 @@ impl Session {
                 {
                     self.batch = Some(Series::load_processed(Path::new(&paths[0]))?);
                 } else {
-                    self.batch = Some(self.integrate_series(paths, args)?);
+                    self.batch = Some(self.integrate_batch_with_background(paths, args)?);
                 }
                 self.batch.as_mut().unwrap().selected = 0;
                 let b = self.batch.as_ref().unwrap().clone();
@@ -948,7 +944,8 @@ impl Session {
             }
             "batch_background_settings"
             | "batch_background_extract"
-            | "batch_background_display" => {
+            | "batch_background_display"
+            | "batch_background_from_pattern" => {
                 return self.batch_background_command(action, args).map(Some);
             }
             "batch_levels" => {
@@ -968,7 +965,7 @@ impl Session {
                 let target = file_workflow::numbered(folder, direction)
                     .ok_or("No numbered neighboring scan folder.")?;
                 let paths = folder_paths(&target)?;
-                self.batch = Some(self.integrate_series(paths, &json!({}))?);
+                self.batch = Some(self.integrate_batch_with_background(paths, &json!({}))?);
                 self.batch.as_mut().unwrap().selected = 0;
                 let b = self.batch.as_ref().unwrap().clone();
                 let mut reply = self.select_series(&b, 0, false, true, None)?;

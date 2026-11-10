@@ -2,6 +2,7 @@
 //! Native processing for the existing desktop command/binary-raster contract.
 //! The default runtime uses Dioptrin directly, without Python.
 mod batch_background;
+mod batch_pattern_background;
 mod batch_waterfall;
 mod contours;
 pub mod control;

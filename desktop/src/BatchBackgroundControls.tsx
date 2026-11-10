@@ -8,6 +8,8 @@ import "./batch_background.css";
 
 type Parameters = { smoothing: number; iterations: number; order: number };
 export interface BatchBackgroundState {
+  parametersUnit?: Unit;
+  patternSettings?: boolean;
   parameters: Parameters;
   extracted: Parameters | null;
   range: [number, number] | null;
@@ -85,9 +87,27 @@ export function BatchBackgroundControls({
   return (
     <fieldset className="batch-background-settings">
       <legend>Batch background</legend>
-      <p>Extract a Smooth Bruckner background for every frame.</p>
+      <p>
+        New integrations use the active pattern background. Apply it here to
+        update an existing batch.
+      </p>
+      <Button
+        disabled={!ready || !batch}
+        title="Apply the current Integration pattern background; show originals when it is disabled"
+        onClick={() =>
+          run(
+            "batch_background_from_pattern",
+            {},
+            "Applying pattern background to batch…",
+          )
+        }
+      >
+        Use pattern background
+      </Button>
+      <p>Or extract a separate Smooth Bruckner background for every frame.</p>
       <label>
-        Smooth width {unitLabel(batch?.sourceUnit ?? "2th_deg")}
+        Smooth width{" "}
+        {unitLabel(state?.parametersUnit ?? batch?.sourceUnit ?? "2th_deg")}
         <ScientificNumberInput
           aria-label="Batch background smooth width"
           value={smoothing}
@@ -152,7 +172,11 @@ export function BatchBackgroundControls({
             ? "Background available for every frame."
             : "No batch background extracted."}
       </p>
-      <p>The range cuts the overview; extraction uses the full stored axis.</p>
+      <p>
+        {state?.patternSettings
+          ? "The retained background uses the applied pattern settings and fitted range."
+          : "The range cuts the overview; separate extraction uses the full stored axis."}
+      </p>
       <label>
         Range minimum {unitLabel(batch?.unit ?? "2th_deg")}
         <ScientificNumberInput
@@ -199,8 +223,8 @@ export function BatchBackgroundControls({
       </div>
       <BatchBackgroundDisplay batch={batch} ready={ready} run={run} />
       <p>
-        These controls affect the Batch overview. The selected Integration
-        pattern keeps its own background settings. Counting std does not include
+        Use pattern background again after changing the pattern settings.
+        Original intensities remain available. Counting std does not include
         uncertainty in the fitted background.
       </p>
     </fieldset>

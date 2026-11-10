@@ -3,7 +3,8 @@
 Implemented and qualified in the Rust desktop on November 10, 2026. The runtime
 uses the existing Tauri-owned stdio processor; Python/Qt are independent references.
 
-Batch → Options contains Smooth width (in the stored source unit), Iterations,
+Batch → Options contains Use pattern background, Smooth width (in the recorded
+fitting unit, initially the stored source unit), Iterations,
 Polynomial order, Apply background settings and Extract background. Extraction
 processes every stored row, including stored-only batches, and keeps the complete
 previous background until all rows succeed. Progress and cancellation use the
@@ -39,12 +40,30 @@ back into the retained original intensity matrix. Counting std and azimuthal
 std scale only with normalization; the fitted background is treated as
 deterministic and supplies no additional statistical error model.
 
-As in Qt, Batch overview subtraction/cutting and the linked Integration pattern
-are independent. Selecting a row restores its original (or normalized) stored
-profile and counting std, while Integration keeps its own pattern background
-settings. Background actions do not reload detector frames, change selection,
-alter Map data, or apply another subtraction to the linked pattern. Map imports
-retain the un-subtracted matrix and explicitly discard Batch display state.
+New raw Batch integrations inherit the active Integration pattern background and
+start in Background subtracted mode. This includes fitted automatic backgrounds,
+loaded/captured backgrounds, their combination, and the fitted range. The native
+pattern pipeline is reused on each stored row in the pattern's actual unit;
+there is no resampling or reuse of the selected frame's fitted curve for other
+frames. A restricted fit/overlay overlap cuts the overview to the covered source
+bins; the retained background is zero outside that region without extrapolation.
+
+For an already integrated or opened batch, **Options → Use pattern background**
+applies the current pattern settings to every row. Use it again after changing
+the pattern settings. If pattern backgrounds are disabled, it restores Original
+mode and removes the display cut. Opening processed data retains that file's
+stored display choice. The manual Batch extraction controls remain available as
+an independent override. This inheritance is a desktop workflow addition to the
+older Qt separation; it corrects the previous native behavior in which a new
+Batch silently ignored subtraction enabled in the pattern view.
+
+Applying a background never changes the original/normalized stored intensity
+matrix or counting std. Selecting a row still restores that un-subtracted profile
+before Integration applies its own settings, so the linked pattern never
+subtracts twice. Background actions do not reload detector frames or alter Map
+data. Map imports retain the un-subtracted matrix and discard Batch display state.
+Stored-only rows now have a real "Stored pattern" label, enabling their pattern
+background controls without inventing an external source filename.
 
 Native `.dio` projects and the existing processed HDF5 format retain full-axis,
 un-subtracted data, background, original normalization arrays and background
@@ -107,3 +126,13 @@ Background, waterfall, 3D and export headless checks passed in Chromium and WebK
 background stdio and footer cancellation passed. The broader native Integration
 browser regression also passed. These are headless/native-processor checks, not
 OS-window or release-packaging qualification.
+
+Pattern inheritance regression checks cover real raw integrations and stored-only
+2θ/Q/d series, normalization, source and fitting units that differ, range cutting,
+loaded backgrounds plus automatic fitting, repeated application, exact source/std
+restoration and project reopen. Every corrected Batch sample is compared with
+its corresponding native pattern-view sample. The headless test operates the
+actual Integration checkbox and Use pattern background action in both browsers;
+stdio cancellation interrupts both manual and inherited fits inside a row.
+
+Pattern-inheritance qualification: 185 native tests passed (2 opt-in benchmarks ignored), 95 JavaScript tests passed, and build/Clippy passed. Chromium/WebKit background and native-workflow checks and stdio cancellation passed.

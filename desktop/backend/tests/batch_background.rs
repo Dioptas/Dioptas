@@ -328,3 +328,158 @@ fn background_cut_keeps_existing_waterfall_coordinates_errors_and_stale_selectio
     }
     assert_eq!(batch(&mut s), b);
 }
+
+fn assert_batch_background_matches_pattern(s: &mut Session, output: &Path) {
+    let raw = saved(s, output, "processed/result/data");
+    let background = saved(s, output, "processed/process/bkg");
+    let sigma = saved(s, output, "processed/result/counting_std");
+    let before = batch(s);
+    let x: Vec<f64> = serde_json::from_value(before["pattern"]["x"].clone()).unwrap();
+    let count = before["entries"].as_array().unwrap().len();
+    let n = x.len();
+    for row in 0..count {
+        let selected = call(s, "batch_select", json!({"index":row}));
+        let curve = &selected.result["pattern"];
+        let xx: Vec<f64> = serde_json::from_value(curve["x"].clone()).unwrap();
+        let yy: Vec<f64> = serde_json::from_value(curve["y"].clone()).unwrap();
+        let errors: Vec<f64> = serde_json::from_value(curve["sigma"].clone()).unwrap();
+        for ((&a, &y), &error) in xx.iter().zip(&yy).zip(&errors) {
+            let col = x.iter().position(|v| v.to_bits() == a.to_bits()).unwrap();
+            let actual = raw[row * n + col] - background[row * n + col];
+            assert!(
+                (actual - y).abs() < 1e-9 * y.abs().max(1.0),
+                "row {row}, source bin {col}: {actual} != {y}"
+            );
+            assert_eq!(error, sigma[row * n + col]);
+        }
+    }
+}
+
+#[test]
+fn stored_batch_applies_pattern_background_roi_in_current_units_without_compounding() {
+    let temp = tempfile::tempdir().unwrap();
+    for case in [0, 1, 2] {
+        let input = temp.path().join(format!("stored_{case}.h5"));
+        let output = temp.path().join(format!("output_{case}.h5"));
+        let reference = fixture(&input, case);
+        let mut s = session();
+        call(&mut s, "batch_open", json!({"path":input}));
+        let unit = if case == 2 {
+            "q_A^-1"
+        } else {
+            reference["unit"].as_str().unwrap()
+        };
+        call(&mut s, "batch_unit", json!({"unit":unit}));
+        call(
+            &mut s,
+            "batch_normalize",
+            json!({"enabled":true,"start":5,"stop":70,"reference":2}),
+        );
+        let before = batch(&mut s);
+        let x: Vec<f64> = serde_json::from_value(before["pattern"]["x"].clone()).unwrap();
+        let mut range = [x[12], x[75]];
+        range.sort_by(f64::total_cmp);
+        call(
+            &mut s,
+            "integration_background",
+            json!({"enabled":true,"smoothing":0.18,"iterations":11,"order":7,"range":range}),
+        );
+        call(&mut s, "batch_background_from_pattern", json!({}));
+        let applied = batch(&mut s);
+        assert_eq!(applied["backgroundState"]["subtract"], true);
+        assert_eq!(applied["backgroundState"]["cut"], true);
+        assert_eq!(applied["backgroundState"]["patternSettings"], true);
+        assert_eq!(applied["backgroundState"]["parametersUnit"], unit);
+        assert!(applied["x"].as_array().unwrap().len() < 97);
+        assert_eq!(applied["pattern"]["y"], before["pattern"]["y"]);
+        assert_batch_background_matches_pattern(&mut s, &output);
+        let prior = saved(&mut s, &output, "processed/process/bkg");
+        call(&mut s, "batch_background_from_pattern", json!({}));
+        assert_eq!(saved(&mut s, &output, "processed/process/bkg"), prior);
+        let project = temp.path().join(format!("pattern_background_{case}.dio"));
+        let snapshot = batch(&mut s);
+        call(&mut s, "save_project", json!({"path":project}));
+        let mut reopened = session();
+        call(&mut reopened, "open_project", json!({"path":project}));
+        assert_eq!(batch(&mut reopened), snapshot);
+        call(&mut s, "integration_background", json!({"enabled":false}));
+        call(&mut s, "batch_background_from_pattern", json!({}));
+        assert_eq!(batch(&mut s)["backgroundState"]["subtract"], false);
+        call(&mut s, "batch_normalize", json!({"enabled":false}));
+        let original: Vec<f64> = serde_json::from_value(reference["data"].clone()).unwrap();
+        assert_eq!(saved(&mut s, &output, "processed/result/data"), original);
+    }
+}
+
+#[test]
+fn new_raw_batch_inherits_active_pattern_background_and_enables_subtraction() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let temp = tempfile::tempdir().unwrap();
+    let output = temp.path().join("raw_batch.h5");
+    let mut s = session();
+    call(
+        &mut s,
+        "open_calibration",
+        json!({"path":root.join("dioptas/tests/data/LaB6_40keV_MarCCD.poni")}),
+    );
+    call(
+        &mut s,
+        "integration_settings",
+        json!({"bins":97,"cake_bins":12,"poisson_errors":true,"trim_zeros":false}),
+    );
+    let paths: Vec<_> = ["001", "002"]
+        .iter()
+        .map(|i| root.join(format!("dioptas/tests/data/image_{i}.tif")))
+        .collect();
+    call(&mut s, "open_image", json!({"path":paths[0]}));
+    call(
+        &mut s,
+        "integration_background",
+        json!({"enabled":true,"smoothing":0.1,"iterations":7,"order":5}),
+    );
+    call(&mut s, "batch_load", json!({"paths":paths}));
+    let b = batch(&mut s);
+    assert_eq!(b["backgroundState"]["subtract"], true);
+    assert_eq!(b["backgroundState"]["patternSettings"], true);
+    assert_eq!(b["backgroundState"]["parameters"]["iterations"], 7);
+    assert_batch_background_matches_pattern(&mut s, &output);
+}
+
+#[test]
+fn loaded_overlay_and_automatic_pattern_background_use_the_same_batch_pipeline() {
+    let temp = tempfile::tempdir().unwrap();
+    let input = temp.path().join("stored.h5");
+    let output = temp.path().join("out.h5");
+    let overlay = temp.path().join("flat.xy");
+    let reference = fixture(&input, 0);
+    let x: Vec<f64> = serde_json::from_value(reference["x"].clone()).unwrap();
+    std::fs::write(
+        &overlay,
+        x[10..85]
+            .iter()
+            .map(|v| format!("{v:.17e} 5\n"))
+            .collect::<String>(),
+    )
+    .unwrap();
+    let mut s = session();
+    call(&mut s, "batch_open", json!({"path":input}));
+    call(
+        &mut s,
+        "integration_overlay",
+        json!({"operation":"load","path":overlay}),
+    );
+    call(
+        &mut s,
+        "integration_overlay",
+        json!({"operation":"background","index":0}),
+    );
+    call(&mut s, "batch_background_from_pattern", json!({}));
+    assert_batch_background_matches_pattern(&mut s, &output);
+    call(
+        &mut s,
+        "integration_background",
+        json!({"enabled":true,"smoothing":0.2,"iterations":9,"order":6,"range":[2.0,8.0]}),
+    );
+    call(&mut s, "batch_background_from_pattern", json!({}));
+    assert_batch_background_matches_pattern(&mut s, &output);
+}

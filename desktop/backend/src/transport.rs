@@ -274,6 +274,7 @@ fn controlled(action: &str) -> bool {
             | "batch_load"
             | "batch_load_data"
             | "batch_background_extract"
+            | "batch_background_from_pattern"
             | "batch_folder"
             | "integration_batch"
             | "batch_folder_step"

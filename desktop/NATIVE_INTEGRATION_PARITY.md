@@ -381,3 +381,9 @@ overview display and source-axis range cutting are now qualified independently
 against Qt. Source intensities, normalization, counting std, Map ownership and
 project/configuration state remain separate. See [native Batch backgrounds](BATCH_BACKGROUND_NATIVE.md)
 for the numerical references, progress/cancellation, headless checks and bounds.
+
+Batch pattern-background inheritance: new raw integrations now use the active
+Integration pattern background, including its ROI and loaded background, and
+start subtracted. Existing batches expose **Options → Use pattern background**.
+The same per-pattern calculation is reused; sources, counting std, Map ownership
+and reversible originals remain intact. See [the background qualification](BATCH_BACKGROUND_NATIVE.md).
