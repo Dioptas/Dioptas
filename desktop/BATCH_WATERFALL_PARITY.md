@@ -4,7 +4,15 @@ Batch → 2D → **Waterfall** arms primary-button rectangle selection in both t
 dock and detached window. Drag across radial bins and frame rows to replace the
 shared Integration overlays. Integration opens its existing Overlay controls;
 Spacing/Waterfall, scale, offset, color, visibility, ordering, background use,
-and removal retain their existing owner. Changing the existing Batch **Step**
+and removal retain their existing owner. New sessions start with **Spacing 100**.
+The compact **A** button between Waterfall and Reset estimates and applies 10% of the largest finite peak-to-peak
+intensity range after overlay scaling, rounded upward to a readable 1/2/5 step.
+It ignores existing offsets and constant baselines. Flat/unavailable ranges fall
+back to 100; estimates are bounded to 0.01–100000 intensity units. This is an
+adjustable visual starting point that allows peak overlap, not an optimal or
+no-overlap estimate. Saved/manual spacing, including zero or negative spacing,
+is preserved; **A** updates an existing zero-spacing waterfall when
+requested. Changing the existing Batch **Step**
 regenerates the selected rectangle. Turning the tool off or pressing Escape
 cancels selection and retains completed overlays. Pointer cancellation never
 creates curves. Secondary gestures, wheel, F fit and ordinary zoom outside the

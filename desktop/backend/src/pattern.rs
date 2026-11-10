@@ -259,7 +259,7 @@ impl Default for Patterns {
             overlays: vec![],
             background_uid: None,
             anonymous_background: None,
-            separation: 0.0,
+            separation: crate::waterfall_spacing::DEFAULT_SPACING,
             directory: String::new(),
             file_mode: "number".into(),
             next_uid: 1,
@@ -654,13 +654,17 @@ impl Patterns {
                 self.visible = true;
                 self.extracted = None;
             }
-            "waterfall" | "waterfall_separation" => {
-                self.separation = if let Some(v) = args.get("separation") {
+            "waterfall" | "waterfall_separation" | "waterfall_auto" => {
+                self.separation = if op == "waterfall_auto" {
+                    crate::waterfall_spacing::estimate(
+                        self.overlays.iter().map(|o| (o.data.y.as_slice(), o.scale)),
+                    )
+                } else if let Some(v) = args.get("separation") {
                     finite(v, "Separation", -100000.0, 100000.0)?
                 } else {
                     self.separation
                 };
-                if op == "waterfall" {
+                if op == "waterfall" || op == "waterfall_auto" {
                     let n = self.overlays.len();
                     for (i, o) in self.overlays.iter_mut().enumerate() {
                         o.offset = -self.separation * (n - i) as f64;

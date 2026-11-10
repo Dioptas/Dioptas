@@ -218,6 +218,12 @@ fn normalized_waterfalls_replace_repeat_and_round_trip_with_overlay_edits() {
         json!({"enabled":true,"start":2,"stop":5}),
     );
     let id = &normalized.result["batch"]["waterfallKey"];
+    // Explicit zero remains supported; inspect the normalized samples without display offsets.
+    call(
+        &mut s,
+        "integration_overlay",
+        json!({"operation":"waterfall_separation","separation":0}),
+    );
     let background = normalized.result["state"]["integration"]["patternBackground"].clone();
     let a = call(&mut s, "batch_waterfall", selection(id, 2));
     assert_eq!(
@@ -362,4 +368,73 @@ fn identical_display_pixels_cannot_reuse_a_different_scientific_source_selection
     let third = call(&mut s, "batch_open", json!({"path":input}));
     assert_eq!(first.result["batch"]["id"], third.result["batch"]["id"]);
     assert_ne!(id, &third.result["batch"]["waterfallKey"]);
+}
+
+#[test]
+fn default_and_automatic_spacing_apply_offsets_and_preserve_project_choices() {
+    let d = tempfile::tempdir().unwrap();
+    let input = d.path().join("batch.h5");
+    fixture(&input, "2th_deg", true);
+    let mut s = Session::new(root());
+    let opened = call(&mut s, "batch_open", json!({"path":input}));
+    assert_eq!(
+        opened.result["state"]["integration"]["waterfallSeparation"],
+        100.
+    );
+    let r = call(
+        &mut s,
+        "batch_waterfall",
+        selection(&opened.result["batch"]["waterfallKey"], 2),
+    );
+    assert_eq!(overlays(&r)[0]["offset"], -200.);
+    assert_eq!(overlays(&r)[1]["offset"], -100.);
+    call(
+        &mut s,
+        "integration_overlay",
+        json!({"operation":"update","index":0,"scale":2.5,"offset":19.}),
+    );
+    let before = call(&mut s, "state", json!({}));
+    let auto = call(
+        &mut s,
+        "integration_overlay",
+        json!({"operation":"waterfall_auto"}),
+    );
+    // Selected samples span 1 intensity unit, scaled to 2.5. 10% rounds up to 0.5.
+    assert_eq!(
+        auto.result["state"]["integration"]["waterfallSeparation"],
+        0.5
+    );
+    assert_eq!(overlays(&auto)[0]["offset"], -1.);
+    assert_eq!(overlays(&auto)[1]["offset"], -0.5);
+    assert_eq!(numbers(&curves(&auto)[0]["y"])[0], 20.25 * 2.5 - 1.);
+    assert_eq!(
+        auto.result["state"]["integration"]["overlays"][0]["batchSource"],
+        overlays(&before)[0]["batchSource"]
+    );
+    let repeated = call(
+        &mut s,
+        "integration_overlay",
+        json!({"operation":"waterfall_auto"}),
+    );
+    assert_eq!(curves(&repeated), curves(&auto));
+    let undo = call(&mut s, "undo_calibration", json!({}));
+    assert_eq!(overlays(&undo), overlays(&before));
+    let redo = call(&mut s, "redo_calibration", json!({}));
+    assert_eq!(curves(&redo), curves(&auto));
+    for separation in [0.5, 0., -25.] {
+        call(
+            &mut s,
+            "integration_overlay",
+            json!({"operation":"waterfall","separation":separation}),
+        );
+        let project = d.path().join("spacing.dio");
+        call(&mut s, "save_project", json!({"path":project}));
+        let mut restored = Session::new(root());
+        let r = call(&mut restored, "open_project", json!({"path":project}));
+        assert_eq!(
+            r.result["state"]["integration"]["waterfallSeparation"],
+            separation
+        );
+        assert_eq!(overlays(&r)[0]["offset"], -2. * separation);
+    }
 }

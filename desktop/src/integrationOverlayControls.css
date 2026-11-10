@@ -198,11 +198,16 @@
 .qt-overlay-waterfall-actions {
   display: flex;
   align-items: stretch;
-  gap: 4px;
+  gap: 2px;
 }
 .qt-overlay-waterfall-actions > button:first-child {
   flex: 1;
   min-width: 0;
+  padding-inline: 4px;
+}
+.qt-overlay-waterfall-actions > button:nth-child(2) {
+  flex: 0 0 26px;
+  padding: 4px;
 }
 .qt-overlay-waterfall-actions > button:last-child {
   display: grid;

@@ -39,5 +39,6 @@ mod series;
 pub mod session;
 mod transform;
 pub mod transport;
+mod waterfall_spacing;
 
 pub use session::Session;

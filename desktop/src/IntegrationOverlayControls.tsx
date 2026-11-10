@@ -489,6 +489,14 @@ export function IntegrationOverlayControls({
               Waterfall
             </Button>
             <Button
+              aria-label="Auto waterfall spacing"
+              title="Auto spacing: estimate and apply 10% of the largest scaled intensity range, rounded up; existing offsets are ignored"
+              disabled={!overlays.length}
+              onClick={() => action("waterfall_auto")}
+            >
+              A
+            </Button>
+            <Button
               aria-label="Reset"
               title="Reset waterfall separation"
               disabled={!overlays.length}

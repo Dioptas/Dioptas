@@ -8,10 +8,10 @@ use crate::{
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-#[path = "batch_export.rs"]
-mod batch_export;
 #[path = "batch_background_commands.rs"]
 mod batch_background_commands;
+#[path = "batch_export.rs"]
+mod batch_export;
 #[path = "batch_workflow.rs"]
 mod batch_workflow;
 #[path = "calibration.rs"]
@@ -1949,7 +1949,7 @@ impl Session {
                 "cakeBins": s.cake_bins, "solidAngle":s.solid_angle, "polarization":s.polarization, "poissonErrors":s.errors, "trimZeros":s.trim_zeros,
                 "autoSave":s.auto_save, "formats":s.formats, "outputDirectory":"", "imageBackground":{"filename":null,"scale":1,"offset":0},
                 "patternBackground":{"enabled":false,"smoothing":1,"iterations":1,"order":1,"range":null,"overlay":false},
-                "flatField":{"filename":null,"enabled":false}, "corrections":serde_json::from_str::<Value>(include_str!("correction_defaults.json")).expect("checked correction schema"), "overlayDirectory":"", "waterfallSeparation":0, "overlays":[], "sameConditions":true,
+                "flatField":{"filename":null,"enabled":false}, "corrections":serde_json::from_str::<Value>(include_str!("correction_defaults.json")).expect("checked correction schema"), "overlayDirectory":"", "waterfallSeparation":100, "overlays":[], "sameConditions":true,
                 "phaseColdPressure":false, "phases":[], "batchFrames":0, "patternName":name.clone().unwrap_or_default(), "patternPath":"", "patternFileIteration":"number",
                 "originalPatternColor":"#ffffff", "originalPatternVisible":true, "fileInfo":"", "fileIteration":"number", "imageDirectory":image_directory,
                 "autoProcess":false,"autoProcessError":"", "frame":self.image.as_ref().map(|i|i.frame+1).unwrap_or(0), "frames":self.image.as_ref().map(|i|i.frames).unwrap_or(0)

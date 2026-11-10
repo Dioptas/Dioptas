@@ -265,6 +265,11 @@ fn background_cut_keeps_existing_waterfall_coordinates_errors_and_stale_selectio
     let source = temp.path().join("source.h5");
     let reference = fixture(&source, 0);
     let mut s = session();
+    call(
+        &mut s,
+        "integration_overlay",
+        json!({"operation":"waterfall_separation","separation":0}),
+    );
     call(&mut s, "batch_open", json!({"path":source}));
     call(
         &mut s,

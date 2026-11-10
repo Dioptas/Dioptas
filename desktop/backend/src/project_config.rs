@@ -101,7 +101,7 @@ pub(super) fn load_overlays(s: &mut Session, file: &hdf5::File, doc: &Value) -> 
     s.patterns.project_overlay_ids();
     s.patterns.separation = doc["view"]["waterfall_separation"]
         .as_f64()
-        .unwrap_or(100.0);
+        .unwrap_or(crate::waterfall_spacing::DEFAULT_SPACING);
     Ok(())
 }
 pub(super) fn save_overlays(

@@ -45,7 +45,8 @@ try {
       browser = await engine.launch({ headless: true }),
       requests = [],
       errors = [];
-    let completed = 0;
+    let completed = 0,
+      overlayCompleted = 0;
     const call = async (action, payload = {}) => {
       requests.push({ action, payload });
       if (action === "batch_load_data") payload = { paths };
@@ -55,6 +56,7 @@ try {
       });
       assert.equal(r.ok, true, `${action}: ${r.error}`);
       if (action === "batch_waterfall") completed++;
+      if (action === "integration_overlay") overlayCompleted++;
       return r;
     };
     try {
@@ -65,6 +67,10 @@ try {
         viewport: { width: 1440, height: 1000 },
       });
       await context.exposeFunction("__waterfallCompleted", () => completed);
+      await context.exposeFunction(
+        "__overlayCompleted",
+        () => overlayCompleted,
+      );
       context.on("page", (p) =>
         p.on("pageerror", (e) => errors.push(e.message)),
       );
@@ -143,6 +149,99 @@ try {
       assert.deepEqual(
         state.state.integration.overlays.map((o) => o.batchSource.row),
         [0, 1, 2, 3, 4],
+      );
+      assert.equal(state.state.integration.waterfallSeparation, 100);
+      assert.deepEqual(
+        state.state.integration.overlays.map((o) => o.offset),
+        [-500, -400, -300, -200, -100],
+      );
+      assert.equal(
+        await page
+          .getByRole("button", { name: "Auto waterfall spacing", exact: true })
+          .innerText(),
+        "A",
+      );
+      for (const large of [false, true]) {
+        const layout = await page
+          .locator(".qt-overlay-waterfall-actions")
+          .evaluate((row, large) => {
+            const host = document.querySelector("[data-text-size]"),
+              previous = host.getAttribute("data-text-size");
+            host.setAttribute("data-text-size", large ? "large" : "normal");
+            const buttons = [...row.querySelectorAll("button")],
+              bounds = row.getBoundingClientRect();
+            const result = buttons.map((button) => {
+              const r = button.getBoundingClientRect(),
+                range = document.createRange();
+              range.selectNodeContents(button);
+              return {
+                left: r.left,
+                right: r.right,
+                y: r.y,
+                height: r.height,
+                width: r.width,
+                textWidth: range.getBoundingClientRect().width,
+              };
+            });
+            host.setAttribute("data-text-size", previous);
+            return { buttons: result, left: bounds.left, right: bounds.right };
+          }, large);
+        assert.equal(layout.buttons.length, 3);
+        assert.ok(
+          layout.buttons.every(
+            (b) =>
+              Math.abs(b.y - layout.buttons[0].y) < 1 &&
+              b.left >= layout.left - 1 &&
+              b.right <= layout.right + 1,
+          ),
+        );
+        assert.ok(
+          layout.buttons[0].width >= layout.buttons[0].textWidth + 8,
+          `Waterfall text fits beside A and Reset: ${JSON.stringify({ large, ...layout })}`,
+        );
+      }
+      const spacing = page.getByRole("spinbutton", {
+        name: "Waterfall separation",
+        exact: true,
+      });
+      assert.equal(await spacing.inputValue(), "100");
+      const range =
+        Math.max(
+          ...state.pattern.curves.map(
+            (c) => Math.max(...c.y) - Math.min(...c.y),
+          ),
+        ) * 0.1;
+      const base = 10 ** Math.floor(Math.log10(range));
+      const expectedSpacing =
+        base * [1, 2, 5, 10].find((v) => v >= range / base);
+      await page
+        .getByRole("button", { name: "Auto waterfall spacing", exact: true })
+        .click();
+      await page.waitForFunction(
+        async () => (await window.__overlayCompleted()) >= 1,
+      );
+      state = await call("state");
+      assert.equal(
+        state.state.integration.waterfallSeparation,
+        expectedSpacing,
+      );
+      assert.deepEqual(
+        state.state.integration.overlays.map((o) => o.offset),
+        [5, 4, 3, 2, 1].map((i) => -i * expectedSpacing),
+      );
+      assert.ok(state.state.integration.overlays.every((o) => o.scale === 1));
+      await spacing.fill("100");
+      await spacing.press("Enter");
+      await page
+        .getByRole("button", { name: "Waterfall", exact: true })
+        .click();
+      await page.waitForFunction(
+        async () => (await window.__overlayCompleted()) >= 3,
+      );
+      state = await call("state");
+      assert.deepEqual(
+        state.state.integration.overlays.map((o) => o.offset),
+        [-500, -400, -300, -200, -100],
       );
       const first = state.pattern.curves;
       await drag(page, canvas, [0.1, 0.1], [0.9, 0.95]);
