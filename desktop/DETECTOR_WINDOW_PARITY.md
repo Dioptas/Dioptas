@@ -109,3 +109,16 @@ through a temporary Vite loader). `artifacts/detector-window/ui-baseline.log`
 records the baseline failure. No shared scrollbar/phase implementation was
 changed by this feature. Windows/Linux native window semantics and physical
 display latency remain unqualified.
+
+## Consolidated desktop integration
+
+The detector window and correction-preview dependency are now integrated with
+consolidated base `53fe41b2`, preserving cake Q display and azimuthal profiles.
+The joint source check additionally exercises an open detached correction map
+with Q selected and a native azimuthal profile visible. Changing profile width
+keeps that map open, preserves science and avoids duplicate preview work.
+Profile reads and exports now retain correction previews, matching the other
+read-only inspection commands. The merged tree passes 212 native processor
+checks (two existing ignored), 112 frontend tests, 29 host tests, strict Clippy,
+frontend build and the headless/native workflows described in the
+[consolidation record](RUST_DESKTOP_CONSOLIDATION.md).

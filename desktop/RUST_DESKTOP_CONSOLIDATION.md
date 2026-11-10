@@ -143,3 +143,39 @@ preview was closed or processing terminated. No package/release was published.
 See [cake-axis qualification](CAKE_Q_AXIS_PARITY.md) and
 [profile qualification](CAKE_PROFILE_PARITY.md); receipts and screenshots live
 under the ignored `desktop/artifacts/cake-q-axis/` and `cake-profile/` folders.
+
+## Detector window and correction-preview integration — November 10, 2026
+
+This merge brings `62473343` (native correction Plot/Back previews) and
+`3fbf2686` (standalone detector image) into the consolidated checkout after
+`53fe41b2`. The cake Q-axis and azimuthal-profile implementations remain intact,
+including their source-coordinate conventions, requested products and controls.
+The image Save action uses the detached renderer while Profile remains available.
+Profile reads and exports are included in the correction preview's read-only
+command set so they cannot dismiss an open correction map.
+
+The joint headless source workflow selects Q, enables an azimuthal profile,
+opens a detached correction map and changes profile width. It checks that the
+map stays open, native profile extraction occurs, scientific state and pixel
+identities stay unchanged, and no second correction-preview calculation runs.
+Both Chromium and WebKit pass this workflow and the separate detector,
+correction-preview, cake Q-axis, cake-profile, measured-image calibration,
+Integration/Batch/Map and responsive-control regressions.
+
+Verification on the merged tree:
+
+- Full native processor suite: **212 passed, two existing opt-in tests ignored**.
+- Frontend: **112 passing tests**, production build and functional inventory.
+- Tauri host: **29 passing tests**; strict backend and host Clippy pass.
+- Isolated macOS native detector campaign: binary/cached snapshots, restricted
+  child commands, single-window reuse, dock/close, placement restoration and
+  main-frontend reload reconnection pass; one processing PID is retained and
+  the test's processor is reaped on final exit.
+
+`test:ui-components` still fails the previously reproduced baseline **Phase
+parameters scrollbar gutter** assertion (12 px expected, 0 observed). This
+integration leaves that unrelated implementation and fixture unchanged.
+Windows/Linux native window behavior remains unqualified. No package or release
+was published. Receipts and screenshots are under the ignored
+`desktop/artifacts/detector-window/`, `correction-previews/`, `cake-profile/`,
+`cake-q-axis/`, `native-calibration/`, and Integration test artifact folders.

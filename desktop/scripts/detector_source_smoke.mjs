@@ -91,8 +91,10 @@ try {
         p.on("pageerror", (e) => errors.push(e.message)),
       );
       let previewRequests = 0;
+      let profileRequests = 0;
       await context.exposeBinding("__nativeInvoke", async (_, a, p = {}) => {
         if (a === "integration_correction_preview") previewRequests++;
+        if (a === "cake_profile") profileRequests++;
         return native.browserResult(await native.invoke(a, p));
       });
       await context.addInitScript(() => {
@@ -156,6 +158,23 @@ try {
           mask: reply.mask.bufferId,
         };
       };
+      // Joint regression with the already consolidated Q axis and profile view.
+      await page
+        .getByRole("button", { name: "Pattern unit Q", exact: true })
+        .click();
+      await ready();
+      await child.mouse.click(400, 300);
+      await ready();
+      await page
+        .getByRole("button", { name: "Azimuthal profile", exact: true })
+        .click();
+      await ready();
+      const profile = page.getByRole("region", {
+        name: "Azimuthal profile",
+        exact: true,
+      });
+      await profile.getByTestId("pattern-canvas").waitFor();
+      assert.equal((await native.invoke("state")).state.unit, "q_A^-1");
       const sourceScience = await science();
       const sourceMaximum = await child
         .getByTestId("detector-canvas")
@@ -181,6 +200,23 @@ try {
         /Factor/,
       );
       assert.equal(previewRequests, 1, "Detached preview was calculated twice");
+      const readsBeforeWidth = profileRequests;
+      await profile.getByLabel("Integral width", { exact: true }).fill("2");
+      await profile
+        .getByLabel("Integral width", { exact: true })
+        .press("Enter");
+      await profile.getByTestId("pattern-canvas").waitFor();
+      await ready();
+      assert.ok(
+        profileRequests > readsBeforeWidth,
+        "Profile width did not reach the native owner",
+      );
+      assert.equal(
+        await child.locator(".detached-detector-heading").count(),
+        1,
+        "Reading the profile dismissed the detached correction map",
+      );
+
       assert.deepEqual(
         await science(),
         sourceScience,
@@ -347,6 +383,7 @@ try {
         correctionBackAndClose: true,
         previewScienceUnchanged: true,
         noDuplicatePreviewCalculation: true,
+        retainedCakeQAndProfile: true,
         orientation: true,
         calibratedSourceCancel: true,
         sourceReset: true,
