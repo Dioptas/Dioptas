@@ -184,6 +184,11 @@ try {
         /Mean-normalized flat-field response · dimensionless/,
       );
       assert.equal(await button("Save image").isEnabled(), false);
+      assert.equal(
+        await image.isVisible(),
+        false,
+        "Underlying image controls must stay hidden while the correction map is shown",
+      );
       const map = preview.getByTestId("detector-canvas");
       assert.equal(await map.getAttribute("data-full-width"), "32");
       assert.equal(await map.getAttribute("data-full-height"), "24");
