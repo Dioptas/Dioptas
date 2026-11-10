@@ -92,6 +92,111 @@ impl Default for Processing {
     }
 }
 impl Processing {
+    /// Freeze deterministic maps once while preserving every divide/multiply
+    /// in the established pixel arithmetic. Regrouping gains can change a mask
+    /// comparison for a pixel exactly on its threshold.
+    #[cfg(feature = "dioptrin")]
+    pub(crate) fn series_snapshot(
+        &self,
+        image: &Image,
+        geometry: &Geometry,
+        control: &crate::control::Control,
+    ) -> Result<SeriesProcessing, String> {
+        let mut processing = self.clone();
+        processing.resolve_materials(geometry)?;
+        let orient = |p: &Plane| {
+            crate::transform::apply(&p.values, p.shape, &image.transformations, control)
+        };
+        let background = processing
+            .background
+            .as_ref()
+            .filter(|p| p.shape == image.source_shape)
+            .map(orient)
+            .transpose()?;
+        let mut operations = vec![];
+        if processing.flat_enabled
+            && let Some(flat) = processing
+                .flat
+                .as_ref()
+                .filter(|p| p.shape == image.source_shape)
+        {
+            operations.push(SeriesOperation::Divide(orient(flat)?));
+        }
+        if processing.transfer_enabled
+            && let (Some(original), Some(response)) =
+                (&processing.transfer_original, &processing.transfer_response)
+            && original.shape == image.source_shape
+            && response.shape == image.source_shape
+        {
+            let gains = Arc::new(
+                original
+                    .values
+                    .iter()
+                    .zip(response.values.iter())
+                    .map(|(o, r)| o / r)
+                    .collect(),
+            );
+            operations.push(SeriesOperation::Multiply(crate::transform::apply(
+                &gains,
+                original.shape,
+                &image.transformations,
+                control,
+            )?));
+        }
+        let mut angles = None;
+        for (kind, entry) in processing.corrections.as_object().unwrap() {
+            if entry["enabled"] != true {
+                continue;
+            }
+            let mut parameters = entry["parameters"].clone();
+            if kind == "cylinder" && entry["container"]["enabled"] != true {
+                parameters["container_absorption_coefficient"] = json!(0.);
+            }
+            let factors = if (kind == "cylinder" || kind == "sphere")
+                && let Some(values) =
+                    processing
+                        .sample_maps
+                        .lookup(kind, &parameters, geometry, image.shape)
+            {
+                values
+            } else {
+                if angles.is_none() {
+                    let native = geometry.native_geometry(image.shape)?;
+                    angles = Some((native.calc_tth_all(), native.calc_azimuth_all()));
+                }
+                let (tth, azi) = angles.as_ref().unwrap();
+                let values = if kind == "cylinder" || kind == "sphere" {
+                    crate::sample_absorption::build(kind, &parameters, tth, azi, control)?
+                } else {
+                    let mut values = Vec::with_capacity(tth.len());
+                    for (i, (&t, &a)) in tth.iter().zip(azi).enumerate() {
+                        if i % 65536 == 0 {
+                            control.check()?;
+                        }
+                        let factor = absorption(kind, &parameters, t, a);
+                        if !factor.is_finite() || factor <= 0. {
+                            return Err(
+                                "Correction is not finite and positive across this detector."
+                                    .into(),
+                            );
+                        }
+                        values.push(factor);
+                    }
+                    values
+                };
+                Arc::new(values)
+            };
+            operations.push(SeriesOperation::Divide(factors));
+        }
+        Ok(SeriesProcessing {
+            operations,
+            background,
+            scale: self.scale,
+            offset: self.offset,
+            factor: self.factor,
+            background_poisson: self.background_poisson,
+        })
+    }
     pub fn estimated_bytes(&self) -> usize {
         #[cfg(feature = "dioptrin")]
         let map_bytes = self.sample_maps.bytes();
@@ -417,6 +522,29 @@ impl Processing {
         self.cache = None;
         Ok(())
     }
+    fn resolve_materials(&mut self, geometry: &Geometry) -> Result<(), String> {
+        for kind in ["plate", "slab", "cylinder", "sphere"] {
+            let entry = &mut self.corrections[kind];
+            if entry["enabled"] == true && entry["material"]["mode"] == "formula" {
+                let mu = material_mu(&entry["material"], geometry.wavelength)?;
+                entry["parameters"]["absorption_coefficient"] = json!(mu);
+            }
+        }
+        let cylinder = &mut self.corrections["cylinder"];
+        if cylinder["enabled"] == true
+            && cylinder["container"]["enabled"] == true
+            && cylinder["parameters"]["wall_thickness"]
+                .as_f64()
+                .is_some_and(|v| v > 0.)
+            && cylinder["container"]["material"]["mode"] == "formula"
+        {
+            cylinder["parameters"]["container_absorption_coefficient"] = json!(material_mu(
+                &cylinder["container"]["material"],
+                geometry.wavelength
+            )?);
+        }
+        Ok(())
+    }
     pub fn values(
         &mut self,
         image: &Image,
@@ -460,26 +588,7 @@ impl Processing {
             return Ok(image.values.clone());
         }
         control.check()?;
-        for kind in ["plate", "slab", "cylinder", "sphere"] {
-            let entry = &mut self.corrections[kind];
-            if entry["enabled"] == true && entry["material"]["mode"] == "formula" {
-                let mu = material_mu(&entry["material"], geometry.wavelength)?;
-                entry["parameters"]["absorption_coefficient"] = json!(mu);
-            }
-        }
-        let cylinder = &mut self.corrections["cylinder"];
-        if cylinder["enabled"] == true
-            && cylinder["container"]["enabled"] == true
-            && cylinder["parameters"]["wall_thickness"]
-                .as_f64()
-                .is_some_and(|v| v > 0.)
-            && cylinder["container"]["material"]["mode"] == "formula"
-        {
-            cylinder["parameters"]["container_absorption_coefficient"] = json!(material_mu(
-                &cylinder["container"]["material"],
-                geometry.wavelength
-            )?);
-        }
+        self.resolve_materials(geometry)?;
         let geometry_active = self
             .corrections
             .as_object()
@@ -618,6 +727,157 @@ impl Processing {
             variance: Arc::new(variance),
         });
         Ok(values)
+    }
+}
+
+/// I = (S - b B - o) g; V = (max(S,0) + b² max(B,0)) g².
+/// Only original counting noise is stochastic; correction maps are fixed.
+#[cfg(feature = "dioptrin")]
+pub(crate) struct SeriesProcessing {
+    operations: Vec<SeriesOperation>,
+    background: Option<Arc<Vec<f64>>>,
+    scale: f64,
+    offset: f64,
+    background_poisson: bool,
+    factor: f64,
+}
+#[cfg(feature = "dioptrin")]
+enum SeriesOperation {
+    Divide(Arc<Vec<f64>>),
+    Multiply(Arc<Vec<f64>>),
+}
+#[cfg(feature = "dioptrin")]
+impl SeriesProcessing {
+    pub fn apply(
+        &self,
+        values: &mut [f64],
+        variance: Option<&mut Vec<f64>>,
+        control: &crate::control::Control,
+    ) -> Result<(), String> {
+        let mut variance = variance;
+        if let Some(v) = variance.as_mut() {
+            v.resize(values.len(), 0.);
+        }
+        for (i, value) in values.iter_mut().enumerate() {
+            if i % 65536 == 0 {
+                control.check()?;
+            }
+            let mut var = value.max(0.);
+            if let Some(background) = &self.background {
+                *value -= self.scale * background[i] + self.offset;
+                if self.background_poisson {
+                    var += self.scale * self.scale * background[i].max(0.);
+                }
+            }
+            for operation in &self.operations {
+                match operation {
+                    SeriesOperation::Divide(factors) => {
+                        *value /= factors[i];
+                        var /= factors[i] * factors[i];
+                    }
+                    SeriesOperation::Multiply(factors) => {
+                        *value *= factors[i];
+                        var *= factors[i] * factors[i];
+                    }
+                }
+            }
+            if self.factor != 1. {
+                *value *= self.factor;
+                var *= self.factor * self.factor;
+            }
+            if !value.is_finite() || !var.is_finite() {
+                return Err("Processing produced nonfinite intensities or variances; check correction parameters.".into());
+            }
+            if let Some(v) = variance.as_mut() {
+                v[i] = var;
+            }
+        }
+        Ok(())
+    }
+}
+
+#[cfg(all(test, feature = "dioptrin"))]
+mod series_tests {
+    use super::*;
+
+    #[test]
+    fn prepared_operations_preserve_pixel_bits_and_variances_for_all_corrections() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("raw.h5");
+        let shape = [24, 32];
+        let n = shape[0] * shape[1];
+        let file = hdf5::File::create(&path).unwrap();
+        file.new_dataset::<u32>()
+            .shape(shape)
+            .create("counts")
+            .unwrap()
+            .write_raw(&(0..n).map(|i| (i % 97) as u32).collect::<Vec<_>>())
+            .unwrap();
+        drop(file);
+        let image = Image::open(&path, &json!({"dataset":"/counts"})).unwrap();
+        let (geometry, _) = Geometry::manual(&json!({"dist":0.15,"poni1":0.0012,"poni2":0.0016,
+            "rot1":0.01,"rot2":-0.02,"rot3":0.,"pixel1":0.0001,"pixel2":0.0001,"wavelength":0.5e-10,"polarization_factor":0.965})).unwrap();
+        let control = crate::control::Control::default();
+        for kind in [
+            "none", "cbn", "oiadac", "plate", "slab", "cylinder", "sphere",
+        ] {
+            let mut processing = Processing::default();
+            processing.restore_background(
+                "background".into(),
+                shape,
+                (0..n).map(|i| 80. + (i % 19) as f64).collect(),
+            );
+            processing.scale = 1.3;
+            processing.offset = -2.4;
+            processing
+                .restore_flat(
+                    "flat".into(),
+                    shape,
+                    (0..n).map(|i| 0.8 + (i % 13) as f64 / 30.).collect(),
+                    true,
+                )
+                .unwrap();
+            processing
+                .restore_transfer("original", "original".into(), shape, vec![1.7; n])
+                .unwrap();
+            processing
+                .restore_transfer("response", "response".into(), shape, vec![0.9; n])
+                .unwrap();
+            processing.transfer_enabled = true;
+            if kind != "none" {
+                processing
+                    .correction(&json!({"kind":kind,"enabled":true}), true)
+                    .unwrap();
+            }
+            for noise in [false, true] {
+                for factor in [-0.7, 0., 1.3] {
+                    processing.background_poisson = noise;
+                    processing.factor = factor;
+                    processing.cache = None;
+                    let prepared = processing
+                        .series_snapshot(&image, &geometry, &control)
+                        .unwrap();
+                    let expected = processing.values(&image, 1, &geometry, &control).unwrap();
+                    let expected_var = processing.variance().unwrap();
+                    let mut actual = image.values.as_ref().clone();
+                    let mut variance = vec![];
+                    prepared
+                        .apply(&mut actual, Some(&mut variance), &control)
+                        .unwrap();
+                    for (actual, reference) in actual
+                        .iter()
+                        .zip(expected.iter())
+                        .chain(variance.iter().zip(expected_var.iter()))
+                    {
+                        assert_eq!(
+                            actual.to_bits(),
+                            reference.to_bits(),
+                            "{kind}: {actual} != {reference}"
+                        );
+                    }
+                }
+            }
+        }
     }
 }
 fn validate_material(material: &Value) -> Result<(), String> {

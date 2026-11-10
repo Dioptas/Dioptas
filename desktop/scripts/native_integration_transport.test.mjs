@@ -5,9 +5,12 @@ import { mkdtemp, rm, utimes } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { nativeClient, root } from "./native_backend_client.mjs";
-for (const compression of ["gzip", "bitshuffle-lz4"])
+for (const [compression, scenario] of [
+  ["gzip", "raw"], ["bitshuffle-lz4", "raw"],
+  ["bitshuffle-lz4", "corrected"], ["bitshuffle-lz4", "dynamic"], ["bitshuffle-lz4", "combined"],
+])
   test(
-    `${compression}: bulk cancellation and changed sources preserve the preceding complete series`,
+    `${compression}/${scenario}: bulk cancellation and changed sources preserve the preceding complete series`,
     { timeout: 120000 },
     async () => {
       const directory = await mkdtemp(
@@ -31,6 +34,8 @@ with h5py.File(sys.argv[1],'w') as f:
   d=f.create_dataset('frames',shape=(512,384,448),dtype='uint16',chunks=(1,384,448),compression=32008,compression_opts=(0,4,2,2048,2),allow_unknown_filter=True)
   data=struct.pack('>QI',frame.nbytes,4096)+bitshuffle.compress_lz4(frame,block_size=2048).tobytes()
   for i in range(512):d.id.write_direct_chunk((i,0,0),data)
+np.save(sys.argv[1]+'.background.npy',np.full((384,448),7.))
+np.save(sys.argv[1]+'.flat.npy',np.broadcast_to(np.linspace(0.8,1.2,448),(384,448)))
 `,
           source,
           compression,
@@ -60,11 +65,20 @@ with h5py.File(sys.argv[1],'w') as f:
         });
         await invoke("integration_settings", { bins: 128, cake_bins: 24 });
         await invoke("open_image", { path: source, dataset: "frames" });
+        if (["corrected", "combined"].includes(scenario)) {
+          await invoke("integration_settings", { poisson_errors: true });
+          await invoke("integration_image_background", { path: source + ".background.npy", scale: 0.7, poisson: true });
+          await invoke("integration_flat_field", { path: source + ".flat.npy" });
+        }
+        if (["dynamic", "combined"].includes(scenario)) {
+          await invoke("mask_plugin", { name: "Threshold Mask", enabled: true,
+            settings: { above_enabled: true, above_value: 900 } });
+        }
         await invoke("batch_load", { paths: [source], start: 1, stop: 2 });
         if (compression === "bitshuffle-lz4") {
           const diagnostics = await invoke("integration_diagnostics");
           assert.equal(
-            diagnostics.integrationDiagnostics.patternOnlyDecodes,
+            diagnostics.integrationDiagnostics[scenario === "raw" ? "patternOnlyDecodes" : "processedFrameIntegrations"],
             2,
           );
         }

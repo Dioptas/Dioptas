@@ -54,6 +54,43 @@ impl Default for Plugins {
     }
 }
 impl Plugins {
+    /// Retain only settings and the immutable geometry bins across workers.
+    /// Per-frame plugin masks/caches are always private and initially empty.
+    pub(crate) fn series_snapshot(
+        &self,
+        geometry: &Geometry,
+        shape: [usize; 2],
+    ) -> Result<Self, String> {
+        let mut snapshot = self.clone();
+        snapshot.cache = vec![None; 3];
+        if snapshot.states[2].enabled {
+            let count = number(&snapshot.states[2].settings, "num_bins") as usize;
+            if snapshot
+                .bins
+                .as_ref()
+                .is_none_or(|p| p.geometry != *geometry || p.shape != shape || p.count != count)
+            {
+                snapshot.bins = Some(BinPlan {
+                    geometry: geometry.clone(),
+                    shape,
+                    count,
+                    indices: Arc::new(bin_indices(geometry, shape, count)?),
+                });
+            }
+        }
+        Ok(snapshot)
+    }
+
+    /// Conservative per-pixel allowance for retained masks and simultaneous
+    /// plugin temporaries (including Vec growth in Spot's bin lists).
+    pub(crate) fn series_scratch_bytes(&self, pixels: usize) -> usize {
+        let bytes = if self.states[1].enabled || self.states[2].enabled {
+            96
+        } else {
+            8
+        };
+        pixels.saturating_mul(bytes)
+    }
     pub fn edit(
         &mut self,
         name: &str,
@@ -164,17 +201,15 @@ impl Plugins {
                 control.publish(json!({"running":true,"current":i,"total":3,"label":format!("Computing {}",catalog()[i]["name"].as_str().unwrap())}));
                 let p = &state.settings;
                 let mask = match i {
-                    0 => data
-                        .iter()
-                        .map(|&v| {
-                            u8::from(
-                                (p["above_enabled"].as_bool().unwrap()
-                                    && v > number(p, "above_value"))
-                                    || (p["below_enabled"].as_bool().unwrap()
-                                        && v < number(p, "below_value")),
-                            )
-                        })
-                        .collect(),
+                    0 => {
+                        let above = p["above_enabled"].as_bool().unwrap();
+                        let below = p["below_enabled"].as_bool().unwrap();
+                        let high = number(p, "above_value");
+                        let low = number(p, "below_value");
+                        data.iter()
+                            .map(|&v| u8::from((above && v > high) || (below && v < low)))
+                            .collect()
+                    }
                     1 => cosmic(data, shape, p, control)?,
                     _ => {
                         if let Some(g) = geometry {
@@ -267,9 +302,12 @@ fn cosmic(data: &[f64], shape: [usize; 2], p: &Value, c: &Control) -> Result<Vec
     let mut image = data.to_vec();
     let mut mask = vec![0; data.len()];
     let window = number(p, "window_size") as usize;
-    for iteration in 0..number(p, "iterations") as usize {
+    let iterations = number(p, "iterations") as usize;
+    let minimum = number(p, "min_intensity");
+    let sigma = number(p, "sigma");
+    for iteration in 0..iterations {
         c.check()?;
-        c.publish(json!({"running":true,"current":iteration,"total":number(p,"iterations"),"label":"Computing Cosmic Ray Mask"}));
+        c.publish(json!({"running":true,"current":iteration,"total":iterations,"label":"Computing Cosmic Ray Mask"}));
         let positive: Vec<_> = image
             .iter()
             .map(|&v| if v > 0.0 { v } else { 0.0 })
@@ -307,10 +345,7 @@ fn cosmic(data: &[f64], shape: [usize; 2], p: &Value, c: &Control) -> Result<Vec
             } else {
                 0.0
             };
-            if v > number(p, "min_intensity")
-                && v > 0.0
-                && (z > number(p, "sigma") || v > 2.0 * mean)
-            {
+            if v > minimum && v > 0.0 && (z > sigma || v > 2.0 * mean) {
                 mask[i] = 1;
                 image[i] = f64::NAN;
             }

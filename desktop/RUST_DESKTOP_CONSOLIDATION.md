@@ -69,12 +69,15 @@ children run with Python and PATH unavailable.
 ## Released dependency and portability
 
 The desktop uses the public Dioptrin **0.12.0** release as its baseline.
-The current exact pin in `backend/Cargo.lock` is `7f2d0c2`, which adds the
+The current exact pin in `backend/Cargo.lock` is `41174d8`, which includes the
 Massif preprocessing optimization, prepared compatibility integration plans
-and resident CSC/CSR selection
+resident CSC/CSR selection and reusable native dynamic CSC workers with
+supplied pixel variances
 on top of `v0.12.0`. These additions are not part of the published 0.12.0 package;
 see [Massif performance](MASSIF_PERFORMANCE.md) and
 [cached integration performance](PYFAI_CACHED_PERFORMANCE.md).
+Corrected and dynamically masked series are qualified in the
+[processed-series pipeline](NATIVE_PROCESSED_SERIES_PIPELINE.md).
 CSR is the default. Optional Automatic uses CSC above roughly 8 MP and 2,000 bins without Poisson errors. The execution-layout setting and empirical
 predictor are documented in the [crossover study](INTEGRATION_LAYOUT_CROSSOVER.md).
 The release includes physical detector geometry, shared-grid integration,

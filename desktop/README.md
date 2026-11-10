@@ -11,7 +11,7 @@ uses this checkout; the single-crystal experiment stays separate. See the
 verification.
 
 The desktop uses Dioptrin **0.12.0** plus the Massif, cached compatibility
-and resident-layout optimizations at revision `7f2d0c2`, locked in `backend/Cargo.lock`. It includes native
+and resident-layout/dynamic-worker optimizations at revision `41174d8`, locked in `backend/Cargo.lock`. It includes native
 pyFAI-compatible full pixel splitting for both 1D patterns and cakes. Massif
 picking retains full-resolution samples and reuses preprocessing across clicks;
 see [Massif performance and numerical checks](MASSIF_PERFORMANCE.md) and
@@ -37,6 +37,9 @@ overlay I/O, phase/material editing, Batch and Map with the existing controls.
 Admitted fixed-mask HDF5 Batch/Map series use concurrent frames with one shared
 CSC plan and persistent worker scratch. Development builds also optimize the
 separate Bitshuffle/LZ4 C dependency. See [series pipeline measurements](NATIVE_SERIES_PIPELINE.md).
+Corrected images and dynamic masks use shared native `Dynamic1dPlan` snapshots
+and private reusable frame workers, including propagated pixel variances; see
+[processed-series qualification](NATIVE_PROCESSED_SERIES_PIPELINE.md).
 See the [qualification ledger](NATIVE_INTEGRATION_PARITY.md) for measured parity,
 benchmark scope and remaining detector work. Native format-2 `.dio` persistence
 and configuration select/add/duplicate/rename/remove controls are now available;

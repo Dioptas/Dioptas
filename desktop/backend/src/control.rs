@@ -2,19 +2,29 @@
 use crate::protocol::{Buffer, Reply};
 use serde_json::{Value, json};
 use std::sync::{
-    Mutex,
+    Arc, Mutex,
     atomic::{AtomicBool, Ordering},
 };
 
 #[derive(Default)]
 pub struct Control {
-    cancelled: AtomicBool,
+    cancelled: Arc<AtomicBool>,
+    silent: bool,
     skip_cake: AtomicBool,
     skip_calibration_rings: AtomicBool,
     progress: Mutex<Value>,
     map_preview: Mutex<Option<(Value, Buffer)>>,
 }
 impl Control {
+    /// Frame workers share cancellation but leave operation progress to the
+    /// ordered collector; plugin-local progress must not replace series totals.
+    pub(crate) fn silent_child(&self) -> Self {
+        Self {
+            cancelled: self.cancelled.clone(),
+            silent: true,
+            ..Self::default()
+        }
+    }
     /// Per-command display demand, shared by all configuration owners. Legacy
     /// callers that do not specify products retain the complete response.
     pub(crate) fn request_cake(&self, requested: bool) {
@@ -41,7 +51,9 @@ impl Control {
         }
     }
     pub fn publish(&self, progress: Value) {
-        *self.progress.lock().unwrap() = progress;
+        if !self.silent {
+            *self.progress.lock().unwrap() = progress;
+        }
     }
     pub fn progress(&self) -> Value {
         self.progress.lock().unwrap().clone()
@@ -64,5 +76,20 @@ impl Control {
     pub fn finish(&self) {
         *self.map_preview.lock().unwrap() = None;
         self.publish(json!({"running":false,"current":0,"total":0}));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn child_shares_cancellation_and_preserves_owner_progress() {
+        let parent = Control::default();
+        parent.publish(json!({"current":12,"total":100,"label":"Integrating series"}));
+        let child = parent.silent_child();
+        child.publish(json!({"label":"Computing a plugin"}));
+        assert_eq!(parent.progress()["current"], 12);
+        parent.cancel();
+        assert!(child.check().is_err());
     }
 }

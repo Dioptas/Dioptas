@@ -1,6 +1,6 @@
 # Native Batch/Map frame pipeline
 
-Batch and Map share `Session::integrate_series`. Admitted immutable HDF5 series
+Batch and Map share `Session::integrate_series`. Admitted uncorrected, fixed-mask HDF5 series
 now run concurrent complete frames against one cached, immutable CSC plan and
 one raw-chunk reader. Each scoped worker retains its native uint16/uint32 frame
 buffer, compressed input, codec scratch and float64 integration accumulators
@@ -9,8 +9,9 @@ each frame. No full-frame float64 conversion or per-worker LUT copy is needed.
 
 The default is eight workers, controlled by `DIOPTAS_INTEGRATION_THREADS`.
 Admission caps the worker count by the selected frame count and a conservative
-2 GiB combined decoder payload budget. This budget excludes the single shared
-plan, final scientific series, allocator overhead and integration accumulators.
+4 GiB combined worker payload budget. For corrected/dynamic processing it also
+accounts for float64 buffers and plugin temporaries. Shared plans/correction
+maps, final scientific series and allocator overhead are separate.
 At most as many outstanding frames as there are workers are admitted; only
 ordered consumption releases another queue slot. The result reorder queue is bounded by
 the worker count even if an early frame is slow.
@@ -34,6 +35,10 @@ no image transformations, image corrections/background processing, dynamic
 mask, azimuth-limited pattern or azimuthal spread. Poisson errors are supported.
 Other cases retain their existing native integration path and scientific
 settings. There is no Python fallback or automatic change of integration method.
+
+Corrected images and changing masks now have a separate
+[native dynamic-plan pipeline](NATIVE_PROCESSED_SERIES_PIPELINE.md), using
+Dioptrin's `Dynamic1dPlan`/`Dynamic1dWorker` with supplied pixel variances.
 
 The resident CSR/CSC setting does not change this pipeline's CSC block plan.
 Geometry, masks, normalization and lookup tables are built once and shared;

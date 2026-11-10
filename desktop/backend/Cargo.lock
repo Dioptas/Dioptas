@@ -288,7 +288,7 @@ dependencies = [
 [[package]]
 name = "dioptrin"
 version = "0.12.0"
-source = "git+https://github.com/CPrescher/Dioptrin?rev=7f2d0c296035e54810844de717486de44d168e41#7f2d0c296035e54810844de717486de44d168e41"
+source = "git+https://github.com/CPrescher/Dioptrin?rev=41174d85ce0eca17ac3b61fa1eb19ad97bf0055a#41174d85ce0eca17ac3b61fa1eb19ad97bf0055a"
 dependencies = [
  "flate2",
  "rayon",

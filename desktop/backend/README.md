@@ -143,6 +143,9 @@ Map and explicit custom actions. It keeps the existing React command contract.
 Integration and phase edits share chronological calibration Undo/Redo; raw source
 files and authored catalog records remain unchanged. Failed or cancelled bulk
 operations restore the complete preceding scientific state.
+Admitted HDF5 series also run corrections and dynamic masks in persistent
+frame workers sharing Dioptrin `Dynamic1dPlan` snapshots; see
+[processed-series qualification and benchmarks](../NATIVE_PROCESSED_SERIES_PIPELINE.md).
 
 See [native integration qualification](../NATIVE_INTEGRATION_PARITY.md) for the
 implemented controls, pinned Qt/API sources, independent numerical checks, real

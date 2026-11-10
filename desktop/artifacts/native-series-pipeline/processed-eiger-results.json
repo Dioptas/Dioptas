@@ -1,0 +1,689 @@
+{
+  "source": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.h5",
+  "sourceBytes": 5687072680,
+  "shape": [
+    625,
+    3262,
+    3108
+  ],
+  "bins": 2000,
+  "requestedWorkers": 8,
+  "poisson": true,
+  "sequentialReference": true,
+  "baseline": "Same optimized binary with frame parallelism disabled; plugin setting hoisting included in both variants",
+  "machine": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "records": [
+    {
+      "view": "batch",
+      "case": "corrected",
+      "variant": "before",
+      "repeat": 0,
+      "frames": 625,
+      "seconds": 85.18703437503427,
+      "fps": 7.336797255418584,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 626,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 626,
+        "lastPixelDecodeMs": -0.3170830000000002,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "processedFrameIntegrations": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "batch",
+      "case": "corrected",
+      "variant": "after",
+      "repeat": 0,
+      "frames": 625,
+      "seconds": 7.171544082928449,
+      "fps": 87.14999068161423,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 1,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": -0.6820009999999996,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 5,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "batch",
+      "case": "dynamic",
+      "variant": "before",
+      "repeat": 0,
+      "frames": 625,
+      "seconds": 14.665497250040062,
+      "fps": 42.6170343455823,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 626,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 626,
+        "lastPixelDecodeMs": 0.16179100000000002,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "processedFrameIntegrations": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "batch",
+      "case": "dynamic",
+      "variant": "after",
+      "repeat": 0,
+      "frames": 625,
+      "seconds": 6.584405083907768,
+      "fps": 94.9212559123215,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 1,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": -0.6932920000000005,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 6,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "batch",
+      "case": "combined",
+      "variant": "before",
+      "repeat": 0,
+      "frames": 625,
+      "seconds": 87.65644412499387,
+      "fps": 7.130108986725267,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 626,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 626,
+        "lastPixelDecodeMs": -0.1004170000000002,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "processedFrameIntegrations": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "batch",
+      "case": "combined",
+      "variant": "after",
+      "repeat": 0,
+      "frames": 625,
+      "seconds": 7.943821250111796,
+      "fps": 78.67750045246854,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 1,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": -0.5541260000000001,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 5,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "map",
+      "case": "corrected",
+      "variant": "before",
+      "repeat": 0,
+      "frames": 625,
+      "seconds": 82.80425058305264,
+      "fps": 7.547921702076456,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 625,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 626,
+        "lastPixelDecodeMs": 0.0650409999999999,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "processedFrameIntegrations": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "map",
+      "case": "corrected",
+      "variant": "after",
+      "repeat": 0,
+      "frames": 625,
+      "seconds": 7.307444250094704,
+      "fps": 85.52921905519841,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": -0.20124999999999993,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 6,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "map",
+      "case": "dynamic",
+      "variant": "before",
+      "repeat": 0,
+      "frames": 625,
+      "seconds": 14.658622624934651,
+      "fps": 42.6370209529005,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 625,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 626,
+        "lastPixelDecodeMs": 0.13774899999999946,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "processedFrameIntegrations": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "map",
+      "case": "dynamic",
+      "variant": "after",
+      "repeat": 0,
+      "frames": 625,
+      "seconds": 6.695288790971972,
+      "fps": 93.34922204442613,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": -0.2692079999999999,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 7,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "map",
+      "case": "combined",
+      "variant": "before",
+      "repeat": 0,
+      "frames": 625,
+      "seconds": 90.02386254107114,
+      "fps": 6.942603687048635,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 625,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 626,
+        "lastPixelDecodeMs": 0.22775000000000034,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "processedFrameIntegrations": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "map",
+      "case": "combined",
+      "variant": "after",
+      "repeat": 0,
+      "frames": 625,
+      "seconds": 8.740435958956368,
+      "fps": 71.50673066365293,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": -0.5568329999999992,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 7,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    }
+  ],
+  "comparisons": [
+    {
+      "view": "batch",
+      "case": "corrected",
+      "variant": "before",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "batch",
+      "case": "corrected",
+      "variant": "after",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 1.0360963642597198e-08,
+        "relativeL2": 2.795923759354557e-15
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 6.927791673660977e-14,
+        "relativeL2": 1.4340238436418869e-15
+      }
+    },
+    {
+      "view": "batch",
+      "case": "dynamic",
+      "variant": "before",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "batch",
+      "case": "dynamic",
+      "variant": "after",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 5.968558980384842e-13,
+        "relativeL2": 3.817588039823233e-16
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 7.105427357601002e-15,
+        "relativeL2": 1.8928176802832124e-16
+      }
+    },
+    {
+      "view": "batch",
+      "case": "combined",
+      "variant": "before",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "batch",
+      "case": "combined",
+      "variant": "after",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 5.9401372709544376e-12,
+        "relativeL2": 4.439761575886582e-15
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 5.329070518200751e-15,
+        "relativeL2": 1.4042531280993222e-15
+      }
+    },
+    {
+      "view": "map",
+      "case": "corrected",
+      "variant": "before",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "map_values": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "map",
+      "case": "corrected",
+      "variant": "after",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 1.0360963642597198e-08,
+        "relativeL2": 2.795923759354557e-15
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 6.927791673660977e-14,
+        "relativeL2": 1.4340238436418869e-15
+      },
+      "map_values": {
+        "maxAbs": 7.958078640513122e-12,
+        "relativeL2": 2.2367236336359825e-15
+      }
+    },
+    {
+      "view": "map",
+      "case": "dynamic",
+      "variant": "before",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "map_values": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "map",
+      "case": "dynamic",
+      "variant": "after",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 5.968558980384842e-13,
+        "relativeL2": 3.817588039823233e-16
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 7.105427357601002e-15,
+        "relativeL2": 1.8928176802832124e-16
+      },
+      "map_values": {
+        "maxAbs": 6.821210263296962e-13,
+        "relativeL2": 1.8007667203628946e-16
+      }
+    },
+    {
+      "view": "map",
+      "case": "combined",
+      "variant": "before",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "map_values": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "map",
+      "case": "combined",
+      "variant": "after",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 5.9401372709544376e-12,
+        "relativeL2": 4.439761575886582e-15
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 5.329070518200751e-15,
+        "relativeL2": 1.4042531280993222e-15
+      },
+      "map_values": {
+        "maxAbs": 7.958078640513122e-12,
+        "relativeL2": 2.237294349942906e-15
+      }
+    }
+  ],
+  "summaries": [
+    {
+      "view": "batch",
+      "case": "corrected",
+      "medianSeconds": {
+        "before": 85.18703437503427,
+        "after": 7.171544082928449
+      },
+      "fps": {
+        "before": 7.336797255418584,
+        "after": 87.14999068161423
+      },
+      "speedup": 11.878478803165741
+    },
+    {
+      "view": "batch",
+      "case": "dynamic",
+      "medianSeconds": {
+        "before": 14.665497250040062,
+        "after": 6.584405083907768
+      },
+      "fps": {
+        "before": 42.6170343455823,
+        "after": 94.9212559123215
+      },
+      "speedup": 2.227307868084
+    },
+    {
+      "view": "batch",
+      "case": "combined",
+      "medianSeconds": {
+        "before": 87.65644412499387,
+        "after": 7.943821250111796
+      },
+      "fps": {
+        "before": 7.130108986725267,
+        "after": 78.67750045246854
+      },
+      "speedup": 11.03454387568958
+    },
+    {
+      "view": "map",
+      "case": "corrected",
+      "medianSeconds": {
+        "before": 82.80425058305264,
+        "after": 7.307444250094704
+      },
+      "fps": {
+        "before": 7.547921702076456,
+        "after": 85.52921905519841
+      },
+      "speedup": 11.331492618911119
+    },
+    {
+      "view": "map",
+      "case": "dynamic",
+      "medianSeconds": {
+        "before": 14.658622624934651,
+        "after": 6.695288790971972
+      },
+      "fps": {
+        "before": 42.6370209529005,
+        "after": 93.34922204442613
+      },
+      "speedup": 2.1893936292487575
+    },
+    {
+      "view": "map",
+      "case": "combined",
+      "medianSeconds": {
+        "before": 90.02386254107114,
+        "after": 8.740435958956368
+      },
+      "fps": {
+        "before": 6.942603687048635,
+        "after": 71.50673066365293
+      },
+      "speedup": 10.29969934724174
+    }
+  ],
+  "corrections": "background=7 counts, scale=0.7, offset=1.2, background noise on; mean-normalized flat varies 0.8\u20131.2 across detector columns",
+  "dynamicMask": "Threshold Mask above 1000, evaluated on corrected values when corrections are enabled",
+  "scope": "Warm-plan complete native stdio commands, including per-command correction-map preparation, worker starts, ordered collection, final selection and Map previews/reduction. Excludes initial setup, exports, process startup and Tauri rendering. OS file pages warm; CPU not isolated. Both binaries have optimized codecs.",
+  "executables": {
+    "before": {
+      "path": "/Users/clemens/Codex/dioptas-parallel-processed-series-20261110/dioptas-processor-native-dynamic",
+      "sha256": "baa1b28627f2b53f2ece03bfc860bfbc1af214cb9d0622747186ffb3a83dd95e"
+    },
+    "after": {
+      "path": "/Users/clemens/Codex/dioptas-parallel-processed-series-20261110/dioptas-processor-native-dynamic",
+      "sha256": "baa1b28627f2b53f2ece03bfc860bfbc1af214cb9d0622747186ffb3a83dd95e"
+    }
+  },
+  "sourceUnchanged": true
+}

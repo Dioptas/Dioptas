@@ -365,7 +365,7 @@ impl Session {
                     if bulk_options.automatic_bins {
                         bulk_options.bins = self.settings.geometry.automatic_bins(image.shape);
                     }
-                    let static_mask = if !self.processing.active() && !bulk_options.dynamic_mask {
+                    let static_mask = {
                         self.settings.geometry.sync_shape(image.shape)?;
                         let matching = self.image.as_ref().is_some_and(|i| {
                             i.path == image.path && i.shape == image.shape && !i.values.is_empty()
@@ -422,12 +422,10 @@ impl Session {
                         } else {
                             Some(mask)
                         }
-                    } else {
-                        None
                     };
                     let combined_plan = if let Some(mask) = static_mask
                         .as_ref()
-                        .filter(|_| image.single_dataset_series())
+                        .filter(|_| image.single_dataset_series() && !self.processing.active())
                     {
                         self.engine.prepare_combined_series(
                             &mut image,
@@ -448,6 +446,58 @@ impl Session {
                         })
                         .collect();
                     global += image.frames;
+                    if std::env::var("DIOPTAS_SERIES_PARALLEL").as_deref() != Ok("0")
+                        && !selected_frames.is_empty()
+                        && image.single_dataset_series()
+                        && (self.processing.active() || bulk_options.dynamic_mask)
+                        && let Some(base_mask) = static_mask.as_ref()
+                        && let Some(plan) = self.engine.prepare_processed_series(
+                            &image,
+                            &self.settings.geometry,
+                            base_mask,
+                            &bulk_options,
+                        )?
+                    {
+                        self.control.publish(json!({"running":true,"current":rows.entries.len(),"total":count,"label":"Integrating series"}));
+                        let processing = self
+                            .processing
+                            .active()
+                            .then(|| {
+                                self.processing.series_snapshot(
+                                    &image,
+                                    &self.settings.geometry,
+                                    &self.control,
+                                )
+                            })
+                            .transpose()?;
+                        let plugins = if bulk_options.dynamic_mask {
+                            self.plugins
+                                .series_snapshot(&self.settings.geometry, image.shape)?
+                        } else {
+                            Plugins::default()
+                        };
+                        let frame_context = crate::integration::SeriesFrameContext {
+                            processing,
+                            plugins,
+                            user_mask: self.mask.clone(),
+                            base_mask: Arc::new(base_mask.clone()),
+                        };
+                        let context = RowContext {
+                            control: &self.control,
+                            settings: &self.settings,
+                            scan: self.scan.as_ref(),
+                            patterns: &self.patterns,
+                        };
+                        self.engine.parallel_processed_series(
+                            &image,
+                            &selected_frames,
+                            &plan,
+                            &frame_context,
+                            &self.control,
+                            |frame, pattern| rows.push(&context, &image.path, frame, &pattern),
+                        )?;
+                        continue;
+                    }
                     if let Some(plan) = combined_plan.as_ref().filter(|_| {
                         std::env::var("DIOPTAS_SERIES_PARALLEL").as_deref() != Ok("0")
                             && !selected_frames.is_empty()

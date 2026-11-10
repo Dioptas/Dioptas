@@ -48,6 +48,8 @@ There is no scientific HTTP service. Dioptrin is now the default native engine.
   contours, export, selected raw images and numbered incoming-file append.
   Admitted fixed-mask HDF5 series now use a shared CSC plan and persistent
   concurrent frame workers; see [pipeline scope, codec fix and measured throughput](NATIVE_SERIES_PIPELINE.md).
+  Corrected/dynamic-mask series use the dedicated Dioptrin dynamic-plan/worker
+  types with supplied variances; see [processed-series evidence](NATIVE_PROCESSED_SERIES_PIPELINE.md).
 - Grouped integration/phase changes join chronological calibration Undo/Redo;
   mask history remains separate. No-op saves preserve Redo. Stable phase/overlay
   IDs reject stale editor operations. Settings and bulk operations publish
@@ -356,8 +358,9 @@ has its own Python oracle and Rust golden/plan tests. Headless Chromium/WebKit
 checks verify that selecting the mode recalculates both products.
 
 The full-splitting kernel is included in the public [Dioptrin 0.12.0 release](https://github.com/CPrescher/Dioptrin/releases/tag/v0.12.0).
-The desktop's current pin, `7f2d0c2`, adds Massif preprocessing, immutable
-fixed-mask execution plans and opt-in resident layout selection on top of that release. The splitting weights and
+The desktop's current pin, `41174d8`, includes Massif preprocessing, immutable
+fixed-mask execution plans, opt-in resident layout selection and native dynamic
+CSC workers with supplied variances on top of that release. The splitting weights and
 compatibility arithmetic are unchanged; see the
 [cached-path verification](PYFAI_CACHED_PERFORMANCE.md). It has no local-path dependency. The centered-detector
 full-azimuth cake case differs in two bins whose pyFAI reference weights are

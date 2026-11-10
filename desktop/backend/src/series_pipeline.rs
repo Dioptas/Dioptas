@@ -20,7 +20,7 @@ pub(super) struct Stats {
 
 /// The decoder's conservative full-frame payload estimate also bounds the
 /// worker storage. Plans and the caller's final series are separate.
-const DECODER_BUDGET: usize = 2 * 1024 * 1024 * 1024;
+const WORKER_BUDGET: usize = 4 * 1024 * 1024 * 1024;
 
 pub(super) fn run(
     reader: &RawReader,
@@ -30,14 +30,46 @@ pub(super) fn run(
     control: &Control,
     mut consume: impl FnMut(usize, Fixed1dResult) -> Result<(), String>,
 ) -> Result<Stats, String> {
+    execute(
+        reader,
+        frames,
+        control,
+        0,
+        || Ok(plan.worker(errors, InputOrder::FlipVertical)),
+        |integrator, pixels, _, _| {
+            integrator.begin_frame();
+            match pixels {
+                PixelBuffer::U16(v) => integrator.push_u16_block(0, v),
+                PixelBuffer::U32(v) => integrator.push_u32_block(0, v),
+                _ => return Err("Unexpected series pixel type.".into()),
+            }?;
+            integrator.finish_frame()
+        },
+        &mut consume,
+    )
+}
+
+pub(super) fn execute<S: Send, R: Send>(
+    reader: &RawReader,
+    frames: &[usize],
+    control: &Control,
+    extra_worker_bytes: usize,
+    create: impl Fn() -> Result<S, String> + Sync,
+    process: impl Fn(&mut S, &PixelBuffer, usize, &Control) -> Result<R, String> + Sync,
+    mut consume: impl FnMut(usize, R) -> Result<(), String>,
+) -> Result<Stats, String> {
     let requested = std::env::var("DIOPTAS_INTEGRATION_THREADS")
         .ok()
         .and_then(|v| v.parse::<usize>().ok())
         .unwrap_or(8)
         .clamp(1, 256);
-    let workers = requested
-        .min(frames.len())
-        .min(DECODER_BUDGET / reader.worker_payload_bytes().max(1));
+    let workers = requested.min(frames.len()).min(
+        WORKER_BUDGET
+            / reader
+                .worker_payload_bytes()
+                .saturating_add(extra_worker_bytes)
+                .max(1),
+    );
     if frames.is_empty() {
         return Ok(Stats {
             workers: 0,
@@ -46,7 +78,7 @@ pub(super) fn run(
         });
     }
     if workers == 0 {
-        return Err("A series worker exceeds the 2 GiB decoder payload budget.".into());
+        return Err("A series worker exceeds the 4 GiB worker payload budget.".into());
     }
     control.check()?;
     let stop = AtomicBool::new(false);
@@ -59,12 +91,14 @@ pub(super) fn run(
             let incoming = incoming.clone();
             let results = results.clone();
             let stop = &stop;
+            let (create, process) = (&create, &process);
             handles.push(scope.spawn(move || {
                 // Convert a worker panic to a failed operation, so an ordered
                 // collector never waits forever for the missing frame.
                 let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                     let mut decoder = FrameBuffer::default();
-                    let mut integrator = plan.worker(errors, InputOrder::FlipVertical);
+                    let mut state = create()?;
+                    let child_control = control.silent_child();
                     while !stop.load(Ordering::Acquire) {
                         let Ok((ordinal, frame)) = incoming.lock().unwrap().recv() else {
                             break;
@@ -73,17 +107,16 @@ pub(super) fn run(
                         if stop.load(Ordering::Acquire) {
                             break;
                         }
-                        integrator.begin_frame();
                         reader
                             .read_frame_into(frame, &mut decoder)
                             .map_err(|e| e.to_string())?;
                         control.check()?;
-                        match decoder.pixels().ok_or("Incomplete series frame.")? {
-                            PixelBuffer::U16(v) => integrator.push_u16_block(0, v),
-                            PixelBuffer::U32(v) => integrator.push_u32_block(0, v),
-                            _ => return Err("Unexpected series pixel type.".into()),
-                        }?;
-                        let result = integrator.finish_frame()?;
+                        let result = process(
+                            &mut state,
+                            decoder.pixels().ok_or("Incomplete series frame.")?,
+                            frame,
+                            &child_control,
+                        )?;
                         if results.send(Ok((ordinal, result))).is_err() {
                             break;
                         }

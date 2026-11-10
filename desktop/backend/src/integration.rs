@@ -7,8 +7,8 @@ use crate::{
 };
 use dioptrin::{
     integration::{
-        Fixed1dPlan, FixedCsr1dPlan, FixedGrid2dPlan, InputOrder, IntegrationGrid2d,
-        IntegrationMethod, Integrator, MaskMode, RadialUnit, SparseLayout,
+        Dynamic1dPlan, Dynamic1dWorker, Fixed1dPlan, FixedCsr1dPlan, FixedGrid2dPlan, InputOrder,
+        IntegrationGrid2d, IntegrationMethod, Integrator, MaskMode, RadialUnit, SparseLayout,
     },
     mask::Mask,
 };
@@ -88,11 +88,12 @@ struct Plan {
     key: Key,
     engine: Integrator,
     fixed: Option<Arc<Fixed1dPlan>>,
-    general_1d: Option<dioptrin::lut::Lut1d>,
+    general_1d: Option<Arc<dioptrin::lut::Lut1d>>,
+    dynamic_series: Option<Arc<Dynamic1dPlan>>,
     compatibility_1d: Option<FixedCsr1dPlan>,
     compatibility_cake: Option<CompatibilityCake>,
     general_2d: Option<crate::sector::Grid>,
-    normalization: Option<Vec<f64>>,
+    normalization: Option<Arc<Vec<f64>>>,
     radial: Option<[f64; 2]>,
 }
 struct CompatibilityCake {
@@ -119,6 +120,27 @@ pub struct CombinedSeriesPlan {
     source: CombinedSource,
     options: Options,
 }
+pub struct ProcessedSeriesPlan {
+    key: Arc<Key>,
+    dynamic: Arc<Dynamic1dPlan>,
+    source: CombinedSource,
+    options: Options,
+}
+
+pub struct SeriesFrameContext {
+    pub processing: Option<crate::processing::SeriesProcessing>,
+    pub plugins: crate::mask_plugins::Plugins,
+    pub user_mask: Arc<Vec<u8>>,
+    pub base_mask: Arc<Vec<u8>>,
+}
+
+struct ProcessedFrameWorker<'a> {
+    integrator: Dynamic1dWorker<'a>,
+    values: Vec<f64>,
+    variance: Vec<f64>,
+    plugins: crate::mask_plugins::Plugins,
+    pool: rayon::ThreadPool,
+}
 #[derive(Default)]
 pub struct Engine {
     pattern: Option<Plan>,
@@ -137,6 +159,8 @@ pub struct Engine {
     series_worker_starts: u64,
     series_pipeline_runs: u64,
     series_pending_peak: usize,
+    processed_frame_integrations: u64,
+    dynamic_series_builds: u64,
 }
 fn unit(value: &str) -> RadialUnit {
     match value {
@@ -207,6 +231,7 @@ impl Plan {
             engine,
             fixed: None,
             general_1d: None,
+            dynamic_series: None,
             compatibility_1d: None,
             compatibility_cake: None,
             general_2d: None,
@@ -254,20 +279,14 @@ impl Plan {
         for (n, p) in norm.iter_mut().zip(pol) {
             *n *= p;
         }
-        self.normalization = Some(norm);
+        self.normalization = Some(Arc::new(norm));
     }
-    fn general_pattern(
-        &mut self,
-        data: &[f64],
-        supplied_variance: Option<&[f64]>,
-        mask: &[u8],
-        o: &Options,
-    ) -> Result<dioptrin::lut::AzimuthalIntegrationResult, String> {
+    fn prepare_general(&mut self, o: &Options) -> Result<(), String> {
         self.prepare_normalization();
         if self.general_1d.is_none() {
             let g = self.engine.geometry();
             let u = unit(&self.key.unit);
-            self.general_1d = Some(if o.pyfai {
+            self.general_1d = Some(Arc::new(if o.pyfai {
                 crate::pyfai_splitting::build1d(g, u, o.bins, o.azimuth, None)?
             } else if o.azimuth.is_some() {
                 crate::sector::collapse(crate::sector::build(
@@ -285,15 +304,25 @@ impl Plan {
                 } else {
                     dioptrin::lut::build_lut1d_ps_csr(g, &radial, o.bins, u)
                 }
-            });
+            }));
         }
+        Ok(())
+    }
+    fn general_pattern(
+        &mut self,
+        data: &[f64],
+        supplied_variance: Option<&[f64]>,
+        mask: &[u8],
+        o: &Options,
+    ) -> Result<dioptrin::lut::AzimuthalIntegrationResult, String> {
+        self.prepare_general(o)?;
         let lut = self.general_1d.as_ref().unwrap();
         let norm = self.normalization.as_ref().unwrap();
         if o.pyfai && !o.dynamic_mask && !o.spread && supplied_variance.is_none() {
             if self.compatibility_1d.is_none() {
                 self.compatibility_1d = Some(FixedCsr1dPlan::new(
-                    lut.clone(),
-                    norm.clone(),
+                    lut.as_ref().clone(),
+                    norm.as_ref().clone(),
                     Some(mask.to_vec()),
                 )?);
             }
@@ -362,7 +391,8 @@ impl Engine {
 
     pub fn diagnostics(&self) -> Value {
         json!({"patternPlanBuilds":self.pattern_builds,"cakePlanBuilds":self.cake_builds,"cakeIntegrations":self.cake_integrations,"combinedDecodes":self.combined_decodes,"preparedHits":self.prepared_hits,"residentIntegrations":self.resident_calls,"patternOnlyDecodes":self.pattern_only_decodes,"parallelPixelDecodes":self.parallel_pixel_decodes,"lastPixelDecodeMs":self.last_pixel_decode_ms,
-            "frameParallelIntegrations":self.frame_parallel_integrations,"seriesWorkerStarts":self.series_worker_starts,"seriesPipelineRuns":self.series_pipeline_runs,"seriesPendingPeak":self.series_pending_peak})
+            "frameParallelIntegrations":self.frame_parallel_integrations,"seriesWorkerStarts":self.series_worker_starts,"seriesPipelineRuns":self.series_pipeline_runs,"seriesPendingPeak":self.series_pending_peak,
+            "processedFrameIntegrations":self.processed_frame_integrations,"dynamicSeriesPlanBuilds":self.dynamic_series_builds})
     }
     fn pattern_plan(&mut self, k: Key) -> Result<&mut Plan, String> {
         if self.pattern.as_ref().is_none_or(|p| p.key != k) {
@@ -407,6 +437,185 @@ impl Engine {
             &plan.options,
         )
         .map(|(pattern, _)| pattern)
+    }
+
+    pub fn prepare_processed_series(
+        &mut self,
+        image: &Image,
+        p: &Parameters,
+        mask: &[u8],
+        options: &Options,
+    ) -> Result<Option<ProcessedSeriesPlan>, String> {
+        let Some(mut source) = image.combined_source(0)? else {
+            return Ok(None);
+        };
+        if source.shape.contains(&0)
+            || source.shape[0]
+                .checked_mul(source.shape[1])
+                .is_none_or(|n| n > 64 * 1024 * 1024)
+        {
+            return Err("Series detector plane exceeds the native pixel bound.".into());
+        }
+        source.frame = 0;
+        if self.raw.as_ref().is_none_or(|raw| raw.source != source) {
+            let reader =
+                match RawReader::open_snapshot(&source.path, &source.dataset, Limits::default()) {
+                    Ok(reader) => reader,
+                    Err(_) => {
+                        image.check_sources()?;
+                        return Ok(None);
+                    }
+                };
+            self.raw = Some(RawSource {
+                source: source.clone(),
+                reader,
+                buffer: ParallelBlockBuffer::default(),
+            });
+        }
+        let k = key(image.shape, p, mask, options, false);
+        let plan = self.pattern_plan(k.clone())?;
+        let built = plan.dynamic_series.is_none();
+        if built {
+            let shape = (image.shape[0], image.shape[1]);
+            let dynamic = if !options.pyfai && options.solid_angle && options.azimuth.is_none() {
+                // The native dynamic type owns geometry-only CSC weights.
+                // Resident layout preferences do not change frame-worker layout.
+                let mut dynamic_key = k.clone();
+                dynamic_key.dynamic = true;
+                dynamic_key.csc = true;
+                dynamic_key.auto_layout = false;
+                Plan::new(dynamic_key)?
+                    .engine
+                    .prepare_dynamic1d(shape, options.bins)?
+            } else {
+                // Preserve the existing custom sector/compatibility grid, but
+                // still execute it through the same native dynamic-plan type.
+                plan.prepare_general(options)?;
+                Dynamic1dPlan::new(
+                    shape,
+                    plan.general_1d.as_ref().unwrap().as_ref().clone(),
+                    plan.normalization.as_ref().unwrap().clone(),
+                )?
+            };
+            plan.dynamic_series = Some(Arc::new(dynamic));
+        }
+        let result = ProcessedSeriesPlan {
+            key: Arc::new(k),
+            dynamic: plan.dynamic_series.as_ref().unwrap().clone(),
+            source,
+            options: options.clone(),
+        };
+        self.dynamic_series_builds += u64::from(built);
+        Ok(Some(result))
+    }
+
+    pub fn parallel_processed_series(
+        &mut self,
+        image: &Image,
+        frames: &[usize],
+        plan: &ProcessedSeriesPlan,
+        context: &SeriesFrameContext,
+        control: &Control,
+        mut consume: impl FnMut(usize, Value) -> Result<(), String>,
+    ) -> Result<(), String> {
+        let raw = self.raw.as_ref().ok_or("Missing prepared series reader.")?;
+        if raw.source != plan.source || image.combined_source(0)?.as_ref() != Some(&plan.source) {
+            return Err("A series source changed after plan preparation.".into());
+        }
+        let pixels = image.shape[0] * image.shape[1];
+        let extra = pixels
+            .saturating_mul(if plan.options.errors { 16 } else { 8 })
+            .saturating_add(context.plugins.series_scratch_bytes(pixels));
+        let stats = series_pipeline::execute(
+            &raw.reader,
+            frames,
+            control,
+            extra,
+            || {
+                Ok(ProcessedFrameWorker {
+                    integrator: plan.dynamic.worker(plan.options.errors),
+                    values: Vec::new(),
+                    variance: Vec::new(),
+                    plugins: context.plugins.clone(),
+                    pool: rayon::ThreadPoolBuilder::new()
+                        .num_threads(1)
+                        .build()
+                        .map_err(|e| e.to_string())?,
+                })
+            },
+            |worker, samples, frame, child| {
+                worker.values.clear();
+                let width = image.shape[1];
+                match samples {
+                    PixelBuffer::U16(v) => worker.values.extend(
+                        v.chunks_exact(width)
+                            .rev()
+                            .flat_map(|r| r.iter().map(|&v| f64::from(v))),
+                    ),
+                    PixelBuffer::U32(v) => worker.values.extend(
+                        v.chunks_exact(width)
+                            .rev()
+                            .flat_map(|r| r.iter().map(|&v| f64::from(v))),
+                    ),
+                    _ => return Err("Unexpected series sample type.".into()),
+                }
+                if let Some(processing) = &context.processing {
+                    processing.apply(
+                        &mut worker.values,
+                        plan.options.errors.then_some(&mut worker.variance),
+                        child,
+                    )?;
+                } else if plan.options.errors {
+                    worker.variance.clear();
+                    worker
+                        .variance
+                        .extend(worker.values.iter().map(|v| v.max(0.)));
+                }
+                let mask = if plan.options.dynamic_mask {
+                    let mut mask = worker.plugins.refresh(
+                        &worker.values,
+                        image.shape,
+                        frame as u64,
+                        Some(&plan.key.geometry),
+                        &context.user_mask,
+                        child,
+                    )?;
+                    for (value, base) in mask.iter_mut().zip(context.base_mask.iter()) {
+                        *value |= base;
+                    }
+                    std::borrow::Cow::Owned(mask)
+                } else {
+                    std::borrow::Cow::Borrowed(context.base_mask.as_slice())
+                };
+                child.check()?;
+                let result = worker.pool.install(|| {
+                    worker.integrator.integrate(
+                        &worker.values,
+                        Some(&mask),
+                        plan.options.errors.then_some(worker.variance.as_slice()),
+                        plan.options.spread,
+                    )
+                })?;
+                Self::finish_pattern(
+                    result.radial,
+                    result.intensity,
+                    result.errors,
+                    result.azimuthal_std,
+                    &plan.key.geometry,
+                    &plan.options,
+                )
+                .map(|r| r.0)
+            },
+            &mut consume,
+        )?;
+        image.check_sources()?;
+        control.check()?;
+        self.frame_parallel_integrations += stats.frames as u64;
+        self.processed_frame_integrations += stats.frames as u64;
+        self.series_worker_starts += stats.workers as u64;
+        self.series_pipeline_runs += 1;
+        self.series_pending_peak = self.series_pending_peak.max(stats.pending_peak);
+        Ok(())
     }
 
     /// Share the frozen plan/reader; only the caller collects ordered curves.

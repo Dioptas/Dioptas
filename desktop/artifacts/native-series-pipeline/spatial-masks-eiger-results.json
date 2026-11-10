@@ -1,0 +1,245 @@
+{
+  "source": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.h5",
+  "sourceBytes": 5687072680,
+  "shape": [
+    625,
+    3262,
+    3108
+  ],
+  "bins": 2000,
+  "requestedWorkers": 8,
+  "poisson": true,
+  "sequentialReference": true,
+  "baseline": "Same optimized binary with frame parallelism disabled; plugin setting hoisting included in both variants",
+  "machine": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "records": [
+    {
+      "view": "batch",
+      "case": "spot",
+      "variant": "before",
+      "repeat": 0,
+      "frames": 16,
+      "seconds": 7.969619415933266,
+      "fps": 2.007624099089599,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 17,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 17,
+        "lastPixelDecodeMs": -0.7637510000000001,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "processedFrameIntegrations": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "batch",
+      "case": "spot",
+      "variant": "after",
+      "repeat": 0,
+      "frames": 16,
+      "seconds": 3.716454957961105,
+      "fps": 4.305177966902579,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 1,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 0.15970900000000032,
+        "frameParallelIntegrations": 16,
+        "seriesWorkerStarts": 3,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 1,
+        "processedFrameIntegrations": 16,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "batch",
+      "case": "cosmic",
+      "variant": "before",
+      "repeat": 0,
+      "frames": 16,
+      "seconds": 12.61120275000576,
+      "fps": 1.2687132478298069,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 17,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 17,
+        "lastPixelDecodeMs": -0.19174999999999986,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "processedFrameIntegrations": 0,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "batch",
+      "case": "cosmic",
+      "variant": "after",
+      "repeat": 0,
+      "frames": 16,
+      "seconds": 5.884012958034873,
+      "fps": 2.7192326247601666,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 1,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 0.24045700000000014,
+        "frameParallelIntegrations": 16,
+        "seriesWorkerStarts": 3,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 1,
+        "processedFrameIntegrations": 16,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    }
+  ],
+  "comparisons": [
+    {
+      "view": "batch",
+      "case": "spot",
+      "variant": "before",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "batch",
+      "case": "spot",
+      "variant": "after",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 4.831690603168681e-13,
+        "relativeL2": 3.7351110372237047e-16
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 3.552713678800501e-15,
+        "relativeL2": 1.794431870927389e-16
+      }
+    },
+    {
+      "view": "batch",
+      "case": "cosmic",
+      "variant": "before",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "batch",
+      "case": "cosmic",
+      "variant": "after",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 7.958078640513122e-13,
+        "relativeL2": 3.8731598142417973e-16
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 3.552713678800501e-15,
+        "relativeL2": 1.909760621229756e-16
+      }
+    }
+  ],
+  "summaries": [
+    {
+      "view": "batch",
+      "case": "spot",
+      "medianSeconds": {
+        "before": 7.969619415933266,
+        "after": 3.716454957961105
+      },
+      "fps": {
+        "before": 2.007624099089599,
+        "after": 4.305177966902579
+      },
+      "speedup": 2.1444143696296813
+    },
+    {
+      "view": "batch",
+      "case": "cosmic",
+      "medianSeconds": {
+        "before": 12.61120275000576,
+        "after": 5.884012958034873
+      },
+      "fps": {
+        "before": 1.2687132478298069,
+        "after": 2.7192326247601666
+      },
+      "speedup": 2.1432996222050495
+    }
+  ],
+  "corrections": "background=7 counts, scale=0.7, offset=1.2, background noise on; mean-normalized flat varies 0.8\u20131.2 across detector columns",
+  "dynamicMask": "Threshold above 1000 for dynamic/combined; Spot/Cosmic use native defaults when selected. Masks are evaluated on corrected values when corrections are enabled",
+  "scope": "Warm-plan complete native stdio commands, including per-command correction-map preparation, worker starts, ordered collection, final selection and Map previews/reduction. Excludes initial setup, exports, process startup and Tauri rendering. OS file pages warm; CPU not isolated. Both binaries have optimized codecs.",
+  "executables": {
+    "before": {
+      "path": "/Users/clemens/Codex/dioptas-parallel-processed-series-20261110/dioptas-processor-native-dynamic",
+      "sha256": "baa1b28627f2b53f2ece03bfc860bfbc1af214cb9d0622747186ffb3a83dd95e"
+    },
+    "after": {
+      "path": "/Users/clemens/Codex/dioptas-parallel-processed-series-20261110/dioptas-processor-native-dynamic",
+      "sha256": "baa1b28627f2b53f2ece03bfc860bfbc1af214cb9d0622747186ffb3a83dd95e"
+    }
+  },
+  "sourceUnchanged": true
+}
