@@ -14,6 +14,8 @@ pub(crate) struct Source {
     pub unit: String,
     pub wavelength: Option<f64>,
     pub normalized: bool,
+    #[serde(default)]
+    pub background_subtracted: bool,
 }
 impl Source {
     pub fn coordinates(&self, x: &[f64], unit: &str) -> Result<Vec<f64>, String> {
@@ -54,18 +56,25 @@ impl Source {
 /// as intensities. Two acquisitions can have identical display raster bytes.
 pub(crate) fn identity(series: &Series) -> String {
     let mut hash = blake3::Hasher::new();
-    hash.update(series.raster.buffer.id.as_bytes());
+    hash.update(series.background_raster().buffer.id.as_bytes());
+    for bin in series.background_bins() {
+        hash.update(&(bin as u64).to_le_bytes());
+    }
     hash.update(series.unit.as_bytes());
     hash.update(&series.wavelength.unwrap_or(0.0).to_le_bytes());
-    hash.update(&[u8::from(series.normalized)]);
+    hash.update(&[
+        u8::from(series.normalized),
+        u8::from(series.batch_background.subtract),
+        u8::from(series.batch_background.cut),
+    ]);
     // Display rasters are f32; scientific f64 changes must also invalidate a
     // pending rectangle even when their rounded display pixels are identical.
     let mut bytes = Vec::with_capacity(65536);
     for values in [
-        Some(series.x.as_ref()),
-        Some(series.data.as_ref()),
-        series.sigma.as_deref(),
-        series.spread.as_deref(),
+        Some(series.x.as_slice()),
+        Some(series.background_data()),
+        series.sigma.as_deref().map(Vec::as_slice),
+        series.spread.as_deref().map(Vec::as_slice),
     ] {
         hash.update(&[u8::from(values.is_some())]);
         if let Some(values) = values {
@@ -122,7 +131,12 @@ pub(crate) fn extract(
         }
         Ok(result)
     };
-    let bins = range("bins", series.x.len())?;
+    // Rectangle columns are relative to the visible Batch range. Preserve
+    // full source-bin provenance while reading the matching display values.
+    let source_bins = series.background_bins();
+    let width = source_bins[1] - source_bins[0];
+    let visible_bins = range("bins", width)?;
+    let bins = visible_bins.map(|i| i + source_bins[0]);
     let rows = range("rows", series.count())?;
     let step = args["step"]
         .as_u64()
@@ -152,6 +166,7 @@ pub(crate) fn extract(
             unit: series.unit.clone(),
             wavelength: series.wavelength,
             normalized: series.normalized,
+            background_subtracted: series.batch_background.subtract,
         };
         source.coordinates(&x, unit)?; // Validate before replacing any existing overlays.
         let name = if e.path.is_empty() {
@@ -167,7 +182,8 @@ pub(crate) fn extract(
             Curve {
                 x: x.clone(),
                 y: Arc::new(
-                    series.data[row * series.x.len() + bins[0]..row * series.x.len() + bins[1]]
+                    series.background_data()
+                        [row * width + visible_bins[0]..row * width + visible_bins[1]]
                         .to_vec(),
                 ),
                 sigma: slice(&series.sigma, row),

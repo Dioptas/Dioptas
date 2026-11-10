@@ -1,8 +1,8 @@
 #![recursion_limit = "256"]
 //! Native processing for the existing desktop command/binary-raster contract.
 //! The default runtime uses Dioptrin directly, without Python.
-mod batch_waterfall;
 mod batch_background;
+mod batch_waterfall;
 mod contours;
 pub mod control;
 mod custom_actions;

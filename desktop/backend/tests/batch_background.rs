@@ -258,3 +258,59 @@ fn running_background_exposes_progress_and_cancels_without_replacing_any_state()
     assert_eq!(batch(&mut s), before);
     assert_eq!(call(&mut s, "state", json!({})).result, state);
 }
+
+#[test]
+fn background_cut_keeps_existing_waterfall_coordinates_errors_and_stale_selection_guard_coherent() {
+    let temp = tempfile::tempdir().unwrap();
+    let source = temp.path().join("source.h5");
+    let reference = fixture(&source, 0);
+    let mut s = session();
+    call(&mut s, "batch_open", json!({"path":source}));
+    call(
+        &mut s,
+        "batch_background_extract",
+        json!({"parameters":reference["parameters"]}),
+    );
+    let original_key = batch(&mut s)["waterfallKey"].clone();
+    call(
+        &mut s,
+        "batch_background_display",
+        json!({"subtract":true,"range":[2.0,8.0],"cut":true}),
+    );
+    let b = batch(&mut s);
+    assert_ne!(b["waterfallKey"], original_key);
+    let old = s.invoke(&request(
+        "batch_waterfall",
+        json!({"series":original_key,"bins":[1,5],"rows":[0,3],"step":2}),
+    ));
+    assert_eq!(old.result["ok"], false);
+    let result = call(
+        &mut s,
+        "batch_waterfall",
+        json!({"series":b["waterfallKey"],"bins":[1,5],"rows":[0,3],"step":2}),
+    );
+    let curves = result.result["pattern"]["curves"].as_array().unwrap();
+    assert_eq!(curves.len(), 2);
+    let start = b["sourceBins"][0].as_u64().unwrap() as usize + 1;
+    let data: Vec<f64> = serde_json::from_value(reference["data"].clone()).unwrap();
+    let background: Vec<f64> = serde_json::from_value(reference["background"].clone()).unwrap();
+    let x: Vec<f64> = serde_json::from_value(reference["x"].clone()).unwrap();
+    for (curve, row) in curves.iter().zip([0, 2]) {
+        let actual: Vec<f64> = serde_json::from_value(curve["y"].clone()).unwrap();
+        let expected: Vec<_> = (start..start + 4)
+            .map(|col| data[row * 97 + col] - background[row * 97 + col])
+            .collect();
+        assert_eq!(curve["x"], json!(x[start..start + 4]));
+        for (a, e) in actual.iter().zip(expected) {
+            assert!((a - e).abs() < 1e-8);
+        }
+        let errors: Vec<f64> = serde_json::from_value(curve["sigma"].clone()).unwrap();
+        assert_eq!(
+            errors,
+            (start..start + 4)
+                .map(|col| data[row * 97 + col].sqrt())
+                .collect::<Vec<_>>()
+        );
+    }
+    assert_eq!(batch(&mut s), b);
+}

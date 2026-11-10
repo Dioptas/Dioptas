@@ -70,7 +70,7 @@ Intentional support differences and bounds:
 Verification:
 
 - `cargo test --locked --manifest-path desktop/backend/Cargo.toml --all-features`:
-  four background numerical/model tests and three native command/ownership tests
+  four background numerical/model tests and four native command/ownership tests
   alongside the existing native suite. Independent Qt reference matrices cover
   2θ, Q, descending nonuniform d, orders 8/12/50, normalization before extraction,
   repeated extraction/toggles, exact source/std restoration, full/range views,
@@ -86,9 +86,16 @@ Verification:
   settings, selection and products, and no stale progress after completion.
 - `node desktop/scripts/batch_background_smoke.mjs`: headless Chromium/WebKit,
   normal/large text at 1000 × 700, options scrolling, range cutting, normalization,
-  original/subtracted toggles, detached mutation routing and dock restoration,
+  original/subtracted toggles, footer cancellation, detached mutation routing and dock restoration,
   invalid drafts and stale settings. Screenshots and receipts are written under
   ignored `desktop/artifacts/batch-background/`. No visible windows are opened.
 - Frontend build, JavaScript unit/architecture checks and native Clippy are part
   of the focused validation. The headless/transport scripts are registered in the
   existing native CI gate and need no Python runtime.
+
+The already-integrated waterfall feature was reconciled at its existing series
+boundary: visible rectangle columns translate back to full source-bin indices,
+subtracted intensities match the overview, counting std stays aligned, and a
+background/cut change invalidates pending rectangles. A native interoperability
+test covers these cases alongside the waterfall feature's original tests. No
+new waterfall, 3D, or export workflow was added by the background implementation.

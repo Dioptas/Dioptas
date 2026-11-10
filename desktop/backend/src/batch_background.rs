@@ -1,5 +1,5 @@
 //! Qt Batch backgrounds are a separate, reversible overview operation. The
-//! scientific matrix (and the linked Integration pattern) stays un-subtracted.
+//! scientific matrix stays un-subtracted; Integration keeps its own settings.
 use crate::{control::Control, display::Raster, series::Series};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
