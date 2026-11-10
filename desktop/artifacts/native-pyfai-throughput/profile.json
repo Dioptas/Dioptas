@@ -1,0 +1,129 @@
+{
+  "requestedSampleSeconds": 2,
+  "intervalMilliseconds": 1,
+  "scope": "Hotspot attribution only; sampling overlaps repeated full-file commands and is excluded from benchmark timings.",
+  "profiles": {
+    "before": {
+      "rawSample": "/Users/clemens/Codex/dioptas-pyfai-throughput-20261110/before.sample",
+      "sha256": "7c2327d1d76644a86218c5e5092cc17d6a157e5283c0f4add31790c501dbbf7e",
+      "reportedPhysicalFootprint": "3.7G",
+      "leafStacks": [
+        {
+          "symbol": "__psynch_cvwait  (in libsystem_kernel.dylib)",
+          "samples": 36869
+        },
+        {
+          "symbol": "_RNvXs_NtNtNtCs3bJEMBXHbwl_4core3ops8function5implsRNCINvMs3_NtNtCscgXh3jamcO2_8dioptrin3lut8preparedNtBW_11PreparedCsr14cached_resultsKb0_Kb1_KB29_dE0INtB6_5FnMutTjEE8call_mutB10_  (in dioptas-processor-before)",
+          "samples": 6038
+        },
+        {
+          "symbol": "_RNvXNtNtCs8Hh7wWMBHrQ_5alloc3vec11spec_extendINtB4_3VecdEINtB2_10SpecExtenddINtNtNtNtCs3bJEMBXHbwl_4core4iter8adapters7flatten7FlatMapINtNtB1h_3rev3RevINtNtNtB1l_5slice4iter11ChunksExactmEEINtNtB1h_3map3MapINtB2s_4ItermENCNCNCINvMs_NtCsazuSoiipdvY_15dioptas_backend11integrationNtB3I_6Engine25parallel_processed_seriesNCNCNvMs0_NtNtB3K_7session14batch_workflowNtB5i_7Session16integrate_series0sc_0Es_0s_00ENCB3A_s_0EE11spec_extendB3K_  (in dioptas-processor-before)",
+          "samples": 2066
+        },
+        {
+          "symbol": "semaphore_wait_trap  (in libsystem_kernel.dylib)",
+          "samples": 1270
+        },
+        {
+          "symbol": "read  (in libsystem_kernel.dylib)",
+          "samples": 1229
+        },
+        {
+          "symbol": "bshuf_shuffle_bit_eightelem_NEON  (in dioptas-processor-before)",
+          "samples": 922
+        },
+        {
+          "symbol": "_RNvNtNtCsbTXNQOxz2hB_11dioptrin_io4hdf53raw12decode_block  (in dioptas-processor-before)",
+          "samples": 453
+        },
+        {
+          "symbol": "bshuf_trans_byte_bitrow_NEON  (in dioptas-processor-before)",
+          "samples": 127
+        },
+        {
+          "symbol": "pread  (in libsystem_kernel.dylib)",
+          "samples": 106
+        },
+        {
+          "symbol": "_platform_memmove  (in libsystem_platform.dylib)",
+          "samples": 25
+        },
+        {
+          "symbol": "__psynch_mutexwait  (in libsystem_kernel.dylib)",
+          "samples": 5
+        },
+        {
+          "symbol": "_platform_memset  (in libsystem_platform.dylib)",
+          "samples": 5
+        }
+      ]
+    },
+    "after": {
+      "rawSample": "/Users/clemens/Codex/dioptas-pyfai-throughput-20261110/after.sample",
+      "sha256": "2206a29b6b4a2f5cfd279702e7385391e140ec80c191d4017251a85ff32af11f",
+      "reportedPhysicalFootprint": "3.2G",
+      "leafStacks": [
+        {
+          "symbol": "__psynch_cvwait  (in libsystem_kernel.dylib)",
+          "samples": 28446
+        },
+        {
+          "symbol": "_RINvXs0_NtNtNtCs3bJEMBXHbwl_4core4iter8adapters3mapINtB6_3MapINtNtNtBc_3ops5range5RangejENCINvMs4_NtNtCs4jTwnq9HCHO_8dioptrin3lut8preparedNtB1y_10Prepared1d15integrate_inputKb1_mE0ENtNtNtBa_6traits8iterator8Iterator4folduNCINvNvB2T_8for_each4callAdj4_NCINvMsk_NtCs8Hh7wWMBHrQ_5alloc3vecINtB4a_3VecB3W_E14extend_trustedBN_E0E0EB1C_  (in dioptas-processor-after)",
+          "samples": 7362
+        },
+        {
+          "symbol": "bshuf_shuffle_bit_eightelem_NEON  (in dioptas-processor-after)",
+          "samples": 1538
+        },
+        {
+          "symbol": "semaphore_wait_trap  (in libsystem_kernel.dylib)",
+          "samples": 1459
+        },
+        {
+          "symbol": "read  (in libsystem_kernel.dylib)",
+          "samples": 1293
+        },
+        {
+          "symbol": "_RNvNtNtCsbTXNQOxz2hB_11dioptrin_io4hdf53raw12decode_block  (in dioptas-processor-after)",
+          "samples": 646
+        },
+        {
+          "symbol": "bshuf_trans_byte_bitrow_NEON  (in dioptas-processor-after)",
+          "samples": 220
+        },
+        {
+          "symbol": "pread  (in libsystem_kernel.dylib)",
+          "samples": 161
+        },
+        {
+          "symbol": "__psynch_mutexwait  (in libsystem_kernel.dylib)",
+          "samples": 137
+        },
+        {
+          "symbol": "_platform_memmove  (in libsystem_platform.dylib)",
+          "samples": 39
+        },
+        {
+          "symbol": "__getattrlist  (in libsystem_kernel.dylib)",
+          "samples": 10
+        },
+        {
+          "symbol": "_RNvNtNtCsbTXNQOxz2hB_11dioptrin_io4hdf53raw21decode_bitshuffle_lz4  (in dioptas-processor-after)",
+          "samples": 8
+        },
+        {
+          "symbol": "_platform_memset  (in libsystem_platform.dylib)",
+          "samples": 8
+        },
+        {
+          "symbol": "_RNvNtNtCsbTXNQOxz2hB_11dioptrin_io4hdf53raw12resize_bytes  (in dioptas-processor-after)",
+          "samples": 7
+        },
+        {
+          "symbol": "dioptrin_bshuf_unshuffle_block  (in dioptas-processor-after)",
+          "samples": 5
+        }
+      ]
+    }
+  }
+}

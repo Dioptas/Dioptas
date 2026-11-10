@@ -16,6 +16,8 @@ The fixed-mask, uncorrected route keeps its existing `Fixed1dPlan` pipeline.
 Uncorrected pyFAI-compatible series also run in parallel using a shared
 `FixedCsr1dPlan`, retaining their existing compatibility weights and arithmetic;
 see the [full-file pyFAI series comparison](NATIVE_PYFAI_SERIES_PIPELINE.md).
+Its [direct integer-input view](NATIVE_PYFAI_SERIES_THROUGHPUT.md) now avoids
+float64 expansion for raw fixed-mask exposures, preserving the strict CSR arithmetic.
 
 ## Corrections and uncertainty
 

@@ -1,0 +1,1123 @@
+{
+  "source": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.h5",
+  "sourceBytes": 5687072680,
+  "sourceMtimeNs": 1772087934000000000,
+  "shape": [
+    625,
+    3262,
+    3108
+  ],
+  "method": "pyfai_full",
+  "bins": 2000,
+  "residentLayout": "csr",
+  "baselineParallel": true,
+  "variants": [
+    "before",
+    "after"
+  ],
+  "bitwiseRequired": true,
+  "waitForIdle": true,
+  "contendedAttempts": [
+    {
+      "repeat": 0,
+      "view": "batch",
+      "poisson": false,
+      "variant": "before",
+      "attempt": 0,
+      "seconds": 4.816435500048101,
+      "cpuBefore": [
+        {
+          "pid": 409,
+          "cpu": 35.7,
+          "name": "WindowServer"
+        }
+      ],
+      "cpuAfter": [
+        {
+          "pid": 409,
+          "cpu": 34.2,
+          "name": "WindowServer"
+        },
+        {
+          "pid": 69799,
+          "cpu": 32.9,
+          "name": "deno"
+        },
+        {
+          "pid": 75408,
+          "cpu": 161.2,
+          "name": "Dropbox"
+        }
+      ]
+    },
+    {
+      "repeat": 1,
+      "view": "batch",
+      "poisson": false,
+      "variant": "before",
+      "attempt": 0,
+      "seconds": 5.1499229579931125,
+      "cpuBefore": [
+        {
+          "pid": 409,
+          "cpu": 25.0,
+          "name": "WindowServer"
+        }
+      ],
+      "cpuAfter": [
+        {
+          "pid": 70136,
+          "cpu": 29.1,
+          "name": "npm run test:integration-panel"
+        },
+        {
+          "pid": 70148,
+          "cpu": 109.9,
+          "name": "deno"
+        }
+      ]
+    },
+    {
+      "repeat": 1,
+      "view": "batch",
+      "poisson": false,
+      "variant": "before",
+      "attempt": 1,
+      "seconds": 5.0778082920005545,
+      "cpuBefore": [],
+      "cpuAfter": [
+        {
+          "pid": 70347,
+          "cpu": 62.1,
+          "name": "Google Chrome Helper (Aperitif Renderer)"
+        }
+      ]
+    },
+    {
+      "repeat": 1,
+      "view": "batch",
+      "poisson": false,
+      "variant": "before",
+      "attempt": 2,
+      "seconds": 5.077699666959234,
+      "cpuBefore": [
+        {
+          "pid": 72791,
+          "cpu": 28.2,
+          "name": "npm run dev --port 1420 --strictPort"
+        }
+      ],
+      "cpuAfter": [
+        {
+          "pid": 409,
+          "cpu": 25.8,
+          "name": "WindowServer"
+        },
+        {
+          "pid": 72951,
+          "cpu": 100.0,
+          "name": "rustc"
+        }
+      ]
+    },
+    {
+      "repeat": 1,
+      "view": "batch",
+      "poisson": true,
+      "variant": "after",
+      "attempt": 0,
+      "seconds": 3.147672999999486,
+      "cpuBefore": [],
+      "cpuAfter": [
+        {
+          "pid": 409,
+          "cpu": 31.5,
+          "name": "WindowServer"
+        },
+        {
+          "pid": 73043,
+          "cpu": 242.8,
+          "name": "tsc"
+        }
+      ]
+    },
+    {
+      "repeat": 1,
+      "view": "batch",
+      "poisson": true,
+      "variant": "after",
+      "attempt": 1,
+      "seconds": 3.138862458989024,
+      "cpuBefore": [
+        {
+          "pid": 70347,
+          "cpu": 45.7,
+          "name": "Google Chrome Helper (Aperitif Renderer)"
+        }
+      ],
+      "cpuAfter": [
+        {
+          "pid": 409,
+          "cpu": 28.1,
+          "name": "WindowServer"
+        },
+        {
+          "pid": 70347,
+          "cpu": 30.3,
+          "name": "Google Chrome Helper (Aperitif Renderer)"
+        }
+      ]
+    },
+    {
+      "repeat": 1,
+      "view": "batch",
+      "poisson": true,
+      "variant": "before",
+      "attempt": 0,
+      "seconds": 5.0894183330237865,
+      "cpuBefore": [
+        {
+          "pid": 409,
+          "cpu": 25.2,
+          "name": "WindowServer"
+        }
+      ],
+      "cpuAfter": [
+        {
+          "pid": 409,
+          "cpu": 31.0,
+          "name": "WindowServer"
+        },
+        {
+          "pid": 73216,
+          "cpu": 80.8,
+          "name": "pandoc"
+        },
+        {
+          "pid": 75408,
+          "cpu": 173.9,
+          "name": "Dropbox"
+        }
+      ]
+    },
+    {
+      "repeat": 1,
+      "view": "map",
+      "poisson": false,
+      "variant": "before",
+      "attempt": 0,
+      "seconds": 5.311391708091833,
+      "cpuBefore": [],
+      "cpuAfter": [
+        {
+          "pid": 409,
+          "cpu": 36.0,
+          "name": "WindowServer"
+        },
+        {
+          "pid": 53870,
+          "cpu": 38.6,
+          "name": "codex"
+        }
+      ]
+    },
+    {
+      "repeat": 1,
+      "view": "map",
+      "poisson": true,
+      "variant": "before",
+      "attempt": 0,
+      "seconds": 5.082718624966219,
+      "cpuBefore": [
+        {
+          "pid": 53350,
+          "cpu": 35.1,
+          "name": "ChatGPT"
+        }
+      ],
+      "cpuAfter": [
+        {
+          "pid": 409,
+          "cpu": 55.1,
+          "name": "WindowServer"
+        },
+        {
+          "pid": 53958,
+          "cpu": 69.9,
+          "name": "Codex (Aperitif Renderer)"
+        }
+      ]
+    }
+  ],
+  "polarization": 0.965,
+  "requestedWorkers": 8,
+  "masks": "automatic named-detector acquisition mask; no dynamic or external user mask",
+  "corrections": "none",
+  "machine": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "scope": "Complete warm-plan native commands, including worker creation, ordered collection, final selection and Map previews/reduction. Detector/pattern requested, cake/rings hidden as in the normal Integration image view. Excludes initial geometry/plan warmup, process startup, export/parity checks and GUI rendering. OS pages warm; CPU not isolated.",
+  "executables": {
+    "before": {
+      "path": "/Users/clemens/Codex/dioptas-pyfai-throughput-20261110/dioptas-processor-before",
+      "sha256": "42c3379e46161461e02183b4ef02d8eb248c7779a8c88bd34375f91b7ea7b39e"
+    },
+    "after": {
+      "path": "/Users/clemens/Codex/dioptas-pyfai-throughput-20261110/dioptas-processor-after",
+      "sha256": "0979fbfd180646d9903b79451fc56665692b07c7389dd7a5a6f50b2a7cf7e2fe"
+    }
+  },
+  "records": [
+    {
+      "repeat": 0,
+      "view": "batch",
+      "poisson": false,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 4.842366041033529,
+      "fps": 129.06913577037298,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 1,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": -0.054333999999998994,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 1,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true,
+      "cpuBefore": [
+        {
+          "pid": 409,
+          "cpu": 31.1,
+          "name": "WindowServer"
+        }
+      ],
+      "cpuAfter": []
+    },
+    {
+      "repeat": 0,
+      "view": "batch",
+      "poisson": false,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 3.1035039169946685,
+      "fps": 201.38527829061982,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 1,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 0.8036659999999998,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 5,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true,
+      "cpuBefore": [
+        {
+          "pid": 409,
+          "cpu": 26.3,
+          "name": "WindowServer"
+        }
+      ],
+      "cpuAfter": []
+    },
+    {
+      "repeat": 0,
+      "view": "batch",
+      "poisson": true,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 4.8389682080596685,
+      "fps": 129.15976570356779,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 1,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 0.3681670000000006,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 4,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true,
+      "cpuBefore": [
+        {
+          "pid": 409,
+          "cpu": 31.4,
+          "name": "WindowServer"
+        }
+      ],
+      "cpuAfter": [
+        {
+          "pid": 409,
+          "cpu": 27.9,
+          "name": "WindowServer"
+        }
+      ]
+    },
+    {
+      "repeat": 0,
+      "view": "batch",
+      "poisson": true,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 3.1060475839767605,
+      "fps": 201.22035580658903,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 1,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 0.883667,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 6,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true,
+      "cpuBefore": [],
+      "cpuAfter": [
+        {
+          "pid": 409,
+          "cpu": 31.4,
+          "name": "WindowServer"
+        }
+      ]
+    },
+    {
+      "repeat": 0,
+      "view": "map",
+      "poisson": false,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 4.926384125021286,
+      "fps": 126.86789826753501,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 0.4045420000000002,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 2,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true,
+      "cpuBefore": [],
+      "cpuAfter": [
+        {
+          "pid": 409,
+          "cpu": 26.8,
+          "name": "WindowServer"
+        }
+      ]
+    },
+    {
+      "repeat": 0,
+      "view": "map",
+      "poisson": false,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 3.1170730829471722,
+      "fps": 200.50861284556942,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 0.6211669999999998,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 3,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true,
+      "cpuBefore": [
+        {
+          "pid": 409,
+          "cpu": 25.8,
+          "name": "WindowServer"
+        }
+      ],
+      "cpuAfter": []
+    },
+    {
+      "repeat": 0,
+      "view": "map",
+      "poisson": true,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 4.9163858339888975,
+      "fps": 127.12590531018347,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 0.28158300000000036,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 5,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true,
+      "cpuBefore": [],
+      "cpuAfter": []
+    },
+    {
+      "repeat": 0,
+      "view": "map",
+      "poisson": true,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 3.0743673329707235,
+      "fps": 203.2938592917165,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 0.7171250000000002,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 5,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true,
+      "cpuBefore": [],
+      "cpuAfter": []
+    },
+    {
+      "repeat": 1,
+      "view": "batch",
+      "poisson": false,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 3.0823224160121754,
+      "fps": 202.76918363673582,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 1,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 0.6817079999999995,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 4,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true,
+      "cpuBefore": [],
+      "cpuAfter": []
+    },
+    {
+      "repeat": 1,
+      "view": "batch",
+      "poisson": false,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 4.827532499912195,
+      "fps": 129.46572602284246,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 1,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": -0.23900000000000077,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 0,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true,
+      "cpuBefore": [],
+      "cpuAfter": []
+    },
+    {
+      "repeat": 1,
+      "view": "batch",
+      "poisson": true,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 3.161071000038646,
+      "fps": 197.71779880691037,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 1,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": -0.39295800000000014,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 0,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true,
+      "cpuBefore": [],
+      "cpuAfter": [
+        {
+          "pid": 409,
+          "cpu": 27.0,
+          "name": "WindowServer"
+        }
+      ]
+    },
+    {
+      "repeat": 1,
+      "view": "batch",
+      "poisson": true,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 5.115489499992691,
+      "fps": 122.17794602078511,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 1,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": -0.9179579999999996,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 0,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true,
+      "cpuBefore": [
+        {
+          "pid": 409,
+          "cpu": 34.8,
+          "name": "WindowServer"
+        }
+      ],
+      "cpuAfter": [
+        {
+          "pid": 75408,
+          "cpu": 33.1,
+          "name": "Dropbox"
+        }
+      ]
+    },
+    {
+      "repeat": 1,
+      "view": "map",
+      "poisson": false,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 3.1896585000213236,
+      "fps": 195.94574152556513,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 0.764583,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 1,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true,
+      "cpuBefore": [],
+      "cpuAfter": []
+    },
+    {
+      "repeat": 1,
+      "view": "map",
+      "poisson": false,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 4.941686000092886,
+      "fps": 126.47505324867913,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": -0.14979099999999956,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 0,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true,
+      "cpuBefore": [],
+      "cpuAfter": []
+    },
+    {
+      "repeat": 1,
+      "view": "map",
+      "poisson": true,
+      "variant": "after",
+      "frames": 625,
+      "seconds": 3.085408000042662,
+      "fps": 202.5664028845968,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 0.7005419999999996,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 3,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true,
+      "cpuBefore": [],
+      "cpuAfter": [
+        {
+          "pid": 53870,
+          "cpu": 30.1,
+          "name": "codex"
+        }
+      ]
+    },
+    {
+      "repeat": 1,
+      "view": "map",
+      "poisson": true,
+      "variant": "before",
+      "frames": 625,
+      "seconds": 4.886361500015482,
+      "fps": 127.90703266592529,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 0,
+        "preparedHits": 0,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 0,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": -0.2251259999999995,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 0,
+        "processedFrameIntegrations": 625,
+        "dynamicSeriesPlanBuilds": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      },
+      "comparison": {
+        "data": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "binning": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "counting_std": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        },
+        "map_values": {
+          "maxAbs": 0.0,
+          "relativeL2": 0.0
+        }
+      },
+      "bitwiseEqual": true,
+      "cpuBefore": [
+        {
+          "pid": 409,
+          "cpu": 36.6,
+          "name": "WindowServer"
+        }
+      ],
+      "cpuAfter": [
+        {
+          "pid": 409,
+          "cpu": 28.3,
+          "name": "WindowServer"
+        }
+      ]
+    }
+  ],
+  "summaries": [
+    {
+      "view": "batch",
+      "poisson": false,
+      "medianSeconds": {
+        "before": 4.834949270472862,
+        "after": 3.092913166503422
+      },
+      "fps": {
+        "before": 129.26712671359104,
+        "after": 202.0748615799552
+      },
+      "speedup": 1.5632347273230545
+    },
+    {
+      "view": "batch",
+      "poisson": true,
+      "medianSeconds": {
+        "before": 4.97722885402618,
+        "after": 3.1335592920077033
+      },
+      "fps": {
+        "before": 125.57188313622048,
+        "after": 199.45370160829353
+      },
+      "speedup": 1.5883627498994022
+    },
+    {
+      "view": "map",
+      "poisson": false,
+      "medianSeconds": {
+        "before": 4.934035062557086,
+        "after": 3.153365791484248
+      },
+      "fps": {
+        "before": 126.67117117649563,
+        "after": 198.2009196928025
+      },
+      "speedup": 1.564688459512558
+    },
+    {
+      "view": "map",
+      "poisson": true,
+      "medianSeconds": {
+        "before": 4.90137366700219,
+        "after": 3.0798876665066928
+      },
+      "fps": {
+        "before": 127.51527275051987,
+        "after": 202.92947914847005
+      },
+      "speedup": 1.5914131285708497
+    }
+  ],
+  "sourceUnchanged": true
+}

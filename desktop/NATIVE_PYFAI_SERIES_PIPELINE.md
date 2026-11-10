@@ -1,5 +1,9 @@
 # Parallel pyFAI-compatible Batch and Map integration
 
+This document records the initial frame-parallel implementation. The subsequent
+[direct decoder-input optimization](NATIVE_PYFAI_SERIES_THROUGHPUT.md) removes its
+float64 expansion and extra worker handoff, while retaining identical result bits.
+
 The native Rust desktop now admits uncorrected pyFAI-compatible image series
 to the same bounded, ordered frame pipeline as corrected and dynamically masked
 series. Supported self-contained Bitshuffle/LZ4 uint16/uint32 HDF5 sources use

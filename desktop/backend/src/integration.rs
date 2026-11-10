@@ -7,8 +7,9 @@ use crate::{
 };
 use dioptrin::{
     integration::{
-        Dynamic1dPlan, Dynamic1dWorker, Fixed1dPlan, FixedCsr1dPlan, FixedGrid2dPlan, InputOrder,
-        IntegrationGrid2d, IntegrationMethod, Integrator, MaskMode, RadialUnit, SparseLayout,
+        Dynamic1dPlan, Dynamic1dWorker, Fixed1dPlan, FixedCsr1dInputPlan, FixedCsr1dPlan,
+        FixedGrid2dPlan, InputOrder, IntegrationGrid2d, IntegrationMethod, Integrator, MaskMode,
+        RadialUnit, SparseLayout,
     },
     mask::Mask,
 };
@@ -91,6 +92,7 @@ struct Plan {
     general_1d: Option<Arc<dioptrin::lut::Lut1d>>,
     dynamic_series: Option<Arc<Dynamic1dPlan>>,
     compatibility_1d: Option<Arc<FixedCsr1dPlan>>,
+    compatibility_input: Option<Arc<FixedCsr1dInputPlan>>,
     compatibility_cake: Option<CompatibilityCake>,
     general_2d: Option<crate::sector::Grid>,
     normalization: Option<Arc<Vec<f64>>>,
@@ -128,11 +130,14 @@ pub struct ProcessedSeriesPlan {
 }
 enum SeriesIntegrationPlan {
     Dynamic(Arc<Dynamic1dPlan>),
-    FixedCompatibility(Arc<FixedCsr1dPlan>),
+    FixedCompatibility(Arc<FixedCsr1dInputPlan>),
 }
 enum SeriesFrameIntegrator<'a> {
-    Dynamic(Dynamic1dWorker<'a>),
-    FixedCompatibility(&'a FixedCsr1dPlan),
+    Dynamic {
+        integrator: Dynamic1dWorker<'a>,
+        pool: rayon::ThreadPool,
+    },
+    FixedCompatibility(&'a FixedCsr1dInputPlan),
 }
 
 pub struct SeriesFrameContext {
@@ -147,7 +152,6 @@ struct ProcessedFrameWorker<'a> {
     values: Vec<f64>,
     variance: Vec<f64>,
     plugins: crate::mask_plugins::Plugins,
-    pool: rayon::ThreadPool,
 }
 #[derive(Default)]
 pub struct Engine {
@@ -241,6 +245,7 @@ impl Plan {
             general_1d: None,
             dynamic_series: None,
             compatibility_1d: None,
+            compatibility_input: None,
             compatibility_cake: None,
             general_2d: None,
             normalization: None,
@@ -330,6 +335,20 @@ impl Plan {
             )?));
         }
         Ok(self.compatibility_1d.as_ref().unwrap().clone())
+    }
+    fn fixed_compatibility_input(
+        &mut self,
+        o: &Options,
+        mask: &[u8],
+    ) -> Result<Arc<FixedCsr1dInputPlan>, String> {
+        if self.compatibility_input.is_none() {
+            self.compatibility_input = Some(Arc::new(FixedCsr1dInputPlan::new(
+                self.fixed_compatibility(o, mask)?,
+                (self.key.shape[0], self.key.shape[1]),
+                InputOrder::FlipVertical,
+            )?));
+        }
+        Ok(self.compatibility_input.as_ref().unwrap().clone())
     }
     fn general_pattern(
         &mut self,
@@ -519,7 +538,9 @@ impl Engine {
         let result = ProcessedSeriesPlan {
             key: Arc::new(k),
             integration: if fixed_compatibility {
-                SeriesIntegrationPlan::FixedCompatibility(plan.fixed_compatibility(options, mask)?)
+                SeriesIntegrationPlan::FixedCompatibility(
+                    plan.fixed_compatibility_input(options, mask)?,
+                )
             } else {
                 SeriesIntegrationPlan::Dynamic(plan.dynamic_series.as_ref().unwrap().clone())
             },
@@ -557,9 +578,13 @@ impl Engine {
             || {
                 Ok(ProcessedFrameWorker {
                     integrator: match &plan.integration {
-                        SeriesIntegrationPlan::Dynamic(p) => {
-                            SeriesFrameIntegrator::Dynamic(p.worker(plan.options.errors))
-                        }
+                        SeriesIntegrationPlan::Dynamic(p) => SeriesFrameIntegrator::Dynamic {
+                            integrator: p.worker(plan.options.errors),
+                            pool: rayon::ThreadPoolBuilder::new()
+                                .num_threads(1)
+                                .build()
+                                .map_err(|e| e.to_string())?,
+                        },
                         SeriesIntegrationPlan::FixedCompatibility(p) => {
                             SeriesFrameIntegrator::FixedCompatibility(p)
                         }
@@ -567,79 +592,81 @@ impl Engine {
                     values: Vec::new(),
                     variance: Vec::new(),
                     plugins: context.plugins.clone(),
-                    pool: rayon::ThreadPoolBuilder::new()
-                        .num_threads(1)
-                        .build()
-                        .map_err(|e| e.to_string())?,
                 })
             },
             |worker, samples, frame, child| {
-                worker.values.clear();
-                let width = image.shape[1];
-                match samples {
-                    PixelBuffer::U16(v) => worker.values.extend(
-                        v.chunks_exact(width)
-                            .rev()
-                            .flat_map(|r| r.iter().map(|&v| f64::from(v))),
-                    ),
-                    PixelBuffer::U32(v) => worker.values.extend(
-                        v.chunks_exact(width)
-                            .rev()
-                            .flat_map(|r| r.iter().map(|&v| f64::from(v))),
-                    ),
-                    _ => return Err("Unexpected series sample type.".into()),
-                }
-                if let Some(processing) = &context.processing {
-                    processing.apply(
-                        &mut worker.values,
-                        plan.options.errors.then_some(&mut worker.variance),
-                        child,
-                    )?;
-                } else if supplied_variance {
-                    worker.variance.clear();
-                    worker
-                        .variance
-                        .extend(worker.values.iter().map(|v| v.max(0.)));
-                }
-                let mask = if plan.options.dynamic_mask {
-                    let mut mask = worker.plugins.refresh(
-                        &worker.values,
-                        image.shape,
-                        frame as u64,
-                        Some(&plan.key.geometry),
-                        &context.user_mask,
-                        child,
-                    )?;
-                    for (value, base) in mask.iter_mut().zip(context.base_mask.iter()) {
-                        *value |= base;
+                let (radial, intensity, errors, spread) = match &mut worker.integrator {
+                    SeriesFrameIntegrator::FixedCompatibility(integrator) => {
+                        child.check()?;
+                        let result = match samples {
+                            PixelBuffer::U16(v) => integrator.integrate_u16(v, plan.options.errors),
+                            PixelBuffer::U32(v) => integrator.integrate_u32(v, plan.options.errors),
+                            _ => return Err("Unexpected series sample type.".into()),
+                        }?;
+                        (result.radial, result.intensity, result.errors, None)
                     }
-                    std::borrow::Cow::Owned(mask)
-                } else {
-                    std::borrow::Cow::Borrowed(context.base_mask.as_slice())
-                };
-                child.check()?;
-                let (radial, intensity, errors, spread) =
-                    worker.pool.install(|| match &mut worker.integrator {
-                        SeriesFrameIntegrator::Dynamic(integrator) => {
-                            let result = integrator.integrate(
+                    SeriesFrameIntegrator::Dynamic { integrator, pool } => {
+                        worker.values.clear();
+                        let width = image.shape[1];
+                        match samples {
+                            PixelBuffer::U16(v) => worker.values.extend(
+                                v.chunks_exact(width)
+                                    .rev()
+                                    .flat_map(|r| r.iter().map(|&v| f64::from(v))),
+                            ),
+                            PixelBuffer::U32(v) => worker.values.extend(
+                                v.chunks_exact(width)
+                                    .rev()
+                                    .flat_map(|r| r.iter().map(|&v| f64::from(v))),
+                            ),
+                            _ => return Err("Unexpected series sample type.".into()),
+                        }
+                        if let Some(processing) = &context.processing {
+                            processing.apply(
+                                &mut worker.values,
+                                plan.options.errors.then_some(&mut worker.variance),
+                                child,
+                            )?;
+                        } else if supplied_variance {
+                            worker.variance.clear();
+                            worker
+                                .variance
+                                .extend(worker.values.iter().map(|v| v.max(0.)));
+                        }
+                        let mask = if plan.options.dynamic_mask {
+                            let mut mask = worker.plugins.refresh(
+                                &worker.values,
+                                image.shape,
+                                frame as u64,
+                                Some(&plan.key.geometry),
+                                &context.user_mask,
+                                child,
+                            )?;
+                            for (value, base) in mask.iter_mut().zip(context.base_mask.iter()) {
+                                *value |= base;
+                            }
+                            std::borrow::Cow::Owned(mask)
+                        } else {
+                            std::borrow::Cow::Borrowed(context.base_mask.as_slice())
+                        };
+                        child.check()?;
+
+                        let result = pool.install(|| {
+                            integrator.integrate(
                                 &worker.values,
                                 Some(&mask),
                                 plan.options.errors.then_some(worker.variance.as_slice()),
                                 plan.options.spread,
-                            )?;
-                            Ok::<_, String>((
-                                result.radial,
-                                result.intensity,
-                                result.errors,
-                                result.azimuthal_std,
-                            ))
-                        }
-                        SeriesFrameIntegrator::FixedCompatibility(integrator) => {
-                            let result =
-                                integrator.integrate_frame(&worker.values, plan.options.errors)?;
-                            Ok((result.radial, result.intensity, result.errors, None))
-                        }
-                    })?;
+                            )
+                        })?;
+                        (
+                            result.radial,
+                            result.intensity,
+                            result.errors,
+                            result.azimuthal_std,
+                        )
+                    }
+                };
                 Self::finish_pattern(
                     radial,
                     intensity,

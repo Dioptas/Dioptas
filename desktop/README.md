@@ -11,7 +11,7 @@ uses this checkout; the single-crystal experiment stays separate. See the
 verification.
 
 The desktop uses Dioptrin **0.12.0** plus the Massif, cached compatibility
-and resident-layout/dynamic-worker optimizations at revision `41174d8`, locked in `backend/Cargo.lock`. It includes native
+and resident-layout/dynamic-worker/typed-CSR optimizations at revision `a10f3d6`, locked in `backend/Cargo.lock`. It includes native
 pyFAI-compatible full pixel splitting for both 1D patterns and cakes. Massif
 picking retains full-resolution samples and reuses preprocessing across clicks;
 see [Massif performance and numerical checks](MASSIF_PERFORMANCE.md) and
@@ -46,6 +46,8 @@ The integration status line reports measured images/s during Batch/Map loading.
 See [native GUI Eiger timings](NATIVE_GUI_SERIES_PERFORMANCE.md) for first/repeated
 loads, bin counts and Poisson errors. pyFAI-compatible Batch/Map now also use
 [shared plans and persistent frame workers](NATIVE_PYFAI_SERIES_PIPELINE.md).
+Raw fixed-mask compatibility integration reads decoder pixels directly while
+preserving float64 result bits; see the [profile and matched polygon comparison](NATIVE_PYFAI_SERIES_THROUGHPUT.md).
 See the [qualification ledger](NATIVE_INTEGRATION_PARITY.md) for measured parity,
 benchmark scope and remaining detector work. Native format-2 `.dio` persistence
 and configuration select/add/duplicate/rename/remove controls are now available;
