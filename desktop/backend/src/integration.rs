@@ -21,6 +21,8 @@ use dioptrin_io::{
 };
 use serde_json::{Value, json};
 use std::sync::Arc;
+#[path = "series_pipeline.rs"]
+mod series_pipeline;
 
 /// Remove only contiguous exact-zero edges, keeping every radial array aligned.
 /// Keep an entirely zero pattern (for example, image minus itself) on its grid.
@@ -131,6 +133,10 @@ pub struct Engine {
     prepared_hits: u64,
     resident_calls: u64,
     pattern_only_decodes: u64,
+    frame_parallel_integrations: u64,
+    series_worker_starts: u64,
+    series_pipeline_runs: u64,
+    series_pending_peak: usize,
 }
 fn unit(value: &str) -> RadialUnit {
     match value {
@@ -355,7 +361,8 @@ impl Engine {
     }
 
     pub fn diagnostics(&self) -> Value {
-        json!({"patternPlanBuilds":self.pattern_builds,"cakePlanBuilds":self.cake_builds,"cakeIntegrations":self.cake_integrations,"combinedDecodes":self.combined_decodes,"preparedHits":self.prepared_hits,"residentIntegrations":self.resident_calls,"patternOnlyDecodes":self.pattern_only_decodes,"parallelPixelDecodes":self.parallel_pixel_decodes,"lastPixelDecodeMs":self.last_pixel_decode_ms})
+        json!({"patternPlanBuilds":self.pattern_builds,"cakePlanBuilds":self.cake_builds,"cakeIntegrations":self.cake_integrations,"combinedDecodes":self.combined_decodes,"preparedHits":self.prepared_hits,"residentIntegrations":self.resident_calls,"patternOnlyDecodes":self.pattern_only_decodes,"parallelPixelDecodes":self.parallel_pixel_decodes,"lastPixelDecodeMs":self.last_pixel_decode_ms,
+            "frameParallelIntegrations":self.frame_parallel_integrations,"seriesWorkerStarts":self.series_worker_starts,"seriesPipelineRuns":self.series_pipeline_runs,"seriesPendingPeak":self.series_pending_peak})
     }
     fn pattern_plan(&mut self, k: Key) -> Result<&mut Plan, String> {
         if self.pattern.as_ref().is_none_or(|p| p.key != k) {
@@ -400,6 +407,50 @@ impl Engine {
             &plan.options,
         )
         .map(|(pattern, _)| pattern)
+    }
+
+    /// Share the frozen plan/reader; only the caller collects ordered curves.
+    /// Worker threads own scratch, never the mutable session or display state.
+    pub fn parallel_series_patterns(
+        &mut self,
+        image: &Image,
+        frames: &[usize],
+        plan: &CombinedSeriesPlan,
+        control: &Control,
+        mut consume: impl FnMut(usize, Value) -> Result<(), String>,
+    ) -> Result<(), String> {
+        let raw = self.raw.as_ref().ok_or("Missing prepared series reader.")?;
+        if raw.source != plan.source || image.combined_source(0)?.as_ref() != Some(&plan.source) {
+            return Err("A combined source changed after plan preparation.".into());
+        }
+        let stats = series_pipeline::run(
+            &raw.reader,
+            &plan.fixed,
+            plan.options.errors,
+            frames,
+            control,
+            |frame, result| {
+                let (pattern, _) = Self::finish_pattern(
+                    result.radial,
+                    result.intensity,
+                    result.errors,
+                    None,
+                    &plan.key.geometry,
+                    &plan.options,
+                )?;
+                consume(frame, pattern)
+            },
+        )?;
+        image.check_sources()?;
+        control.check()?;
+        self.frame_parallel_integrations += stats.frames as u64;
+        self.combined_decodes += stats.frames as u64;
+        self.pattern_only_decodes += stats.frames as u64;
+        self.prepared_hits += stats.frames as u64;
+        self.series_worker_starts += stats.workers as u64;
+        self.series_pipeline_runs += 1;
+        self.series_pending_peak = self.series_pending_peak.max(stats.pending_peak);
+        Ok(())
     }
 
     /// Parallel input is independent of calibration and integration. Stored Map

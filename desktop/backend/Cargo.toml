@@ -60,6 +60,11 @@ opt-level = 2
 [profile.dev.package.dioptrin-io]
 opt-level = 2
 
+# The codec is a separate C dependency: optimizing dioptrin-io alone leaves
+# Bitshuffle/LZ4 (including its NEON/AVX2 kernels) at -O0 in live previews.
+[profile.dev.package.hdf5-bitshuffle]
+opt-level = 2
+
 [profile.dev.package.phasesmith-core]
 opt-level = 2
 

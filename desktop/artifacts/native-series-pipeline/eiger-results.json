@@ -1,0 +1,1100 @@
+{
+  "source": "/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.h5",
+  "sourceBytes": 5687072680,
+  "sourceMtimeNs": 1772087934000000000,
+  "shape": [
+    625,
+    3262,
+    3108
+  ],
+  "threads": 8,
+  "bins": 2000,
+  "cakeBins": 90,
+  "method": "polygon",
+  "residentLayout": "csr",
+  "polarization": 0.965,
+  "mask": "automatic named-detector acquisition mask; no external user mask",
+  "scope": "Complete warm-plan native stdio command through final selection/image/pattern/cake/series response; all frames. Includes worker startup and Map previews/reduction. Excludes initial input/geometry/plan setup, export/parity checks, Tauri/rendering and process startup. OS file pages warm after the first pass; CPU not isolated. Optimized development scientific packages; codec is unoptimized only in the before executable.",
+  "machine": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "executables": {
+    "before": {
+      "path": "/Users/clemens/Codex/dioptas-parallel-series-20261110/dioptas-processor-before",
+      "sha256": "8571279b3c764e3f54ea33cdb18d69a957a18b8d91afaf58efa76cd233ec7c64"
+    },
+    "after": {
+      "path": "/Users/clemens/Codex/dioptas-parallel-series-20261110/dioptas-processor-optimized",
+      "sha256": "33b8e5a66fbb82bfad9faae94b92ce15342660bd6e3924331fc9072bd4057fb7"
+    }
+  },
+  "records": [
+    {
+      "view": "batch",
+      "poisson": false,
+      "variant": "before",
+      "repeat": 0,
+      "seconds": 33.357521625002846,
+      "fps": 18.736403951891216,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 626,
+        "preparedHits": 626,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 0,
+        "lastPixelDecodeMs": 0.0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": false,
+      "variant": "codec_only",
+      "repeat": 0,
+      "seconds": 4.281490082968958,
+      "fps": 145.97721538259404,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 626,
+        "preparedHits": 626,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 0,
+        "lastPixelDecodeMs": 0.0,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": false,
+      "variant": "parallel",
+      "repeat": 0,
+      "seconds": 3.036852416000329,
+      "fps": 205.8051937944199,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 626,
+        "preparedHits": 626,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 0,
+        "lastPixelDecodeMs": 0.0,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 6,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": true,
+      "variant": "before",
+      "repeat": 0,
+      "seconds": 26.538473166991025,
+      "fps": 23.550714318312213,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 626,
+        "preparedHits": 626,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 0,
+        "lastPixelDecodeMs": 0.0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": true,
+      "variant": "codec_only",
+      "repeat": 0,
+      "seconds": 4.250127125065774,
+      "fps": 147.05442486978026,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 626,
+        "preparedHits": 626,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 0,
+        "lastPixelDecodeMs": 0.0,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": true,
+      "variant": "parallel",
+      "repeat": 0,
+      "seconds": 3.4103534589521587,
+      "fps": 183.26546134371455,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 626,
+        "preparedHits": 626,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 0,
+        "lastPixelDecodeMs": 0.0,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 5,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "map",
+      "poisson": false,
+      "variant": "before",
+      "repeat": 0,
+      "seconds": 26.12535254098475,
+      "fps": 23.923122148094148,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 625,
+        "preparedHits": 625,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 43.983875,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "map",
+      "poisson": false,
+      "variant": "codec_only",
+      "repeat": 0,
+      "seconds": 7.5888428329490125,
+      "fps": 82.35774725579947,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 625,
+        "preparedHits": 625,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 39.166582999999996,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "map",
+      "poisson": false,
+      "variant": "parallel",
+      "repeat": 0,
+      "seconds": 3.2012408329173923,
+      "fps": 195.23679492442864,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 625,
+        "preparedHits": 625,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 7.883042,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 6,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "map",
+      "poisson": true,
+      "variant": "before",
+      "repeat": 0,
+      "seconds": 28.01849124999717,
+      "fps": 22.306697188773974,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 625,
+        "preparedHits": 625,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 39.698042,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "map",
+      "poisson": true,
+      "variant": "codec_only",
+      "repeat": 0,
+      "seconds": 4.846197000006214,
+      "fps": 128.96710554672018,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 625,
+        "preparedHits": 625,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 5.551792,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "map",
+      "poisson": true,
+      "variant": "parallel",
+      "repeat": 0,
+      "seconds": 3.323031874955632,
+      "fps": 188.0812533609371,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 625,
+        "preparedHits": 625,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 5.230209,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 6,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": false,
+      "variant": "parallel",
+      "repeat": 1,
+      "seconds": 3.001544374972582,
+      "fps": 208.22614025345175,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 626,
+        "preparedHits": 626,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 0,
+        "lastPixelDecodeMs": 0.0,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 7,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": false,
+      "variant": "codec_only",
+      "repeat": 1,
+      "seconds": 3.8017775000771508,
+      "fps": 164.39678544767983,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 626,
+        "preparedHits": 626,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 0,
+        "lastPixelDecodeMs": 0.0,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": false,
+      "variant": "before",
+      "repeat": 1,
+      "seconds": 26.47847533307504,
+      "fps": 23.604078110165737,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 626,
+        "preparedHits": 626,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 0,
+        "lastPixelDecodeMs": 0.0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": true,
+      "variant": "parallel",
+      "repeat": 1,
+      "seconds": 3.38878925004974,
+      "fps": 184.43165209840842,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 626,
+        "preparedHits": 626,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 0,
+        "lastPixelDecodeMs": 0.0,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 5,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": true,
+      "variant": "codec_only",
+      "repeat": 1,
+      "seconds": 4.421731791924685,
+      "fps": 141.34733389786877,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 626,
+        "preparedHits": 626,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 0,
+        "lastPixelDecodeMs": 0.0,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": true,
+      "variant": "before",
+      "repeat": 1,
+      "seconds": 28.67519087495748,
+      "fps": 21.795844454023246,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 1,
+        "combinedDecodes": 626,
+        "preparedHits": 626,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 0,
+        "lastPixelDecodeMs": 0.0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "map",
+      "poisson": false,
+      "variant": "parallel",
+      "repeat": 1,
+      "seconds": 3.0067049170611426,
+      "fps": 207.868752418477,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 625,
+        "preparedHits": 625,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 5.009791000000001,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 6,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "map",
+      "poisson": false,
+      "variant": "codec_only",
+      "repeat": 1,
+      "seconds": 3.9657976670423523,
+      "fps": 157.59755097796454,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 625,
+        "preparedHits": 625,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 9.230749999999999,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "map",
+      "poisson": false,
+      "variant": "before",
+      "repeat": 1,
+      "seconds": 29.44255383394193,
+      "fps": 21.227778117518064,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 625,
+        "preparedHits": 625,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 53.942792000000004,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "map",
+      "poisson": true,
+      "variant": "parallel",
+      "repeat": 1,
+      "seconds": 3.383137041935697,
+      "fps": 184.73978211725048,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 625,
+        "preparedHits": 625,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 5.019667,
+        "frameParallelIntegrations": 625,
+        "seriesWorkerStarts": 8,
+        "seriesPipelineRuns": 1,
+        "seriesPendingPeak": 5,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "map",
+      "poisson": true,
+      "variant": "codec_only",
+      "repeat": 1,
+      "seconds": 4.418908291961998,
+      "fps": 141.43764900866492,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 625,
+        "preparedHits": 625,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 5.840166,
+        "frameParallelIntegrations": 0,
+        "seriesWorkerStarts": 0,
+        "seriesPipelineRuns": 0,
+        "seriesPendingPeak": 0,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    },
+    {
+      "view": "map",
+      "poisson": true,
+      "variant": "before",
+      "repeat": 1,
+      "seconds": 26.43115737498738,
+      "fps": 23.64633493467285,
+      "diagnosticsDelta": {
+        "patternPlanBuilds": 0,
+        "cakePlanBuilds": 0,
+        "cakeIntegrations": 0,
+        "combinedDecodes": 625,
+        "preparedHits": 625,
+        "residentIntegrations": 0,
+        "patternOnlyDecodes": 625,
+        "parallelPixelDecodes": 1,
+        "lastPixelDecodeMs": 40.747875,
+        "sampleCorrectionBuilds": 0,
+        "sampleCorrectionHits": 0
+      }
+    }
+  ],
+  "comparisons": [
+    {
+      "view": "batch",
+      "poisson": false,
+      "variant": "before",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": false,
+      "variant": "codec_only",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": false,
+      "variant": "parallel",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 8.614733815193176e-09,
+        "relativeL2": 2.2780549279766466e-15
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": true,
+      "variant": "before",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": true,
+      "variant": "codec_only",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": true,
+      "variant": "parallel",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 8.614733815193176e-09,
+        "relativeL2": 2.2780549279766466e-15
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 3.552713678800501e-14,
+        "relativeL2": 1.9525480434745203e-16
+      }
+    },
+    {
+      "view": "map",
+      "poisson": false,
+      "variant": "before",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "map_values": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "map",
+      "poisson": false,
+      "variant": "codec_only",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "map_values": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "map",
+      "poisson": false,
+      "variant": "parallel",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 8.614733815193176e-09,
+        "relativeL2": 2.2780549279766466e-15
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "map_values": {
+        "maxAbs": 1.8189894035458565e-12,
+        "relativeL2": 4.03797395144272e-16
+      }
+    },
+    {
+      "view": "map",
+      "poisson": true,
+      "variant": "before",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "map_values": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "map",
+      "poisson": true,
+      "variant": "codec_only",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "map_values": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "map",
+      "poisson": true,
+      "variant": "parallel",
+      "repeat": 0,
+      "data": {
+        "maxAbs": 8.614733815193176e-09,
+        "relativeL2": 2.2780549279766466e-15
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 3.552713678800501e-14,
+        "relativeL2": 1.9525480434745203e-16
+      },
+      "map_values": {
+        "maxAbs": 1.8189894035458565e-12,
+        "relativeL2": 4.03797395144272e-16
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": false,
+      "variant": "parallel",
+      "repeat": 1,
+      "data": {
+        "maxAbs": 8.614733815193176e-09,
+        "relativeL2": 2.2780549279766466e-15
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": false,
+      "variant": "codec_only",
+      "repeat": 1,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": false,
+      "variant": "before",
+      "repeat": 1,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": true,
+      "variant": "parallel",
+      "repeat": 1,
+      "data": {
+        "maxAbs": 8.614733815193176e-09,
+        "relativeL2": 2.2780549279766466e-15
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 3.552713678800501e-14,
+        "relativeL2": 1.9525480434745203e-16
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": true,
+      "variant": "codec_only",
+      "repeat": 1,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "batch",
+      "poisson": true,
+      "variant": "before",
+      "repeat": 1,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "map",
+      "poisson": false,
+      "variant": "parallel",
+      "repeat": 1,
+      "data": {
+        "maxAbs": 8.614733815193176e-09,
+        "relativeL2": 2.2780549279766466e-15
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "map_values": {
+        "maxAbs": 1.8189894035458565e-12,
+        "relativeL2": 4.03797395144272e-16
+      }
+    },
+    {
+      "view": "map",
+      "poisson": false,
+      "variant": "codec_only",
+      "repeat": 1,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "map_values": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "map",
+      "poisson": false,
+      "variant": "before",
+      "repeat": 1,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "map_values": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "map",
+      "poisson": true,
+      "variant": "parallel",
+      "repeat": 1,
+      "data": {
+        "maxAbs": 8.614733815193176e-09,
+        "relativeL2": 2.2780549279766466e-15
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 3.552713678800501e-14,
+        "relativeL2": 1.9525480434745203e-16
+      },
+      "map_values": {
+        "maxAbs": 1.8189894035458565e-12,
+        "relativeL2": 4.03797395144272e-16
+      }
+    },
+    {
+      "view": "map",
+      "poisson": true,
+      "variant": "codec_only",
+      "repeat": 1,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "map_values": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    },
+    {
+      "view": "map",
+      "poisson": true,
+      "variant": "before",
+      "repeat": 1,
+      "data": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "binning": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "counting_std": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      },
+      "map_values": {
+        "maxAbs": 0.0,
+        "relativeL2": 0.0
+      }
+    }
+  ],
+  "summaries": [
+    {
+      "view": "batch",
+      "poisson": false,
+      "medianSeconds": {
+        "before": 29.917998479038943,
+        "codec_only": 4.041633791523054,
+        "parallel": 3.0191983954864554
+      },
+      "fps": {
+        "before": 20.89043491455104,
+        "codec_only": 154.64043311169817,
+        "parallel": 207.00858907925445
+      },
+      "totalSpeedup": 9.90925224515381,
+      "pipelineSpeedup": 1.33864465401316
+    },
+    {
+      "view": "batch",
+      "poisson": true,
+      "medianSeconds": {
+        "before": 27.606832020974252,
+        "codec_only": 4.3359294584952295,
+        "parallel": 3.3995713545009494
+      },
+      "fps": {
+        "before": 22.639323466204203,
+        "codec_only": 144.14441147686574,
+        "parallel": 183.84670737165592
+      },
+      "totalSpeedup": 8.120680268829622,
+      "pipelineSpeedup": 1.275434166944184
+    },
+    {
+      "view": "map",
+      "poisson": false,
+      "medianSeconds": {
+        "before": 27.78395318746334,
+        "codec_only": 5.777320249995682,
+        "parallel": 3.1039728749892674
+      },
+      "fps": {
+        "before": 22.494999029944097,
+        "codec_only": 108.18164355705694,
+        "parallel": 201.35485236872796
+      },
+      "totalSpeedup": 8.951094067650127,
+      "pipelineSpeedup": 1.8612663456395888
+    },
+    {
+      "view": "map",
+      "poisson": true,
+      "medianSeconds": {
+        "before": 27.224824312492274,
+        "codec_only": 4.632552645984106,
+        "parallel": 3.3530844584456645
+      },
+      "fps": {
+        "before": 22.95698928397547,
+        "codec_only": 134.91481862419926,
+        "parallel": 186.39554349004416
+      },
+      "totalSpeedup": 8.119337478636744,
+      "pipelineSpeedup": 1.3815794691111192
+    }
+  ],
+  "sourceUnchanged": true
+}

@@ -112,6 +112,93 @@ impl MapProgress {
         Ok(())
     }
 }
+#[cfg(feature = "dioptrin")]
+struct RowContext<'a> {
+    control: &'a crate::control::Control,
+    settings: &'a Settings,
+    scan: Option<&'a crate::scan::Scan>,
+    patterns: &'a crate::pattern::Patterns,
+}
+#[cfg(feature = "dioptrin")]
+struct SeriesRows {
+    x: Option<Arc<Vec<f64>>>,
+    data: Vec<f64>,
+    sigma: Option<Vec<f64>>,
+    spread: Option<Vec<f64>>,
+    entries: Vec<Entry>,
+    preview: Option<MapProgress>,
+    preview_enabled: bool,
+    count: usize,
+}
+#[cfg(feature = "dioptrin")]
+impl SeriesRows {
+    fn push(
+        &mut self,
+        context: &RowContext<'_>,
+        source: &Path,
+        frame: usize,
+        pattern: &Value,
+    ) -> Result<(), String> {
+        context.control.check()?;
+        let curve = crate::pattern::Curve::from_json(pattern)?;
+        if self.preview_enabled {
+            if self.preview.is_none() {
+                self.preview = Some(MapProgress::new(
+                    &curve.x,
+                    self.count,
+                    &context.settings.unit,
+                    context.settings.geometry.wavelength,
+                    context.scan,
+                )?);
+            }
+            self.preview.as_mut().unwrap().push(
+                self.entries.len(),
+                &curve,
+                &context.settings.unit,
+                context.control,
+                context.patterns,
+            )?;
+        }
+        if let Some(previous) = &self.x {
+            if *previous != curve.x {
+                return Err("Series radial axes differ; use fixed binning.".into());
+            }
+        } else {
+            self.x = Some(curve.x.clone());
+        }
+        if self
+            .data
+            .len()
+            .checked_add(curve.y.len())
+            .is_none_or(|n| n > 64_000_000)
+        {
+            return Err("Processed series exceeds 64 million samples.".into());
+        }
+        self.data.extend(curve.y.iter().copied());
+        if let Some(target) = &mut self.sigma {
+            target.extend(
+                curve
+                    .sigma
+                    .as_ref()
+                    .ok_or("Series counting errors were not returned by the integrator.")?
+                    .iter()
+                    .copied(),
+            );
+        }
+        if let Some(values) = pattern["azimuthalStd"].as_array() {
+            let target = self.spread.get_or_insert_with(Vec::new);
+            for v in values {
+                target.push(v.as_f64().unwrap_or(f64::NAN));
+            }
+        }
+        self.entries.push(Entry {
+            path: source.to_string_lossy().into_owned(),
+            frame,
+        });
+        context.control.publish(json!({"running":true,"current":self.entries.len(),"total":self.count,"label":"Integrating series"}));
+        Ok(())
+    }
+}
 pub(super) fn source_paths(args: &Value) -> Result<Vec<String>, String> {
     let list = if let Some(p) = args["paths"].as_array() {
         p.clone()
@@ -249,12 +336,16 @@ impl Session {
                     self.effective_mask = self.mask.clone();
                 }
                 let mut global = 0usize;
-                let mut x = None;
-                let mut data = vec![];
-                let mut sigma = self.settings.errors.then(Vec::new);
-                let mut spread: Option<Vec<f64>> = None;
-                let mut entries = vec![];
-                let mut preview: Option<MapProgress> = None;
+                let mut rows = SeriesRows {
+                    x: None,
+                    data: vec![],
+                    sigma: self.settings.errors.then(Vec::new),
+                    spread: None,
+                    entries: vec![],
+                    preview: None,
+                    preview_enabled: args["preview_map"] == true,
+                    count,
+                };
                 for (source, frames, shape, fingerprint) in &images {
                     for (path, identity) in fingerprint {
                         if crate::image::FileIdentity::read(path)? != *identity {
@@ -350,16 +441,35 @@ impl Session {
                         None
                     };
 
-                    for frame in 0..image.frames {
-                        let selected = global >= start
-                            && global < stop
-                            && (global - start).is_multiple_of(step);
-                        global += 1;
-                        if !selected {
-                            continue;
-                        }
+                    let selected_frames: Vec<_> = (0..image.frames)
+                        .filter(|&frame| {
+                            let index = global + frame;
+                            index >= start && index < stop && (index - start).is_multiple_of(step)
+                        })
+                        .collect();
+                    global += image.frames;
+                    if let Some(plan) = combined_plan.as_ref().filter(|_| {
+                        std::env::var("DIOPTAS_SERIES_PARALLEL").as_deref() != Ok("0")
+                            && !selected_frames.is_empty()
+                    }) {
+                        let context = RowContext {
+                            control: &self.control,
+                            settings: &self.settings,
+                            scan: self.scan.as_ref(),
+                            patterns: &self.patterns,
+                        };
+                        self.engine.parallel_series_patterns(
+                            &image,
+                            &selected_frames,
+                            plan,
+                            &self.control,
+                            |frame, pattern| rows.push(&context, &image.path, frame, &pattern),
+                        )?;
+                        continue;
+                    }
+                    for frame in selected_frames {
                         self.control.check()?;
-                        self.control.publish(json!({"running":true,"current":entries.len(),"total":count,"label":"Integrating series"}));
+                        self.control.publish(json!({"running":true,"current":rows.entries.len(),"total":count,"label":"Integrating series"}));
                         let direct = if let Some(plan) = &combined_plan {
                             Some(self.engine.combined_series_pattern(
                                 &mut image,
@@ -419,54 +529,17 @@ impl Session {
                             pattern["sigma"] = json!(sigma);
                             pattern
                         };
-                        self.control.check()?;
-                        let curve = crate::pattern::Curve::from_json(&pattern)?;
-                        if args["preview_map"] == true {
-                            if preview.is_none() {
-                                preview = Some(MapProgress::new(
-                                    &curve.x,
-                                    count,
-                                    &self.settings.unit,
-                                    self.settings.geometry.wavelength,
-                                    self.scan.as_ref(),
-                                )?);
-                            }
-                            preview.as_mut().unwrap().push(
-                                entries.len(),
-                                &curve,
-                                &self.settings.unit,
-                                &self.control,
-                                &self.patterns,
-                            )?;
-                        }
-                        if let Some(previous) = &x {
-                            if *previous != curve.x {
-                                return Err("Series radial axes differ; use fixed binning.".into());
-                            }
-                        } else {
-                            x = Some(curve.x.clone());
-                        }
-                        if data
-                            .len()
-                            .checked_add(curve.y.len())
-                            .is_none_or(|n| n > 64_000_000)
-                        {
-                            return Err("Processed series exceeds 64 million samples.".into());
-                        }
-                        data.extend(curve.y.iter().copied());
-                        if let Some(target) = &mut sigma {
-                            target.extend(curve.sigma.as_ref().ok_or("Series counting errors were not returned by the integrator.")?.iter().copied());
-                        }
-                        if let Some(values) = pattern["azimuthalStd"].as_array() {
-                            let target = spread.get_or_insert_with(Vec::new);
-                            for v in values {
-                                target.push(v.as_f64().unwrap_or(f64::NAN));
-                            }
-                        }
-                        entries.push(Entry {
-                            path: image.path.to_string_lossy().into_owned(),
+                        rows.push(
+                            &RowContext {
+                                control: &self.control,
+                                settings: &self.settings,
+                                scan: self.scan.as_ref(),
+                                patterns: &self.patterns,
+                            },
+                            &image.path,
                             frame,
-                        });
+                            &pattern,
+                        )?;
                     }
                 }
                 for (_, _, _, fingerprint) in &images {
@@ -477,11 +550,11 @@ impl Session {
                     }
                 }
                 let mut series = Series::new(
-                    x.ok_or("No frames were integrated.")?.as_ref().clone(),
-                    data,
+                    rows.x.ok_or("No frames were integrated.")?.as_ref().clone(),
+                    rows.data,
                     self.settings.unit.clone(),
                     Some(self.settings.geometry.wavelength),
-                    entries,
+                    rows.entries,
                     images
                         .iter()
                         .map(|(p, _, _, _)| p.to_string_lossy().into_owned())
@@ -489,9 +562,9 @@ impl Session {
                     total,
                 )?;
                 series.file_counts = images.iter().map(|(_, frames, _, _)| *frames).collect();
-                series.sigma = sigma.map(Arc::new);
+                series.sigma = rows.sigma.map(Arc::new);
                 series.raw_sigma = series.sigma.clone();
-                series.spread = spread.map(Arc::new);
+                series.spread = rows.spread.map(Arc::new);
                 series.raw_spread = series.spread.clone();
                 series.calibration = self.settings.calibration_name.clone().unwrap_or_default();
                 series.mask = self.mask_filename.clone().unwrap_or_default();

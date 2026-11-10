@@ -34,6 +34,9 @@ All three bundled masking plugins also run natively, including their settings,
 dynamic recomputation, imprint and Undo/Redo. The native integration stage adds
 warm-plan reuse and combined HDF5 loading, corrections/backgrounds, pattern and
 overlay I/O, phase/material editing, Batch and Map with the existing controls.
+Admitted fixed-mask HDF5 Batch/Map series use concurrent frames with one shared
+CSC plan and persistent worker scratch. Development builds also optimize the
+separate Bitshuffle/LZ4 C dependency. See [series pipeline measurements](NATIVE_SERIES_PIPELINE.md).
 See the [qualification ledger](NATIVE_INTEGRATION_PARITY.md) for measured parity,
 benchmark scope and remaining detector work. Native format-2 `.dio` persistence
 and configuration select/add/duplicate/rename/remove controls are now available;
@@ -186,8 +189,10 @@ contain the UI from their build and do not receive live edits.
 requests over stdin/stdout to a local `dioptas-processor` Rust process. Native
 file dialogs belong to Tauri. There is no scientific HTTP/API server or remote
 service. The bundled frontend uses the Tauri asset protocol, without Vite.
-Scientific objects are constructed, used and released on one processing thread,
-including Dioptrin. Progress and cancellation bypass that
+The command worker owns the mutable scientific session. Bulk Batch/Map execution
+lends one immutable reader and Dioptrin plan to scoped frame workers; each owns
+its decoder buffers and float64 accumulators. Ordered collection and publication
+stay on the command worker. Progress and cancellation bypass that
 worker without accessing native objects. Pipe responses carry request IDs so a
 long fit does not block progress/cancel responses. Window closure drops the pipe,
 cancels pending refinement and reaps the child, with a bounded kill fallback.

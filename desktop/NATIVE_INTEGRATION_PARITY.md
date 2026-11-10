@@ -46,6 +46,8 @@ There is no scientific HTTP service. Dioptrin is now the default native engine.
   six ROI reductions, straight-edge background, bounded expressions, layout/
   snake/transpose/flips, blanks/exclusions, normalization, cubic display previews,
   contours, export, selected raw images and numbered incoming-file append.
+  Admitted fixed-mask HDF5 series now use a shared CSC plan and persistent
+  concurrent frame workers; see [pipeline scope, codec fix and measured throughput](NATIVE_SERIES_PIPELINE.md).
 - Grouped integration/phase changes join chronological calibration Undo/Redo;
   mask history remains separate. No-op saves preserve Redo. Stable phase/overlay
   IDs reject stale editor operations. Settings and bulk operations publish

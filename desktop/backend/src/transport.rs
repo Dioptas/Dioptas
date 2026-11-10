@@ -1,5 +1,6 @@
 //! Bounded local stdio, compatible with the existing Tauri processor pipe.
-//! A single worker owns all reader/engine objects. Progress bypasses that queue.
+//! One command worker owns the mutable session. Bulk jobs lend immutable reader/
+//! plan snapshots to scoped frame workers. Progress bypasses the command queue.
 use crate::{
     Session,
     control::Control,
