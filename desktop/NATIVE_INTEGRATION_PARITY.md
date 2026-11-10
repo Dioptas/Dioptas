@@ -400,3 +400,15 @@ results are bitwise identical: the integration stage improves by approximately
 12%, while complete detector-loading latency remains near 29–30 ms. First-use
 source-address preparation adds work. See the [full single-image profile,
 benchmarks and verification](NATIVE_PYFAI_SINGLE_IMAGE_PERFORMANCE.md).
+
+## Native display and transfer profile (2026-11-10)
+
+Display statistics batch repeated integer sentinels without changing their
+counts or retained-cache bounds. Aligned binary rasters use packet views;
+source-cache accounting includes shared backing storage. Detector and pattern
+renderers reuse allocated GPU storage and retain allocation/error validation.
+Matched native GUI navigation is approximately 19–26% faster to completed GPU
+work on the Eiger qualification; calibrated file-opening latency remains near
+80 ms. Float64 outputs, display metadata and transported pixels remain bitwise
+identical, and actual detector/pattern GPU readbacks match at the same display
+resolution. See the [native GUI profile and verification](NATIVE_DISPLAY_TRANSFER_PERFORMANCE.md).

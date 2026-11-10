@@ -51,6 +51,10 @@ preserving float64 result bits; see the [profile and matched polygon comparison]
 Single-image compatibility integration also reads integer pixels directly,
 parallelizing independent radial bins with identical results; see the
 [single-image loading and integration comparison](NATIVE_PYFAI_SINGLE_IMAGE_PERFORMANCE.md).
+Display preparation now batches repeated detector sentinel counts, and aligned
+binary rasters reach the GPU through packet views. Detector textures and pattern
+buffers reuse storage between frames. See the [actual native GUI profile and
+loading/navigation comparison](NATIVE_DISPLAY_TRANSFER_PERFORMANCE.md).
 See the [qualification ledger](NATIVE_INTEGRATION_PARITY.md) for measured parity,
 benchmark scope and remaining detector work. Native format-2 `.dio` persistence
 and configuration select/add/duplicate/rename/remove controls are now available;

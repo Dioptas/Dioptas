@@ -1,0 +1,105 @@
+{
+  "backendTests": 196,
+  "backendExistingIgnoredTests": 2,
+  "hostTests": 27,
+  "javascriptTests": 103,
+  "nativeTransportTests": 9,
+  "frozenExecutableCases": 81,
+  "backendClippy": "pass, all features/all targets, warnings denied",
+  "headlessBrowsers": [
+    "chromium",
+    "webkit"
+  ],
+  "reusedGpuStorage": "6 detector and 6 pattern frames per browser match fresh allocations byte for byte; masks, shape and palette changes, scales, overlays and context recovery tested",
+  "actualEigerGpuReadbacks": 24,
+  "actualEigerRgbaEqual": true,
+  "fullSeriesBitwiseEqual": true,
+  "sourceUnchanged": true,
+  "logs": {
+    "backend-tests": {
+      "path": "/Users/clemens/Codex/dioptas-display-transfer-20261110/backend-tests.log",
+      "sha256": "3cb37e43b06b7100ada960b4d12e19ce189ab6c7199ef1bd927772ed803dca2f"
+    },
+    "backend-clippy": {
+      "path": "/Users/clemens/Codex/dioptas-display-transfer-20261110/backend-clippy.log",
+      "sha256": "d8c0b3c5aa354e703b72c1f4f238ae36f47f031ec44a66fa63ccc41364699746"
+    },
+    "js-tests": {
+      "path": "/Users/clemens/Codex/dioptas-display-transfer-20261110/js-tests.log",
+      "sha256": "de9387f705d97acec2b48f643faa4b59a20e2f7cf2030e11c8aa01e40ded5afc"
+    },
+    "transfer-tests": {
+      "path": "/Users/clemens/Codex/dioptas-display-transfer-20261110/transfer-tests.log",
+      "sha256": "1df183e9c398ae5894617435c40b3f4bc0c878359ab1e22d2454091de9cb3994"
+    },
+    "transport": {
+      "path": "/Users/clemens/Codex/dioptas-display-transfer-20261110/transport.log",
+      "sha256": "036529a474b2e981235b0c00e72d4bcb233d3b863c5f46e48b3d1804c6b5ace7"
+    },
+    "headless-workflow": {
+      "path": "/Users/clemens/Codex/dioptas-display-transfer-20261110/headless-workflow.log",
+      "sha256": "f729ed50d0bd6497144275f766f6d81d9e6e7e8b9a904b55b70e8e1bbed795f0"
+    },
+    "rendering-chromium": {
+      "path": "/Users/clemens/Codex/dioptas-display-transfer-20261110/rendering-chromium.log",
+      "sha256": "dc62037d27c85b9d0d76e4ce0fbb63b8e978d39a0a0ab65cac38e6456d72fafa"
+    },
+    "rendering-webkit": {
+      "path": "/Users/clemens/Codex/dioptas-display-transfer-20261110/rendering-webkit.log",
+      "sha256": "70093ac58820d2740a88e01dc8534bbaf28e63c8e982a7e4a6b466fa74cd10cf"
+    },
+    "host-tests": {
+      "path": "/Users/clemens/Codex/dioptas-display-transfer-20261110/host-tests.log",
+      "sha256": "bff56514c71edecaa85804cc24613376a4896c25aad9c569429c2964ea205051"
+    },
+    "parity": {
+      "path": "/Users/clemens/Codex/dioptas-display-transfer-20261110/parity.log",
+      "sha256": "648a01dc709716a2f918d92e07df51661fc67718ec8d36ef4897cada05954f1e"
+    },
+    "after-ui-build": {
+      "path": "/Users/clemens/Codex/dioptas-display-transfer-20261110/after-ui-build.log",
+      "sha256": "0f22056442c67847bd16365f3fd211a67dfdd2ebfb31b461b4a39e6a792ce9b2"
+    },
+    "main-tests": {
+      "path": "/Users/clemens/Codex/dioptas-display-transfer-20261110/main-tests.log",
+      "sha256": "4cb35106c08f47fff70dd8bbda9b927cff70564818b1f4d467eb5113fe8bdd76"
+    },
+    "main-ui-build": {
+      "path": "/Users/clemens/Codex/dioptas-display-transfer-20261110/main-ui-build.log",
+      "sha256": "3fabdcf607c80585d286534f6d707237d6f9ee70a083c2d54837d42aaf003b49"
+    },
+    "main-native-build": {
+      "path": "/Users/clemens/Codex/dioptas-display-transfer-20261110/main-native-build.log",
+      "sha256": "18d6e2d57d6ace0f9c42486527af163dd791ff10382f03c6c3d272f2f71e44e5"
+    },
+    "main-clippy": {
+      "path": "/Users/clemens/Codex/dioptas-display-transfer-20261110/main-clippy.log",
+      "sha256": "be5dae4da840fadbf60c034e47cbb49633f477959503bc6da00c55fa9818ba27"
+    }
+  },
+  "fullGuiSelections": 4996,
+  "fullGuiMatchingDimensionRgbaEqual": true,
+  "fullGuiPerformanceExcluded": "Scale factor changed from 1 to 2 in baseline",
+  "renderingReadbacksIncludingFullGui": 32,
+  "additionalMixedDisplayRunExcluded": true,
+  "mergedCheckoutBackendTests": 202,
+  "mergedCheckoutBackendIgnored": 2,
+  "mergedCheckoutUiBuild": "pass",
+  "mergedApplicationCommit": "26b4959e",
+  "renderingReadbacksIncludingAdditionalChecks": 40,
+  "mergedCheckoutNativeBuild": "pass, normal debug Tauri build, no native test window",
+  "mergedCheckoutBackendClippy": "pass, all targets/features, warnings denied",
+  "mergedCheckoutBitwiseComparison": {
+    "frames": [
+      0,
+      312,
+      624
+    ],
+    "poisson": [
+      false,
+      true
+    ],
+    "passed": true,
+    "receipt": "main-bitwise.json"
+  }
+}

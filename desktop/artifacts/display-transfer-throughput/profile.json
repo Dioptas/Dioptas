@@ -1,0 +1,31 @@
+{
+  "scope": "Separate sampled runs, 2 seconds/1 ms over warm next_image commands; hotspot attribution only, not normalized CPU percentages or headline timings.",
+  "variants": {
+    "before": {
+      "rawSample": {
+        "path": "/Users/clemens/Codex/dioptas-display-transfer-20261110/before-final.sample",
+        "sha256": "bcbf435214acfb929f74fa7f446be7a333a1af616bfdd79a0701281d3329a9cc"
+      },
+      "physicalFootprint": "3.0G",
+      "hotspotSamples": {
+        "count statistics": 550,
+        "sparse hashing": 0,
+        "display fingerprint": 822,
+        "packet write": 306
+      }
+    },
+    "after": {
+      "rawSample": {
+        "path": "/Users/clemens/Codex/dioptas-display-transfer-20261110/after-final.sample",
+        "sha256": "96a97bf66b0496ef9d29e4ccf025da5e760cad2918e642f0c62c07f185c82761"
+      },
+      "physicalFootprint": "3.0G",
+      "hotspotSamples": {
+        "count statistics": 436,
+        "sparse hashing": 0,
+        "display fingerprint": 908,
+        "packet write": 333
+      }
+    }
+  }
+}

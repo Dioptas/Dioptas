@@ -1,0 +1,90 @@
+{
+  "performanceComparisonExcluded": true,
+  "reason": "Before and after windows used different display scale factors (2 and 1). Same-size GPU readbacks match the existing references exactly.",
+  "records": [
+    {
+      "variant": "before",
+      "rawReceipt": {
+        "path": "/Users/clemens/Codex/dioptas-display-transfer-20261110/gui-hidpi-before/receipt.json",
+        "sha256": "8931db991f0e60dc2a07ad23d3a8e05ed6ea245f8bccdf07b3dff3eea2819a98"
+      },
+      "devicePixelRatio": 2,
+      "rendered": [
+        {
+          "height": 1538,
+          "kind": "detector",
+          "scenario": "eiger-no-errors",
+          "sha256": "c041fb4cab729f69ea045b0c5dc7f9688eb637e828fce877ccdda57d6a6fb694",
+          "sourceFrame": 313,
+          "width": 1352
+        },
+        {
+          "height": 994,
+          "kind": "pattern",
+          "scenario": "eiger-no-errors",
+          "sha256": "3f5faf469a4dced191f615742fbc92278ae3af5ad07ce245ba2e6881721f8101",
+          "sourceFrame": 313,
+          "width": 1280
+        },
+        {
+          "height": 1538,
+          "kind": "detector",
+          "scenario": "eiger-poisson",
+          "sha256": "c041fb4cab729f69ea045b0c5dc7f9688eb637e828fce877ccdda57d6a6fb694",
+          "sourceFrame": 313,
+          "width": 1352
+        },
+        {
+          "height": 994,
+          "kind": "pattern",
+          "scenario": "eiger-poisson",
+          "sha256": "3f5faf469a4dced191f615742fbc92278ae3af5ad07ce245ba2e6881721f8101",
+          "sourceFrame": 313,
+          "width": 1280
+        }
+      ]
+    },
+    {
+      "variant": "after",
+      "rawReceipt": {
+        "path": "/Users/clemens/Codex/dioptas-display-transfer-20261110/gui-hidpi-after/receipt.json",
+        "sha256": "14d86fceefffc768f4f6e88d7a1d4c0cb6ce7ceaf57005c8686c86c821c27415"
+      },
+      "devicePixelRatio": 1,
+      "rendered": [
+        {
+          "height": 769,
+          "kind": "detector",
+          "scenario": "eiger-no-errors",
+          "sha256": "882ff1399b4d33d46ba99a9fa835ffe94dd73bd339f4adbef0d706c7e483af70",
+          "sourceFrame": 313,
+          "width": 676
+        },
+        {
+          "height": 497,
+          "kind": "pattern",
+          "scenario": "eiger-no-errors",
+          "sha256": "26eba41a9d3daaa59746ea8ecb7fb73163b22f6684a6a76d741d130be6321d85",
+          "sourceFrame": 313,
+          "width": 640
+        },
+        {
+          "height": 769,
+          "kind": "detector",
+          "scenario": "eiger-poisson",
+          "sha256": "882ff1399b4d33d46ba99a9fa835ffe94dd73bd339f4adbef0d706c7e483af70",
+          "sourceFrame": 313,
+          "width": 676
+        },
+        {
+          "height": 497,
+          "kind": "pattern",
+          "scenario": "eiger-poisson",
+          "sha256": "26eba41a9d3daaa59746ea8ecb7fb73163b22f6684a6a76d741d130be6321d85",
+          "sourceFrame": 313,
+          "width": 640
+        }
+      ]
+    }
+  ]
+}
