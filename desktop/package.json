@@ -72,7 +72,8 @@
     "test:batch-waterfall": "node scripts/batch_waterfall_smoke.mjs",
     "test:ci-native": "node scripts/check_native_desktop.mjs",
     "test:ci-reference": "node scripts/check_native_desktop.mjs --references",
-    "test:functional-coverage": "node scripts/functional_coverage.mjs"
+    "test:functional-coverage": "node scripts/functional_coverage.mjs",
+    "test:correction-previews": "node scripts/correction_previews_smoke.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",

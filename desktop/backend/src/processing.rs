@@ -92,6 +92,36 @@ impl Default for Processing {
     }
 }
 impl Processing {
+    /// Qt Plot shows get_data(): the divisor, including response/original for
+    /// transfer. Extract the actual native operation, never process an image of
+    /// ones (which would mix backgrounds, gains and other corrections).
+    #[cfg(feature = "dioptrin")]
+    pub(crate) fn preview_map(
+        &self,
+        kind: &str,
+        image: &Image,
+        geometry: &Geometry,
+        control: &crate::control::Control,
+    ) -> Result<Arc<Vec<f64>>, String> {
+        let mut selected = self.clone();
+        selected.background = None;
+        selected.flat_enabled = kind == "flat" && self.flat.is_some();
+        selected.transfer_enabled = kind == "transfer"
+            && self.transfer_original.is_some()
+            && self.transfer_response.is_some();
+        for (key, entry) in selected.corrections.as_object_mut().unwrap() {
+            entry["enabled"] = json!(key == kind && entry["enabled"] == true);
+        }
+        let snapshot = selected.series_snapshot(image, geometry, control)?;
+        match snapshot.operations.into_iter().next() {
+            Some(SeriesOperation::Divide(values)) => Ok(values),
+            Some(SeriesOperation::Multiply(values)) => {
+                Ok(Arc::new(values.iter().map(|gain| 1. / gain).collect()))
+            }
+            None => Err("This correction has no available map. Enable an analytical correction or load complete references first.".into()),
+        }
+    }
+
     /// Freeze deterministic maps once while preserving every divide/multiply
     /// in the established pixel arithmetic. Regrouping gains can change a mask
     /// comparison for a pixel exactly on its threshold.

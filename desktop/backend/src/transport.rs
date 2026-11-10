@@ -273,6 +273,7 @@ fn controlled(action: &str) -> bool {
             | "integration_image_background"
             | "integration_flat_field"
             | "integration_correction"
+            | "integration_correction_preview"
             | "integration_overlay"
             | "integration_phase"
             | "batch_load"

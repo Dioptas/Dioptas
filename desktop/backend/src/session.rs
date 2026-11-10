@@ -323,6 +323,7 @@ impl Session {
             "state"
                 | "pixel"
                 | "image_levels"
+                | "integration_correction_preview"
                 | "__host__"
                 | "integration_diagnostics"
                 | "integration_phase_guides"
@@ -465,6 +466,40 @@ impl Session {
         }
     }
     fn dispatch(&mut self, action: &str, args: &Value) -> Result<Reply, String> {
+        if action == "integration_correction_preview" {
+            check_keys(
+                args,
+                &[
+                    "kind",
+                    "mode",
+                    "percentile",
+                    "filter_gaps",
+                    "revision",
+                    "configuration",
+                ],
+            )?;
+            if args["revision"]
+                .as_u64()
+                .is_some_and(|r| r != self.revision)
+                || args["configuration"]
+                    .as_u64()
+                    .is_some_and(|c| c != self.project.active_id)
+            {
+                return Err(
+                    "The image or correction changed. Plot the current correction again.".into(),
+                );
+            }
+            #[cfg(feature = "dioptrin")]
+            return crate::correction_preview::preview(
+                &self.processing,
+                self.image.as_ref().ok_or("Open an image first.")?,
+                &self.settings.geometry,
+                &self.control,
+                args,
+            );
+            #[cfg(not(feature = "dioptrin"))]
+            return Err("Correction previews require the native Dioptrin engine.".into());
+        }
         if let Some(reply) = self.combination_command(action, args)? {
             return Ok(reply);
         }
@@ -1192,12 +1227,16 @@ impl Session {
                 if x >= image.shape[1] || y >= image.shape[0] {
                     return Err("Pixel is outside the detector.".into());
                 }
-                let data = if args["source"] == "raw_detector" {
-                    image.values.clone()
+                let pixel = if args["source"] == "geometry" {
+                    json!({"x":x,"y":y,"value":null})
                 } else {
-                    self.scientific_values()
+                    let data = if args["source"] == "raw_detector" {
+                        image.values.clone()
+                    } else {
+                        self.scientific_values()
+                    };
+                    json!({"x":x,"y":y,"value":data[y*image.shape[1]+x]})
                 };
-                let pixel = json!({"x":x,"y":y,"value":data[y*image.shape[1]+x]});
                 #[cfg(feature = "dioptrin")]
                 let pixel = {
                     let mut pixel = pixel;

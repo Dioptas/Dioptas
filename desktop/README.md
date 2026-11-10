@@ -146,6 +146,9 @@ for transfer/plate/slab controls, project ownership, full data-flow tests and
 statistical assumptions. Cylinder, sphere and optional capillary-wall absorption are
 also native; see the [round-sample qualification](NATIVE_ROUND_SAMPLE_CORRECTION_PARITY.md)
 for their footprint models and legacy-project recalculation notice.
+Correction [Plot / Back previews](NATIVE_CORRECTION_PREVIEW_PARITY.md) show the actual
+native divisor map with independent display controls and restore the preceding
+image or Cake view.
 
 Integration and Map use the same `RasterView` and `PatternView` renderers.
 `diffractionPlotSetup.ts` prepares their common detector mask/click properties

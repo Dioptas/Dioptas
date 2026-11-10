@@ -1,3 +1,5 @@
+import { useCorrectionPreview } from "./useCorrectionPreview";
+import { CorrectionPreviewDetector } from "./CorrectionPreviewDetector";
 import { IntegrationLeftPane } from "./IntegrationLeftPane";
 import { ImageSourceControl } from "./ImageSourceControl";
 import { processingProgressText } from "./processingProgress";
@@ -159,6 +161,7 @@ function clickContext(state: State | null) {
 }
 
 export default function App() {
+  const beforePreviewCommand = useRef<(command: string) => void>(() => {});
   const [plotViews] = useState(createPlotViews);
   const detectorExport = useRef<RasterExport>(null);
   const cakeExport = useRef<RasterExport>(null);
@@ -769,6 +772,7 @@ export default function App() {
           !frameSelection)
       )
         return;
+      beforePreviewCommand.current(command);
       const batchAction =
         command.startsWith("batch_") &&
         !["batch_levels", "batch_snapshot"].includes(command);
@@ -1054,6 +1058,13 @@ export default function App() {
       draftReplacement.request,
     ],
   );
+  const correctionPreview = useCorrectionPreview(
+    state,
+    mode === "integration" && !settingsOpen,
+    run,
+    bridge,
+  );
+  beforePreviewCommand.current = correctionPreview.beforeCommand;
   useProcessingWorkerPreference(state, !busy, run);
   const changeConfigurationControls = useCallback(
     (show: boolean) => {
@@ -1502,6 +1513,10 @@ export default function App() {
     onHover(null);
     clearPlot();
   }, [mode, settingsOpen, onHover, clearPlot]);
+  useLayoutEffect(() => {
+    onHover(null);
+    clearPlot();
+  }, [correctionPreview.map?.kind, onHover, clearPlot]);
   const positionContext = clickContext(state);
   useEffect(() => {
     if (retainedClickContext.current === positionContext) return;
@@ -2197,11 +2212,19 @@ export default function App() {
             concealed={settingsOpen}
             active={mode === "integration"}
             controlsCollapsed={integrationControlsCollapsed}
-            display={integrationDisplay === "cake" ? "cake" : "image"}
+            display={
+              correctionPreview.map
+                ? "image"
+                : integrationDisplay === "cake"
+                  ? "cake"
+                  : "image"
+            }
           >
             <main
               className={`${mode}-mode`}
-              data-integration-display={integrationDisplay}
+              data-integration-display={
+                correctionPreview.map ? "image" : integrationDisplay
+              }
             >
               {mode === "map" ? (
                 <MapView
@@ -2336,6 +2359,18 @@ export default function App() {
                       }
                     >
                       <section className="panel detector-panel">
+                        {correctionPreview.map && (
+                          <CorrectionPreviewDetector
+                            key={correctionPreview.map.kind}
+                            map={correctionPreview.map}
+                            wavelength={state?.geometry.wavelength}
+                            sampleGeometry={correctionPreview.sampleGeometry}
+                            ready={ready}
+                            onBack={correctionPreview.close}
+                            onAuto={correctionPreview.auto}
+                            reportPlot={reportPlot}
+                          />
+                        )}
                         {image ? (
                           <div className="detector-workspace">
                             <RasterView
@@ -2687,9 +2722,12 @@ export default function App() {
                               359
                           }
                           value={integrationDisplay}
-                          onChange={setIntegrationDisplay}
+                          onChange={(value) => {
+                            correctionPreview.close();
+                            setIntegrationDisplay(value);
+                          }}
                           state={state}
-                          ready={ready}
+                          ready={ready && !correctionPreview.map}
                           run={run}
                           showPhases={showImagePhases}
                           onShowPhases={() => setShowImagePhases((v) => !v)}
@@ -3142,6 +3180,10 @@ export default function App() {
                       )}
                       {mode === "integration" && (
                         <IntegrationView
+                          correctionPreviewKind={
+                            correctionPreview.map?.kind ?? null
+                          }
+                          onCorrectionPreview={correctionPreview.toggle}
                           controlsCollapsed={integrationControlsCollapsed}
                           onControlsCollapsedChange={
                             setIntegrationControlsCollapsed
@@ -3432,32 +3474,34 @@ export default function App() {
                 )}
               </span>
             </div>
-            {!settingsOpen && (mode === "integration" || mode === "map") && (
-              <div className="plot-status-line clicked-position">
-                <span
-                  className="plot-status-kind"
-                  title="Last selected position. Click a detector or pattern to choose a point; move the pointer to inspect values."
-                >
-                  Click
-                </span>
-                <span
-                  data-testid="click-readout"
-                  data-plot={clickedReading?.source}
-                  className="plot-status-reading"
-                  title={
-                    clickedReading
-                      ? `${sourceLabel(clickedReading.source)} · ${clickPositionReading?.fields?.map((f) => `${f.label} ${f.value}`).join(" · ") ?? clickedReading.text}`
-                      : "Click an image, cake or pattern to mark a linked position"
-                  }
-                >
-                  {clickPositionReading ? (
-                    <ReadingFields reading={clickPositionReading} />
-                  ) : (
-                    "—"
-                  )}
-                </span>
-              </div>
-            )}
+            {!correctionPreview.map &&
+              !settingsOpen &&
+              (mode === "integration" || mode === "map") && (
+                <div className="plot-status-line clicked-position">
+                  <span
+                    className="plot-status-kind"
+                    title="Last selected position. Click a detector or pattern to choose a point; move the pointer to inspect values."
+                  >
+                    Click
+                  </span>
+                  <span
+                    data-testid="click-readout"
+                    data-plot={clickedReading?.source}
+                    className="plot-status-reading"
+                    title={
+                      clickedReading
+                        ? `${sourceLabel(clickedReading.source)} · ${clickPositionReading?.fields?.map((f) => `${f.label} ${f.value}`).join(" · ") ?? clickedReading.text}`
+                        : "Click an image, cake or pattern to mark a linked position"
+                    }
+                  >
+                    {clickPositionReading ? (
+                      <ReadingFields reading={clickPositionReading} />
+                    ) : (
+                      "—"
+                    )}
+                  </span>
+                </div>
+              )}
           </div>
           <div className="workflow-status">
             {busy ? (

@@ -238,6 +238,7 @@ export interface Response {
   phaseOnly?: boolean;
   state?: State;
   image?: Raster;
+  correctionPreview?: import("./correctionPreview").CorrectionPreview;
   rawImage?: Raster;
   phaseGuides?: RingOverlay[];
   mask?: Raster;

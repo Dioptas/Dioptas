@@ -90,6 +90,7 @@ if (selected.has("--ui")) {
     "batch_background_smoke",
     "processing_workers_smoke",
     "native_corrections_smoke",
+    "correction_previews_smoke",
     "native_project_smoke",
     "native_geometry_mask_smoke",
     "native_detector_smoke",
