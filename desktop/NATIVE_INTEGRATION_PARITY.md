@@ -36,6 +36,8 @@ There is no scientific HTTP service. Dioptrin is now the default native engine.
   685 record annotations retain their source qualifications; optional numerical
   dataset packages are not bundled. Record documentation opens only after the
   explicit user action in the Tauri host.
+- Batch [rectangle-to-waterfall overlays](BATCH_WATERFALL_PARITY.md) use exact Rust
+  series slices and the shared overlay owner, with headless drag/cancel checks.
 - Batch raw-file/range/stride loading, warm integration, stored selection,
   physical units, reversible normalization, processed HDF5/CSV save/load and
   neighboring folders. Map shares the same integration owner and immutable series:

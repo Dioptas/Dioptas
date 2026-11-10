@@ -66,6 +66,7 @@ export function historyActionLabel(action?: string) {
   if (action === "next_image") return "image navigation";
   if (geometryEdits.has(action))
     return `calibration edit: ${action.replaceAll("_", " ")}`;
+  if (action === "batch_waterfall") return "Batch waterfall";
   if (action === "integration_overlay") return "overlay edit";
   if (action === "integration_settings") return "integration options";
   if (action === "integration_phase") return "phase edit";

@@ -1,3 +1,7 @@
+import {
+  useBatchWaterfallDrag,
+  type BatchWaterfallSelection,
+} from "./batchWaterfall";
 import { Equal } from "lucide-react";
 import { PlotToggle } from "./IntegrationPlotControls";
 import { usePlotTypography } from "./usePlotTypography";
@@ -44,8 +48,10 @@ export function BatchHeatmap({
   onSelect,
   onNormalize,
   reportPlot,
+  waterfall,
 }: {
   batch: BatchData;
+  waterfall?: BatchWaterfallSelection;
   position?: PatternPosition;
   phaseLines?: Pattern["phaseLines"];
   viewport?: import("./plotViewport").PlotViewport;
@@ -83,6 +89,13 @@ export function BatchHeatmap({
     zoomMode,
     undefined,
     viewport,
+  );
+  const waterfallDrag = useBatchWaterfallDrag(
+    waterfall,
+    ready,
+    bounds,
+    nav.screen,
+    nav.data,
   );
   const normalizationRegion = batchNormalizationRegion(batch);
   const values = useMemo(
@@ -137,7 +150,9 @@ export function BatchHeatmap({
   useEffect(() => {
     if (!viewport) nav.reset();
   }, [rows, cols]);
-  usePlotWheel(canvas, nav.onWheel);
+  usePlotWheel(canvas, (e) => {
+    if (!waterfallDrag.drawing()) nav.onWheel(e);
+  });
   const radial = (bin: number) => {
     const p = Math.max(0, Math.min(cols - 1, bin - 0.5)),
       i = Math.floor(p);
@@ -224,14 +239,24 @@ export function BatchHeatmap({
     ctx.lineTo(bounds.left + 7, y);
     ctx.lineTo(bounds.left, y + 5);
     ctx.fill();
-    if (nav.selection) {
+    const selected = waterfall?.active && waterfall.region;
+    const selection =
+      waterfallDrag.selection ??
+      nav.selection ??
+      (selected
+        ? {
+            start: { x: px(selected.bins[0]), y: py(selected.rows[0]) },
+            end: { x: px(selected.bins[1]), y: py(selected.rows[1]) },
+          }
+        : null);
+    if (selection) {
       ctx.lineWidth = 1.5;
-      const { start, end } = nav.selection;
+      const { start, end } = selection;
       const x = Math.min(start.x, end.x),
         y = Math.min(start.y, end.y),
         width = Math.abs(end.x - start.x),
         height = Math.abs(end.y - start.y);
-      if (zoomMode === "horizontal") {
+      if (zoomMode === "horizontal" && !waterfall?.active) {
         drawRangeSelection(ctx, x, x + width, y, height, RANGE_SELECTION_COLOR);
       } else {
         ctx.fillStyle = RANGE_SELECTION_COLOR + "20";
@@ -290,6 +315,9 @@ export function BatchHeatmap({
     nav.view.yMin,
     nav.view.yMax,
     nav.selection,
+    waterfallDrag.selection,
+    waterfall?.active,
+    waterfall?.region,
     batch.selected,
     batch.unit,
     zoomMode,
@@ -339,6 +367,8 @@ export function BatchHeatmap({
         data-unit={batch.unit}
         data-intensity-scale={log ? "log" : sqrt ? "sqrt" : "linear"}
         data-zoom-mode={zoomMode}
+        data-waterfall-active={waterfall?.active ?? false}
+        data-waterfall-dragging={!!waterfallDrag.selection}
         data-phase-line-count={phaseLines?.length ?? 0}
         data-linked-position={
           position
@@ -359,10 +389,10 @@ export function BatchHeatmap({
         onContextMenu={(e) => e.preventDefault()}
         onPointerDown={(e) => {
           e.currentTarget.focus();
-          nav.onPointerDown(e, true, true);
+          if (!waterfallDrag.down(e)) nav.onPointerDown(e, true, true);
         }}
         onPointerMove={(e) => {
-          nav.onPointerMove(e);
+          if (!waterfallDrag.move(e)) nav.onPointerMove(e);
           const p = hit(e);
           if (!p) {
             reportPlot("batch", null);
@@ -389,19 +419,34 @@ export function BatchHeatmap({
           reportPlot("batch", {
             fields,
             text: fields.map((f) => `${f.label} ${f.value}`).join(" · "),
-            hint: `Click to select a frame and radial position. Drag for ${zoomMode === "horizontal" ? "X-range" : "rectangle"} zoom; right drag to pan.`,
+            hint: waterfall?.active
+              ? "Drag a radial/frame rectangle to replace waterfall overlays; Escape cancels. Right drag to pan."
+              : `Click to select a frame and radial position. Drag for ${zoomMode === "horizontal" ? "X-range" : "rectangle"} zoom; right drag to pan.`,
           });
         }}
         onPointerLeave={() => reportPlot("batch", null)}
         onPointerUp={(e) => {
+          if (waterfallDrag.up(e)) return;
           const gesture = nav.onPointerUp(e),
             p = hit(e);
           if (gesture === "click" && p && ready)
             onSelect(p.index, { x: p.radial, unit: batch.unit });
         }}
-        onPointerCancel={nav.onPointerCancel}
+        onPointerCancel={(e) => {
+          waterfallDrag.cancel();
+          nav.onPointerCancel(e);
+        }}
+        onLostPointerCapture={() => {
+          if (waterfallDrag.drawing()) waterfallDrag.cancel();
+        }}
         onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            waterfallDrag.cancel();
+            waterfall?.cancel();
+            return;
+          }
           if (e.key.toLowerCase() === "f") {
+            waterfallDrag.cancel();
             e.preventDefault();
             nav.reset();
           }

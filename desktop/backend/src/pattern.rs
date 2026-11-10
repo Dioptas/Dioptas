@@ -189,11 +189,20 @@ pub(crate) struct Overlay {
     pub offset: f64,
     #[serde(with = "crate::history_transfer::arc")]
     pub data: Arc<Curve>,
+    #[serde(default)]
+    pub batch_source: Option<crate::batch_waterfall::Source>,
 }
 impl Overlay {
-    pub fn curve(&self) -> Curve {
-        Curve {
-            x: self.data.x.clone(),
+    fn coordinates(&self, unit: &str) -> Result<Arc<Vec<f64>>, String> {
+        if let Some(source) = &self.batch_source {
+            Ok(Arc::new(source.coordinates(&self.data.x, unit)?))
+        } else {
+            Ok(self.data.x.clone())
+        }
+    }
+    pub fn curve(&self, unit: &str) -> Result<Curve, String> {
+        Ok(Curve {
+            x: self.coordinates(unit)?,
             y: Arc::new(
                 self.data
                     .y
@@ -201,9 +210,17 @@ impl Overlay {
                     .map(|v| v * self.scale + self.offset)
                     .collect(),
             ),
-            sigma: None,
-            spread: None,
-        }
+            sigma: self
+                .data
+                .sigma
+                .as_ref()
+                .map(|s| Arc::new(s.iter().map(|v| v * self.scale.abs()).collect())),
+            spread: self
+                .data
+                .spread
+                .as_ref()
+                .map(|s| Arc::new(s.iter().map(|v| v * self.scale.abs()).collect())),
+        })
     }
 }
 #[derive(Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -374,7 +391,7 @@ impl Patterns {
     pub fn details(&self) -> Value {
         json!({"patternName":self.name,"patternPath":if self.imported{self.path.clone().unwrap_or_default()}else{String::new()},"originalPatternColor":self.color,"originalPatternVisible":self.visible,
         "patternFileIteration":self.file_mode,"patternBackground":{"enabled":self.background.enabled,"smoothing":self.background.smoothing,"iterations":self.background.iterations,"order":self.background.order,"range":self.background.range,"overlay":self.background_uid.is_some()||self.anonymous_background.is_some()},
-        "overlays":self.overlays.iter().map(|o|json!({"uid":o.uid,"name":o.name,"visible":o.visible,"color":o.color,"scale":o.scale,"offset":o.offset,"background":self.background_uid.as_ref()==Some(&o.uid)})).collect::<Vec<_>>(),"waterfallSeparation":self.separation,"overlayDirectory":self.directory})
+        "overlays":self.overlays.iter().map(|o|json!({"uid":o.uid,"name":o.name,"visible":o.visible,"color":o.color,"scale":o.scale,"offset":o.offset,"background":self.background_uid.as_ref()==Some(&o.uid),"batchSource":o.batch_source})).collect::<Vec<_>>(),"waterfallSeparation":self.separation,"overlayDirectory":self.directory})
     }
     pub fn configure_background(&mut self, args: &Value) -> Result<(), String> {
         let enabled = boolean(&args["enabled"])?;
@@ -459,7 +476,10 @@ impl Patterns {
         let mut curves = vec![];
         for o in &self.overlays {
             if o.visible {
-                let mut v = o.curve().json();
+                let curve = o.curve(&self.unit)?;
+                let mut v = curve.json();
+                v["sigma"] = json!(curve.sigma);
+                v["azimuthalStd"] = json!(curve.spread);
                 v["name"] = json!(o.name);
                 v["color"] = json!(o.color);
                 curves.push(v);
@@ -476,7 +496,8 @@ impl Patterns {
             .overlays
             .iter()
             .find(|o| Some(&o.uid) == self.background_uid.as_ref())
-            .map(Overlay::curve)
+            .map(|o| o.curve(&self.unit))
+            .transpose()?
             .or_else(|| {
                 self.anonymous_background
                     .as_ref()
@@ -705,10 +726,11 @@ impl Patterns {
                             let x = cur["x"].as_array().ok_or("Missing pattern.")?;
                             let y = cur["y"].as_array().unwrap();
                             let data = &self.overlays[i].data;
+                            let coordinates = self.overlays[i].coordinates(&self.unit)?;
                             let (mut num, mut den) = (0.0, 0.0);
                             for (a, b) in x.iter().zip(y) {
                                 if let (Some(a), Some(b)) = (a.as_f64(), b.as_f64())
-                                    && let Some(v) = interpolate(&data.x, &data.y, a)
+                                    && let Some(v) = interpolate(&coordinates, &data.y, a)
                                 {
                                     num += v * b;
                                     den += v * v;
@@ -758,6 +780,20 @@ impl Patterns {
         }
         Ok(())
     }
+    pub(crate) fn replace_batch_waterfall(
+        &mut self,
+        curves: Vec<(Curve, String, crate::batch_waterfall::Source)>,
+    ) -> Result<(), String> {
+        // Qt replaces the overlay list. Preserve the current pattern and its background settings.
+        self.overlays.clear();
+        self.background_uid = None;
+        self.extracted = None;
+        for (curve, name, source) in curves {
+            self.add(curve, name);
+            self.overlays.last_mut().unwrap().batch_source = Some(source);
+        }
+        self.edit_overlay(&json!({"operation":"waterfall"}), None)
+    }
     fn add(&mut self, data: Curve, name: String) {
         let palette = ["#f0b66c", "#73bba6", "#82a6d6", "#d38fa5", "#b6a1da"];
         let uid = format!("native-overlay-{}", self.next_uid);
@@ -771,6 +807,7 @@ impl Patterns {
             scale: 1.0,
             offset: 0.0,
             data: Arc::new(data),
+            batch_source: None,
         });
     }
 }

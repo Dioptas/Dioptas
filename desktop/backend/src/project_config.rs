@@ -27,6 +27,20 @@ fn curve(file: &hdf5::File, x: &Value, y: &Value) -> Result<Option<Curve>, Strin
         _ => Err("Project pattern arrays differ in shape or are missing.".into()),
     }
 }
+fn overlay_samples(
+    file: &hdf5::File,
+    key: &Value,
+    count: usize,
+) -> Result<Option<Arc<Vec<f64>>>, String> {
+    array(file, "payloads", key)?
+        .map(|(shape, values)| {
+            if shape != [count] {
+                return Err("Project overlay auxiliary arrays differ in shape.".into());
+            }
+            Ok(Arc::new(values))
+        })
+        .transpose()
+}
 pub(super) fn load_overlays(s: &mut Session, file: &hdf5::File, doc: &Value) -> Result<(), String> {
     let rows = doc["overlays"].as_array().cloned().unwrap_or_default();
     if rows.len() > 1000 {
@@ -36,6 +50,16 @@ pub(super) fn load_overlays(s: &mut Session, file: &hdf5::File, doc: &Value) -> 
     for (i, row) in rows.iter().enumerate() {
         let p = &row["params"];
         let data = curve(file, &row["x"], &row["y"])?.ok_or("Project overlay data is missing.")?;
+        let source: Option<crate::batch_waterfall::Source> = p
+            .get("desktop_batch_source")
+            .filter(|v| !v.is_null())
+            .map(|v| serde_json::from_value(v.clone()).map_err(|e| e.to_string()))
+            .transpose()?;
+        let n = data.x.len();
+        let canonical = overlay_samples(file, &row["desktop_source_x"], n)?;
+        if let Some(source) = &source {
+            source.coordinates(canonical.as_deref().unwrap_or(&data.x), &s.patterns.unit)?;
+        }
         let uid = p["uid"]
             .as_str()
             .map(str::to_string)
@@ -65,7 +89,13 @@ pub(super) fn load_overlays(s: &mut Session, file: &hdf5::File, doc: &Value) -> 
                 -1e12,
                 1e12,
             )?,
-            data: Arc::new(data),
+            data: Arc::new(Curve {
+                sigma: overlay_samples(file, &row["desktop_sigma"], n)?,
+                spread: overlay_samples(file, &row["desktop_spread"], n)?,
+                x: canonical.unwrap_or_else(|| data.x.clone()),
+                ..data
+            }),
+            batch_source: source,
         });
     }
     s.patterns.project_overlay_ids();
@@ -92,10 +122,20 @@ pub(super) fn save_overlays(
         }
         merge(
             &mut row["params"],
-            &json!({"uid":o.uid,"name":o.name,"color":o.color,"visible":o.visible,"scaling":o.scale,"offset":o.offset}),
+            &json!({"uid":o.uid,"name":o.name,"color":o.color,"visible":o.visible,"scaling":o.scale,"offset":o.offset,"desktop_batch_source":o.batch_source}),
         );
-        row["x"] = put(payloads, &[o.data.x.len()], &o.data.x)?;
+        let displayed = o.curve(&s.patterns.unit)?;
+        row["x"] = put(payloads, &[displayed.x.len()], &displayed.x)?;
+        if o.batch_source.is_some() {
+            row["desktop_source_x"] = put(payloads, &[o.data.x.len()], &o.data.x)?;
+        }
         row["y"] = put(payloads, &[o.data.y.len()], &o.data.y)?;
+        if let Some(v) = &o.data.sigma {
+            row["desktop_sigma"] = put(payloads, &[v.len()], v)?;
+        }
+        if let Some(v) = &o.data.spread {
+            row["desktop_spread"] = put(payloads, &[v.len()], v)?;
+        }
         rows.push(row);
     }
     document["overlays"] = json!(rows);

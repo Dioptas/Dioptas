@@ -159,6 +159,7 @@ export default function App() {
   const [plotViews] = useState(createPlotViews);
   const detectorExport = useRef<RasterExport>(null);
   const cakeExport = useRef<RasterExport>(null);
+  const [overlayReveal, setOverlayReveal] = useState(0);
   const [integrationDisplay, setIntegrationDisplay] = useState("image");
   const [sqrtPattern, setSqrtPattern] = useState(false);
   const [patternAntialias, setPatternAntialias] = useState(true);
@@ -501,6 +502,7 @@ export default function App() {
         result,
         currentState.current,
       );
+      if (result.batchWaterfallCreated) setOverlayReveal((n) => n + 1);
       if ("batch" in result) setBatch(result.batch ?? null);
       if (result.batchPhaseLines !== undefined)
         setBatch((b) => (b ? { ...b, phaseLines: result.batchPhaseLines } : b));
@@ -707,6 +709,7 @@ export default function App() {
         command.startsWith("redo"),
       );
       const overlayEditing =
+        command === "batch_waterfall" ||
         (command === "integration_overlay" && args.operation !== "load") ||
         (isScientificHistoryCommand(command) &&
           historyLabel === "integration_overlay");
@@ -3097,6 +3100,7 @@ export default function App() {
                       )}
                       {mode === "integration" && (
                         <IntegrationView
+                          overlayReveal={overlayReveal}
                           fileStep={imageFileStep}
                           setFileStep={setImageFileStep}
                           onOpenBatch={activateBatch}

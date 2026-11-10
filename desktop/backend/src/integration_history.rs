@@ -48,6 +48,7 @@ pub(super) fn is_edit(action: &str) -> bool {
     matches!(
         action,
         "integration_overlay"
+            | "batch_waterfall"
             | "integration_phase"
             | "integration_phase_list"
             | "integration_background"

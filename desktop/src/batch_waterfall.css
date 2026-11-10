@@ -1,0 +1,3 @@
+.batch-heatmap canvas[data-waterfall-active="true"] {
+  cursor: crosshair;
+}

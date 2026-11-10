@@ -156,6 +156,11 @@ use existing binary IPC. Browser tests use the same panel in a popup. Progress
 and cancellation use the existing independent processing path. No scientific
 HTTP server or Qt application is started, and Dioptrin remains optional.
 
+## Rectangle to waterfall overlays
+
+The native Batch overview now creates shared Integration waterfall overlays
+from an exact radial/frame rectangle. See [native behavior and evidence](BATCH_WATERFALL_PARITY.md).
+
 ## Persistence and remaining scope
 
 Save writes Qt-compatible processed HDF5 or radial/frame/intensity CSV through
@@ -169,8 +174,9 @@ Save project retains the matrix, axis, raw-file/frame maps, selection and
 normalization restore state in the optional `react_desktop_batch` HDF5 group.
 Qt ignores this extension. The project does not embed raw images.
 
-Qt's batch background extraction, waterfall, phase controls and image
-sum/average/save modes are not implemented here. Multi-frame support follows the
+The historical scope below predates the native feature ledgers. Native waterfall
+generation is documented above; background extraction, 3D and bulk export have
+separate owners. Multi-frame support follows the
 existing loaders (tested with HDF5); the PIL TIFF loader exposes only its first
 page. Explicit HDF5 dataset selection remains outside the desktop preview.
 

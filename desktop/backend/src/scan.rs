@@ -222,7 +222,8 @@ impl Scan {
                     .overlays
                     .iter()
                     .find(|o| o.name == overlay)
-                    .map(|o| o.curve())
+                    .map(|o| o.curve(&self.series.unit))
+                    .transpose()?
                     .ok_or_else(|| format!("Unknown overlay {overlay}."))?;
                 Ok(map_math::reduce(
                     &curve.x,

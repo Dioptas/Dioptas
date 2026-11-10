@@ -13,10 +13,12 @@ import { IntegrationOverlayControls } from "./IntegrationOverlayControls";
 
 // Qt keeps the active Integration tab while visiting another mode.
 let retainedTab = "Image";
+let retainedOverlayReveal = 0;
 
 /** Qt control groups; all science is dispatched to IntegrationWorkflow on the existing worker. */
 export function IntegrationView({
   state,
+  overlayReveal = 0,
   ready,
   run,
   onOpenBatch,
@@ -38,6 +40,7 @@ export function IntegrationView({
   setFileStep,
 }: {
   state: State | null;
+  overlayReveal?: number;
   ready: boolean;
   onOpenBatch: () => void;
   batchOpen: boolean;
@@ -60,6 +63,12 @@ export function IntegrationView({
 }) {
   const source = state?.integration;
   const [tab, setTab] = useState(retainedTab);
+  useEffect(() => {
+    if (overlayReveal !== retainedOverlayReveal) {
+      retainedOverlayReveal = overlayReveal;
+      setTab("Overlay");
+    }
+  }, [overlayReveal]);
   useEffect(() => {
     retainedTab = tab;
   }, [tab]);

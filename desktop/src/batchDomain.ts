@@ -1,6 +1,7 @@
 import type { Raster, Unit } from "./types";
 export interface BatchData {
   id: string;
+  waterfallKey?: string;
   raster: Raster;
   pattern: import("./types").Pattern;
   x: number[];
