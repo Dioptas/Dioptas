@@ -593,6 +593,9 @@ The floating window has pattern-style unit/scale buttons at the far right; the
 dock follows the main pattern’s controls. The dock shows frame position in the header instead
 of a bottom browsing slider; click rows or use the overview’s keyboard arrows.
 Selecting a frame keeps controls active without a global loading flash.
+Detaching the detector lets docked Batch fill the freed image column. Detaching
+Batch as well leaves just the full-width task tabs and pattern. Docking the image
+restores Batch's saved height and collapsed state.
 Both Integration splitters and Batch’s height, collapsed, open and docked states
 are remembered across restarts. Smaller windows clamp the visible layout without
 erasing your preferred sizes. Closing Batch keeps it closed on restart; quitting

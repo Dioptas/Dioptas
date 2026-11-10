@@ -221,8 +221,8 @@ The Integration Undock action now sits at the lower right of the image toolbar,
 with the other controls aligned left. All image controls and the optional
 azimuthal profile move into the companion; image/cake switching retains independent display state. Removing
 the main image pane gives its space to the pattern, and docking restores the
-saved split. Existing docked Batch stays usable in the main workspace pending a
-separate layout decision. Figure-editor, phase-controls and Spottiness changes
+saved split. Docked Batch now fills the freed image column; if both views are
+detached, the task tabs and pattern use the full main-window width. Figure-editor, phase-controls and Spottiness changes
 already in this checkout are preserved.
 
 The follow-up also fixes a compact profile rendering loop caused by tick density
@@ -237,3 +237,17 @@ pattern width and restored split, image/cake contrast separation, profile export
 and an unchanged live Batch heatmap across image detaching/docking. See
 [detector-window evidence](DETECTOR_WINDOW_PARITY.md). No visible native window
 was opened for this UI follow-up.
+
+## Batch fills the detached image's space
+
+The docked Batch now fills the freed image column at wide and compact sizes,
+instead of retaining its fixed inline height. Its image/Batch divider and
+Collapse action are temporarily removed while filling. Re-docking the image
+restores the user's saved Batch height and collapse preference. Detaching Batch
+as well leaves only full-width task tabs and pattern; re-docking Batch restores
+the expanded series without bringing the detector back.
+
+Verified with headless Chromium/WebKit Integration responsive and panel workflows,
+113 frontend tests and the production build. Bounds assertions cover the full
+Batch pane and heatmap area, both floating views, re-docking, renderer retention,
+and restoration of resized/collapsed preferences. See [Batch parity](BATCH_PARITY.md).

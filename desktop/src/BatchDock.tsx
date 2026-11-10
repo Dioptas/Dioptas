@@ -1,4 +1,5 @@
 import { useIntegrationLayout } from "./IntegrationWorkspace";
+import { useDetectorDetached } from "./DetectorWindow";
 import { LayoutDivider } from "./LayoutDivider";
 import {
   layoutKeys,
@@ -15,6 +16,8 @@ export function BatchDock(
   >,
 ) {
   const { narrow } = useIntegrationLayout();
+  const imageDetached = useDetectorDetached();
+  const fill = narrow || imageDetached;
   const container = useRef<HTMLDivElement>(null),
     start = useRef({ y: 0, height: 0 });
   const [collapsed, setCollapsed] = useState(() =>
@@ -40,7 +43,7 @@ export function BatchDock(
     const tools = parent.querySelector(".integration-image-tools");
     if (tools) observer.observe(tools);
     return () => observer.disconnect();
-  }, []);
+  }, [imageDetached]);
   const update = (next: number) => {
     const max = maximum();
     const value = Math.max(220, Math.min(max, next));
@@ -50,10 +53,10 @@ export function BatchDock(
   return (
     <div
       ref={container}
-      className={`batch-dock ${narrow ? "batch-dock-fill" : ""} ${!narrow && collapsed ? "batch-dock-collapsed" : ""}`}
-      style={narrow ? undefined : { height: collapsed ? 36 : height }}
+      className={`batch-dock ${fill ? "batch-dock-fill" : ""} ${!fill && collapsed ? "batch-dock-collapsed" : ""}`}
+      style={fill ? undefined : { height: collapsed ? 36 : height }}
     >
-      {!narrow && !collapsed && (
+      {!fill && !collapsed && (
         <LayoutDivider
           className="integration-divider integration-divider-horizontal batch-dock-divider"
           label="Image and batch divider"
@@ -80,9 +83,9 @@ export function BatchDock(
       <BatchView
         {...props}
         docked
-        collapsed={!narrow && collapsed}
+        collapsed={!fill && collapsed}
         onCollapse={
-          narrow
+          fill
             ? undefined
             : () => {
                 setCollapsed(!collapsed);
