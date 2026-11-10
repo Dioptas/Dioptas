@@ -1,5 +1,6 @@
+import { correctionPreviewAvailable } from "./correctionPreview";
 import { useEffect, useRef, useState } from "react";
-import { Input, Select } from "./ui";
+import { Button, Input, Select } from "./ui";
 import type { State } from "./types";
 import type { CorrectionMaterial, IntegrationRun } from "./integration";
 import {
@@ -29,6 +30,8 @@ const groups = [
 
 export function IntegrationCorrectionControls({
   state,
+  previewKind,
+  onPreview,
   run,
   tab,
   onTabChange,
@@ -36,6 +39,8 @@ export function IntegrationCorrectionControls({
   tab: string;
   onTabChange: (tab: string) => void;
   state: State;
+  previewKind: string | null;
+  onPreview: (kind: string) => void;
   run: IntegrationRun;
 }) {
   const source = state.integration;
@@ -189,6 +194,24 @@ export function IntegrationCorrectionControls({
         ))}
       </nav>
       <div className="processing-page">
+        <div className="correction-preview-action">
+          <Button
+            aria-label={
+              previewKind === tab
+                ? "Back from correction preview"
+                : "Plot correction"
+            }
+            aria-pressed={previewKind === tab}
+            disabled={
+              !state.hasImage ||
+              !correctionPreviewAvailable(source, tab) ||
+              switching !== null
+            }
+            onClick={() => onPreview(tab)}
+          >
+            {previewKind === tab ? "Back" : "Plot"}
+          </Button>
+        </div>
         {tab === "flat" ? (
           <div className="processing-form">
             <ProcessingFile

@@ -29,7 +29,7 @@ export function scalePhaseReflections(
 
 /** Qt PhaseModel scaling, evaluated in the plot's displayed intensity scale. */
 export function scalePhaseLines(
-  pattern: Pattern,
+  pattern: Pick<Pattern, "x" | "y">,
   lines: NonNullable<Pattern["phaseLines"]>,
   view: PlotRange,
   transform: (intensity: number) => number,

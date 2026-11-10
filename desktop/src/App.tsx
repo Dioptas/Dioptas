@@ -1,3 +1,14 @@
+import { useCakeRadialAxis } from "./useCakeRadialAxis";
+import { cakeSourcePixel } from "./cakeRadialAxis";
+
+import { CakeProfilePanel } from "./CakeProfilePanel";
+import { useCorrectionPreview } from "./useCorrectionPreview";
+import { CorrectionPreviewDetector } from "./CorrectionPreviewDetector";
+import {
+  DetectorSurface,
+  DetectorWindowProvider,
+  useDetectorWindow,
+} from "./DetectorWindow";
 import { IntegrationLeftPane } from "./IntegrationLeftPane";
 import { ImageSourceControl } from "./ImageSourceControl";
 import { processingProgressText } from "./processingProgress";
@@ -112,7 +123,7 @@ import { RasterView, type RasterExport } from "./RasterView";
 import { PatternFigureDialog } from "./PatternFigureDialog";
 import type { PatternFigureSource } from "./patternFigure";
 import type { PlotFigureExport } from "./plotFigureExport";
-import { PatternView } from "./PatternView";
+import { SpottinessPattern } from "./SpottinessPattern";
 import { ORIGINAL_PATTERN_UID } from "./integration";
 import { useLiveBackground, DEFAULT_BACKGROUND } from "./useLiveBackground";
 import { BACKGROUND_RANGE_COLOR } from "./drawRangeSelection";
@@ -162,6 +173,7 @@ function clickContext(state: State | null) {
 }
 
 export default function App() {
+  const beforePreviewCommand = useRef<(command: string) => void>(() => {});
   const [plotViews] = useState(createPlotViews);
   const detectorExport = useRef<RasterExport>(null);
   const cakeExport = useRef<RasterExport>(null);
@@ -171,6 +183,8 @@ export default function App() {
   } | null>(null);
   const [overlayReveal, setOverlayReveal] = useState(0);
   const [integrationDisplay, setIntegrationDisplay] = useState("image");
+  const [showCakeProfile, setShowCakeProfile] = useState(false);
+  const [cakeProfileBins, setCakeProfileBins] = useState(1);
   const [integrationControlsCollapsed, setIntegrationControlsCollapsed] =
     useState(false);
   const [sqrtPattern, setSqrtPattern] = useState(false);
@@ -380,6 +394,7 @@ export default function App() {
     requestedDisplayProducts({
       mode,
       display: integrationDisplay,
+      profile: showCakeProfile,
       calibrationStep,
       concealed: settingsOpen,
       combinedCake: !!state?.combination?.cakes,
@@ -423,6 +438,12 @@ export default function App() {
   const displayedCake = useShiftedCake(
     cake,
     mode === "integration" ? cakeShift : 0,
+  );
+
+  const cakeRadialAxis = useCakeRadialAxis(
+    displayedCake ?? cake,
+    state?.unit,
+    state?.geometry.wavelength,
   );
   const [busy, setBusy] = useState("Connecting to Dioptas…"),
     [error, setError] = useState<string | null>(null);
@@ -769,6 +790,7 @@ export default function App() {
           !liveCorrection &&
           !liveBackground &&
           !livePhaseConditions &&
+          command !== "cake_profile" &&
           command !== "integration_phase_state" &&
           command !== "integration_phase_guides" &&
           command !== "image_levels" &&
@@ -776,6 +798,7 @@ export default function App() {
           !frameSelection)
       )
         return;
+      beforePreviewCommand.current(command);
       const batchAction =
         command.startsWith("batch_") &&
         !["batch_levels", "batch_snapshot"].includes(command);
@@ -832,6 +855,7 @@ export default function App() {
         command === "integration_phase_guides" ||
         command === "integration_autoprocess_poll" ||
         frameSelection ||
+        command === "cake_profile" ||
         command === "validation_position" ||
         command === "image_levels" ||
         command === "image_batch_mode";
@@ -942,7 +966,13 @@ export default function App() {
           action: command,
           bufferId: result.image?.bufferId,
         });
-        apply(result, true, retainMapClick);
+        // Qt's unit buttons relabel the existing cake. Retain the same pixel
+        // viewport while its axis changes (the pattern owns its unit adapter).
+        const unitOnly =
+          ["settings", "integration_settings"].includes(command) &&
+          Object.keys(args).length === 1 &&
+          "unit" in args;
+        apply(result, !unitOnly, retainMapClick);
         navigationTrace("command-applied", {
           action: command,
           bufferId: result.image?.bufferId,
@@ -1061,6 +1091,13 @@ export default function App() {
       draftReplacement.request,
     ],
   );
+  const correctionPreview = useCorrectionPreview(
+    state,
+    mode === "integration" && !settingsOpen,
+    run,
+    bridge,
+  );
+  beforePreviewCommand.current = correctionPreview.beforeCommand;
   useProcessingWorkerPreference(state, !busy, run);
   const changeConfigurationControls = useCallback(
     (show: boolean) => {
@@ -1509,6 +1546,10 @@ export default function App() {
     onHover(null);
     clearPlot();
   }, [mode, settingsOpen, onHover, clearPlot]);
+  useLayoutEffect(() => {
+    onHover(null);
+    clearPlot();
+  }, [correctionPreview.map?.kind, onHover, clearPlot]);
   const positionContext = clickContext(state);
   useEffect(() => {
     if (retainedClickContext.current === positionContext) return;
@@ -1529,14 +1570,14 @@ export default function App() {
         ? low + ((((linked.azimuth - low) % 360) + 360) % 360)
         : linked.azimuth;
     if (azi < low || azi > high) return null;
+    const source = radialValues(
+      linked.twoTheta,
+      "2th_deg",
+      state?.geometry.wavelength,
+    )[view.unit];
+    if (source == null || !Number.isFinite(source)) return null;
     return {
-      x:
-        ((radialValues(linked.twoTheta, "2th_deg", state?.geometry.wavelength)[
-          view.unit
-        ]! -
-          view.radialRange[0]) /
-          (view.radialRange[1] - view.radialRange[0])) *
-        view.fullWidth,
+      x: cakeSourcePixel(view, source),
       y: ((azi - low) / (high - low)) * view.fullHeight,
     };
   }, [linked, displayedCake, cake, state?.geometry.wavelength]);
@@ -1663,6 +1704,30 @@ export default function App() {
     },
     onError: setError,
   });
+  const detectorWindow = useDetectorWindow(
+    {
+      largeText,
+      reading: plotReading?.source === "detector" ? plotReading : null,
+      clicked: correctionPreview.map ? null : clickPositionReading,
+      message: progress?.running
+        ? processingProgressText(progress)
+        : busy || "",
+      error,
+    },
+    JSON.stringify([
+      mode,
+      state?.configurationContext ?? state?.configurationIndex,
+      state?.revision,
+      state?.selectedImageSource,
+      state?.shape,
+      state?.calibration.transformations,
+    ]),
+    setError,
+    JSON.stringify([
+      mode,
+      state?.configurationContext ?? state?.configurationIndex,
+    ]),
+  );
   const inspectDetector = (point: {
     x: number;
     y: number;
@@ -2096,7 +2161,7 @@ export default function App() {
   }, [batchOpenRequest]);
   const configurationControlsVisible =
     showConfigurationControls && !!state?.configurationLabels && !settingsOpen;
-  return (
+  const workspace = (
     <div
       className="app"
       data-text-size={largeText ? "large" : "normal"}
@@ -2204,11 +2269,19 @@ export default function App() {
             concealed={settingsOpen}
             active={mode === "integration"}
             controlsCollapsed={integrationControlsCollapsed}
-            display={integrationDisplay === "cake" ? "cake" : "image"}
+            display={
+              correctionPreview.map
+                ? "image"
+                : integrationDisplay === "cake"
+                  ? "cake"
+                  : "image"
+            }
           >
             <main
               className={`${mode}-mode`}
-              data-integration-display={integrationDisplay}
+              data-integration-display={
+                correctionPreview.map ? "image" : integrationDisplay
+              }
             >
               {mode === "map" ? (
                 <MapView
@@ -2343,8 +2416,20 @@ export default function App() {
                       }
                     >
                       <section className="panel detector-panel">
+                        {correctionPreview.map && (
+                          <CorrectionPreviewDetector
+                            key={correctionPreview.map.kind}
+                            map={correctionPreview.map}
+                            wavelength={state?.geometry.wavelength}
+                            sampleGeometry={correctionPreview.sampleGeometry}
+                            ready={ready}
+                            onBack={correctionPreview.close}
+                            onAuto={correctionPreview.auto}
+                            reportPlot={reportPlot}
+                          />
+                        )}
                         {image ? (
-                          <div className="detector-workspace">
+                          <DetectorSurface>
                             <RasterView
                               exportRef={detectorExport}
                               raster={
@@ -2477,7 +2562,7 @@ export default function App() {
                               palette={palette}
                               onPalette={setPalette}
                             />
-                          </div>
+                          </DetectorSurface>
                         ) : (
                           <div className="empty-view">
                             <div className="empty-icon">
@@ -2535,6 +2620,7 @@ export default function App() {
                               <RasterView
                                 exportRef={cakeExport}
                                 raster={displayedCake ?? cake}
+                                radialAxis={cakeRadialAxis}
                                 onResolution={setCakePixelResolution}
                                 busy={!!busy}
                                 onHover={(point) =>
@@ -2663,20 +2749,65 @@ export default function App() {
                           )}
                         </section>
                       )}
+                      {mode === "integration" && showCakeProfile && (
+                        <CakeProfilePanel
+                          state={state}
+                          cake={cake}
+                          linked={linked}
+                          shift={cakeShift}
+                          bins={cakeProfileBins}
+                          onBins={setCakeProfileBins}
+                          ready={ready && !settingsOpen}
+                          run={run}
+                          reportPlot={reportPlot}
+                          onInspect={(azimuth) => {
+                            if (!linked) return;
+                            setLocalImageClick(null);
+                            setClickedReading({
+                              source: "profile",
+                              text: `Azimuth ${azimuth}°`,
+                            });
+                            void run("validation_position", {
+                              source: "cake",
+                              unit: "2th_deg",
+                              x: linked.twoTheta,
+                              azimuth,
+                            });
+                          }}
+                        />
+                      )}
                       {mode === "integration" && (
                         <IntegrationImageControls
-                          onSaveImage={() => {
+                          profile={showCakeProfile}
+                          onProfile={() =>
+                            setShowCakeProfile((value) => !value)
+                          }
+                          onSaveImage={async () => {
                             const source =
                               integrationDisplay === "cake" ? "cake" : "image";
                             const exporter = (
                               source === "cake" ? cakeExport : detectorExport
                             ).current;
-                            if (!exporter) return;
+                            if (
+                              !exporter &&
+                              !(source === "image" && detectorWindow.detached)
+                            )
+                              return;
+                            let png: string;
+                            try {
+                              png =
+                                source === "image" && detectorWindow.detached
+                                  ? await detectorWindow.png()
+                                  : exporter!.png();
+                            } catch (error) {
+                              setError(String(error));
+                              return;
+                            }
                             void run(
                               "integration_save_image",
                               {
                                 source,
-                                png_data: exporter.png(),
+                                png_data: png,
                                 suggested_name: `${state?.imageName?.replace(/\.[^.]+$/, "") ?? "image"}${source === "cake" ? "_cake" : ""}.png`,
                               },
                               "Saving image…",
@@ -2694,9 +2825,12 @@ export default function App() {
                               359
                           }
                           value={integrationDisplay}
-                          onChange={setIntegrationDisplay}
+                          onChange={(value) => {
+                            correctionPreview.close();
+                            setIntegrationDisplay(value);
+                          }}
                           state={state}
-                          ready={ready}
+                          ready={ready && !correctionPreview.map}
                           run={run}
                           showPhases={showImagePhases}
                           onShowPhases={() => setShowImagePhases((v) => !v)}
@@ -2772,7 +2906,12 @@ export default function App() {
                           </>
                         )}
                         {pattern ? (
-                          <PatternView
+                          <SpottinessPattern
+                            enabled={
+                              mode === "integration" &&
+                              !!state?.integration.azimuthalStd
+                            }
+                            relative={!!state?.integration.spottinessRelative}
                             {...patternPlot!.props}
                             exportRef={patternExport}
                             emphasizePattern={
@@ -3163,6 +3302,10 @@ export default function App() {
                       )}
                       {mode === "integration" && (
                         <IntegrationView
+                          correctionPreviewKind={
+                            correctionPreview.map?.kind ?? null
+                          }
+                          onCorrectionPreview={correctionPreview.toggle}
                           controlsCollapsed={integrationControlsCollapsed}
                           onControlsCollapsedChange={
                             setIntegrationControlsCollapsed
@@ -3461,32 +3604,34 @@ export default function App() {
                 )}
               </span>
             </div>
-            {!settingsOpen && (mode === "integration" || mode === "map") && (
-              <div className="plot-status-line clicked-position">
-                <span
-                  className="plot-status-kind"
-                  title="Last selected position. Click a detector or pattern to choose a point; move the pointer to inspect values."
-                >
-                  Click
-                </span>
-                <span
-                  data-testid="click-readout"
-                  data-plot={clickedReading?.source}
-                  className="plot-status-reading"
-                  title={
-                    clickedReading
-                      ? `${sourceLabel(clickedReading.source)} · ${clickPositionReading?.fields?.map((f) => `${f.label} ${f.value}`).join(" · ") ?? clickedReading.text}`
-                      : "Click an image, cake or pattern to mark a linked position"
-                  }
-                >
-                  {clickPositionReading ? (
-                    <ReadingFields reading={clickPositionReading} />
-                  ) : (
-                    "—"
-                  )}
-                </span>
-              </div>
-            )}
+            {!correctionPreview.map &&
+              !settingsOpen &&
+              (mode === "integration" || mode === "map") && (
+                <div className="plot-status-line clicked-position">
+                  <span
+                    className="plot-status-kind"
+                    title="Last selected position. Click a detector or pattern to choose a point; move the pointer to inspect values."
+                  >
+                    Click
+                  </span>
+                  <span
+                    data-testid="click-readout"
+                    data-plot={clickedReading?.source}
+                    className="plot-status-reading"
+                    title={
+                      clickedReading
+                        ? `${sourceLabel(clickedReading.source)} · ${clickPositionReading?.fields?.map((f) => `${f.label} ${f.value}`).join(" · ") ?? clickedReading.text}`
+                        : "Click an image, cake or pattern to mark a linked position"
+                    }
+                  >
+                    {clickPositionReading ? (
+                      <ReadingFields reading={clickPositionReading} />
+                    ) : (
+                      "—"
+                    )}
+                  </span>
+                </div>
+              )}
           </div>
           <div className="workflow-status">
             {busy ? (
@@ -3535,5 +3680,10 @@ export default function App() {
         </footer>
       </div>
     </div>
+  );
+  return (
+    <DetectorWindowProvider value={detectorWindow}>
+      {workspace}
+    </DetectorWindowProvider>
   );
 }

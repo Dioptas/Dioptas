@@ -1,3 +1,4 @@
+import { DetectorSurface } from "./DetectorWindow";
 import { Button } from "./ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -179,7 +180,7 @@ export function MaskView({
       aria-busy={pending > 0}
     >
       {image ? (
-        <div className="detector-workspace">
+        <DetectorSurface interactionKey={`${tools.shape}:${tools.erase}`}>
           <RasterView
             raster={image}
             viewport={
@@ -247,7 +248,7 @@ export function MaskView({
               if (result.ok && result.levels) setLimits(result.levels);
             }}
           />
-        </div>
+        </DetectorSurface>
       ) : (
         <div className="empty-view">
           <h3>Open a detector image</h3>

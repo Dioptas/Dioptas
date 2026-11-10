@@ -8,6 +8,8 @@ mod batch_pattern_background;
 mod batch_waterfall;
 mod contours;
 pub mod control;
+#[cfg(feature = "dioptrin")]
+mod correction_preview;
 mod custom_actions;
 mod detector_mask;
 pub mod display;
@@ -40,6 +42,7 @@ mod scan;
 mod sector;
 mod series;
 pub mod session;
+mod spottiness;
 mod transform;
 pub mod transport;
 mod waterfall_spacing;

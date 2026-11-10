@@ -373,6 +373,10 @@ impl Session {
             .as_bool()
             .unwrap_or(false);
         candidate.combination.cakes = desktop["combination"]["cakes"].as_bool().unwrap_or(false);
+        candidate.combination.cake_source_unit = desktop["combination"]["cake_source_unit"]
+            .as_str()
+            .filter(|unit| ["2th_deg", "q_A^-1"].contains(unit))
+            .map(str::to_owned);
         candidate.revision = self.revision;
         self.control.check()?;
         if source_identity != crate::image::FileIdentity::read(&path)? {

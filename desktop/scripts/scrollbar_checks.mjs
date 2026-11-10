@@ -10,7 +10,9 @@ export async function verifyPersistentScrollbars(page, screenshotPath) {
       "position:fixed;inset:20px;z-index:9999;background:#202226;padding:20px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-content:start;gap:16px;overflow:auto";
     const cases = [
       ["Image tab", "integration-fieldset integration-tab-image"],
-      ["Phase parameters", "phase-step-controls"],
+      // Phase step controls are a plain menu grid; the editor's parameter
+      // pages own scrolling through this shared container class.
+      ["Phase parameters", "pe-parameter-scroll"],
       ["Overlay parameters", "qt-overlay-parameter-scroll"],
       ["Settings", "settings-general"],
       ["Scientific table", "data-table-scroll"],
@@ -87,6 +89,8 @@ export async function verifyPersistentScrollbars(page, screenshotPath) {
               element.clientHeight -
               parseFloat(style.borderTopWidth) -
               parseFloat(style.borderBottomWidth),
+            overflowX: style.overflowX,
+            overflowY: style.overflowY,
             scrollbarWidth: style.scrollbarWidth,
             scrollbarColor: style.scrollbarColor,
           };
@@ -96,6 +100,10 @@ export async function verifyPersistentScrollbars(page, screenshotPath) {
       assert.equal(item.scrollbarWidth, "auto", item.name);
       assert.equal(item.scrollbarColor, "auto", item.name);
       if (["vertical", "both"].includes(item.axis)) {
+        assert.ok(
+          ["auto", "scroll"].includes(item.overflowY),
+          `${item.name}: fixture uses a real vertical scroll container`,
+        );
         assert.equal(item.vertical, true, item.name);
         assert.equal(
           item.width,
@@ -104,6 +112,10 @@ export async function verifyPersistentScrollbars(page, screenshotPath) {
         );
       }
       if (["horizontal", "both"].includes(item.axis)) {
+        assert.ok(
+          ["auto", "scroll"].includes(item.overflowX),
+          `${item.name}: fixture uses a real horizontal scroll container`,
+        );
         assert.equal(item.horizontal, true, item.name);
         assert.equal(
           item.height,

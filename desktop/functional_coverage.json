@@ -263,9 +263,14 @@
     },
     {
       "legacy": "test_functional_integration_mock.py::test_undocking_and_docking_img_frame",
-      "status": "unsupported",
-      "evidence": [],
-      "note": "Standalone detector-image docking is a Qt-only view action, absent from the React layout. No fabricated native success equivalent."
+      "status": "headless-ui",
+      "evidence": [
+        "desktop/scripts/detector_window_smoke.mjs",
+        "desktop/scripts/detector_source_smoke.mjs",
+        "desktop/scripts/detector_snapshot.test.mjs",
+        "desktop/scripts/detector_window_native.mjs"
+      ],
+      "note": "The existing detector renderer/histogram moves to a native companion sharing the main command owner; headless Rust workflows cover gestures, linked inspection, ROI, masks/Undo, picking, configurations, sources and orientation. A separate isolated macOS native check qualifies actual reopen/reuse, close/redock, binary permissions and remembered placement; Windows/Linux window behavior remains unqualified."
     },
     {
       "legacy": "test_functional_integration_mock.py::test_loading_multiple_images_and_batch_integrate_them",

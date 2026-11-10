@@ -1,4 +1,4 @@
-import type { Pattern, Unit } from "./types";
+import type { Pattern, PlotUnit } from "./types";
 import type { PlotRange } from "./usePlotNavigation";
 import { unitLabel } from "./types";
 import { visibleSamples } from "./patternSamples";
@@ -16,8 +16,8 @@ export type FigureCurve = {
 export type PatternFigureSource = {
   curves: FigureCurve[];
   phases: NonNullable<Pattern["phaseLines"]>;
-  pattern: Pattern;
-  unit: Unit;
+  pattern: Pick<Pattern, "x" | "y">;
+  unit: PlotUnit;
   view: PlotRange;
   scale: "linear" | "log" | "sqrt";
 };

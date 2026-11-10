@@ -96,3 +96,20 @@ Receipts and inspected figures/screenshots are in
 `artifacts/pattern-figure-export/` and `artifacts/pattern-figure-editor/`.
 No visible/native windows were opened. Actual OS save-panel interaction and
 Windows/Linux behavior are not newly qualified by these headless checks.
+
+## Reconciliation with the current desktop
+
+The isolated feature branch incorporates primary commit `feee6f2c`, including
+Spottiness, cake Q/profile, correction previews and the detached detector window.
+The image-button/editor changes remain confined to the pattern export path;
+`SpottinessPattern` forwards the export hook only to the measured pattern.
+Generic plot-unit support and the diagnostic's fixed axis gutter are retained.
+The primary worktree itself has not been edited by this chat.
+
+After reconciliation, the frontend build and 112 unit/architecture checks pass,
+as do the complete Rust processor suite (external-image opt-in checks remain
+ignored), 31 host tests, all three figure-export scripts, Spottiness, cake-profile
+and correction-preview headless checks in both browsers, and the shared Chromium
+rendering regression. The export check explicitly asserts that the image icon is
+immediately right of numerical Save and opens the editor without a chooser.
+The three Rust figure-publication tests cover the new resolution and suffix rules.

@@ -7,6 +7,7 @@ mod processor;
 mod processor_reload;
 mod phase_editor;
 mod map_window;
+mod detector_window;
 mod smoke_storage;
 mod smoke_dialog;
 
@@ -128,6 +129,7 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
         ),
         "open_project" => ("Dioptas project", &["dio"], "", false),
         "save_project" => ("Dioptas project", &["dio"], "experiment.dio", true),
+        "save_cake_profile" => ("Azimuthal profile (degrees, intensity)", &["xy", "dat", "txt", "csv"], "azimuthal-profile.xy", true),
         "export_pattern" => ("XY pattern", &["xy"], "pattern.xy", true),
         "integration_save_image" => (
             "Image or data",
@@ -157,6 +159,7 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
             "pattern.xy",
             true,
         ),
+        "integration_save_spottiness" => ("Spottiness", &["csv"], "pattern_spottiness.csv", true),
         "integration_save_background" => (
             "Background pattern",
             &["xy", "chi", "dat"],
@@ -327,7 +330,7 @@ async fn desktop_invoke(
             let selected = if choice.save {
                 let name = if action == "integration_save_batch" {
                     batch_export::suggested_name(&payload, choice.name)
-                } else if action == "integration_save_image" || action == "integration_phase_export" || action == "integration_save_pattern" {
+                } else if matches!(action.as_str(), "integration_save_image" | "integration_phase_export" | "save_cake_profile" | "integration_save_spottiness" | "integration_save_pattern") {
                     payload["suggested_name"].as_str().unwrap_or(choice.name)
                 } else {
                     choice.name
@@ -380,6 +383,7 @@ fn main() {
     let standalone_smoke = args.iter().any(|a| a == "--standalone-smoke");
     let smoke = standalone_smoke || pattern_benchmark || navigation_benchmark || tooltip_smoke || args.iter().any(|a| a == "--smoke");
     let batch_smoke = std::env::args().any(|arg| arg == "--batch-smoke");
+    let detector_smoke = args.iter().any(|a| a == "--detector-smoke");
     let map_smoke = args.iter().any(|a| a == "--map-smoke");
     let example = args.iter().any(|a| a == "--example");
     let mut context = tauri::generate_context!();
@@ -395,6 +399,8 @@ fn main() {
         .manage(TooltipState::default())
         .manage(map_window::MapWindowState::default())
         .manage(map_window::BatchWindowState::default())
+        .manage(map_window::DetectorWindowState::default())
+        .manage(detector_window::DetectorSnapshot::default())
         .invoke_handler(tauri::generate_handler![
             color_picker::prepare_color_picker,
             desktop_invoke,
@@ -403,6 +409,10 @@ fn main() {
             map_window::close_map_window,
             map_window::open_batch_window,
             map_window::close_batch_window,
+            detector_window::open_detector_window,
+            detector_window::close_detector_window,
+            detector_window::publish_detector_snapshot,
+            detector_window::detector_snapshot,
             native_smoke_report,
             show_calibration_tooltip,
             hide_calibration_tooltip,
@@ -464,6 +474,9 @@ fn main() {
                 let _ = webview.eval(include_str!("../../scripts/field_appearance_check.js"));
                 let _ = webview.eval(include_str!("../../scripts/native_smoke_diagnostics.js"));
             }
+            if smoke && detector_smoke && webview.label() == "detector-window" && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+                let _ = webview.eval(include_str!("../../scripts/detector_window_native_child.js"));
+            }
             if smoke && batch_smoke && std::env::var_os("DIOPTAS_BATCH_LAYOUT_STAGE").is_none() && webview.label() == "batch-window" && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
                 let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
                 let _ = webview.eval(include_str!("../../scripts/batch_window_native_smoke.js"));
@@ -493,6 +506,11 @@ fn main() {
                     let _ = webview.eval(format!("window.__dioptasStandaloneDirectory = {};", json!(directory)));
                     let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
                     let _ = webview.eval(include_str!("../../scripts/standalone_native_smoke.js"));
+                    return;
+                }
+                if detector_smoke {
+                    let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
+                    let _ = webview.eval(include_str!("../../scripts/detector_window_native_main.js"));
                     return;
                 }
                 if batch_smoke {
@@ -546,6 +564,11 @@ fn main() {
                 use tauri::Emitter;
                 let _ = window.app_handle().emit_to("main", "map-window-main", json!({"type": "closed"}));
             }
+            if window.label() == "detector-window" && matches!(event, tauri::WindowEvent::Destroyed) {
+                use tauri::Emitter;
+                detector_window::clear(window.app_handle());
+                let _ = window.app_handle().emit_to("main", "detector-window-main", json!({"type": "closed"}));
+            }
             if window.label() == "batch-window" && matches!(event, tauri::WindowEvent::Destroyed) {
                 use tauri::Emitter;
                 let _ = window.app_handle().emit_to("main", "batch-window-main", json!({"type": "closed", "shuttingDown": window.app_handle().state::<Host>().closing.load(Ordering::SeqCst)}));
@@ -564,6 +587,7 @@ fn main() {
             if matches!(event, tauri::WindowEvent::Destroyed) {
                 if let Some(batch) = window.app_handle().get_webview_window("batch-window") { let _ = batch.destroy(); }
                 if let Some(map) = window.app_handle().get_webview_window("map-window") { let _ = map.destroy(); }
+                if let Some(detector) = window.app_handle().get_webview_window("detector-window") { let _ = detector.destroy(); }
                 if let Some(editor) = window.app_handle().get_webview_window("phase-editor") { let _ = editor.destroy(); }
                 if let Some(popup) = window
                     .app_handle()
@@ -610,6 +634,15 @@ mod tests {
     }
 
     #[test]
+    fn spottiness_save_uses_csv_dialog() {
+        let choice = file_choice("integration_save_spottiness", &json!({})).unwrap();
+        assert!(choice.save);
+        assert_eq!(choice.extensions, &["csv"]);
+        assert_eq!(choice.name, "pattern_spottiness.csv");
+        assert!(file_choice("integration_save_spottiness", &json!({"path":"/tmp/spread.csv"})).is_none());
+    }
+
+    #[test]
     fn companion_windows_read_only_and_unknown_windows_rejected() {
         assert!(window_action_allowed("batch-window", "batch_snapshot"));
         assert!(window_action_allowed("batch-window", "batch_levels"));
@@ -620,6 +653,9 @@ mod tests {
         assert!(!window_action_allowed("map-window", "batch_snapshot"));
         assert!(window_action_allowed("map-window", "progress"));
         assert!(!window_action_allowed("map-window", "map_load"));
+        for action in ["state", "open_image", "image_levels", "pick_peak", "mask_edit", "integration_correction_preview"] {
+            assert!(!window_action_allowed("detector-window", action));
+        }
         assert!(window_action_allowed("main", "batch_select"));
     }
     #[test]
@@ -672,6 +708,11 @@ mod tests {
                 .unwrap()
                 .save
         );
+        let profile = file_choice("save_cake_profile", &json!({})).unwrap();
+        assert!(profile.save);
+        assert_eq!(profile.name, "azimuthal-profile.xy");
+        assert_eq!(profile.extensions, &["xy", "dat", "txt", "csv"]);
+        assert!(file_choice("save_cake_profile", &json!({"path":"/tmp/profile.xy"})).is_none());
         let image = file_choice("integration_save_image", &json!({"source": "image"})).unwrap();
         assert!(image.save);
         assert_eq!(image.name, "image.png");

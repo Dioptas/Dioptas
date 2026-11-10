@@ -123,3 +123,94 @@ The native functional coverage stage publishes the pinned dependency development
 branch, adds an automatic Rust/headless/reference CI gate and 19 additional Rust
 flow tests. See `NATIVE_FUNCTIONAL_COVERAGE.md`. The local-only dependency
 limitation above describes the original consolidation, before that stage.
+
+## Cake Q-axis and azimuthal-profile integration — November 10, 2026
+
+This integration combines `6ee8faf0` (cake Q display) and `b82067d4` (native
+azimuthal profiles), preserving both view hooks and native requested products.
+Cake metadata remains scientific source coordinates; rounded display ticks
+invert the nonlinear conversion without rebinning. Profile extraction continues
+using the owned float64 grid. Combined source units survive project reopen.
+Joint tests cover unchanged profile samples, buffers, physical selection and
+both viewports across angular/Q displays and d pattern selection.
+
+The merged tree passes 209 native tests (two existing ignored checks), 110
+frontend tests, 27 Tauri host tests, native Clippy and frontend build. Headless
+Chromium/WebKit pass both feature workflows, compact Standard/Larger layouts,
+real-image calibration and Integration. The global host rustfmt check reports
+pre-existing differences in unrelated modules; they were left intact. No user
+preview was closed or processing terminated. No package/release was published.
+See [cake-axis qualification](CAKE_Q_AXIS_PARITY.md) and
+[profile qualification](CAKE_PROFILE_PARITY.md); receipts and screenshots live
+under the ignored `desktop/artifacts/cake-q-axis/` and `cake-profile/` folders.
+
+## Detector window and correction-preview integration — November 10, 2026
+
+This merge brings `62473343` (native correction Plot/Back previews) and
+`3fbf2686` (standalone detector image) into the consolidated checkout after
+`53fe41b2`. The cake Q-axis and azimuthal-profile implementations remain intact,
+including their source-coordinate conventions, requested products and controls.
+The image Save action uses the detached renderer while Profile remains available.
+Profile reads and exports are included in the correction preview's read-only
+command set so they cannot dismiss an open correction map.
+
+The joint headless source workflow selects Q, enables an azimuthal profile,
+opens a detached correction map and changes profile width. It checks that the
+map stays open, native profile extraction occurs, scientific state and pixel
+identities stay unchanged, and no second correction-preview calculation runs.
+Both Chromium and WebKit pass this workflow and the separate detector,
+correction-preview, cake Q-axis, cake-profile, measured-image calibration,
+Integration/Batch/Map and responsive-control regressions.
+
+Verification on the merged tree:
+
+- Full native processor suite: **212 passed, two existing opt-in tests ignored**.
+- Frontend: **112 passing tests**, production build and functional inventory.
+- Tauri host: **29 passing tests**; strict backend and host Clippy pass.
+- Isolated macOS native detector campaign: binary/cached snapshots, restricted
+  child commands, single-window reuse, dock/close, placement restoration and
+  main-frontend reload reconnection pass; one processing PID is retained and
+  the test's processor is reaped on final exit.
+
+`test:ui-components` still fails the previously reproduced baseline **Phase
+parameters scrollbar gutter** assertion (12 px expected, 0 observed). This
+integration leaves that unrelated implementation and fixture unchanged.
+Windows/Linux native window behavior remains unqualified. No package or release
+was published. Receipts and screenshots are under the ignored
+`desktop/artifacts/detector-window/`, `correction-previews/`, `cake-profile/`,
+`cake-q-axis/`, `native-calibration/`, and Integration test artifact folders.
+
+
+## Spottiness integration — November 10, 2026
+
+`132061d9` integrates the native Spottiness controls, linked population std or
+std/mean diagnostic and atomic single-pattern CSV export. Reconciliation retains
+the generic azimuthal profile plot, source-preserving cake unit changes, shared
+clicks, detector-window controls and correction previews. Relative display
+switches reuse the same native samples; Spottiness exports preserve an open
+correction map on success, cancellation or failure. Background subtraction and
+clipping do not alter the original mean/std observables. A descending d-spacing
+background path now reverses std along with the other radial arrays.
+
+Primary checks pass: frontend build and 112 tests; 86 relevant native tests
+(two existing opt-in checks ignored); strict backend Clippy/formatting; the
+Tauri CSV dialog contract; seven independent scientific reference cases; and
+headless Chromium/WebKit Spottiness, cake-profile, cake-Q, detached-detector and
+correction-preview workflows. No visible test windows were opened, existing
+previews were preserved, and no package/release was published. See
+[Spottiness qualification](SPOTTINESS_PARITY.md) for statistics, coverage and
+remaining combined-pattern/splitting limitations.
+
+## Shared-controls scrollbar fixture correction
+
+The previously reported Phase parameters gutter failure came from a stale test
+fixture: `.phase-step-controls` is a two-field menu grid, not a scroll container.
+The fixture now exercises the editor's `.pe-parameter-scroll` container and
+explicitly checks computed overflow behavior before measuring scrollbar space.
+The existing 12 px gutter and idle-visibility assertions remain unchanged.
+
+`npm run test:ui-components` passes in headless Chromium and WebKit at Standard
+and Larger text sizes, including vertical, horizontal, nested and non-overflow
+cases. All 112 frontend tests and the production build pass. Application layout
+and scrollbar styles are unchanged; the earlier fixture failure is resolved.
+Receipts and screenshots are in `desktop/artifacts/ui-components/`.

@@ -149,6 +149,6 @@ observations, not cross-platform performance guarantees.
 
 Parameter/lookup uncertainties, sample heterogeneity, off-center illumination,
 nonuniform beam profiles, multiple scattering and individual cake-bin std maps
-remain outside this model. The standalone correction-only plot preview is
-still absent, as for plate/slab; scientific corrections run through the actual
-image, pattern, cake and series data flows.
+remain outside this model. The native [Plot / Back preview](NATIVE_CORRECTION_PREVIEW_PARITY.md) now
+displays the same correction maps used by the actual image, pattern, cake and
+series data flows.

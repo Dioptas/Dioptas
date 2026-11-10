@@ -380,6 +380,9 @@ impl Patterns {
             curve.sigma = curve
                 .sigma
                 .map(|v| Arc::new(v.iter().rev().copied().collect()));
+            curve.spread = curve
+                .spread
+                .map(|v| Arc::new(v.iter().rev().copied().collect()));
         }
         self.raw = Some(Arc::new(curve));
         self.unit = unit.into();
@@ -614,7 +617,7 @@ impl Patterns {
             .as_ref()
             .map(|s| indices.iter().map(|&i| s[i]).collect::<Vec<_>>());
         Ok(Some(
-            json!({"x":x,"y":y,"unit":self.unit,"curves":curves,"phaseLines":[],"backgroundCurves":inspection,"sigma":errors,"azimuthalStd":spread}),
+            json!({"x":x,"y":y,"unit":self.unit,"curves":curves,"phaseLines":[],"backgroundCurves":inspection,"sigma":errors,"azimuthalStd":spread,"spottiness":crate::spottiness::diagnostic(raw)}),
         ))
     }
     fn set_background(&mut self, uid: Option<String>) {

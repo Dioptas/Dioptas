@@ -84,6 +84,7 @@ if (selected.has("--ui")) {
     "pattern_figure_export_smoke",
     "pattern_figure_save_smoke",
     "pattern_figure_editor_smoke",
+    "spottiness_smoke",
     "batch_waterfall_smoke",
     "batch_surface_smoke",
     "batch_surface_gpu_smoke",
@@ -93,6 +94,7 @@ if (selected.has("--ui")) {
     "batch_background_smoke",
     "processing_workers_smoke",
     "native_corrections_smoke",
+    "correction_previews_smoke",
     "native_project_smoke",
     "native_geometry_mask_smoke",
     "native_detector_smoke",
@@ -100,6 +102,8 @@ if (selected.has("--ui")) {
     "native_file_errors_smoke",
     "image_change_smoke",
     "hdf5_sources_smoke",
+    "detector_window_smoke",
+    "detector_source_smoke",
   ])
     node(script, `${script}.mjs`);
   node("batch_background_export", "batch_export_smoke.mjs", "--background");
@@ -126,6 +130,7 @@ if (selected.has("--references")) {
     "mask",
     "integration_core",
     "pyfai_splitting",
+    "spottiness",
     "processing",
     "uncertainty",
     "material",

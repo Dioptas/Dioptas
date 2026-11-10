@@ -292,7 +292,7 @@ pub(super) fn curve_bytes(
     }
     Ok(text.into_bytes())
 }
-pub(super) fn atomic_render(
+pub(crate) fn atomic_render(
     path: &Path,
     write: impl FnOnce(&mut std::fs::File) -> Result<(), String>,
 ) -> Result<(), String> {
@@ -428,6 +428,28 @@ impl Session {
                     )?));
                 }
             }
+            "integration_save_spottiness" => {
+                if self.combination.patterns {
+                    return Err("Azimuthal std is unavailable for combined patterns; disable Combine patterns first.".into());
+                }
+                let mut file = path(args)?.to_path_buf();
+                if file.extension().is_none() {
+                    file.set_extension("csv");
+                }
+                if !file
+                    .extension()
+                    .is_some_and(|e| e.eq_ignore_ascii_case("csv"))
+                {
+                    return Err("Save Spottiness requires a .csv file.".into());
+                }
+                let curve = self
+                    .patterns
+                    .raw
+                    .as_ref()
+                    .ok_or("Load or integrate a pattern first.")?;
+                crate::spottiness::export(&file, curve, &self.patterns.unit, &self.control)?;
+                return Ok(Some(Reply::metadata(json!({"ok":true,"savedPath":file}))));
+            }
             "integration_save_pattern" | "export_pattern" | "integration_save_background" => {
                 let mut file = path(args)?.to_path_buf();
                 let figure_format = args["format"]
@@ -436,16 +458,15 @@ impl Session {
                 if file.extension().is_none() {
                     file.set_extension(figure_format.unwrap_or("xy"));
                 }
-                if let Some(format) = figure_format {
-                    if file
+                if let Some(format) = figure_format
+                    && file
                         .extension()
                         .and_then(|extension| extension.to_str())
                         .is_none_or(|extension| !extension.eq_ignore_ascii_case(format))
-                    {
-                        return Err(format!(
-                            "Choose a .{format} destination for this figure format."
-                        ));
-                    }
+                {
+                    return Err(format!(
+                        "Choose a .{format} destination for this figure format."
+                    ));
                 }
                 if action == "integration_save_pattern" {
                     match file

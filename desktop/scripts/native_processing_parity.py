@@ -93,6 +93,15 @@ def main():
                 ref = ObliqueAngleDetectorAbsorptionCorrection(
                     tth_array=tth, azi_array=azi, **params
                 )
+            before_preview = n.call("state")
+            preview = n.call("integration_correction_preview", kind=kind)["correctionPreview"]
+            np.testing.assert_allclose(n.raster(preview, "raster"), ref.get_data().astype(np.float32), rtol=2e-7, atol=1e-8)
+            assert preview["units"] == ("mm" if kind == "slab" else "dimensionless")
+            after_preview = n.call("state")
+            assert before_preview["state"] == after_preview["state"]
+            assert before_preview["pattern"] == after_preview["pattern"]
+            for product in ["image", "rawImage", "mask", "cake"]:
+                assert before_preview[product]["bufferId"] == after_preview[product]["bufferId"]
             expected /= ref.get_data()
             np.testing.assert_allclose(
                 n.raster(r, "image"), expected.astype(np.float32), rtol=2e-7, atol=1e-5
@@ -126,6 +135,10 @@ def main():
         expected *= (2 + cols * 0.01 + rows * 0.003) / (3 + rows * 0.02)
         np.testing.assert_allclose(n.raster(r, "image"), expected.astype(np.float32), rtol=2e-7, atol=1e-5)
         receipts.append(dict(correction="transfer", reference="independent original / response", maximumDisplayDifference=float(np.max(abs(n.raster(r, "image") - expected.astype(np.float32))))))
+        preview = n.call("integration_correction_preview", kind="transfer")["correctionPreview"]
+        np.testing.assert_array_equal(n.raster(preview, "raster"), ((3 + rows * 0.02) / (2 + cols * 0.01 + rows * 0.003)).astype(np.float32))
+        preview = n.call("integration_correction_preview", kind="flat")["correctionPreview"]
+        np.testing.assert_array_equal(n.raster(preview, "raster"), (flat / flat.mean()).astype(np.float32))
         # Cross-reader coverage uses the original project and image models.
         from dioptas.desktop.session import DesktopSession
         project = directory / "native-corrections.dio"

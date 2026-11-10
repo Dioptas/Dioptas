@@ -1,0 +1,38 @@
+.spottiness-pattern-controls {
+  display: grid;
+  gap: 12px;
+}
+.spottiness-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  border-top: 1px solid var(--border, #3d444c);
+  padding-top: 10px;
+}
+.spottiness-explanation {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--muted, #a6aeb8);
+  font-size: var(--text-small);
+  line-height: 1.4;
+}
+.spottiness-plots {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 3fr) minmax(115px, 2fr);
+}
+.spottiness-main,
+.spottiness-diagnostic {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+.spottiness-diagnostic {
+  border-top: 1px solid var(--border, #3d444c);
+}
+.integration-layout .spottiness-plots {
+  grid-column: 1;
+  grid-row: 2;
+}
