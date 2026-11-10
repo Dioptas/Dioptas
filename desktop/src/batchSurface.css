@@ -68,7 +68,8 @@
   flex-shrink: 0;
 }
 .batch-surface-settings select {
-  width: 120px;
+  width: 165px;
+  max-width: 60%;
 }
 .batch-surface-settings p {
   color: var(--ui-muted);

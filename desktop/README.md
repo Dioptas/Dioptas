@@ -614,6 +614,22 @@ its existing 2048-pixel width, current view and annotations without reading back
 the GPU. Display rendering does not change scientific arrays, integration,
 calibration or original-pixel readouts.
 
+Batch's 3D view uses a filled GPU surface with antialiased intensity contours
+by default. Surface settings switch contours off or choose phase guides as
+surface lines or translucent reference planes. The existing icon-only Phases
+toggle controls visibility in both 2D and 3D. References reuse native phase
+d spacings and colors, converting with the acquired series wavelength; their
+positions follow the current phase model rather than per-frame pressure or
+temperature. Curves intersect the displayed triangles exactly, and the GPU
+depth buffer hides references behind opaque peaks. Contour levels use rounded
+physical intensities with the same linear/log/square-root transfer as the axes.
+Both preferences persist and PNG capture includes the guides. On GPU failure,
+Canvas draws contours and surface phase lines; settings identify the plane
+fallback. This changes display geometry only, retaining the native arrays.
+`npm run test:batch-surface-guides` checks both browser engines, actual pixels,
+depth occlusion, transparent compositing, preference persistence, and unchanged
+source bytes; `test:batch-surface` also exercises the native phase toggle.
+
 Pattern curves use WebGL 2 (`src/WebGLPattern.ts`) by default, while axes,
 reference lines, editable ranges and the cursor use layered Canvas 2D surfaces
 (`src/PatternView.tsx`). GPU buffers retain the curve coordinates and change only

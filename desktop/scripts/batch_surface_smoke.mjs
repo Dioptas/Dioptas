@@ -317,6 +317,10 @@ try {
             path.join(root, `dioptas/tests/data/image_${i}.tif`),
           ),
         });
+        await call("integration_phase", {
+          operation: "load",
+          path: path.join(root, "dioptas/tests/data/jcpds/au_version3.jcpds"),
+        });
         const original = await call("batch_snapshot");
         const binaryBefore = JSON.stringify(
           native.browserResult(original).batch.raster,
@@ -348,6 +352,29 @@ try {
           .click();
         await app.getByRole("tab", { name: "3D", exact: true }).click();
         await waitReady(app);
+        const phasesToggle = app.getByRole("button", {
+          name: "Show batch phases",
+          exact: true,
+        });
+        assert.equal(
+          await phasesToggle.isEnabled(),
+          true,
+          "Native phase references are available in 3D",
+        );
+        await phasesToggle.click();
+        await app.waitForFunction(
+          () =>
+            Number(
+              document.querySelector('[data-testid="batch-surface"]').dataset
+                .phaseReferences,
+            ) > 0,
+        );
+        await phasesToggle.click();
+        await app.waitForFunction(
+          () =>
+            document.querySelector('[data-testid="batch-surface"]').dataset
+              .phaseReferences === "0",
+        );
         await app.getByRole("button", { name: "Options", exact: true }).click();
         await app
           .getByRole("tabpanel", { name: "Batch options", exact: true })

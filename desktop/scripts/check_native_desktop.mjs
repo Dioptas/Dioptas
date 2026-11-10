@@ -84,6 +84,7 @@ if (selected.has("--ui")) {
     "batch_waterfall_smoke",
     "batch_surface_smoke",
     "batch_surface_gpu_smoke",
+    "batch_surface_guides_smoke",
     "batch_surface_axes_smoke",
     "batch_export_smoke",
     "batch_background_smoke",

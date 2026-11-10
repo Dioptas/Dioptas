@@ -8,6 +8,142 @@ import {
   surfaceBarycentric,
   surfaceResolutions,
 } from "../src/batchSurfaceGeometry.ts";
+import {
+  sliceSurfaceTriangle,
+  surfaceContourLevels,
+  surfacePhaseReferences,
+} from "../src/batchSurfaceGuides.ts";
+
+test("surface contour levels stay in physical intensity units across linear, log and sqrt", () => {
+  assert.deepEqual(
+    surfaceContourLevels([0, 100], "linear").map((t) => t.value),
+    [10, 20, 30, 40, 50, 60, 70, 80, 90],
+  );
+  for (const scale of ["linear", "log", "sqrt"])
+    for (const limits of [
+      [-20, 100],
+      [0, 1e6],
+      [0.001, 0.009],
+      [1e7, 1e7 + 10],
+      [5, 5],
+    ]) {
+      const levels = surfaceContourLevels(limits, scale);
+      assert.ok(levels.length <= 12);
+      for (const level of levels) {
+        assert.ok(level.fraction > 0 && level.fraction < 1);
+        assert.equal(
+          level.fraction,
+          surfaceIntensity(level.value, limits, scale),
+        );
+      }
+    }
+});
+
+test("phase slices follow triangle depth and clipped geometry, including exact edges and holes", () => {
+  const point = (x, y, radial, z, depth) => ({
+    x,
+    y,
+    radial,
+    z,
+    depth,
+    intensity: z * 100,
+    frame: y,
+    meshIndex: 0,
+  });
+  const triangle = [
+    point(0, 0, 5, 0, 1),
+    point(10, 0, 1, 1, 5),
+    point(0, 10, 5, 0.5, 3),
+  ];
+  const slice = sliceSurfaceTriangle(triangle, "radial", 3);
+  assert.equal(slice.length, 2);
+  for (const p of slice) assert.equal(p.radial, 3);
+  assert.deepEqual(
+    slice.map((p) => [p.x, p.y, p.depth, p.z]),
+    [
+      [5, 0, 3, 0.5],
+      [5, 5, 4, 0.75],
+    ],
+  );
+  assert.equal(sliceSurfaceTriangle(triangle, "radial", 5).length, 2);
+  assert.equal(
+    sliceSurfaceTriangle(triangle, "radial", 1),
+    null,
+    "single vertex is not a line",
+  );
+  assert.equal(sliceSurfaceTriangle(triangle, "radial", 6), null);
+  assert.equal(
+    sliceSurfaceTriangle(
+      triangle.map((p) => ({ ...p, z: 0.5 })),
+      "z",
+      0.5,
+    ),
+    null,
+    "flat plateau is not an entire contour",
+  );
+  assert.equal(
+    sliceSurfaceTriangle(
+      triangle.map((p) => ({ ...p, z: NaN })),
+      "z",
+      0.5,
+    ),
+    null,
+  );
+});
+
+test("phase references retain native d spacings and colors through units, wavelength and descending ranges", () => {
+  const line = {
+    x: 2,
+    intensity: 100,
+    color: "#ff00ff",
+    hkl: [1, 1, 1],
+    name: "Reference",
+    phaseIndex: 3,
+  };
+  const d = surfacePhaseReferences(
+    { unit: "d_A", wavelength: null },
+    [line],
+    [5, 1],
+  );
+  assert.equal(d[0].radial, 2);
+  assert.equal(d[0].color, line.color);
+  assert.deepEqual(d[0].hkl, line.hkl);
+  const q = surfacePhaseReferences(
+    { unit: "q_A^-1", wavelength: null },
+    [line],
+    [0, 8],
+  );
+  assert.equal(q[0].radial, Math.PI);
+  const angle = surfacePhaseReferences(
+    { unit: "2th_deg", wavelength: 1e-10 },
+    [line],
+    [0, 90],
+  );
+  assert.ok(
+    Math.abs(angle[0].radial - (Math.asin(0.25) * 360) / Math.PI) < 1e-10,
+  );
+  assert.deepEqual(
+    surfacePhaseReferences(
+      { unit: "2th_deg", wavelength: null },
+      [line],
+      [0, 90],
+    ),
+    [],
+  );
+  assert.deepEqual(
+    surfacePhaseReferences(
+      { unit: "d_A" },
+      [line, { ...line, x: NaN }, { ...line, x: -2 }],
+      [3, 5],
+    ),
+    [],
+  );
+  assert.equal(
+    line.x,
+    2,
+    "display conversion never replaces the phase's stored coordinate",
+  );
+});
 
 test("Qt inclusive frame range and stride retain source indices", () => {
   const sample = surfaceSampling(

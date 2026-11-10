@@ -4,6 +4,13 @@ import { unitLabel } from "./types";
 import type { BatchData } from "./batchDomain";
 import { drawSurfaceGPU } from "./WebGLSurface";
 import {
+  sliceSurfaceTriangle,
+  surfaceContourLevels,
+  surfacePhaseReferences,
+  type SurfaceGuides,
+  type SurfacePhaseStyle,
+} from "./batchSurfaceGuides";
+import {
   clamp,
   surfaceBarycentric,
   surfaceIntensity,
@@ -47,6 +54,9 @@ export function drawBatchSurface(
     marker: number | null;
     font: string;
     muted: string;
+    contours?: boolean;
+    phaseLines?: BatchData["phaseLines"];
+    phaseStyle?: SurfacePhaseStyle;
   },
 ): SurfaceScene | null {
   const started = performance.now();
@@ -167,6 +177,72 @@ export function drawBatchSurface(
     { length: 256 },
     (_, i) => `rgb(${rasterColor(i / 255, opts.palette).join(",")})`,
   );
+  const contourLevels =
+    opts.contours === false ? [] : surfaceContourLevels(limits, scale);
+  const references = surfacePhaseReferences(batch, opts.phaseLines, [
+    radialFirst,
+    radialLast,
+  ]).sort((a, b) => a.radial - b.radial);
+  // Only visit reflections crossing a triangle's radial interval, avoiding a
+  // complete mesh scan per reflection for dense phase lists/high-detail meshes.
+  const triangleReferences = (tri: SurfaceTriangle) => {
+    const lo = Math.min(...tri.map((p) => p.radial)),
+      hi = Math.max(...tri.map((p) => p.radial));
+    let first = 0,
+      last = references.length;
+    while (first < last) {
+      const mid = (first + last) >>> 1;
+      if (references[mid].radial < lo) first = mid + 1;
+      else last = mid;
+    }
+    const found = [];
+    for (
+      let i = first;
+      i < references.length && references[i].radial <= hi;
+      i++
+    )
+      found.push(references[i]);
+    return found;
+  };
+  const guides: SurfaceGuides = {
+    contours: contourLevels.map((t) => t.fraction),
+    segments: [],
+    planes: [],
+  };
+  if (opts.phaseStyle === "planes") {
+    for (const reference of references) {
+      const points = [
+        project(s.firstRow, reference.radial, 0),
+        project(s.lastRow, reference.radial, 0),
+        project(s.firstRow, reference.radial, 1),
+        project(s.lastRow, reference.radial, 1),
+      ] as const;
+      guides.planes.push({
+        points: [...points],
+        color: reference.color,
+        opacity: 0.13,
+      });
+      for (const [a, b] of [
+        [0, 1],
+        [1, 3],
+        [3, 2],
+        [2, 0],
+      ])
+        guides.segments.push({
+          points: [points[a], points[b]],
+          color: reference.color,
+          width: 1,
+        });
+    }
+  } else if (references.length) {
+    for (const tri of triangles)
+      for (const reference of triangleReferences(tri)) {
+        const points = sliceSurfaceTriangle(tri, "radial", reference.radial);
+        if (points)
+          guides.segments.push({ points, color: reference.color, width: 1.8 });
+      }
+  }
+  let fallbackPhaseSegments = 0;
   const gpu = triangles.length
     ? drawSurfaceGPU(
         canvas,
@@ -175,6 +251,7 @@ export function drawBatchSurface(
         size.width,
         size.height,
         opts.palette,
+        guides,
       )
     : null;
   if (gpu) ctx.drawImage(gpu, 0, 0, size.width, size.height);
@@ -194,6 +271,30 @@ export function drawBatchSurface(
       ctx.lineTo(tri[2].x, tri[2].y);
       ctx.closePath();
       ctx.fill();
+      // Paint each triangle's annotations before nearer faces. Missing samples
+      // remain holes, and fallback contours follow the same physical levels.
+      for (const level of contourLevels) {
+        const points = sliceSurfaceTriangle(tri, "z", level.fraction);
+        if (points) {
+          const rgb = rasterColor(level.fraction, opts.palette),
+            luminance =
+              (rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722) / 255;
+          line(
+            points,
+            luminance > 0.42 ? "rgba(20,20,20,.62)" : "rgba(240,240,240,.62)",
+            1,
+          );
+        }
+      }
+      for (const reference of references.length
+        ? triangleReferences(tri)
+        : []) {
+        const points = sliceSurfaceTriangle(tri, "radial", reference.radial);
+        if (points) {
+          line(points, reference.color, 1.8);
+          fallbackPhaseSegments++;
+        }
+      }
     }
   }
   // A one-frame or one-bin batch remains inspectable as a curve/point.
@@ -204,6 +305,37 @@ export function drawBatchSurface(
         ctx.fillStyle = colors[Math.round(p.z * 255)];
         ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
       }
+    // A single frame/bin has no faces to slice: mark its intersections or
+    // trace the lone radial column, without bridging missing intensities.
+    for (const reference of references) {
+      if (nc === 1) {
+        line(vertices, reference.color, 1.8);
+        fallbackPhaseSegments += Math.max(
+          0,
+          vertices.filter((p) => Number.isFinite(p.z)).length - 1,
+        );
+      } else
+        for (let i = 0; i < vertices.length - 1; i++) {
+          const a = vertices[i],
+            b = vertices[i + 1];
+          if (
+            a.frame !== b.frame ||
+            !Number.isFinite(a.z) ||
+            !Number.isFinite(b.z) ||
+            a.radial === b.radial
+          )
+            continue;
+          const t = (reference.radial - a.radial) / (b.radial - a.radial);
+          if (t < 0 || t > 1) continue;
+          const p = project(a.frame, reference.radial, a.z + t * (b.z - a.z));
+          ctx.fillStyle = reference.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 2.5, 0, 2 * Math.PI);
+          ctx.fill();
+          fallbackPhaseSegments++;
+          break;
+        }
+    }
   }
   if (batch.selected >= s.firstRow && batch.selected <= s.lastRow)
     line(
@@ -241,6 +373,15 @@ export function drawBatchSurface(
     );
   }
   canvas.dataset.triangles = String(triangles.length);
+  canvas.dataset.contourLevels = JSON.stringify(
+    contourLevels.map((t) => t.value),
+  );
+  canvas.dataset.phaseReferences = String(references.length);
+  canvas.dataset.phaseSegments = String(
+    gpu ? guides.segments.length : fallbackPhaseSegments,
+  );
+  canvas.dataset.phaseStyle =
+    gpu && opts.phaseStyle === "planes" ? "planes" : "lines";
   canvas.dataset.renderer = gpu ? "webgl2" : "canvas";
   canvas.dataset.renderMs = String(performance.now() - started);
   canvas.dataset.sampledMaximum = String(

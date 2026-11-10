@@ -9,6 +9,7 @@ import {
 import { Equal, Settings2, X } from "lucide-react";
 import { Button, Popover, Select } from "./ui";
 import { disposeSurfaceGPU } from "./WebGLSurface";
+import type { SurfacePhaseStyle } from "./batchSurfaceGuides";
 import { ScientificNumberInput } from "./ScientificNumberInput";
 import { PlotToggle } from "./IntegrationPlotControls";
 import { decodeRaster } from "./rasterTransfer";
@@ -84,6 +85,7 @@ function readCamera(id: string): {
  */
 export function BatchSurfaceView({
   batch,
+  phaseLines,
   position,
   limits,
   log,
@@ -99,6 +101,7 @@ export function BatchSurfaceView({
   captureRef,
 }: {
   batch: BatchData;
+  phaseLines?: BatchData["phaseLines"];
   position?: PatternPosition;
   limits: [number, number];
   log: boolean;
@@ -122,6 +125,32 @@ export function BatchSurfaceView({
   const [settings, setSettings] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
   const [renderer, setRenderer] = useState("canvas");
+  const [appearance, setAppearance] = useState<{
+    contours: boolean;
+    phaseStyle: SurfacePhaseStyle;
+  }>(() => {
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem("dioptas-batch:surface-appearance") ?? "null",
+      );
+      return {
+        contours: saved?.contours !== false,
+        phaseStyle: saved?.phaseStyle === "planes" ? "planes" : "lines",
+      };
+    } catch {
+      return { contours: true, phaseStyle: "lines" };
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "dioptas-batch:surface-appearance",
+        JSON.stringify(appearance),
+      );
+    } catch {
+      /* Keep session preferences. */
+    }
+  }, [appearance]);
   const [resolution, setResolution] = useState<SurfaceResolution>(() => {
     try {
       const saved = localStorage.getItem("dioptas-batch:surface-resolution");
@@ -230,6 +259,9 @@ export function BatchSurfaceView({
       marker: marker ?? null,
       font: typography.mono,
       muted: typography.muted,
+      contours: appearance.contours,
+      phaseStyle: appearance.phaseStyle,
+      phaseLines,
     });
     setUnavailable(scene.current === null);
     setRenderer(canvas.current?.dataset.renderer ?? "canvas");
@@ -246,6 +278,8 @@ export function BatchSurfaceView({
     marker,
     typography.mono,
     typography.muted,
+    appearance,
+    phaseLines,
   ]);
   const orient = (orientation: SurfaceOrientation) => {
     rightClick.current = null;
@@ -377,6 +411,49 @@ export function BatchSurfaceView({
           >
             <X size={15} />
           </Button>
+          <label>
+            Surface
+            <Select
+              aria-label="Surface appearance"
+              value={appearance.contours ? "contours" : "plain"}
+              onChange={(e) => {
+                const contours = e.currentTarget.value === "contours";
+                setAppearance((a) => ({
+                  ...a,
+                  contours,
+                }));
+              }}
+            >
+              <option value="contours">With contours</option>
+              <option value="plain">Plain</option>
+            </Select>
+          </label>
+          <label>
+            Phase guides
+            <Select
+              aria-label="Surface phase guides"
+              value={appearance.phaseStyle}
+              onChange={(e) => {
+                const phaseStyle = e.currentTarget.value as SurfacePhaseStyle;
+                setAppearance((a) => ({
+                  ...a,
+                  phaseStyle,
+                }));
+              }}
+            >
+              <option value="lines">Surface lines</option>
+              <option value="planes">Reference planes</option>
+            </Select>
+          </label>
+          <p>
+            Use the Phases icon to show the visible reference phases in their
+            existing colors.
+          </p>
+          {renderer !== "webgl2" && appearance.phaseStyle === "planes" && (
+            <p role="status">
+              Reference planes require GPU drawing; showing surface lines.
+            </p>
+          )}
           <label>
             Resolution
             <Select

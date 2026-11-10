@@ -37,6 +37,8 @@ function Harness() {
     [range, setRange] = useState(null),
     [limits, setLimits] = useState<[number, number]>([0, 20]),
     [scale, setScale] = useState("linear"),
+    [phaseLines, setPhaseLines] =
+      useState<import("../src/types").Pattern["phaseLines"]>(undefined),
     [palette, setPalette] = useState("viridis");
   Object.assign(window, {
     surfaceBuffer: batch.raster.data,
@@ -46,6 +48,34 @@ function Harness() {
       setRange(null);
     },
     setSurfaceScale: setScale,
+    setSurfacePhases: setPhaseLines,
+    setSurfaceGuideFixture: () => {
+      const rows = 31,
+        cols = 201,
+        b = fixture(rows, cols),
+        x = Array.from({ length: cols }, (_, c) => 0.5 + c * 0.025);
+      const data = Float32Array.from({ length: rows * cols }, (_, i) => {
+        const q = x[i % cols],
+          t = Math.floor(i / cols) / 30;
+        return (
+          3 +
+          (68 + 24 * Math.sin(t * Math.PI)) *
+            Math.exp(-0.5 * ((q - 2.2) / 0.12) ** 2) +
+          (59 - 29 * t) * Math.exp(-0.5 * ((q - 3.25 - 0.58 * t) / 0.16) ** 2) +
+          (12 + 65 * t) * Math.exp(-0.5 * ((q - 4.4) / 0.11) ** 2)
+        );
+      });
+      setBatch({
+        ...b,
+        x,
+        unit: "q_A^-1",
+        sourceUnit: "q_A^-1",
+        raster: { ...b.raster, data: data.buffer },
+      });
+      setLimits([0, 120]);
+      setRange(null);
+      setScale("linear");
+    },
     setSurfacePalette: setPalette,
     setSurfacePeakFixture: () => {
       const rows = 64,
@@ -107,6 +137,7 @@ function Harness() {
       {visible && (
         <BatchSurfaceView
           batch={batch as any}
+          phaseLines={phaseLines}
           limits={limits}
           log={scale === "log"}
           sqrt={scale === "sqrt"}

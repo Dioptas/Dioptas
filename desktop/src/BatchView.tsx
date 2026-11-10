@@ -336,9 +336,9 @@ export function BatchView({
         />
         <PlotToggle
           label="Show batch phases"
-          title="Show phase lines on the batch overview"
+          title="Show phase guides on the batch overview"
           pressed={display.phases}
-          disabled={tab === "3D" || !batch?.phaseLines?.length}
+          disabled={!batch?.phaseLines?.length}
           onClick={() => display.update({ phases: !display.phases })}
         >
           <ChartNoAxesColumn size={15} aria-hidden="true" />
@@ -503,6 +503,9 @@ export function BatchView({
                       captureRef={surfaceCapture}
                       key={batchSurfaceSeriesKey(batch)}
                       batch={shownBatch!}
+                      phaseLines={
+                        display.phases ? batch?.phaseLines : undefined
+                      }
                       position={position ?? batch.position ?? undefined}
                       limits={display.limits}
                       log={shownLog}
