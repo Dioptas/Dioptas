@@ -100,6 +100,10 @@ for (const [name, browserType] of [
           .querySelector('[aria-label="Undock detector image"]')
           .getBoundingClientRect();
       return {
+        left: b.left,
+        controlsLeft: el
+          .querySelector(".image-toolbar-primary")
+          .getBoundingClientRect().left,
         right: b.right,
         buttonRight: button.right,
         bottom: b.bottom,
@@ -113,6 +117,10 @@ for (const [name, browserType] of [
       Math.abs(placement.right - placement.buttonRight) < 4 &&
         Math.abs(placement.bottom - placement.buttonBottom) < 4,
       "Undock is not at the lower-right of the image bar",
+    );
+    assert.ok(
+      Math.abs(placement.controlsLeft - placement.left) < 2,
+      "Image controls must start at the left of the bar",
     );
     assert.ok(
       new Set(placement.rows).size <= 2,
@@ -238,6 +246,9 @@ for (const [name, browserType] of [
               rows: [...el.querySelectorAll(".image-toolbar-group")].map(
                 (g) => g.getBoundingClientRect().y,
               ),
+              left: [...el.querySelectorAll(".image-toolbar-group")].every(
+                (g) => Math.abs(g.getBoundingClientRect().left - bar.left) < 2,
+              ),
               right: bar.right - dock.right,
               bottom: bar.bottom - dock.bottom,
               visible: [...el.querySelectorAll("button,input")].every((b) => {
@@ -252,7 +263,10 @@ for (const [name, browserType] of [
             };
           });
         assert.ok(
-          new Set(layout.rows).size <= 2 && layout.visible && !layout.overflow,
+          new Set(layout.rows).size <= 2 &&
+            layout.left &&
+            layout.visible &&
+            !layout.overflow,
           JSON.stringify({ width, large, layout }),
         );
         assert.ok(Math.abs(layout.right) < 4 && Math.abs(layout.bottom) < 4);

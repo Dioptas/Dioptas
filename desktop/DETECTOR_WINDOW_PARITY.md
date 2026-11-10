@@ -3,8 +3,9 @@
 November 10, 2026. This focused feature commit is based on the committed
 correction-preview dependency `62473343`; integrate that dependency first.
 The detector image can be undocked in Calibration, Mask, Integration or Map.
-Integration places Undock at the lower right of the right-aligned image toolbar;
-its two nonwrapping groups use at most two rows at compact widths. The complete
+Integration places Undock at the lower right of the image toolbar, with the other
+controls aligned left. Its two nonwrapping groups use at most two rows at compact
+widths. The complete
 Save, ROI, Image/Cake, Profile, Mask, transparency, background and Phases toolbar
 moves beneath the detached view, including the cake azimuth shift when applicable.
 Show detector window raises/reuses the same companion. Dock and the operating

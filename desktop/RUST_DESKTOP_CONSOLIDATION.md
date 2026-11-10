@@ -217,9 +217,9 @@ Receipts and screenshots are in `desktop/artifacts/ui-components/`.
 
 ## Complete detached image workspace (main Tauri checkout)
 
-The Integration Undock action now sits at the lower right of the right-aligned
-image toolbar. All image controls and the optional azimuthal profile move into
-the companion; image/cake switching retains independent display state. Removing
+The Integration Undock action now sits at the lower right of the image toolbar,
+with the other controls aligned left. All image controls and the optional
+azimuthal profile move into the companion; image/cake switching retains independent display state. Removing
 the main image pane gives its space to the pattern, and docking restores the
 saved split. Existing docked Batch stays usable in the main workspace pending a
 separate layout decision. Figure-editor, phase-controls and Spottiness changes

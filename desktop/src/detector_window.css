@@ -87,22 +87,27 @@
   height: auto;
 }
 
-/* The image toolbar travels with the view and keeps its window action last. */
+/* Image controls start at the left; the window action stays at the lower right. */
 .app .integration-image-tools {
-  justify-content: flex-end;
+  justify-content: flex-start;
   align-content: flex-end;
   flex: 0 0 auto;
-  padding: 6px 0 0;
+  padding: 6px 36px 0 0;
   gap: 4px 8px;
 }
 .app .integration-image-tools .image-toolbar-group {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 4px;
   min-width: 0;
   max-width: 100%;
+}
+.app .integration-image-tools .image-window-toggle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
 }
 .app .integration-image-tools .integration-display-switch {
   min-width: 44px;
