@@ -92,14 +92,41 @@ try {
         exact: true,
       });
       await load.click();
+      const mismatch = page.getByRole("dialog", {
+        name: "Calibration uses a different detector",
+      });
+      await mismatch.waitFor();
+      await ready();
+      assert.match(await mismatch.innerText(), /3108 × 3262/);
+      assert.match(await mismatch.innerText(), /981 × 1043/);
+      assert.equal(
+        await mismatch
+          .getByRole("button", { name: "Cancel", exact: true })
+          .evaluate((el) => el === document.activeElement),
+        true,
+      );
+      await page.screenshot({
+        path: path.join(artifacts, `${name}-short.png`),
+      });
+      const after = await call("state");
+      assert.deepEqual(after.state.calibration, before.state.calibration);
+      assert.equal(after.image.bufferId, before.image.bufferId);
+      await mismatch
+        .getByRole("button", { name: "Cancel", exact: true })
+        .click();
+      await load.click();
+      await mismatch.waitFor();
+      await page.keyboard.press("Escape");
+      assert.equal(await mismatch.count(), 0);
       const dialog = page.getByRole("dialog", {
         name: "Couldn’t load calibration",
       });
+      selected = path.join(temp, "missing.poni");
+      await load.click();
       await dialog.waitFor();
-      await ready();
       assert.match(
         await dialog.innerText(),
-        /Open the matching detector image/,
+        /selected file could not be loaded/,
       );
       assert.equal(
         await dialog.locator("details").evaluate((el) => el.open),
@@ -111,28 +138,7 @@ try {
           .evaluate((el) => el === document.activeElement),
         true,
       );
-      await page.screenshot({
-        path: path.join(artifacts, `${name}-short.png`),
-      });
-      await dialog.getByText("Details", { exact: true }).click();
-      assert.match(await dialog.innerText(), /3108 × 3262/);
-      assert.match(await dialog.innerText(), /981 × 1043/);
-      const after = await call("state");
-      assert.deepEqual(after.state.calibration, before.state.calibration);
-      assert.equal(after.image.bufferId, before.image.bufferId);
-      await dialog.getByRole("button", { name: "OK", exact: true }).click();
-      assert.equal(await dialog.count(), 0);
-      await load.click();
-      await dialog.waitFor();
-      await page.keyboard.press("Escape");
-      assert.equal(await dialog.count(), 0);
-      selected = path.join(temp, "missing.poni");
-      await load.click();
-      await dialog.waitFor();
-      assert.match(
-        await dialog.innerText(),
-        /selected file could not be loaded/,
-      );
+
       await dialog
         .getByText("Error report and recent steps", { exact: true })
         .click();

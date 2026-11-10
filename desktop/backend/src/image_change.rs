@@ -17,8 +17,13 @@ impl Session {
             .map(|v| boolean(v, "Keep calibration"))
             .transpose()?
             .unwrap_or(false);
-        if reset && keep {
-            return Err("Choose either keeping or resetting the calibration.".into());
+        let coordinates = args
+            .get("reset_image_state")
+            .map(|v| boolean(v, "Reset image coordinates"))
+            .transpose()?
+            .unwrap_or(false);
+        if (reset && keep) || (coordinates && (reset || keep || self.settings.calibrated)) {
+            return Err("Choose either keeping or resetting the calibration; image-only reset needs an uncalibrated image.".into());
         }
         if keep {
             if !self.settings.calibrated {
@@ -26,9 +31,7 @@ impl Session {
             }
             self.source_geometry().sync_shape(image.source_shape)?;
         }
-        // Without a calibration, changing source dimensions only invalidates
-        // image-coordinate state. It must never ask to reset a nonexistent fit.
-        if !self.settings.calibrated || keep {
+        if keep || coordinates {
             return Ok(None);
         }
         let expected = self.image.as_ref().map(|i| i.source_shape).or_else(|| {
@@ -59,7 +62,8 @@ impl Session {
             return Ok(Some(Reply::metadata(json!({"ok":true,"cancelled":true,
                 "imageChange":{"path":image.path,"frame":image.frame,
                     "previousShape":expected,"newShape":image.source_shape,"options":options,
-                    "canKeepCalibration":self.source_geometry().sync_shape(image.source_shape).is_ok()}}))));
+                    "calibrated":self.settings.calibrated,
+                    "canKeepCalibration":self.settings.calibrated && self.source_geometry().sync_shape(image.source_shape).is_ok()}}))));
         }
         Ok(None)
     }

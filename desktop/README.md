@@ -101,8 +101,9 @@ fresh app session. File order
 and Batch mode use compact dropdowns. File and frame arrows use 32 × 30 px targets
 at both text sizes, with each step field directly beside its browsing controls.
 
-Changing source dimensions **without a calibration** opens the new image directly,
-resetting its orientation, mask, picked coordinates and ROI. Experiment/fit
+Changing source dimensions **without a calibration** shows the old/new sizes
+and asks before opening. **Open image** resets orientation, mask, picked coordinates
+and ROI; it does not reset a calibration. Experiment/fit
 preferences, integration settings and correction drafts remain available.
 An incompatible remembered detector is replaced by image detection; background,
 flat and transfer references with incompatible dimensions are discarded.

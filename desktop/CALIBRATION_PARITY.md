@@ -25,7 +25,7 @@ preview replaces the complete application. The original Qt interface is unchange
 | --- | --- |
 | Image → Pick rings → Calibrate → Validate | Image / Peaks / Fit / Validate tabs below a shared Ring / Auto advance / Pick peaks strip; fixed fit/apply action, no Back/Next; image alone until Validate |
 | Load image; previous/next image | Compact Open image button with adjacent previous/next arrows, using the existing file iterator |
-| Change detector/image dimensions | Uncalibrated size changes open directly and reset orientation/mask/ROI/picks, retaining experiment and integration preferences. Calibrated changes offer reset or explicitly keep a compatible calibration (including supported binning/legacy PONIs). An incompatible PONI can load first by confirming removal of the old image; it stays ready for the new image and can be saved in a calibration-only project. Cancel/Escape preserve science and focus. Autoprocess stops on unresolved calibrated mismatches. |
+| Change detector/image dimensions | Uncalibrated size changes show the dimensions and ask before opening; they reset orientation/mask/ROI/picks, retaining experiment and integration preferences. Calibrated changes offer reset or explicitly keep a compatible calibration (including supported binning/legacy PONIs). An incompatible PONI can load first by confirming removal of the old image; it stays ready for the new image and can be saved in a calibration-only project. Cancel/Escape preserve science and focus. Autoprocess stops on unresolved calibrated mismatches. |
 | ±90° rotation; horizontal/vertical flip; reset | Visible labelled buttons in Image & detector; detector and image transformations stay aligned; stale peaks are cleared |
 | Custom/predefined detector; detector file/reset | Experiment setup and Image & detector; loaded detector pixel pitches cannot be edited as custom pixels |
 | Distortion spline load/reset | Image & detector |
@@ -268,7 +268,7 @@ averages, explicit legacy-calibration reuse, named-detector binning and atomic
 replacement failures. `native_session.rs` additionally checks variable-size
 uncalibrated frames with the same number of pixels. `scripts/image_change_smoke.mjs`
 checks both loading orders and Cancel/Escape/focus at 1000 × 668 in Standard and
-Larger text, plus uncalibrated size changes in every workspace, using real Rust
+Larger text, plus coordinate-only confirmation and cancellation in every workspace, using real Rust
 processing in headless Chromium and WebKit.
 
 A loaded PONI applies to the current oriented view as before. Explicitly keeping

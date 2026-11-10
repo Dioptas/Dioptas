@@ -1364,6 +1364,7 @@ impl Session {
                 "output_directory",
                 "reset_calibration",
                 "keep_calibration",
+                "reset_image_state",
             ],
         )?;
         let file = path(args)?;

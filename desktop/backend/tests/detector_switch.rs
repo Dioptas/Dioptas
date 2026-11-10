@@ -143,7 +143,14 @@ fn uncalibrated_size_changes_clear_coordinates_without_resetting_experiment_pref
     );
     orient_mask(&mut s);
     let before = call(&mut s, "state", json!({}));
-    let r = call(&mut s, "open_image", json!({"path":b}));
+    let pending = call(&mut s, "open_image", json!({"path":b}));
+    assert_eq!(pending.result["imageChange"]["calibrated"], false);
+    assert_eq!(call(&mut s, "state", json!({})).result, before.result);
+    let r = call(
+        &mut s,
+        "open_image",
+        json!({"path":b,"reset_image_state":true}),
+    );
     assert!(r.result.get("imageChange").is_none());
     assert!(r.result.get("calibrationReset").is_none());
     assert_eq!(r.result["state"]["calibrated"], false);
@@ -229,6 +236,8 @@ fn rejected_keeps_and_unreadable_replacements_are_atomic() {
     let before = call(&mut s, "state", json!({}));
     for (action, args) in [
         ("open_image", json!({"path":b,"keep_calibration":true})),
+        ("open_image", json!({"path":b,"reset_image_state":true})),
+        ("open_image", json!({"path":b,"reset_image_state":"yes"})),
         (
             "open_image",
             json!({"path":b,"keep_calibration":true,"reset_calibration":true}),
@@ -266,14 +275,39 @@ fn an_uncalibrated_remembered_detector_does_not_block_new_images_or_image_averag
         );
         orient_mask(&mut s);
         let before = call(&mut s, "state", json!({}));
+        let pending = call(
+            &mut s,
+            "open_image",
+            if average {
+                json!({"paths":[b,c],"batch_mode":"average"})
+            } else {
+                json!({"path":b})
+            },
+        );
+        assert_eq!(pending.result["imageChange"]["calibrated"], false);
+        if average {
+            assert_eq!(
+                pending.result["imageChange"]["options"]["paths"],
+                json!([b, c])
+            );
+            assert_eq!(
+                pending.result["imageChange"]["options"]["batch_mode"],
+                "average"
+            );
+        }
+        assert_eq!(call(&mut s, "state", json!({})).result, before.result);
         let r = if average {
             call(
                 &mut s,
                 "open_image",
-                json!({"paths":[b,c],"batch_mode":"average"}),
+                json!({"paths":[b,c],"batch_mode":"average","reset_image_state":true}),
             )
         } else {
-            call(&mut s, "open_image", json!({"path":b}))
+            call(
+                &mut s,
+                "open_image",
+                json!({"path":b,"reset_image_state":true}),
+            )
         };
         assert!(r.result.get("imageChange").is_none());
         assert_eq!(r.result["state"]["shape"], json!([16, 20]));

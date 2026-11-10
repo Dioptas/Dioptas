@@ -319,7 +319,36 @@ try {
       mode === "Integration" || mode === "Mask"
         ? path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif")
         : small;
+    const beforeSizeChange = (await call("state")).state;
     await page.keyboard.press("ControlOrMeta+o");
+    const sizeNotice = page.getByRole("dialog", {
+      name: "Image dimensions changed",
+      exact: true,
+    });
+    await sizeNotice.waitFor({ state: "visible" });
+    assert.ok(
+      (await sizeNotice.textContent()).includes("No calibration is loaded"),
+    );
+    assert.equal(
+      await sizeNotice
+        .getByRole("button", {
+          name: "Open and reset calibration",
+          exact: true,
+        })
+        .count(),
+      0,
+    );
+    assert.deepEqual((await call("state")).state, beforeSizeChange);
+    if (mode === "Integration") {
+      await page.keyboard.press("Escape");
+      await sizeNotice.waitFor({ state: "detached" });
+      assert.deepEqual((await call("state")).state, beforeSizeChange);
+      await page.keyboard.press("ControlOrMeta+o");
+      await sizeNotice.waitFor({ state: "visible" });
+    }
+    await sizeNotice
+      .getByRole("button", { name: "Open image", exact: true })
+      .click();
     await ready();
     assert.equal(await page.getByRole("dialog").count(), 0);
     assert.equal(await button(mode).getAttribute("aria-pressed"), "true");
@@ -331,7 +360,7 @@ try {
       assert.equal(await calibrationTab.getAttribute("aria-selected"), "true");
     assert.deepEqual(result.state.calibration.transformations, []);
     report.checks.push(
-      `uncalibrated size change has no reset prompt in ${mode}`,
+      `uncalibrated size change explains coordinate-only reset in ${mode}`,
     );
     if (mode === "Calibration") {
       await page

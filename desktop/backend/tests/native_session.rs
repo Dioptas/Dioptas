@@ -351,7 +351,15 @@ fn uncalibrated_frame_shape_changes_reset_coordinates_even_with_the_same_number_
         "mask_stroke",
         json!({"points":[[1,1]],"radius":1}),
     );
-    let next = call(&mut session, "next_image", json!({"direction":1}));
+    let before = call(&mut session, "state", json!({}));
+    let pending = call(&mut session, "next_image", json!({"direction":1}));
+    assert_eq!(pending.result["imageChange"]["calibrated"], false);
+    assert_eq!(call(&mut session, "state", json!({})).result, before.result);
+    let next = call(
+        &mut session,
+        "open_image",
+        json!({"path":path,"frame":1,"reset_image_state":true}),
+    );
     assert!(next.result.get("imageChange").is_none());
     assert!(next.result.get("calibrationReset").is_none());
     assert_eq!(next.result["state"]["shape"], json!([4, 3]));

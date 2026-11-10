@@ -18,6 +18,7 @@ export function CalibrationResetDialog({
     request !== "reset" && "newShape" in request ? request : null;
   const calibrationChange =
     request !== "reset" && "calibrationShape" in request ? request : null;
+  const uncalibrated = imageChange?.calibrated === false;
   const dimensions = ([rows, columns]: [number, number]) =>
     `${columns} × ${rows}`;
   return (
@@ -56,6 +57,18 @@ export function CalibrationResetDialog({
             open an image for this detector. Overlays and phases stay loaded.
           </p>
         </>
+      ) : uncalibrated ? (
+        <>
+          <p>
+            No calibration is loaded. Opening this image will reset its
+            orientation, mask, picked coordinates and ROI.
+          </p>
+          <p>
+            Experiment settings, fit starting values and integration preferences
+            will stay. Image references with incompatible dimensions will be
+            removed.
+          </p>
+        </>
       ) : (
         <p>
           {imageChange?.canKeepCalibration
@@ -77,9 +90,11 @@ export function CalibrationResetDialog({
         </p>
       )}
       <p>
-        {imageChange || calibrationChange
-          ? "Cancel keeps the current image and calibration."
-          : "The current image, overlays and phases will stay loaded."}
+        {uncalibrated
+          ? "Cancel keeps the current image and detector setup."
+          : imageChange || calibrationChange
+            ? "Cancel keeps the current image and calibration."
+            : "The current image, overlays and phases will stay loaded."}
       </p>
       <div className="calibration-reset-actions">
         <Button type="button" variant="secondary" autoFocus onClick={onCancel}>
@@ -92,9 +107,11 @@ export function CalibrationResetDialog({
         >
           {calibrationChange
             ? "Load calibration and clear image"
-            : imageChange
-              ? "Open and reset calibration"
-              : "Reset calibration"}
+            : uncalibrated
+              ? "Open image"
+              : imageChange
+                ? "Open and reset calibration"
+                : "Reset calibration"}
         </Button>
         {imageChange?.canKeepCalibration && (
           <Button

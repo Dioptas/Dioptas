@@ -194,6 +194,7 @@ export interface Response {
   };
   imageStateReset?: boolean;
   imageChange?: {
+    calibrated?: boolean;
     canKeepCalibration?: boolean;
     options?: Record<string, unknown>;
     path: string;

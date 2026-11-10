@@ -24,16 +24,23 @@ impl Session {
             .map(|i| i.options.clone())
             .unwrap_or(json!({}));
         let mut first = Image::open(Path::new(&paths[0]), &options)?;
-        if mode != "save" && self.image_change(&first, &json!({}))?.is_some() {
-            return Err("Combined images must match the current detector dimensions. Open one image first to change the detector setup and reset calibration.".into());
-        }
-        if mode != "save"
-            && self
+        if mode != "save" {
+            if let Some(mut reply) = self.image_change(&first, args)? {
+                let mut options = args.clone();
+                options["paths"] = json!(paths);
+                options["batch_mode"] = json!(mode);
+                reply.result["imageChange"]["options"] = options;
+                return Ok(reply);
+            }
+            if args["reset_calibration"] == true {
+                self.reset_detector_state()?;
+            } else if self
                 .image
                 .as_ref()
                 .is_some_and(|old| old.source_shape != first.source_shape)
-        {
-            self.reset_image_coordinates(first.source_shape);
+            {
+                self.reset_image_coordinates(first.source_shape);
+            }
         }
         self.assign_image_detector(&first)?;
         let shape = first.shape;

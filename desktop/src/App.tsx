@@ -3359,13 +3359,17 @@ export default function App() {
                       ...request.options,
                       path: request.path,
                       frame: request.frame,
-                      ...(keepCalibration
-                        ? { keep_calibration: true }
-                        : { reset_calibration: true }),
+                      ...(request.calibrated === false
+                        ? { reset_image_state: true }
+                        : keepCalibration
+                          ? { keep_calibration: true }
+                          : { reset_calibration: true }),
                     },
-                    keepCalibration
-                      ? "Opening image with current calibration…"
-                      : "Opening image and resetting calibration…",
+                    request.calibrated === false
+                      ? "Opening image and resetting its coordinates…"
+                      : keepCalibration
+                        ? "Opening image with current calibration…"
+                        : "Opening image and resetting calibration…",
                   );
               }}
             />
