@@ -81,7 +81,13 @@ reference image elsewhere keeps that watcher fixed until Folder… changes it.
 Source selection uses short, distinct dataset labels; the full selected path is
 available on hover and in **File Info**. A sole source is shown as passive text,
 and the Frame row is hidden for single images. Folder status and dimensions share
-one compact line. The splitter stays fixed across Integration tabs. File order
+one compact line. The splitter stays fixed across Integration tabs. The chevron at the right of the
+tab strip temporarily collapses or restores the task panel. Tabs use one row
+when space permits and two balanced rows in narrow task panels, without a
+horizontal scrollbar. Selecting any tab,
+including the selected tab, opens its controls at the previous panel height.
+Collapse does not change the image/pattern split or the expanded default on a
+fresh app session. File order
 and Batch mode use compact dropdowns. File and frame arrows use 32 × 30 px targets
 at both text sizes, with each step field directly beside its browsing controls.
 

@@ -18,6 +18,9 @@
   overflow: hidden;
   gap: 0;
 }
+.workspace-content.integration-layout[data-controls-collapsed="true"] {
+  grid-template-rows: max-content 8px minmax(240px, 1fr) auto;
+}
 .integration-layout main.integration-mode,
 .integration-layout main.integration-mode .views-grid {
   display: contents;
@@ -60,18 +63,43 @@
   min-width: 0;
   min-height: 0;
 }
-.integration-tabs {
+.integration-controls-header {
+  container-type: inline-size;
   display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
+  min-width: 0;
+  border-bottom: 1px solid var(--border);
+}
+.integration-controls-header .integration-tabs {
+  flex: 1;
+  min-width: 0;
+  border-bottom: 0;
+}
+.integration-controls .integration-controls-toggle {
+  flex: 0 0 28px;
+  align-self: flex-start;
+  min-height: 42px;
+  padding: 0;
+  margin-right: 3px;
+}
+.integration-fieldset[hidden] {
+  display: none;
+}
+.integration-tabs {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(max-content, 1fr));
   flex-shrink: 0;
   gap: 0;
   padding: 0 10px;
   border-bottom: 1px solid var(--border);
 }
 .integration-tabs button {
-  flex: 1 0 auto;
   white-space: nowrap;
+}
+/* Respond to the task panel, including splitter changes and larger text. */
+@container (max-width: 36em) {
+  .integration-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 .integration-fieldset {
   min-width: 0;

@@ -1,3 +1,5 @@
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "./ui";
 import { TabList } from "./TabList";
 import { useEffect, useState } from "react";
 import type { State } from "./types";
@@ -19,6 +21,8 @@ let retainedOverlayReveal = 0;
 export function IntegrationView({
   state,
   overlayReveal = 0,
+  controlsCollapsed,
+  onControlsCollapsedChange,
   ready,
   run,
   onOpenBatch,
@@ -41,6 +45,8 @@ export function IntegrationView({
 }: {
   state: State | null;
   overlayReveal?: number;
+  controlsCollapsed: boolean;
+  onControlsCollapsedChange: (collapsed: boolean) => void;
   ready: boolean;
   onOpenBatch: () => void;
   batchOpen: boolean;
@@ -67,8 +73,9 @@ export function IntegrationView({
     if (overlayReveal !== retainedOverlayReveal) {
       retainedOverlayReveal = overlayReveal;
       setTab("Overlay");
+      onControlsCollapsedChange(false);
     }
-  }, [overlayReveal]);
+  }, [overlayReveal, onControlsCollapsedChange]);
   useEffect(() => {
     retainedTab = tab;
   }, [tab]);
@@ -81,25 +88,55 @@ export function IntegrationView({
     void run(command, args, "Updating integration…");
   return (
     <div className="integration-controls">
-      <TabList
-        className="integration-tabs calibration-workflow-tabs"
-        label="Integration controls"
-        value={tab}
-        onChange={setTab}
-        options={[
-          "Image",
-          "Pattern",
-          "Overlay",
-          "Phase",
-          "Background",
-          "Corrections",
-        ].map((name) => ({
-          value: name,
-          label: name,
-          panelId: "integration-tabpanel",
-        }))}
-      />
+      <div className="integration-controls-header">
+        <TabList
+          className="integration-tabs calibration-workflow-tabs"
+          label="Integration controls"
+          value={tab}
+          onChange={(value) => {
+            setTab(value);
+            onControlsCollapsedChange(false);
+          }}
+          options={[
+            "Image",
+            "Pattern",
+            "Overlay",
+            "Phase",
+            "Background",
+            "Corrections",
+          ].map((name) => ({
+            value: name,
+            label: name,
+            panelId: "integration-tabpanel",
+          }))}
+        />
+        <Button
+          type="button"
+          variant="quiet"
+          className="integration-controls-toggle"
+          aria-label={
+            controlsCollapsed
+              ? "Expand Integration controls"
+              : "Collapse Integration controls"
+          }
+          aria-expanded={!controlsCollapsed}
+          aria-controls="integration-tabpanel"
+          title={
+            controlsCollapsed
+              ? "Expand controls, or select any tab"
+              : "Collapse controls"
+          }
+          onClick={() => onControlsCollapsedChange(!controlsCollapsed)}
+        >
+          {controlsCollapsed ? (
+            <ChevronDown size={16} />
+          ) : (
+            <ChevronUp size={16} />
+          )}
+        </Button>
+      </div>
       <fieldset
+        hidden={controlsCollapsed}
         disabled={!ready}
         className={`integration-fieldset integration-tab-${tab.toLowerCase()}`}
         role="tabpanel"

@@ -162,6 +162,8 @@ export default function App() {
   const cakeExport = useRef<RasterExport>(null);
   const [overlayReveal, setOverlayReveal] = useState(0);
   const [integrationDisplay, setIntegrationDisplay] = useState("image");
+  const [integrationControlsCollapsed, setIntegrationControlsCollapsed] =
+    useState(false);
   const [sqrtPattern, setSqrtPattern] = useState(false);
   const [patternAntialias, setPatternAntialias] = useState(true);
   const [patternAutoRange, setPatternAutoRange] = useState(true);
@@ -2169,6 +2171,7 @@ export default function App() {
           <IntegrationWorkspace
             concealed={settingsOpen}
             active={mode === "integration"}
+            controlsCollapsed={integrationControlsCollapsed}
             display={integrationDisplay === "cake" ? "cake" : "image"}
           >
             <main
@@ -3116,6 +3119,10 @@ export default function App() {
                       )}
                       {mode === "integration" && (
                         <IntegrationView
+                          controlsCollapsed={integrationControlsCollapsed}
+                          onControlsCollapsedChange={
+                            setIntegrationControlsCollapsed
+                          }
                           overlayReveal={overlayReveal}
                           fileStep={imageFileStep}
                           setFileStep={setImageFileStep}

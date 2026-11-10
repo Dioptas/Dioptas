@@ -18,11 +18,13 @@ import {
 export function IntegrationWorkspace({
   active,
   concealed = false,
+  controlsCollapsed = false,
   display,
   children,
 }: {
   active: boolean;
   concealed?: boolean;
+  controlsCollapsed?: boolean;
   display: string;
   children: ReactNode;
 }) {
@@ -102,6 +104,7 @@ export function IntegrationWorkspace({
       data-concealed={concealed}
       className={`workspace-content ${active ? "integration-layout" : ""}`}
       data-integration-display={display}
+      data-controls-collapsed={controlsCollapsed}
       style={
         active
           ? ({
@@ -115,7 +118,7 @@ export function IntegrationWorkspace({
       {active && (
         <>
           {divider("image")}
-          {divider("controls")}
+          {!controlsCollapsed && divider("controls")}
         </>
       )}
     </div>
