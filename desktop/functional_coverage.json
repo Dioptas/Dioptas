@@ -175,9 +175,14 @@
     },
     {
       "legacy": "test_functional_integration.py::BatchIntegrationFunctionalTest::test_create_waterfall",
-      "status": "unsupported",
-      "evidence": [],
-      "note": "Qt batch rectangle-to-waterfall-overlay generation is not implemented by the native Batch workspace. Ordinary overlay capture/scale is tested, but is not this feature."
+      "status": "adapted",
+      "evidence": [
+        "desktop/backend/tests/batch_waterfall.rs#rectangle_uses_exact_rows_bins_units_and_recorded_wavelength",
+        "desktop/backend/tests/batch_waterfall.rs#normalized_waterfalls_replace_repeat_and_round_trip_with_overlay_edits",
+        "desktop/backend/tests/batch_waterfall.rs#invalid_or_stale_rectangles_leave_the_previous_overlay_owner_unchanged",
+        "desktop/scripts/batch_waterfall_smoke.mjs"
+      ],
+      "note": "Rust extracts exact half-open bin/row slices with Qt integer truncation and stride, replacing shared overlays and applying their existing separation. Headless Chromium/WebKit cover drag/reverse/repeat/Step, Escape/pointer cancel, ordinary navigation and detached ownership. Stored-only, normalized, 2theta/Q/descending d, source identity, std arrays and offline projects are tested. Drag replaces Qt's two-click rectangle gesture; selections are bounded to 1000 curves."
     },
     {
       "legacy": "test_functional_integration.py::BatchIntegrationFunctionalTest::test_show_phases",

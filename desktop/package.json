@@ -60,6 +60,7 @@
     "test:hdf5-sources": "node scripts/hdf5_sources_smoke.mjs",
     "test:image-change": "node scripts/image_change_smoke.mjs && node scripts/image_change_smoke.mjs --webkit",
     "test:standalone-processor": "node scripts/standalone_processor_smoke.mjs",
+    "test:batch-waterfall": "node scripts/batch_waterfall_smoke.mjs",
     "test:ci-native": "node scripts/check_native_desktop.mjs",
     "test:ci-reference": "node scripts/check_native_desktop.mjs --references",
     "test:functional-coverage": "node scripts/functional_coverage.mjs"

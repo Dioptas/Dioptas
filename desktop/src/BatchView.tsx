@@ -20,6 +20,10 @@ import { DataTable, TableScroll } from "./DataTable";
 import { BatchHeatmap } from "./BatchHeatmap";
 import { BatchSurfaceView } from "./BatchSurfaceView";
 import { batchSurfaceSeriesKey } from "./batchSurfaceGeometry";
+import {
+  BatchWaterfallControls,
+  useBatchWaterfall,
+} from "./BatchWaterfallControls";
 import { BatchControls } from "./BatchControls";
 import { PlotToggle } from "./IntegrationPlotControls";
 import { ImageIntensity } from "./ImageIntensity";
@@ -74,6 +78,7 @@ export function BatchView({
   onHide: () => void;
 }) {
   const display = useBatchDisplay(batch);
+  const waterfall = useBatchWaterfall(batch, run);
   const shownBatch = useMemo(
     () =>
       batch && linkedDisplay
@@ -320,6 +325,13 @@ export function BatchView({
           <ChartNoAxesColumn size={15} aria-hidden="true" />
           <span className="plot-toolbar-label">Phases</span>
         </PlotToggle>
+        {tab === "2D" && (
+          <BatchWaterfallControls
+            active={waterfall.active}
+            ready={ready && !!batch}
+            onToggle={waterfall.toggle}
+          />
+        )}
         <div className="batch-window-actions">
           {onCollapse && (
             <Button
@@ -495,6 +507,7 @@ export function BatchView({
                       onZoomMode={(zoomMode) => display.update({ zoomMode })}
                       ready={ready}
                       onSelect={select}
+                      waterfall={waterfall}
                       onNormalize={() =>
                         run(
                           "batch_normalize",
@@ -524,7 +537,10 @@ export function BatchView({
           onRange={onRange}
           displayStep={display.surfaceStep}
           displayRange={display.range}
-          onStep={(surfaceStep) => display.update({ surfaceStep })}
+          onStep={(surfaceStep) => {
+            waterfall.step(surfaceStep);
+            if (tab !== "Files") display.update({ surfaceStep });
+          }}
         />
       )}
     </section>

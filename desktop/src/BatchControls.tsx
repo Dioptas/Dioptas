@@ -1,5 +1,5 @@
 import { Button, Input } from "./ui";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ScientificNumberInput } from "./ScientificNumberInput";
 import type { BatchData, BatchRun } from "./batchDomain";
@@ -36,8 +36,13 @@ export function BatchControls({
     max = filesView ? (batch?.total ?? 1) - 1 : count - 1;
   const [start, setStart] = useState(0),
     [stop, setStop] = useState(Math.max(0, max)),
-    [step, setStep] = useState(1),
+    [step, setStep] = useState(filesView ? 1 : displayStep),
     [jump, setJump] = useState("1");
+  const stepCallback = useRef(onStep);
+  stepCallback.current = onStep;
+  useEffect(() => {
+    stepCallback.current?.(step);
+  }, [step]);
   const [minimum, setMinimum] = useState(""),
     [maximum, setMaximum] = useState("");
   const region = batchNormalizationRegion(batch);
@@ -210,7 +215,6 @@ export function BatchControls({
           disabled={!batch}
           onCommit={(value) => {
             setStep(value);
-            if (!filesView) onStep?.(value);
           }}
         />
       </label>

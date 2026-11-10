@@ -81,6 +81,8 @@ if (selected.has("--ui")) {
     "native_calibration_smoke",
     "native_mask_smoke",
     "native_integration_workflow_smoke",
+    "batch_waterfall_smoke",
+    "batch_surface_smoke",
     "native_corrections_smoke",
     "native_project_smoke",
     "native_geometry_mask_smoke",

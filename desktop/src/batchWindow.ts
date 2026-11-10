@@ -25,6 +25,7 @@ const edits = new Set([
   "batch_folder",
   "batch_open",
   "batch_select",
+  "batch_waterfall",
   "batch_normalize",
   "integration_save_batch",
 ]);

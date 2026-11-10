@@ -205,6 +205,7 @@ export interface Response {
   batchPosition?: import("./linkedPosition").PatternPosition;
   batchWavelength?: number | null;
   batchOpened?: boolean;
+  batchWaterfallCreated?: boolean;
   batchLevels?: [number, number];
   batchWarning?: string | null;
   phaseEditor?: PhaseEditorData;

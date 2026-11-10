@@ -75,7 +75,8 @@ impl MapProgress {
                     .overlays
                     .iter()
                     .find(|o| o.name == overlay)
-                    .map(|o| o.curve())
+                    .map(|o| o.curve(unit))
+                    .transpose()?
                     .ok_or_else(|| format!("Unknown overlay {overlay}."))?;
                 Ok(crate::map_math::reduce(
                     &curve.x,
@@ -657,6 +658,29 @@ impl Session {
                 let mut reply = self.select_series(&b, 0, false, true, None)?;
                 self.attach_batch(&mut reply);
                 reply.result["batchOpened"] = json!(true);
+                return Ok(Some(reply));
+            }
+            "batch_waterfall" => {
+                check_keys(args, &["series", "bins", "rows", "step"])?;
+                let series = self.batch.as_ref().ok_or("Load a Batch series first.")?;
+                let curves = crate::batch_waterfall::extract(
+                    series,
+                    args,
+                    &self.patterns.unit,
+                    &self.control,
+                )?;
+                self.patterns.replace_batch_waterfall(curves)?;
+                self.rebuild_pattern()?;
+                self.revision += 1;
+                let mut reply = self.snapshot(false);
+                reply.buffers.clear();
+                for key in [
+                    "image", "rawImage", "mask", "cake", "rings", "linked", "batch", "map",
+                ] {
+                    reply.result.as_object_mut().unwrap().remove(key);
+                }
+                reply.result["patternOnly"] = json!(true);
+                reply.result["batchWaterfallCreated"] = json!(true);
                 return Ok(Some(reply));
             }
             "batch_snapshot" => {
