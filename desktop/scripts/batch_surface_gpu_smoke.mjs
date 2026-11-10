@@ -151,6 +151,12 @@ try {
         fine.vertices,
         "Zoom keeps the selected mesh resolution",
       );
+      assert.equal(
+        zooming.meshUploads,
+        fine.meshUploads,
+        "Zoom updates the camera without uploading mesh buffers",
+      );
+      assert.equal(zooming.geometryReused, "true");
       const zoomImage = await surface.evaluate((canvas) => canvas.toDataURL());
       await page.waitForTimeout(250);
       assert.equal(
@@ -174,8 +180,17 @@ try {
         { steps: 4 },
       );
       const moving = await details(surface);
-      assert.equal(moving.detail, "moving");
-      assert.ok(Number(moving.vertices) <= 8192);
+      assert.equal(
+        moving.vertices,
+        fine.vertices,
+        "Rotation retains the selected resolution",
+      );
+      assert.equal(moving.geometryReused, "true");
+      assert.equal(
+        moving.meshUploads,
+        fine.meshUploads,
+        "Rotation updates only the camera projection",
+      );
       await page.mouse.up();
       await page.waitForFunction(
         () =>
@@ -185,13 +200,63 @@ try {
       assert.equal(
         (await details(surface)).vertices,
         fine.vertices,
-        "Requested detail returns after rotation",
+        "Requested detail stays constant after rotation",
       );
       assert.equal(
         await checksum(page),
         sourceHash,
         "Mesh quality never changes source pixels",
       );
+      const uploads = +(await details(surface)).meshUploads;
+      await page.mouse.down({ button: "right" });
+      await page.mouse.move(
+        box.x + box.width / 2 + 65,
+        box.y + box.height / 2 + 35,
+        { steps: 3 },
+      );
+      await page.mouse.up({ button: "right" });
+      assert.equal(
+        +(await details(surface)).meshUploads,
+        uploads,
+        "Panning reuses the mesh too",
+      );
+      const beforeLevels = await surface.evaluate((canvas) =>
+        canvas.toDataURL(),
+      );
+      await page.evaluate(() => window.setSurfaceLimits([0, 75]));
+      await page.waitForFunction(
+        (n) =>
+          +document.querySelector('[data-testid="batch-surface"]').dataset
+            .meshUploads > n,
+        uploads,
+      );
+      assert.notEqual(
+        await surface.evaluate((canvas) => canvas.toDataURL()),
+        beforeLevels,
+        "Histogram limits rebuild the displayed heights",
+      );
+      await page.evaluate(() => window.setSurfaceLimits([0, 150]));
+      await page.evaluate(() => window.setSurfaceScale("sqrt"));
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[data-testid="batch-surface"]').dataset
+            .intensityScale === "sqrt",
+      );
+      assert.ok(+(await details(surface)).meshUploads > uploads);
+      await page.evaluate(() => window.setSurfaceScale("linear"));
+      const paletteUploads = +(await details(surface)).meshUploads;
+      await page.evaluate(() => window.setSurfacePalette("grey"));
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[data-testid="batch-surface"]').dataset
+            .palette === "grey",
+      );
+      assert.equal(
+        +(await details(surface)).meshUploads,
+        paletteUploads,
+        "Changing colors retains the mesh heights",
+      );
+      await page.evaluate(() => window.setSurfacePalette("viridis"));
       // Picking follows GPU depth rather than the mesh's array order.
       const pick = await page.evaluate(async () => {
         const { hitBatchSurface } =

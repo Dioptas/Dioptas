@@ -5,11 +5,47 @@ import {
   surfaceAxisProjection,
   layoutSurfaceAxes,
   surfaceLabelsOverlap,
+  surfaceProjectionMatrix,
 } from "../src/batchSurfaceAxes.ts";
 import {
   surfaceCamera,
   surfaceIntensity,
 } from "../src/batchSurfaceGeometry.ts";
+
+test("resident GPU camera matrix agrees with physical axes across rotation, stretch, zoom and pan", () => {
+  for (const azimuth of [-140, 0, 45, 90, 210])
+    for (const elevation of [-60, 0, 30, 90])
+      for (const zoom of [0.4, 1, 3]) {
+        const width = 970,
+          height = 650;
+        const project = surfaceAxisProjection(
+          { ...surfaceCamera(), azimuth, elevation, zoom, panX: 17, panY: -11 },
+          [1.4, 0.8, 1.2],
+          width,
+          height,
+          13,
+        );
+        const matrix = surfaceProjectionMatrix(project, width, height);
+        for (const [f, r, z] of [
+          [0, 0, 0],
+          [1, 1, 1],
+          [0.17, 0.81, 0.42],
+          [0.5, 0.5, 0.5],
+        ]) {
+          const p = project(f, r, z);
+          const x = matrix[0] * f + matrix[4] * r + matrix[8] * z + matrix[12];
+          const y = matrix[1] * f + matrix[5] * r + matrix[9] * z + matrix[13];
+          const depth =
+            matrix[2] * f + matrix[6] * r + matrix[10] * z + matrix[14];
+          assert.ok(Math.abs(((x + 1) * width) / 2 - p.x) < 0.001);
+          assert.ok(Math.abs(((1 - y) * height) / 2 - p.y) < 0.001);
+          assert.ok(
+            depth >= -0.981 && depth <= 0.981,
+            "Camera depth contains the complete data box",
+          );
+        }
+      }
+});
 
 test("surface radial ticks use rounded majors rather than arbitrary endpoints", () => {
   const axis = surfaceAxisTicks(0.03, 30.11, 2);

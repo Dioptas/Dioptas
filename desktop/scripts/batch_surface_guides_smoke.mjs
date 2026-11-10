@@ -128,6 +128,7 @@ try {
       await page.screenshot({
         path: path.join(artifacts, name + "-contours-planes.png"),
       });
+      const guideMeshUploads = (await state(surface)).meshUploads;
       for (const orientation of ["Front", "Right", "Top", "Isometric"]) {
         await page
           .getByRole("button", {
@@ -137,6 +138,12 @@ try {
           .click();
         assert.equal((await state(surface)).phaseReferences, "2");
         assert.equal((await state(surface)).renderer, "webgl2");
+        assert.equal(
+          (await state(surface)).meshUploads,
+          guideMeshUploads,
+          "Phase-plane navigation retains the resident surface mesh",
+        );
+        assert.equal((await state(surface)).geometryReused, "true");
       }
       await page.evaluate(() => window.setSurfacePhases(undefined));
       await page.waitForFunction(

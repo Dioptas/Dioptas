@@ -87,6 +87,38 @@ export function surfaceAxisProjection(
   };
 }
 
+/** Same affine fitted-box projection for GPU vertices, axes and picking. */
+export function surfaceProjectionMatrix(
+  project: SurfaceProjection,
+  width: number,
+  height: number,
+) {
+  const depths = corners.map((p) => project(...p).depth);
+  const minimum = Math.min(...depths),
+    span = Math.max(1e-12, Math.max(...depths) - minimum);
+  const ndc = (p: SurfacePoint) => [
+    (2 * p.x) / Math.max(1, width) - 1,
+    1 - (2 * p.y) / Math.max(1, height),
+    0.98 - (1.96 * (p.depth - minimum)) / span,
+  ];
+  const origin = ndc(project(0, 0, 0));
+  const basis = [
+    ndc(project(1, 0, 0)),
+    ndc(project(0, 1, 0)),
+    ndc(project(0, 0, 1)),
+  ];
+  return new Float32Array([
+    ...basis.flatMap((p) => [
+      p[0] - origin[0],
+      p[1] - origin[1],
+      p[2] - origin[2],
+      0,
+    ]),
+    ...origin,
+    1,
+  ]);
+}
+
 function niceValue(value: number, lower: number, upper: number) {
   if (value === 0) return 0;
   const power = 10 ** Math.floor(Math.log10(Math.abs(value)));

@@ -48,6 +48,7 @@ function Harness() {
       setRange(null);
     },
     setSurfaceScale: setScale,
+    setSurfaceLimits: setLimits,
     setSurfacePhases: setPhaseLines,
     setSurfaceGuideFixture: () => {
       const rows = 31,

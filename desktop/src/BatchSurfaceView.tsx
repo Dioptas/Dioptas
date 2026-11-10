@@ -163,7 +163,6 @@ export function BatchSurfaceView({
     }
     return "high";
   });
-  const [interacting, setInteracting] = useState(false);
   const lastHover = useRef(-Infinity);
   const rightClick = useRef<{ time: number; x: number; y: number } | null>(
     null,
@@ -189,16 +188,9 @@ export function BatchSurfaceView({
         batch.x.length,
         range,
         step,
-        interacting ? "fast" : resolution,
+        resolution,
       ),
-    [
-      batch.entries.length,
-      batch.x.length,
-      range,
-      step,
-      interacting,
-      resolution,
-    ],
+    [batch.entries.length, batch.x.length, range, step, resolution],
   );
   const marker =
     position &&
@@ -402,7 +394,7 @@ export function BatchSurfaceView({
         </Button>
         <span
           className="batch-surface-sampling"
-          title={`${surfaceResolutions[resolution].label} display detail${interacting ? "; lighter mesh while moving" : ""}. Frame stride ${sampling.frameStep}; radial stride ${sampling.columnStep}. Stored data and exports retain every sample.`}
+          title={`${surfaceResolutions[resolution].label} display detail. Frame stride ${sampling.frameStep}; radial stride ${sampling.columnStep}. Stored data and exports retain every sample.`}
         >
           {sampling.frames.length} × {sampling.columns.length} · step{" "}
           {sampling.frameStep}
@@ -498,8 +490,8 @@ export function BatchSurfaceView({
           </label>
           <p role="status">
             {renderer === "webgl2" ? "GPU drawing" : "Canvas fallback"} · Higher
-            detail uses more stored samples. Zooming keeps the selected detail;
-            rotation and panning use a lighter mesh while moving.
+            detail uses more stored samples. Zooming, rotation and panning keep
+            the selected detail.
           </p>
           <SurfaceNumber
             label={`Surface radial minimum ${unitLabel(batch.unit)}`}
@@ -548,7 +540,7 @@ export function BatchSurfaceView({
           data-column-step={sampling.columnStep}
           data-vertices={sampling.frames.length * sampling.columns.length}
           data-resolution={resolution}
-          data-detail={interacting ? "moving" : "settled"}
+          data-detail="settled"
           data-frame-first={sampling.firstRow + 1}
           data-frame-last={sampling.lastRow + 1}
           data-radial-first={radialEdges[0]}
@@ -587,7 +579,6 @@ export function BatchSurfaceView({
               d.moved ||= Math.hypot(dx, dy) > 3;
               if (d.moved) {
                 rightClick.current = null;
-                setInteracting(true);
                 setView((v) => ({
                   ...v,
                   camera:
@@ -645,7 +636,6 @@ export function BatchSurfaceView({
           onPointerUp={(e) => {
             const d = drag.current;
             drag.current = null;
-            setInteracting(false);
             if (e.currentTarget.hasPointerCapture(e.pointerId))
               e.currentTarget.releasePointerCapture(e.pointerId);
             if (!d || d.moved) return;
@@ -680,7 +670,6 @@ export function BatchSurfaceView({
           onPointerCancel={() => {
             rightClick.current = null;
             drag.current = null;
-            setInteracting(false);
           }}
           onPointerLeave={() => reportPlot("batch", null)}
           onKeyDown={(e) => {

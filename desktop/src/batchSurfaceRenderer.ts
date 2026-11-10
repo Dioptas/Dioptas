@@ -26,6 +26,7 @@ import {
   surfaceAxisProjection,
   layoutSurfaceAxes,
   drawSurfaceAxes,
+  surfaceProjectionMatrix,
 } from "./batchSurfaceAxes";
 
 export interface SurfaceVertex extends SurfacePoint {
@@ -37,10 +38,29 @@ export interface SurfaceVertex extends SurfacePoint {
 }
 export type SurfaceTriangle = [SurfaceVertex, SurfaceVertex, SurfaceVertex];
 export interface SurfaceScene {
+  /** Normalized mesh coordinates when project is supplied; screen coordinates
+   * for software drawing and independent picking callers. */
   triangles: SurfaceTriangle[];
   vertices: SurfaceVertex[];
   depthSorted: boolean;
+  project?: (point: SurfaceVertex) => SurfaceVertex;
+  projected?: SurfaceScene;
 }
+interface SurfaceMesh {
+  key: unknown[];
+  vertices: SurfaceVertex[];
+  triangles: SurfaceTriangle[];
+  references: ReturnType<typeof surfacePhaseReferences>;
+  contourLevels: ReturnType<typeof surfaceContourLevels>;
+  guides: SurfaceGuides;
+  strengths: number[];
+  frameHeights: number[];
+  triangleReferences: (
+    tri: SurfaceTriangle,
+  ) => ReturnType<typeof surfacePhaseReferences>;
+  sampledMaximum: number;
+}
+const meshes = new WeakMap<HTMLCanvasElement, SurfaceMesh>();
 export function drawBatchSurface(
   canvas: HTMLCanvasElement,
   opts: {
@@ -79,8 +99,10 @@ export function drawBatchSurface(
     2,
     2048 / Math.max(1, size.width, size.height),
   );
-  canvas.width = Math.max(1, Math.round(size.width * dpr));
-  canvas.height = Math.max(1, Math.round(size.height * dpr));
+  const pixelWidth = Math.max(1, Math.round(size.width * dpr));
+  const pixelHeight = Math.max(1, Math.round(size.height * dpr));
+  if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
+  if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     canvas.dataset.renderState = "unavailable";
@@ -121,6 +143,18 @@ export function drawBatchSurface(
     limits,
     scale,
   });
+  const projectWorld = (frame: number, radial: number, z: number) => ({
+    x:
+      s.firstRow === s.lastRow
+        ? 0.5
+        : (frame - s.firstRow) / (s.lastRow - s.firstRow),
+    y: radialSpan === 0 ? 0.5 : (radial - radialFirst) / radialSpan,
+    depth: z,
+  });
+  const projectVertex = (p: SurfaceVertex): SurfaceVertex => ({
+    ...p,
+    ...projectBox(p.x, p.y, p.depth),
+  });
   const vertex = (
     frame: number,
     column: number,
@@ -130,7 +164,7 @@ export function drawBatchSurface(
     const z = surfaceIntensity(intensity, limits, scale);
     const radial = batch.x[column];
     return {
-      ...project(frame, radial, z),
+      ...projectWorld(frame, radial, z),
       frame,
       radial,
       intensity,
@@ -138,27 +172,157 @@ export function drawBatchSurface(
       meshIndex,
     };
   };
-  const vertices = s.frames.flatMap((frame, r) =>
-    s.columns.map((column, c) =>
-      vertex(frame, column, r * s.columns.length + c),
-    ),
-  );
-  const triangles: SurfaceTriangle[] = [];
-  const nc = s.columns.length;
-  for (let r = 0; r < s.frames.length - 1; r++)
-    for (let c = 0; c < nc - 1; c++) {
-      const a = vertices[r * nc + c],
-        b = vertices[(r + 1) * nc + c];
-      const d = vertices[r * nc + c + 1],
-        e = vertices[(r + 1) * nc + c + 1];
-      for (const tri of [
-        [a, b, d],
-        [b, e, d],
-      ] as SurfaceTriangle[]) {
-        if (tri.every((p) => Number.isFinite(p.z) && Number.isFinite(p.radial)))
-          triangles.push(tri);
+  const key = [
+    values,
+    s,
+    batch.x,
+    batch.unit,
+    batch.wavelength,
+    ...limits,
+    scale,
+    opts.contours,
+    opts.phaseLines,
+    opts.phaseStyle,
+    opts.phaseHeights,
+  ];
+  let mesh = meshes.get(canvas);
+  const reused =
+    !!mesh && key.every((value, index) => value === mesh!.key[index]);
+  if (!reused) {
+    const vertices = s.frames.flatMap((frame, r) =>
+      s.columns.map((column, c) =>
+        vertex(frame, column, r * s.columns.length + c),
+      ),
+    );
+    const triangles: SurfaceTriangle[] = [];
+    const nc = s.columns.length;
+    for (let r = 0; r < s.frames.length - 1; r++)
+      for (let c = 0; c < nc - 1; c++) {
+        const a = vertices[r * nc + c],
+          b = vertices[(r + 1) * nc + c];
+        const d = vertices[r * nc + c + 1],
+          e = vertices[(r + 1) * nc + c + 1];
+        for (const tri of [
+          [a, b, d],
+          [b, e, d],
+        ] as SurfaceTriangle[]) {
+          if (
+            tri.every((p) => Number.isFinite(p.z) && Number.isFinite(p.radial))
+          )
+            triangles.push(tri);
+        }
       }
+    const contourLevels =
+      opts.contours === false ? [] : surfaceContourLevels(limits, scale);
+    const references = surfacePhaseReferences(batch, opts.phaseLines, [
+      radialFirst,
+      radialLast,
+    ]).sort((a, b) => a.radial - b.radial);
+    // Only visit reflections crossing a triangle's radial interval, avoiding a
+    // complete mesh scan per reflection for dense phase lists/high-detail meshes.
+    const triangleReferences = (tri: SurfaceTriangle) => {
+      const lo = Math.min(...tri.map((p) => p.radial)),
+        hi = Math.max(...tri.map((p) => p.radial));
+      let first = 0,
+        last = references.length;
+      while (first < last) {
+        const mid = (first + last) >>> 1;
+        if (references[mid].radial < lo) first = mid + 1;
+        else last = mid;
+      }
+      const found = [];
+      for (
+        let i = first;
+        i < references.length && references[i].radial <= hi;
+        i++
+      )
+        found.push(references[i]);
+      return found;
+    };
+    const guides: SurfaceGuides = {
+      contours: contourLevels.map((t) => t.fraction),
+      segments: [],
+      planes: [],
+    };
+    const strengths = scalePhaseReflections(references, 1);
+    const frameHeights =
+      opts.phaseStyle === "planes" && references.length
+        ? (opts.phaseHeights ??
+          surfacePhaseFrameHeights(values, batch.x.length, s, limits, scale))
+        : [];
+    if (opts.phaseStyle === "planes") {
+      for (const [index, reference] of references.entries()) {
+        const strength = strengths[index];
+        if (strength <= 0) continue;
+        const tops = s.frames.map((frame, i) =>
+          projectWorld(frame, reference.radial, frameHeights[i] * strength),
+        );
+        const floor = s.frames.map((frame) =>
+          projectWorld(frame, reference.radial, 0),
+        );
+        for (let i = 0; i < tops.length - 1; i++) {
+          if (frameHeights[i] <= 0 && frameHeights[i + 1] <= 0) continue;
+          guides.planes.push({
+            points: [floor[i], floor[i + 1], tops[i], tops[i + 1]],
+            color: reference.color,
+            opacity: 0.13,
+          });
+          guides.segments.push({
+            points: [tops[i], tops[i + 1]],
+            color: reference.color,
+            width: 1,
+          });
+        }
+        if (tops.length)
+          for (const points of [
+            [floor[0], floor.at(-1)!],
+            [floor[0], tops[0]],
+            [floor.at(-1)!, tops.at(-1)!],
+          ] as [SurfacePoint, SurfacePoint][])
+            guides.segments.push({ points, color: reference.color, width: 1 });
+      }
+    } else if (references.length) {
+      for (const tri of triangles)
+        for (const reference of triangleReferences(tri)) {
+          const points = sliceSurfaceTriangle(tri, "radial", reference.radial);
+          if (points)
+            guides.segments.push({
+              points,
+              color: reference.color,
+              width: 1.8,
+            });
+        }
     }
+    mesh = {
+      key,
+      vertices,
+      triangles,
+      references,
+      contourLevels,
+      guides,
+      strengths,
+      frameHeights,
+      triangleReferences,
+      sampledMaximum: vertices.reduce(
+        (maximum, p) =>
+          Number.isFinite(p.intensity)
+            ? Math.max(maximum, p.intensity)
+            : maximum,
+        -Infinity,
+      ),
+    };
+    meshes.set(canvas, mesh);
+  }
+  const {
+    vertices,
+    triangles,
+    references,
+    contourLevels,
+    guides,
+    strengths,
+    frameHeights,
+    triangleReferences,
+  } = mesh!;
   const line = (points: SurfacePoint[], color: string, width = 1) => {
     ctx.strokeStyle = color;
     ctx.lineWidth = width;
@@ -180,83 +344,6 @@ export function drawBatchSurface(
     { length: 256 },
     (_, i) => `rgb(${rasterColor(i / 255, opts.palette).join(",")})`,
   );
-  const contourLevels =
-    opts.contours === false ? [] : surfaceContourLevels(limits, scale);
-  const references = surfacePhaseReferences(batch, opts.phaseLines, [
-    radialFirst,
-    radialLast,
-  ]).sort((a, b) => a.radial - b.radial);
-  // Only visit reflections crossing a triangle's radial interval, avoiding a
-  // complete mesh scan per reflection for dense phase lists/high-detail meshes.
-  const triangleReferences = (tri: SurfaceTriangle) => {
-    const lo = Math.min(...tri.map((p) => p.radial)),
-      hi = Math.max(...tri.map((p) => p.radial));
-    let first = 0,
-      last = references.length;
-    while (first < last) {
-      const mid = (first + last) >>> 1;
-      if (references[mid].radial < lo) first = mid + 1;
-      else last = mid;
-    }
-    const found = [];
-    for (
-      let i = first;
-      i < references.length && references[i].radial <= hi;
-      i++
-    )
-      found.push(references[i]);
-    return found;
-  };
-  const guides: SurfaceGuides = {
-    contours: contourLevels.map((t) => t.fraction),
-    segments: [],
-    planes: [],
-  };
-  const strengths = scalePhaseReflections(references, 1);
-  const frameHeights =
-    opts.phaseStyle === "planes" && references.length
-      ? (opts.phaseHeights ??
-        surfacePhaseFrameHeights(values, batch.x.length, s, limits, scale))
-      : [];
-  if (opts.phaseStyle === "planes") {
-    for (const [index, reference] of references.entries()) {
-      const strength = strengths[index];
-      if (strength <= 0) continue;
-      const tops = s.frames.map((frame, i) =>
-        project(frame, reference.radial, frameHeights[i] * strength),
-      );
-      const floor = s.frames.map((frame) =>
-        project(frame, reference.radial, 0),
-      );
-      for (let i = 0; i < tops.length - 1; i++) {
-        if (frameHeights[i] <= 0 && frameHeights[i + 1] <= 0) continue;
-        guides.planes.push({
-          points: [floor[i], floor[i + 1], tops[i], tops[i + 1]],
-          color: reference.color,
-          opacity: 0.13,
-        });
-        guides.segments.push({
-          points: [tops[i], tops[i + 1]],
-          color: reference.color,
-          width: 1,
-        });
-      }
-      if (tops.length)
-        for (const points of [
-          [floor[0], floor.at(-1)!],
-          [floor[0], tops[0]],
-          [floor.at(-1)!, tops.at(-1)!],
-        ] as [SurfacePoint, SurfacePoint][])
-          guides.segments.push({ points, color: reference.color, width: 1 });
-    }
-  } else if (references.length) {
-    for (const tri of triangles)
-      for (const reference of triangleReferences(tri)) {
-        const points = sliceSurfaceTriangle(tri, "radial", reference.radial);
-        if (points)
-          guides.segments.push({ points, color: reference.color, width: 1.8 });
-      }
-  }
   let fallbackPhaseSegments = 0;
   const gpu = triangles.length
     ? drawSurfaceGPU(
@@ -267,17 +354,29 @@ export function drawBatchSurface(
         size.height,
         opts.palette,
         guides,
+        surfaceProjectionMatrix(projectBox, size.width, size.height),
       )
     : null;
+  let fallbackScene: SurfaceScene | null = null;
   if (gpu) ctx.drawImage(gpu, 0, 0, size.width, size.height);
   else {
     // Canvas is the explicit compatibility fallback for unavailable/lost GPU
     // contexts. Its painter order also permits an early hit-test exit.
-    triangles.sort(
+    const projectedVertices = vertices.map(projectVertex);
+    const projectedTriangles = triangles.map(
+      (tri) =>
+        tri.map((p) => projectedVertices[p.meshIndex]) as SurfaceTriangle,
+    );
+    fallbackScene = {
+      vertices: projectedVertices,
+      triangles: projectedTriangles,
+      depthSorted: true,
+    };
+    projectedTriangles.sort(
       (a, b) =>
         a.reduce((n, p) => n + p.depth, 0) - b.reduce((n, p) => n + p.depth, 0),
     );
-    for (const tri of triangles) {
+    for (const tri of projectedTriangles) {
       ctx.fillStyle =
         colors[Math.round((tri.reduce((sum, p) => sum + p.z, 0) / 3) * 255)];
       ctx.beginPath();
@@ -307,8 +406,8 @@ export function drawBatchSurface(
   }
   // A one-frame or one-bin batch remains inspectable as a curve/point.
   if (!triangles.length) {
-    line(vertices, colors[160], 2);
-    for (const p of vertices)
+    line(vertices.map(projectVertex), colors[160], 2);
+    for (const p of vertices.map(projectVertex))
       if (Number.isFinite(p.z)) {
         ctx.fillStyle = colors[Math.round(p.z * 255)];
         ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
@@ -316,8 +415,8 @@ export function drawBatchSurface(
     // A single frame/bin has no faces to slice: mark its intersections or
     // trace the lone radial column, without bridging missing intensities.
     for (const reference of references) {
-      if (nc === 1) {
-        line(vertices, reference.color, 1.8);
+      if (s.columns.length === 1) {
+        line(vertices.map(projectVertex), reference.color, 1.8);
         fallbackPhaseSegments += Math.max(
           0,
           vertices.filter((p) => Number.isFinite(p.z)).length - 1,
@@ -347,7 +446,7 @@ export function drawBatchSurface(
   }
   if (batch.selected >= s.firstRow && batch.selected <= s.lastRow)
     line(
-      s.columns.map((c) => vertex(batch.selected, c)),
+      s.columns.map((c) => projectVertex(vertex(batch.selected, c))),
       "#ff9500",
       2,
     );
@@ -357,7 +456,7 @@ export function drawBatchSurface(
     const column = clamp(Math.round(markerBin - 0.5), 0, batch.x.length - 1);
     if (column >= s.firstColumn && column <= s.lastColumn)
       line(
-        s.frames.map((r) => vertex(r, column)),
+        s.frames.map((r) => projectVertex(vertex(r, column))),
         "#63e09a",
         2,
       );
@@ -402,23 +501,26 @@ export function drawBatchSurface(
     gpu && opts.phaseStyle === "planes" ? "planes" : "lines";
   canvas.dataset.renderer = gpu ? "webgl2" : "canvas";
   canvas.dataset.renderMs = String(performance.now() - started);
-  canvas.dataset.sampledMaximum = String(
-    vertices.reduce(
-      (maximum, p) =>
-        Number.isFinite(p.intensity) ? Math.max(maximum, p.intensity) : maximum,
-      -Infinity,
-    ),
-  );
-  const sample = triangles.at(-1);
+  canvas.dataset.sampledMaximum = String(mesh!.sampledMaximum);
+  canvas.dataset.geometryReused = String(reused);
+  canvas.dataset.meshUploads = gpu?.dataset.meshUploads ?? "0";
+  const sample = triangles.at(-1)?.map(projectVertex);
   canvas.dataset.hitSample = JSON.stringify(
     sample
       ? {
           x: sample.reduce((n, p) => n + p.x, 0) / 3,
           y: sample.reduce((n, p) => n + p.y, 0) / 3,
         }
-      : vertices[0],
+      : vertices[0] && projectVertex(vertices[0]),
   );
-  return { triangles, vertices, depthSorted: !gpu };
+  return (
+    fallbackScene ?? {
+      triangles,
+      vertices,
+      depthSorted: false,
+      project: projectVertex,
+    }
+  );
 }
 
 export function hitBatchSurface(
@@ -427,6 +529,19 @@ export function hitBatchSurface(
   y: number,
 ) {
   if (!scene) return null;
+  if (scene.project) {
+    if (!scene.projected) {
+      const vertices = scene.vertices.map(scene.project);
+      scene.projected = {
+        vertices,
+        triangles: scene.triangles.map(
+          (tri) => tri.map((p) => vertices[p.meshIndex]) as SurfaceTriangle,
+        ),
+        depthSorted: false,
+      };
+    }
+    scene = scene.projected;
+  }
   let front: { frame: number; radial: number } | null = null,
     depth = -Infinity;
   for (let i = scene.triangles.length - 1; i >= 0; i--) {
