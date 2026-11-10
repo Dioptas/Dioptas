@@ -41,6 +41,7 @@ export function ImageIntensity({
   initialAutoActive = true,
   onAutoActiveChange,
   mirrored = false,
+  gapFiltering = true,
 }: {
   preferences: ImageDisplayPreferences;
   onPreferences: (preferences: ImageDisplayPreferences) => void;
@@ -58,6 +59,7 @@ export function ImageIntensity({
   initialAutoActive?: boolean;
   onAutoActiveChange?: (active: boolean) => void;
   mirrored?: boolean;
+  gapFiltering?: boolean;
 }) {
   const id = useId(),
     container = useRef<HTMLDivElement>(null);
@@ -586,18 +588,20 @@ export function ImageIntensity({
                   />
                 </label>
               )}
-              <label className="display-settings-check">
-                <Input
-                  aria-label={label("Filter detector gaps")}
-                  type="checkbox"
-                  checked={auto.filter_gaps}
-                  disabled={!ready}
-                  onChange={(event) =>
-                    updateAuto({ filter_gaps: event.target.checked })
-                  }
-                />
-                Filter gaps
-              </label>
+              {gapFiltering && (
+                <label className="display-settings-check">
+                  <Input
+                    aria-label={label("Filter detector gaps")}
+                    type="checkbox"
+                    checked={auto.filter_gaps}
+                    disabled={!ready}
+                    onChange={(event) =>
+                      updateAuto({ filter_gaps: event.target.checked })
+                    }
+                  />
+                  Filter gaps
+                </label>
+              )}
               <label>
                 Minimum
                 <Input

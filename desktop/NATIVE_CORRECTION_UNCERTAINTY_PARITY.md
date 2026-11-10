@@ -64,8 +64,8 @@ The native GUI supports direct attenuation entry or formula/material and density
 lookup using Rust `xraydb` 0.4.1. Formula-derived μ follows the calibration
 wavelength and uses total Elam attenuation, matching Python XrayDB. Density 0
 uses the material database. Energies outside 100–800,000 eV fail explicitly.
-The correction-only plot view remains outside this step; no Python lookup is
-invoked silently.
+The native [Plot / Back preview](NATIVE_CORRECTION_PREVIEW_PARITY.md) displays
+the actual correction map; no Python lookup is invoked silently.
 
 The full embedded database is disabled. The app embeds only 329,526 bytes
 (about 322 KiB) of element properties and Elam photoabsorption/scattering data,

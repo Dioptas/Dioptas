@@ -1,3 +1,4 @@
+import { DetachedDetectorWindow } from "./DetachedDetectorWindow";
 import { ApplicationErrorBoundary, ErrorReportHost } from "./ApplicationErrors";
 import { createRoot } from "react-dom/client";
 import App from "./App";
@@ -38,8 +39,11 @@ if (
     <>
       <ErrorReportHost />
       <ApplicationErrorBoundary>
-        {(isTauri() && getCurrentWindow().label === "batch-window") ||
-        new URLSearchParams(location.search).has("batch_window") ? (
+        {(isTauri() && getCurrentWindow().label === "detector-window") ||
+        new URLSearchParams(location.search).has("detector_window") ? (
+          <DetachedDetectorWindow />
+        ) : (isTauri() && getCurrentWindow().label === "batch-window") ||
+          new URLSearchParams(location.search).has("batch_window") ? (
           <DetachedBatchWindow />
         ) : (isTauri() && getCurrentWindow().label === "map-window") ||
           new URLSearchParams(location.search).has("map_window") ? (

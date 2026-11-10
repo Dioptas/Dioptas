@@ -5,8 +5,10 @@ use tauri::{LogicalSize, Manager, PhysicalPosition, WebviewUrl, WebviewWindowBui
 fn label<const K: u8>() -> &'static str {
     if K == 0 {
         "map-window"
-    } else {
+    } else if K == 1 {
         "batch-window"
+    } else {
+        "detector-window"
     }
 }
 const DEFAULT_SIZE: [f64; 2] = [800., 760.];
@@ -95,6 +97,7 @@ impl Placement {
 pub struct WindowPlacementState<const K: u8>(Mutex<WindowState>);
 pub type MapWindowState = WindowPlacementState<0>;
 pub type BatchWindowState = WindowPlacementState<1>;
+pub type DetectorWindowState = WindowPlacementState<2>;
 #[derive(Default)]
 struct WindowState {
     last_normal: Option<Placement>,
@@ -106,16 +109,20 @@ fn state_path<const K: u8>(app: &tauri::AppHandle) -> Option<PathBuf> {
     if app.state::<crate::Host>().smoke {
         return std::env::var_os(if K == 0 {
             "DIOPTAS_MAP_WINDOW_STATE"
-        } else {
+        } else if K == 1 {
             "DIOPTAS_BATCH_WINDOW_STATE"
+        } else {
+            "DIOPTAS_DETECTOR_WINDOW_STATE"
         })
         .map(PathBuf::from);
     }
     app.path().app_config_dir().ok().map(|dir| {
         dir.join(if K == 0 {
             "map-window-v1.json"
-        } else {
+        } else if K == 1 {
             "batch-window-v1.json"
+        } else {
+            "detector-window-v1.json"
         })
     })
 }
@@ -249,12 +256,12 @@ fn window_event_kind<const K: u8>(window: &tauri::Window, event: &tauri::WindowE
     }
 }
 
-fn open_window<const K: u8>(
+pub(crate) fn open_window<const K: u8>(
     app: tauri::AppHandle,
     window: tauri::WebviewWindow,
 ) -> Result<(), String> {
     if window.label() != "main" {
-        return Err("Only the main window may detach the map.".into());
+        return Err("Only the main window may detach a companion view.".into());
     }
     if let Some(map) = app.get_webview_window(label::<K>()) {
         map.show().map_err(|e| e.to_string())?;
@@ -296,8 +303,10 @@ fn open_window<const K: u8>(
             )
                 .title(if K == 0 {
                     "Map — Dioptas"
-                } else {
+                } else if K == 1 {
                     "Batch — Dioptas"
+                } else {
+                    "Detector — Dioptas"
                 })
                 .inner_size(
                     if K == 0 { DEFAULT_SIZE[0] } else { 900. },
@@ -351,12 +360,12 @@ fn open_window<const K: u8>(
     opened
 }
 
-fn close_window<const K: u8>(
+pub(crate) fn close_window<const K: u8>(
     app: tauri::AppHandle,
     window: tauri::WebviewWindow,
 ) -> Result<(), String> {
     if window.label() != "main" {
-        return Err("Only the main window may dock the map.".into());
+        return Err("Only the main window may dock a companion view.".into());
     }
     if let Some(map) = app.get_webview_window(label::<K>()) {
         map.close().map_err(|e| e.to_string())?;
@@ -367,10 +376,12 @@ fn close_window<const K: u8>(
 pub fn save(app: &tauri::AppHandle) {
     save_kind::<0>(app);
     save_kind::<1>(app);
+    save_kind::<2>(app);
 }
 pub fn window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
     window_event_kind::<0>(window, event);
     window_event_kind::<1>(window, event);
+    window_event_kind::<2>(window, event);
 }
 #[tauri::command]
 pub fn open_map_window(app: tauri::AppHandle, window: tauri::WebviewWindow) -> Result<(), String> {

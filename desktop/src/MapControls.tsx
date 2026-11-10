@@ -38,6 +38,7 @@ export function MapControls({
   follow,
   onFollow,
   imageTab,
+  keepImageMounted = false,
   windowUnit,
   reintegrateSelected,
   onReintegrateSelected,
@@ -45,6 +46,7 @@ export function MapControls({
   reintegrateSelected: boolean;
   onReintegrateSelected: (enabled: boolean) => void;
   imageTab?: ReactNode;
+  keepImageMounted?: boolean;
   windowUnit?: Unit;
   map: MapData | null;
   state: State | null;
@@ -171,7 +173,14 @@ export function MapControls({
         role="tabpanel"
         aria-labelledby={`map-tab-${tab}`}
       >
-        {tab === "Image" && imageTab}
+        {(tab === "Image" || keepImageMounted) && (
+          <div
+            hidden={tab !== "Image"}
+            style={tab === "Image" ? { display: "contents" } : undefined}
+          >
+            {imageTab}
+          </div>
+        )}
         {tab === "Points" && (
           <section className="sidebar-section map-source-section">
             <div
