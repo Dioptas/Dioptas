@@ -236,8 +236,8 @@ try {
   // Qt's Image-tab modes share the same chooser; only Integrate opens Batch.
   for (const mode of ["add", "average", "save"]) {
     await page
-      .getByRole("radio", { name: `Batch mode ${mode}`, exact: true })
-      .click();
+      .getByRole("combobox", { name: "Batch mode", exact: true })
+      .selectOption(mode);
     await ready();
     await click(page, "Load image…");
     if (mode === "save")
@@ -256,8 +256,8 @@ try {
     assert.equal((await invoke("state")).batch, null);
   }
   await page
-    .getByRole("radio", { name: "Batch mode integrate", exact: true })
-    .click();
+    .getByRole("combobox", { name: "Batch mode", exact: true })
+    .selectOption("integrate");
   await ready();
   assert.equal(await fileInfo.getAttribute("aria-expanded"), "true");
   await fileInfo.click();

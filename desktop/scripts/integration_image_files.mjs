@@ -14,7 +14,7 @@ export async function verifyIntegrationImageFiles(page, invoke, waitReady) {
     exact: true,
   });
   const filename = panel.getByLabel("Image filename", { exact: true });
-  const directory = panel.getByLabel("Image directory", { exact: true });
+  const location = panel.getByLabel("Image location", { exact: true });
   const auto = panel.getByRole("checkbox", {
     name: "Autoprocess",
     exact: true,
@@ -67,13 +67,14 @@ export async function verifyIntegrationImageFiles(page, invoke, waitReady) {
       .getByRole("button", { name: "Choose image folder", exact: true })
       .click();
     await waitReady();
-    assert.equal(
-      await directory.inputValue(),
-      (await invoke("state")).state.integration.imageDirectory,
+    assert.ok(
+      (await location.textContent()).includes(
+        (await invoke("state")).state.integration.imageDirectory,
+      ),
     );
     await copyFile(source, path.join(folder, "acquisition_001.tif"));
-    await directory.fill(folder);
-    await directory.press("Enter");
+    await filename.fill(path.join(folder, "acquisition_001.tif"));
+    await filename.press("Enter");
     await waitReady();
     assert.equal(
       (await invoke("state")).state.integration.imageDirectory,
@@ -87,7 +88,9 @@ export async function verifyIntegrationImageFiles(page, invoke, waitReady) {
       path.join(folder, "acquisition_001.tif"),
     );
     for (const name of ["By Time", "By Name"]) {
-      await panel.getByRole("radio", { name, exact: true }).click();
+      await panel
+        .getByRole("combobox", { name: "Image file order", exact: true })
+        .selectOption(name === "By Time" ? "time" : "number");
       await waitReady();
       assert.equal(
         (await invoke("state")).state.integration.fileIteration,
@@ -135,7 +138,7 @@ export async function verifyIntegrationImageFiles(page, invoke, waitReady) {
   }
   return [
     "Real spinbox and aligned label",
-    "Folder chooser, editable directory and filename loading via Enter/Load",
+    "Folder chooser and exact filename loading via Enter/Load",
     "Autoprocess loads and integrates new files; disable and Escape work",
   ];
 }

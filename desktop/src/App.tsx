@@ -268,6 +268,7 @@ export default function App() {
     clear: clearPlot,
   } = usePlotReadout();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [imageFileStep, setImageFileStep] = useState(1);
   const [settingsSection, setSettingsSection] = useState(0);
   const [customActionsOpen, setCustomActionsOpen] = useState(false);
   const closeSettings = useCallback(() => {
@@ -1241,6 +1242,24 @@ export default function App() {
         event.preventDefault();
         if (!event.repeat)
           changeConfigurationControls(!showConfigurationControls);
+      } else if (
+        !mod &&
+        !event.altKey &&
+        !event.shiftKey &&
+        ["PageUp", "PageDown"].includes(event.key) &&
+        (mode === "integration" || mode === "calibration") &&
+        currentState.current?.hasImage
+      ) {
+        event.preventDefault();
+        void run(
+          "next_image",
+          {
+            direction: event.key === "PageUp" ? -1 : 1,
+            step: mode === "integration" ? imageFileStep : 1,
+            files_only: true,
+          },
+          "Opening image…",
+        );
       } else if (mod && key === "o") {
         event.preventDefault();
         void run(
@@ -1345,6 +1364,7 @@ export default function App() {
     settingsOpen,
     changeConfigurationControls,
     showConfigurationControls,
+    imageFileStep,
   ]);
   const onPatternHover = useCallback(
     (point: PatternHover | null) => {
@@ -3077,6 +3097,8 @@ export default function App() {
                       )}
                       {mode === "integration" && (
                         <IntegrationView
+                          fileStep={imageFileStep}
+                          setFileStep={setImageFileStep}
                           onOpenBatch={activateBatch}
                           batchOpen={batchDockVisible || batchWindow.detached}
                           batchDocked={batchDockVisible}

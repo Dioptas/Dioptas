@@ -178,18 +178,10 @@ try {
           .getByRole("button", { name: "Load image…", exact: true })
           .click();
         await ready();
-        const order = page
-          .getByRole("radiogroup", { name: "Image file order", exact: true })
-          .getByRole("radio", { name: `By ${mode}`, exact: true });
-        await order.click();
+        await page
+          .getByRole("combobox", { name: "Image file order", exact: true })
+          .selectOption(mode === "Name" ? "number" : "time");
         await ready();
-        await page.waitForFunction(
-          (value) =>
-            document.querySelector(
-              `input[name="integration-image-order"][value="${value}"]`,
-            )?.checked,
-          mode === "Name" ? "number" : "time",
-        );
         const beforeEnd = await call("state");
         for (const button of [previousImage, nextImage, nextImage]) {
           await page.evaluate(() => {
@@ -230,6 +222,14 @@ try {
         await nextImage.click();
         await ready();
         assert.equal((await call("state")).state.imagePath, second);
+        // The worker can finish before React publishes the image and clears
+        // the quiet boundary notice. Wait for that visible completion too.
+        await page.waitForFunction(
+          () =>
+            !/No (new|previous) image available/.test(
+              document.querySelector(".workflow-status")?.textContent ?? "",
+            ),
+        );
         assert.doesNotMatch(
           await page.locator(".workflow-status").innerText(),
           /No (new|previous) image available/,

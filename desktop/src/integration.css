@@ -68,7 +68,6 @@
   gap: 0;
   padding: 0 10px;
   border-bottom: 1px solid var(--border);
-  scrollbar-width: thin;
 }
 .integration-tabs button {
   flex: 1 0 auto;

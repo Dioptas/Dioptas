@@ -89,7 +89,9 @@ export async function verifyIntegrationPatternFiles(page, invoke, waitReady) {
     await step.press("Tab");
     assert.equal(await step.inputValue(), "2");
     await step.fill("1");
-    await panel.getByRole("radio", { name: "By Time", exact: true }).click();
+    await panel
+      .getByRole("combobox", { name: "Pattern file order", exact: true })
+      .selectOption("time");
     await waitReady();
     await click("Integration next pattern");
     assert.equal(await file.inputValue(), "scan_003.xy");
@@ -97,7 +99,9 @@ export async function verifyIntegrationPatternFiles(page, invoke, waitReady) {
       (await invoke("state")).state.integration.fileIteration,
       original.integration.fileIteration,
     );
-    await panel.getByRole("radio", { name: "By Name", exact: true }).click();
+    await panel
+      .getByRole("combobox", { name: "Pattern file order", exact: true })
+      .selectOption("number");
     await waitReady();
     await file.fill("scan_002.xy");
     await click("Load pattern…");

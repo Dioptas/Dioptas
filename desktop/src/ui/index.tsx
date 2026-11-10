@@ -7,6 +7,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import "./ui.css";
+import "./scrollbars.css";
 
 const classes = (base: string, extra?: string) =>
   extra ? `${base} ${extra}` : base;

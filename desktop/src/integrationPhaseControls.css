@@ -100,7 +100,6 @@
   gap: 3px;
   min-height: 0;
   overflow: auto;
-  scrollbar-width: thin;
 }
 .phase-step-controls > label {
   display: grid;
@@ -267,7 +266,6 @@
 .phase-reflections-scroll {
   max-height: 300px;
   overflow: auto;
-  scrollbar-width: thin;
 }
 .phase-reflections-scroll input[type="number"] {
   width: 100%;
@@ -290,7 +288,6 @@
 }
 .phase-action-rail {
   overflow-y: auto;
-  scrollbar-width: thin;
 }
 .phase-action-rail button {
   width: 25px;
@@ -329,7 +326,6 @@
 .phase-step-controls {
   min-height: 0;
   overflow: auto;
-  scrollbar-width: thin;
   display: flex;
   flex-direction: column;
   gap: 3px;

@@ -11,6 +11,10 @@ export const shortcutGroups = [
         "⌘ / Ctrl + O",
       ],
       ["Save project · save mask file in Mask mode", "⌘ / Ctrl + S"],
+      [
+        "Previous / next image file · Calibration and Integration; uses File step in Integration",
+        "Page Up / Page Down · Mac: Fn + ↑ / ↓",
+      ],
       ["Undo the latest scientific edit · shared across modes", "⌘ / Ctrl + Z"],
       ["Redo the latest scientific edit", "⌘ / Ctrl + Shift + Z · Ctrl + Y"],
       ["Delete selected calibration peak groups", "Delete / Backspace"],

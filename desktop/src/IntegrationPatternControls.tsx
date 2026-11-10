@@ -61,48 +61,56 @@ export function IntegrationPatternControls({
         onNavigate={(direction) =>
           action("integration_open_pattern", { direction, step })
         }
+        filenameControl={
+          <Input
+            className="integration-file-path"
+            aria-label="Pattern filename"
+            value={fileDraft}
+            onChange={(event) => setFileDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                loadFilename();
+              }
+              if (event.key === "Escape") setFileDraft(filename);
+            }}
+            title="Enter a filename, then press Enter or Load pattern"
+            placeholder="Pattern filename"
+            spellCheck={false}
+          />
+        }
       />
-      <Input
-        className="integration-file-path"
-        aria-label="Pattern filename"
-        value={fileDraft}
-        onChange={(event) => setFileDraft(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            loadFilename();
-          }
-          if (event.key === "Escape") setFileDraft(filename);
-        }}
-        title="Enter a filename, then press Enter or Load pattern"
-        placeholder="Pattern filename"
-        spellCheck={false}
-      />
-      <div className="integration-file-directory">
-        <PathInput
-          className="integration-file-path"
-          aria-label="Pattern directory"
-          value={directoryDraft}
-          onChange={(event) => setDirectoryDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              action("integration_output_directory", { path: directoryDraft });
-            }
-            if (event.key === "Escape")
-              setDirectoryDraft(source.outputDirectory);
-          }}
-          title="Pattern input folder and autocreate output folder"
-          placeholder="Pattern directory"
-          spellCheck={false}
-        />
-        <Button
-          aria-label="Choose pattern folder"
-          title="Choose pattern folder"
-          onClick={() => action("integration_output_directory")}
-        >
-          …
-        </Button>
+
+      <div className="integration-folder-row">
+        <span className="integration-browse-label">Folder</span>
+        <div className="integration-file-directory">
+          <PathInput
+            className="integration-file-path"
+            aria-label="Pattern directory"
+            value={directoryDraft}
+            onChange={(event) => setDirectoryDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                action("integration_output_directory", {
+                  path: directoryDraft,
+                });
+              }
+              if (event.key === "Escape")
+                setDirectoryDraft(source.outputDirectory);
+            }}
+            title="Pattern input folder and autocreate output folder"
+            placeholder="Pattern directory"
+            spellCheck={false}
+          />
+          <Button
+            aria-label="Choose pattern folder"
+            title="Choose pattern folder"
+            onClick={() => action("integration_output_directory")}
+          >
+            …
+          </Button>
+        </div>
       </div>
       <div className="integration-pattern-types">
         <span>Pattern types:</span>

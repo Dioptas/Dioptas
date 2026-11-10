@@ -13,8 +13,6 @@
   --table-control-background: var(--ui-input);
   --table-control-border: var(--ui-field-edge);
   --table-control-radius: 5px;
-  --table-scroll-track: var(--ui-input);
-  --table-scroll-thumb: #65707c;
 }
 .data-table,
 .data-table-grid,
@@ -144,32 +142,7 @@
   min-height: 0;
   overflow: auto;
   scrollbar-gutter: stable;
-  scrollbar-width: auto;
-  scrollbar-color: auto;
   overscroll-behavior: contain;
-}
-.app .data-table-scroll::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-  background: var(--table-scroll-track);
-}
-.app .data-table-scroll::-webkit-scrollbar-thumb {
-  min-width: 28px;
-  min-height: 28px;
-  border: 2px solid var(--table-scroll-track);
-  border-radius: 6px;
-  background: var(--table-scroll-thumb);
-}
-.app .data-table-scroll::-webkit-scrollbar-thumb:hover {
-  background: #89939e;
-}
-.app .data-table-scroll::-webkit-scrollbar-corner {
-  background: var(--table-scroll-track);
-}
-@supports not selector(::-webkit-scrollbar) {
-  .app .data-table-scroll {
-    scrollbar-color: var(--table-scroll-thumb) var(--table-scroll-track);
-  }
 }
 .data-table-actions {
   display: flex;

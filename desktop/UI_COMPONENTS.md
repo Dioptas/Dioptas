@@ -62,6 +62,12 @@ remain available. Do not call `createPortal` directly in individual views.
 ## Styling and verification
 
 Change common colors, borders, corners and control states in `src/ui/ui.css`.
+`src/ui/scrollbars.css` owns scrollbar appearance across all modes, dialogs and
+detached windows. Scrollbars remain visible while overflowing content is idle
+and occupy their own 12 px gutter rather than covering fields or text. Keep
+component overflow rules in view CSS; do not add thin, hidden or fading scrollbar
+overrides. Existing stable gutters remain available where content width should
+also stay constant as overflow starts or stops.
 View CSS can set dimensions, spacing, grid layout and toolbar/tab geometry.
 Readonly transparency, invalid-field feedback and scientific color swatches
 remain explicit semantic states. Do not add a private field or dialog palette
@@ -73,6 +79,9 @@ outside the shared components. `npm run test:ui-components` exercises the
 components in headless Chromium and WebKit at both text sizes, including table
 and detached-editor fields, popup inheritance, refs, form submission, nested
 dialogs, Escape/backdrop dismissal, focus and scientific numeric editing.
+It also checks idle vertical, horizontal and nested scrollbars, reserved gutter
+space, and content that fits without overflow. Chromium is launched without its
+headless-only `--hide-scrollbars` default for accurate layout and screenshots.
 Screenshots and the result report are written to `artifacts/ui-components/`.
 The existing calibration, mask, integration, phase, map, batch and custom-action
 smoke suites cover the migrated workflows.

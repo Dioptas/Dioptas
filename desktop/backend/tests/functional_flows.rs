@@ -735,6 +735,108 @@ fn incoming_file_integration_autosaves_and_mismatch_stops_without_mutation() {
 }
 
 #[test]
+fn watched_folder_survives_reference_browsing_and_changes_only_explicitly() {
+    let temp = tempfile::tempdir().unwrap();
+    let acquisition = temp.path().join("acquisition");
+    let other = temp.path().join("other-acquisition");
+    let references = temp.path().join("references");
+    for dir in [&acquisition, &other, &references] {
+        fs::create_dir(dir).unwrap();
+    }
+    let a = acquisition.join("scan_001.npy");
+    let reference = references.join("reference.npy");
+    let existing_other = other.join("scan_001.npy");
+    let p = temp.path().join("g.poni");
+    image(&a, 0.);
+    image(&reference, 10.);
+    image(&existing_other, 20.);
+    poni(&p);
+    let mut s = prepared(&a, &p, "2th_deg");
+    call(&mut s, "integration_autoprocess", json!({"enabled":true}));
+    let reference_reply = call(&mut s, "open_image", json!({"path":reference}));
+    assert_eq!(
+        reference_reply.result["state"]["integration"]["imageDirectory"],
+        json!(acquisition.canonicalize().unwrap())
+    );
+    image(&references.join("unrelated.npy"), 30.);
+    for _ in 0..2 {
+        call(&mut s, "integration_autoprocess_poll", json!({}));
+    }
+    assert_eq!(
+        call(&mut s, "state", json!({})).result["state"]["imagePath"],
+        json!(reference.canonicalize().unwrap())
+    );
+    let incoming = acquisition.join("scan_002.npy");
+    image(&incoming, 40.);
+    for _ in 0..2 {
+        call(&mut s, "integration_autoprocess_poll", json!({}));
+    }
+    let loaded = call(&mut s, "state", json!({}));
+    assert_eq!(
+        loaded.result["state"]["imagePath"],
+        json!(incoming.canonicalize().unwrap())
+    );
+    let mut independent = prepared(&incoming, &p, "2th_deg");
+    close(
+        &values(&loaded, "y"),
+        &values(&call(&mut independent, "state", json!({})), "y"),
+    );
+    image(&acquisition.join("pending.npy"), 50.);
+    call(&mut s, "integration_autoprocess_poll", json!({}));
+    // Explicit Folder selection discards the old queue and takes a fresh baseline.
+    call(&mut s, "integration_image_directory", json!({"path":other}));
+    for _ in 0..2 {
+        call(&mut s, "integration_autoprocess_poll", json!({}));
+    }
+    let unchanged = call(&mut s, "state", json!({}));
+    assert_eq!(
+        unchanged.result["state"]["imagePath"],
+        loaded.result["state"]["imagePath"]
+    );
+    assert_eq!(
+        unchanged.result["state"]["integration"]["imageDirectory"],
+        json!(other.canonicalize().unwrap())
+    );
+    let other_new = other.join("scan_002.npy");
+    image(&other_new, 60.);
+    for _ in 0..2 {
+        call(&mut s, "integration_autoprocess_poll", json!({}));
+    }
+    assert_eq!(
+        call(&mut s, "state", json!({})).result["state"]["imagePath"],
+        json!(other_new.canonicalize().unwrap())
+    );
+    // The command's explicit directory argument must rebaseline too, even if
+    // Autoprocess was already enabled. Existing acquisition files are skipped.
+    call(
+        &mut s,
+        "integration_autoprocess",
+        json!({"enabled":true,"directory":acquisition}),
+    );
+    for _ in 0..2 {
+        call(&mut s, "integration_autoprocess_poll", json!({}));
+    }
+    let stable = call(&mut s, "state", json!({}));
+    assert_eq!(
+        stable.result["state"]["imagePath"],
+        json!(other_new.canonicalize().unwrap())
+    );
+    let failed = invoke(
+        &mut s,
+        "integration_image_directory",
+        json!({"path":temp.path().join("missing")}),
+    );
+    assert_eq!(failed.result["ok"], false);
+    assert_eq!(call(&mut s, "state", json!({})).result, stable.result);
+    call(&mut s, "integration_autoprocess", json!({"enabled":false}));
+    let manual = call(&mut s, "open_image", json!({"path":reference}));
+    assert_eq!(
+        manual.result["state"]["integration"]["imageDirectory"],
+        json!(references.canonicalize().unwrap())
+    );
+}
+
+#[test]
 fn phases_overlays_background_and_corrections_survive_a_fresh_project_owner() {
     let d = tempfile::tempdir().unwrap();
     let d = d.path();

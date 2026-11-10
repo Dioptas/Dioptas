@@ -57,8 +57,21 @@ For multi-frame images, **Integration → Image** also offers previous/next fram
 arrows, a separate **Frame step**, and direct one-based frame entry. Frame steps
 stop at the first/last frame of the current file or selected HDF5 source;
 rapid clicks are processed in order. The frame step is independent of File step.
-File arrows move directly between files using File step and By Name/By Time,
+File arrows beside Load image move directly between files using File step and Name/Time,
 opening frame 1 of each destination even when the current file has more frames.
+Page Up / Page Down (Fn+↑ / Fn+↓ on a Mac) perform the same file navigation
+in Calibration and Integration, using File step in Integration. Shortcuts pause
+in fields, menus, dialogs and Settings. Unmodified arrows retain plot navigation.
+The Image tab uses aligned File, Source and Frame rows. **Folder…** beside the
+filename selects the input folder without a permanent directory field.
+Autoprocess shows **Watching:** with the processor's confirmed folder; opening a
+reference image elsewhere keeps that watcher fixed until Folder… changes it.
+Source selection uses short, distinct dataset labels; the full selected path is
+available on hover and in **File Info**. A sole source is shown as passive text,
+and the Frame row is hidden for single images. Folder status and dimensions share
+one compact line. The splitter stays fixed across Integration tabs. File order
+and Batch mode use compact dropdowns. File and frame arrows use 32 × 30 px targets
+at both text sizes, with each step field directly beside its browsing controls.
 
 Changing source image dimensions asks for **Cancel** or **Open and reset
 calibration** before changing the session, including variable-size frames within

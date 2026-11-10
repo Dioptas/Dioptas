@@ -1,8 +1,13 @@
 # Native HDF5 image-source selection
 
 The Calibration Image section and Integration Image tab offer Qt's compact
-**Image source** dropdown when HDF5 image sources are available. Options show
-the master-file dataset path, frame count and detector dimensions. There is no
+**Source** dropdown when HDF5 image sources are available (accessible name:
+Image source). Dataset labels retain enough path components to remain distinct;
+complete master-file paths remain available on hover and in Integration's File Info.
+Calibration shows frame counts and detector dimensions beside its compact selector.
+Integration uses aligned File, Source and Frame rows, with a passive identity
+when only one source is available. The frame browser shows the frame count and
+the compact location line shows dimensions. There is no
 general HDF5 tree/data browser. The Qt reference is
 `ImageController.update_img_control_widget`/`select_source`, `ImgModel.load_hdf5`/`select_source`
 and `hdf5Loader.find_image_sources`.
@@ -38,10 +43,10 @@ Integration → Image includes Qt-style previous/next frame arrows and an
 independent Frame step alongside direct frame entry. Relative requests resolve
 against the worker's current frame, so queued clicks accumulate. Overshooting
 clamps to the first/last frame of the selected source and never opens a neighboring
-file; the corresponding boundary arrow is disabled. The controls appear only
-for multi-frame images and also use the same native path for non-HDF5 stacks.
+file; the corresponding boundary arrow is disabled. The Frame row is hidden for
+single images, including 2D HDF5 sources; non-HDF5 stacks use the same native path.
 The separate file arrows always browse files, using their own File step and
-By Name/By Time setting, and open the destination's first frame. They retain the
+Name/Time setting, and open the destination's first frame. They retain the
 selected HDF5 source and never substitute a frame when a neighboring file is missing.
 
 Discovery uses the pinned native NeXus immutable metadata snapshot for exact
@@ -86,6 +91,15 @@ It also exercises frame arrows/steps, end clamping, rapid queued clicks, invalid
 step recovery, and independent file/frame steps retained across Integration tabs.
 The Rust source tests check relative stepping with neighboring files present,
 selected-source retention, pixel/pattern/cake updates, and invalid-request rollback.
+The browser check also uses a 625-frame stack and ambiguous long dataset paths
+to verify compact layouts, distinct source labels, direct frame validation,
+Page Up/Page Down file shortcuts and editing/Settings guards. Wide and compact
+screenshots at both text sizes are named `*-navigation-*.png` in the same folder.
+The aligned-row check also covers a sole HDF5 source, single/stack TIFFs, exact
+long-filename editing, native folder selection/cancellation, incoming-file
+processing, and explicit watcher retargeting. Opening a reference image outside
+the watched folder leaves the active watcher fixed. A Rust functional regression
+verifies the same behavior and checks fresh baselines on explicit folder changes.
 
 Validation on November 8, 2026: all 128 Rust tests passed (one optional
 performance benchmark ignored), Clippy passed with warnings denied, all 75

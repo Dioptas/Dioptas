@@ -150,18 +150,7 @@
   overflow-y: auto;
   overscroll-behavior-y: contain;
   scrollbar-gutter: stable;
-  scrollbar-width: auto;
-  scrollbar-color: #65707c var(--ui-input);
   outline: none;
-}
-.calibration-ring-options::-webkit-scrollbar {
-  width: 10px;
-  background: var(--ui-input);
-}
-.calibration-ring-options::-webkit-scrollbar-thumb {
-  border: 2px solid var(--ui-input);
-  border-radius: 6px;
-  background: #65707c;
 }
 .calibration-ring-options [role="option"] {
   min-height: 34px;
@@ -247,25 +236,5 @@
   display: block;
   overflow-y: auto;
   overscroll-behavior-y: contain;
-  scrollbar-width: auto;
-  scrollbar-color: auto;
   scrollbar-gutter: stable;
-}
-.calibration-task-panel .sidebar-scroll::-webkit-scrollbar {
-  width: 10px;
-  background: var(--ui-input);
-}
-.calibration-task-panel .sidebar-scroll::-webkit-scrollbar-thumb {
-  min-height: 28px;
-  border: 2px solid var(--ui-input);
-  border-radius: 6px;
-  background: #65707c;
-}
-.calibration-task-panel .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: #89939e;
-}
-@supports not selector(::-webkit-scrollbar) {
-  .calibration-task-panel .sidebar-scroll {
-    scrollbar-color: #65707c var(--ui-input);
-  }
 }

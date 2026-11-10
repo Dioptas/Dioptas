@@ -44,8 +44,6 @@
   min-height: 0;
   min-width: 0;
   overflow: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #596068 transparent;
   padding-right: 3px;
 }
 .processing-form {
@@ -188,5 +186,4 @@
 .integration-controls .processing-subnav {
   overflow-y: auto;
   min-height: 0;
-  scrollbar-width: thin;
 }

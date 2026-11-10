@@ -255,8 +255,6 @@ button.quiet {
   overflow-y: auto;
   flex: 1;
   padding: 0 20px;
-  scrollbar-width: thin;
-  scrollbar-color: #3d4854 transparent;
 }
 .sidebar-section {
   padding: 24px 0 22px;
@@ -559,7 +557,6 @@ main {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  scrollbar-width: thin;
 }
 .workspace-heading {
   display: flex;
@@ -1187,8 +1184,6 @@ h2 {
   padding: 17px;
   flex: 1;
   min-height: 0;
-  scrollbar-width: thin;
-  scrollbar-color: #3b4956 transparent;
 }
 .pick-guidance {
   display: flex;
@@ -1240,7 +1235,6 @@ h2 {
   max-height: 134px;
   overflow-y: auto;
   margin-bottom: 15px;
-  scrollbar-width: thin;
 }
 .peak-row {
   display: flex;
@@ -1714,8 +1708,6 @@ input[type="checkbox"] {
 .app {
   font-size: var(--text-body);
 }
-.app[data-text-size="large"] {
-}
 .app[data-text-size="large"] .sidebar {
   width: 322px;
 }
@@ -2136,7 +2128,6 @@ input[type="checkbox"] {
 
 .image-intensity {
   overflow-y: auto;
-  scrollbar-width: thin;
 }
 .intensity-header {
   display: flex;

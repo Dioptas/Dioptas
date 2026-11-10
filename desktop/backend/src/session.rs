@@ -1371,12 +1371,16 @@ impl Session {
     fn publish_image(&mut self, mut image: Image) -> Result<(), String> {
         image.orient(&self.settings.transformations, &self.control)?;
         self.integration_history = Default::default();
-        self.files.image_directory = image
-            .path
-            .parent()
-            .unwrap_or(Path::new("."))
-            .to_string_lossy()
-            .into_owned();
+        // Opening a reference image must not redirect an active acquisition
+        // watcher. Folder selection is the explicit boundary for changing it.
+        if !self.files.auto_process {
+            self.files.image_directory = image
+                .path
+                .parent()
+                .unwrap_or(Path::new("."))
+                .to_string_lossy()
+                .into_owned();
+        }
         #[cfg(feature = "dioptrin")]
         {
             self.prepared = None;

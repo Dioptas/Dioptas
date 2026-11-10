@@ -293,30 +293,6 @@
   overflow-x: hidden;
   overscroll-behavior-y: contain;
   scrollbar-gutter: stable;
-  /* Explicit WebKit scrollbar sizing keeps the overflow cue visible on macOS. */
-  scrollbar-width: auto;
-  scrollbar-color: auto;
-}
-.calibration-task-panel
-  :is(.peak-list, .calibration-fit-controls)::-webkit-scrollbar {
-  width: 10px;
-  background: var(--ui-input);
-}
-.calibration-task-panel
-  :is(.peak-list, .calibration-fit-controls)::-webkit-scrollbar-thumb {
-  min-height: 28px;
-  border: 2px solid var(--ui-input);
-  border-radius: 6px;
-  background: #65707c;
-}
-.calibration-task-panel
-  :is(.peak-list, .calibration-fit-controls)::-webkit-scrollbar-thumb:hover {
-  background: #89939e;
-}
-@supports not selector(::-webkit-scrollbar) {
-  .calibration-task-panel :is(.peak-list, .calibration-fit-controls) {
-    scrollbar-color: #65707c var(--ui-input);
-  }
 }
 .calibration-task-panel .peak-table-headers {
   position: sticky;
@@ -539,8 +515,6 @@
   overflow-y: auto;
   overscroll-behavior-y: contain;
   scrollbar-gutter: stable;
-  scrollbar-width: auto;
-  scrollbar-color: auto;
   padding-right: 4px;
 }
 .calibration-fit-heading {

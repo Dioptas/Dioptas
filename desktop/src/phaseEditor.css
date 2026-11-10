@@ -76,34 +76,7 @@
   scrollbar-gutter: stable;
   min-height: 0;
   padding: 3px 6px 8px 0;
-}
-/* Explicit classic scrollbars remain visible at rest in macOS WebKit too. */
-.pe-parameter-scroll {
-  scrollbar-width: auto;
-  scrollbar-color: auto;
   overscroll-behavior: contain;
-}
-.pe-parameter-scroll::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-  background: var(--ui-input);
-}
-.pe-parameter-scroll::-webkit-scrollbar-thumb {
-  min-height: 28px;
-  border: 2px solid var(--ui-input);
-  border-radius: 6px;
-  background: #737e89;
-}
-.pe-parameter-scroll::-webkit-scrollbar-thumb:hover {
-  background: #929ba5;
-}
-.pe-parameter-scroll::-webkit-scrollbar-corner {
-  background: var(--ui-input);
-}
-@supports not selector(::-webkit-scrollbar) {
-  .pe-parameter-scroll {
-    scrollbar-color: #737e89 var(--ui-input);
-  }
 }
 .pe-parameter-scroll[hidden] {
   display: none;

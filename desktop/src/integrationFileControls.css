@@ -1,58 +1,86 @@
-/* Qt's load/watch, navigation and order columns share two compact rows. */
+/* File, folder, source and frame rows share a quiet, aligned label column. */
 .integration-file-controls {
+  --browse-label-width: 3.2em;
   grid-column: 1 / -1;
+  container-type: inline-size;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
-  gap: 5px;
+  gap: 6px;
   min-width: 0;
   font-size: var(--text-small);
 }
 .integration-file-browser {
   display: grid;
-  grid-template-columns: max-content 140px max-content;
-  align-items: start;
-  gap: 8px 16px;
-  padding-bottom: 3px;
-}
-.integration-file-loading,
-.integration-file-navigation,
-.integration-file-order {
-  display: grid;
-  gap: 3px;
-}
-.integration-frame-browser {
-  display: grid;
-  grid-template-columns: 140px minmax(0, 1fr);
-  align-items: start;
-  gap: 16px;
+  gap: 6px;
   min-width: 0;
 }
+.integration-file-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+.integration-file-order {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.integration-controls .integration-file-order select {
+  width: 80px;
+  height: 28px;
+  min-height: 28px;
+  padding-block: 3px;
+  padding-left: 7px;
+}
 .integration-controls .integration-file-load {
-  padding: 5px 12px;
+  min-height: 28px;
+  padding: 4px 9px;
   white-space: nowrap;
 }
 .integration-file-browser .check-row {
-  min-height: 30px;
+  min-height: 28px;
   white-space: nowrap;
 }
-.integration-controls .integration-file-controls button {
-  min-height: 30px;
+.integration-browse-row {
+  display: grid;
+  grid-template-columns: var(--browse-label-width) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
-.integration-controls .integration-file-navigation button {
-  padding: 0 8px;
-  font-size: var(--text-body);
+.integration-browse-label {
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+  color: var(--muted);
+}
+.integration-file-arrows {
+  display: flex;
+  gap: 4px;
+  margin-left: -6px;
+}
+.integration-controls .integration-file-controls .integration-browse-arrow {
+  width: 32px;
+  min-width: 32px;
+  height: 30px;
+  min-height: 30px;
+  padding: 0;
+  flex: 0 0 32px;
 }
 .integration-file-step {
   display: flex;
-  justify-content: flex-end;
   align-items: center;
   gap: 5px;
-  min-height: 30px;
-  color: #c0c4c9;
+  min-height: 28px;
+  color: var(--muted);
 }
 .integration-controls .integration-file-step input {
-  width: 72px;
+  width: 64px;
+  height: 28px;
+  min-height: 28px;
   appearance: auto;
   -moz-appearance: auto;
   padding: 3px 4px;
@@ -63,20 +91,80 @@
 .integration-file-controls .integration-file-path {
   width: 100%;
   min-width: 0;
-  height: 30px;
-  padding: 4px 8px;
-  color: #bbc1c8;
+  height: 28px;
+  min-height: 28px;
+  padding: 3px 7px;
   font: inherit;
   text-overflow: ellipsis;
-  border-radius: 3px;
+}
+.integration-folder-row {
+  display: grid;
+  grid-template-columns: var(--browse-label-width) minmax(0, 1fr);
+  gap: 8px;
 }
 .integration-file-directory {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 30px;
-  gap: 5px;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  gap: 4px;
+  min-width: 0;
+}
+.integration-image-location,
+.integration-image-options {
+  display: flex;
+  align-items: start;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  min-width: 0;
+}
+.integration-image-location .integration-folder-row {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.integration-image-location .image-source-control {
+  flex: 0 1 360px;
+  max-width: 100%;
+}
+.integration-image-location .image-source-body {
+  display: grid;
+  grid-template-columns: minmax(0, 20ch) max-content;
+}
+.integration-image-options {
+  align-items: center;
+  margin-top: 2px;
 }
 .integration-controls .integration-file-directory button {
+  min-height: 28px;
   padding: 0;
+}
+.integration-frame-navigation {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.integration-frame-browser {
+  grid-template-columns: var(--browse-label-width) max-content max-content;
+  justify-content: start;
+}
+.integration-controls .integration-frame-position .integration-number-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 72px;
+  margin: 0;
+}
+.integration-frame-position .ui-field-error {
+  width: 24ch;
+  max-width: 210px;
+  text-align: left;
+}
+.integration-frame-total {
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+  padding-right: 4px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
 }
 .integration-image-info {
   min-width: 0;
@@ -90,12 +178,17 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 5px 12px;
+  gap: 6px;
   min-width: 0;
 }
-.integration-image-batch-modes .check-row {
-  gap: 4px;
+.integration-image-batch-modes span {
   white-space: nowrap;
+}
+.integration-controls .integration-image-batch-modes select {
+  width: 110px;
+  height: 28px;
+  min-height: 28px;
+  padding-block: 3px;
 }
 .integration-file-actions button[aria-pressed="true"] {
   color: var(--accent);
@@ -108,17 +201,13 @@
   overflow-wrap: anywhere;
   font-size: var(--text-small);
 }
-@media (max-width: 1100px) {
-  .integration-file-browser {
-    grid-template-columns: max-content minmax(90px, 120px) max-content;
-    gap: 6px;
-  }
+@container (max-width: 340px) {
   .integration-frame-browser {
-    grid-template-columns: minmax(90px, 120px) minmax(0, 1fr);
-    gap: 6px;
+    grid-template-columns: var(--browse-label-width) minmax(0, 1fr);
   }
-  .integration-controls .integration-file-load {
-    padding-inline: 8px;
+  .integration-browse-row > .integration-file-step {
+    grid-column: 2;
+    justify-self: start;
   }
 }
 .integration-pattern-types {
@@ -126,7 +215,190 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 5px 12px;
-  color: #c0c4c9;
+  color: var(--muted);
+  min-width: 0;
+  min-height: 28px;
+}
+
+/* Approved aligned Image inspector. Pattern retains its existing file layout. */
+.integration-image-files-aligned {
+  --browse-label-width: 56px;
+  gap: 6px;
+}
+.integration-file-browser-aligned {
+  gap: 6px;
+}
+.integration-file-browser-aligned .integration-file-toolbar {
+  margin-left: calc(var(--browse-label-width) + 10px);
+}
+.integration-file-browser-aligned .integration-file-order {
+  margin-left: auto;
+}
+.integration-image-files-aligned .integration-browse-row,
+.integration-image-files-aligned .integration-aligned-row {
+  display: grid;
+  grid-template-columns: var(--browse-label-width) minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  min-width: 0;
+}
+.integration-image-files-aligned
+  .integration-file-browser-aligned
+  .integration-browse-row {
+  grid-template-columns: var(--browse-label-width) minmax(0, 1fr) auto;
+}
+.integration-image-files-aligned .integration-browse-label {
+  justify-content: flex-end;
+  align-items: flex-start;
+  padding-top: 5px;
+  min-height: 30px;
+}
+.integration-image-files-aligned .integration-frame-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
   min-width: 0;
   min-height: 30px;
+}
+.integration-image-files-aligned .integration-frame-navigation {
+  flex-wrap: nowrap;
+}
+.integration-image-files-aligned
+  .integration-frame-position
+  .integration-number-field {
+  gap: 0;
+}
+.integration-image-files-aligned .integration-file-path {
+  min-height: 30px;
+}
+.middle-elided-input {
+  position: relative;
+  min-width: 0;
+  display: block;
+}
+.middle-elided-input .ui-input {
+  width: 100%;
+}
+.middle-elided-input:not(:focus-within) .ui-input {
+  color: transparent;
+}
+.middle-elided-preview {
+  position: absolute;
+  inset: 1px 8px;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+.middle-elided-input:focus-within .middle-elided-preview {
+  display: none;
+}
+.middle-elided-text {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+}
+.middle-elided-head {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.middle-elided-tail {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.integration-image-source-content {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.integration-image-source-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  min-width: 0;
+}
+.integration-controls .integration-image-source-line select {
+  flex: 1 1 250px;
+  width: 250px;
+  max-width: min(100%, 320px);
+  min-height: 30px;
+  height: 30px;
+  padding-block: 3px;
+}
+.integration-image-source-line button {
+  white-space: nowrap;
+}
+.integration-source-identity {
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  overflow-wrap: anywhere;
+}
+.integration-image-source .image-source-error {
+  grid-column: auto;
+}
+.integration-image-status {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 10px;
+  min-height: 24px;
+  min-width: 0;
+  font-size: var(--text-small);
+  color: var(--muted);
+}
+.integration-image-location-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.integration-image-location-line > .middle-elided-text {
+  min-width: 0;
+}
+.integration-image-location-line > span:first-child:not(.middle-elided-text) {
+  flex: 0 0 auto;
+}
+.integration-image-status > [role] {
+  grid-column: 1 / -1;
+}
+.integration-image-dimensions {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.integration-image-files-aligned .integration-image-options {
+  padding-top: 6px;
+  margin-top: 0;
+  border-top: 1px solid var(--border);
+}
+.integration-image-options .integration-autoprocess {
+  margin-left: auto;
+  white-space: nowrap;
+  min-height: 30px;
+}
+.integration-image-info dl {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+}
+.integration-image-info dt {
+  color: var(--muted);
+}
+.integration-image-info dd {
+  margin: 0 0 7px;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+@container (max-width: 540px) {
+  .integration-file-browser-aligned .integration-file-order {
+    margin-left: 0;
+  }
+  .integration-image-options .integration-autoprocess {
+    margin-left: 0;
+  }
 }

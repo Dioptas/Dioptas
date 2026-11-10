@@ -7,6 +7,7 @@ import { build } from "vite";
 import react from "@vitejs/plugin-react";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import { chromium, webkit } from "playwright";
+import { verifyPersistentScrollbars } from "./scrollbar_checks.mjs";
 
 const desktop = fileURLToPath(new URL("../", import.meta.url));
 const artifacts = new URL("../artifacts/ui-components/", import.meta.url);
@@ -27,7 +28,13 @@ await build({
 const reports = [];
 try {
   for (const [name, engine] of Object.entries({ chromium, webkit })) {
-    const browser = await engine.launch({ headless: true });
+    const browser = await engine.launch({
+      headless: true,
+      // Chromium normally hides every scrollbar in headless screenshots.
+      ...(engine === chromium
+        ? { ignoreDefaultArgs: ["--hide-scrollbars"] }
+        : {}),
+    });
     try {
       const page = await browser.newPage({
         viewport: { width: 1280, height: 950 },
@@ -279,6 +286,15 @@ try {
           .click();
         await page.mouse.click(2, 2);
         await histogram.waitFor({ state: "detached" });
+        await verifyPersistentScrollbars(
+          page,
+          fileURLToPath(
+            new URL(
+              `${name}-scrollbars-${large ? "large" : "normal"}.png`,
+              artifacts,
+            ),
+          ),
+        );
       }
       assert.deepEqual(errors, []);
       reports.push({
@@ -295,6 +311,7 @@ try {
           "Escape/backdrop dismissal and restored focus",
           "scientific draft validation/commit/cancel",
           "transparent plot selectors",
+          "persistent idle scrollbars and reserved content space in both axes at both text sizes",
           "native histogram settings dialog, display edits, Escape and backdrop dismissal",
         ],
       });

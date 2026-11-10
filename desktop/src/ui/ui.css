@@ -884,7 +884,6 @@ textarea::placeholder {
   container-name: plot-toolbar;
   gap: 4px;
   overflow-x: auto;
-  scrollbar-width: thin;
 }
 .app .plot-toolbar button {
   flex: 0 0 auto;

@@ -314,10 +314,13 @@ impl Session {
             }
             "integration_autoprocess" => {
                 let enabled = boolean(&args["enabled"], "Autoprocess")?;
+                let mut directory_changed = false;
                 if let Some(dir) = args.get("directory") {
-                    self.files.image_directory = directory(&json!({"path":dir}))?;
+                    let target = directory(&json!({"path":dir}))?;
+                    directory_changed = target != self.files.image_directory;
+                    self.files.image_directory = target;
                 }
-                if enabled && !self.files.auto_process {
+                if enabled && (!self.files.auto_process || directory_changed) {
                     self.files.baseline()?;
                 }
                 self.files.auto_process = enabled;

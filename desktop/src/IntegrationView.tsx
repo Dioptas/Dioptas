@@ -1,4 +1,3 @@
-import { IntegrationFrameNavigator } from "./IntegrationFrameNavigator";
 import { TabList } from "./TabList";
 import { useEffect, useState } from "react";
 import type { State } from "./types";
@@ -35,6 +34,8 @@ export function IntegrationView({
   onShowOriginalPatternChange,
   originalPatternColor,
   onOriginalPatternColorChange,
+  fileStep,
+  setFileStep,
 }: {
   state: State | null;
   ready: boolean;
@@ -54,6 +55,8 @@ export function IntegrationView({
   onShowOriginalPatternChange: (show: boolean) => void;
   originalPatternColor: string;
   onOriginalPatternColorChange: (color: string) => void;
+  fileStep: number;
+  setFileStep: (step: number) => void;
 }) {
   const source = state?.integration;
   const [tab, setTab] = useState(retainedTab);
@@ -62,7 +65,6 @@ export function IntegrationView({
   }, [tab]);
   const [backgroundTab, setBackgroundTab] = useState("pattern");
   const [correctionTab, setCorrectionTab] = useState("flat");
-  const [fileStep, setFileStep] = useState(1);
   const [frameStep, setFrameStep] = useState(1);
   const [patternStep, setPatternStep] = useState(1);
   if (!source || !state) return null;
@@ -105,25 +107,8 @@ export function IntegrationView({
             fileStep={fileStep}
             setFileStep={setFileStep}
             action={action}
-            frameControl={
-              source.frames > 1 && (
-                <IntegrationFrameNavigator
-                  frame={source.frame}
-                  frames={source.frames}
-                  step={frameStep}
-                  onStepChange={setFrameStep}
-                  onSelect={(frame) =>
-                    action("integration_navigation", { frame })
-                  }
-                  onNavigate={(direction) =>
-                    action("integration_navigation", {
-                      direction,
-                      step: frameStep,
-                    })
-                  }
-                />
-              )
-            }
+            frameStep={frameStep}
+            setFrameStep={setFrameStep}
           />
         )}
         {tab === "Pattern" && (

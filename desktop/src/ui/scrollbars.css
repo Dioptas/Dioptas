@@ -1,0 +1,39 @@
+/* Persistent classic scrollbars occupy their own space, including in macOS
+ * WKWebView. Keep auto overflow on each component: bars appear only when needed.
+ * Non-auto scrollbar-width/color would override WebKit's persistent styling. */
+:root {
+  --ui-scrollbar-size: 12px;
+  --ui-scrollbar-track: #171b20;
+  --ui-scrollbar-thumb: #73808c;
+  --ui-scrollbar-hover: #98a2ac;
+}
+* {
+  scrollbar-width: auto;
+  scrollbar-color: auto;
+}
+::-webkit-scrollbar {
+  width: var(--ui-scrollbar-size);
+  height: var(--ui-scrollbar-size);
+  background: var(--ui-scrollbar-track);
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: var(--ui-scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+  min-width: 28px;
+  min-height: 28px;
+  border: 3px solid var(--ui-scrollbar-track);
+  border-radius: 6px;
+  background: var(--ui-scrollbar-thumb);
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active {
+  background-color: var(--ui-scrollbar-hover);
+}
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-color: var(--ui-scrollbar-thumb) var(--ui-scrollbar-track);
+  }
+}
