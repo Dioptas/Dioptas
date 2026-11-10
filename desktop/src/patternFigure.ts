@@ -4,6 +4,16 @@ import { unitLabel } from "./types";
 import { visibleSamples } from "./patternSamples";
 import { linearAxisTicks, linearTicks, logTicks } from "./plotTicks";
 import { scalePhaseLines } from "./phaseLineScaling";
+import {
+  layoutFigureLegend,
+  drawFigureLegend,
+  wrapFigureText,
+  figureBoxesOverlap,
+  figureSegmentIntersectsBox,
+  type FigureSegment,
+  type FigureLegendPosition,
+  type FigureLegendBox,
+} from "./patternFigureLegend";
 import { SvgRecording } from "./plotFigureExport";
 
 export type FigureCurve = {
@@ -44,16 +54,9 @@ export type PatternFigureOptions = {
   xLabel: string;
   yLabel: string;
   theme: "white" | "transparent" | "dark";
-  legend:
-    | "auto"
-    | "top-left"
-    | "top-right"
-    | "bottom-left"
-    | "bottom-right"
-    | "above"
-    | "below"
-    | "right"
-    | "none";
+  legend: FigureLegendPosition;
+  phaseLegend: FigureLegendPosition | "rows";
+  phaseTickWeight: "uniform" | "intensity";
   phases: "plot" | "rows" | "none";
   grid: boolean;
   box: boolean;
@@ -100,6 +103,8 @@ export function defaultPatternFigureSettings(
       yLabel: "Intensity (a.u.)",
       theme: "white",
       legend: "auto",
+      phaseLegend: "rows",
+      phaseTickWeight: "intensity",
       phases: source.phases.length ? "rows" : "none",
       grid: false,
       box: true,
@@ -129,6 +134,11 @@ export function defaultPatternFigureSettings(
     },
   };
 }
+export const patternFigurePresets = {
+  "90x80": { width: 90, height: 80, fontSize: 8 },
+  "180x115": { width: 180, height: 115, fontSize: 10 },
+  "240x135": { width: 240, height: 135, fontSize: 14 },
+};
 const storageKey = "dioptas-pattern-figure-v1";
 const signature = (source: PatternFigureSource) =>
   JSON.stringify([
@@ -143,7 +153,7 @@ export function rememberPatternFigure(
   try {
     localStorage.setItem(
       storageKey,
-      JSON.stringify({ version: 1, signature: signature(source), settings }),
+      JSON.stringify({ version: 2, signature: signature(source), settings }),
     );
   } catch {
     /* Optional appearance preferences. */
@@ -156,7 +166,8 @@ export function restorePatternFigure(
   const defaults = defaultPatternFigureSettings(source, format ?? "svg");
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey) ?? "null");
-    if (saved?.version !== 1 || !saved.settings?.options) return defaults;
+    if (![1, 2].includes(saved?.version) || !saved.settings?.options)
+      return defaults;
     // Labels, visibility, colors and custom ranges belong to this named plot.
     // Other plots inherit only reusable layout/style settings.
     const old = saved.settings.options;
@@ -181,6 +192,18 @@ export function restorePatternFigure(
             }),
       },
     };
+    if (
+      saved.version === 1 &&
+      old.width === 90 &&
+      old.height === 80 &&
+      old.fontSize === 10
+    )
+      settings.options.fontSize = 8;
+    if (
+      settings.options.phases === "plot" &&
+      settings.options.phaseLegend === "rows"
+    )
+      settings.options.phaseLegend = "auto";
     if (!same && settings.options.theme === "dark")
       settings.options.curves = settings.options.curves.map((c) => ({
         ...c,
@@ -225,6 +248,19 @@ export function validatePatternFigure(
       "right",
       "none",
     ].includes(o.legend) ||
+    ![
+      "rows",
+      "auto",
+      "top-left",
+      "top-right",
+      "bottom-left",
+      "bottom-right",
+      "above",
+      "below",
+      "right",
+      "none",
+    ].includes(o.phaseLegend) ||
+    !["uniform", "intensity"].includes(o.phaseTickWeight) ||
     !["plot", "rows", "none"].includes(o.phases) ||
     !["view", "full", "custom"].includes(o.range) ||
     !["view", "auto", "custom"].includes(o.yRange) ||
@@ -398,81 +434,84 @@ export function renderPatternFigure(
   const L = Math.max(fs * 3.1, tickWidth + fs * 3),
     baseRight = fs * 1.5;
   const lineHeight = fs * 1.5;
-  const legendItems = [
-    ...curves.map((c) => ({
-      label: c.label,
-      color: c.color,
-      dash: c.style === "dash",
-      points: c.style === "points" || c.style === "both",
-      line: c.style !== "points",
-      width: c.width,
-    })),
-    ...(o.phases === "plot"
-      ? phases.map((p) => ({
+  const legendItems = curves.map((c) => ({
+    label: c.label,
+    color: c.color,
+    dash: c.style === "dash",
+    points: c.style === "points" || c.style === "both",
+    line: c.style !== "points",
+    width: c.width,
+  }));
+  const availableWidth = W - L - baseRight;
+  const phasePosition =
+    o.phaseLegend === "rows"
+      ? o.phases === "rows"
+        ? "none"
+        : "auto"
+      : o.phaseLegend;
+  const curveLegend = layoutFigureLegend(
+    ctx,
+    legendItems,
+    o.legend,
+    availableWidth,
+    fs,
+  );
+  const phaseLegend = layoutFigureLegend(
+    ctx,
+    o.phases === "none"
+      ? []
+      : phases.map((p) => ({
           label: p.label,
           color: p.color,
-          dash: false,
-          points: false,
-          line: true,
+          phase: true,
           width: 0.8,
-        }))
-      : []),
-  ];
-  const legendActive = o.legend !== "none" && legendItems.length > 0;
-  const wrap = (text: string, width: number) => {
-    const lines: string[] = [];
-    let line = "";
-    for (const ch of Array.from(text)) {
-      if (line && ctx.measureText(line + ch).width > width) {
-        lines.push(line);
-        line = "";
-      }
-      line += ch;
-    }
-    lines.push(line);
-    return lines;
-  };
-  const horizontalLegend = o.legend === "above" || o.legend === "below";
-  const legendColumns = horizontalLegend && W - L - baseRight > fs * 28 ? 2 : 1;
-  const legendWidth = horizontalLegend
-    ? W - L - baseRight
-    : Math.min(
-        W * 0.31,
-        Math.max(
-          fs * 8,
-          ...legendItems.map((c) => ctx.measureText(c.label).width + fs * 3),
-        ),
-      );
-  const legendLines = legendItems.map((c) =>
-    wrap(c.label, legendWidth / legendColumns - fs * 3),
+        })),
+    phasePosition,
+    availableWidth,
+    fs,
+    "Phases",
   );
-  const legendRowHeights: number[] = [];
-  for (let i = 0; i < legendItems.length; i += legendColumns)
-    legendRowHeights.push(
-      Math.max(
-        ...legendLines.slice(i, i + legendColumns).map((lines) => lines.length),
-      ) * lineHeight,
-    );
-  const legendHeight =
-    legendRowHeights.reduce((sum, height) => sum + height, 0) + fs;
-  const titleLines = o.title ? wrap(o.title, W - L - baseRight) : [];
+  const legends = [curveLegend, phaseLegend];
+  const wrap = (value: string, width: number) =>
+    wrapFigureText(ctx, value, width);
+  const titleLines = o.title ? wrap(o.title, availableWidth) : [];
   const titleHeight = titleLines.length * lineHeight;
-  const above = legendActive && o.legend === "above" ? legendHeight + fs : 0;
-  const below = legendActive && o.legend === "below" ? legendHeight + fs : 0;
+  const outsideHeight = (position: "above" | "below") =>
+    legends
+      .filter((l) => l.active && l.position === position)
+      .reduce((sum, l) => sum + l.height + fs, 0);
+  const above = outsideHeight("above"),
+    below = outsideHeight("below");
   const top = fs * 1.7 + titleHeight + above;
-  const R =
-    W -
-    baseRight -
-    (legendActive && o.legend === "right" ? legendWidth + fs : 0);
-  const rowHeight = fs * 3;
+  const rowLabels = o.phases === "rows" && o.phaseLegend === "rows";
+  const phaseLabelWidth =
+    rowLabels && phases.length
+      ? Math.min(
+          availableWidth * 0.28,
+          Math.max(...phases.map((p) => ctx.measureText(p.label).width)) + fs,
+        )
+      : 0;
+  const rightLegendWidth = Math.max(
+    0,
+    ...legends
+      .filter((l) => l.active && l.position === "right")
+      .map((l) => l.width + fs),
+  );
+  const R = W - baseRight - Math.max(phaseLabelWidth, rightLegendWidth);
+  const rowLabelLines = phases.map((p) =>
+    rowLabels ? wrap(p.label, Math.max(fs * 3, phaseLabelWidth - fs)) : [],
+  );
+  const rowHeights = phases.map((_, i) =>
+    Math.max(fs * 1.65, rowLabelLines[i].length * fs * 1.15 + fs * 0.35),
+  );
   const rowsHeight =
-    o.phases === "rows"
-      ? phases.length * rowHeight + (phases.length ? fs : 0)
+    o.phases === "rows" && phases.length
+      ? fs * 0.9 + rowHeights.reduce((a, b) => a + b, 0)
       : 0;
   const bottom = H - fs * 4.3 - rowsHeight - below;
   if (R - L < fs * 9 || bottom - top < fs * 7)
     throw Error(
-      "Increase the figure size, reduce the font size, or move/hide the legend to leave room for the plot.",
+      "Increase the figure size, reduce the font size, or move/hide a legend to leave room for the plot.",
     );
   const w = R - L,
     h = bottom - top;
@@ -548,7 +587,7 @@ export function renderPatternFigure(
   ctx.rect(L, top, w, h);
   ctx.clip();
   // Measured sample order (including descending d) and gaps are preserved.
-  const occupied: { x: number; y: number }[] = [];
+  const occupied: FigureSegment[] = [];
   for (const curve of curves) {
     ctx.strokeStyle = curve.color;
     ctx.fillStyle = curve.color;
@@ -558,6 +597,7 @@ export function renderPatternFigure(
     );
     ctx.beginPath();
     let previous = false;
+    let previousPoint: [number, number] | null = null;
     const [start, end] = visibleSamples(curve.x, xmin, xmax);
     for (let i = start; i < end; i++) {
       const x = curve.x[i],
@@ -565,11 +605,18 @@ export function renderPatternFigure(
         value = y == null ? NaN : transform(y);
       if (!Number.isFinite(x) || !Number.isFinite(value)) {
         previous = false;
+        previousPoint = null;
         continue;
       }
       const xx = px(x),
         yy = py(value);
-      occupied.push({ x: xx, y: yy });
+      occupied.push({
+        x0: previousPoint && curve.style !== "points" ? previousPoint[0] : xx,
+        y0: previousPoint && curve.style !== "points" ? previousPoint[1] : yy,
+        x1: xx,
+        y1: yy,
+      });
+      previousPoint = [xx, yy];
       if (previous) ctx.lineTo(xx, yy);
       else ctx.moveTo(xx, yy);
       previous = true;
@@ -648,117 +695,168 @@ export function renderPatternFigure(
   ctx.restore();
   if (o.phases === "rows") {
     for (const [i, phase] of phases.entries()) {
-      const y = bottom + fs + (i + 1) * rowHeight;
+      const rowTop =
+        bottom + fs * 0.45 + rowHeights.slice(0, i).reduce((a, b) => a + b, 0);
+      const y = rowTop + rowHeights[i] / 2 + fs * 0.425;
       const references = source.phases.filter(
-        (l) => phaseId(l) === phase.id && l.x >= xmin && l.x <= xmax,
+        (l) =>
+          phaseId(l) === phase.id &&
+          l.x >= xmin &&
+          l.x <= xmax &&
+          Number.isFinite(l.intensity) &&
+          l.intensity > 0,
       );
       const maximum = Math.max(1e-20, ...references.map((l) => l.intensity));
-      line(L, y, R, y, o.theme === "dark" ? "#65717d" : "#c5c5c5", 0.35);
-      for (const ref of references)
-        line(
-          px(ref.x),
-          y,
-          px(ref.x),
-          y - (Math.max(0, ref.intensity) / maximum) * rowHeight * 0.45,
-          phase.color,
-          0.8,
-        );
-      const labelLines = wrap(phase.label, w * 0.6);
-      if (labelLines.length > 1)
-        throw Error(
-          "Shorten the phase label or use a wider figure for separate reference rows.",
-        );
-      text(
-        phase.label,
-        R - fs * 0.5,
-        y - rowHeight * 0.8,
-        "right",
-        phase.color,
-      );
-    }
-  }
-  if (legendActive) {
-    let x = R - legendWidth - fs * 0.5,
-      y = top + fs * 0.5;
-    if (o.legend.includes("left")) x = L + fs * 0.5;
-    if (o.legend.includes("bottom")) y = bottom - legendHeight - fs * 0.5;
-    if (o.legend === "above") {
-      x = L;
-      y = top - above;
-    }
-    if (o.legend === "below") {
-      x = L;
-      y = axisBottom + fs * 4;
-    }
-    if (o.legend === "right") {
-      x = R + fs;
-      y = top;
-    }
-    if (
-      ["auto", "top-left", "top-right", "bottom-left", "bottom-right"].includes(
-        o.legend,
-      ) &&
-      (legendWidth > w || legendHeight > h)
-    )
-      throw Error(
-        "The legend does not fit inside the axes. Move it outside or increase the figure size.",
-      );
-    if (o.legend === "right" && legendHeight > h)
-      throw Error(
-        "The legend is taller than the plot. Increase the figure height or hide some entries.",
-      );
-    if (o.legend === "auto") {
-      const candidates = [
-        [R - legendWidth - fs * 0.5, top + fs * 0.5],
-        [L + fs * 0.5, top + fs * 0.5],
-        [R - legendWidth - fs * 0.5, bottom - legendHeight - fs * 0.5],
-        [L + fs * 0.5, bottom - legendHeight - fs * 0.5],
-      ];
-      [x, y] = candidates.reduce((best, candidate) => {
-        const score = ([cx, cy]: number[]) =>
-          occupied.filter(
-            (p) =>
-              p.x >= cx &&
-              p.x <= cx + legendWidth &&
-              p.y >= cy &&
-              p.y <= cy + legendHeight,
-          ).length;
-        return score(candidate) < score(best) ? candidate : best;
+      recording.group(`Phase reference row: ${phase.label}`, () => {
+        line(L, y, R, y, o.theme === "dark" ? "#65717d" : "#c5c5c5", 0.3);
+        for (const ref of references)
+          line(
+            px(ref.x),
+            y,
+            px(ref.x),
+            y - fs * 0.85,
+            phase.color,
+            o.phaseTickWeight === "intensity"
+              ? 0.45 + 0.7 * Math.sqrt(ref.intensity / maximum)
+              : 0.75,
+          );
+        if (rowLabels) {
+          const labelHeight = rowLabelLines[i].length * fs * 1.15;
+          rowLabelLines[i].forEach((label, j) =>
+            text(
+              label,
+              R + fs * 0.65,
+              rowTop +
+                rowHeights[i] / 2 -
+                labelHeight / 2 +
+                fs * 0.575 +
+                j * fs * 1.15,
+              "left",
+              phase.color,
+            ),
+          );
+        }
       });
     }
-    // Legend has an opaque paper backing on solid paper; transparent figures
-    // keep a transparent legend, suitable for placing over another background.
-    if (o.theme !== "transparent") {
-      ctx.fillStyle = paper;
-      ctx.fillRect(x, y, legendWidth, legendHeight);
+  }
+  const boxes: FigureLegendBox[] = [];
+  let aboveY = top - above,
+    belowY = axisBottom + fs * 4,
+    rightY = top;
+  for (const [index, legend] of legends.entries()) {
+    if (!legend.active) continue;
+    let x = R - legend.width - fs * 0.5,
+      y = top + fs * 0.5;
+    const inside = !["above", "below", "right"].includes(legend.position);
+    if (inside && (legend.width > w || legend.height > h))
+      throw Error(
+        "A legend does not fit inside the axes. Move it outside or increase the figure size.",
+      );
+    if (legend.position.includes("left")) x = L + fs * 0.5;
+    if (legend.position.includes("bottom"))
+      y = bottom - legend.height - fs * 0.5;
+    if (legend.position === "above") {
+      x = L;
+      y = aboveY;
+      aboveY += legend.height + fs;
     }
-    const legendX = x,
-      legendY = y;
-    for (const [i, item] of legendItems.entries()) {
-      const column = horizontalLegend ? i % legendColumns : 0;
-      const row = horizontalLegend ? Math.floor(i / legendColumns) : i;
-      const itemX = legendX + (column * legendWidth) / legendColumns;
-      const itemY =
-        legendY +
-        legendRowHeights.slice(0, row).reduce((sum, height) => sum + height, 0);
-      const cy = itemY + fs * 0.75;
-      ctx.setLineDash(item.dash ? [4 * item.width, 2 * item.width] : []);
-      if (item.line)
-        line(itemX + fs * 0.4, cy, itemX + fs * 2, cy, item.color, item.width);
-      if (item.points) {
-        ctx.fillStyle = item.color;
-        ctx.fillRect(
-          itemX + fs * 1.2 - item.width,
-          cy - item.width,
-          item.width * 2,
-          item.width * 2,
+    if (legend.position === "below") {
+      x = L;
+      y = belowY;
+      belowY += legend.height + fs;
+    }
+    if (legend.position === "right") {
+      x = R + fs;
+      y = rightY;
+      rightY += legend.height + fs;
+      if (rightY - fs > bottom)
+        throw Error(
+          "The right legends need more height. Move a legend below or increase the figure height.",
+        );
+    }
+    if (inside) {
+      const candidates =
+        legend.position === "auto"
+          ? index === 0
+            ? [
+                [R - legend.width - fs * 0.5, top + fs * 0.5],
+                [L + fs * 0.5, top + fs * 0.5],
+                [
+                  R - legend.width - fs * 0.5,
+                  bottom - legend.height - fs * 0.5,
+                ],
+                [L + fs * 0.5, bottom - legend.height - fs * 0.5],
+              ]
+            : [
+                [L + fs * 0.5, top + fs * 0.5],
+                [R - legend.width - fs * 0.5, top + fs * 0.5],
+                [L + fs * 0.5, bottom - legend.height - fs * 0.5],
+                [
+                  R - legend.width - fs * 0.5,
+                  bottom - legend.height - fs * 0.5,
+                ],
+              ]
+          : [
+              [x, y],
+              [x, y + (boxes.at(-1)?.height ?? 0) + fs],
+            ];
+      const free = candidates.filter(
+        ([cx, cy]) =>
+          cy >= top &&
+          cy + legend.height <= bottom &&
+          !boxes.some((box) =>
+            figureBoxesOverlap(
+              box,
+              { x: cx, y: cy, width: legend.width, height: legend.height },
+              fs * 0.4,
+            ),
+          ),
+      );
+      if (!free.length && legend.position === "auto")
+        return renderPatternFigure(
+          source,
+          index === 0
+            ? { ...o, legend: "below" }
+            : { ...o, phaseLegend: "below" },
+        );
+      if (!free.length)
+        throw Error(
+          "The curve and phase legends do not fit separately. Move one outside the axes or use phase row labels.",
+        );
+      const score = ([cx, cy]: number[]) =>
+        occupied.filter((segment) =>
+          figureSegmentIntersectsBox(segment, {
+            x: cx,
+            y: cy,
+            width: legend.width,
+            height: legend.height,
+          }),
+        ).length;
+      [x, y] = free.reduce((best, candidate) =>
+        score(candidate) < score(best) ? candidate : best,
+      );
+      if (legend.position === "auto" && score([x, y]) > 0) {
+        // Reserve an outside legend area rather than paint over measured peaks.
+        return renderPatternFigure(
+          source,
+          index === 0
+            ? { ...o, legend: "below" }
+            : { ...o, phaseLegend: "below" },
         );
       }
-      ctx.setLineDash([]);
-      legendLines[i].forEach((label, j) =>
-        text(label, itemX + fs * 2.7, cy + j * lineHeight, "left", ink),
-      );
     }
+    boxes.push({ x, y, width: legend.width, height: legend.height });
+    recording.group(index === 0 ? "Curve legend" : "Phase legend", () =>
+      drawFigureLegend(
+        ctx,
+        legend,
+        x,
+        y,
+        fs,
+        ink,
+        o.theme === "transparent" ? null : paper,
+      ),
+    );
   }
   return recording.svg(`${o.width}mm`, `${o.height}mm`);
 }

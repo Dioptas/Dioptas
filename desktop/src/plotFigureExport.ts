@@ -53,6 +53,19 @@ export class SvgRecording {
       stroke
         ? `fill="none" stroke="${escapeXml(context.strokeStyle)}" stroke-width="${context.lineWidth}" stroke-linecap="${context.lineCap}" stroke-linejoin="${context.lineJoin}" stroke-miterlimit="${context.miterLimit}" stroke-dasharray="${context.getLineDash().join(" ") || "none"}" stroke-dashoffset="${context.lineDashOffset}"`
         : `fill="${escapeXml(context.fillStyle)}"`;
+    const fontCache = new Map<string, string>();
+    const fontAttributes = () => {
+      const font = context.font;
+      if (!fontCache.has(font)) {
+        const style = document.createElement("span").style;
+        style.font = font;
+        fontCache.set(
+          font,
+          `font-size="${escapeXml(style.fontSize)}" font-family="${escapeXml(style.fontFamily)}" font-weight="${escapeXml(style.fontWeight || "normal")}" font-style="${escapeXml(style.fontStyle || "normal")}"`,
+        );
+      }
+      return fontCache.get(font)!;
+    };
     const paintPath = (stroke: boolean) =>
       add(
         `<path d="${this.path}" transform="${matrix()}" ${style(stroke)} opacity="${context.globalAlpha}"${this.crispEdges ? ' shape-rendering="crispEdges"' : ""}/>`,
@@ -110,7 +123,7 @@ export class SvgRecording {
               ? "text-before-edge"
               : "alphabetic";
         add(
-          `<text x="${x}" y="${y}" transform="${matrix()}" style="font: ${escapeXml(context.font)}" text-anchor="${anchor}" dominant-baseline="${baseline}" ${style(false)}>${escapeXml(text)}</text>`,
+          `<text x="${x}" y="${y}" transform="${matrix()}" ${fontAttributes()} text-anchor="${anchor}" dominant-baseline="${baseline}" ${style(false)}>${escapeXml(text)}</text>`,
         );
       },
       drawImage: (
@@ -142,6 +155,12 @@ export class SvgRecording {
         return Reflect.set(target, key, value, target);
       },
     });
+  }
+
+  group(label: string, draw: () => void) {
+    this.elements.push(`<g role="group" aria-label="${escapeXml(label)}">`);
+    draw();
+    this.elements.push("</g>");
   }
 
   svg(width: number | string, height: number | string) {

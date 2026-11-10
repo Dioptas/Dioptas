@@ -29,7 +29,8 @@ Read-only references were Qt's `PatternController.save_pattern`,
 - Phase references can remain inside the pattern, occupy separate aligned rows,
   or be hidden. Each phase has editable labels/colors/visibility. Separate rows
   retain exact x coordinates and relative reflection strengths within each phase;
-  labels occupy a separate band above the sticks.
+  equal-height ticks identify each reflection, with optional intensity-weighted
+  thickness. Labels can sit beside each row or in an independent phase legend.
 - SVG remains editable paths and text, with no raster image or foreignObject.
   PNG supports 150/300/600 dpi, exact pixel dimensions, alpha transparency and
   native pHYs resolution metadata for document insertion at the chosen size.
@@ -130,3 +131,33 @@ and embedded UI, then locally ad-hoc signed and verified. The artifact is
 No application windows were opened or user processes stopped. Open the rebuilt
 app and use the image icon immediately right of Save above the Integration
 pattern. This is a local testing build, not a published or notarized release.
+
+
+## Phase-row and single-column revision
+
+Phase references never join the curve legend. The Phases tab provides its own
+label/legend placement: names beside reference rows, a separate titled phase
+legend, or hidden labels. A separate legend uses vertical reference-tick symbols;
+the curve legend retains the measured-curve line/point symbols. Automatic legends
+move below the plot if no empty corner exists, rather than covering measured
+peaks. Occupancy uses clipped line segments, including sparse curves.
+
+The default row display has one compact row per phase below all measured curves.
+All positive finite reflections have equal tick height. Thickness can be uniform
+or gently weighted by relative intensity within the visible phase. Row labels
+occupy a reserved right column, leaving the reference positions unobscured.
+Rows retain the exact shared 2θ/Q/d coordinates; no scientific arrays or phase
+positions are changed.
+
+Size presets now set typography as well as dimensions: single column 90 × 80 mm
+uses 8 pt, double column uses 10 pt, and widescreen uses 14 pt. The old saved
+single-column preset's inherited 10 pt default is migrated to 8 pt, while custom
+font choices remain intact. The preview offers an explicit actual-size mode.
+SVG text uses explicit font-size/family/weight/style attributes so independent
+viewers do not substitute their default size for CSS font shorthand.
+
+The editor checks now use three phases with different strengths in 2θ/Q/d and
+linear/log/√ cases. They verify stacked baselines, equal heights, uniform and
+intensity-dependent widths, independent legend contents, unchanged source data,
+legacy preferences, and 8 pt at actual-size scaling. Independent resvg PNG/SVG
+artifacts include both row labels and separate legends at single-column size.
