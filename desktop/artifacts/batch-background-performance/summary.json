@@ -1,0 +1,120 @@
+{
+  "baseline": {
+    "frames": 625,
+    "bins": 1000,
+    "parameters": {
+      "enabled": true,
+      "smoothing": 0.1,
+      "iterations": 150,
+      "order": 50,
+      "range": [
+        3.7883893507483744,
+        42.34610394855096
+      ]
+    },
+    "milliseconds": [
+      2426.3121249999995,
+      2413.5558749999996,
+      2412.633208
+    ]
+  },
+  "cached": {
+    "frames": 625,
+    "bins": 1000,
+    "parameters": {
+      "enabled": true,
+      "smoothing": 0.1,
+      "iterations": 150,
+      "order": 50,
+      "range": [
+        3.7883893507483744,
+        42.34610394855096
+      ]
+    },
+    "milliseconds": [
+      444.9765,
+      441.3770830000001,
+      437.5493339999998
+    ]
+  },
+  "parallel": {
+    "frames": 625,
+    "bins": 1000,
+    "parameters": {
+      "enabled": true,
+      "smoothing": 0.1,
+      "iterations": 150,
+      "order": 50,
+      "range": [
+        3.7883893507483744,
+        42.34610394855096
+      ]
+    },
+    "milliseconds": [
+      211.71791699999994,
+      175.60962500000005,
+      175.52079200000003
+    ]
+  },
+  "date": "2026-11-10",
+  "platform": "Darwin arm64",
+  "build": "development preview (backend opt-level=2)",
+  "scope": "Full Rust stdio command including per-row fitting, Batch products and reply; excludes React paint. Same private stored batch and settings; matrices are not committed.",
+  "comparison": [
+    {
+      "dataset": "processed/process/bkg",
+      "shape": [
+        625,
+        1000
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "dataset": "processed/process/file_map",
+      "shape": [
+        2
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "dataset": "processed/process/pos_map",
+      "shape": [
+        625,
+        2
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "dataset": "processed/process/pos_map_all",
+      "shape": [
+        625,
+        2
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "dataset": "processed/result/binning",
+      "shape": [
+        1000
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "dataset": "processed/result/data",
+      "shape": [
+        625,
+        1000
+      ],
+      "bitwise_equal": true
+    },
+    {
+      "dataset": "processed/result/desktop_metadata",
+      "shape": [
+        15309
+      ],
+      "bitwise_equal": true
+    }
+  ],
+  "workers": 3,
+  "speedup_median": 13.743870103930801
+}

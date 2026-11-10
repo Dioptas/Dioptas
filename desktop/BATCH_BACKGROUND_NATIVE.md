@@ -12,13 +12,14 @@ existing worker control channel; cancellation checkpoints occur within the
 Bruckner scan as well as between smoothing, fitting and frames. The detached
 window routes mutations through the main window, including its Cancel control.
 
-Original / Subtract bg and Cut range are available beneath the overview and in
-Options, in both docked and detached views. Setting changes retain the current
-background and mark it stale until extraction is explicitly repeated. A range
-can be set or cleared independently of extraction. It uses inclusive stored
-sample centers, preserves acquisition/column order and converts labels with the
-recorded wavelength; Q ↔ d also works without a wavelength. It never infers an
-angular wavelength for stored-only data.
+Original / Subtract bg are available beneath the overview and in Options, in
+both docked and detached views. The manual Cut range button and duplicate Batch
+range editors have been removed. Automatic pattern background updates retain
+the pattern's fitted range and show only the covered bins. Separate full-axis
+Batch extraction keeps its original behavior. Previously saved range/cut state
+and the native compatibility commands remain readable and reversible.
+Setting changes for separate extraction retain the current background and mark
+it stale until extraction is explicitly repeated.
 
 The Qt reference is `BatchController.extract_background`, `subtract_background`,
 `plot_batch` and `_get_x_range`, `BatchModel.extract_background`, and xypattern
@@ -114,7 +115,7 @@ Verification:
   Python-free Rust stdio progress and mid-row cancellation, complete rollback of
   settings, selection and products, and no stale progress after completion.
 - `node desktop/scripts/batch_background_smoke.mjs`: headless Chromium/WebKit,
-  normal/large text at 1000 × 700, options scrolling, range cutting, normalization,
+  normal/large text at 1000 × 700, options scrolling, automatic pattern range handling, normalization,
   original/subtracted toggles, footer cancellation, detached mutation routing and dock restoration,
   invalid drafts and stale settings. Screenshots and receipts are written under
   ignored `desktop/artifacts/batch-background/`. No visible windows are opened.
@@ -153,3 +154,44 @@ source/Map isolation, an invalid later frame with whole-command rollback, rapid
 coalesced edits, detached metadata/matrix refresh and quiet-job footer cancellation.
 
 Live-update qualification: 188 native tests passed (2 opt-in benchmarks ignored), 95 JavaScript tests passed, and frontend build/Clippy passed. Chromium/WebKit passed automatic edits, coalescing, detached updates, quiet-job cancellation, and the broader native/Integration browser checks.
+
+
+Performance optimization (November 10, 2026):
+
+The shared-axis Chebyshev matrix and column-scaled SVD are now prepared once per
+operation, rather than once per pattern. Each row still receives its own
+Bruckner smoothing and least-squares solve. A private Rayon pool uses up to three
+workers for independent rows in both automatic updates and separate extraction.
+The actual pattern pipeline prepares the first row, including ROI and loaded
+background overlap, then shares its immutable fit plan with worker-local pattern
+state. The smoothing scan and floating-point operation order inside every row
+are unchanged. Workers write disjoint scratch rows; only a complete successful
+matrix replaces the retained background. Failed rows stop peers at row boundaries;
+cancellation is also checked within smoothing. Progress counts completed rows
+under a lock and publishes at most about every 40 ms, plus completion.
+
+On the active 625 × 1000 stored batch, width 0.1, 150 iterations, order 50 and
+872 covered bins, three complete Rust stdio updates measured:
+
+| Implementation | Median time | Speedup from original |
+| --- | ---: | ---: |
+| Original per-row decomposition | 2414 ms | 1× |
+| Shared decomposition, serial rows | 441 ms | 5.5× |
+| Shared decomposition, three workers | 176 ms | 13.7× |
+
+These are local development-preview measurements including fitting, Batch
+products and the native reply, excluding React rendering. They establish this
+workload's improvement, not a universal speedup. Every retained f64 background
+sample (625,000), original intensity sample and radial-axis sample was compared
+bit for bit with the pre-change executable; all matched. Saved numeric metadata
+matched too. The aggregate receipt is
+`artifacts/batch-background-performance/summary.json`; private scientific matrices
+and source paths are not committed. Reproduce with
+`scripts/batch_background_benchmark.mjs input.h5 parameters.json receipt.json result.h5`,
+using `DIOPTAS_NATIVE_PROCESSOR` to select a baseline executable.
+
+Qualification: 188 existing native tests passed (two opt-in benchmarks ignored),
+plus a new bitwise serial/parallel comparison with 37 unevenly partitioned rows.
+The independent Qt fixtures continue to cover descending d, normalization and
+order 50. JavaScript's 95 tests, frontend build, Clippy with warnings denied,
+Chromium/WebKit background controls and native stdio cancellation passed.

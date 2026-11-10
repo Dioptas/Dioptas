@@ -225,15 +225,24 @@ impl Series {
         {
             return Err("Background polynomial exceeds the interactive fitting limit; reduce order or bin count.".into());
         }
+        control.check()?;
+        let prepared = crate::background_fit::ChebyshevFit::new(x, parameters.order)?;
         let mut background = vec![0.0; self.data.len()];
-        for (index, row) in self.data.chunks_exact(self.x.len()).enumerate() {
-            control.check()?;
-            control.publish(json!({"running":true,"current":index,"total":self.count(),"label":"Extracting batch background"}));
-            let smoothed = smooth_cancellable(row, points, parameters.iterations, control)?;
-            control.check()?;
-            let fitted = crate::pattern::chebyshev(x, &smoothed, parameters.order)?;
-            background[index * x.len()..(index + 1) * x.len()].copy_from_slice(&fitted);
-        }
+        crate::background_workers::rows(
+            &mut background,
+            x.len(),
+            0,
+            control,
+            "Extracting batch background",
+            || (),
+            |index, output, _| {
+                let row = &self.data[index * x.len()..(index + 1) * x.len()];
+                let smoothed = smooth_cancellable(row, points, parameters.iterations, control)?;
+                control.check()?;
+                output.copy_from_slice(&prepared.fit(&smoothed)?);
+                Ok(())
+            },
+        )?;
         control.check()?;
         // Qt extracts on the current (possibly normalized) scale. Store a
         // source-scale background so future normalization never compounds.

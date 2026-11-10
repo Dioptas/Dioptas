@@ -1,6 +1,6 @@
 //! Pattern/background/overlay state independent of detector integration plans.
+use crate::background_fit::ChebyshevFit;
 use crate::control::Control;
-use nalgebra::{DMatrix, DVector};
 use serde_json::{Value, json};
 use std::{io::Read, path::Path, sync::Arc};
 pub(crate) fn convert_coordinate(value: f64, from: &str, to: &str, wavelength: f64) -> f64 {
@@ -473,18 +473,20 @@ impl Patterns {
         Ok(())
     }
     pub fn build(&mut self, control: &Control) -> Result<Option<Value>, String> {
-        self.build_with_progress(control, true)
+        self.build_with_progress(control, true, None)
     }
     pub(crate) fn build_background_row(
         &mut self,
         control: &Control,
+        prepared: &mut Option<Arc<ChebyshevFit>>,
     ) -> Result<Option<Value>, String> {
-        self.build_with_progress(control, false)
+        self.build_with_progress(control, false, Some(prepared))
     }
     fn build_with_progress(
         &mut self,
         control: &Control,
         progress: bool,
+        prepared: Option<&mut Option<Arc<ChebyshevFit>>>,
     ) -> Result<Option<Value>, String> {
         let mut curves = vec![];
         for o in &self.overlays {
@@ -575,9 +577,20 @@ impl Patterns {
                 if progress {
                     control.publish(json!({"running":true,"current":1,"total":2,"label":"Fitting background polynomial"}));
                 }
+                let fitted = if let Some(slot) = prepared {
+                    if slot
+                        .as_ref()
+                        .is_none_or(|p| !p.matches(&x, self.background.order))
+                    {
+                        *slot = Some(Arc::new(ChebyshevFit::new(&x, self.background.order)?));
+                    }
+                    slot.as_ref().unwrap().fit(&smoothed)?
+                } else {
+                    chebyshev(&x, &smoothed, self.background.order)?
+                };
                 let bg = Arc::new(Curve {
                     x: Arc::new(x.clone()),
-                    y: Arc::new(chebyshev(&x, &smoothed, self.background.order)?),
+                    y: Arc::new(fitted),
                     sigma: None,
                     spread: None,
                 });
@@ -836,50 +849,5 @@ impl Patterns {
     }
 }
 pub(crate) fn chebyshev(x: &[f64], y: &[f64], degree: usize) -> Result<Vec<f64>, String> {
-    let terms = degree + 1;
-    if x.len()
-        .checked_mul(terms)
-        .is_none_or(|n| n > 16 * 1024 * 1024)
-    {
-        return Err(
-            "Background polynomial exceeds the bounded fitting matrix; reduce order or bin count."
-                .into(),
-        );
-    }
-    let extent = x[x.len() - 1] - x[0];
-    if extent == 0.0 || !extent.is_finite() {
-        return Err("Background fit needs distinct, finite endpoints.".into());
-    }
-    let mut matrix = DMatrix::zeros(x.len(), terms);
-    for (i, &v) in x.iter().enumerate() {
-        let t = 2.0 * (v - x[0]) / extent - 1.0;
-        matrix[(i, 0)] = 1.0;
-        if terms > 1 {
-            matrix[(i, 1)] = t;
-        }
-        for j in 2..terms {
-            matrix[(i, j)] = 2.0 * t * matrix[(i, j - 1)] - matrix[(i, j - 2)];
-        }
-    }
-    // NumPy chebfit scales each Vandermonde column before the SVD solve.
-    let mut scales = Vec::with_capacity(terms);
-    for j in 0..terms {
-        let norm = matrix.column(j).norm();
-        scales.push(if norm == 0.0 { 1.0 } else { norm });
-        matrix.column_mut(j).scale_mut(1.0 / scales[j]);
-    }
-    let original = matrix.clone();
-    let svd = matrix.svd(true, true);
-    let largest = svd.singular_values.iter().copied().fold(0.0, f64::max);
-    let c = svd
-        .solve(
-            &DVector::from_column_slice(y),
-            x.len() as f64 * f64::EPSILON * largest,
-        )
-        .map_err(|_| "Background polynomial solve failed.")?;
-    let fitted = original * c;
-    if fitted.iter().any(|v| !v.is_finite()) {
-        return Err("Background polynomial is not finite.".into());
-    }
-    Ok(fitted.as_slice().to_vec())
+    ChebyshevFit::new(x, degree)?.fit(y)
 }

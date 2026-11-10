@@ -121,24 +121,22 @@ try {
         .getByRole("button", { name: "Background subtracted", exact: true })
         .click();
       await ready();
-      await dock
-        .getByLabel("Batch background range minimum", { exact: true })
-        .fill("2");
-      await dock
-        .getByLabel("Batch background range maximum", { exact: true })
-        .fill("8");
-      await dock
-        .getByRole("button", { name: "Apply background range", exact: true })
-        .click();
-      await ready();
-      await dock
-        .getByRole("button", { name: "Cut to background range", exact: true })
-        .click();
-      await ready();
+      assert.equal(
+        await dock
+          .getByRole("button", { name: "Cut to background range", exact: true })
+          .count(),
+        0,
+      );
+      assert.equal(
+        await dock
+          .getByLabel("Batch background range minimum", { exact: true })
+          .count(),
+        0,
+      );
       let b = (await invoke("batch_snapshot")).batch;
       assert.equal(b.backgroundState.subtract, true);
-      assert.equal(b.backgroundState.cut, true);
-      assert.ok(b.x.length < 97 && b.x.length > 2);
+      assert.equal(b.backgroundState.cut, false);
+      assert.equal(b.x.length, 97);
       await dock.getByRole("tab", { name: "2D", exact: true }).click();
       await dock
         .getByRole("button", { name: "Normalize batch", exact: true })
@@ -284,6 +282,20 @@ try {
       const inherited = (await invoke("batch_snapshot")).batch;
       assert.equal(inherited.backgroundState.subtract, true);
       assert.equal(inherited.backgroundState.patternSettings, true);
+      await page
+        .getByRole("checkbox", { name: "Limit background range", exact: true })
+        .check();
+      await page.getByLabel("Background minimum", { exact: true }).fill("2");
+      await page.getByLabel("Background maximum", { exact: true }).fill("8");
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[data-testid="pattern-canvas"]')?.dataset
+            .regionUpdating === "false",
+      );
+      await ready();
+      const limited = (await invoke("batch_snapshot")).batch;
+      assert.equal(limited.backgroundState.cut, true);
+      assert.ok(limited.x.length > 2 && limited.x.length < 97);
       await dock.getByRole("tab", { name: "2D", exact: true }).click();
       assert.equal(
         await dock

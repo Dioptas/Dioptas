@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Button } from "./ui";
 import { ScientificNumberInput } from "./ScientificNumberInput";
 import type { BatchData, BatchRun } from "./batchDomain";
-import { radialValues } from "./radialReadout";
 import { unitLabel, type Unit } from "./types";
 import "./batch_background.css";
 
@@ -19,16 +18,6 @@ export interface BatchBackgroundState {
   cut: boolean;
   stale: boolean;
 }
-function displayedRange(batch: BatchData | null) {
-  const state = batch?.backgroundState;
-  if (!batch || !state?.range) return null;
-  const converted = state.range.map(
-    (x) =>
-      radialValues(x, state.unit, batch.wavelength ?? undefined)[batch.unit],
-  );
-  if (converted.some((x) => x == null || !Number.isFinite(x))) return null;
-  return (converted as number[]).sort((a, b) => a - b);
-}
 export function BatchBackgroundControls({
   batch,
   ready,
@@ -42,9 +31,6 @@ export function BatchBackgroundControls({
   const [smoothing, setSmoothing] = useState("0.1"),
     [iterations, setIterations] = useState("150"),
     [order, setOrder] = useState("50");
-  const [minimum, setMinimum] = useState(""),
-    [maximum, setMaximum] = useState("");
-  const range = displayedRange(batch);
   useEffect(() => {
     setSmoothing(String(state?.parameters.smoothing ?? 0.1));
     setIterations(String(state?.parameters.iterations ?? 150));
@@ -54,10 +40,6 @@ export function BatchBackgroundControls({
     state?.parameters.iterations,
     state?.parameters.order,
   ]);
-  useEffect(() => {
-    setMinimum(range ? String(range[0]) : "");
-    setMaximum(range ? String(range[1]) : "");
-  }, [range?.[0], range?.[1], batch?.unit]);
   const valid =
     smoothing.trim() !== "" &&
     Number(smoothing) >= 1e-6 &&
@@ -68,12 +50,6 @@ export function BatchBackgroundControls({
     Number.isInteger(Number(order)) &&
     Number(order) >= 1 &&
     Number(order) <= 1000;
-  const rangeValid =
-    minimum.trim() !== "" &&
-    maximum.trim() !== "" &&
-    Number.isFinite(Number(minimum)) &&
-    Number.isFinite(Number(maximum)) &&
-    Number(minimum) < Number(maximum);
   const parameters = {
     smoothing: Number(smoothing),
     iterations: Number(iterations),
@@ -158,55 +134,9 @@ export function BatchBackgroundControls({
             ? "Background available for every frame."
             : "No batch background extracted."}
       </p>
-      <p>
-        {state?.patternSettings
-          ? "The retained background uses the applied pattern settings and fitted range."
-          : "The range cuts the overview; separate extraction uses the full stored axis."}
-      </p>
-      <label>
-        Range minimum {unitLabel(batch?.unit ?? "2th_deg")}
-        <ScientificNumberInput
-          aria-label="Batch background range minimum"
-          value={minimum}
-          onValueChange={setMinimum}
-          disabled={!ready || !batch}
-        />
-      </label>
-      <label>
-        Range maximum {unitLabel(batch?.unit ?? "2th_deg")}
-        <ScientificNumberInput
-          aria-label="Batch background range maximum"
-          value={maximum}
-          onValueChange={setMaximum}
-          disabled={!ready || !batch}
-        />
-      </label>
-      <div className="batch-background-actions">
-        <Button
-          disabled={!ready || !batch || !rangeValid}
-          onClick={() =>
-            run(
-              "batch_background_settings",
-              { range: [Number(minimum), Number(maximum)], unit: batch?.unit },
-              "Updating batch background range…",
-            )
-          }
-        >
-          Apply background range
-        </Button>
-        <Button
-          disabled={!ready || !state?.range}
-          onClick={() =>
-            run(
-              "batch_background_settings",
-              { range: null, cut: false },
-              "Clearing batch background range…",
-            )
-          }
-        >
-          Clear range
-        </Button>
-      </div>
+      {state?.patternSettings && (
+        <p>The background follows the pattern settings and fitted range.</p>
+      )}
       <BatchBackgroundDisplay batch={batch} ready={ready} run={run} />
       <p>
         The batch follows changes to the pattern background automatically.
@@ -259,21 +189,6 @@ export function BatchBackgroundDisplay({
         }
       >
         Subtract bg
-      </Button>
-      <Button
-        aria-label="Cut to background range"
-        title="Trim the overview to the background range"
-        aria-pressed={state?.cut ?? false}
-        disabled={!ready || !state?.range}
-        onClick={() =>
-          run(
-            "batch_background_display",
-            { cut: !state?.cut },
-            "Updating batch background cut…",
-          )
-        }
-      >
-        Cut range
       </Button>
     </div>
   );
