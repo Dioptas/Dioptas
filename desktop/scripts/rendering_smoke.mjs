@@ -51,6 +51,110 @@ try {
     `${server.resolvedUrls.local[0]}scripts/rendering_fixture.html`,
   );
   await page.waitForFunction(() => window.fixture);
+  report.reusedStorage = await page.evaluate(() => {
+    const { WebGLRaster, WebGLPattern, colorsFor } = window.fixture;
+    const pixels = (canvas) => {
+      const gl = canvas.getContext("webgl2");
+      const out = new Uint8Array(canvas.width * canvas.height * 4);
+      gl.readPixels(
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        out,
+      );
+      return out;
+    };
+    const equal = (a, b, label) => {
+      if (a.length !== b.length || a.some((v, i) => v !== b[i]))
+        throw Error(`Reused storage changed ${label} pixels`);
+    };
+    const rasterCanvas = document.createElement("canvas"),
+      raster = new WebGLRaster(rasterCanvas);
+    for (let i = 0; i < 6; i++) {
+      const width = i === 4 ? 19 : 17,
+        height = 11;
+      const data = Float32Array.from({ length: width * height }, (_, j) =>
+        j % 3 === 0 ? NaN : (j + i * 71) % 255,
+      );
+      const frame = {
+        width,
+        height,
+        data,
+        mask:
+          i % 2
+            ? new Uint8Array(data.length).map((_, j) => (j % 7 === 0 ? 255 : 0))
+            : null,
+        colors: colorsFor(i < 3 ? "grey" : "viridis"),
+        lower: 0,
+        upper: 255,
+        log: i % 2 === 1,
+        maskOpacity: 0.3,
+        viewport: { width: 320, height: 240, dpr: 1 },
+        image: { x: 0, y: 0, width: 320, height: 240 },
+        clip: { left: 0, top: 0, width: 320, height: 240 },
+      };
+      raster.draw(frame);
+      const actual = pixels(rasterCanvas),
+        canvas = document.createElement("canvas"),
+        fresh = new WebGLRaster(canvas);
+      fresh.draw(frame);
+      equal(actual, pixels(canvas), `detector ${i}`);
+      fresh.dispose();
+    }
+    let rejected = false;
+    try {
+      raster.draw({ width: 17, height: 11, data: new Float32Array(1) });
+    } catch {
+      rejected = true;
+    }
+    if (!rejected) throw Error("Invalid raster dimensions were accepted");
+    raster.dispose();
+    const canvas = document.createElement("canvas"),
+      renderer = new WebGLPattern(canvas);
+    const curve = (n, phase = 0) => ({
+      x: Array.from({ length: n }, (_, i) => i / (n - 1)),
+      y: Array.from({ length: n }, (_, i) =>
+        i % 59 === 0 ? null : 2 + Math.sin(i * 0.12 + phase),
+      ),
+      color: "#e77d22",
+      width: 1.5,
+    });
+    const overlay = { ...curve(257, 0.4), color: "#55cc88" };
+    const changed = [
+      curve(257, 0),
+      curve(257, 0.1),
+      curve(257, 0.3),
+      curve(257, 0.6),
+      curve(257, 0.8),
+      curve(63, 0.1),
+    ];
+    for (let i = 0; i < changed.length; i++) {
+      const frame = {
+        curves: i % 2 ? [overlay, changed[i]] : [changed[i], overlay],
+        scale: i === 3 ? "log" : i === 4 ? "sqrt" : "linear",
+        view: { xMin: 0, xMax: 1, yMin: 0, yMax: 4 },
+        bounds: { left: 10, top: 10, width: 300, height: 220 },
+        size: { width: 320, height: 240, dpr: 1 },
+      };
+      renderer.draw(frame);
+      const actual = pixels(canvas),
+        other = document.createElement("canvas"),
+        fresh = new WebGLPattern(other);
+      fresh.draw(frame);
+      equal(actual, pixels(other), `pattern ${i}`);
+      fresh.dispose();
+    }
+    renderer.dispose();
+    return {
+      detectorFrames: 6,
+      patternFrames: 6,
+      rgbaEqual: true,
+      invalidDimensionsRejected: true,
+    };
+  });
   report.pixels = await page.evaluate(() => {
     const { WebGLRaster, rasterCanvas, colorsFor } = window.fixture;
     const canvas = document.createElement("canvas");

@@ -32,6 +32,7 @@
     errors.push(String(event.reason)),
   );
   let active = null;
+  let verification = null;
   const contexts = new Set();
   try {
     const config = window.__dioptasNavigationConfig;
@@ -52,20 +53,65 @@
     const probe = window.__dioptasNavigationProbe;
     window.__dioptasNavigationTrace = (event) => {
       if (active) active.events.push(event);
-    };
-    const originalUpload = WebGL2RenderingContext.prototype.texImage2D;
-    WebGL2RenderingContext.prototype.texImage2D = function (...args) {
-      const start = performance.now();
-      const result = originalUpload.apply(this, args);
-      contexts.add(this);
-      if (active)
-        active.uploads.push({
-          kind: this.canvas.dataset.testid ?? "pattern",
-          ms: performance.now() - start,
-          bytes: args[8]?.byteLength ?? 0,
+      if (
+        verification &&
+        ((event.stage === "raster-submitted" && event.kind === "detector") ||
+          event.stage === "pattern-rendered")
+      ) {
+        const kind =
+          event.stage === "pattern-rendered" ? "pattern" : "detector";
+        const canvas = document.querySelector(`[data-testid="${kind}-gpu"]`);
+        const gl = canvas?.getContext("webgl2");
+        if (!gl || gl.isContextLost())
+          throw Error("Verification renderer unavailable");
+        const pixels = new Uint8Array(canvas.width * canvas.height * 4);
+        gl.readPixels(
+          0,
+          0,
+          canvas.width,
+          canvas.height,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          pixels,
+        );
+        verification.set(kind, {
+          width: canvas.width,
+          height: canvas.height,
+          pixels,
         });
-      return result;
+      }
     };
+    for (const operation of ["texImage2D", "texSubImage2D"]) {
+      const originalUpload = WebGL2RenderingContext.prototype[operation];
+      WebGL2RenderingContext.prototype[operation] = function (...args) {
+        const start = performance.now();
+        const result = originalUpload.apply(this, args);
+        contexts.add(this);
+        if (active)
+          active.uploads.push({
+            operation,
+            kind: this.canvas.dataset.testid ?? "pattern",
+            ms: performance.now() - start,
+            bytes: args[8]?.byteLength ?? 0,
+          });
+        return result;
+      };
+    }
+    for (const name of ["getError", "isContextLost", "drawArrays"]) {
+      const original = WebGL2RenderingContext.prototype[name];
+      WebGL2RenderingContext.prototype[name] = function (...args) {
+        contexts.add(this);
+        const start = performance.now();
+        const result = original.apply(this, args);
+        if (active)
+          (active.gpuCalls ??= []).push({
+            operation: name,
+            kind: this.canvas.dataset.testid ?? "pattern",
+            ms: performance.now() - start,
+          });
+        return result;
+      };
+    }
     const call = async (action, payload = {}) => {
       await probe.run(action, payload);
       if (document.querySelector('[role="dialog"]'))
@@ -95,6 +141,7 @@
     const reports = [];
     const loading = [];
     const series = [];
+    const rendered = [];
     const configure = async (image, calibration, reset = false) => {
       const start = performance.now();
       await call("open_image", {
@@ -126,9 +173,11 @@
       await paint();
     };
     const step = async (scenario, direction, boundary = false) => {
-      const action = "next_image";
+      const source = scenario.startsWith("eiger") ? "frame" : "image";
+      const action =
+        source === "frame" ? "integration_navigation" : "next_image";
       const button = document.querySelector(
-        `[aria-label="Integration ${direction > 0 ? "next" : "previous"} image"]`,
+        `[aria-label="Integration ${direction > 0 ? "next" : "previous"} ${source}"]`,
       );
       if (!button || button.disabled)
         throw Error("Native image navigation is disabled");
@@ -226,6 +275,7 @@
         renderer: document.querySelector('[data-testid="detector-canvas"]')
           ?.dataset.renderer,
         uploads: trace.uploads,
+        gpuCalls: trace.gpuCalls ?? [],
         events: trace.events.map((entry) => ({
           ...entry,
           at: entry.at - trace.start,
@@ -245,7 +295,7 @@
       });
       return row;
     };
-    if (!config.series) {
+    if (!config.series && !config.eigerOnly) {
       await configure(
         `${config.root}/dioptas/tests/data/image_001.tif`,
         `${config.root}/dioptas/tests/data/LaB6_40keV_MarCCD.poni`,
@@ -392,10 +442,64 @@
         }
       }
       if (!config.series) {
-        for (let i = 0; i < 12; i++) await step("eiger-new-frame", 1);
-        await step("eiger-cached", -1);
-        for (let i = 0; i < 12; i++)
-          await step("eiger-cached", i % 2 === 0 ? 1 : -1);
+        if (config.singleMethod) {
+          for (const poisson of [false, true]) {
+            await call("integration_settings", {
+              method: config.singleMethod,
+              bins: config.singleBins,
+              poisson_errors: poisson,
+              trim_zeros: false,
+            });
+            const tag = `eiger-${poisson ? "poisson" : "no-errors"}`;
+            // Same calibrated first frame and display settings in every variant.
+            // Record actual App commands through presentation opportunities.
+            for (let i = 0; i < 3; i++) {
+              const start = performance.now();
+              const frame = [0, 312, 624][i];
+              await call("open_image", { path: config.eiger, frame });
+              loading.push({
+                image: config.eiger,
+                scenario: tag,
+                repeat: i,
+                sourceFrame: frame + 1,
+                expectedBufferReuse: i === 0,
+                calibratedOpenToPaintMs: performance.now() - start,
+              });
+            }
+            await call("open_image", { path: config.eiger, frame: 0 });
+            for (let i = 0; i < config.singleSteps; i++)
+              await step(`${tag}-new-frame`, 1);
+            await step(`${tag}-cached`, -1);
+            for (let i = 0; i < config.singleSteps; i++)
+              await step(`${tag}-cached`, i % 2 === 0 ? 1 : -1);
+            // Untimed actual GPU pixel readback checks, before presentation
+            // clears the drawing buffers. Keep verification out of timings.
+            verification = new Map();
+            await call("open_image", { path: config.eiger, frame: 312 });
+            const captured = verification;
+            verification = null;
+            if (captured.size !== 2)
+              throw Error("Missing detector/pattern verification pixels");
+            for (const [kind, { width, height, pixels }] of captured) {
+              const digest = await crypto.subtle.digest("SHA-256", pixels);
+              rendered.push({
+                scenario: tag,
+                sourceFrame: 313,
+                kind,
+                width,
+                height,
+                sha256: [...new Uint8Array(digest)]
+                  .map((v) => v.toString(16).padStart(2, "0"))
+                  .join(""),
+              });
+            }
+          }
+        } else {
+          for (let i = 0; i < 12; i++) await step("eiger-new-frame", 1);
+          await step("eiger-cached", -1);
+          for (let i = 0; i < 12; i++)
+            await step("eiger-cached", i % 2 === 0 ? 1 : -1);
+        }
       }
       await invoke("native_smoke_report", {
         report: { stage: "diagnostic", capture: "eiger-native-navigation" },
@@ -434,6 +538,7 @@
         summaries,
         loading,
         series,
+        rendered,
         reports,
         errors,
       },

@@ -45,9 +45,9 @@ if (!args.includes("--no-build")) {
   });
   await run("npx", ["tauri", "build", "--debug", "--config", configFile]);
 }
-const capture = await prepareNativeCapture(
-  path.join(outputDirectory, "captures"),
-);
+const capture = args.includes("--no-capture")
+  ? null
+  : await prepareNativeCapture(path.join(outputDirectory, "captures"));
 const foreground = args.includes("--foreground");
 const config = {
   root: path.resolve(desktop, ".."),
@@ -55,6 +55,10 @@ const config = {
   series: args.includes("--series"),
   seriesExtra: args.includes("--series-extra"),
   seriesMethod: value("--series-method", null),
+  singleMethod: value("--single-method", null),
+  singleBins: Number(value("--single-bins", "2000")),
+  singleSteps: Number(value("--single-steps", "24")),
+  eigerOnly: args.includes("--eiger-only"),
   ...(eiger && (await stat(eiger).catch(() => null)) ? { eiger } : {}),
 };
 let executable = value("--app", "src-tauri/target/debug/dioptas-desktop");
@@ -81,9 +85,9 @@ const child = spawn(executable, ["--backend=rust", "--navigation-benchmark"], {
   stdio: ["ignore", "pipe", "pipe"],
   env: {
     ...profile.env,
-    DIOPTAS_NATIVE_PROCESSOR: path.join(
-      desktop,
-      "backend/target/debug/dioptas-processor",
+    DIOPTAS_NATIVE_PROCESSOR: value(
+      "--processor",
+      path.join(desktop, "backend/target/debug/dioptas-processor"),
     ),
     DIOPTAS_NAVIGATION_BENCHMARK: JSON.stringify(config),
     DIOPTAS_TRACE_FRAME: "1",
@@ -156,6 +160,25 @@ try {
         (trace) => trace.stage === "packet" && trace.id === row.requestId,
       );
     }
+  if (config.eigerOnly && config.singleMethod && final?.ok) {
+    const opens = native.filter(
+      (trace) => trace.stage === "request" && trace.action === "open_image",
+    );
+    const loads = final.loading.filter((row) => row.scenario);
+    // Setup open, then per error mode: three timed opens, navigation reset,
+    // and untimed GPU verification. Cache reuse depends on the actual LRU.
+    assert.equal(opens.length, 11);
+    assert.equal(loads.length, 6);
+    for (const [i, index] of [1, 2, 3, 6, 7, 8].entries()) {
+      const request = opens[index];
+      const packet = native.find(
+        (trace) => trace.stage === "read-packet" && trace.id === request.id,
+      );
+      loads[i].requestId = request.id;
+      loads[i].pixelBytes = packet.pixelBytes;
+      delete loads[i].expectedBufferReuse;
+    }
+  }
   final = {
     ...(final ?? { ok: false, error: `No native report (exit ${code})` }),
     sourcePid: child.pid,

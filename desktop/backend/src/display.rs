@@ -106,6 +106,9 @@ impl CountTable {
             dense: vec![0; 65_537],
             sparse: HashMap::new(),
         };
+        // Detector overflow/gap sentinels recur between ordinary dense counts.
+        // Accumulate the current sparse value without hashing every occurrence.
+        let mut pending_sparse: Option<(u64, u64)> = None;
         for &value in values {
             if !value.is_finite() {
                 continue;
@@ -117,11 +120,23 @@ impl CountTable {
             if (-1.0..=65_535.0).contains(&value) {
                 result.dense[(value + 1.) as usize] += 1;
             } else {
-                *result.sparse.entry(value.to_bits()).or_default() += 1;
-                if result.sparse.len() > 4096 {
+                let bits = value.to_bits();
+                if let Some((key, count)) = pending_sparse.as_mut() {
+                    if *key == bits {
+                        *count += 1;
+                        continue;
+                    }
+                    *result.sparse.entry(*key).or_default() += *count;
+                }
+                // Include the pending key in the same retained-cache bound.
+                if result.sparse.len() == 4096 && !result.sparse.contains_key(&bits) {
                     return None;
                 }
+                pending_sparse = Some((bits, 1));
             }
+        }
+        if let Some((bits, count)) = pending_sparse {
+            *result.sparse.entry(bits).or_default() += count;
         }
         Some(result)
     }
@@ -547,6 +562,35 @@ mod statistics_tests {
         assert!(ImageStatistics::new(&[-0., 0.], [1, 2]).is_none());
         let wide: Vec<_> = (0..4097).map(|i| i as f64 + 65_536.).collect();
         assert!(ImageStatistics::new(&wide, [1, 4097]).is_none());
+    }
+    #[test]
+    fn repeated_sparse_sentinels_keep_exact_statistics_and_cardinality_limits() {
+        let shape = [128, 128];
+        let values: Vec<_> = (0..shape[0] * shape[1])
+            .map(|i| match i % 11 {
+                0 | 2 | 4 => u32::MAX as f64,
+                1 | 5 => -100_000.,
+                3 => 1e12,
+                6 => f64::NAN,
+                _ => (i % 257) as f64,
+            })
+            .collect();
+        let stats = ImageStatistics::new(&values, shape).unwrap();
+        assert_eq!(stats.histogram(), histogram(&values));
+        for filter in [false, true] {
+            for percentile in [0., 2.5, 25., 49.999] {
+                assert_eq!(
+                    stats.levels("percentile", percentile, filter),
+                    levels(&values, shape, "percentile", percentile, filter)
+                );
+            }
+        }
+        // Revisit previous sparse keys at the limit, then introduce one more.
+        let mut limit: Vec<_> = (0..4096).map(|i| 65_536. + i as f64).collect();
+        limit.extend_from_within(..);
+        assert_eq!(CountTable::new(&limit).unwrap().sparse.len(), 4096);
+        limit.push(1e12);
+        assert!(CountTable::new(&limit).is_none());
     }
     #[test]
     fn dense_order_statistics_match_known_interpolated_quantiles_and_reject_float_data() {

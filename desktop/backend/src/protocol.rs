@@ -78,7 +78,14 @@ mod packet_write_tests {
                 "id":42,"result":reply.result,"buffers":header["buffers"]
             }))
             .unwrap();
-            assert_eq!(&out.bytes[4..4 + size], reference_header);
+            assert_eq!(&out.bytes[4..4 + reference_header.len()], reference_header);
+            assert!(
+                out.bytes[4 + reference_header.len()..4 + size]
+                    .iter()
+                    .all(|&v| v == b' ')
+            );
+            assert!(size - reference_header.len() < 4);
+            assert_eq!((4 + size) % 4, 0);
             assert_eq!(header["id"], 42);
             assert_eq!(header["result"], reply.result);
             let mut expected = vec![];
@@ -214,12 +221,15 @@ impl Reply {
             .collect();
         // Borrow the result: json! would recursively clone/serialize the complete
         // calibration contour and workflow tree before encoding it a second time.
-        let header = serde_json::to_vec(&Header {
+        let mut header = serde_json::to_vec(&Header {
             id,
             result: &self.result,
             buffers: &table,
         })
         .map_err(|e| e.to_string())?;
+        // Valid JSON whitespace aligns the first float32 payload without a
+        // wire-format change. Existing clients still read exactly these bytes.
+        header.resize(header.len().next_multiple_of(4), b' ');
         let length = u32::try_from(header.len()).map_err(|_| "Oversized response header")?;
         let mut result = length.to_le_bytes().to_vec();
         result.extend_from_slice(&header);

@@ -19,6 +19,7 @@ interface CurveBuffer {
   scale: PatternFrame["scale"];
   buffer: WebGLBuffer;
   count: number;
+  bytes: number;
 }
 const vertex = `#version 300 es
 precision highp float;
@@ -152,7 +153,11 @@ export class WebGLPattern {
     }
     return location;
   }
-  private prepare(curve: PatternCurve, scale: PatternFrame["scale"]) {
+  private prepare(
+    curve: PatternCurve,
+    scale: PatternFrame["scale"],
+    spare: CurveBuffer[],
+  ) {
     const saved = this.buffers.find(
       (b) => b.x === curve.x && b.y === curve.y && b.scale === scale,
     );
@@ -179,6 +184,19 @@ export class WebGLPattern {
         throw Error("Curve exceeds GPU float range");
       points.set([xHigh, x - xHigh, yHigh, y - yHigh], i * 4);
     }
+    const reusable = spare.findIndex((b) => b.bytes === points.byteLength);
+    if (reusable >= 0) {
+      const item = spare.splice(reusable, 1)[0];
+      gl.bindBuffer(gl.ARRAY_BUFFER, item.buffer);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, points);
+      item.x = curve.x;
+      item.y = curve.y;
+      item.scale = scale;
+      item.count = curve.x.length;
+      this.stats.uploads++;
+      this.stats.uploadBytes += points.byteLength;
+      return item;
+    }
     const buffer = gl.createBuffer();
     if (!buffer) throw Error("Cannot allocate curve buffer");
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -195,6 +213,7 @@ export class WebGLPattern {
       scale,
       buffer,
       count: curve.x.length,
+      bytes: points.byteLength,
     };
     this.buffers.push(item);
     return item;
@@ -246,11 +265,20 @@ export class WebGLPattern {
     gl.uniform2f(this.uniform("viewport"), width / size.dpr, height / size.dpr);
     gl.uniform1f(this.uniform("feather"), 0.5 / size.dpr);
     const used = new Set<CurveBuffer>();
+    // Preserve buffers belonging to any current curve, including overlays
+    // scheduled later in this draw. Only superseded, equally sized storage
+    // can be updated without another GPU allocation or synchronous error query.
+    const spare = this.buffers.filter(
+      (b) =>
+        !frame.curves.some(
+          (c) => b.x === c.x && b.y === c.y && b.scale === frame.scale,
+        ),
+    );
     let segments = 0;
     try {
       for (const curve of frame.curves) {
         if (curve.x.length < 2) continue;
-        const buffer = this.prepare(curve, frame.scale);
+        const buffer = this.prepare(curve, frame.scale, spare);
         used.add(buffer);
         const [start, end] = visibleSamples(curve.x, view.xMin, view.xMax);
         const count = Math.max(0, end - start - 1);

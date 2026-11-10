@@ -26,7 +26,7 @@ export interface Raster {
   limits: [number, number];
   // Frontend annotation: these limits already use this source's Auto settings.
   autoLevels?: AutoLevels;
-  data: string | ArrayBuffer;
+  data: string | ArrayBuffer | Uint8Array<ArrayBuffer>;
   bufferId?: string;
   histogram?: { edges: number[]; counts: number[]; finitePixels: number };
 }

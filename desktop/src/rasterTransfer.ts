@@ -3,7 +3,8 @@ import { navigationTrace } from "./navigationTiming.ts";
 
 // Bound retained source buffers, including images we have just browsed away from.
 export class ByteCache<K, V> {
-  private entries = new Map<K, { value: V; size: number }>();
+  private entries = new Map<K, { value: V; storage: object }>();
+  private storage = new Map<object, { size: number; references: number }>();
   private size = 0;
   private budget: number;
   private maxEntries: number;
@@ -19,19 +20,28 @@ export class ByteCache<K, V> {
     }
     return entry?.value;
   }
-  set(key: K, value: V, size: number) {
-    const old = this.entries.get(key);
-    if (old) {
-      this.size -= old.size;
-      this.entries.delete(key);
+  private remove(key: K) {
+    const entry = this.entries.get(key)!;
+    const storage = this.storage.get(entry.storage)!;
+    if (--storage.references === 0) {
+      this.size -= storage.size;
+      this.storage.delete(entry.storage);
     }
+    this.entries.delete(key);
+  }
+  set(key: K, value: V, size: number, owner: object = {}) {
+    if (this.entries.has(key)) this.remove(key);
     if (size > this.budget) return;
-    this.entries.set(key, { value, size });
-    this.size += size;
+    const storage = this.storage.get(owner);
+    if (storage) storage.references++;
+    else {
+      this.storage.set(owner, { size, references: 1 });
+      this.size += size;
+    }
+    this.entries.set(key, { value, storage: owner });
     while (this.size > this.budget || this.entries.size > this.maxEntries) {
       const oldest = this.entries.keys().next().value!;
-      this.size -= this.entries.get(oldest)!.size;
-      this.entries.delete(oldest);
+      this.remove(oldest);
     }
   }
   snapshot() {
@@ -39,8 +49,10 @@ export class ByteCache<K, V> {
   }
 }
 
+type RasterBytes = ArrayBuffer | Uint8Array<ArrayBuffer>;
+
 export class RasterTransfer {
-  private buffers: ByteCache<string, ArrayBuffer>;
+  private buffers: ByteCache<string, RasterBytes>;
   private invoke: (
     action: string,
     payload: Record<string, unknown>,
@@ -57,6 +69,11 @@ export class RasterTransfer {
   ) {
     this.invoke = invoke;
     this.buffers = new ByteCache(maxBytes, maxEntries);
+  }
+  private remember(id: string, data: RasterBytes) {
+    const owner = data instanceof ArrayBuffer ? data : data.buffer;
+    // Charge the complete retained packet once, including all its views.
+    this.buffers.set(id, data, owner.byteLength, owner);
   }
 
   async call(
@@ -81,7 +98,7 @@ export class RasterTransfer {
       new TextDecoder().decode(new Uint8Array(frame, 4, length)),
     );
     let offset = 4 + length;
-    const incoming = new Map<string, ArrayBuffer>();
+    const incoming = new Map<string, RasterBytes>();
     if (
       !header ||
       !Array.isArray(header.buffers) ||
@@ -101,9 +118,13 @@ export class RasterTransfer {
       const data =
         known.get(id) ??
         this.buffers.get(id) ??
-        frame.slice(offset, offset + size);
+        // Keep large images as views. Copy small companions (usually a mask)
+        // so they cannot pin an otherwise unused full detector packet.
+        (size <= frame.byteLength / 4
+          ? frame.slice(offset, offset + size)
+          : new Uint8Array(frame, offset, size));
       incoming.set(id, data);
-      this.buffers.set(id, data, data.byteLength);
+      this.remember(id, data);
       offset += size;
     }
     if (offset !== frame.byteLength)
@@ -131,7 +152,7 @@ export class RasterTransfer {
           Number(obj.width) * Number(obj.height) * (obj.dtype === "u8" ? 1 : 4);
         if (!data || data.byteLength !== expected)
           throw Error("Missing or invalid cached image buffer.");
-        this.buffers.set(obj.bufferId, data, data.byteLength);
+        this.remember(obj.bufferId, data);
         return { ...obj, data };
       }
       return Object.fromEntries(
@@ -152,31 +173,48 @@ export class RasterTransfer {
 
 const littleEndian = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
 const decoded = new WeakMap<
-  ArrayBuffer,
+  RasterBytes,
   Partial<Record<Raster["dtype"], Float32Array | Uint8Array>>
 >();
 export function decodeRaster(raster: Raster): Float32Array | Uint8Array {
-  let buffer: ArrayBuffer;
+  let data: RasterBytes;
   if (typeof raster.data === "string") {
     // Compatibility for the earlier pywebview host and browser test bridge.
     const raw = atob(raster.data);
     const bytes = new Uint8Array(raw.length);
     for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-    buffer = bytes.buffer;
+    data = bytes.buffer;
   } else {
-    buffer = raster.data;
-    const cached = decoded.get(buffer)?.[raster.dtype];
+    data = raster.data;
+    const cached = decoded.get(data)?.[raster.dtype];
     if (cached) return cached;
   }
+  const buffer = data instanceof ArrayBuffer ? data : data.buffer;
+  const offset = data instanceof ArrayBuffer ? 0 : data.byteOffset;
   let values: Float32Array | Uint8Array;
-  if (raster.dtype === "u8") values = new Uint8Array(buffer);
-  else if (littleEndian) values = new Float32Array(buffer);
-  else {
-    const view = new DataView(buffer);
-    values = new Float32Array(buffer.byteLength / 4);
+  if (raster.dtype === "u8")
+    values = new Uint8Array(buffer, offset, data.byteLength);
+  else if (littleEndian) {
+    // Native headers align the first payload. Older/Python packets and odd
+    // byte masks can still produce an unaligned float payload: copy it once.
+    const aligned =
+      offset % 4 === 0
+        ? data
+        : new Uint8Array(buffer, offset, data.byteLength).slice();
+    values =
+      aligned instanceof ArrayBuffer
+        ? new Float32Array(aligned)
+        : new Float32Array(
+            aligned.buffer,
+            aligned.byteOffset,
+            aligned.byteLength / 4,
+          );
+  } else {
+    const view = new DataView(buffer, offset, data.byteLength);
+    values = new Float32Array(data.byteLength / 4);
     for (let i = 0; i < values.length; i++)
       values[i] = view.getFloat32(i * 4, true);
   }
-  decoded.set(buffer, { ...decoded.get(buffer), [raster.dtype]: values });
+  decoded.set(data, { ...decoded.get(data), [raster.dtype]: values });
   return values;
 }

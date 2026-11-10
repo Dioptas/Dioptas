@@ -159,6 +159,15 @@ export class WebGLRaster {
     const gl = this.gl;
     if (this.disposed || gl.isContextLost()) throw Error("Raster context lost");
     const { width, height, data, mask, colors, viewport, image, clip } = frame;
+    if (
+      !Number.isSafeInteger(width) ||
+      width < 1 ||
+      !Number.isSafeInteger(height) ||
+      height < 1 ||
+      data.length !== width * height ||
+      (mask && mask.length !== width * height)
+    )
+      throw Error("Invalid raster sample dimensions");
     if (width > this.maxSize || height > this.maxSize)
       throw Error(`Image exceeds GPU texture limit (${this.maxSize})`);
     const span = Math.max(frame.upper - frame.lower, 1e-12);
@@ -169,21 +178,36 @@ export class WebGLRaster {
       throw Error("Display range exceeds GPU float precision");
     const shape = `${width}x${height}`;
     const changedShape = shape !== this.shape;
-    let uploaded = false;
+    let allocated = false;
     if (data !== this.sourceData || changedShape) {
       gl.activeTexture(gl.TEXTURE0);
-      gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.R32F,
-        width,
-        height,
-        0,
-        gl.RED,
-        gl.FLOAT,
-        data instanceof Float32Array ? data : Float32Array.from(data),
-      );
-      uploaded = true;
+      const pixels =
+        data instanceof Float32Array ? data : Float32Array.from(data);
+      if (changedShape)
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.R32F,
+          width,
+          height,
+          0,
+          gl.RED,
+          gl.FLOAT,
+          pixels,
+        );
+      else
+        gl.texSubImage2D(
+          gl.TEXTURE_2D,
+          0,
+          0,
+          0,
+          width,
+          height,
+          gl.RED,
+          gl.FLOAT,
+          pixels,
+        );
+      allocated ||= changedShape;
     }
     if (mask !== this.maskData || changedShape) {
       gl.activeTexture(gl.TEXTURE1);
@@ -193,18 +217,32 @@ export class WebGLRaster {
         mask instanceof Float32Array
           ? Uint8Array.from(mask, (v) => (v ? 1 : 0))
           : mask;
-      gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.R8,
-        mask ? width : 1,
-        mask ? height : 1,
-        0,
-        gl.RED,
-        gl.UNSIGNED_BYTE,
-        bytes ?? new Uint8Array(1),
-      );
-      uploaded = true;
+      const resized = changedShape || !!mask !== !!this.maskData;
+      if (resized)
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.R8,
+          mask ? width : 1,
+          mask ? height : 1,
+          0,
+          gl.RED,
+          gl.UNSIGNED_BYTE,
+          bytes ?? new Uint8Array(1),
+        );
+      else
+        gl.texSubImage2D(
+          gl.TEXTURE_2D,
+          0,
+          0,
+          0,
+          mask ? width : 1,
+          mask ? height : 1,
+          gl.RED,
+          gl.UNSIGNED_BYTE,
+          bytes ?? new Uint8Array(1),
+        );
+      allocated ||= resized;
     }
     if (colors !== this.colors) {
       const rgba = Uint8Array.from(colors.flatMap((c) => [...c, 255]));
@@ -220,10 +258,11 @@ export class WebGLRaster {
         gl.UNSIGNED_BYTE,
         rgba,
       );
-      uploaded = true;
+      allocated = true;
     }
-    // Check only at allocations/uploads, never synchronously on every pan frame.
-    if (uploaded && gl.getError() !== gl.NO_ERROR)
+    // Storage updates have validated lengths and reuse known formats/bounds.
+    // Check allocations; querying after each update blocks WebKit's GPU queue.
+    if (allocated && gl.getError() !== gl.NO_ERROR)
       throw Error("Raster texture upload failed");
     this.sourceData = data;
     this.maskData = mask;
