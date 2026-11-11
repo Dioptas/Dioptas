@@ -73,6 +73,17 @@ try {
       });
       await select.selectOption("fast");
       await page.evaluate(() => window.setSurfacePeakFixture());
+      // React may still expose the preceding ready canvas after setState.
+      // Hash only after the large fixture and its fast mesh have committed.
+      await page.waitForFunction(
+        () =>
+          window.surfaceBuffer.byteLength ===
+            64 * 2048 * Float32Array.BYTES_PER_ELEMENT &&
+          Number(
+            document.querySelector('[data-testid="batch-surface"]').dataset
+              .columnStep,
+          ) > 1,
+      );
       await ready(page);
       const sourceHash = await checksum(page);
       const fast = await details(surface);

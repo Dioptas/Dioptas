@@ -165,6 +165,10 @@ if (selected.has("--references")) {
   node("native_map_progress", "native_map_progress_smoke.mjs");
 }
 if (selected.has("--host")) {
+  run("release-config", process.execPath, [
+    "--test",
+    "scripts/release_config.test.mjs",
+  ]);
   run("host-prepare", "npm", ["run", "backend:prepare", "--", "--debug"]);
   run("host-frontend", "npm", ["run", "build"]);
   run("host-tests", "cargo", [
