@@ -148,7 +148,6 @@ for (const [name, browserType] of [
     for (const label of [
       "Save image",
       "Image region of interest",
-      "Azimuthal profile",
       "Show image phases",
       "Dock detector image",
     ])
@@ -158,6 +157,12 @@ for (const [name, browserType] of [
           .isVisible(),
         true,
       );
+    assert.equal(
+      await child
+        .getByRole("button", { name: "Azimuthal profile", exact: true })
+        .count(),
+      0,
+    );
     for (const label of ["Apply detector mask", "Integration transparent mask"])
       assert.equal(
         await child

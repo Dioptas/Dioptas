@@ -3,11 +3,15 @@ import type { ZoomMode } from "./usePlotNavigation";
 
 /** Remember the navigation tool independently of a plot's current axis range. */
 export function usePlotZoomPreference(
-  plot: "pattern" | "cake" | "map-pattern",
+  plot: "pattern" | "cake" | "map-pattern" | "cake-profile",
 ) {
   const key = `dioptas-plot-zoom-v1:${plot}`;
   const [mode, setMode] = useState<ZoomMode>(() => {
     try {
+      if (plot === "cake-profile")
+        return localStorage.getItem(key) === "vertical"
+          ? "vertical"
+          : "rectangle";
       return localStorage.getItem(key) === "horizontal"
         ? "horizontal"
         : "rectangle";

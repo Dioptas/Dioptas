@@ -1,5 +1,14 @@
 import { useCakeAxisGesture } from "./CakeProfileWorkspace";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { PlotZoomControls } from "./PlotZoomControls";
+import { usePlotZoomPreference } from "./usePlotZoomPreference";
 import {
   usePlotNavigation,
   usePlotWheel,
@@ -11,6 +20,30 @@ import { POSITION_LINE_COLOR } from "./plotColors";
 import { RANGE_SELECTION_COLOR } from "./drawRangeSelection";
 import type { Cake, CakeProfile } from "./types";
 import type { PlotViewport } from "./plotViewport";
+
+function intensityRange(
+  profile: CakeProfile | null,
+  yMin: number,
+  yMax: number,
+): [number, number] {
+  let min = Infinity,
+    max = -Infinity;
+  profile?.y.forEach((value, index) => {
+    if (
+      value != null &&
+      value !== 0 &&
+      Number.isFinite(value) &&
+      index + 0.5 >= yMin &&
+      index + 0.5 <= yMax
+    ) {
+      min = Math.min(min, value);
+      max = Math.max(max, value);
+    }
+  });
+  if (!Number.isFinite(min)) return [0, 1];
+  const pad = Math.max((max - min) * 0.05, Math.abs(min) * 1e-6, 1e-6);
+  return [min - pad, max + pad];
+}
 
 /** The profile uses exactly the cake's source row coordinates, not a new axis. */
 export function CakeProfileView({
@@ -44,6 +77,7 @@ export function CakeProfileView({
     canvas = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ width: 160, height: 400 });
   const typography = usePlotTypography(container);
+  const [zoomMode, setZoomMode] = usePlotZoomPreference("cake-profile");
   useLayoutEffect(() => {
     const node = container.current;
     if (!node) return;
@@ -65,25 +99,14 @@ export function CakeProfileView({
   const width = Math.max(1, size.width - left - right),
     height = Math.max(1, size.height - top - bottom);
   const rows = cake?.fullHeight ?? profile?.y.length ?? 1;
-  const extent = useMemo(() => {
-    let min = Infinity,
-      max = -Infinity;
-    profile?.y.forEach((value, index) => {
-      if (
-        value != null &&
-        value !== 0 &&
-        Number.isFinite(value) &&
-        index + 0.5 >= cakeView.yMin &&
-        index + 0.5 <= cakeView.yMax
-      ) {
-        min = Math.min(min, value);
-        max = Math.max(max, value);
-      }
-    });
-    if (!Number.isFinite(min)) return [0, 1];
-    const pad = Math.max((max - min) * 0.05, Math.abs(min) * 1e-6, 1e-6);
-    return [min - pad, max + pad];
-  }, [profile, cakeView.yMin, cakeView.yMax]);
+  const visibleIntensityRange = useCallback(
+    (min: number, max: number) => intensityRange(profile, min, max),
+    [profile],
+  );
+  const extent = useMemo(
+    () => visibleIntensityRange(cakeView.yMin, cakeView.yMax),
+    [visibleIntensityRange, cakeView.yMin, cakeView.yMax],
+  );
   const intensityView = useRef<{ key: string; range: PlotRange | null }>({
     key: context,
     range: null,
@@ -109,9 +132,10 @@ export function CakeProfileView({
     { xMin: extent[0], xMax: extent[1], yMin: 0, yMax: rows },
     { left, top, width, height },
     false,
-    "rectangle",
+    zoomMode,
     undefined,
     viewport,
+    visibleIntensityRange,
   );
   const axisGesture = useCakeAxisGesture("profile", canvas, navigation);
   usePlotWheel(canvas, navigation.onWheel);
@@ -304,6 +328,7 @@ export function CakeProfileView({
         data-azimuth-max={cake ? azimuthAt(view.yMax) : undefined}
         data-profile-row-count={profile?.y.length ?? 0}
         data-profile-shift-bins={profile?.shiftBins ?? 0}
+        data-zoom-mode={zoomMode}
         aria-description={emptyMessage}
         onKeyDown={navigation.onKeyDown}
         onContextMenu={(event) => event.preventDefault()}
@@ -334,6 +359,14 @@ export function CakeProfileView({
             if (point) onInspect(point.azimuth);
           }
         }}
+      />
+      <PlotZoomControls
+        mode={zoomMode}
+        onChange={setZoomMode}
+        left={left}
+        bottom={bottom}
+        label="Profile"
+        sliceDirection="vertical"
       />
     </div>
   );

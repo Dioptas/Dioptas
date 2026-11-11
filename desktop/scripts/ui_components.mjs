@@ -47,6 +47,12 @@ try {
       await page.waitForFunction(() => window.uiFixture);
       for (const large of [false, true]) {
         await page.evaluate((large) => window.uiFixture.render(large), large);
+        await page.evaluate(
+          () =>
+            new Promise((resolve) =>
+              requestAnimationFrame(() => requestAnimationFrame(resolve)),
+            ),
+        );
         const neutral = async (locator) => {
           const styles = await locator.evaluateAll((elements) =>
             elements.map((element) => {
@@ -296,6 +302,57 @@ try {
           ),
         );
       }
+      const assertSquareTools = async (buttons) => {
+        const styles = await buttons.evaluateAll((nodes) =>
+          nodes.map((el) => {
+            const r = el.getBoundingClientRect(),
+              s = getComputedStyle(el);
+            return {
+              label: el.ariaLabel,
+              width: r.width,
+              height: r.height,
+              background: s.backgroundColor,
+              border: s.borderTopWidth,
+              padding: s.paddingLeft,
+            };
+          }),
+        );
+        assert.ok(styles.length > 0);
+        for (const s of styles) {
+          assert.equal(s.width, 24, JSON.stringify(s));
+          assert.equal(s.height, 24, JSON.stringify(s));
+          assert.equal(s.background, "rgba(0, 0, 0, 0)", JSON.stringify(s));
+          assert.equal(s.border, "0px", JSON.stringify(s));
+          assert.equal(s.padding, "3px", JSON.stringify(s));
+        }
+        for (const button of await buttons.all()) {
+          await button.hover();
+          assert.equal(
+            await button.evaluate((el) => getComputedStyle(el).backgroundColor),
+            "rgba(0, 0, 0, 0)",
+          );
+        }
+      };
+      for (const large of [false, true])
+        for (const detached of [false, true])
+          for (const display of ["detector", "cake", "map", "batch"])
+            for (const orientation of ["horizontal", "vertical"]) {
+              await page.evaluate(
+                (args) => window.uiFixture.histogram(...args),
+                [display, orientation, large, detached],
+              );
+              await assertSquareTools(
+                page.locator(".intensity-actions button"),
+              );
+              assert.equal(
+                await page
+                  .locator(".image-intensity")
+                  .evaluate((el) => getComputedStyle(el).backgroundColor),
+                "rgba(0, 0, 0, 0)",
+              );
+            }
+      await page.evaluate(() => window.uiFixture.icons());
+      await assertSquareTools(page.locator("main button"));
       assert.deepEqual(errors, []);
       reports.push({
         browser: name,
@@ -311,6 +368,7 @@ try {
           "Escape/backdrop dismissal and restored focus",
           "scientific draft validation/commit/cancel",
           "transparent plot selectors",
+          "square transparent icons and histogram controls in all four displays, both orientations, main/detached surfaces and text sizes",
           "persistent idle scrollbars and reserved content space in both axes at both text sizes",
           "native histogram settings dialog, display edits, Escape and backdrop dismissal",
         ],

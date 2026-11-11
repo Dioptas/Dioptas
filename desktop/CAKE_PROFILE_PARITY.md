@@ -2,7 +2,7 @@
 
 Integration's **Profile** toggle opens the azimuthal profile to the left of the
 cake, with intensity horizontally and the shared cake azimuth axis vertically.
-Turning it on from Image switches to Cake. The profile is hidden in Image mode
+The Profile button is visible only in Cake mode. The profile is hidden in Image mode
 and during correction-map previews. Select a radial position by clicking the
 detector, cake or pattern.
 **Width (bins)** commits on Enter/blur (1–1,000,000). The save icon writes XY,
@@ -10,6 +10,19 @@ DAT, TXT or CSV through the existing Tauri chooser and Rust atomic file writer.
 Invalid width drafts cannot submit a save. The profile is shown only with the
 cake; hiding the cake stops profile requests and restores ordinary lazy cake
 demand.
+
+The profile has the shared compact rectangle and slice selectors below its
+far-left axis. Its slice icon is rotated: **Y-range** selects azimuth vertically,
+fits the intensity range to visible nonzero samples and leaves the cake radial
+view unchanged. Purely vertical drags work; horizontal-only drags are inert.
+Wheel, secondary-button pan/unzoom and keyboard zoom follow the selected axis.
+The independent profile mode is remembered across closing/reopening the profile
+and application restarts. Rectangle remains the default. Main and detached
+profile views use the same selectors and gestures.
+
+Profile window/save icons share the compact square plot-tool style, including
+transparent hovered and selected states. Histogram controls use the same style
+in every display; their surrounding panel remains transparent too.
 
 The icon toggle beside **Bins** shows the selected radial window as a faint
 orange band with two boundary lines on the cake. It is enabled by default and

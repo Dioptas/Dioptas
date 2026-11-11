@@ -88,3 +88,12 @@ without its headless-only `--hide-scrollbars` default for accurate layout and sc
 Screenshots and the result report are written to `artifacts/ui-components/`.
 The existing calibration, mask, integration, phase, map, batch and custom-action
 smoke suites cover the migrated workflows.
+
+Icon tools use 24 px square buttons with 3 px padding, transparent surfaces and
+colour-only hover/selected feedback. The compact plot-corner zoom selectors are
+20 px squares. Reuse `icon-button` for icon-only actions; text actions keep their
+content width. Histogram Auto (`A`) and Settings use the same square controls in
+Detector, Cake, Map and Batch, both orientations and detached windows. Histogram
+panels have transparent backgrounds so only the data and range tracks remain.
+The shared-component browser checks verify square geometry and resting/hovered/
+selected backgrounds across these contexts and both interface text sizes.

@@ -96,7 +96,7 @@ export function IntegrationImageControls({
     >
       <div className="image-toolbar-group image-toolbar-primary">
         <Button
-          className="plot-tool-button"
+          className="plot-tool-button icon-button"
           type="button"
           aria-label="Save image"
           title={
@@ -136,15 +136,17 @@ export function IntegrationImageControls({
             {value === "image" ? "Cake" : "Image"}
           </Button>
         </div>
-        <PlotToggle
-          label="Azimuthal profile"
-          title="Show intensity versus azimuth at the linked radial position"
-          pressed={profile}
-          disabled={!ready || !state?.calibrated || !state?.hasImage}
-          onClick={onProfile}
-        >
-          Profile
-        </PlotToggle>
+        {value === "cake" && (
+          <PlotToggle
+            label="Azimuthal profile"
+            title="Show intensity versus azimuth at the linked radial position"
+            pressed={profile}
+            disabled={!ready || !state?.calibrated || !state?.hasImage}
+            onClick={onProfile}
+          >
+            Profile
+          </PlotToggle>
+        )}
         <label
           className="integration-cake-shift"
           data-visible={value === "cake"}
@@ -220,7 +222,7 @@ export function IntegrationImageControls({
 
         {onUndock && (
           <Button
-            className="plot-tool-button image-window-toggle"
+            className="plot-tool-button icon-button image-window-toggle"
             aria-label={
               detached ? "Dock detector image" : "Undock detector image"
             }

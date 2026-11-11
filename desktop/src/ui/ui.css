@@ -349,7 +349,7 @@ button.quiet {
     .integration-pattern-actions button,
     .plot-controls button
   ):not(:disabled):hover {
-  --button-fill: rgb(255 255 255 / 4%);
+  --button-fill: transparent;
   background: var(--button-fill);
   color: #dce2e7;
 }
@@ -383,6 +383,79 @@ button.quiet {
 }
 
 /* Surface geometry remains with each view; material comes from one component. */
+/* Icon tools share compact square hit areas, including detached plot windows. */
+.ui-button.icon-button,
+.app
+  button.ui-button:is(
+    .icon-button,
+    .map-icon-button,
+    .map-source-icon,
+    .mask-plugin-icon-button,
+    .detector-window-action,
+    .image-window-toggle
+  ) {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  flex: 0 0 24px;
+  padding: 3px;
+  border: 0;
+  border-radius: 1px;
+}
+.ui-button.icon-button,
+.ui-button.icon-button:is(
+    :hover,
+    :active,
+    [aria-pressed="true"],
+    [aria-expanded="true"]
+  ),
+.app
+  button.ui-button:is(
+    .icon-button,
+    .map-icon-button,
+    .map-source-icon,
+    .mask-plugin-icon-button,
+    .detector-window-action,
+    .image-window-toggle
+  ),
+.app
+  button.ui-button:is(
+    .icon-button,
+    .map-icon-button,
+    .map-source-icon,
+    .mask-plugin-icon-button,
+    .detector-window-action,
+    .image-window-toggle
+  ):is(:hover, :active, [aria-pressed="true"], [aria-expanded="true"]) {
+  --button-fill: transparent;
+  --button-edge: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+.app .ui-button.plot-zoom-button {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  padding: 2px;
+}
+.app .image-intensity[data-display] {
+  background: transparent;
+}
+.app .image-intensity .intensity-actions {
+  align-self: center;
+}
+.app .image-intensity .intensity-actions > .ui-button {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  flex: 0 0 24px;
+  padding: 3px;
+  border: 0;
+}
+
 .ui-dialog,
 .ui-popover,
 .ui-tooltip {

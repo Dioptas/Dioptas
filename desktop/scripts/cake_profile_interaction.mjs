@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 
 /** Exercise the outer shared axis and resize handle as a user would. */
-export async function checkCakeProfileInteraction(page, profile, cake, ready) {
+export async function checkCakeProfileInteraction(
+  page,
+  profile,
+  cake,
+  ready,
+  samples,
+) {
   const view = async (canvas) =>
     canvas.evaluate((el) => ({
       xMin: +el.dataset.viewXMin,
@@ -33,6 +39,10 @@ export async function checkCakeProfileInteraction(page, profile, cake, ready) {
     name: "Profile and cake divider",
     exact: true,
   });
+  await page
+    .getByRole("button", { name: "Profile rectangle zoom", exact: true })
+    .click();
+  await ready();
   await resize.waitFor();
   assert.equal(await cake.getAttribute("data-shows-azimuth-axis"), "false");
   assert.ok(
@@ -120,5 +130,139 @@ export async function checkCakeProfileInteraction(page, profile, cake, ready) {
     "Returning to profile selects its interval",
   );
   assert.ok((await view(profile)).yMax < full.yMax);
+  await fit();
+  const button = (name) => page.getByRole("button", { name, exact: true });
+  const near = (a, b) =>
+    assert.ok(
+      Math.abs(a - b) < 1e-7 * Math.max(1, Math.abs(b)),
+      `${a} != ${b}`,
+    );
+  const dragPlot = async (from, to, mouseButton = "left") => {
+    const p = await geometry(profile);
+    await page.mouse.move(
+      p.x + p.left + p.w * from[0],
+      p.y + p.top + p.h * from[1],
+    );
+    await page.mouse.down({ button: mouseButton });
+    await page.mouse.move(
+      p.x + p.left + p.w * to[0],
+      p.y + p.top + p.h * to[1],
+      { steps: 10 },
+    );
+    await page.mouse.up({ button: mouseButton });
+    await ready();
+    await shared();
+  };
+  const fullProfile = await view(profile),
+    cakeRadial = await view(cake);
+  // Rectangle selects both intensity and azimuth.
+  await dragPlot([0.2, 0.2], [0.8, 0.8]);
+  const rectangle = await view(profile);
+  assert.ok(
+    rectangle.xMax - rectangle.xMin < fullProfile.xMax - fullProfile.xMin,
+  );
+  assert.ok(
+    rectangle.yMax - rectangle.yMin < fullProfile.yMax - fullProfile.yMin,
+  );
+  await fit();
+  await button("Profile Y-range zoom").click();
+  await ready();
+  assert.equal(await profile.getAttribute("data-zoom-mode"), "vertical");
+  assert.equal(
+    await page.evaluate(() =>
+      localStorage.getItem("dioptas-plot-zoom-v1:cake-profile"),
+    ),
+    "vertical",
+  );
+  await dragAxis("profile");
+  assert.ok((await view(profile)).yMax < fullProfile.yMax);
+  await fit();
+  const assertIntensityFit = async () => {
+    if (!samples) return;
+    const r = await view(profile);
+    const values = samples.filter(
+      (v, i) =>
+        v != null &&
+        v !== 0 &&
+        Number.isFinite(v) &&
+        i + 0.5 >= r.yMin &&
+        i + 0.5 <= r.yMax,
+    );
+    if (!values.length) {
+      near(r.xMin, 0);
+      near(r.xMax, 1);
+      return;
+    }
+    const low = Math.min(...values),
+      high = Math.max(...values);
+    const pad = Math.max((high - low) * 0.05, Math.abs(low) * 1e-6, 1e-6);
+    near(r.xMin, low - pad);
+    near(r.xMax, high + pad);
+  };
+  // A strictly vertical drag needs no horizontal displacement.
+  await dragPlot([0.5, 0.2], [0.5, 0.8]);
+  const slice = await view(profile);
+  assert.ok(
+    slice.yMax - slice.yMin < (fullProfile.yMax - fullProfile.yMin) * 0.7,
+  );
+  await assertIntensityFit();
+  for (const mouseButton of ["left", "right"]) {
+    await dragPlot([0.25, 0.5], [0.75, 0.5], mouseButton);
+    assert.deepEqual(
+      await view(profile),
+      slice,
+      "Vertical slice ignores horizontal-only drags",
+    );
+  }
+  await dragPlot([0.4, 0.4], [0.7, 0.55], "right");
+  const panned = await view(profile);
+  near(panned.yMax - panned.yMin, slice.yMax - slice.yMin);
+  assert.ok(panned.yMin > slice.yMin);
+  await assertIntensityFit();
+  const p = await geometry(profile);
+  await page.mouse.move(p.x + p.left + p.w * 0.5, p.y + p.top + p.h * 0.5);
+  await page.mouse.wheel(0, -200);
+  await ready();
+  assert.ok(
+    (await view(profile)).yMax - (await view(profile)).yMin <
+      panned.yMax - panned.yMin,
+  );
+  await assertIntensityFit();
+  const beforeKey = await view(profile);
+  await profile.press("+");
+  await ready();
+  near(
+    (await view(profile)).yMax - (await view(profile)).yMin,
+    (beforeKey.yMax - beforeKey.yMin) / 2,
+  );
+  await assertIntensityFit();
+  await profile.press("ArrowLeft");
+  await ready();
+  const afterArrow = await view(profile);
+  await profile.press("ArrowUp");
+  await ready();
+  assert.ok((await view(profile)).yMin > afterArrow.yMin);
+  await assertIntensityFit();
+  const radialAfter = await view(cake);
+  near(radialAfter.xMin, cakeRadial.xMin);
+  near(radialAfter.xMax, cakeRadial.xMax);
+  const beforeUnzoom = await view(profile);
+  await page.mouse.click(p.x + p.left + p.w * 0.5, p.y + p.top + p.h * 0.5, {
+    button: "right",
+  });
+  await ready();
+  near(
+    (await view(profile)).yMax - (await view(profile)).yMin,
+    (beforeUnzoom.yMax - beforeUnzoom.yMin) * 2,
+  );
+  await assertIntensityFit();
+  await page.mouse.dblclick(p.x + p.left + p.w * 0.5, p.y + p.top + p.h * 0.5, {
+    button: "right",
+  });
+  await ready();
+  near((await view(profile)).yMin, fullProfile.yMin);
+  near((await view(profile)).yMax, fullProfile.yMax);
+  await assertIntensityFit();
+  await button("Profile rectangle zoom").click();
   await fit();
 }

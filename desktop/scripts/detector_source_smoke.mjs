@@ -169,6 +169,14 @@ try {
       await ready();
       await child.mouse.click(400, 300);
       await ready();
+      assert.equal(
+        await child
+          .getByRole("button", { name: "Azimuthal profile", exact: true })
+          .count(),
+        0,
+      );
+      await child.getByRole("button", { name: "Cake", exact: true }).click();
+      await ready();
       await child
         .getByRole("button", { name: "Azimuthal profile", exact: true })
         .click();
@@ -181,6 +189,12 @@ try {
       await child.getByRole("button", { name: "Image", exact: true }).click();
       await ready();
       assert.equal(await profile.isVisible(), false);
+      assert.equal(
+        await child
+          .getByRole("button", { name: "Azimuthal profile", exact: true })
+          .count(),
+        0,
+      );
       const hiddenProfileReads = profileRequests;
       await child.getByTestId("detector-canvas").click();
       await ready();

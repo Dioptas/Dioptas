@@ -119,6 +119,9 @@ try {
         calls.some(([a]) => a === "cake_profile"),
         false,
       );
+      assert.equal(await button("Azimuthal profile").count(), 0);
+      await button("Cake").click();
+      await idle();
       await button("Azimuthal profile").click();
       await idle();
       const panel = page.getByRole("region", {
@@ -205,11 +208,12 @@ try {
         await profilePlot.press("f");
         await idle();
       };
-      // Profile belongs exclusively to the cake, including when it is enabled from Image.
+      // The panel and its toolbar toggle belong exclusively to Cake mode.
       assert.ok(await page.getByTestId("cake-canvas").isVisible());
       await button("Image").click();
       await idle();
       assert.equal(await panel.isVisible(), false);
+      assert.equal(await button("Azimuthal profile").count(), 0);
       const hiddenReads = profiles.length;
       await button("Pattern unit Q").click();
       await idle();
@@ -478,7 +482,13 @@ try {
       }
       const scienceBeforeResize = await invoke("state");
       const extractedBeforeResize = structuredClone(profiles.at(-1));
-      await checkCakeProfileInteraction(page, profilePlot, cakeCanvas, idle);
+      await checkCakeProfileInteraction(
+        page,
+        profilePlot,
+        cakeCanvas,
+        idle,
+        profiles.at(-1).y,
+      );
       const scienceAfterResize = await invoke("state");
       assert.equal(
         scienceAfterResize.cake.bufferId,
@@ -487,6 +497,13 @@ try {
       assert.deepEqual(scienceAfterResize.pattern, scienceBeforeResize.pattern);
       assert.deepEqual(profiles.at(-1), extractedBeforeResize);
       const widthBeforeToggle = (await profilePlot.boundingBox()).width;
+      await button("Profile Y-range zoom").click();
+      await idle();
+      await panel
+        .locator("..")
+        .screenshot({
+          path: path.join(artifacts, `${engine}-vertical-slice.png`),
+        });
       await button("Azimuthal profile").click();
       await idle();
       await button("Azimuthal profile").click();
@@ -495,6 +512,13 @@ try {
         Math.abs((await profilePlot.boundingBox()).width - widthBeforeToggle) <
           1.1,
       );
+      assert.equal(
+        await profilePlot.getAttribute("data-zoom-mode"),
+        "vertical",
+      );
+      await button("Profile rectangle zoom").click();
+      await profilePlot.press("f");
+      await idle();
       const originalY = +(await cakeCanvas.getAttribute("data-view-y-max"));
       const radialBeforeProfileZoom =
         await cakeCanvas.getAttribute("data-view-x-max");
@@ -708,6 +732,8 @@ try {
       await idle();
       await button("Combined cake").click();
       await idle();
+      await button("Cake").click();
+      await idle();
       await button("Azimuthal profile").click();
       await idle();
       await clickPlot(radialPlot);
@@ -744,6 +770,8 @@ try {
         zeroSamplesDrawGapsAndExportUnchanged: true,
         zeroGapWidths: [1, 3, 9],
         nativeBinWindowOverlay: true,
+        profileToggleOnlyInCake: true,
+        profileVerticalSliceAndRectangle: true,
         errors,
       });
     } finally {

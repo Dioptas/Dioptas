@@ -2197,7 +2197,7 @@ input[type="checkbox"] {
 }
 .image-intensity[data-orientation="horizontal"] {
   width: 100%;
-  height: 56px;
+  height: 58px;
   flex-direction: row;
   padding: 4px;
   overflow: visible;

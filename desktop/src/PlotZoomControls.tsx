@@ -8,6 +8,7 @@ export function PlotZoomControls({
   bottom,
   label,
   horizontalTitle,
+  sliceDirection = "horizontal",
 }: {
   mode: ZoomMode;
   onChange: (mode: ZoomMode) => void;
@@ -15,7 +16,9 @@ export function PlotZoomControls({
   bottom: number;
   label: string;
   horizontalTitle?: string;
+  sliceDirection?: "horizontal" | "vertical";
 }) {
+  const sliceMode = sliceDirection;
   return (
     <>
       <Button
@@ -44,14 +47,16 @@ export function PlotZoomControls({
         style={{ left: Math.max(8, left - 72) + 22, bottom: bottom - 24 }}
         type="button"
         title={
-          horizontalTitle ??
-          (label === "Cake"
-            ? "X-range zoom: keep the azimuth range"
-            : "X-range zoom: fit intensity to the visible data")
+          sliceMode === "vertical"
+            ? "Y-range zoom: fit intensity to the visible profile"
+            : (horizontalTitle ??
+              (label === "Cake"
+                ? "X-range zoom: keep the azimuth range"
+                : "X-range zoom: fit intensity to the visible data"))
         }
-        aria-label={`${label} X-range zoom`}
-        aria-pressed={mode === "horizontal"}
-        onClick={() => onChange("horizontal")}
+        aria-label={`${label} ${sliceMode === "vertical" ? "Y" : "X"}-range zoom`}
+        aria-pressed={mode === sliceMode}
+        onClick={() => onChange(sliceMode)}
       >
         <svg
           width="16"
@@ -62,7 +67,9 @@ export function PlotZoomControls({
           strokeWidth="1.6"
           aria-hidden="true"
         >
-          <path d="M7 5v14M17 5v14" />
+          <path
+            d={sliceMode === "vertical" ? "M5 7h14M5 17h14" : "M7 5v14M17 5v14"}
+          />
         </svg>
       </Button>
     </>

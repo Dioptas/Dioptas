@@ -96,13 +96,20 @@ const raster: Raster = {
   limits: [0, 100],
   histogram: { edges: [0, 50, 100], counts: [2, 2], finitePixels: 4 },
 };
-function Histogram() {
+type HistogramDisplay = "detector" | "cake" | "map" | "batch";
+function Histogram({
+  display = "detector",
+  orientation = "horizontal",
+}: {
+  display?: HistogramDisplay;
+  orientation?: "horizontal" | "vertical";
+} = {}) {
   const [limits, setLimits] = useState<[number, number]>([0, 100]);
   const [log, setLog] = useState(false);
   const [palette, setPalette] = useState<Palette>("grey");
   const [preferences, setPreferences] = useState<ImageDisplayPreferences>({
     size: "compact",
-    orientation: "horizontal",
+    orientation,
     auto: { mode: "percentile", percentile: 0.1, filter_gaps: true },
   });
   return (
@@ -112,10 +119,11 @@ function Histogram() {
         left: 24,
         bottom: 24,
         width: 300,
-        height: 80,
+        height: orientation === "vertical" ? 400 : 80,
       }}
     >
       <ImageIntensity
+        display={display}
         raster={raster}
         limits={limits}
         onLimits={setLimits}
@@ -295,6 +303,67 @@ Object.assign(window, {
         root.render(<Fixture key={String(large)} large={large} />),
       ),
     report,
+    histogram: (
+      display: HistogramDisplay,
+      orientation: "horizontal" | "vertical",
+      large = false,
+      detached = false,
+    ) =>
+      flushSync(() => {
+        const histogram = (
+          <Histogram
+            display={display}
+            orientation={orientation}
+            key={`${display}-${orientation}-${large}-${detached}`}
+          />
+        );
+        root.render(
+          <div className="app" data-text-size={large ? "large" : "normal"}>
+            {detached ? histogram : <main>{histogram}</main>}
+          </div>,
+        );
+      }),
+    icons: () =>
+      flushSync(() =>
+        root.render(
+          <div className="app">
+            <main>
+              {[
+                "plot-controls",
+                "map-toolbar",
+                "map-source-actions",
+                "calibration-task-panel",
+              ].map((context, i) => (
+                <div key={context} className={context}>
+                  <div className={i === 3 ? "peak-row" : undefined}>
+                    <Button
+                      aria-label={`${context} icon`}
+                      className={
+                        i === 1
+                          ? "map-icon-button"
+                          : i === 2
+                            ? "map-source-icon"
+                            : "icon-button"
+                      }
+                      aria-pressed={i === 0}
+                      style={i === 3 ? { gridColumn: 5 } : undefined}
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path d="M4 4h16v16H4z" fill="currentColor" />
+                      </svg>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </main>
+          </div>,
+        ),
+      ),
   },
 });
 (window as any).uiFixture.render();

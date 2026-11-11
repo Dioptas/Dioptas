@@ -482,6 +482,7 @@ export function ImageIntensity({
         <div className="intensity-basic-controls">
           <div className="intensity-actions">
             <Button
+              className="plot-tool-button icon-button"
               aria-label={label("Auto intensity")}
               aria-pressed={autoActive}
               disabled={!ready}
@@ -494,9 +495,10 @@ export function ImageIntensity({
                 autoActive ? setAutoActive(false) : applyAuto(auto)
               }
             >
-              {horizontal ? "A" : "Auto"}
+              A
             </Button>
             <Button
+              className="plot-tool-button icon-button"
               aria-label={`${title} histogram settings`}
               aria-haspopup="dialog"
               aria-expanded={!!dialog}

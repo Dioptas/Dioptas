@@ -43,7 +43,7 @@ export interface ZoomSelection {
   start: ScreenPoint;
   end: ScreenPoint;
 }
-export type ZoomMode = "rectangle" | "horizontal";
+export type ZoomMode = "rectangle" | "horizontal" | "vertical";
 type Gesture = {
   button: "left" | "right";
   start: ScreenPoint;
@@ -75,6 +75,7 @@ export function usePlotNavigation(
   zoomMode: ZoomMode = "rectangle",
   horizontalYRange?: (xMin: number, xMax: number) => [number, number],
   viewport?: PlotViewport,
+  verticalXRange?: (yMin: number, yMax: number) => [number, number],
 ) {
   const [localRange, setLocalRange] = useState<PlotRange | null>(null);
   const range = viewport ? viewport.read() : localRange;
@@ -101,6 +102,19 @@ export function usePlotNavigation(
       currentRange.xMax,
     ],
   );
+  const verticalExtent = useMemo(
+    () =>
+      zoomMode === "vertical" && !aspectLocked
+        ? verticalXRange?.(currentRange.yMin, currentRange.yMax)
+        : undefined,
+    [
+      zoomMode,
+      aspectLocked,
+      verticalXRange,
+      currentRange.yMin,
+      currentRange.yMax,
+    ],
+  );
   // A zoomed range outlives the viewport that created it. Derive its height
   // from the current canvas aspect on every render, including resize frames.
   const halfHeight =
@@ -120,7 +134,9 @@ export function usePlotNavigation(
           yMin: horizontalExtent[0],
           yMax: horizontalExtent[1],
         }
-      : currentRange;
+      : verticalExtent
+        ? { ...currentRange, xMin: verticalExtent[0], xMax: verticalExtent[1] }
+        : currentRange;
   const reset = () => {
     gesture.current = null;
     rightClick.current = null;
@@ -181,6 +197,21 @@ export function usePlotNavigation(
       ];
       return { xMin, xMax, yMin, yMax };
     }
+    if (zoomMode === "vertical" && !aspectLocked) {
+      const fullHeight =
+        factor > 1 && height * factor >= fitHeight * (1 - 1e-10);
+      const yMin = fullHeight
+        ? fit.yMin
+        : center.y + (current.yMin - center.y) * factor;
+      const yMax = fullHeight
+        ? fit.yMax
+        : center.y + (current.yMax - center.y) * factor;
+      const [xMin, xMax] = verticalXRange?.(yMin, yMax) ?? [
+        current.xMin,
+        current.xMax,
+      ];
+      return { xMin, xMax, yMin, yMax };
+    }
     if (
       factor > 1 &&
       width * factor >= fitWidth * (1 - 1e-10) &&
@@ -231,19 +262,23 @@ export function usePlotNavigation(
     if (!current.moved) return;
     if (current.button === "right") {
       const dx =
-        ((p.x - current.start.x) / bounds.width) *
+        (zoomMode === "vertical" && !aspectLocked
+          ? 0
+          : (p.x - current.start.x) / bounds.width) *
         (current.range.xMax - current.range.xMin);
       const dy =
         zoomMode === "horizontal" && !aspectLocked
           ? 0
           : ((p.y - current.start.y) / bounds.height) *
             (current.range.yMax - current.range.yMin);
-      const xMin = current.range.xMin - dx,
+      let xMin = current.range.xMin - dx,
         xMax = current.range.xMax - dx;
       const [yMin, yMax] =
         zoomMode === "horizontal" && !aspectLocked && horizontalYRange
           ? horizontalYRange(xMin, xMax)
           : [current.range.yMin + dy, current.range.yMax + dy];
+      if (zoomMode === "vertical" && !aspectLocked && verticalXRange)
+        [xMin, xMax] = verticalXRange(yMin, yMax);
       setRange({
         xMin,
         xMax,
@@ -256,15 +291,20 @@ export function usePlotNavigation(
       const start = clamp(current.start),
         end = clamp(p);
       setSelection(
-        Math.abs(end.x - start.x) < 4 ||
-          (zoomMode === "rectangle" && Math.abs(end.y - start.y) < 4)
+        (zoomMode !== "vertical" && Math.abs(end.x - start.x) < 4) ||
+          (zoomMode !== "horizontal" && Math.abs(end.y - start.y) < 4)
           ? null
           : zoomMode === "horizontal"
             ? {
                 start: { x: start.x, y: bounds.top },
                 end: { x: end.x, y: bounds.top + bounds.height },
               }
-            : { start, end },
+            : zoomMode === "vertical"
+              ? {
+                  start: { x: bounds.left, y: start.y },
+                  end: { x: bounds.left + bounds.width, y: end.y },
+                }
+              : { start, end },
       );
     }
   }
@@ -298,12 +338,22 @@ export function usePlotNavigation(
     const start = clamp(current.start),
       end = clamp(screen(event));
     if (
-      Math.abs(end.x - start.x) < 4 ||
-      (zoomMode === "rectangle" && Math.abs(end.y - start.y) < 4)
+      (zoomMode !== "vertical" && Math.abs(end.x - start.x) < 4) ||
+      (zoomMode !== "horizontal" && Math.abs(end.y - start.y) < 4)
     )
       return "drag";
     const a = data(start, current.range),
       b = data(end, current.range);
+    if (zoomMode === "vertical" && !aspectLocked) {
+      const yMin = Math.min(a.y, b.y),
+        yMax = Math.max(a.y, b.y);
+      const [xMin, xMax] = verticalXRange?.(yMin, yMax) ?? [
+        current.range.xMin,
+        current.range.xMax,
+      ];
+      setRange({ xMin, xMax, yMin, yMax });
+      return "zoom";
+    }
     if (zoomMode === "horizontal") {
       const xMin = Math.min(a.x, b.x),
         xMax = Math.max(a.x, b.x);
@@ -352,7 +402,10 @@ export function usePlotNavigation(
     if (!inside(p)) return;
     const current = view;
     const factor = Math.exp(Math.max(-2, Math.min(2, event.deltaY * 0.0015)));
-    const maxZoom = (fit.xMax - fit.xMin) / (current.xMax - current.xMin);
+    const maxZoom =
+      zoomMode === "vertical"
+        ? (fit.yMax - fit.yMin) / (current.yMax - current.yMin)
+        : (fit.xMax - fit.xMin) / (current.xMax - current.xMin);
     if (factor < 1 && maxZoom / factor > 1000) return;
     setRange(scaled(current, factor, data(p, current)));
   }
@@ -381,12 +434,16 @@ export function usePlotNavigation(
     }
     if (["+", "=", "-"].includes(key)) {
       const factor = key === "-" ? 2 : 0.5;
-      if (factor < 1 && (fit.xMax - fit.xMin) / (view.xMax - view.xMin) >= 1000)
-        return;
+      const zoom =
+        zoomMode === "vertical"
+          ? (fit.yMax - fit.yMin) / (view.yMax - view.yMin)
+          : (fit.xMax - fit.xMin) / (view.xMax - view.xMin);
+      if (factor < 1 && zoom >= 1000) return;
       setRange(scaled(view, factor));
       return;
     }
     const dx =
+      (zoomMode === "vertical" ? 0 : 1) *
       (view.xMax - view.xMin) *
       0.1 *
       (key === "arrowleft" ? -1 : key === "arrowright" ? 1 : 0);
@@ -394,12 +451,14 @@ export function usePlotNavigation(
       (view.yMax - view.yMin) *
       0.1 *
       (key === "arrowdown" ? -1 : key === "arrowup" ? 1 : 0);
-    const xMin = view.xMin + dx,
+    let xMin = view.xMin + dx,
       xMax = view.xMax + dx;
     const [yMin, yMax] =
       zoomMode === "horizontal" && dx && horizontalYRange
         ? horizontalYRange(xMin, xMax)
         : [view.yMin + dy, view.yMax + dy];
+    if (zoomMode === "vertical" && verticalXRange)
+      [xMin, xMax] = verticalXRange(yMin, yMax);
     setRange({ xMin, xMax, yMin, yMax });
   }
   return {
