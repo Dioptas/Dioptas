@@ -435,7 +435,9 @@ try {
         await page.getByLabel("Iterations", { exact: true }).isEnabled(),
         true,
       );
-      await cancelAuto.click();
+      // A quick fit can finish while Playwright waits for click stability.
+      // Dispatch immediately through the actual button's click handler.
+      await cancelAuto.evaluate((button) => button.click());
       await page.waitForFunction(
         () =>
           document.querySelector('[data-testid="pattern-canvas"]')?.dataset

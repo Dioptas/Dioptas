@@ -61,7 +61,7 @@
     "test:backend-commands": "node scripts/backend_command_audit.mjs",
     "tauri:bundle": "node scripts/bundle_standalone.mjs",
     "release:macos": "node scripts/release_macos.mjs",
-    "test:release-config": "node --test scripts/release_config.test.mjs",
+    "test:release-config": "node --test scripts/release_config.test.mjs scripts/hdiutil.test.mjs",
     "test:macos-dmg": "node scripts/verify_macos_dmg.mjs",
     "test:standalone-artifact": "node scripts/inspect_standalone.mjs",
     "test:standalone-native": "node scripts/standalone_smoke.mjs",

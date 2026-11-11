@@ -85,6 +85,19 @@ Successful candidates and diagnostics are retained as Actions artifacts for
 14 days. No release is published. Manual dispatch becomes available once the
 workflow is present on the repository's default branch.
 
+The workflow accepts an architecture and an optional `recovery_run_id`. For a
+run whose app was accepted by Apple but whose DMG packaging failed, recovery
+restores the original signed app ZIP from that run's diagnostics, retrieves and
+validates its existing Apple ticket, and packages it without rebuilding,
+re-signing or re-submitting the app. The report keeps the original app revision
+and the current packaging revision separately. Recovering a still-pending or
+rejected app fails its ticket/Gatekeeper checks. The new DMG is submitted once.
+
+Disk-image creation uses explicit HFS+ and retries only `Resource busy` errors,
+up to five attempts with 2/4/8/16-second backoff. Other errors fail immediately.
+Retries remove only this candidate's partial DMG; no system disk-image helpers
+or unrelated mounts are terminated.
+
 Apple can take longer than the 90-minute wait. A timeout fails the candidate;
 it does not count as acceptance. Before rebuilding or signing again, inspect
 the retained submission ID and resume with the original signed bytes, matching

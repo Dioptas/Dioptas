@@ -2,9 +2,20 @@ name: Native macOS artifacts (no publishing)
 
 on:
   workflow_dispatch:
+    inputs:
+      architecture:
+        description: Architecture to build or recover
+        type: choice
+        options: [both, arm64, intel]
+        default: both
+      recovery_run_id:
+        description: Optional original candidate run with an Apple-accepted app ZIP
+        type: string
+        default: ''
 
 permissions:
   contents: read
+  actions: read
 
 # Do not cancel an Apple submission when another candidate starts.
 concurrency:
@@ -17,12 +28,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - runner: macos-15
-            target: aarch64-apple-darwin
-          - runner: macos-15-intel
-            target: x86_64-apple-darwin
-    runs-on: ${{ matrix.runner }}
+        target: ${{ fromJSON(inputs.architecture == 'intel' && '["x86_64-apple-darwin"]' || inputs.architecture == 'arm64' && '["aarch64-apple-darwin"]' || '["aarch64-apple-darwin", "x86_64-apple-darwin"]') }}
+    runs-on: ${{ matrix.target == 'x86_64-apple-darwin' && 'macos-15-intel' || 'macos-15' }}
     timeout-minutes: 240
     env:
       MACOSX_DEPLOYMENT_TARGET: '14.0'
@@ -57,8 +64,20 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      - name: Restore an already accepted app
+        if: inputs.recovery_run_id != ''
+        run: node scripts/recover_macos_app.mjs
+        working-directory: desktop
+        env:
+          DIOPTAS_RECOVERY_RUN_ID: ${{ inputs.recovery_run_id }}
+          GH_TOKEN: ${{ github.token }}
       - name: Build, sign, notarize and verify installed DMG
-        run: npm run release:macos -- --notarize --native-smoke
+        run: |
+          if [[ -n "${DIOPTAS_RECOVERED_APP:-}" ]]; then
+            npm run release:macos -- --notarize --native-smoke --from-app "$DIOPTAS_RECOVERED_APP"
+          else
+            npm run release:macos -- --notarize --native-smoke
+          fi
         working-directory: desktop
       - name: Retain installers, checksums and verification
         uses: actions/upload-artifact@v7

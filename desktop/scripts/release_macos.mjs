@@ -11,6 +11,8 @@ import {
   writeFile,
 } from "node:fs/promises";
 import path from "node:path";
+import { parseArgs } from "node:util";
+import { hdiutil } from "./hdiutil.mjs";
 import {
   desktop,
   releaseConfig,
@@ -21,18 +23,25 @@ import { inspectStandalone } from "./inspect_standalone.mjs";
 import { verifyMacosDmg } from "./verify_macos_dmg.mjs";
 
 assert.equal(process.platform, "darwin", "Build macOS artifacts on macOS");
-const flags = process.argv.slice(2);
+const { values } = parseArgs({
+  options: {
+    "ad-hoc": { type: "boolean" },
+    notarize: { type: "boolean" },
+    "native-smoke": { type: "boolean" },
+    "from-app": { type: "string" },
+  },
+});
+const adHoc = !!values["ad-hoc"];
+const notarized = !!values.notarize;
+const recoveredApplication =
+  values["from-app"] && path.resolve(values["from-app"]);
 assert(
-  flags.every((flag) =>
-    ["--ad-hoc", "--notarize", "--native-smoke"].includes(flag),
-  ),
-  "Use --ad-hoc, --notarize or --native-smoke",
+  !recoveredApplication || notarized,
+  "Recovered apps require notarized candidate verification",
 );
-const adHoc = flags.includes("--ad-hoc");
-const notarized = flags.includes("--notarize");
 assert(!(adHoc && notarized), "Ad-hoc artifacts cannot be notarized");
 assert(
-  !(adHoc && flags.includes("--native-smoke")),
+  !(adHoc && values["native-smoke"]),
   "The release WebKit check requires Developer ID signing",
 );
 const identity = adHoc
@@ -83,25 +92,34 @@ if (process.env.DIOPTAS_RELEASE_TARGET)
 const artifacts = path.join(desktop, "artifacts/native-release");
 await mkdir(artifacts, { recursive: true });
 const output = await mkdtemp(path.join(artifacts, `${version}-${target}-`));
-const sourceRevision = capture("git", ["rev-parse", "HEAD"]);
+const packagingRevision = capture("git", ["rev-parse", "HEAD"]);
+const sourceRevision = recoveredApplication
+  ? process.env.DIOPTAS_APP_SOURCE_REVISION
+  : packagingRevision;
+assert.match(
+  sourceRevision || "",
+  /^[a-f0-9]{40}$/,
+  "Record the recovered application's source revision",
+);
 const sourceDirty = capture("git", ["status", "--porcelain"]).length > 0;
 console.log(`Preparing ${version} (${target}); artifacts: ${output}`);
-await run(
-  process.execPath,
-  [
-    "node_modules/@tauri-apps/cli/tauri.js",
-    "build",
-    "--config",
-    "src-tauri/tauri.release.conf.json",
-    "--bundles",
-    "app",
-    "--",
-    "--locked",
-  ],
-  {
-    env: buildEnvironment(process.env, identity),
-  },
-);
+if (!recoveredApplication)
+  await run(
+    process.execPath,
+    [
+      "node_modules/@tauri-apps/cli/tauri.js",
+      "build",
+      "--config",
+      "src-tauri/tauri.release.conf.json",
+      "--bundles",
+      "app",
+      "--",
+      "--locked",
+    ],
+    {
+      env: buildEnvironment(process.env, identity),
+    },
+  );
 const metadata = JSON.parse(
   capture("cargo", [
     "metadata",
@@ -113,11 +131,13 @@ const metadata = JSON.parse(
     "src-tauri/Cargo.toml",
   ]),
 );
-const application = path.join(
-  metadata.target_directory,
-  "release/bundle/macos",
-  `${releaseConfig.productName}.app`,
-);
+const application =
+  recoveredApplication ||
+  path.join(
+    metadata.target_directory,
+    "release/bundle/macos",
+    `${releaseConfig.productName}.app`,
+  );
 await inspectStandalone(application, { teamIdentifier });
 await run(process.execPath, [
   "scripts/standalone_processor_smoke.mjs",
@@ -129,7 +149,12 @@ const notary = async (file) =>
     [path.resolve(desktop, "../installer/macos/signing.py"), "notarize", file],
     { cwd: output },
   );
-if (notarized) await notary(application);
+if (recoveredApplication) {
+  // Fetch the existing Apple ticket; never re-sign or re-submit an accepted app.
+  await run("xcrun", ["stapler", "staple", application]);
+  await run("xcrun", ["stapler", "validate", application]);
+  await run("spctl", ["--assess", "--type", "execute", application]);
+} else if (notarized) await notary(application);
 const arch = target.startsWith("aarch64") ? "arm64" : "x64";
 const basename = `Dioptas-Desktop_${version}_macos_${arch}`;
 const dmg = path.join(output, `${basename}.dmg`);
@@ -141,16 +166,21 @@ try {
     path.join(staging, path.basename(application)),
   ]);
   await symlink("/Applications", path.join(staging, "Applications"));
-  await run("hdiutil", [
-    "create",
-    "-volname",
-    releaseConfig.productName,
-    "-srcfolder",
-    staging,
-    "-format",
-    "UDZO",
-    dmg,
-  ]);
+  await hdiutil(
+    [
+      "create",
+      "-volname",
+      releaseConfig.productName,
+      "-srcfolder",
+      staging,
+      "-format",
+      "UDZO",
+      "-fs",
+      "HFS+",
+      dmg,
+    ],
+    { beforeRetry: () => rm(dmg, { force: true }) },
+  );
 } finally {
   await rm(staging, { recursive: true, force: true });
 }
@@ -165,7 +195,7 @@ if (notarized) await notary(dmg);
 const verification = await verifyMacosDmg(dmg, {
   teamIdentifier,
   notarized,
-  nativeSmoke: flags.includes("--native-smoke"),
+  nativeSmoke: !!values["native-smoke"],
 });
 const archive = path.join(output, `${basename}.app.tar.gz`);
 await run("tar", [
@@ -188,6 +218,8 @@ const report = {
   identifier: releaseConfig.identifier,
   target,
   sourceRevision,
+  packagingRevision,
+  recoveredApplication: !!recoveredApplication,
   sourceDirty,
   signing: adHoc ? "ad-hoc" : "developer-id",
   teamIdentifier,
