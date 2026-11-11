@@ -1,7 +1,7 @@
 // Compile positive/negative contract fixtures together with the real frontend.
 // @ts-expect-error is checked by tsc, so a widened API fails this gate too.
 import assert from "node:assert/strict";
-import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -60,41 +60,31 @@ for (const command of contracts)
     supported.has(command),
     `No native/host route for typed command ${command}`,
   );
-const temporary = await mkdtemp(path.join(desktop, ".command-contract-types-"));
-try {
-  const project = path.join(temporary, "tsconfig.json");
-  await writeFile(
+// A checked-in project keeps this gate read-only. Creating/removing a tsconfig
+// inside a watched Vite project forces a full reload and discards live UI state.
+const project = path.join(fixtures, "tsconfig.json");
+const result = spawnSync(
+  process.execPath,
+  [
+    path.join(desktop, "node_modules/typescript/bin/tsc"),
+    "--noEmit",
+    "--project",
     project,
-    JSON.stringify({
-      extends: path.join(desktop, "tsconfig.json"),
-      include: [path.join(desktop, "src"), path.join(fixtures, "**/*.ts")],
-    }),
+  ],
+  {
+    cwd: desktop,
+    encoding: "utf8",
+    maxBuffer: 16 * 1024 * 1024,
+    timeout: 120000,
+  },
+);
+if (result.status !== 0 || result.error) {
+  process.stdout.write(result.stdout ?? "");
+  process.stderr.write(result.stderr ?? "");
+  throw (
+    result.error ?? new Error("Command payload/result type fixtures failed.")
   );
-  const result = spawnSync(
-    process.execPath,
-    [
-      path.join(desktop, "node_modules/typescript/bin/tsc"),
-      "--noEmit",
-      "--project",
-      project,
-    ],
-    {
-      cwd: desktop,
-      encoding: "utf8",
-      maxBuffer: 16 * 1024 * 1024,
-      timeout: 120000,
-    },
-  );
-  if (result.status !== 0 || result.error) {
-    process.stdout.write(result.stdout ?? "");
-    process.stderr.write(result.stderr ?? "");
-    throw (
-      result.error ?? new Error("Command payload/result type fixtures failed.")
-    );
-  }
-  console.log(
-    `Checked ${contracts.length} typed command contracts and ${files.length} compile fixtures.`,
-  );
-} finally {
-  await rm(temporary, { recursive: true, force: true });
 }
+console.log(
+  `Checked ${contracts.length} typed command contracts and ${files.length} compile fixtures.`,
+);
