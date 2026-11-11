@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { EventEmitter, once } from "node:events";
 import { copyFile, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -27,7 +28,15 @@ try {
     });
     const commands = [],
       errors = [];
+    let observingManualCancellation = false;
+    const manualCancellation = {
+      nativeProgress: false,
+      nativeCancelled: false,
+    };
     let observingAutomaticCancellation = false;
+    const nativeProgress = new EventEmitter();
+    const waitForNativeProgress = (label) =>
+      once(nativeProgress, label, { signal: AbortSignal.timeout(30_000) });
     const automaticCancellation = {
       nativeProgress: false,
       nativeCancelled: false,
@@ -53,6 +62,19 @@ try {
           ],
         };
       const r = await native.invoke(action, payload);
+      if (observingManualCancellation) {
+        if (
+          action === "progress" &&
+          r.progress?.running &&
+          r.progress.label === "Extracting batch background"
+        )
+          manualCancellation.nativeProgress = true;
+        if (
+          action === "batch_background_extract" &&
+          payload.parameters?.iterations === 99999
+        )
+          manualCancellation.nativeCancelled = r.cancelled === true;
+      }
       if (observingAutomaticCancellation) {
         if (
           action === "progress" &&
@@ -67,6 +89,8 @@ try {
         )
           automaticCancellation.nativeCancelled = r.cancelled === true;
       }
+      if (action === "progress" && r.progress?.running)
+        nativeProgress.emit(r.progress.label);
       assert.equal(r.ok, true, `${action}: ${r.error}`);
       return r;
     };
@@ -419,13 +443,29 @@ try {
       await dock
         .getByLabel("Batch background polynomial order", { exact: true })
         .fill("7");
-      await dock
-        .getByRole("button", { name: "Extract background", exact: true })
-        .click();
-      await page
-        .getByRole("button", { name: "Cancel processing", exact: true })
-        .click();
+      observingManualCancellation = true;
+      const cancelManualFit = (async () => {
+        await waitForNativeProgress("Extracting batch background");
+        const cancel = page.getByRole("button", {
+          name: "Cancel processing",
+          exact: true,
+        });
+        await cancel.waitFor();
+        assert.equal(await cancel.isEnabled(), true);
+        await cancel.press("Enter");
+      })();
+      await Promise.all([
+        dock
+          .getByRole("button", { name: "Extract background", exact: true })
+          .click(),
+        cancelManualFit,
+      ]);
       await ready();
+      assert.deepEqual(manualCancellation, {
+        nativeProgress: true,
+        nativeCancelled: true,
+      });
+      observingManualCancellation = false;
       assert.deepEqual((await invoke("batch_snapshot")).batch, beforeCancel);
       // A live edit stays editable while its automatic Batch fit exposes
       // progress/cancel in the footer, without global busy-state dimming.
@@ -453,8 +493,14 @@ try {
       // arrive after its quiet native job has finished on a busy CI browser.
       // The observer still waits for actual native progress. Keyboard activation
       // avoids spending the short cancellation window waiting for footer layout
-      // stability; the manual case above covers pointer activation.
+      // stability, while still activating the real enabled footer control.
+      const automaticProgress = waitForNativeProgress(
+        "Applying pattern background to batch",
+      );
       const cancelAutomaticFit = (async () => {
+        // The footer also appears while work is queued. Cancel only after the
+        // native worker reports that it is applying this background to Batch.
+        await automaticProgress;
         await cancelAuto.waitFor();
         assert.equal(
           await page.getByLabel("Iterations", { exact: true }).isEnabled(),
@@ -506,6 +552,7 @@ try {
         storedOnly: true,
         detachedRouting: true,
         footerCancellation: true,
+        nativeManualCancellation: manualCancellation,
         patternBackground: true,
         automaticUpdates: true,
         coalescedEdits: true,
@@ -535,6 +582,7 @@ try {
             error: String(error),
             diagnostics,
             commands: commands.slice(-30),
+            manualCancellation,
             automaticCancellation,
           },
           null,
