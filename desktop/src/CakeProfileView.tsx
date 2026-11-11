@@ -71,6 +71,7 @@ export function CakeProfileView({
     profile?.y.forEach((value, index) => {
       if (
         value != null &&
+        value !== 0 &&
         Number.isFinite(value) &&
         index + 0.5 >= cakeView.yMin &&
         index + 0.5 <= cakeView.yMax
@@ -233,7 +234,7 @@ export function CakeProfileView({
     c.beginPath();
     let drawing = false;
     profile?.y.forEach((value, index) => {
-      if (value == null || !Number.isFinite(value)) {
+      if (value == null || value === 0 || !Number.isFinite(value)) {
         drawing = false;
         return;
       }

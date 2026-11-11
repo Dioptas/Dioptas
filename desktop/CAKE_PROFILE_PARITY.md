@@ -63,8 +63,10 @@ relabeling is separate from these source coordinates.
   changes preserve manual intensity zoom. Both main and detached cake views use
   the same layout and source-row convention, including azimuth shifts.
 - Qt's plot changes nonpositive intensities to NaN and its save action uses the
-  plotted intensity/pixel arrays. Native plots and saves retain zero and signed
-  numerical intensities. Files contain actual azimuth bin centers in degrees,
+  plotted intensity/pixel arrays. The desktop profile draws zero-valued samples
+  as gaps and excludes them from automatic intensity limits; signed nonzero
+  intensities remain visible. Native extraction and saves retain all numerical
+  values, including zeros. Files contain actual azimuth bin centers in degrees,
   followed by native intensity in a.u., with metadata comments and no invented
   error column. Nonfinite data fail export before replacing an existing file.
 - Width, visibility and zoom are session view state; no new project fields or

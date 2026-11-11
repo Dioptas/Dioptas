@@ -73,6 +73,25 @@ try {
         window.pywebview = {
           api: { invoke: (a, p) => window.__nativeInvoke(a, p) },
         };
+        // Observe the actual profile stroke without changing native samples.
+        const context = CanvasRenderingContext2D.prototype;
+        for (const name of ["beginPath", "moveTo", "lineTo", "stroke"]) {
+          const original = context[name];
+          context[name] = function (...args) {
+            if (this.canvas.dataset.testid === "cake-profile-canvas") {
+              if (name === "beginPath") this.profilePath = [];
+              if (name === "moveTo" || name === "lineTo")
+                this.profilePath?.push([name, ...args]);
+              if (
+                name === "stroke" &&
+                this.strokeStyle === "#ffffff" &&
+                this.lineWidth === 1.5
+              )
+                window.__profileCurve = this.profilePath;
+            }
+            return original.apply(this, args);
+          };
+        }
       });
       await page.goto(
         pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
@@ -299,6 +318,74 @@ try {
       }
       await resizeHandle.press("Home");
       await idle();
+      await clickPlot(cakeCanvas, 0.85, 0.5);
+      await profilePlot.press("f");
+      await idle();
+      const gapped = structuredClone(profiles.at(-1));
+      assert.ok(
+        gapped.y.includes(0),
+        "The native fixture must contain empty rows",
+      );
+      const nonzero = gapped.y.filter(
+        (v) => v != null && v !== 0 && Number.isFinite(v),
+      );
+      assert.ok(
+        nonzero.length > 1,
+        "The fixture must also contain populated rows",
+      );
+      const rendered = await profilePlot.evaluate((el) => ({
+        path: window.__profileCurve,
+        min: +el.dataset.viewXMin,
+        max: +el.dataset.viewXMax,
+        top: +el.dataset.plotTop,
+        height: +el.dataset.plotHeight,
+        yMin: +el.dataset.viewYMin,
+        yMax: +el.dataset.viewYMax,
+      }));
+      const expectedRows = gapped.y.flatMap((value, row) => {
+        if (value == null || value === 0 || !Number.isFinite(value)) return [];
+        const previous = gapped.y[row - 1];
+        return [
+          [
+            previous == null || previous === 0 || !Number.isFinite(previous)
+              ? "moveTo"
+              : "lineTo",
+            row,
+          ],
+        ];
+      });
+      assert.deepEqual(
+        rendered.path.map(([op, , y]) => [
+          op,
+          Math.round(
+            rendered.yMax -
+              ((y - rendered.top) / rendered.height) *
+                (rendered.yMax - rendered.yMin) -
+              0.5,
+          ),
+        ]),
+        expectedRows,
+        "Zero rows must create gaps, with no line joining across them",
+      );
+      const low = Math.min(...nonzero),
+        high = Math.max(...nonzero);
+      const pad = Math.max((high - low) * 0.05, Math.abs(low) * 1e-6, 1e-6);
+      assert.ok(Math.abs(rendered.min - (low - pad)) < 1e-10);
+      assert.ok(Math.abs(rendered.max - (high + pad)) < 1e-10);
+      await button("Save azimuthal profile").click();
+      await idle();
+      const savedWithZeros = (
+        await readFile(path.join(temp, `${engine}.xy`), "utf8")
+      )
+        .split("\n")
+        .filter((line) => line && !line.startsWith("#"))
+        .map((line) => Number(line.trim().split(/\s+/)[1]));
+      assert.deepEqual(
+        savedWithZeros,
+        gapped.y,
+        "Export retains all native values, including zeros",
+      );
+      await clickPlot(cakeCanvas, 0.55, 0.5);
       for (const orientation of ["vertical", "horizontal"]) {
         await button("Cake histogram settings").click();
         await page
@@ -569,6 +656,7 @@ try {
         stableToolbarAtCakeEdges: true,
         verticallyCenteredControls: true,
         immediateSliderWrapMatchesNative: true,
+        zeroSamplesDrawGapsAndExportUnchanged: true,
         errors,
       });
     } finally {
