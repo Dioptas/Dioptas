@@ -26,6 +26,9 @@ Build each architecture on its own native runner: `macos-15` for Apple Silicon,
 on a newer runner does not establish compatibility with every macOS 14 system.
 Universal binaries are outside this pipeline.
 
+Both processor and host builds enforce their checked-in Cargo lockfiles. The
+candidate workflow is manual-only; ordinary pushes do not sign or submit apps.
+
 From `desktop/`, with the certificate/private key already in an unlocked keychain:
 
 ```sh

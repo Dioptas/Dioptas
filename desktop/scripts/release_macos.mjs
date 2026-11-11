@@ -95,6 +95,8 @@ await run(
     "src-tauri/tauri.release.conf.json",
     "--bundles",
     "app",
+    "--",
+    "--locked",
   ],
   {
     env: buildEnvironment(process.env, identity),

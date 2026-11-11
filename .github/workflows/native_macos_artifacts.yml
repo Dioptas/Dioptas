@@ -2,11 +2,6 @@ name: Native macOS artifacts (no publishing)
 
 on:
   workflow_dispatch:
-  # Bootstrap verification on this implementation branch. Remove after the
-  # initial signed run; routine candidates are explicitly dispatched.
-  push:
-    branches: ['codex/native-installers']
-    paths: ['desktop/**', 'installer/macos/signing.py', '.github/workflows/native_macos_artifacts.yml']
 
 permissions:
   contents: read
