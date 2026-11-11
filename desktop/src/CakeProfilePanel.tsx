@@ -79,6 +79,11 @@ export function CakeProfilePanel({
     <section className="cake-profile-panel" aria-label="Azimuthal profile">
       <form
         className="cake-profile-tools plot-controls"
+        title={
+          profile?.clipped
+            ? "Radial window reaches the cake edge; missing bins contribute zero to the requested-width average."
+            : undefined
+        }
         onSubmit={(event) => {
           event.preventDefault();
           if (!available || !ready) return;
@@ -106,21 +111,16 @@ export function CakeProfilePanel({
         <Button
           className="plot-tool-button icon-button"
           aria-label="Save azimuthal profile"
-          title="Save azimuth (degrees) and native intensity; no error column"
+          title={
+            profile?.clipped
+              ? "Save azimuthal profile · radial window reaches the cake edge; missing bins contribute zero to the requested-width average."
+              : "Save azimuth (degrees) and native intensity; no error column"
+          }
           disabled={!ready || !available}
           type="submit"
         >
           <Save size={15} />
         </Button>
-        {profile?.clipped && (
-          <span
-            aria-label="Edge clipped"
-            className="cake-profile-edge"
-            title="The window extends beyond the cake; missing columns contribute zero to the requested-width average"
-          >
-            ⋯
-          </span>
-        )}
       </form>
       <CakeProfileView
         profile={available ? profile : null}

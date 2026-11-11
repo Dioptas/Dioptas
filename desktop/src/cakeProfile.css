@@ -1,10 +1,9 @@
 /* A shared plot row keeps the profile and cake aligned with either histogram layout. */
 .detector-workspace:has(> .cake-profile-panel) {
   display: grid;
-  grid-template-columns: var(--cake-profile-width, 170px) 8px minmax(
-      0,
-      1fr
-    ) auto;
+  grid-template-columns:
+    var(--cake-profile-width, 170px) 8px minmax(0, 1fr)
+    auto;
   grid-template-rows: minmax(0, 1fr);
   min-width: 0;
 }
@@ -62,20 +61,18 @@
   gap: 4px;
   margin: 0;
   min-width: 0;
+  flex: 0 0 auto;
 }
 .cake-profile-tools .field-label input {
-  width: 60px;
-  min-width: 0;
-  height: 28px;
-  min-height: 28px;
-  padding: 3px 5px;
+  width: 48px;
+  min-width: 48px;
+  flex: 0 0 48px;
+  height: 24px;
+  min-height: 24px;
+  padding: 1px 2px;
 }
 .cake-profile-tools button {
   flex: 0 0 auto;
-}
-.cake-profile-edge {
-  font-size: var(--text-meta);
-  color: var(--muted);
 }
 .cake-profile-empty {
   position: absolute;

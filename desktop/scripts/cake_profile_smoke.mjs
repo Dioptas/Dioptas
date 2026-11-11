@@ -243,6 +243,58 @@ try {
         );
       };
       await assertShared();
+      // Edge-clipping status must not squeeze or reposition the width/save controls.
+      const resizeHandle = page.getByRole("separator", {
+        name: "Profile and cake divider",
+        exact: true,
+      });
+      await resizeHandle.focus();
+      const narrowSteps = Math.ceil(
+        (Number(await resizeHandle.getAttribute("aria-valuenow")) -
+          Number(await resizeHandle.getAttribute("aria-valuemin"))) /
+          8,
+      );
+      for (let i = 0; i < narrowSteps; i++)
+        await resizeHandle.press("ArrowLeft");
+      await idle();
+      const toolbarGeometry = () =>
+        panel.locator(".cake-profile-tools").evaluate((el) =>
+          [
+            el,
+            el.querySelector("label"),
+            el.querySelector("input"),
+            el.querySelector("button"),
+          ].map((node) => {
+            const r = node.getBoundingClientRect();
+            return [r.x, r.y, r.width, r.height];
+          }),
+        );
+      const fixedToolbar = await toolbarGeometry();
+      const binsCount = Number(
+        await cakeCanvas.getAttribute("data-full-width"),
+      );
+      for (const [position, clipped] of [
+        [0.75 / binsCount, true],
+        [0.55, false],
+        [1 - 0.75 / binsCount, true],
+        [0.55, false],
+      ]) {
+        await clickPlot(cakeCanvas, position, 0.5);
+        assert.equal(profiles.at(-1).clipped, clipped);
+        assert.deepEqual(
+          await toolbarGeometry(),
+          fixedToolbar,
+          "Cake position must not move or resize the toolbar",
+        );
+        assert.equal(await panel.getByText("⋯", { exact: true }).count(), 0);
+        if (clipped)
+          assert.match(
+            await button("Save azimuthal profile").getAttribute("title"),
+            /cake edge/,
+          );
+      }
+      await resizeHandle.press("Home");
+      await idle();
       for (const orientation of ["vertical", "horizontal"]) {
         await button("Cake histogram settings").click();
         await page
@@ -462,6 +514,7 @@ try {
         profileLeftOfCakeWithSharedAzimuth: true,
         profileHiddenInImageMode: true,
         resizableWidthAndAxisDrag: true,
+        stableToolbarAtCakeEdges: true,
         errors,
       });
     } finally {

@@ -44,7 +44,8 @@ relabeling is separate from these source coordinates.
 - Qt's helper excludes its first bin center and can wrap negative radial
   indices or raise IndexError when a wide window extends beyond an edge. The
   native path accepts both endpoint centers, clips missing columns to zero,
-  keeps the requested-width divisor and marks **Edge clipped**. Positions outside
+  keeps the requested-width divisor and explains clipping in the toolbar/Save
+  tooltip. Positions outside
   the center range return an empty profile and cannot be saved.
 - The layout follows Qt: intensity is horizontal to the left of the cake and
   azimuth is shared vertically. `CakeProfileView` draws each native profile
@@ -170,3 +171,14 @@ keyboard resizing, persisted width and reset, axis drags into either plot and
 back across the divider, shared y limits, unchanged scientific viewports during
 resize, source pixels and profile samples. Cake-Q-axis and native calibration
 browser regressions, the frontend build and 113 frontend tests also pass.
+
+
+## Stable width controls — November 11, 2026
+
+The bin-width input has a fixed 48 × 24 px box with 1 px vertical and 2 px
+horizontal padding. Its field and Save button do not flex in response to
+selection status. The inline three-dot edge-clipping marker has been removed;
+the existing toolbar/Save tooltip explains the missing-bin contribution when
+applicable. Numerical extraction and export metadata still report clipping.
+The headless profile check selects center and both radial-edge positions with
+a narrow profile panel and asserts identical control positions and dimensions.
