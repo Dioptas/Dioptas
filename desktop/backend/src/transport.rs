@@ -224,13 +224,13 @@ pub fn serve(
                         let current = active.lock().unwrap().clone();
                         let reply = if let Some(control) = current {
                             control.cancel();
-                            Reply::metadata(json!({"ok":true}))
+                            Reply::success()
                         } else if running.load(Ordering::Acquire) {
                             Reply::error(
                                 "The current native integration call cannot be interrupted.",
                             )
                         } else {
-                            Reply::metadata(json!({"ok":true}))
+                            Reply::success()
                         };
                         write(request.id, reply, &[])?;
                     }
@@ -295,10 +295,7 @@ mod panic_tests {
         );
         assert!(reply.encode(42, &[]).unwrap().len() > 4);
         assert_eq!(
-            guarded(|| Reply::metadata(json!({"ok":true})))
-                .ok()
-                .unwrap()
-                .result["ok"],
+            guarded(|| Reply::success()).ok().unwrap().result["ok"],
             true
         );
     }

@@ -84,7 +84,6 @@ pub struct PickPeakPayloadFields {
     pub y: Option<f64>,
     pub ring: Option<f64>,
     pub automatic: Option<bool>,
-    pub search_size: Option<f64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -113,16 +112,14 @@ pub struct TransferPayloadFields<'a> {
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
-pub struct FlatFieldPayloadFields<'a> {
-    pub path: Option<&'a str>,
+pub struct FlatFieldPayloadFields {
     pub enabled: Option<bool>,
     pub reset: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
-pub struct ImageBackgroundPayloadFields<'a> {
-    pub path: Option<&'a str>,
+pub struct ImageBackgroundPayloadFields {
     pub reset: Option<bool>,
     pub scale: Option<f64>,
     pub offset: Option<f64>,
@@ -186,15 +183,11 @@ pub struct CakeProfilePayloadFields<'a> {
     pub bins: Option<f64>,
     pub shift: Option<f64>,
     pub path: Option<&'a str>,
-    pub directory: Option<&'a str>,
-    pub suggested_name: Option<&'a str>,
 }
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
-pub struct Hdf5CompanionPayloadFields<'a> {
-    pub directory: Option<&'a str>,
-}
+pub struct Hdf5CompanionPayloadFields {}
 
 fn fields<'a, T: Deserialize<'a>>(payload: &'a Value) -> Result<(), String> {
     T::deserialize(payload)
@@ -209,15 +202,15 @@ pub fn validate_fields(action: &str, payload: &Value) -> Result<PayloadCoverage,
         "select_image_source" => fields::<ImageSourcePayloadFields<'_>>(payload)?,
         "integration_navigation" => fields::<FrameNavigationPayloadFields>(payload)?,
         "integration_transfer" => fields::<TransferPayloadFields<'_>>(payload)?,
-        "integration_flat_field" => fields::<FlatFieldPayloadFields<'_>>(payload)?,
-        "integration_image_background" => fields::<ImageBackgroundPayloadFields<'_>>(payload)?,
+        "integration_flat_field" => fields::<FlatFieldPayloadFields>(payload)?,
+        "integration_image_background" => fields::<ImageBackgroundPayloadFields>(payload)?,
         "combination_settings" => fields::<CombinationPayloadFields>(payload)?,
         "configuration_select" => fields::<ConfigurationSelectPayloadFields>(payload)?,
         "configuration_navigation" => fields::<ConfigurationNavigationPayloadFields>(payload)?,
         "processing_workers" => fields::<ProcessingWorkersPayloadFields>(payload)?,
         "cake_profile" => fields::<CakeProfilePayloadFields<'_>>(payload)?,
         "save_cake_profile" => fields::<CakeProfilePayloadFields<'_>>(payload)?,
-        "choose_hdf5_companion" => fields::<Hdf5CompanionPayloadFields<'_>>(payload)?,
+        "choose_hdf5_companion" => fields::<Hdf5CompanionPayloadFields>(payload)?,
         "configuration" => {
             match payload["operation"].as_str().unwrap_or("select") {
                 "select" => fields::<ConfigurationSelectPayloadFields>(payload)?,

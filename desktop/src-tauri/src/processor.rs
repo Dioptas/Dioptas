@@ -1,6 +1,8 @@
 use serde_json::{json, Value};
 #[path = "../../command_contract.rs"]
 pub mod command_contract;
+#[path = "../../wire_contract.rs"]
+pub mod wire_contract;
 use command_contract::{MAX_REQUEST_BYTES, REQUEST_SIZE_ERROR};
 use std::{
     collections::HashMap,
@@ -54,6 +56,10 @@ impl Packet {
             result,
             bytes,
         }
+    }
+
+    pub fn cancelled() -> Self {
+        Self::metadata(wire_contract::cancelled_metadata())
     }
 }
 
@@ -345,6 +351,7 @@ impl Processor {
         if self.closed.load(Ordering::SeqCst) {
             return Err("The desktop session is closed.".into());
         }
+        wire_contract::validate_payload(action, &payload)?;
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         let started = std::time::Instant::now();
         let encoded =
@@ -443,6 +450,60 @@ mod tests {
         assert!(
             Backend::requested(&["--backend=rust".into(), "--backend=python".into()], None)
                 .is_err()
+        );
+    }
+
+    #[test]
+    fn structural_payload_errors_never_mutate_or_disconnect_the_live_session() {
+        let processor = Processor::start(false).unwrap();
+        let before = processor.request("state", json!({})).unwrap();
+        let identity = processor.request("__host__", json!({})).unwrap();
+        let next_id = processor.next_id.load(Ordering::Relaxed);
+        let error = processor
+            .request_packet("integration_transfer", json!({"enabled":"false"}), vec![])
+            .unwrap_err();
+        assert!(error.contains("Invalid integration_transfer arguments"));
+        assert_eq!(processor.next_id.load(Ordering::Relaxed), next_id);
+        assert!(processor.replies.lock().unwrap().waiting.is_empty());
+        assert_eq!(processor.request("state", json!({})).unwrap(), before);
+        assert_eq!(
+            processor.request("__host__", json!({})).unwrap()["pid"],
+            identity["pid"]
+        );
+        // Commands outside the generated native DTO coverage still reach their
+        // original scientific/compatibility dispatcher and explicit error.
+        let unsupported = processor
+            .request("unported_legacy_command", json!({}))
+            .unwrap();
+        assert_eq!(unsupported["ok"], false);
+        assert!(unsupported["error"]
+            .as_str()
+            .unwrap()
+            .contains("not migrated"));
+        processor.shutdown();
+    }
+
+    #[test]
+    fn chooser_payloads_allow_missing_paths_and_typed_cancellation_round_trips() {
+        assert!(wire_contract::validate_payload("integration_flat_field", &json!({})).is_ok());
+        assert!(wire_contract::validate_payload(
+            "integration_transfer",
+            &json!({"source":"original","path":null})
+        )
+        .is_ok());
+        assert!(wire_contract::validate_payload(
+            "save_cake_profile",
+            &json!({"two_theta":10.,"bins":1,"shift":0.})
+        )
+        .is_ok());
+        let packet = Packet::cancelled();
+        let result = packet.result_value().unwrap();
+        assert_eq!(result, json!({"ok":true,"cancelled":true}));
+        assert_eq!(
+            wire_contract::response_metadata(&result)
+                .unwrap()
+                .disposition,
+            wire_contract::ResponseDisposition::Cancelled
         );
     }
 

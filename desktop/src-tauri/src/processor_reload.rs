@@ -281,7 +281,15 @@ fn source_stamp(root: &Path) -> u64 {
         visit(&root.join(name), &mut hash);
     }
     // This source is compiled into both crates and lives beside backend/.
-    visit(&root.join("../command_contract.rs"), &mut hash);
+    for name in [
+        "command_contract.rs",
+        "wire_contract.rs",
+        "native_payload_contracts.generated.rs",
+        "command_payload_schema.json",
+        "scripts/generate_native_contracts.mjs",
+    ] {
+        visit(&root.join("..").join(name), &mut hash);
+    }
     hash.finish()
 }
 
@@ -453,11 +461,20 @@ mod tests {
         let root = directory.path().join("backend");
         std::fs::create_dir(&root).unwrap();
         let before = source_stamp(&root);
-        std::fs::write(
-            directory.path().join("command_contract.rs"),
-            "initial policy",
-        )
-        .unwrap();
-        assert_ne!(source_stamp(&root), before);
+        let mut previous = before;
+        for name in [
+            "command_contract.rs",
+            "wire_contract.rs",
+            "native_payload_contracts.generated.rs",
+            "command_payload_schema.json",
+            "scripts/generate_native_contracts.mjs",
+        ] {
+            let file = directory.path().join(name);
+            std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+            std::fs::write(file, "initial contract").unwrap();
+            let current = source_stamp(&root);
+            assert_ne!(current, previous, "{name}");
+            previous = current;
+        }
     }
 }

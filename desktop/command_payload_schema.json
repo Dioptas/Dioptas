@@ -90,7 +90,8 @@
         },
         "search_size": {
           "type": "number",
-          "optional": true
+          "optional": true,
+          "validate": false
         }
       }
     },
@@ -147,7 +148,8 @@
         "path": {
           "type": "string",
           "optional": true,
-          "nullable": true
+          "nullable": true,
+          "validate": false
         },
         "enabled": {
           "type": "boolean",
@@ -164,7 +166,8 @@
         "path": {
           "type": "string",
           "optional": true,
-          "nullable": true
+          "nullable": true,
+          "validate": false
         },
         "reset": {
           "type": "boolean",
@@ -291,12 +294,14 @@
         "directory": {
           "type": "string",
           "optional": true,
-          "nullable": true
+          "nullable": true,
+          "validate": false
         },
         "suggested_name": {
           "type": "string",
           "optional": true,
-          "nullable": true
+          "nullable": true,
+          "validate": false
         }
       }
     },
@@ -305,7 +310,8 @@
         "directory": {
           "type": "string",
           "optional": true,
-          "nullable": true
+          "nullable": true,
+          "validate": false
         }
       }
     }

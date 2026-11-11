@@ -62,6 +62,56 @@ engines against the real native processor.
 
 The frontend scheduling policy describes UI admission and quiet edits; the
 shared Rust registry describes native execution and cancellation. These are
-different responsibilities. The next contract step is typed per-command payloads
-and results, followed by a separate response reducer; scientific arrays continue
-through the existing binary raster boundary.
+different responsibilities. Scientific arrays continue through the existing
+binary raster boundary.
+
+## Structural request DTOs and response metadata
+
+`command_payload_schema.json` generates both
+`src/nativePayloadContracts.generated.ts` and
+`native_payload_contracts.generated.rs`. Run
+`node scripts/generate_native_contracts.mjs` after changing this schema;
+`--check` verifies committed generation without changing files or requiring a
+compiler. The frontend registry imports these payload types instead of defining
+a second copy.
+
+Native structural DTO coverage is deliberately incremental: pixel and peak
+coordinates, source/frame navigation, transfer/flat/image-background edits,
+configuration selection/operations/browsing, combination settings, worker count,
+cake-profile extraction/export, and the host HDF5 companion chooser metadata.
+The schema is the exact field-level coverage ledger. A field marked
+`validate:false` retains a tolerant legacy handler or host-metadata path. The
+frontend type still describes the intended typed input; the native layer does
+not turn a formerly ignored alternative-operation field into a new error.
+
+`wire_contract::validate_payload` runs at the Tauri chooser boundary, before a
+host writes a request, and in the processor's `Request::validate`. Generated
+serde DTOs borrow strings from the existing JSON object. Native `*Fields` types
+check **present field types**, while existing handlers still own missing fields,
+numeric ranges, defaults, cross-field constraints and unknown-field rules.
+Numbers are checked as numbers without coercing the original JSON value or
+narrowing fractional/negative inputs before the scientific handler. Operation
+variants select their relevant fields before checking them. Common
+`requested_products` keeps its existing strict validation and error.
+
+This does not claim that every Rust scientific handler has been converted to a
+fully typed command. Uncovered commands return `PayloadCoverage::Legacy` and
+retain their existing dispatch and explicit unsupported-command errors. Neither
+this validator nor the generated types introduce a transport, server, alternate
+processor, or fallback.
+
+Success, error, chooser cancellation and image/calibration/HDF5 decision replies
+use shared metadata constructors with the existing wire field names. Deferred
+decision objects are moved into their envelope. The additive borrowed
+`ResponseMetadata` view classifies HDF5/image/calibration deferrals before failure
+or cancellation, including deferred replies that also contain `cancelled:true`.
+Optional failure/cancellation fields remain optional. It reads a fixed set of
+top-level metadata fields and does not traverse, copy or reconstruct scientific
+arrays or raster buffers. The full scientific result remains in its original
+object; binary packet framing and content-addressed cache identities are unchanged.
+
+Tests cover generated-file drift, malformed present fields, missing chooser paths,
+numeric and request round trips, explicit legacy dispatch, borrowed string and
+decision storage, response precedence, unchanged binary framing, and a real host
+session remaining usable after rejected structural input. The development watcher
+also observes shared schema, generator and generated Rust changes.

@@ -59,11 +59,13 @@ impl Session {
             let mut options = image.options.clone();
             options["path"] = json!(image.path);
             options["frame"] = json!(image.frame);
-            return Ok(Some(Reply::metadata(json!({"ok":true,"cancelled":true,
-                "imageChange":{"path":image.path,"frame":image.frame,
+            return Ok(Some(Reply::deferred(
+                crate::protocol::wire_contract::DecisionKind::ImageChange,
+                json!({"path":image.path,"frame":image.frame,
                     "previousShape":expected,"newShape":image.source_shape,"options":options,
                     "calibrated":self.settings.calibrated,
-                    "canKeepCalibration":self.settings.calibrated && self.source_geometry().sync_shape(image.source_shape).is_ok()}}))));
+                    "canKeepCalibration":self.settings.calibrated && self.source_geometry().sync_shape(image.source_shape).is_ok()}),
+            )));
         }
         Ok(None)
     }

@@ -821,9 +821,11 @@ impl Session {
                     .unwrap_or(false);
                 if let Some(image) = &self.image {
                     if candidate.validate_shape(image.shape).is_err() && !clear {
-                        return Ok(Reply::metadata(json!({"ok":true,"cancelled":true,
-                            "calibrationChange":{"path":file,"imageShape":image.shape,
-                                "calibrationShape":candidate.detector.as_ref().and_then(|d|d.max_shape)}})));
+                        return Ok(Reply::deferred(
+                            crate::protocol::wire_contract::DecisionKind::CalibrationChange,
+                            json!({"path":file,"imageShape":image.shape,
+                                "calibrationShape":candidate.detector.as_ref().and_then(|d|d.max_shape)}),
+                        ));
                     }
                     if !clear {
                         candidate.sync_shape(image.shape)?;
@@ -1511,8 +1513,9 @@ impl Session {
             Err(error) => {
                 self.control.check()?;
                 if let Ok(Some(request)) = Image::binding_request(&file, args) {
-                    return Ok(Some(Reply::metadata(
-                        json!({"ok":true,"cancelled":true,"hdf5SourceRequest":request}),
+                    return Ok(Some(Reply::deferred(
+                        crate::protocol::wire_contract::DecisionKind::Hdf5Source,
+                        request,
                     )));
                 }
                 return Err(error);

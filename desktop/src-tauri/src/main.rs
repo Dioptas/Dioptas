@@ -17,7 +17,7 @@ use calibration_tooltip::{
     show_calibration_tooltip, TooltipState,
 };
 
-use processor::{Backend, Packet};
+use processor::{Backend, Packet, wire_contract};
 use processor_reload::ProcessorHost;
 use serde_json::{json, Value};
 use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
@@ -232,9 +232,10 @@ fn finish_packet(packet: Result<Packet, String>, action: &str) -> Result<Packet,
     let packet = packet?;
     if action == "integration_phase_documentation" {
         let result = packet.result_value()?;
+        let metadata = wire_contract::response_metadata(&result)?;
         if let Some(url) = result["documentationUrl"]
             .as_str()
-            .filter(|_| result["ok"] == true)
+            .filter(|_| metadata.ok)
         {
             peritheos_manual::open_system_browser(url)?;
         }
@@ -260,6 +261,9 @@ async fn desktop_invoke(
     if !payload.is_object() {
         return Err("Command arguments must be an object.".into());
     }
+    // Check present field types before presenting a native chooser. Required
+    // paths and scientific invariants remain with the native handlers.
+    wire_contract::validate_payload(&action, &payload)?;
     if window.label() == "phase-editor" && action != "integration_phase_editor" {
         payload["editor_only"] = json!(true);
     }
@@ -268,14 +272,14 @@ async fn desktop_invoke(
             let mut dialog = app.dialog().file().set_title("Choose the declared HDF5 source file");
             if let Some(directory) = payload["directory"].as_str() { dialog = dialog.set_directory(directory); }
             let Some(selected) = dialog.blocking_pick_file() else {
-                return Ok(Packet::metadata(json!({"ok":true,"cancelled":true})));
+                return Ok(Packet::cancelled());
             };
             let selected = selected.into_path().map_err(|e|e.to_string())?;
             return Ok(Packet::metadata(json!({"ok":true,"chosenPath":selected.to_string_lossy()})));
         }
         if folder_choice(&action, &payload) {
             let Some(selected) = app.dialog().file().blocking_pick_folder() else {
-                return Ok(Packet::metadata(json!({"ok": true, "cancelled": true})));
+                return Ok(Packet::cancelled());
             };
             payload["path"] = Value::String(
                 selected
@@ -299,7 +303,7 @@ async fn desktop_invoke(
             }
             if matches!(action.as_str(), "map_load" | "batch_load" | "batch_load_data" | "integration_overlay" | "integration_phase_files") || (action == "open_image" && payload["multiple"] == true) {
                 let Some(selected) = dialog.blocking_pick_files() else {
-                    return Ok(Packet::metadata(json!({"ok": true, "cancelled": true})));
+                    return Ok(Packet::cancelled());
                 };
                 let mut paths = Vec::new();
                 for file in selected {
@@ -312,7 +316,7 @@ async fn desktop_invoke(
                 }
                 payload["paths"] = json!(paths);
                 if !choose_batch_image_output(&app, &action, &mut payload)? {
-                    return Ok(Packet::metadata(json!({"ok": true, "cancelled": true})));
+                    return Ok(Packet::cancelled());
                 }
                 return finish_packet(processor.request_packet(&action, payload, cached), &action);
             }
@@ -329,13 +333,13 @@ async fn desktop_invoke(
                 dialog.blocking_pick_file()
             };
             let Some(selected) = selected else {
-                return Ok(Packet::metadata(json!({"ok": true, "cancelled": true})));
+                return Ok(Packet::cancelled());
             };
             let path = selected.into_path().map_err(|e| e.to_string())?;
             payload["path"] = Value::String(path.to_string_lossy().into_owned());
         }
         if !choose_batch_image_output(&app, &action, &mut payload)? {
-            return Ok(Packet::metadata(json!({"ok": true, "cancelled": true})));
+            return Ok(Packet::cancelled());
         }
         finish_packet(processor.request_packet(&action, payload, cached), &action)
     })

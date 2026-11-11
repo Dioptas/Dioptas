@@ -5,8 +5,10 @@ use std::{collections::HashSet, sync::Arc};
 #[path = "../../command_contract.rs"]
 pub mod command_contract;
 pub use command_contract::MAX_REQUEST_BYTES;
+#[path = "../../wire_contract.rs"]
+pub mod wire_contract;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Request {
     pub id: u64,
@@ -104,6 +106,58 @@ mod packet_write_tests {
             assert_eq!(out.bytes, reply.encode(42, &known).unwrap());
         }
     }
+
+    #[test]
+    fn request_dtos_preserve_wire_numbers_names_and_legacy_dispatch() {
+        let original = json!({"id":17,"action":"integration_navigation",
+            "payload":{"frame":-1.25,"step":2.0,"requested_products":{"cake":false}},
+            "cachedBuffers":["immutable-buffer"]});
+        let request: Request = serde_json::from_value(original.clone()).unwrap();
+        // Structural validation does not coerce or enforce scientific ranges;
+        // the existing handler will reject this invalid fractional frame.
+        request.validate().unwrap();
+        assert_eq!(serde_json::to_value(&request).unwrap(), original);
+        let bad: Request = serde_json::from_value(json!({"id":18,"action":"pixel",
+            "payload":{"x":"12","y":3},"cachedBuffers":[]}))
+        .unwrap();
+        assert!(
+            bad.validate()
+                .unwrap_err()
+                .contains("Invalid pixel arguments")
+        );
+        let legacy: Request =
+            serde_json::from_value(json!({"id":19,"action":"unported_legacy_command",
+            "payload":{"uninterpreted":[1,2,3]},"cachedBuffers":[]}))
+            .unwrap();
+        legacy.validate().unwrap();
+        assert!(
+            serde_json::from_value::<Request>(json!({"id":20,"action":"state","extra":true}))
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn typed_metadata_envelopes_keep_binary_response_framing_compatible() {
+        let decision = json!({"path":"source.h5","shape":[2,3]});
+        let reply = Reply::deferred(wire_contract::DecisionKind::ImageChange, decision.clone());
+        assert_eq!(
+            reply.result,
+            json!({"ok":true,"cancelled":true,"imageChange":decision})
+        );
+        let binary = reply.encode(31, &[]).unwrap();
+        let length = u32::from_le_bytes(binary[..4].try_into().unwrap()) as usize;
+        let header: Value = serde_json::from_slice(&binary[4..4 + length]).unwrap();
+        assert_eq!(header["id"], 31);
+        assert_eq!(header["result"], reply.result);
+        assert_eq!(header["buffers"], json!([]));
+        assert_eq!(binary.len(), 4 + length);
+        assert_eq!(
+            wire_contract::response_metadata(&header["result"])
+                .unwrap()
+                .disposition,
+            wire_contract::ResponseDisposition::Deferred
+        );
+    }
 }
 fn empty_object() -> Value {
     json!({})
@@ -117,6 +171,7 @@ impl Request {
         if self.cached_buffers.len() > 64 || self.cached_buffers.iter().any(|s| s.len() > 128) {
             return Err("Invalid cached buffer list.".into());
         }
+        wire_contract::validate_payload(&self.action, &self.payload)?;
         Ok(())
     }
 }
@@ -192,7 +247,13 @@ impl Reply {
         }
     }
     pub fn error(error: impl ToString) -> Self {
-        Self::metadata(json!({"ok": false, "error": error.to_string()}))
+        Self::metadata(wire_contract::failure_metadata(error))
+    }
+    pub fn success() -> Self {
+        Self::metadata(wire_contract::success_metadata())
+    }
+    pub fn deferred(kind: wire_contract::DecisionKind, decision: Value) -> Self {
+        Self::metadata(wire_contract::deferred_metadata(kind, decision))
     }
     /// The Python processor and Tauri IPC use this same wire format. Buffer IDs
     /// hash immutable display bytes; scientific sample storage is separate.
