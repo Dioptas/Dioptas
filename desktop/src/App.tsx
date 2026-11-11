@@ -2107,6 +2107,7 @@ export default function App() {
     run,
     request: requestMap,
     status: {
+      clicked: clickPositionReading,
       position: linked
         ? { x: linked.twoTheta, unit: "2th_deg" }
         : localPatternClick,

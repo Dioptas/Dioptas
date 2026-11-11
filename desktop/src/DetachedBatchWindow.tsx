@@ -137,7 +137,7 @@ export function DetachedBatchWindow() {
         onHide={() => void run("batch_hide")}
       />
       <footer className="detached-batch-footer">
-        <span className="batch-reading">
+        <span className="batch-reading" data-testid="batch-readout">
           {readout.reading ? (
             <ReadingFields reading={readout.reading} />
           ) : batch ? (
@@ -146,6 +146,14 @@ export function DetachedBatchWindow() {
             "Load a series to inspect it in Integration."
           )}
         </span>
+        {status.clicked && (
+          <span
+            className="batch-click-reading"
+            data-testid="batch-click-readout"
+          >
+            Click <ReadingFields reading={status.clicked} />
+          </span>
+        )}
         <StatusMessage
           error={batchWindowError(error, status.error)}
           message={

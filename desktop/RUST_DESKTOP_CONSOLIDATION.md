@@ -333,3 +333,10 @@ clicks in 2θ and Q display modes. It checks matching click fields in both
 windows, both linked markers, the cake click-point projection and preserved
 azimuth after pattern clicks. Headless Chromium and WebKit pass; only regression
 coverage and evidence changed.
+
+The detached Batch companion now retains the shared click-position readout in
+its footer, separately from live mouse values. Regression checks exercise Batch
+→ pattern → Batch clicks and verify both markers and matching footer values.
+Pattern clicks must keep the Batch's selected frame and intensity matrix intact.
+Only the changing click metadata is forwarded to the companion. Both headless
+Rust-backed Batch browser workflows, the build and 113 frontend tests pass.

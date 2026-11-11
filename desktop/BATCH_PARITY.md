@@ -296,3 +296,17 @@ Both browser runs pass. Receipts/screenshots/logs are under
 `artifacts/batch-window/rust/{chromium,webkit}/`. The separate visible native
 window scripts now explicitly request `--backend=rust`; their OS-window campaigns
 were not rerun for this headless follow-up.
+
+## Shared click position with the detached Batch window (2026-11-11)
+
+The Batch companion now shows the shared last-click coordinates beside its live
+mouse readout. A pattern click updates that retained readout and the Batch's
+radial marker; a Batch heatmap click selects the frame/radial coordinate and
+updates the main pattern marker and click readout. The main window owns the
+selection and forwards only readout metadata to the companion.
+
+The Rust-backed regression exercises Batch → pattern → Batch through actual
+mouse clicks. It requires changed physical positions, matching click fields in
+both footers, both linked markers and an unchanged Batch frame/matrix for a
+pattern-only click. The full companion/dock workflow passes in headless Chromium
+and WebKit, with the build and 113 frontend tests also passing.
