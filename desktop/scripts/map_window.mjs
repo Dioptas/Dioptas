@@ -1,3 +1,4 @@
+// Headless companion workflow against the explicit legacy Python reference bridge.
 import { setInterfaceTextSize } from "./plot_navigation.mjs";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
@@ -37,9 +38,13 @@ function invoke(action, payload = {}) {
     host.stdin.write(JSON.stringify({ id, action, payload }) + "\n");
   });
 }
-const browser = await (
-  process.argv.includes("--webkit") ? webkit : chromium
-).launch({ headless: true });
+const engineName = process.argv.includes("--webkit") ? "webkit" : "chromium";
+const browser = await (engineName === "webkit" ? webkit : chromium).launch({
+  headless: true,
+});
+// Keep each browser's evidence, including when these checks run together.
+const evidence = path.join(artifacts, "map-window", engineName);
+await mkdir(evidence, { recursive: true });
 const context = await browser.newContext({
   viewport: { width: 1600, height: 1000 },
 });
@@ -54,10 +59,27 @@ await page.exposeFunction("__dioptasInvoke", async (action, payload) => {
   return invoke(action, payload);
 });
 await page.addInitScript(() => {
+  // Observe companion gestures before the main command queue executes them.
+  // A second click must be accepted even while the first extraction is held.
+  window.__mapSelectGestures = [];
+  window.addEventListener("message", (event) => {
+    const { target, message } = event.data ?? {};
+    if (
+      target === "map-window-main" &&
+      message?.type === "request" &&
+      message.command === "map_select" &&
+      !message.read
+    )
+      window.__mapSelectGestures.push({ ...message.args });
+  });
   window.pywebview = {
     api: {
       invoke: async (a, p) => {
         window.__pendingCommands = (window.__pendingCommands ?? 0) + 1;
+        if (a === "map_select") {
+          window.__mapSelectRequests ??= [];
+          window.__mapSelectRequests.push({ ...p });
+        }
         try {
           const result = await window.__dioptasInvoke(a, p);
           if (a === "map_roi")
@@ -112,7 +134,7 @@ try {
   await page.getByRole("button", { name: "Detach map", exact: true }).click();
   const child = await popupPromise;
   child.on("pageerror", (e) => errors.push(e.message));
-  await child.locator('[data-testid="scan-map"] canvas').first().waitFor();
+  await child.getByTestId("scan-map").getByTestId("detector-canvas").waitFor();
   await page.waitForFunction(
     () =>
       document
@@ -123,13 +145,50 @@ try {
     '[data-testid="scan-map"] [data-testid="detector-canvas"]',
   );
   const scanClickChild = async (row, col) => {
-    const b = await scanCanvas.boundingBox();
-    const scale = Math.min(b.width / 3, b.height / 3);
-    await child.mouse.click(
-      b.x + (b.width - 3 * scale) / 2 + (col + 0.5) * scale,
-      b.y + (b.height - 3 * scale) / 2 + (row + 0.5) * scale,
+    const sentBefore = await page.evaluate(
+      () => window.__mapSelectGestures.length,
     );
+    await child.getByLabel("Map layer", { exact: true }).waitFor();
+    await child.waitForFunction(
+      () => !document.querySelector('[aria-label="Map layer"]').disabled,
+    );
+    const point = await scanCanvas.evaluate(
+      async (canvas, { row, col }) => {
+        // Wait for the companion's ResizeObserver and fitted square-pixel view.
+        await new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        );
+        const d = canvas.dataset,
+          x = col + 0.5,
+          y = Number(d.fullHeight) - row - 0.5;
+        return {
+          x:
+            Number(d.plotLeft) +
+            ((x - Number(d.viewXMin)) /
+              (Number(d.viewXMax) - Number(d.viewXMin))) *
+              Number(d.plotWidth),
+          y:
+            Number(d.plotTop) +
+            ((Number(d.viewYMax) - y) /
+              (Number(d.viewYMax) - Number(d.viewYMin))) *
+              Number(d.plotHeight),
+        };
+      },
+      { row, col },
+    );
+    await scanCanvas.click({ position: point });
+    // Confirm the actual user gesture reached the main owner before waiting
+    // on a changed title; report a missed/wrong cell at the point of failure.
+    await page.waitForFunction(
+      (count) => window.__mapSelectGestures.length > count,
+      sentBefore,
+    );
+    const sent = await page.evaluate(() => window.__mapSelectGestures.at(-1));
+    assert.equal(sent.row, row);
+    assert.equal(sent.column, col);
   };
+  // Resize before the first edge-cell click to exercise the popup layout race.
+  await child.setViewportSize({ width: 960, height: 540 });
   await scanClickChild(2, 2);
   await page.waitForFunction(
     (name) => document.title.includes(name),
@@ -145,18 +204,37 @@ try {
   assert.equal(selected.state.integrationDirty, false);
   assert.deepEqual(selected.map.selectedCell, [2, 2]);
   await page.screenshot({
-    path: path.join(artifacts, "detached-map-integration.png"),
+    path: path.join(evidence, "detached-map-integration.png"),
   });
   // Rapid map selections are retained while full Integration calculation runs.
-  selectionGate = new Promise((resolve) => setTimeout(resolve, 200));
-  await scanClickChild(0, 0);
-  await scanClickChild(1, 1);
+  let releaseSelection;
+  selectionGate = new Promise((resolve) => {
+    releaseSelection = resolve;
+  });
+  await child.setViewportSize({ width: 520, height: 700 });
+  try {
+    await scanClickChild(0, 0);
+    await scanClickChild(1, 1);
+  } finally {
+    releaseSelection();
+    selectionGate = null;
+  }
   await page.waitForFunction(
     (name) => document.title.includes(name),
     initial.map.labels[4],
   );
   await ready();
   assert.equal((await invoke("state")).map.selected, 4);
+  assert.deepEqual(
+    await page.evaluate(() =>
+      window.__mapSelectRequests.map(({ row, column }) => [row, column]),
+    ),
+    [
+      [2, 2],
+      [0, 0],
+      [1, 1],
+    ],
+  );
   assert.equal(await child.getByRole("alert").count(), 0);
   await child.getByLabel("Smooth map", { exact: true }).check();
   await child.getByLabel("Map contours", { exact: true }).check();
@@ -189,9 +267,9 @@ try {
   await page.waitForTimeout(250);
   await ready();
   assert.equal((await invoke("state")).map.active, "B");
-  await child.screenshot({ path: path.join(artifacts, "detached-map.png") });
+  await child.screenshot({ path: path.join(evidence, "detached-map.png") });
   await page.screenshot({
-    path: path.join(artifacts, "detached-map-controls.png"),
+    path: path.join(evidence, "detached-map-controls.png"),
   });
   await child
     .getByRole("button", { name: "Map color map", exact: true })
@@ -231,7 +309,7 @@ try {
     "Detached map overflows at its minimum size with larger text",
   );
   await child.screenshot({
-    path: path.join(artifacts, "detached-map-compact.png"),
+    path: path.join(evidence, "detached-map-compact.png"),
   });
   await setInterfaceTextSize(page, false);
   // Window close docks the panel without discarding the scan or changing modes.
@@ -290,11 +368,15 @@ try {
   assert.equal((await invoke("state")).map.points, 9);
   assert.deepEqual(errors, []);
   await writeFile(
-    path.join(artifacts, "map-window-smoke.json"),
+    path.join(evidence, "map-window-smoke.json"),
     JSON.stringify(
       {
         ok: true,
+        browser: engineName,
         selected: 4,
+        renderedCellCoordinates: true,
+        resizedBeforeSelections: true,
+        selections: await page.evaluate(() => window.__mapSelectRequests),
         cakeRegenerated: true,
         rapidSelections: true,
         dockCloseReopen: true,
@@ -306,7 +388,9 @@ try {
       2,
     ),
   );
-  console.log("Detached map window checks passed");
+  console.log(
+    `${engineName}: detached Map frame selection, rapid selections, export, contrast and dock/close/reopen passed`,
+  );
 } catch (error) {
   console.log(
     "Main UI:",
@@ -315,12 +399,12 @@ try {
   for (const [index, surface] of context.pages().entries())
     await surface
       .screenshot({
-        path: path.join(artifacts, `map-window-failure-${index}.png`),
+        path: path.join(evidence, `map-window-failure-${index}.png`),
       })
       .catch(() => {});
   throw error;
 } finally {
   await browser.close();
   host.stdin.end();
-  await writeFile(path.join(artifacts, "map-window-smoke.log"), logs.join(""));
+  await writeFile(path.join(evidence, "map-window-smoke.log"), logs.join(""));
 }

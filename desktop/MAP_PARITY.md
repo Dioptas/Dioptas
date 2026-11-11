@@ -567,3 +567,24 @@ map viewports remain independent.
 round trips through all four modes, radial/intensity conversions, resizing,
 detach/dock, shared Fit reset and the F shortcut against real image processing.
 `npm --prefix desktop test` checks analytic viewport conversions.
+
+## Map companion frame-selection fixture correction (2026-11-11)
+
+The headless companion check previously estimated a square 3×3 grid from the
+whole canvas and clicked as soon as a canvas was visible. Its first selection
+could be missed during popup layout, leaving the title assertion waiting.
+The fixture now waits for enabled Map controls and the renderer's fitted view,
+then computes the cell center from the actual plot bounds and viewport. It
+checks the forwarded row/column before asserting the selected frame, cell,
+window title, clean integration state and regenerated cake.
+
+The check resizes before both the first edge-cell selection and the rapid-click
+sequence. A controlled extraction gate replaces the old 200 ms delay, and the
+actual backend request order must be (2,2), (0,0), (1,1). Chromium and WebKit keep
+separate receipts/screenshots under `artifacts/map-window/<browser>/`.
+
+`npm run test:map-window` runs both headless browsers against the existing
+explicit Python reference bridge. Both pass frame selection, queued selections,
+PNG export, layers, palette/contrast retention, compact Larger text layout and
+dock/close/reopen. The production build also passes. Application processing and
+native window management are unchanged by this fixture correction.

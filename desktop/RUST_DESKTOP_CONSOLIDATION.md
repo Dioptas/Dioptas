@@ -265,3 +265,18 @@ both browsers, including the shared icon and button size. A 16/32 px rendered
 icon comparison is in `artifacts/window-icons/`. The broader legacy
 `map_window.mjs` check timed out at its frame-selection/title assertion before
 reaching docking; that workflow was not changed for this icon update.
+
+## Map frame-selection check correction (2026-11-11)
+
+The legacy Map companion timeout recorded above is resolved by using rendered
+plot/viewport coordinates and waiting for the companion's controls and fitted
+layout before clicking. The strengthened fixture verifies forwarded cell
+coordinates, backend frame/cell state, title, clean integration and regenerated
+cake. Its rapid-selection test uses a controlled gate and checks command order.
+
+`npm run test:map-window` passes in headless Chromium and WebKit against the
+existing explicit Python reference bridge, including selection after resizing,
+export, display preferences and dock/close/reopen. Production build passes.
+Receipts and screenshots are preserved separately under
+`desktop/artifacts/map-window/chromium/` and `webkit/`. No application scientific
+or native window-management code changed.
