@@ -413,6 +413,18 @@ try {
         await idle();
         await profilePlot.waitFor();
         await assertShared();
+        const controlCenters = await panel.evaluate((el) =>
+          [".field-label > span", ".field-label input", "button svg"].map(
+            (selector) => {
+              const r = el.querySelector(selector).getBoundingClientRect();
+              return r.y + r.height / 2;
+            },
+          ),
+        );
+        assert.ok(
+          Math.max(...controlCenters) - Math.min(...controlCenters) < 0.5,
+          `Bins label, input and Save icon must share a vertical center: ${controlCenters}`,
+        );
         const layout = await panel.evaluate((el) => {
           const r = el.getBoundingClientRect(),
             p = el.closest(".integration-image-pane").getBoundingClientRect();
@@ -515,6 +527,7 @@ try {
         profileHiddenInImageMode: true,
         resizableWidthAndAxisDrag: true,
         stableToolbarAtCakeEdges: true,
+        verticallyCenteredControls: true,
         errors,
       });
     } finally {

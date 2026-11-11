@@ -182,3 +182,6 @@ the existing toolbar/Save tooltip explains the missing-bin contribution when
 applicable. Numerical extraction and export metadata still report clipping.
 The headless profile check selects center and both radial-edge positions with
 a narrow profile panel and asserts identical control positions and dimensions.
+The input overrides the general form field's top margin so it shares a vertical
+center with the Bins label and Save icon. Chromium and WebKit check this alignment
+at both viewport sizes and with larger text enabled.
