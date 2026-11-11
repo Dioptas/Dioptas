@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { Save } from "lucide-react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { Columns2, Save } from "lucide-react";
+import { useCakeProfileWindow } from "./CakeProfileWorkspace";
 import { Button } from "./ui";
 import { Field } from "./IntegrationFields";
 import { CakeProfileView } from "./CakeProfileView";
@@ -81,6 +82,13 @@ export function CakeProfilePanel({
     return shiftCakeProfile(result.profile, shift);
   }, [eligible, result, key, shift]);
   const available = !!profile?.x.length;
+  const window = useCakeProfileWindow();
+  const setWindowRange = window?.setRange;
+  const radialWindow = profile?.radialWindow;
+  useLayoutEffect(() => {
+    setWindowRange?.(radialWindow ?? null);
+    return () => setWindowRange?.(null);
+  }, [radialWindow, setWindowRange]);
   return (
     <section className="cake-profile-panel" aria-label="Azimuthal profile">
       <form
@@ -115,6 +123,16 @@ export function CakeProfilePanel({
           commitOnBlur
           onChange={onBins}
         />
+        <Button
+          className="plot-tool-button icon-button"
+          aria-label="Show profile bin width"
+          type="button"
+          title="Show the profile's radial averaging window on the cake"
+          aria-pressed={window?.visible ?? false}
+          onClick={() => window?.setVisible(!window.visible)}
+        >
+          <Columns2 size={15} />
+        </Button>
         <Button
           className="plot-tool-button icon-button"
           aria-label="Save azimuthal profile"

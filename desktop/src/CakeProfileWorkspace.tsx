@@ -22,6 +22,15 @@ type Event = PointerEvent<HTMLCanvasElement>;
 type Navigation = ReturnType<typeof usePlotNavigation>;
 type Plot = { element: HTMLCanvasElement; navigation: Navigation };
 type Start = { clientX: number; clientY: number; pointerId: number };
+const ProfileWindow = createContext<{
+  visible: boolean;
+  setVisible: (visible: boolean) => void;
+  range: [number, number] | null;
+  setRange: (range: [number, number] | null) => void;
+} | null>(null);
+
+export const useCakeProfileWindow = () => useContext(ProfileWindow);
+
 function forwarded(
   event: Event,
   element: HTMLCanvasElement,
@@ -182,7 +191,7 @@ function CakeProfileDivider() {
       workspace.style.removeProperty("--cake-profile-width");
     };
   }, []);
-  const min = Math.min(140, available * 0.45),
+  const min = Math.min(160, available * 0.45),
     max = Math.max(min, available - 140);
   const clamp = (width: number) => Math.max(min, Math.min(max, width));
   const defaultWidth = clamp(Math.max(170, Math.min(230, available * 0.3)));
@@ -226,13 +235,21 @@ export function CakeProfileWorkspace({
   children: ReactNode;
 }) {
   const gestures = useMemo(axisGestures, []);
+  const [visible, setVisible] = useState(true);
+  const [range, setRange] = useState<[number, number] | null>(null);
+  const window = useMemo(
+    () => ({ visible: !!profile && visible, setVisible, range, setRange }),
+    [profile, visible, range],
+  );
   return (
     <SharedAxisGestures.Provider value={gestures}>
-      <div className="detector-workspace">
-        {profile}
-        {profile && <CakeProfileDivider />}
-        {children}
-      </div>
+      <ProfileWindow.Provider value={window}>
+        <div className="detector-workspace">
+          {profile}
+          {profile && <CakeProfileDivider />}
+          {children}
+        </div>
+      </ProfileWindow.Provider>
     </SharedAxisGestures.Provider>
   );
 }

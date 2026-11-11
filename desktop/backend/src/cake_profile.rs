@@ -14,7 +14,10 @@ struct Profile {
     bins: usize,
     shift_bins: i64,
     clipped: bool,
+    radial_window: Option<[f64; 2]>,
 }
+
+type Extraction = (Vec<f64>, Vec<f64>, i64, bool, Option<[f64; 2]>);
 
 fn extract(
     data: &[f64],
@@ -24,7 +27,7 @@ fn extract(
     selected: f64,
     bins: usize,
     shift_degrees: f64,
-) -> Result<(Vec<f64>, Vec<f64>, i64, bool), String> {
+) -> Result<Extraction, String> {
     let [rows, columns] = shape;
     if rows == 0 || columns == 0 || data.len() != rows * columns {
         return Err("Cake dimensions and scientific samples disagree.".into());
@@ -40,7 +43,7 @@ fn extract(
             .then_some(position.clamp(0., (columns - 1) as f64))
     };
     let Some(position) = position else {
-        return Ok((vec![], vec![], 0, false));
+        return Ok((vec![], vec![], 0, false, None));
     };
     // One bin means the source column under the click, without blending a
     // neighboring column across a zero-valued stripe. Wider windows retain
@@ -96,7 +99,13 @@ fn extract(
     let x = (0..rows)
         .map(|row| azimuth[0] + (row as f64 - shift as f64) * step)
         .collect();
-    Ok((x, y, shift, left < 0. || right > columns as f64))
+    Ok((
+        x,
+        y,
+        shift,
+        left < 0. || right > columns as f64,
+        Some([left, right]),
+    ))
 }
 
 impl Session {
@@ -153,7 +162,7 @@ impl Session {
         };
         let unit = m["unit"].as_str().ok_or("Missing scientific cake unit.")?;
         let selected = linked::convert(tth, "2th_deg", unit, self.settings.geometry.wavelength);
-        let (x, y, shift_bins, clipped) = extract(
+        let (x, y, shift_bins, clipped, radial_window) = extract(
             data,
             [
                 m["fullHeight"].as_u64().ok_or("Missing cake height.")? as usize,
@@ -175,6 +184,7 @@ impl Session {
             bins,
             shift_bins,
             clipped,
+            radial_window,
         };
         self.control.check()?;
         if let Some(file) = destination {
@@ -211,7 +221,7 @@ impl Session {
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn profile(position: f64, width: usize, shift: f64) -> (Vec<f64>, Vec<f64>, i64, bool) {
+    fn profile(position: f64, width: usize, shift: f64) -> Extraction {
         let values = [
             10., 20., 30., 40., 50., 100., 200., 300., 400., 500., -1., -2., -3., -4., -5., 0., 1.,
             0., 1., 0.,
@@ -236,6 +246,9 @@ mod tests {
         assert_eq!(profile(2.5, 2, 0.).1, [35., 350., -3.5, 1.]);
         assert_eq!(profile(2., 2, 0.).1, [30., 300., -3., 1.]);
         assert_eq!(profile(2., 3, 0.).1, [30., 300., -3., 1.]);
+        assert_eq!(profile(2.5, 1, 0.).4, Some([3., 4.]));
+        assert_eq!(profile(2.5, 2, 0.).4, Some([2., 4.]));
+        assert_eq!(profile(-0.1, 1, 0.).4, None);
     }
     #[test]
     fn empty_step_never_dilutes_adjacent_intensity_at_fractional_positions_or_wide_windows() {
@@ -247,7 +260,7 @@ mod tests {
         ];
         for position in [0., 1., 1.25, 1.5, 1.9, 2., 2.5, 4.] {
             for bins in [1, 2, 3, 5, 20, 1_000_000] {
-                let (_, y, _, _) =
+                let (_, y, _, _, _) =
                     extract(&values, [5, 5], [0., 4.], [-144., 144.], position, bins, 0.).unwrap();
                 assert!((y[0] - 100.).abs() < 1e-10);
                 for v in &y[1..3] {
@@ -397,6 +410,9 @@ mod tests {
                 };
                 let left = center + 0.5 - bins as f64 / 2.;
                 let right = center + 0.5 + bins as f64 / 2.;
+                let window = numbers(&p["radialWindow"]);
+                assert!((window[0] - left).abs() < 1e-9);
+                assert!((window[1] - right).abs() < 1e-9);
                 // Independent endpoint/interior sum, with the same overlap
                 // integral applied to nonzero-bin occupancy for normalization.
                 let sample = |row: usize, col: isize| -> f64 {

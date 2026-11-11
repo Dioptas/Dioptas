@@ -11,6 +11,16 @@ Invalid width drafts cannot submit a save. The profile is shown only with the
 cake; hiding the cake stops profile requests and restores ordinary lazy cake
 demand.
 
+The icon toggle beside **Bins** shows the selected radial window as a faint
+orange band with two boundary lines on the cake. It is enabled by default and
+can be switched off independently in each plot window. Bounds come directly
+from the native extraction result in source-column coordinates: width 1 marks
+the sampled column, wider windows retain fractional endpoints, and the band
+clips to the available cake. Zoom, axis relabeling, azimuth shifts and main/
+detached views share the same source-grid bounds. Toggling the guide neither
+requests profiles nor saves anything. The guide is omitted from image exports,
+like the existing linked click markers.
+
 ## Scientific ownership and Qt reference
 
 `backend/src/cake_profile.rs` extracts from `Session::displayed_cake_values()`:
@@ -214,3 +224,6 @@ cannot populate an empty row. Native owned-cake checks independently verify
 masked/corrected, combined and converted-unit projections. Chromium/WebKit
 check actual curve gaps, automatic intensity limits and matching exports for
 widths 1, 3 and 9; screenshots are saved as `*-gaps-width-*.png`.
+The same tests compare the actually drawn width band against native bounds at
+edges, after zoom, unit changes and shifts. Detached-source checks exercise its
+toggle too. The minimum profile pane width is 160 px to fit both toolbar icons.

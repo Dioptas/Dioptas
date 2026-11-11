@@ -1,4 +1,7 @@
-import { useCakeAxisGesture } from "./CakeProfileWorkspace";
+import {
+  useCakeAxisGesture,
+  useCakeProfileWindow,
+} from "./CakeProfileWorkspace";
 import { usePlotTypography } from "./usePlotTypography";
 import { navigationTrace } from "./navigationTiming";
 import {
@@ -297,6 +300,9 @@ export function RasterView({
     viewport,
   );
   const axisGesture = useCakeAxisGesture("cake", canvas, navigation);
+  const profileWindow = useCakeProfileWindow();
+  const profileRange =
+    cake && profileWindow?.visible ? profileWindow.range : null;
   const [resetSource, setResetSource] = useState([
     raster.fullWidth,
     raster.fullHeight,
@@ -583,6 +589,24 @@ export function RasterView({
         }
       }
       if (cake) {
+        if (profileRange && !exporting) {
+          const x0 = ox + Math.max(0, profileRange[0]) * sx;
+          const x1 = ox + Math.min(raster.fullWidth, profileRange[1]) * sx;
+          context.save();
+          context.fillStyle = "#ff9500";
+          context.globalAlpha = 0.12;
+          context.fillRect(x0, top, x1 - x0, plotHeight);
+          context.globalAlpha = 0.85;
+          context.strokeStyle = "#ff9500";
+          context.lineWidth = 1;
+          context.beginPath();
+          context.moveTo(x0, top);
+          context.lineTo(x0, top + plotHeight);
+          context.moveTo(x1, top);
+          context.lineTo(x1, top + plotHeight);
+          context.stroke();
+          context.restore();
+        }
         const calibrantWidthBoost = Math.min(
           2,
           0.6 * Math.log2(Math.max(1, zoom)),
@@ -892,6 +916,7 @@ export function RasterView({
       cake,
       cakeAxis,
       showCakeAzimuthAxis,
+      profileRange,
       raster,
       sx,
       sy,
@@ -1019,6 +1044,7 @@ export function RasterView({
         data-azimuth-min={cake ? (raster as Cake).azimuthRange[0] : undefined}
         data-azimuth-max={cake ? (raster as Cake).azimuthRange[1] : undefined}
         data-shows-azimuth-axis={cake ? showCakeAzimuthAxis : undefined}
+        data-profile-window={profileRange?.join(",")}
         data-ring-count={cake ? calibrantLines.length : rings.length}
         data-click-x={clickedPoint?.x}
         data-click-y={clickedPoint?.y}

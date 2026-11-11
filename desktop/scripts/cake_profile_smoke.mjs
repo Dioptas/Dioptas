@@ -92,6 +92,17 @@ try {
             return original.apply(this, args);
           };
         }
+        for (const name of ["clearRect", "fillRect"]) {
+          const original = context[name];
+          context[name] = function (...args) {
+            if (this.canvas.dataset.testid === "cake-canvas") {
+              if (name === "clearRect") window.__profileBand = null;
+              else if (this.fillStyle === "#ff9500")
+                window.__profileBand = args;
+            }
+            return original.apply(this, args);
+          };
+        }
       });
       await page.goto(
         pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
@@ -168,6 +179,7 @@ try {
           if (currentUnit !== { "2θ": "2th_deg", Q: "q_A^-1", d: "d_A" }[label])
             assert.ok(profiles.length > previousProfiles);
           assert.deepEqual(profiles.at(-1), original);
+          await assertProfileWindow();
           assert.equal((await invoke("state")).cake.bufferId, source.bufferId);
           assert.equal(
             await cakeCanvas.getAttribute("data-radial-source-unit"),
@@ -239,6 +251,60 @@ try {
       await field.press("Enter");
       await idle();
       const cakeCanvas = page.getByTestId("cake-canvas");
+      const assertProfileWindow = async () => {
+        const nativeRange = profiles.at(-1).radialWindow;
+        const actual = await cakeCanvas.evaluate((el) => {
+          const d = el.dataset;
+          return {
+            source: d.profileWindow?.split(",").map(Number),
+            drawn: window.__profileBand,
+            min: +d.viewXMin,
+            max: +d.viewXMax,
+            left: +d.plotLeft,
+            top: +d.plotTop,
+            width: +d.plotWidth,
+            height: +d.plotHeight,
+            columns: +d.fullWidth,
+          };
+        });
+        assert.deepEqual(actual.source, nativeRange);
+        const scale = actual.width / (actual.max - actual.min);
+        const low = Math.max(0, nativeRange[0]);
+        const high = Math.min(actual.columns, nativeRange[1]);
+        const expected = [
+          actual.left + (low - actual.min) * scale,
+          actual.top,
+          (high - low) * scale,
+          actual.height,
+        ];
+        expected.forEach((v, i) =>
+          assert.ok(Math.abs(actual.drawn[i] - v) < 1e-8),
+        );
+      };
+      await assertProfileWindow();
+      const widthToggle = button("Show profile bin width");
+      assert.equal(await widthToggle.getAttribute("aria-pressed"), "true");
+      const beforeToggle = {
+        reads: profiles.length,
+        saves: calls.filter(([a]) => a === "save_cake_profile").length,
+      };
+      await widthToggle.click();
+      await idle();
+      assert.equal(await cakeCanvas.getAttribute("data-profile-window"), null);
+      assert.equal(await page.evaluate(() => window.__profileBand), null);
+      await widthToggle.click();
+      await idle();
+      await assertProfileWindow();
+      assert.equal(profiles.length, beforeToggle.reads);
+      assert.equal(
+        calls.filter(([a]) => a === "save_cake_profile").length,
+        beforeToggle.saves,
+      );
+      await cakeCanvas.press("+");
+      await idle();
+      await assertProfileWindow();
+      await cakeCanvas.press("f");
+      await idle();
       const assertShared = async () => {
         const read = async (canvas) =>
           canvas.evaluate((el) => {
@@ -286,7 +352,7 @@ try {
             el,
             el.querySelector("label"),
             el.querySelector("input"),
-            el.querySelector("button"),
+            ...el.querySelectorAll("button"),
           ].map((node) => {
             const r = node.getBoundingClientRect();
             return [r.x, r.y, r.width, r.height];
@@ -303,6 +369,7 @@ try {
         [0.55, false],
       ]) {
         await clickPlot(cakeCanvas, position, 0.5);
+        await assertProfileWindow();
         assert.equal(profiles.at(-1).clipped, clipped);
         assert.deepEqual(
           await toolbarGeometry(),
@@ -326,6 +393,7 @@ try {
         await profilePlot.press("f");
         await idle();
         const gapped = structuredClone(profiles.at(-1));
+        await assertProfileWindow();
         assert.ok(
           gapped.y.includes(0),
           "The native fixture must contain empty rows",
@@ -406,6 +474,7 @@ try {
         await button("Close cake display settings").click();
         await idle();
         await assertShared();
+        await assertProfileWindow();
       }
       const scienceBeforeResize = await invoke("state");
       const extractedBeforeResize = structuredClone(profiles.at(-1));
@@ -517,6 +586,7 @@ try {
           readsBeforeShift,
         );
         await assertShared();
+        await assertProfileWindow();
       }
       await assertUnitTransitions("2th_deg");
       await button("Save azimuthal profile").click();
@@ -553,12 +623,15 @@ try {
         await profilePlot.waitFor();
         await assertShared();
         const controlCenters = await panel.evaluate((el) =>
-          [".field-label > span", ".field-label input", "button svg"].map(
-            (selector) => {
-              const r = el.querySelector(selector).getBoundingClientRect();
-              return r.y + r.height / 2;
-            },
-          ),
+          [
+            ".field-label > span",
+            ".field-label input",
+            '[aria-label="Show profile bin width"] svg',
+            '[aria-label="Save azimuthal profile"] svg',
+          ].map((selector) => {
+            const r = el.querySelector(selector).getBoundingClientRect();
+            return r.y + r.height / 2;
+          }),
         );
         assert.ok(
           Math.max(...controlCenters) - Math.min(...controlCenters) < 0.5,
@@ -670,6 +743,7 @@ try {
         immediateSliderWrapMatchesNative: true,
         zeroSamplesDrawGapsAndExportUnchanged: true,
         zeroGapWidths: [1, 3, 9],
+        nativeBinWindowOverlay: true,
         errors,
       });
     } finally {

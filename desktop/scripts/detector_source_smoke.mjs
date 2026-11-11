@@ -224,6 +224,36 @@ try {
         assert.equal(p.max, c.max);
       };
       await checkProfileAlignment();
+      const bandToggle = profile.getByRole("button", {
+        name: "Show profile bin width",
+        exact: true,
+      });
+      const selectedBand = await child
+        .getByTestId("cake-canvas")
+        .getAttribute("data-profile-window");
+      assert.ok(selectedBand, "Detached cake shows its native profile window");
+      const readsBeforeBandToggle = profileRequests;
+      await bandToggle.click();
+      await ready();
+      assert.equal(
+        await child
+          .getByTestId("cake-canvas")
+          .getAttribute("data-profile-window"),
+        null,
+      );
+      await bandToggle.click();
+      await ready();
+      assert.equal(
+        await child
+          .getByTestId("cake-canvas")
+          .getAttribute("data-profile-window"),
+        selectedBand,
+      );
+      assert.equal(
+        profileRequests,
+        readsBeforeBandToggle,
+        "The detached toggle is display-only",
+      );
       await checkCakeProfileInteraction(
         child,
         profile.getByTestId("cake-profile-canvas"),
@@ -455,6 +485,7 @@ try {
         sharedAzimuth: true,
         resizableProfileAndOuterAxisDrag: true,
         profileOnlyInCake: true,
+        detachedProfileBandToggle: true,
         orientation: true,
         calibratedSourceCancel: true,
         sourceReset: true,

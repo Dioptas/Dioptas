@@ -16,6 +16,7 @@ export interface CakeProfile {
   bins: number;
   shiftBins: number;
   clipped: boolean;
+  radialWindow?: [number, number] | null;
 }
 export type Tool = "pan" | "mask" | "erase" | "pick";
 export type Palette = string;
