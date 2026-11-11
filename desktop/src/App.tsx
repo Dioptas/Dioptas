@@ -1,3 +1,4 @@
+import { CommandCoordinator, commandPolicy } from "./commandCoordinator";
 import { Hdf5SourceDialog } from "./Hdf5SourceDialog";
 import type { Hdf5SourceRequest } from "./types";
 import { useCakeProfileNavigation } from "./useCakeProfileNavigation";
@@ -366,7 +367,7 @@ export default function App() {
     // A quiet image-level update must not drop the companion's refresh.
     if (
       !bridge.current ||
-      (inFlight.current &&
+      (commands.busy &&
         command !== "batch_snapshot" &&
         command !== "batch_levels")
     )
@@ -384,17 +385,8 @@ export default function App() {
   const [ring, setRing] = useState(1),
     [automatic, setAutomatic] = useState(true);
   const [rings, setRings] = useState<RingOverlay[]>([]);
-  const bridge = useRef<Invoke | null>(null),
-    inFlight = useRef(false);
-  const commandTail = useRef<Promise<void> | null>(null);
-  const autoProcessInFlight = useRef(false);
-  const quietInFlight = useRef(false);
-  const pendingMaskDraws = useRef(0);
-  const pendingBackgroundUpdates = useRef(0);
-  const pendingCorrectionEdits = useRef(0);
-  const pendingOverlayEdits = useRef(0);
-  const pendingFrameSelections = useRef(0);
-  const pendingMapRegions = useRef(0);
+  const bridge = useRef<Invoke | null>(null);
+  const [commands] = useState(() => new CommandCoordinator());
   const currentState = useRef<State | null>(null);
   const [state, setState] = useState<State | null>(null);
   const { cake: requestedCake, rings: requestedRings } =
@@ -758,355 +750,270 @@ export default function App() {
         activeMode.current,
         command.startsWith("redo"),
       );
-      const overlayEditing =
-        command === "batch_waterfall" ||
-        (command === "integration_overlay" && args.operation !== "load") ||
-        (isScientificHistoryCommand(command) &&
-          historyLabel === "integration_overlay");
-      const liveBackground =
-        command === "integration_background" && message === "";
-      const liveMapRegion = command === "map_roi" && message === "";
-      const liveCorrection =
-        message === "" &&
-        [
-          "integration_correction",
-          "integration_image_background",
-          "integration_flat_field",
-          "integration_transfer",
-        ].includes(command);
-      const frameSelection =
-        command === "map_select" ||
-        command === "batch_select" ||
-        command === "next_image" ||
-        (command === "integration_navigation" &&
-          (args.frame !== undefined || args.direction !== undefined));
-      const livePhaseConditions =
-        command === "integration_phase" &&
-        args.operation === "update" &&
-        (typeof args.pressure === "number" ||
-          typeof args.temperature === "number");
-      if (
-        !bridge.current ||
-        (command === "integration_autoprocess_poll" &&
-          (inFlight.current || commandTail.current)) ||
-        (inFlight.current &&
-          !quietInFlight.current &&
-          !queueIfBusy &&
-          !autoProcessInFlight.current &&
-          !pendingMaskDraws.current &&
-          !pendingBackgroundUpdates.current &&
-          !pendingCorrectionEdits.current &&
-          !pendingOverlayEdits.current &&
-          !pendingFrameSelections.current &&
-          !pendingMapRegions.current &&
-          !liveMapRegion &&
-          !liveCorrection &&
-          !liveBackground &&
-          !livePhaseConditions &&
-          command !== "cake_profile" &&
-          command !== "integration_phase_state" &&
-          command !== "integration_phase_guides" &&
-          command !== "image_levels" &&
-          command !== "image_batch_mode" &&
-          !frameSelection)
-      )
-        return;
-      beforePreviewCommand.current(command);
       const batchAction =
         command.startsWith("batch_") &&
         !["batch_levels", "batch_snapshot"].includes(command);
       const commandMode = batchAction ? "integration" : activeMode.current;
+      const policy = commandPolicy({
+        action: command,
+        args,
+        message,
+        mode: commandMode,
+        queueIfBusy,
+        overlayHistory:
+          isScientificHistoryCommand(command) &&
+          historyLabel === "integration_overlay",
+      });
+      if (!bridge.current || !commands.accepts(policy)) return;
+      beforePreviewCommand.current(command);
       if (batchAction) {
         setMode("integration");
         setSettingsOpen(false);
       }
-      const maskDrawing =
-        commandMode === "mask" &&
-        (command === "mask_stroke" ||
-          (command === "mask_edit" &&
-            ["rectangle", "circle", "polygon", "arc"].includes(
-              String(args.operation),
-            )));
-      // Keep quiet edits and frame selections in order without disabling every
-      // control. Further clicks must not be dropped while an image loads.
-      const previous = commandTail.current;
-      let release!: () => void;
-      const completion = new Promise<void>((resolve) => (release = resolve));
-      commandTail.current = completion;
-      if (maskDrawing) pendingMaskDraws.current++;
-      if (overlayEditing) pendingOverlayEdits.current++;
-      if (frameSelection) pendingFrameSelections.current++;
-      if (liveMapRegion) pendingMapRegions.current++;
-      if (liveBackground) pendingBackgroundUpdates.current++;
-      if (liveCorrection) pendingCorrectionEdits.current++;
-      if (previous) await previous;
-      if (shouldRun && !shouldRun()) {
-        if (liveBackground) pendingBackgroundUpdates.current--;
-        if (liveCorrection) pendingCorrectionEdits.current--;
-        if (overlayEditing) pendingOverlayEdits.current--;
-        if (frameSelection) pendingFrameSelections.current--;
-        if (liveMapRegion) pendingMapRegions.current--;
-        if (commandTail.current === completion) commandTail.current = null;
-        release();
-        return;
-      }
-      inFlight.current = true;
-      autoProcessInFlight.current = command === "integration_autoprocess_poll";
-      const displayOnly =
-        command === "settings" &&
-        typeof args.transparent_mask === "boolean" &&
-        Object.keys(args).length === 1;
-      const quiet =
-        displayOnly ||
-        overlayEditing ||
-        maskDrawing ||
-        liveBackground ||
-        liveMapRegion ||
-        liveCorrection ||
-        livePhaseConditions ||
-        command === "integration_phase_state" ||
-        command === "integration_phase_guides" ||
-        command === "integration_autoprocess_poll" ||
-        frameSelection ||
-        command === "cake_profile" ||
-        command === "validation_position" ||
-        command === "image_levels" ||
-        command === "image_batch_mode";
-      // Disabling the source selector while opening can blur it before the
-      // size-confirmation response arrives (especially in WebKit).
-      if (
-        command === "select_image_source" &&
-        document.activeElement instanceof HTMLElement
-      )
-        calibrationResetOpener.current = document.activeElement;
-      const quietBackgroundJob = quiet && (liveBackground || overlayEditing);
-      if (quietBackgroundJob) {
-        ++progressGeneration.current;
-        setProgress(undefined);
-        setQuietBackgroundProcessing(true);
-      }
-      if (!quiet) {
-        ++progressGeneration.current;
-        setProgress(undefined);
-        setBusy(message);
-        setNotice(null);
-      }
-      if (command !== "integration_autoprocess_poll") setError(null);
-      if (command === "workflow_settings")
-        setState((s) =>
-          s
-            ? {
-                ...s,
-                calibration: {
-                  ...s.calibration,
-                  workflow: { ...s.calibration.workflow, ...args },
-                },
-              }
-            : s,
-        );
-      quietInFlight.current = quiet;
-      navigationTrace("command-start", { action: command });
-      try {
-        const selectedPosition = currentLinked.current;
-        let result = await bridge.current(
-          command,
-          commandMode === "mask" &&
-            canDeferIntegration.current &&
-            ![
-              "configuration",
-              "configuration_select",
-              "combination_settings",
-              "configuration_navigation",
-              "save_combined_pattern",
-              "processing_workers",
-            ].includes(command)
-            ? { ...args, defer_integration: true }
-            : command === "map_select"
-              ? { ...args, integration_view: commandMode === "integration" }
-              : args,
-        );
-        navigationTrace("command-response", {
-          action: command,
-          bufferId: result.image?.bufferId,
-        });
-        if (result.hdf5SourceRequest) {
+      await commands.execute<Response>(
+        policy,
+        async () => {
+          const invoke = bridge.current!;
+          const quiet = policy.quiet;
+          // Disabling the source selector while opening can blur it before the
+          // size-confirmation response arrives (especially in WebKit).
           if (
-            document.activeElement instanceof HTMLElement &&
-            document.activeElement !== document.body
+            command === "select_image_source" &&
+            document.activeElement instanceof HTMLElement
           )
             calibrationResetOpener.current = document.activeElement;
-          setHdf5SourceRequest(result.hdf5SourceRequest);
-          return;
-        }
-        if (result.imageChange || result.calibrationChange) {
-          if (
-            document.activeElement instanceof HTMLElement &&
-            document.activeElement !== document.body
-          )
-            calibrationResetOpener.current = document.activeElement;
-          setCalibrationResetRequest(
-            result.imageChange ?? result.calibrationChange,
-          );
-          return;
-        }
-        // Stored-only map projects can be inspected even when their raw files are unavailable.
-        if (
-          command === "map_select" &&
-          args.reintegrate === true &&
-          !result.ok &&
-          result.error ===
-            "Reintegration needs the original image and a loaded calibration."
-        ) {
-          result = await bridge.current(command, {
-            ...args,
-            integration_view: commandMode === "integration",
-            reintegrate: false,
-          });
-        }
-        const retainMapClick =
-          result.ok &&
-          ((!!result.map &&
-            (command === "map_select" || command === "map_poll")) ||
-            result.batchSelection !== undefined);
-        if (retainMapClick)
-          result = await restoreMapPosition(
-            bridge.current,
-            result,
-            selectedPosition,
-          );
-        const display = detectorDisplay.current;
-        const raw = commandMode === "integration" && !correctedImageRef.current;
-        if (detectorAutoActive.current)
-          result = await prepareDetectorImage(
-            bridge.current,
-            result,
-            raw ? rawImageSource.current : imageSource.current,
-            readImageAutoLevels(display.name, display.filterGaps),
-            raw,
-          );
-        navigationTrace("command-prepared", {
-          action: command,
-          bufferId: result.image?.bufferId,
-        });
-        // Qt's unit buttons relabel the existing cake. Retain the same pixel
-        // viewport while its axis changes (the pattern owns its unit adapter).
-        const unitOnly =
-          ["settings", "integration_settings"].includes(command) &&
-          Object.keys(args).length === 1 &&
-          "unit" in args;
-        apply(result, !unitOnly, retainMapClick);
-        navigationTrace("command-applied", {
-          action: command,
-          bufferId: result.image?.bufferId,
-        });
-        if (command === "next_image" && result.ok)
-          setNotice(
-            result.imageUnavailable
-              ? Number(args.direction ?? 1) < 0
-                ? "No previous image available"
-                : "No new image available"
-              : null,
-          );
-        if (!result.cancelled && result.state) {
-          if (["open_project", "example"].includes(command))
-            resetIntegrationDraft(result.state);
-          if (
-            ["open_project", "example", "open_calibration"].includes(command)
-          ) {
-            resetGeometryDraft(result.state.calibration);
-            resetFitDraft(result.state.calibration);
+          const quietBackgroundJob = policy.backgroundJob;
+          if (quietBackgroundJob) {
+            ++progressGeneration.current;
+            setProgress(undefined);
+            setQuietBackgroundProcessing(true);
           }
-        }
-        if (!result.cancelled && result.state) {
-          if (command === "manual_geometry")
-            resetGeometryDraft(result.state.calibration);
-          if (command === "calibrate") resetFitDraft(result.state.calibration);
-        }
-        if (
-          command === "save_project" &&
-          result.savedPath &&
-          pendingOptionDrafts.current
-        ) {
-          setNotice(
-            `Saved ${result.savedPath.split(/[\\/]/).at(-1)} · unapplied option drafts remain in this session`,
-          );
-        }
-        if (result.correctionNotice) setNotice(result.correctionNotice);
-        if (command === "pick_peak" && result.noPeakFound)
-          setNotice("No peaks found in this area");
-        if (command === "open_calibration" && !result.cancelled) {
-          setNotice(
-            `Loaded calibration: ${result.state?.calibrationName ?? "PONI"}${result.state?.hasImage ? "" : " · Load a matching detector image"}`,
-          );
-        }
-        if (isScientificHistoryCommand(command)) {
-          setNotice(
-            `${command.startsWith("undo") ? "Undid" : "Redid"} ${historyActionLabel(historyLabel)}`,
-          );
-        }
-        if (command === "integration_autoprocess_poll" && result.state)
-          setError(result.state.integration.autoProcessError || null);
-        if (
-          (command === "load_peaks" && !result.cancelled) ||
-          isCalibrationHistoryCommand(command) ||
-          [
-            "clear_peaks",
-            "remove_pick",
-            "remove_picks",
-            "open_image",
-            "select_image_source",
-            "example",
-            "image_transform",
-            "open_project",
-          ].includes(command)
-        )
-          setSelectedPicks((previous) => (previous.length ? [] : previous));
-        if (
-          !result.cancelled &&
-          ["calibrate", "manual_geometry", "open_calibration"].includes(command)
-        ) {
-          setCalibrationStep(
-            command === "open_calibration" && !result.state?.hasImage ? 0 : 3,
-          );
-        }
-        onSuccess?.(result);
-      } catch (e) {
-        const details = e instanceof Error ? e.message : String(e);
-        const failure = fileOperationFailure(command, details, args);
-        setError(failure?.title ?? details);
-        try {
-          // Recovery refreshes the current image too. A failed peak pick must
-          // keep the user's zoom so they can retry at the same location.
-          apply(await bridge.current("state"), false);
-        } catch {
-          /* Keep the original error visible. */
-        }
-      } finally {
-        if (quietBackgroundJob) {
-          ++progressGeneration.current;
-          setProgress(undefined);
-          setQuietBackgroundProcessing(false);
-        }
-        if (!quiet) {
-          ++progressGeneration.current;
-          setProgress(undefined);
-          setBusy("");
-        }
-        inFlight.current = false;
-        quietInFlight.current = false;
-        autoProcessInFlight.current = false;
-        if (maskDrawing) pendingMaskDraws.current--;
-        if (overlayEditing) pendingOverlayEdits.current--;
-        if (frameSelection) pendingFrameSelections.current--;
-        if (liveMapRegion) pendingMapRegions.current--;
-        if (liveBackground) pendingBackgroundUpdates.current--;
-        if (liveCorrection) pendingCorrectionEdits.current--;
-        if (commandTail.current === completion) commandTail.current = null;
-        release();
-      }
+          if (!quiet) {
+            ++progressGeneration.current;
+            setProgress(undefined);
+            setBusy(message);
+            setNotice(null);
+          }
+          if (command !== "integration_autoprocess_poll") setError(null);
+          if (command === "workflow_settings")
+            setState((s) =>
+              s
+                ? {
+                    ...s,
+                    calibration: {
+                      ...s.calibration,
+                      workflow: { ...s.calibration.workflow, ...args },
+                    },
+                  }
+                : s,
+            );
+          navigationTrace("command-start", { action: command });
+          try {
+            const selectedPosition = currentLinked.current;
+            let result = await invoke(
+              command,
+              commandMode === "mask" &&
+                canDeferIntegration.current &&
+                ![
+                  "configuration",
+                  "configuration_select",
+                  "combination_settings",
+                  "configuration_navigation",
+                  "save_combined_pattern",
+                  "processing_workers",
+                ].includes(command)
+                ? { ...args, defer_integration: true }
+                : command === "map_select"
+                  ? { ...args, integration_view: commandMode === "integration" }
+                  : args,
+            );
+            navigationTrace("command-response", {
+              action: command,
+              bufferId: result.image?.bufferId,
+            });
+            if (result.hdf5SourceRequest) {
+              if (
+                document.activeElement instanceof HTMLElement &&
+                document.activeElement !== document.body
+              )
+                calibrationResetOpener.current = document.activeElement;
+              setHdf5SourceRequest(result.hdf5SourceRequest);
+              return { status: "deferred", value: result };
+            }
+            if (result.imageChange || result.calibrationChange) {
+              if (
+                document.activeElement instanceof HTMLElement &&
+                document.activeElement !== document.body
+              )
+                calibrationResetOpener.current = document.activeElement;
+              setCalibrationResetRequest(
+                result.imageChange ?? result.calibrationChange,
+              );
+              return { status: "deferred", value: result };
+            }
+            // Stored-only map projects can be inspected even when their raw files are unavailable.
+            if (
+              command === "map_select" &&
+              args.reintegrate === true &&
+              !result.ok &&
+              result.error ===
+                "Reintegration needs the original image and a loaded calibration."
+            ) {
+              result = await invoke(command, {
+                ...args,
+                integration_view: commandMode === "integration",
+                reintegrate: false,
+              });
+            }
+            const retainMapClick =
+              result.ok &&
+              ((!!result.map &&
+                (command === "map_select" || command === "map_poll")) ||
+                result.batchSelection !== undefined);
+            if (retainMapClick)
+              result = await restoreMapPosition(
+                invoke,
+                result,
+                selectedPosition,
+              );
+            const display = detectorDisplay.current;
+            const raw =
+              commandMode === "integration" && !correctedImageRef.current;
+            if (detectorAutoActive.current)
+              result = await prepareDetectorImage(
+                invoke,
+                result,
+                raw ? rawImageSource.current : imageSource.current,
+                readImageAutoLevels(display.name, display.filterGaps),
+                raw,
+              );
+            navigationTrace("command-prepared", {
+              action: command,
+              bufferId: result.image?.bufferId,
+            });
+            // Qt's unit buttons relabel the existing cake. Retain the same pixel
+            // viewport while its axis changes (the pattern owns its unit adapter).
+            const unitOnly =
+              ["settings", "integration_settings"].includes(command) &&
+              Object.keys(args).length === 1 &&
+              "unit" in args;
+            apply(result, !unitOnly, retainMapClick);
+            navigationTrace("command-applied", {
+              action: command,
+              bufferId: result.image?.bufferId,
+            });
+            if (command === "next_image" && result.ok)
+              setNotice(
+                result.imageUnavailable
+                  ? Number(args.direction ?? 1) < 0
+                    ? "No previous image available"
+                    : "No new image available"
+                  : null,
+              );
+            if (!result.cancelled && result.state) {
+              if (["open_project", "example"].includes(command))
+                resetIntegrationDraft(result.state);
+              if (
+                ["open_project", "example", "open_calibration"].includes(
+                  command,
+                )
+              ) {
+                resetGeometryDraft(result.state.calibration);
+                resetFitDraft(result.state.calibration);
+              }
+            }
+            if (!result.cancelled && result.state) {
+              if (command === "manual_geometry")
+                resetGeometryDraft(result.state.calibration);
+              if (command === "calibrate")
+                resetFitDraft(result.state.calibration);
+            }
+            if (
+              command === "save_project" &&
+              result.savedPath &&
+              pendingOptionDrafts.current
+            ) {
+              setNotice(
+                `Saved ${result.savedPath.split(/[\\/]/).at(-1)} · unapplied option drafts remain in this session`,
+              );
+            }
+            if (result.correctionNotice) setNotice(result.correctionNotice);
+            if (command === "pick_peak" && result.noPeakFound)
+              setNotice("No peaks found in this area");
+            if (command === "open_calibration" && !result.cancelled) {
+              setNotice(
+                `Loaded calibration: ${result.state?.calibrationName ?? "PONI"}${result.state?.hasImage ? "" : " · Load a matching detector image"}`,
+              );
+            }
+            if (isScientificHistoryCommand(command)) {
+              setNotice(
+                `${command.startsWith("undo") ? "Undid" : "Redid"} ${historyActionLabel(historyLabel)}`,
+              );
+            }
+            if (command === "integration_autoprocess_poll" && result.state)
+              setError(result.state.integration.autoProcessError || null);
+            if (
+              (command === "load_peaks" && !result.cancelled) ||
+              isCalibrationHistoryCommand(command) ||
+              [
+                "clear_peaks",
+                "remove_pick",
+                "remove_picks",
+                "open_image",
+                "select_image_source",
+                "example",
+                "image_transform",
+                "open_project",
+              ].includes(command)
+            )
+              setSelectedPicks((previous) => (previous.length ? [] : previous));
+            if (
+              !result.cancelled &&
+              ["calibrate", "manual_geometry", "open_calibration"].includes(
+                command,
+              )
+            ) {
+              setCalibrationStep(
+                command === "open_calibration" && !result.state?.hasImage
+                  ? 0
+                  : 3,
+              );
+            }
+            onSuccess?.(result);
+            return result.cancelled
+              ? { status: "cancelled", value: result }
+              : { status: "applied", value: result };
+          } catch (e) {
+            const details = e instanceof Error ? e.message : String(e);
+            const failure = fileOperationFailure(command, details, args);
+            setError(failure?.title ?? details);
+            try {
+              // Recovery refreshes the current image too. A failed peak pick must
+              // keep the user's zoom so they can retry at the same location.
+              apply(await invoke("state"), false);
+            } catch {
+              /* Keep the original error visible. */
+            }
+            return { status: "failed", error: e };
+          } finally {
+            if (quietBackgroundJob) {
+              ++progressGeneration.current;
+              setProgress(undefined);
+              setQuietBackgroundProcessing(false);
+            }
+            if (!quiet) {
+              ++progressGeneration.current;
+              setProgress(undefined);
+              setBusy("");
+            }
+          }
+        },
+        shouldRun,
+      );
     },
     [
       apply,
+      commands,
       resetIntegrationDraft,
       resetGeometryDraft,
       resetFitDraft,
@@ -1126,7 +1033,7 @@ export default function App() {
       if (
         !currentState.current ||
         busy ||
-        inFlight.current ||
+        commands.busy ||
         integrationDraft.dirty
       )
         return;
@@ -1488,7 +1395,7 @@ export default function App() {
         const latest = hoverLatest.current;
         if (!latest) return;
         hoverLastSent.current = performance.now();
-        if (inFlight.current || !bridge.current) {
+        if (commands.busy || !bridge.current) {
           scheduleHover();
           return;
         }
