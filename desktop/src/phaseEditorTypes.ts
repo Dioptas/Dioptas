@@ -75,14 +75,5 @@ export type PhaseEditorInvocation =
   import("./commandContracts").CommandInvocation<PhaseEditorCommand>;
 export type PhaseEditorRunInvocation =
   import("./commandContracts").RunInvocation<PhaseEditorCommand>;
-export interface PhaseEditorRun {
-  <C extends PhaseEditorCommand>(
-    command: import("./commandContracts").SingleCommand<C>,
-    payload: import("./commandContracts").CommandPayload<NoInfer<C>>,
-    message?: string,
-    onSuccess?: (
-      response: import("./commandContracts").CommandResult<C>,
-    ) => void,
-  ): Promise<void>;
-  <const A extends PhaseEditorRunInvocation>(...call: A): Promise<void>;
-}
+export type PhaseEditorRun =
+  import("./commandContracts").ScopedRun<PhaseEditorCommand>;

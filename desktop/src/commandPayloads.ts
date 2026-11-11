@@ -224,9 +224,10 @@ export type PhaseOperation =
   | "visibility_all"
   | "remove"
   | "move";
-export type PhaseTarget =
+export type PhaseTarget = (
   | { index: number; editor_uid?: string }
-  | { index?: number; editor_uid: string };
+  | { index?: number; editor_uid: string }
+) & { editor_only?: boolean };
 /** EoS parameter names/record metadata are schema-driven extension values. Their
  * JSON values stay explicit rather than weakening every command's payload. */
 export interface PhaseEditFields extends FilePayload {

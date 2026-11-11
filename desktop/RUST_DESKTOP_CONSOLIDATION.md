@@ -435,8 +435,9 @@ After the complete fixes-only local gate passed, the first frontend architecture
 increment extracted ordered command scheduling from `App.tsx` into a pure
 coordinator. Its explicit outcomes and reservation cleanup have adversarial unit
 coverage. Response application and the existing controls remain owned by the
-React application. See [the command contract](COMMAND_CONTRACT.md) for ownership
-and the next typed-protocol/reducer boundaries.
+React application. The following increment extracts response ownership and adds
+typed contracts; see [the command contract](COMMAND_CONTRACT.md) for the current
+boundaries.
 
 The fixes-only gate passed 283 Rust tests (two existing opt-in checks ignored),
 117 frontend tests, all native headless workflows, 18 independent numerical
@@ -450,3 +451,45 @@ pin with the public 0.8.1 revision. All source files in its six linked crates
 retain identical Git blob identities; the changes are package manifests. Current
 pins and the source-identity audit are documented in
 [native integration qualification](NATIVE_INTEGRATION_PARITY.md).
+
+
+## Typed commands and response ownership — November 11, 2026
+
+The frontend command registry now covers 122 native/host-mediated commands,
+including command-specific payloads, results and deferred/cancelled outcomes.
+Direct calls and generic forwarding preserve the command/payload relationship
+and reject extra payload fields. Compile fixtures cover positive calls, invalid
+names/fields/types, required operation data, dynamic command correlation, nullable
+native results and success-only result narrowing. Batch/Map controls retain their
+callback-free API; detached edits promise only acknowledgements, with scientific
+data published through their existing snapshots.
+
+A canonical structural schema generates shared TypeScript and borrowed Rust DTOs
+for the first 15 native command families. Generated-file checks run in each gate
+and the frontend build. Native validation checks covered present fields at the
+Tauri chooser/request boundary and processor request boundary. Existing handlers
+retain scientific ranges, defaults, required fields and legacy operations. This
+is incremental native DTO coverage; the remaining Rust scientific handlers retain
+their existing validation. Common response factories preserve the existing
+success/error/cancellation/decision metadata and binary framing.
+
+`App.tsx` now composes a pure response snapshot transition, its React owner, a
+workspace effect adapter and a command response transaction. Canonical backend
+state remains separate from the rendered pattern-only merge. Deferred decisions,
+stored-map fallback, linked-position/Auto-level preparation, publication,
+completion effects and recovery retain their existing ordering inside the command
+reservation. Regression tests preserve omitted/null behavior, exact raster-buffer
+owners, calibration/geometry/ROI identities, source/configuration changes and
+callback/error cleanup. No scientific algorithm or interface layout is changed.
+
+Local qualification passes all processor, UI, numerical-reference and host gates:
+290 Rust tests (two existing opt-in checks ignored), 44 Tauri host tests, 154
+frontend unit tests, four compile-fixture files, generated-contract drift checks,
+strict Clippy/formatting and the production build. The complete headless gate
+passes, including Chromium/WebKit response ordering, retained plot products,
+project/configuration changes, HDF5 sources, companion windows and transport
+cancellation. All 18 independent numerical-reference groups and their fixture
+transport/Map-progress checks pass. Separate Chromium/WebKit correction-preview
+and cake-profile workflows also pass. Local receipts are under
+`desktop/artifacts/typed-response-refactor/`; no visible application windows are
+used for this qualification.

@@ -2,7 +2,6 @@ import type {
   CommandInvocation,
   CheckedInvocation,
   CheckedRunInvocation,
-  RunInvocation,
   CommandRequestReader,
 } from "./commandContracts";
 import {
