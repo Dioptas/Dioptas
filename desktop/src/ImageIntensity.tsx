@@ -1,6 +1,6 @@
 import { Input, Select, Button, Portal } from "./ui";
 import { Dialog, DialogHeader } from "./Dialog";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
 import { Settings } from "lucide-react";
 import type {
@@ -63,6 +63,7 @@ export function ImageIntensity({
 }) {
   const id = useId(),
     container = useRef<HTMLDivElement>(null);
+  const settingsDialog = useRef<HTMLDialogElement>(null);
   const dialogTrigger = useRef<HTMLElement | SVGElement | null>(null);
   const colorMapPicker = useRef<ColorMapPickerHandle>(null);
   const [size, setSize] = useState({ width: 136, height: 300 });
@@ -100,6 +101,13 @@ export function ImageIntensity({
     });
   const setAuto = (auto: AutoLevels) => onPreferences({ ...preferences, auto });
   const [dialog, setDialog] = useState<{ x: number; y: number } | null>(null);
+  useLayoutEffect(() => {
+    if (!dialog || !settingsDialog.current) return;
+    const element = settingsDialog.current;
+    const box = element.getBoundingClientRect();
+    element.style.left = `${Math.max(8, Math.min(dialog.x, window.innerWidth - box.width - 8))}px`;
+    element.style.top = `${Math.max(8, Math.min(dialog.y, window.innerHeight - box.height - 8))}px`;
+  }, [dialog, auto.mode, gapFiltering]);
   const previousSource = useRef<Raster["data"] | null>(
     initialLevelsReady ? raster.data : null,
   );
@@ -173,14 +181,15 @@ export function ImageIntensity({
     max = drag?.axisMax ?? Math.asinh(Math.max(edges.at(-1)!, limits[1])),
     span = Math.max(1e-9, max - min),
     gap = span / 1000;
-  const length = Math.max(40, horizontal ? size.width : size.height),
-    plotLength = length - 32;
+  const padding = 10,
+    length = Math.max(40, horizontal ? size.width : size.height),
+    plotLength = length - 2 * padding;
   const offset = 38,
     thickness = 92;
   const y = (value: number) =>
-    16 + (1 - (Math.asinh(value) - min) / span) * plotLength;
-  const upper = Math.max(16, Math.min(length - 16, y(limits[1]))),
-    lower = Math.max(16, Math.min(length - 16, y(limits[0])));
+    padding + (1 - (Math.asinh(value) - min) / span) * plotLength;
+  const upper = Math.max(padding, Math.min(length - padding, y(limits[1]))),
+    lower = Math.max(padding, Math.min(length - padding, y(limits[0])));
   const peak = Math.max(1, ...counts.map((n) => Math.log1p(n)));
   const update = (low: number, high: number) => {
     if (Number.isFinite(low) && Number.isFinite(high) && low < high) {
@@ -206,8 +215,8 @@ export function ImageIntensity({
     return (
       min +
       (horizontal
-        ? (f * length - 16) / plotLength
-        : 1 - (f * length - 16) / plotLength) *
+        ? (f * length - padding) / plotLength
+        : 1 - (f * length - padding) / plotLength) *
         span
     );
   };
@@ -273,6 +282,12 @@ export function ImageIntensity({
             }
             preserveAspectRatio="none"
             aria-label={`${title} intensity histogram`}
+            tabIndex={-1}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              open(event.clientX, event.clientY, event.currentTarget);
+            }}
             onDoubleClick={(event) =>
               open(event.clientX, event.clientY, event.currentTarget)
             }
@@ -315,7 +330,7 @@ export function ImageIntensity({
             }}
             onLostPointerCapture={() => setDrag(null)}
           >
-            <title>{`${title} intensity. Drag the window or handles. Left or right click the colour scale to choose a colour map. Use the settings button or double-click the histogram for display settings.`}</title>
+            <title>{`${title} intensity. Drag the window or handles. Left or right click the colour scale to choose a colour map. Use the settings button, right-click or double-click the histogram for display settings.`}</title>
             <defs>
               <linearGradient id={`${id}-ramp`} x1="0" y1="1" x2="0" y2="0">
                 {colorsFor(palette).map((rgb, i, colors) => (
@@ -346,10 +361,13 @@ export function ImageIntensity({
               />
               {counts.map((count, i) => {
                 const top = Math.max(
-                    16,
-                    Math.min(length - 16, y(edges[i + 1])),
+                    padding,
+                    Math.min(length - padding, y(edges[i + 1])),
                   ),
-                  bottom = Math.max(16, Math.min(length - 16, y(edges[i])));
+                  bottom = Math.max(
+                    padding,
+                    Math.min(length - padding, y(edges[i])),
+                  );
                 return (
                   <rect
                     key={i}
@@ -374,7 +392,7 @@ export function ImageIntensity({
                 data-testid="intensity-colour-bar"
                 className="intensity-colour-bar"
                 x="101"
-                y="16"
+                y={padding}
                 width="21"
                 height={plotLength}
                 fill={`url(#${id}-ramp)`}
@@ -523,12 +541,13 @@ export function ImageIntensity({
         <Portal>
           {
             <Dialog
+              dialogRef={settingsDialog}
               returnFocusTarget={dialogTrigger.current}
               aria-label={`${title} display settings`}
               className="display-settings"
               style={{
-                left: Math.max(8, Math.min(dialog.x, window.innerWidth - 316)),
-                top: Math.max(8, Math.min(dialog.y, window.innerHeight - 530)),
+                left: dialog.x,
+                top: dialog.y,
               }}
               onDismiss={() => setDialog(null)}
             >

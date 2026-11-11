@@ -344,6 +344,101 @@ try {
               await assertSquareTools(
                 page.locator(".intensity-actions button"),
               );
+              // Check placement away from edges, then check viewport clamping.
+              await page.locator(".image-intensity").evaluate((el) => {
+                el.parentElement.style.top = "24px";
+                el.parentElement.style.bottom = "auto";
+                if (el.dataset.orientation === "vertical")
+                  el.style.height = "400px";
+              });
+              await page.waitForFunction(() => {
+                const svg = document.querySelector(".intensity-histogram");
+                const horizontal =
+                  svg.closest(".image-intensity").dataset.orientation ===
+                  "horizontal";
+                const box = svg.getBoundingClientRect();
+                return (
+                  Math.abs(
+                    horizontal
+                      ? svg.viewBox.baseVal.width - box.width
+                      : svg.viewBox.baseVal.height - box.height,
+                  ) < 1
+                );
+              });
+              const plot = page.locator(".intensity-histogram");
+              const bar = page.getByTestId("intensity-colour-bar");
+              const barBox = await bar.boundingBox();
+              const controlsBox = await page
+                .locator(".intensity-basic-controls")
+                .boundingBox();
+              const gap =
+                orientation === "horizontal"
+                  ? controlsBox.x - barBox.x - barBox.width
+                  : controlsBox.y - barBox.y - barBox.height;
+              assert.ok(gap >= 0 && gap <= 12.1, `${orientation} gap: ${gap}`);
+              const title = display[0].toUpperCase() + display.slice(1);
+              const settings = page.getByRole("dialog", {
+                name: `${title} display settings`,
+                exact: true,
+              });
+              const position =
+                orientation === "horizontal"
+                  ? { x: 60, y: 32 }
+                  : { x: 20, y: 60 };
+              const before = await page
+                .getByRole("slider")
+                .evaluateAll((nodes) =>
+                  nodes.map((el) => el.getAttribute("aria-valuenow")),
+                );
+              const plotBox = await plot.boundingBox();
+              await plot.click({ button: "right", position });
+              const dialogBox = await settings.boundingBox();
+              assert.ok(Math.abs(dialogBox.x - plotBox.x - position.x) < 1);
+              assert.ok(Math.abs(dialogBox.y - plotBox.y - position.y) < 1);
+              await page.keyboard.press("Escape");
+              await settings.waitFor({ state: "detached" });
+              assert.equal(
+                await plot.evaluate((el) => document.activeElement === el),
+                true,
+              );
+              assert.deepEqual(
+                await page
+                  .getByRole("slider")
+                  .evaluateAll((nodes) =>
+                    nodes.map((el) => el.getAttribute("aria-valuenow")),
+                  ),
+                before,
+                "Right-click must preserve intensity limits",
+              );
+              await bar.click({ button: "right" });
+              await page.getByRole("listbox").waitFor();
+              assert.equal(await settings.count(), 0);
+              await page.keyboard.press("Escape");
+              if (display === "detector" && !detached && !large) {
+                await page.screenshot({
+                  path: fileURLToPath(
+                    new URL(
+                      `${name}-histogram-${orientation}-compact.png`,
+                      artifacts,
+                    ),
+                  ),
+                });
+                await page.locator(".image-intensity").evaluate((el) => {
+                  el.parentElement.style.left = `${innerWidth - 100}px`;
+                  el.parentElement.style.top = `${innerHeight - 100}px`;
+                });
+                await plot.click({ button: "right", position });
+                await settings.waitFor({ state: "visible" });
+                const clamped = await settings.boundingBox();
+                assert.ok(
+                  clamped.x >= 7.9 && clamped.y >= 7.9,
+                  JSON.stringify(clamped),
+                );
+                assert.ok(clamped.x + clamped.width <= 1272.1);
+                assert.ok(clamped.y + clamped.height <= 942.1);
+                await page.keyboard.press("Escape");
+                await settings.waitFor({ state: "detached" });
+              }
               assert.equal(
                 await page
                   .locator(".image-intensity")
@@ -371,6 +466,7 @@ try {
           "square transparent icons and histogram controls in all four displays, both orientations, main/detached surfaces and text sizes",
           "persistent idle scrollbars and reserved content space in both axes at both text sizes",
           "native histogram settings dialog, display edits, Escape and backdrop dismissal",
+          "compact histogram spacing, right-click settings at pointer with viewport clamping and focus return; colour-bar right-click still opens palettes",
         ],
       });
       console.log(

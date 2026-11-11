@@ -1776,7 +1776,7 @@ input[type="checkbox"] {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  gap: 6px;
+  gap: 2px;
   padding: 7px 4px;
   background: #101419;
   font-size: var(--text-small);
