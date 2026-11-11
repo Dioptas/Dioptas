@@ -5,6 +5,7 @@
 
 # Preserve the byte-verified published source and security patch on every OS.
 desktop/vendor/glib/** -text
+desktop/licenses/cargo-overrides/** -text
 
 ###############################################################################
 # Set default behavior for command prompt diff.
