@@ -4,7 +4,10 @@
 use crate::{
     Session,
     control::Control,
-    protocol::{MAX_REQUEST_BYTES, Reply, Request},
+    protocol::{
+        MAX_REQUEST_BYTES, Reply, Request,
+        command_contract::{CommandExecution, REQUEST_SIZE_ERROR, execution},
+    },
 };
 use serde_json::json;
 use std::{
@@ -48,6 +51,49 @@ fn guarded(invoke: impl FnOnce() -> Reply) -> Result<Reply, Reply> {
             "error":format!("The native processor stopped after an internal error. Reopen the application.\n{message}"),
             "errorContext":{"panic":message,"nativeBacktrace":trace}}))
     })
+}
+
+/// Recover routing metadata without parsing/allocating an oversized payload.
+/// Host requests put their id before payload. Other clients that omit an early
+/// top-level id receive an uncorrelated id-0 rejection; the session still lives.
+fn oversized_request_id(prefix: &[u8]) -> u64 {
+    use serde::Deserializer;
+    use serde::de::{IgnoredAny, MapAccess, Visitor};
+    struct IdVisitor<'a>(&'a mut Option<u64>);
+    impl<'de> Visitor<'de> for IdVisitor<'_> {
+        type Value = ();
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("a request object with an early id")
+        }
+        fn visit_map<M: MapAccess<'de>>(self, mut map: M) -> Result<(), M::Error> {
+            while let Some(key) = map.next_key::<String>()? {
+                if key == "id" {
+                    *self.0 = Some(map.next_value::<u64>()?);
+                    return Ok(());
+                }
+                map.next_value::<IgnoredAny>()?;
+            }
+            Ok(())
+        }
+    }
+    let mut id = None;
+    let bounded = &prefix[..prefix.len().min(64 * 1024)];
+    // Parsing may stop in a truncated payload. Only a structurally parsed
+    // top-level id is retained; strings containing `"id":` cannot spoof it.
+    let _ = serde_json::Deserializer::from_slice(bounded).deserialize_map(IdVisitor(&mut id));
+    id.unwrap_or(0)
+}
+
+fn drain_request_line(input: &mut impl BufRead) -> std::io::Result<()> {
+    loop {
+        let bytes = input.fill_buf()?;
+        let end = bytes.iter().position(|&b| b == b'\n');
+        let consumed = end.map_or(bytes.len(), |index| index + 1);
+        input.consume(consumed);
+        if consumed == 0 || end.is_some() {
+            return Ok(());
+        }
+    }
 }
 
 pub fn serve(
@@ -105,33 +151,9 @@ pub fn serve(
             for (request, control) in receiver {
                 // Readout/state requests must not appear to restart a completed
                 // calibration while the user moves the mouse over the result.
-                worker_running.store(
-                    matches!(
-                        request.action.as_str(),
-                        "calibrate"
-                            | "integrate"
-                            | "example"
-                            | "open_image"
-                            | "next_image"
-                            | "open_calibration"
-                            | "manual_geometry"
-                            | "detector_file"
-                            | "distortion_file"
-                            | "settings"
-                            | "integration_settings"
-                            | "mask_stroke"
-                            | "mask_edit"
-                            | "image_transform"
-                            | "clear_mask"
-                            | "undo_mask"
-                            | "redo_mask"
-                            | "undo_calibration"
-                            | "redo_calibration"
-                            | "mask_plugin"
-                    ),
-                    Ordering::Release,
-                );
-                if controlled(&request.action) {
+                let cancellable = execution(&request.action) == CommandExecution::Cancellable;
+                worker_running.store(cancellable, Ordering::Release);
+                if cancellable {
                     *worker_active.lock().unwrap() = Some(control.clone());
                     if worker_closing.load(Ordering::Acquire) {
                         control.cancel();
@@ -169,7 +191,14 @@ pub fn serve(
                     break;
                 }
                 if n > MAX_REQUEST_BYTES {
-                    return Err("Processing request exceeds 16 MiB.".into());
+                    // Discard only this newline-delimited frame, never the
+                    // scientific session. Keep memory bounded while draining.
+                    let id = oversized_request_id(&line);
+                    if line.last() != Some(&b'\n') {
+                        drain_request_line(input).map_err(|e| e.to_string())?;
+                    }
+                    write(id, Reply::error(REQUEST_SIZE_ERROR), &[])?;
+                    continue;
                 }
                 let request: Request = match serde_json::from_slice(&line) {
                     Ok(request) => request,
@@ -207,7 +236,7 @@ pub fn serve(
                     }
                     _ => {
                         let control = Arc::new(Control::default());
-                        if controlled(&request.action) {
+                        if execution(&request.action) == CommandExecution::Cancellable {
                             control.publish(json!({"running":true,"current":0,"total":1,"label":"Waiting for processing"}));
                             let mut active = active.lock().unwrap();
                             if active.is_none() {
@@ -249,50 +278,6 @@ pub fn serve(
     })
 }
 
-fn controlled(action: &str) -> bool {
-    matches!(
-        action,
-        "calibrate"
-            | "image_transform"
-            | "mask_edit"
-            | "mask_plugin"
-            | "open_image"
-            | "next_image"
-            | "integrate"
-            | "open_calibration"
-            | "manual_geometry"
-            | "detector_file"
-            | "distortion_file"
-            | "settings"
-            | "integration_settings"
-            | "integration_background"
-            | "integration_clear_background"
-            | "undo_calibration"
-            | "redo_calibration"
-            | "batch_unit"
-            | "integration_image_background"
-            | "integration_flat_field"
-            | "integration_correction"
-            | "integration_correction_preview"
-            | "integration_overlay"
-            | "integration_phase"
-            | "batch_load"
-            | "batch_load_data"
-            | "batch_background_extract"
-            | "batch_background_from_pattern"
-            | "batch_folder"
-            | "integration_batch"
-            | "batch_folder_step"
-            | "map_load"
-            | "map_folder"
-            | "map_poll"
-            | "process_image_batch"
-            | "open_project"
-            | "save_project"
-            | "configuration"
-    )
-}
-
 #[cfg(test)]
 mod panic_tests {
     use super::*;
@@ -316,5 +301,85 @@ mod panic_tests {
                 .result["ok"],
             true
         );
+    }
+}
+
+#[cfg(test)]
+mod request_tests {
+    use super::*;
+    use serde_json::Value;
+    use std::{collections::HashMap, io::Cursor};
+
+    #[test]
+    fn oversized_frame_rejection_preserves_the_unsaved_session_and_next_request() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let mut input = serde_json::to_vec(&json!({"id":1,"action":"configuration",
+            "payload":{"operation":"rename","name":"Unsaved configuration"}}))
+        .unwrap();
+        input.extend_from_slice(
+            b"\n{\"id\":2,\"action\":\"integration_save_pattern\",\"payload\":{\"svg_data\":\"",
+        );
+        input.resize(input.len() + MAX_REQUEST_BYTES, b'x');
+        input.extend_from_slice(b"\"}}\n{\"id\":3,\"action\":\"state\"}\n");
+        let mut output = Vec::new();
+        serve(&mut Cursor::new(input), &mut output, root, false).unwrap();
+        let mut packets = HashMap::<u64, Value>::new();
+        let mut offset = 0;
+        while offset < output.len() {
+            let length =
+                u32::from_le_bytes(output[offset..offset + 4].try_into().unwrap()) as usize;
+            offset += 4;
+            let header: Value = serde_json::from_slice(&output[offset..offset + length]).unwrap();
+            offset += length;
+            offset += header["buffers"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|buffer| buffer["length"].as_u64().unwrap() as usize)
+                .sum::<usize>();
+            packets.insert(header["id"].as_u64().unwrap(), header["result"].clone());
+        }
+        assert_eq!(packets.len(), 3);
+        assert_eq!(packets[&1]["ok"], true);
+        assert_eq!(packets[&2]["ok"], false);
+        assert_eq!(packets[&2]["error"], REQUEST_SIZE_ERROR);
+        assert_eq!(packets[&3]["ok"], true);
+        assert_eq!(packets[&3]["state"], packets[&1]["state"]);
+        assert_eq!(
+            packets[&3]["state"]["configurationLabels"][0],
+            "Unsaved configuration"
+        );
+    }
+
+    #[test]
+    fn oversized_id_recovery_is_structural_and_bounded() {
+        assert_eq!(
+            oversized_request_id(br#"{"id":17,"payload":{"text":"unfinished"#),
+            17
+        );
+        assert_eq!(
+            oversized_request_id(br#"{"payload":{"id":42},"id":18,"extra":"unfinished"#),
+            18
+        );
+        assert_eq!(
+            oversized_request_id(br#"{"payload":{"text":"\"id\":42"},"id":19,"extra":"unfinished"#),
+            19
+        );
+        assert_eq!(oversized_request_id(br#"{"payload":{"id":42}"#), 0);
+        assert_eq!(oversized_request_id(br#"{"id":-1,"payload":{}"#), 0);
+        let mut late = br#"{"padding":""#.to_vec();
+        late.resize(late.len() + 64 * 1024, b'x');
+        late.extend_from_slice(br#"","id":20}"#);
+        assert_eq!(oversized_request_id(&late), 0);
+    }
+
+    #[test]
+    fn draining_a_frame_does_not_consume_the_next_one() {
+        let mut input = std::io::BufReader::with_capacity(3, Cursor::new(b"tail\nnext\n"));
+        drain_request_line(&mut input).unwrap();
+        let mut next = String::new();
+        input.read_line(&mut next).unwrap();
+        assert_eq!(next, "next\n");
+        drain_request_line(&mut Cursor::new(b"unterminated")).unwrap();
     }
 }

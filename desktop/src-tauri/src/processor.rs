@@ -1,4 +1,7 @@
 use serde_json::{json, Value};
+#[path = "../../command_contract.rs"]
+pub mod command_contract;
+use command_contract::{MAX_REQUEST_BYTES, REQUEST_SIZE_ERROR};
 use std::{
     collections::HashMap,
     io::{BufReader, Read, Write},
@@ -122,8 +125,7 @@ fn read_packet(reader: &mut impl Read) -> Result<(u64, Packet), String> {
     let parsed = std::time::Instant::now();
     let id = value.id;
     let total = value.buffers.iter().try_fold(0usize, |size, buffer| {
-        let n = usize::try_from(buffer.length)
-            .map_err(|_| "Invalid binary buffer length")?;
+        let n = usize::try_from(buffer.length).map_err(|_| "Invalid binary buffer length")?;
         size.checked_add(n)
             .filter(|v| *v <= MAX_BUFFERS)
             .ok_or("Oversized processing buffers")
@@ -139,10 +141,13 @@ fn read_packet(reader: &mut impl Read) -> Result<(u64, Packet), String> {
         .read_exact(&mut bytes[4 + length..])
         .map_err(|e| e.to_string())?;
     if trace {
-        write_navigation_trace(json!({"stage":"read-packet","id":id,"headerBytes":length,"pixelBytes":total,"headerDecodeMs":parsed.duration_since(parse_started).as_secs_f64()*1000.,"allocationMs":allocated.duration_since(parsed).as_secs_f64()*1000.,"payloadReadMs":allocated.elapsed().as_secs_f64()*1000.,"assemblyAndReadMs":parsed.elapsed().as_secs_f64()*1000.}));
+        write_navigation_trace(
+            json!({"stage":"read-packet","id":id,"headerBytes":length,"pixelBytes":total,"headerDecodeMs":parsed.duration_since(parse_started).as_secs_f64()*1000.,"allocationMs":allocated.duration_since(parsed).as_secs_f64()*1000.,"payloadReadMs":allocated.elapsed().as_secs_f64()*1000.,"assemblyAndReadMs":parsed.elapsed().as_secs_f64()*1000.}),
+        );
     }
     #[cfg(test)]
-    let result = serde_json::from_slice::<Value>(&header).map_err(|e| e.to_string())?
+    let result = serde_json::from_slice::<Value>(&header)
+        .map_err(|e| e.to_string())?
         .get("result")
         .ok_or("Missing processing result")?
         .clone();
@@ -342,6 +347,15 @@ impl Processor {
         }
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         let started = std::time::Instant::now();
+        let encoded =
+            json!({"id": id, "action": action, "payload": payload, "cachedBuffers": cached})
+                .to_string()
+                + "\n";
+        // Reject before registering a reply or sending any bytes. The scientific
+        // child and unsaved session remain usable after a large export fails.
+        if encoded.len() > MAX_REQUEST_BYTES {
+            return Err(REQUEST_SIZE_ERROR.into());
+        }
         let (sender, receiver) = mpsc::channel();
         {
             let mut replies = self.replies.lock().unwrap();
@@ -350,10 +364,6 @@ impl Processor {
             }
             replies.waiting.insert(id, sender);
         }
-        let encoded =
-            json!({"id": id, "action": action, "payload": payload, "cachedBuffers": cached})
-                .to_string()
-                + "\n";
         let sent = {
             let mut input = self.input.lock().unwrap();
             match input.as_mut() {
@@ -372,7 +382,9 @@ impl Processor {
             .recv()
             .map_err(|_| "Local processing disconnected.".to_string())?;
         if std::env::var_os("DIOPTAS_TRACE_NATIVE_NAV").is_some() {
-            write_navigation_trace(json!({"stage":"request","id":id,"action":action,"elapsedMs":started.elapsed().as_secs_f64()*1000.}));
+            write_navigation_trace(
+                json!({"stage":"request","id":id,"action":action,"elapsedMs":started.elapsed().as_secs_f64()*1000.}),
+            );
         }
         reply
     }
@@ -586,7 +598,10 @@ mod tests {
             r#"{"id":1,"result":{},"buffers":[{"length":1073741825}]}"#,
             r#"{"id":1,"result":{"bad":[1,]},"buffers":[]}"#,
         ] {
-            assert!(read_packet(&mut packet(raw.as_bytes()).as_slice()).is_err(), "{raw}");
+            assert!(
+                read_packet(&mut packet(raw.as_bytes()).as_slice()).is_err(),
+                "{raw}"
+            );
         }
     }
 
@@ -596,6 +611,93 @@ mod tests {
         processor.child.lock().unwrap().kill().unwrap();
         assert!(processor.request("state", json!({})).is_err());
         assert!(processor.request("state", json!({})).is_err());
+        processor.shutdown();
+    }
+
+    #[test]
+    fn oversized_commands_preserve_the_child_and_unsaved_configuration() {
+        let processor = Processor::start(false).unwrap();
+        let identity = processor.request("__host__", json!({})).unwrap();
+        let renamed = processor
+            .request(
+                "configuration",
+                json!({"operation":"rename","name":"Unsaved session"}),
+            )
+            .unwrap();
+        assert_eq!(renamed["ok"], true);
+        let before = processor.request("state", json!({})).unwrap();
+        let error = processor
+            .request_packet(
+                "integration_save_pattern",
+                json!({"format":"svg","svg_data":"x".repeat(MAX_REQUEST_BYTES)}),
+                vec![],
+            )
+            .unwrap_err();
+        assert_eq!(error, REQUEST_SIZE_ERROR);
+        assert!(processor.replies.lock().unwrap().waiting.is_empty());
+        assert_eq!(processor.request("state", json!({})).unwrap(), before);
+        assert_eq!(
+            processor.request("__host__", json!({})).unwrap()["pid"],
+            identity["pid"]
+        );
+        processor.shutdown();
+    }
+
+    #[test]
+    fn transfer_processing_exposes_progress_and_cancel_restores_its_session() {
+        let processor = Arc::new(Processor::start(false).unwrap());
+        let requested = json!({"cake":false,"rings":false});
+        for (action, payload) in [
+            (
+                "open_image",
+                json!({"path":Processor::source_root().join("dioptas/tests/data/image_001.tif"),"requested_products":requested}),
+            ),
+            (
+                "manual_geometry",
+                json!({"convention":"pyfai","values":{"dist":0.13,"poni1":0.1,"poni2":0.1,"rot1":0.,"rot2":0.,"rot3":0.,"pixel1":0.0001,"pixel2":0.0001,"wavelength":5e-11,"polarization_factor":0.965},"requested_products":requested}),
+            ),
+        ] {
+            let result = processor.request(action, payload).unwrap();
+            assert_eq!(result["ok"], true, "{action}: {result}");
+        }
+        let before = processor.request("state", json!({})).unwrap();
+        let other = processor.clone();
+        // A cold cake makes this a real scientific calculation rather than a
+        // metadata-only toggle, reproducing the omitted transfer policy.
+        let job = thread::spawn(move || {
+            other.request(
+                "integration_transfer",
+                json!({
+                    "enabled":false,"requested_products":{"cake":true,"rings":false}
+                }),
+            )
+        });
+        let started = std::time::Instant::now();
+        loop {
+            let progress = processor.request("progress", json!({})).unwrap();
+            if progress["progress"]["running"] == true {
+                break;
+            }
+            assert!(
+                !job.is_finished(),
+                "Transfer completed without publishing running progress"
+            );
+            assert!(started.elapsed() < Duration::from_secs(5));
+            thread::sleep(Duration::from_millis(1));
+        }
+        assert_eq!(
+            processor.request("cancel_refinement", json!({})).unwrap()["ok"],
+            true
+        );
+        let result = job.join().unwrap().unwrap();
+        assert!(
+            result["cancelled"] == true
+                || result["error"]
+                    .as_str()
+                    .is_some_and(|error| error.to_lowercase().contains("cancelled")),
+            "{result}"
+        );
+        assert_eq!(processor.request("state", json!({})).unwrap(), before);
         processor.shutdown();
     }
 }

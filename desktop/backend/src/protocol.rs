@@ -2,7 +2,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::{collections::HashSet, sync::Arc};
 
-pub const MAX_REQUEST_BYTES: usize = 16 * 1024 * 1024;
+#[path = "../../command_contract.rs"]
+pub mod command_contract;
+pub use command_contract::MAX_REQUEST_BYTES;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]

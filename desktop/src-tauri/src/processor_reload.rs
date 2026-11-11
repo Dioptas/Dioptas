@@ -1,5 +1,6 @@
 //! Development replaces only the scientific child, after a validated handoff.
 //! Ordinary commands are serialized; progress/cancel bypass the swap gate.
+use crate::processor::command_contract::{execution, CommandExecution};
 use crate::processor::{Backend, Packet, Processor};
 use serde_json::{json, Value};
 use std::{
@@ -46,7 +47,7 @@ impl ProcessorHost {
     ) -> Result<Packet, String> {
         // A queued restart must never prevent cancellation of the operation it
         // is waiting for. Do not hold a writer lock until operations are idle.
-        let _operation = if matches!(action, "progress" | "cancel_refinement") {
+        let _operation = if execution(action) == CommandExecution::OutOfBand {
             None
         } else {
             Some(self.operations.lock().map_err(|e| e.to_string())?)
@@ -279,6 +280,8 @@ fn source_stamp(root: &Path) -> u64 {
     ] {
         visit(&root.join(name), &mut hash);
     }
+    // This source is compiled into both crates and lives beside backend/.
+    visit(&root.join("../command_contract.rs"), &mut hash);
     hash.finish()
 }
 
@@ -442,5 +445,19 @@ mod tests {
         assert_eq!(source_stamp(root), before);
         std::fs::write(root.join("src/main.rs"), "changed source").unwrap();
         assert_ne!(source_stamp(root), before);
+    }
+
+    #[test]
+    fn shared_command_policy_counts_as_a_backend_source_edit() {
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path().join("backend");
+        std::fs::create_dir(&root).unwrap();
+        let before = source_stamp(&root);
+        std::fs::write(
+            directory.path().join("command_contract.rs"),
+            "initial policy",
+        )
+        .unwrap();
+        assert_ne!(source_stamp(&root), before);
     }
 }
