@@ -53,6 +53,19 @@ try {
               requestAnimationFrame(() => requestAnimationFrame(resolve)),
             ),
         );
+        // Qualify the painted fixture before inspecting native control styles.
+        // Headless WebKit can expose pre-paint SELECT styles with empty inherited
+        // custom properties; animation frames alone do not establish a paint.
+        // The screenshot is also evidence of the surface these strict assertions
+        // inspect. Do not poll expected colors or remount/retry failed controls.
+        await page.screenshot({
+          path: fileURLToPath(
+            new URL(
+              `${name}-fields-${large ? "large" : "normal"}.png`,
+              artifacts,
+            ),
+          ),
+        });
         const neutral = async (locator) => {
           const styles = await locator.evaluateAll((elements) =>
             elements.map((element) => {
