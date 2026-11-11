@@ -315,8 +315,9 @@ inclusive normalization bins and current compact-layout scrolling/tab behavior.
 Evidence is under `desktop/artifacts/detector-window/` and
 `desktop/artifacts/batch-window/rust/{chromium,webkit}/`.
 
-Detached detector/cake/profile coordinates are also no longer duplicated in the
-main footer. Their own window keeps live and click readouts; the main pattern
-retains its readout, and docking restores the detector footer. Regression checks
-cover these transitions. Scientific processing and linked inspection are unchanged.
+Detached detector/cake/profile live mouse coordinates are no longer duplicated
+in the main footer. The last-click position remains visible in both windows for
+comparison with live mouse positions. The main pattern retains its readout, and
+docking restores live detector readouts in the main footer. Regression checks
+cover matching click fields in both windows and these transitions. Scientific processing and linked inspection are unchanged.
 Visible OS-window campaigns were not rerun for this headless follow-up.

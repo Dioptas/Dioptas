@@ -347,13 +347,33 @@ for (const [name, browserType] of [
           .clickX != null,
     );
     assert.ok((await native.invoke("state")).linked?.imagePoint);
-    await page.getByTestId("click-readout").waitFor({ state: "detached" });
+    await page.getByTestId("click-readout").waitFor();
     await child.getByTestId("detector-click-readout").waitFor();
+    const clickedFields = await child
+      .getByTestId("detector-click-readout")
+      .locator("[data-field]")
+      .allTextContents();
+    assert.ok(clickedFields.length > 0);
+    assert.deepEqual(
+      await page
+        .getByTestId("click-readout")
+        .locator("[data-field]")
+        .allTextContents(),
+      clickedFields,
+    );
     await page.getByTestId("pattern-canvas").hover();
     await page.waitForFunction(
       () =>
         document.querySelector('[data-testid="mouse-readout"]').dataset.plot ===
         "pattern",
+    );
+    assert.deepEqual(
+      await page
+        .getByTestId("click-readout")
+        .locator("[data-field]")
+        .allTextContents(),
+      clickedFields,
+      "The main window must retain the selected position while inspecting the pattern",
     );
 
     // Main task controls still mutate the very same session and appear remotely.

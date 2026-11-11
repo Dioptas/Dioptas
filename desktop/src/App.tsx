@@ -1743,10 +1743,6 @@ export default function App() {
     ["detector", "cake", "profile"].includes(plotReading.source)
       ? null
       : plotReading;
-  const hideMainClickReading =
-    detectorWindow.detached &&
-    clickedReading &&
-    ["detector", "cake", "profile"].includes(clickedReading.source);
   const inspectDetector = (point: {
     x: number;
     y: number;
@@ -3679,7 +3675,6 @@ export default function App() {
               </span>
             </div>
             {!correctionPreview.map &&
-              !hideMainClickReading &&
               !settingsOpen &&
               (mode === "integration" || mode === "map") && (
                 <div className="plot-status-line clicked-position">

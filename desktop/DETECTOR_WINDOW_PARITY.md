@@ -164,12 +164,14 @@ flat field is written directly by Node. Both detector scripts assert the Rust
 runtime, and the shared client disables Python/PATH fallback. The separate
 visible native detector script explicitly requests `--backend=rust`.
 
-While the image/cake/profile is detached, its live and click coordinates appear
-only in that companion's footer. The main footer retains the filename and
-readouts from its own pattern. Docking restores image/cake readouts in the main
-footer. Linked inspection and scientific state remain shared.
+While the image/cake/profile is detached, its live mouse coordinates appear
+only in that companion's footer. The last-click position remains visible in both
+windows so users can compare the selected point with the current mouse position.
+The main footer retains the filename and readouts from its own pattern. Docking
+restores live image/cake readouts in the main footer. Linked inspection and
+scientific state remain shared.
 
 Both headless Chromium/WebKit detector workflows pass, including detached cake
-hover, hidden duplicate live/click coordinates, a retained main-pattern readout
-and restored detector readouts on docking. Production build and all 113 frontend
+hover, hidden duplicate live coordinates, matching last-click positions in both
+windows, a retained main-pattern readout and restored detector readouts on docking. Production build and all 113 frontend
 tests pass. No visible native window campaign was run for this UI change.
