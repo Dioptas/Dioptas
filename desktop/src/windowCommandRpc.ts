@@ -8,7 +8,6 @@ import type {
   Run,
   RunInvocation,
 } from "./commandContracts";
-import type { EmptyPayload } from "./commandPayloads";
 import type { Response } from "./types";
 
 export type ScientificWindowRequest = {
@@ -26,14 +25,14 @@ export type WindowCommandRequest =
       type: "request";
       id: string;
       command: "batch_hide";
-      args: EmptyPayload;
+      args: Record<string, never>;
       read: false;
     };
 type WindowInvocation =
-  CommandInvocation | [command: "batch_hide", payload?: EmptyPayload];
+  CommandInvocation | [command: "batch_hide", payload?: Record<string, never>];
 export type WindowRunInvocation =
   | RunInvocation
-  | [command: "batch_hide", payload?: EmptyPayload, message?: string];
+  | [command: "batch_hide", payload?: Record<string, never>, message?: string];
 export type WindowRun = <const A extends WindowRunInvocation>(
   ...call: A
 ) => Promise<void>;

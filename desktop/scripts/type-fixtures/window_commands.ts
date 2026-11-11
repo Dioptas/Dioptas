@@ -10,6 +10,8 @@ run("batch_hide");
 
 // @ts-expect-error A local window action is not a scientific read command.
 rpc.read("batch_hide");
+// @ts-expect-error A local hide action has no payload fields.
+rpc.edit("batch_hide", { unexpected: true });
 // @ts-expect-error Export formats remain constrained across the detached boundary.
 rpc.edit("integration_save_batch", { format: "unknown" });
 // @ts-expect-error Required native command arguments remain required in windows.
