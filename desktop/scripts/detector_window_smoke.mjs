@@ -30,7 +30,8 @@ for (const [name, browserType] of [
     });
     const errors = [],
       failures = [],
-      commands = [];
+      commands = [],
+      positions = [];
     const pngPath = path.join(artifacts, `${name}-detector-export.png`);
     await rm(pngPath, { force: true });
     let finishExport;
@@ -42,6 +43,9 @@ for (const [name, browserType] of [
       "__nativeInvoke",
       async (_, command, args = {}) => {
         commands.push(command);
+        if (command === "validation_position")
+          positions.push(structuredClone(args));
+
         if (command === "integration_save_image")
           args = { ...args, path: pngPath };
         const reply = await native.invoke(command, args);
@@ -376,6 +380,108 @@ for (const [name, browserType] of [
       "The main window must retain the selected position while inspecting the pattern",
     );
 
+    // One shared physical selection: image -> pattern, pattern -> image, then
+    // image -> pattern again. Exercise user gestures, not direct model writes.
+    const patternCanvas = page.getByTestId("pattern-canvas");
+    const firstImageSelection = (await native.invoke("state")).linked;
+    await page.waitForFunction(
+      (radial) =>
+        Math.abs(
+          Number(
+            document.querySelector('[data-testid="pattern-canvas"]').dataset
+              .linkedPosition,
+          ) - radial,
+        ) < 1e-8,
+      firstImageSelection.radial,
+    );
+    const patternPoint = await patternCanvas.evaluate((el) => ({
+      x: Number(el.dataset.plotLeft) + Number(el.dataset.plotWidth) * 0.32,
+      y: Number(el.dataset.plotTop) + Number(el.dataset.plotHeight) * 0.5,
+    }));
+    await patternCanvas.click({ position: patternPoint });
+    await ready();
+    const patternSelection = (await native.invoke("state")).linked;
+    assert.equal(positions.at(-1).source, "pattern");
+    assert.ok(Math.abs(patternSelection.radial - positions.at(-1).x) < 1e-8);
+    assert.ok(
+      Math.abs(patternSelection.radial - firstImageSelection.radial) > 1e-3,
+    );
+    assert.ok(
+      patternSelection.imagePoint,
+      "Pattern click did not project back onto the detector",
+    );
+    await child.waitForFunction((point) => {
+      const d = document.querySelector(
+        '[data-testid="detector-canvas"]',
+      ).dataset;
+      return (
+        Math.abs(Number(d.clickX) - point.x) < 1e-8 &&
+        Math.abs(Number(d.clickY) - point.y) < 1e-8 &&
+        Number(d.ringCount) > 0
+      );
+    }, patternSelection.imagePoint);
+    const patternFields = await page
+      .getByTestId("click-readout")
+      .locator("[data-field]")
+      .allTextContents();
+    assert.notDeepEqual(
+      patternFields,
+      clickedFields,
+      "Pattern click left the previous click readout unchanged",
+    );
+    await child.waitForFunction(
+      (fields) =>
+        JSON.stringify(
+          [
+            ...document.querySelectorAll(
+              '[data-testid="detector-click-readout"] [data-field]',
+            ),
+          ].map((el) => el.textContent),
+        ) === JSON.stringify(fields),
+      patternFields,
+    );
+    await child.mouse.click(x + 18, y - 14);
+    await ready();
+    const secondImageSelection = (await native.invoke("state")).linked;
+    assert.equal(positions.at(-1).source, "image");
+    assert.ok(
+      Math.abs(secondImageSelection.radial - patternSelection.radial) > 1e-3,
+    );
+    await page.waitForFunction(
+      (radial) =>
+        Math.abs(
+          Number(
+            document.querySelector('[data-testid="pattern-canvas"]').dataset
+              .linkedPosition,
+          ) - radial,
+        ) < 1e-8,
+      secondImageSelection.radial,
+    );
+    const imageFields = await page
+      .getByTestId("click-readout")
+      .locator("[data-field]")
+      .allTextContents();
+    assert.notDeepEqual(
+      imageFields,
+      patternFields,
+      "Image click left the pattern's click position unchanged",
+    );
+    await child.waitForFunction(
+      (fields) =>
+        JSON.stringify(
+          [
+            ...document.querySelectorAll(
+              '[data-testid="detector-click-readout"] [data-field]',
+            ),
+          ].map((el) => el.textContent),
+        ) === JSON.stringify(fields),
+      imageFields,
+    );
+    assert.deepEqual((await native.invoke("state")).linked.imagePoint, {
+      x: positions.at(-1).x,
+      y: positions.at(-1).y,
+    });
+
     // Main task controls still mutate the very same session and appear remotely.
     await child
       .getByRole("button", { name: "Image region of interest", exact: true })
@@ -709,6 +815,8 @@ for (const [name, browserType] of [
       closeRedocks: true,
       zoomPanReadout: true,
       linkedInspection: true,
+      patternToDetachedImageClick: true,
+      detachedImageToPatternClick: true,
       roi: true,
       maskAndUndo: true,
       polygonKeyboard: true,

@@ -175,3 +175,9 @@ Both headless Chromium/WebKit detector workflows pass, including detached cake
 hover, hidden duplicate live coordinates, matching last-click positions in both
 windows, a retained main-pattern readout and restored detector readouts on docking. Production build and all 113 frontend
 tests pass. No visible native window campaign was run for this UI change.
+
+The detector regression also explicitly clicks image → pattern → image with the
+companion open. Each gesture must change the shared Rust selection, update the
+other plot's linked marker (including the projected detector point and contour),
+and produce matching click fields in both footers. Chromium and WebKit pass
+this round trip against Rust; no application correction was needed.

@@ -321,3 +321,9 @@ comparison with live mouse positions. The main pattern retains its readout, and
 docking restores live detector readouts in the main footer. Regression checks
 cover matching click fields in both windows and these transitions. Scientific processing and linked inspection are unchanged.
 Visible OS-window campaigns were not rerun for this headless follow-up.
+
+The detached detector check now explicitly verifies image → pattern → image
+clicks, matching footer fields, the main pattern marker and the projected image
+point/contour against the shared Rust selection. Both Chromium and WebKit pass;
+application behavior already supported both directions, so only regression
+coverage and evidence were added.
