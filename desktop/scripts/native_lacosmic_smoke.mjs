@@ -102,11 +102,20 @@ for (const [name, type] of [
     });
     const baseline = await call("state");
     await page.evaluate(() => (window.__secondCosmicPass = false));
-    await cosmic.click();
-    await page.waitForFunction(() => window.__secondCosmicPass);
-    await page
-      .getByRole("button", { name: "Cancel mask processing", exact: true })
-      .click();
+    // Observe the actual second native pass before triggering the fit. The
+    // action acknowledgement can arrive after a fast job has already finished.
+    const cancelSecondPass = (async () => {
+      await page.waitForFunction(() => window.__secondCosmicPass);
+      const cancel = page.getByRole("button", {
+        name: "Cancel mask processing",
+        exact: true,
+      });
+      await cancel.waitFor();
+      assert.equal(await cancel.isEnabled(), true);
+      // Activate the real control without waiting for a moving footer to settle.
+      await cancel.press("Enter");
+    })();
+    await Promise.all([cosmic.click(), cancelSecondPass]);
     await ready();
     assert.equal(cosmicReplies.at(-1).cancelled, true);
     assert.deepEqual(await call("state"), baseline);
