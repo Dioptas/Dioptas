@@ -617,7 +617,20 @@ impl Session {
                 return Ok(Some(reply));
             }
         };
-        self.rebuild_pattern()?;
+        let metadata_operation = if transaction {
+            &args["edit_operation"]
+        } else {
+            &args["operation"]
+        };
+        let metadata_only = metadata_operation == "editor_metadata"
+            && before
+                .items
+                .iter()
+                .zip(&self.phases.items)
+                .all(|(a, b)| a.current_volume == b.current_volume);
+        if !metadata_only {
+            self.rebuild_pattern()?;
+        }
         self.revision += 1;
         let mut reply = if args["editor_only"] == true {
             Reply::metadata(json!({"ok":true}))
@@ -1115,6 +1128,32 @@ impl Session {
                     _ => return Err("Unknown record action.".into()),
                 }
             }
+            "editor_metadata" => {
+                p.require_editable()?;
+                if args["record_index"].as_u64() != p.reference.map(|i| i as u64) {
+                    return Err("The selected record changed. Cancel the draft and review the current selection.".into());
+                }
+                let previous = p.clone();
+                let r = record_mut(p)?;
+                let next = crate::phase_record_metadata::edited(r, args)?;
+                let temperature_changed = r["temperature_ref"] != next["temperature_ref"];
+                let mut validation_document = p.document.clone();
+                validation_document["eos_records"][p.reference.unwrap()] = next.clone();
+                peritheos::eosmat::validate_eosmat_document(&phases::native_eos_document(
+                    &validation_document,
+                ))
+                .map_err(|e| e.to_string())?;
+                *record_mut(p)? = next;
+                // Publication metadata has no effect on detector processing or coefficients.
+                p.modified = true;
+                if temperature_changed
+                    && let Err(error) = p.recalculate(wavelength, dac_fraction, false)
+                {
+                    *p = previous;
+                    return Err(error);
+                }
+                return Ok(Some(i));
+            }
             "editor_ranges" => {
                 p.require_editable()?;
                 let r = record_mut(p)?;
@@ -1338,7 +1377,7 @@ impl Session {
             crate::phase_sites::composition(&p.document);
         let site_labels = crate::phase_sites::labels(&p.document);
         Ok(
-            json!({"uid":p.uid,"index":i,"filename":p.filename,"editable":p.editable(),"eosEditable":p.editable(),"canReload":!p.filename.is_empty()&&Path::new(&p.filename).is_file(),"canSaveCurrent":p.editable()&&p.filename.to_lowercase().ends_with(".eosmat"),"copiedFrom":p.document["source"]["copied_from"]["phase_name"].as_str().unwrap_or(""),"materialName":p.name(),"name":p.display_name(),"pressure":p.pressure,"temperature":p.temperature,"coldPressure":self.phases.cold_pressure,"modified":p.modified,"origin":p.origin,"recordOrigin":p.origin,"recordLabel":record["label"].as_str().unwrap_or(""),"defaultReference":phases::default_reference(&p.document),"symmetry":p.document["symmetry"].as_str().unwrap_or("").to_lowercase(),"lattice":{"a0":c.a_angstrom,"b0":c.b_angstrom,"c0":c.c_angstrom,"alpha0":c.alpha_deg,"beta0":c.beta_deg,"gamma0":c.gamma_deg,"v0":v0,"a":c.a_angstrom*scale,"b":c.b_angstrom*scale,"c":c.c_angstrom*scale,"v":p.current_volume},"latticeEditable":lattice_keys(p.document["symmetry"].as_str().unwrap_or("")),"eosType":kind,"thermalType":thermal,"eosParameters":{},"eosFields":fields,"thermalFields":thermal_fields,"materialFields":material_fields,"recordData":record,"thermalSelection":if thermal.is_empty(){if p.legacy_coefficients().iter().any(|c|*c!=0.0){"alphakt"}else{"none"}}else{thermal},"eosOptions":metadata["eos"].as_object().unwrap().keys().map(|k|json!({"value":k,"error":compatibility(k,thermal,&record["thermal"]["parameters"])})).collect::<Vec<_>>(),"thermalOptions":(["none","alphakt"].into_iter().chain(metadata["thermal"].as_object().unwrap().keys().map(String::as_str)).map(|k|json!({"value":k,"error":compatibility(kind,k,&Value::Null)})).collect::<Vec<_>>()),"references":phases::reference_details(&p.document),"reference":p.reference.unwrap_or(0),"reflections":p.reflection_rows(self.settings.geometry.wavelength*1e10),"structure":{"spaceGroup":p.document["space_group"].as_str().unwrap_or(""),"spaceGroupNumber":p.document["space_group_number"],"siteWyckoff":site_labels,"elements":serde_json::from_str::<Value>(include_str!("../resources/elements.json")).expect("checked element metadata"),"groups":groups,"sites":p.document["atom_sites"].as_array().cloned().unwrap_or_default(),"formula":p.document["formula"].as_str().unwrap_or(""),"storedZ":p.document["formula_units_per_cell"],"calculatedZ":calculated_z,"compositionStatus":composition_status,"compositionDetail":composition_detail,"modified":p.document["source"]["structure_modified"]==true,"assumption":p.document["source"]["assumed_structure"]["note"].as_str().unwrap_or("")}}),
+            json!({"uid":p.uid,"index":i,"filename":p.filename,"editable":p.editable(),"eosEditable":p.editable(),"canReload":!p.filename.is_empty()&&Path::new(&p.filename).is_file(),"canSaveCurrent":p.editable()&&p.filename.to_lowercase().ends_with(".eosmat"),"copiedFrom":p.document["source"]["copied_from"]["phase_name"].as_str().unwrap_or(""),"materialName":p.name(),"name":p.display_name(),"pressure":p.pressure,"temperature":p.temperature,"coldPressure":self.phases.cold_pressure,"modified":p.modified,"origin":p.origin,"recordOrigin":p.origin,"recordLabel":record["label"].as_str().unwrap_or(""),"defaultReference":phases::default_reference(&p.document),"symmetry":p.document["symmetry"].as_str().unwrap_or("").to_lowercase(),"lattice":{"a0":c.a_angstrom,"b0":c.b_angstrom,"c0":c.c_angstrom,"alpha0":c.alpha_deg,"beta0":c.beta_deg,"gamma0":c.gamma_deg,"v0":v0,"a":c.a_angstrom*scale,"b":c.b_angstrom*scale,"c":c.c_angstrom*scale,"v":p.current_volume},"latticeEditable":lattice_keys(p.document["symmetry"].as_str().unwrap_or("")),"eosType":kind,"thermalType":thermal,"eosParameters":{},"eosFields":fields,"thermalFields":thermal_fields,"materialFields":material_fields,"recordData":record,"recordToken":crate::phase_record_metadata::token(&record),"thermalSelection":if thermal.is_empty(){if p.legacy_coefficients().iter().any(|c|*c!=0.0){"alphakt"}else{"none"}}else{thermal},"eosOptions":metadata["eos"].as_object().unwrap().keys().map(|k|json!({"value":k,"error":compatibility(k,thermal,&record["thermal"]["parameters"])})).collect::<Vec<_>>(),"thermalOptions":(["none","alphakt"].into_iter().chain(metadata["thermal"].as_object().unwrap().keys().map(String::as_str)).map(|k|json!({"value":k,"error":compatibility(kind,k,&Value::Null)})).collect::<Vec<_>>()),"references":phases::reference_details(&p.document),"reference":p.reference.unwrap_or(0),"reflections":p.reflection_rows(self.settings.geometry.wavelength*1e10),"structure":{"spaceGroup":p.document["space_group"].as_str().unwrap_or(""),"spaceGroupNumber":p.document["space_group_number"],"siteWyckoff":site_labels,"elements":serde_json::from_str::<Value>(include_str!("../resources/elements.json")).expect("checked element metadata"),"groups":groups,"sites":p.document["atom_sites"].as_array().cloned().unwrap_or_default(),"formula":p.document["formula"].as_str().unwrap_or(""),"storedZ":p.document["formula_units_per_cell"],"calculatedZ":calculated_z,"compositionStatus":composition_status,"compositionDetail":composition_detail,"modified":p.document["source"]["structure_modified"]==true,"assumption":p.document["source"]["assumed_structure"]["note"].as_str().unwrap_or("")}}),
         )
     }
     fn phase_export(&mut self, args: &Value) -> Result<Reply, String> {

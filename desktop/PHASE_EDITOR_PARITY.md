@@ -1,5 +1,9 @@
 # React/Tauri phase editor
 
+The current Rust publication-metadata workflow is documented and qualified in
+[Native EoS publication record editing](PHASE_RECORD_METADATA.md). It supersedes
+the historical metadata/range limitations below.
+
 The opt-in Rust implementation has a separate [native qualification ledger](NATIVE_INTEGRATION_PARITY.md), including the integration, phase and Batch/Map migration. The Python/Qt behavior and historical checks below remain reference evidence.
 
 Implemented on `codex/phase-editor-ergonomics`, starting from `d4efd68a`.

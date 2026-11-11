@@ -28,13 +28,14 @@ export function NativePhaseEditor() {
   );
   const generation = useRef(0);
   const pending = useRef(false);
+  const draftDirty = useRef(false);
   const refreshQueued = useRef<{ revision?: number } | null>(null);
   const appliedRevision = useRef(-1);
   const closeQueued = useRef(false);
   const refresh = useCallback(async (revision?: number) => {
     if (!bridge.current) return;
     if (revision != null && revision <= appliedRevision.current) return;
-    if (pending.current) {
+    if (pending.current || draftDirty.current) {
       const previous = refreshQueued.current;
       refreshQueued.current =
         previous == null
@@ -59,7 +60,7 @@ export function NativePhaseEditor() {
       }
     } catch (e) {
       if (current === generation.current) {
-        setData(null);
+        if (!draftDirty.current) setData(null);
         setError(String(e));
       }
     }
@@ -67,13 +68,25 @@ export function NativePhaseEditor() {
   useEffect(() => {
     let disposed = false;
     const closing = getCurrentWindow().onCloseRequested((event) => {
-      if (pending.current) {
+      if (draftDirty.current) {
+        event.preventDefault();
+        setError(
+          "Apply or cancel publication edits before closing the editor.",
+        );
+      } else if (pending.current) {
         event.preventDefault();
         closeQueued.current = true;
       }
     });
     const subscriptions = [
       listen<{ uid: string }>("phase-editor-target", (e) => {
+        if (draftDirty.current) {
+          if (e.payload.uid !== uid.current)
+            setError(
+              "Apply or cancel publication edits before opening a different phase. Then select that phase again.",
+            );
+          return;
+        }
         uid.current = e.payload.uid;
         appliedRevision.current = -1;
         ++generation.current;
@@ -142,6 +155,17 @@ export function NativePhaseEditor() {
     },
     [refresh],
   );
+  const setDraftDirty = useCallback(
+    (dirty: boolean) => {
+      draftDirty.current = dirty;
+      if (!dirty && refreshQueued.current && !pending.current) {
+        const queued = refreshQueued.current;
+        refreshQueued.current = null;
+        void refresh(queued.revision);
+      }
+    },
+    [refresh],
+  );
   useEffect(() => {
     if (data) void getCurrentWindow().setTitle(`${data.name} — Phase Editor`);
   }, [data?.name]);
@@ -162,6 +186,7 @@ export function NativePhaseEditor() {
           run={run}
           onData={(next) => setData(next as EditorData)}
           onClose={() => void getCurrentWindow().close()}
+          onDraftDirty={setDraftDirty}
           detached
         />
       ) : (

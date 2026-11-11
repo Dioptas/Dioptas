@@ -34,6 +34,7 @@ mod pattern;
 mod peak_search;
 mod phase_crystal;
 mod phase_dac;
+mod phase_record_metadata;
 mod phase_references;
 mod phase_sites;
 mod phases;

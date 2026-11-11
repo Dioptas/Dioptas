@@ -37,6 +37,7 @@ export interface EditorData extends BasePhaseEditorData {
   eosFields: EditorField[];
   materialFields: EditorField[];
   recordData: Record<string, unknown> | null;
+  recordToken: string;
   thermalFields: EditorField[];
   thermalSelection: string;
   eosOptions: { value: string; error: string }[];

@@ -2,7 +2,7 @@ import { Button, Input, Select, Portal } from "./ui";
 import { ScientificNumberInput } from "./ScientificNumberInput";
 import { Dialog, DialogHeader } from "./Dialog";
 import { TabList } from "./TabList";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CopyPlus, ListX, Plus, Star, Trash2 } from "lucide-react";
 import { DataTable, TableScroll } from "./DataTable";
 import type { IntegrationRun } from "./integration";
@@ -16,7 +16,7 @@ import { EditorNumber, TextEdit } from "./PhaseEditorFields";
 import { PhaseEditorStructure } from "./PhaseEditorStructure";
 import { PhaseEditorConfirm } from "./PhaseEditorConfirm";
 import { PhaseAssessmentBadge } from "./PhaseAssessmentBadge";
-import { PhaseEditorRanges } from "./PhaseEditorRanges";
+import { PhaseEditorMetadata } from "./PhaseEditorMetadata";
 import "./phaseEditor.css";
 
 export function PhaseEditor({
@@ -26,6 +26,7 @@ export function PhaseEditor({
   onData,
   onClose,
   detached = false,
+  onDraftDirty,
 }: {
   data: PhaseEditorData;
   ready: boolean;
@@ -33,6 +34,7 @@ export function PhaseEditor({
   onData: (v: PhaseEditorData) => void;
   onClose: () => void;
   detached?: boolean;
+  onDraftDirty?: (dirty: boolean) => void;
 }) {
   const data = base as EditorData;
   const normalizationKeys = new Set(["n", "z", "zc"]);
@@ -91,7 +93,17 @@ export function PhaseEditor({
   const [legacy, setLegacy] = useState(data.thermalSelection === "alphakt");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(0);
-  const [rangesDirty, setRangesDirty] = useState(false);
+  const [metadataDirty, setMetadataDirty] = useState(false);
+  const metadataDirtyRef = useRef(false);
+  const reportMetadataDirty = useCallback(
+    (dirty: boolean) => {
+      metadataDirtyRef.current = dirty;
+      setMetadataDirty(dirty);
+      onDraftDirty?.(dirty);
+    },
+    [onDraftDirty],
+  );
+  useEffect(() => () => onDraftDirty?.(false), [onDraftDirty]);
   const [confirm, setConfirm] = useState("");
   const deleteRecord = useRef<HTMLButtonElement>(null);
   const clearRecords = useRef<HTMLButtonElement>(null);
@@ -116,6 +128,12 @@ export function PhaseEditor({
   }, [data.reference, data.thermalSelection]);
   useEffect(() => setConfirm(""), [data.uid, data.reference, tab]);
   const act: Edit = (operation, args = {}) => {
+    if (metadataDirtyRef.current && operation !== "editor_metadata") {
+      setMessage(
+        "Apply or cancel publication edits before changing the phase or record.",
+      );
+      return Promise.resolve(false);
+    }
     const target = content.current;
     setPending((n) => n + 1);
     const result = queue.current.then(async () => {
@@ -135,10 +153,15 @@ export function PhaseEditor({
         "Updating phase…",
         (r) => {
           if (r.phaseEditor) {
-            content.current = r.phaseEditor as EditorData;
             responded = true;
-            onData(r.phaseEditor);
             const rejection = (r.phaseEditor as EditorData).editError;
+            if (
+              !rejection ||
+              (r.phaseEditor as EditorData).reference === target.reference
+            ) {
+              content.current = r.phaseEditor as EditorData;
+              onData(r.phaseEditor);
+            }
             if (rejection) setMessage(`Edit not applied: ${rejection}`);
             accepted = !rejection;
           }
@@ -153,7 +176,13 @@ export function PhaseEditor({
           { index: target.index, editor_uid: target.uid },
           "",
           (r) => {
-            if (r.phaseEditor) onData(r.phaseEditor);
+            if (
+              r.phaseEditor &&
+              (operation !== "editor_metadata" ||
+                ((r.phaseEditor as EditorData).uid === target.uid &&
+                  (r.phaseEditor as EditorData).reference === target.reference))
+            )
+              onData(r.phaseEditor);
           },
         );
       }
@@ -164,7 +193,8 @@ export function PhaseEditor({
     return result;
   };
   // Local edits are serialized without removing keyboard focus during processing.
-  const locked = !ready && pending === 0;
+  const transportLocked = (!ready && pending === 0) || pending > 0;
+  const locked = (!ready && pending === 0) || metadataDirty;
   const field = (f: EditorField, thermal = false) => (
     <label
       className={`pe-field${f.choices?.length ? " pe-field-choice" : ""}${(f.unit?.length ?? 0) > 8 ? " pe-field-wide" : ""}`}
@@ -201,7 +231,7 @@ export function PhaseEditor({
         <EditorNumber
           label={f.label}
           value={f.value == null ? null : Number(f.value)}
-          disabled={!data.eosEditable}
+          disabled={metadataDirty || !data.eosEditable}
           min={f.min}
           max={f.max}
           integer={f.integer}
@@ -230,7 +260,9 @@ export function PhaseEditor({
       <EditorNumber
         label={label}
         value={data.lattice[key]}
-        disabled={!data.editable || !data.latticeEditable.includes(key)}
+        disabled={
+          metadataDirty || !data.editable || !data.latticeEditable.includes(key)
+        }
         min={key.includes("0") && key.length > 2 ? 0.001 : 0.000001}
         max={key.length > 2 ? 179.999 : 99999}
         step={step}
@@ -255,6 +287,17 @@ export function PhaseEditor({
     setSelected([]);
   };
   const close = () => {
+    if (metadataDirtyRef.current) {
+      setTab("Equation of state");
+      setMessage("Apply or cancel publication edits before closing.");
+      const section =
+        dialog.current?.querySelector<HTMLDetailsElement>(".pe-metadata");
+      if (section) {
+        section.open = true;
+        section.scrollIntoView({ block: "nearest" });
+      }
+      return;
+    }
     void queue.current.then(onClose);
   };
   const save = async (format?: string, overwrite = false) => {
@@ -331,7 +374,7 @@ export function PhaseEditor({
           <TextEdit
             label="Material name"
             value={data.materialName}
-            disabled={!data.editable}
+            disabled={metadataDirty || !data.editable}
             onCommit={(value) => act("editor_name", { value })}
           />
         </label>
@@ -734,12 +777,27 @@ export function PhaseEditor({
               </>
             )}
             {!!data.references.length && (
-              <PhaseEditorRanges
+              <PhaseEditorMetadata
                 key={`${data.uid}-${data.reference}`}
                 data={data}
-                locked={locked}
+                locked={transportLocked}
                 act={act}
-                onDirty={setRangesDirty}
+                onDirty={reportMetadataDirty}
+                onReload={async () => {
+                  const target = content.current;
+                  await run(
+                    "integration_phase_editor",
+                    { editor_uid: target.uid },
+                    "",
+                    (r) => {
+                      if (r.phaseEditor) {
+                        content.current = r.phaseEditor as EditorData;
+                        onData(r.phaseEditor);
+                      }
+                    },
+                  );
+                  setMessage("");
+                }}
               />
             )}
             {!!normalizationFields.length && (
@@ -767,7 +825,7 @@ export function PhaseEditor({
             )}
             {data.recordData && (
               <details className="pe-record-details">
-                <summary>Complete record metadata</summary>
+                <summary>Preserved source metadata (read-only)</summary>
                 <p>
                   Source parameters, reported errors, fixed parameters, scope
                   and provenance are retained in the material file.
@@ -937,7 +995,7 @@ export function PhaseEditor({
                           label={`Reflection ${row + 1} ${p}`}
                           value={r[p]}
                           significantDigits={p === "intensity" ? 4 : undefined}
-                          disabled={!data.editable}
+                          disabled={metadataDirty || !data.editable}
                           min={p === "intensity" ? 0 : -10000}
                           max={p === "intensity" ? 1e9 : 10000}
                           step={p === "intensity" ? "any" : 1}
@@ -1053,7 +1111,9 @@ export function PhaseEditor({
       <footer>
         <p className={message ? "pe-edit-error" : "pe-status"} role="status">
           {message ||
-            (rangesDirty ? "Apply or reset range edits before saving." : "") ||
+            (metadataDirty
+              ? "Apply or cancel publication edits before saving."
+              : "") ||
             (pending
               ? "Applying edit…"
               : data.modified
@@ -1086,7 +1146,7 @@ export function PhaseEditor({
           }
           disabled={
             locked ||
-            rangesDirty ||
+            metadataDirty ||
             !data.editable ||
             (!data.modified && data.canSaveCurrent)
           }
@@ -1095,7 +1155,7 @@ export function PhaseEditor({
           {data.canSaveCurrent ? "Save" : "Export .eosmat…"}
         </Button>
         <Button
-          disabled={locked || rangesDirty}
+          disabled={locked || metadataDirty}
           title="Save .eosmat to retain EoS records, provenance and atomic positions"
           onClick={() => void save("eosmat")}
         >

@@ -171,6 +171,7 @@ pub(crate) fn native_eos_document(doc: &Value) -> Value {
     let mut doc = doc.clone();
     if let Some(records) = doc["eos_records"].as_array_mut() {
         for r in records {
+            crate::phase_record_metadata::prepare_reference_for_engine(r);
             if r["thermal"]["type"] == "AlphaKT" && r["thermal"]["model"].is_null() {
                 r.as_object_mut().unwrap().remove("thermal");
                 if r.get("equation_kind").is_some() {
