@@ -1,4 +1,5 @@
 import { DockWindowIcon } from "./WindowIcons";
+import { PatternBackgroundIcon } from "./DiffractionActionIcons";
 import { Button, Input } from "./ui";
 import { scientificValue } from "./ScientificNumberInput";
 import { geometrySourceLabel } from "./GeometryProvenance";
@@ -8,7 +9,6 @@ import { decodeRaster } from "./rasterTransfer";
 import {
   ExternalLink,
   FolderOpen,
-  ImageMinus,
   Image as ImageIcon,
   Layers,
   Save,
@@ -309,8 +309,7 @@ export function IntegrationPatternActions({
           void run("integration_overlay", { operation: "capture_background" })
         }
       >
-        <ImageMinus size={15} aria-hidden="true" />
-        <span className="plot-toolbar-label">As Bkg</span>
+        <PatternBackgroundIcon size={15} aria-hidden="true" />
       </Button>
       <PatternFreshness
         state={state}

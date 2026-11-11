@@ -2,7 +2,7 @@ import { SpottinessControls } from "./SpottinessControls";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "./ui";
 import { TabList } from "./TabList";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { State } from "./types";
 import type { IntegrationRun } from "./integration";
 import { IntegrationBackgroundControls } from "./IntegrationBackgroundControls";
@@ -17,6 +17,18 @@ import { IntegrationOverlayControls } from "./IntegrationOverlayControls";
 // Qt keeps the active Integration tab while visiting another mode.
 let retainedTab = "Image";
 let retainedOverlayReveal = 0;
+let retainedPrimaryTab = "Image";
+let retainedReferenceTab = "Phase";
+const primaryTabs = ["Image", "Pattern", "Background", "Corrections"];
+const referenceTabs = ["Overlay", "Phase"];
+const allTabs = [
+  "Image",
+  "Pattern",
+  "Overlay",
+  "Phase",
+  "Background",
+  "Corrections",
+];
 
 /** Qt control groups; all science is dispatched to IntegrationWorkflow on the existing worker. */
 export function IntegrationView({
@@ -74,16 +86,62 @@ export function IntegrationView({
 }) {
   const source = state?.integration;
   const [tab, setTab] = useState(retainedTab);
+  const [primaryTab, setPrimaryTab] = useState(retainedPrimaryTab);
+  const [referenceTab, setReferenceTab] = useState(retainedReferenceTab);
+  const container = useRef<HTMLDivElement>(null);
+  const [columns, setColumns] = useState(1);
+  useLayoutEffect(() => {
+    const node = container.current;
+    if (!node) return;
+    const measure = () => {
+      // Qt splits the task panel at 900/1400 px. Scale with interface text.
+      const scale =
+        parseFloat(getComputedStyle(node).getPropertyValue("--text-small")) /
+        14;
+      const width = node.clientWidth / scale;
+      setColumns(width < 900 ? 1 : width > 1400 ? 3 : 2);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    const textObserver = new MutationObserver(measure);
+    const app = node.closest(".app");
+    if (app)
+      textObserver.observe(app, {
+        attributes: true,
+        attributeFilter: ["data-text-size"],
+      });
+    return () => {
+      observer.disconnect();
+      textObserver.disconnect();
+    };
+  }, [!!source]);
+  const selectTab = (value: string) => {
+    setTab(value);
+    if (primaryTabs.includes(value)) setPrimaryTab(value);
+    else setReferenceTab(value);
+    onControlsCollapsedChange(false);
+  };
+  const visible = (name: string) =>
+    !controlsCollapsed &&
+    (columns === 1
+      ? tab === name
+      : primaryTabs.includes(name)
+        ? primaryTab === name
+        : columns === 3 || referenceTab === name);
   useEffect(() => {
     if (overlayReveal !== retainedOverlayReveal) {
       retainedOverlayReveal = overlayReveal;
       setTab("Overlay");
+      setReferenceTab("Overlay");
       onControlsCollapsedChange(false);
     }
   }, [overlayReveal, onControlsCollapsedChange]);
   useEffect(() => {
     retainedTab = tab;
-  }, [tab]);
+    retainedPrimaryTab = primaryTab;
+    retainedReferenceTab = referenceTab;
+  }, [tab, primaryTab, referenceTab]);
   const [backgroundTab, setBackgroundTab] = useState("pattern");
   const [correctionTab, setCorrectionTab] = useState("flat");
   const [frameStep, setFrameStep] = useState(1);
@@ -95,29 +153,45 @@ export function IntegrationView({
     onSuccess?: Parameters<IntegrationRun>[3],
   ) => run(command, args, "Updating integration…", onSuccess);
   return (
-    <div className="integration-controls">
+    <div
+      ref={container}
+      className="integration-controls"
+      data-control-columns={columns}
+    >
       <div className="integration-controls-header">
-        <TabList
-          className="integration-tabs calibration-workflow-tabs"
-          label="Integration controls"
-          value={tab}
-          onChange={(value) => {
-            setTab(value);
-            onControlsCollapsedChange(false);
-          }}
-          options={[
-            "Image",
-            "Pattern",
-            "Overlay",
-            "Phase",
-            "Background",
-            "Corrections",
-          ].map((name) => ({
-            value: name,
-            label: name,
-            panelId: "integration-tabpanel",
-          }))}
-        />
+        {(columns === 1
+          ? [allTabs]
+          : columns === 2
+            ? [primaryTabs, referenceTabs]
+            : [primaryTabs, ["Overlay"], ["Phase"]]
+        ).map((names, index) => (
+          <TabList
+            key={index}
+            className="integration-tabs calibration-workflow-tabs"
+            label={
+              index === 0
+                ? "Integration controls"
+                : index === 1
+                  ? "Integration references"
+                  : "Integration phases"
+            }
+            value={
+              columns === 1
+                ? tab
+                : index === 0
+                  ? primaryTab
+                  : columns === 2
+                    ? referenceTab
+                    : names[0]
+            }
+            onChange={selectTab}
+            options={names.map((name) => ({
+              value: name,
+              label: name,
+              panelId: `integration-panel-${name.toLowerCase()}`,
+            }))}
+          />
+        ))}
         <Button
           type="button"
           variant="quiet"
@@ -128,7 +202,9 @@ export function IntegrationView({
               : "Collapse Integration controls"
           }
           aria-expanded={!controlsCollapsed}
-          aria-controls="integration-tabpanel"
+          aria-controls={allTabs
+            .map((name) => `integration-panel-${name.toLowerCase()}`)
+            .join(" ")}
           title={
             controlsCollapsed
               ? "Expand controls, or select any tab"
@@ -143,82 +219,95 @@ export function IntegrationView({
           )}
         </Button>
       </div>
-      <fieldset
-        hidden={controlsCollapsed}
-        disabled={!ready}
-        className={`integration-fieldset integration-tab-${tab.toLowerCase()}`}
-        role="tabpanel"
-        aria-label={`${tab} controls`}
-        id="integration-tabpanel"
-      >
-        {tab === "Image" && (
-          <IntegrationImageControls
-            onOpenBatch={onOpenBatch}
-            batchOpen={batchOpen}
-            batchDocked={batchDocked}
-            state={state}
-            source={source}
-            fileStep={fileStep}
-            setFileStep={setFileStep}
-            action={action}
-            frameStep={frameStep}
-            setFrameStep={setFrameStep}
-          />
-        )}
-        {tab === "Pattern" && (
-          <div className="spottiness-pattern-controls">
-            <IntegrationPatternControls
-              source={source}
-              action={action}
-              step={patternStep}
-              setStep={setPatternStep}
-            />
-            <SpottinessControls state={state} action={action} />
-          </div>
-        )}
-        <div className="processing-pane" hidden={tab !== "Background"}>
-          <IntegrationBackgroundControls
-            state={state}
-            run={runProcessing}
-            background={backgroundSettings}
-            onChange={onBackgroundChange}
-            updating={backgroundUpdating}
-            inspect={inspectBackground}
-            onInspectChange={onInspectBackgroundChange}
-            defaultRange={backgroundDefaultRange}
-            tab={backgroundTab}
-            onTabChange={setBackgroundTab}
-          />
-        </div>
-        <div className="processing-pane" hidden={tab !== "Corrections"}>
-          <IntegrationCorrectionControls
-            previewKind={correctionPreviewKind}
-            onPreview={onCorrectionPreview}
-            key={`${state.projectName}:${state.configurationContext ?? state.configurationIndex}`}
-            state={state}
-            run={runProcessing}
-            tab={correctionTab}
-            onTabChange={setCorrectionTab}
-          />
-        </div>
-        <div className="integration-overlay-page" hidden={tab !== "Overlay"}>
-          <IntegrationOverlayControls
-            source={source}
-            run={run}
-            onSelectionChange={onOverlaySelectionChange}
-            showOriginal={showOriginalPattern}
-            onShowOriginalChange={onShowOriginalPatternChange}
-            originalColor={originalPatternColor}
-            onOriginalColorChange={onOriginalPatternColorChange}
-          />
-        </div>
-        <IntegrationPhaseControls
-          active={!controlsCollapsed && tab === "Phase"}
-          source={source}
-          ready={ready}
-          run={run}
-        />
-      </fieldset>
+      <div className="integration-controls-pages">
+        {allTabs.map((name) => (
+          <fieldset
+            key={name}
+            hidden={!visible(name)}
+            disabled={!ready}
+            className={`integration-fieldset integration-tab-${name.toLowerCase()}`}
+            role="tabpanel"
+            aria-label={`${name} controls`}
+            id={`integration-panel-${name.toLowerCase()}`}
+          >
+            {name === "Image" && (
+              <IntegrationImageControls
+                onOpenBatch={onOpenBatch}
+                batchOpen={batchOpen}
+                batchDocked={batchDocked}
+                state={state}
+                source={source}
+                fileStep={fileStep}
+                setFileStep={setFileStep}
+                action={action}
+                frameStep={frameStep}
+                setFrameStep={setFrameStep}
+              />
+            )}
+            {name === "Pattern" && (
+              <div className="spottiness-pattern-controls">
+                <IntegrationPatternControls
+                  source={source}
+                  action={action}
+                  step={patternStep}
+                  setStep={setPatternStep}
+                />
+                <SpottinessControls state={state} action={action} />
+              </div>
+            )}
+            {name === "Background" && (
+              <div className="processing-pane">
+                <IntegrationBackgroundControls
+                  state={state}
+                  run={runProcessing}
+                  background={backgroundSettings}
+                  onChange={onBackgroundChange}
+                  updating={backgroundUpdating}
+                  inspect={inspectBackground}
+                  onInspectChange={onInspectBackgroundChange}
+                  defaultRange={backgroundDefaultRange}
+                  tab={backgroundTab}
+                  onTabChange={setBackgroundTab}
+                />
+              </div>
+            )}
+            {name === "Corrections" && (
+              <div className="processing-pane">
+                <IntegrationCorrectionControls
+                  previewKind={correctionPreviewKind}
+                  onPreview={onCorrectionPreview}
+                  key={`${state.projectName}:${state.configurationContext ?? state.configurationIndex}`}
+                  state={state}
+                  run={runProcessing}
+                  tab={correctionTab}
+                  onTabChange={setCorrectionTab}
+                />
+              </div>
+            )}
+            {name === "Overlay" && (
+              <div className="integration-overlay-page">
+                <IntegrationOverlayControls
+                  source={source}
+                  run={run}
+                  onSelectionChange={onOverlaySelectionChange}
+                  showOriginal={showOriginalPattern}
+                  onShowOriginalChange={onShowOriginalPatternChange}
+                  originalColor={originalPatternColor}
+                  onOriginalColorChange={onOriginalPatternColorChange}
+                />
+              </div>
+            )}
+            {name === "Phase" && (
+              <IntegrationPhaseControls
+                active={visible("Phase")}
+                source={source}
+                ready={ready}
+                run={run}
+              />
+            )}
+          </fieldset>
+        ))}
+      </div>
     </div>
   );
 }

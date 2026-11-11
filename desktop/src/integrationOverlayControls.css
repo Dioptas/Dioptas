@@ -1,11 +1,12 @@
 .integration-fieldset.integration-tab-overlay {
+  container: overlay-panel / inline-size;
   display: flex;
   padding: 6px;
   overflow: hidden;
 }
 .qt-overlay-controls {
   display: grid;
-  grid-template-columns: 29px minmax(0, 1fr) 148px;
+  grid-template-columns: 29px minmax(0, 1fr) 110px;
   gap: 6px;
   width: 100%;
   min-width: 0;
@@ -17,8 +18,9 @@
   flex-direction: column;
   gap: 5px;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  padding: 6px;
+  overflow: auto;
+  scrollbar-gutter: auto;
 }
 .qt-overlay-controls button {
   flex-shrink: 0;
@@ -168,13 +170,29 @@
   background: transparent;
   cursor: default;
 }
-.qt-overlay-parameter-scroll > label {
+.qt-overlay-step-controls {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 72px;
+  gap: 5px;
+}
+.qt-overlay-step-controls > label {
+  display: grid;
+  grid-template-columns: 64px;
   align-items: center;
-  gap: 6px;
-  white-space: normal;
-  text-align: right;
+  justify-content: start;
+  gap: 2px;
+  white-space: nowrap;
+  text-align: left;
+}
+.qt-overlay-step-controls > label > span {
+  font-size: var(--text-meta);
+  color: var(--muted);
+}
+.app .integration-controls .qt-overlay-parameter-scroll input[type="number"] {
+  width: 64px;
+  height: var(--table-control-height);
+  min-height: var(--table-control-height);
+  padding: 1px 3px;
+  line-height: 1.1;
 }
 .qt-overlay-parameters {
   display: flex;
@@ -190,44 +208,166 @@
 .qt-overlay-parameter-scroll > * {
   flex-shrink: 0;
 }
-.qt-overlay-parameters button {
+.integration-controls .qt-overlay-parameters button {
   font-size: inherit;
-  min-height: 30px;
-  padding: 5px 6px;
+  height: 25px;
+  min-height: 25px;
+  padding: 3px 4px;
 }
 .qt-overlay-waterfall-actions {
-  display: flex;
-  align-items: stretch;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 2px;
 }
 .qt-overlay-waterfall-actions > button:first-child {
-  flex: 1;
+  grid-column: 1 / -1;
   min-width: 0;
   padding-inline: 4px;
 }
-.qt-overlay-waterfall-actions > button:nth-child(2) {
-  flex: 0 0 26px;
-  padding: 4px;
+/* One manual spacing field serves both wide and compact layouts. */
+.qt-overlay-spacing-field {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 64px;
+  justify-content: start;
+  align-items: center;
+  gap: 2px;
+}
+.qt-overlay-spacing-field > span {
+  color: var(--muted);
+  font-size: var(--text-meta);
 }
 .qt-overlay-waterfall-actions > button:last-child {
   display: grid;
   place-items: center;
-  width: 30px;
+  width: auto;
   padding: 4px;
 }
 .qt-overlay-background-action {
   flex-shrink: 0;
-  padding-top: 6px;
+  padding: 6px;
   margin-top: 6px;
   border-top: 1px solid var(--border);
 }
 .qt-overlay-background-action > button {
-  width: 100%;
+  display: grid;
+  place-items: center;
+  width: 28px;
+}
+.qt-overlay-waterfall-icon {
+  display: none;
 }
 .qt-overlay-parameters button[aria-pressed="true"] {
   color: var(--accent);
   background: #ff950020;
   border-color: #ff950080;
+}
+/* Match Phase: keep the table wide and wrap compact controls above it. */
+@container overlay-panel (max-width: 600px) {
+  .qt-overlay-controls {
+    grid-template-columns: 29px minmax(0, 1fr);
+    grid-template-rows: max-content minmax(0, 1fr);
+  }
+  .qt-overlay-actions {
+    grid-column: 1;
+    grid-row: 1 / 3;
+  }
+  .qt-overlay-table-region {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .qt-overlay-parameters {
+    grid-column: 2;
+    grid-row: 1;
+    display: grid;
+    grid-template-columns: max-content max-content max-content;
+    grid-template-rows: max-content;
+    justify-content: start;
+    align-items: center;
+    align-content: start;
+    min-height: max-content;
+    gap: 4px 10px;
+    padding: 6px;
+  }
+  .qt-overlay-parameter-scroll {
+    display: contents;
+  }
+  .qt-overlay-step-controls {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: max-content;
+  }
+  .qt-overlay-controls[data-toolbar-layout$="reduced"]
+    .qt-overlay-spacing-field {
+    display: none;
+  }
+  .qt-overlay-controls[data-toolbar-layout$="reduced"]
+    .qt-overlay-waterfall-actions {
+    grid-template-columns: repeat(3, 26px);
+  }
+  .qt-overlay-controls[data-toolbar-layout^="two-rows"] .qt-overlay-parameters {
+    grid-template-columns: max-content max-content;
+    grid-template-rows: max-content max-content;
+  }
+  .qt-overlay-controls[data-toolbar-layout^="two-rows"]
+    .qt-overlay-step-controls {
+    grid-column: 1 / -1;
+  }
+  .qt-overlay-controls[data-toolbar-layout^="two-rows"]
+    .qt-overlay-waterfall-actions {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .qt-overlay-controls[data-toolbar-layout^="two-rows"]
+    .qt-overlay-background-action {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .qt-overlay-parameter-scroll > hr {
+    display: none;
+  }
+  .qt-overlay-spacing-field {
+    grid-column: auto;
+  }
+  .qt-overlay-spacing-field > span {
+    display: none;
+  }
+  .qt-overlay-waterfall-icon {
+    display: block;
+  }
+  .qt-overlay-waterfall-label {
+    display: none;
+  }
+  .qt-overlay-step-controls > label {
+    grid-template-columns: auto 64px;
+    gap: 4px;
+  }
+  .qt-overlay-waterfall-actions {
+    grid-column: 2;
+    grid-row: 1;
+    grid-template-columns: 26px 64px 26px 26px;
+    justify-self: start;
+    width: max-content;
+    align-items: center;
+    border-left: 1px solid var(--border);
+    padding-left: 10px;
+  }
+  .qt-overlay-waterfall-actions > button:first-child {
+    grid-column: auto;
+  }
+  .qt-overlay-background-action {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: start;
+    width: max-content;
+    border: 0;
+    border-left: 1px solid var(--border);
+    margin: 0;
+    padding: 0 0 0 10px;
+  }
 }
 .qt-overlay-empty {
   color: #9a9fa6;

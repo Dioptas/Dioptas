@@ -58,6 +58,7 @@ try {
       await call("integration_settings", { bins: 40, cake_bins: 24 });
       await call("open_image", { path: paths[0] });
       await call("batch_load", { paths });
+      await call("open_image", { path: paths[0] });
       await call("integration_phase", {
         operation: "load",
         path: path.join(root, "dioptas/tests/data/jcpds/mo.jcpds"),
@@ -185,6 +186,376 @@ try {
         .click();
       await waitFor((s) => s.integration.sameConditions === false);
 
+      const phaseOrder = (s) => s.integration.phases.map((p) => p.uid);
+      const originalOrder = phaseOrder(await state());
+      await page.locator(".phase-name").nth(1).click();
+      await button("Move phase up").click();
+      const movedOrder = [originalOrder[1], originalOrder[0], originalOrder[2]];
+      await waitFor(
+        (s) => JSON.stringify(phaseOrder(s)) === JSON.stringify(movedOrder),
+      );
+      assert.ok(await button("Move phase up").isDisabled());
+      assert.match(
+        await page.locator('.phase-table tr[aria-selected="true"]').innerText(),
+        /Gold/,
+      );
+      await button("Undo").click();
+      await waitFor(
+        (s) => JSON.stringify(phaseOrder(s)) === JSON.stringify(originalOrder),
+      );
+      assert.match(
+        await page.locator('.phase-table tr[aria-selected="true"]').innerText(),
+        /Gold/,
+      );
+      await button("Redo").click();
+      await waitFor(
+        (s) => JSON.stringify(phaseOrder(s)) === JSON.stringify(movedOrder),
+      );
+      await button("Move phase down").click();
+      await waitFor(
+        (s) => JSON.stringify(phaseOrder(s)) === JSON.stringify(originalOrder),
+      );
+
+      const clearDialog = page.getByRole("dialog", {
+        name: "Clear all phases?",
+        exact: true,
+      });
+      const clearPhases = button("Removes all phases");
+      const clearCommands = () =>
+        commands.filter(
+          ({ a, p }) => a === "integration_phase" && p.operation === "clear",
+        ).length;
+      const beforeClear = clearCommands();
+      await clearPhases.click();
+      await clearDialog.waitFor();
+      assert.equal(
+        await clearDialog
+          .getByRole("button", { name: "Cancel", exact: true })
+          .evaluate((el) => el === document.activeElement),
+        true,
+      );
+      assert.equal((await state()).integration.phases.length, 3);
+      await page.screenshot({
+        path: path.join(artifacts, `${name}-clear-phases-confirmation.png`),
+      });
+      await clearDialog
+        .getByRole("button", { name: "Cancel", exact: true })
+        .click();
+      assert.ok(
+        await clearPhases.evaluate((el) => el === document.activeElement),
+      );
+      await clearPhases.click();
+      await clearDialog.press("Escape");
+      await clearDialog.waitFor({ state: "hidden" });
+      assert.equal(
+        clearCommands(),
+        beforeClear,
+        "Cancel and Escape never dispatch a clear operation",
+      );
+      assert.equal((await state()).integration.phases.length, 3);
+
+      await button("As Overlay").click();
+      await waitFor((s) => s.integration.overlays.length === 1);
+      await tab("Overlay").click();
+      await enter(
+        page.getByRole("spinbutton", { name: "Scale Step", exact: true }),
+        0.05,
+      );
+      await enter(
+        page.getByRole("spinbutton", { name: "Offset Step", exact: true }),
+        5,
+      );
+      await page
+        .getByRole("spinbutton", { name: "Overlay 1 scale", exact: true })
+        .press("ArrowUp");
+      await waitFor(
+        (s) => Math.abs(s.integration.overlays[0].scale - 1.05) < 1e-10,
+      );
+      await page
+        .getByRole("spinbutton", { name: "Overlay 1 offset", exact: true })
+        .dispatchEvent("wheel", {
+          deltaY: -100,
+          bubbles: true,
+          cancelable: true,
+        });
+      await waitFor((s) => s.integration.overlays[0].offset === 5);
+      await enter(
+        page.getByRole("spinbutton", { name: "Overlay 1 scale", exact: true }),
+        1,
+      );
+      await waitFor((s) => s.integration.overlays[0].scale === 1);
+      await enter(
+        page.getByRole("spinbutton", { name: "Overlay 1 offset", exact: true }),
+        0,
+      );
+      await waitFor((s) => s.integration.overlays[0].offset === 0);
+      const verifyOverlayLayout = async (label) => {
+        await settle();
+        const geometry = await page
+          .locator(".qt-overlay-controls")
+          .evaluate((el) => {
+            const parameters = el.querySelector(".qt-overlay-parameters"),
+              scroll = el.querySelector(".qt-overlay-parameter-scroll"),
+              clipper =
+                getComputedStyle(scroll).display === "contents"
+                  ? parameters
+                  : scroll,
+              bounds = clipper.getBoundingClientRect(),
+              table = el
+                .querySelector(".qt-overlay-table-region")
+                .getBoundingClientRect(),
+              paramBounds = parameters.getBoundingClientRect();
+            const fields = [
+              ...el.querySelectorAll(".qt-overlay-parameter-scroll input"),
+            ]
+              .filter((input) => input.getClientRects().length)
+              .map((input) => input.getBoundingClientRect());
+            return {
+              width: el.clientWidth,
+              toolbarLayout: el.dataset.toolbarLayout,
+              fields: fields.map((box) => ({
+                width: box.width,
+                height: box.height,
+                left: box.left - bounds.left,
+                right: bounds.right - box.right,
+              })),
+              rowHeight: el
+                .querySelector('.qt-overlay-table-scroll input[type="number"]')
+                .getBoundingClientRect().height,
+              overflowing: [
+                el,
+                parameters,
+                scroll,
+                el.querySelector(".qt-overlay-table-scroll"),
+              ]
+                .filter(
+                  (node) =>
+                    node.clientWidth > 0 &&
+                    node.scrollWidth > node.clientWidth + 1,
+                )
+                .map((node) => node.className),
+              above: paramBounds.bottom <= table.top,
+              right: paramBounds.left >= table.right,
+              spacing:
+                el
+                  .querySelector('[aria-label="Waterfall separation"]')
+                  .getClientRects().length > 0,
+              spacingCaption:
+                el
+                  .querySelector(".qt-overlay-spacing-field > span")
+                  .getClientRects().length > 0,
+              labels: [
+                ...el.querySelectorAll(
+                  ".qt-overlay-step-controls > label > span",
+                ),
+              ].map((span) => span.innerText),
+              waterfallIcon:
+                getComputedStyle(el.querySelector(".qt-overlay-waterfall-icon"))
+                  .display !== "none",
+              beforeWaterfallSeparator:
+                el.clientWidth <= 600
+                  ? parseFloat(
+                      getComputedStyle(
+                        el.querySelector(".qt-overlay-waterfall-actions"),
+                      ).borderLeftWidth,
+                    ) > 0
+                  : el
+                      .querySelector(".qt-overlay-parameter-scroll > hr")
+                      .getBoundingClientRect().height > 0,
+              backgroundSeparator:
+                el.clientWidth <= 600
+                  ? getComputedStyle(
+                      el.querySelector(".qt-overlay-background-action"),
+                    ).borderLeftWidth
+                  : getComputedStyle(
+                      el.querySelector(".qt-overlay-background-action"),
+                    ).borderTopWidth,
+              backgroundGlyph: el.querySelector(
+                ".qt-overlay-background-action svg",
+              ).innerHTML,
+            };
+          });
+        assert.deepEqual(
+          geometry.overflowing,
+          [],
+          `Overlay containers fit without horizontal scrollbars: ${JSON.stringify(geometry)}`,
+        );
+        assert.ok(
+          geometry.fields.every(
+            (f) => f.width === 64 && f.height === geometry.rowHeight,
+          ),
+          "Overlay steps and spacing use compact, table-height fields",
+        );
+        assert.ok(
+          geometry.fields.every((f) => f.left >= 6 && f.right >= 6),
+          "Overlay field borders and focus outlines have padding inside their clipping pane",
+        );
+        assert.ok(
+          geometry.width <= 600 ? geometry.above : geometry.right,
+          "Overlay parameters follow the available panel width",
+        );
+        assert.deepEqual(geometry.labels, ["Scale", "Offset"]);
+        assert.equal(
+          geometry.spacing,
+          !geometry.toolbarLayout.endsWith("reduced"),
+          "Spacing hides before wrapping and returns when the second row has room",
+        );
+        assert.equal(
+          geometry.spacingCaption,
+          geometry.width > 600,
+          "Compact spacing field has no text label",
+        );
+        assert.equal(
+          geometry.waterfallIcon,
+          geometry.width <= 600,
+          "Compact Waterfall uses stacked traces",
+        );
+        assert.ok(
+          geometry.beforeWaterfallSeparator &&
+            parseFloat(geometry.backgroundSeparator) > 0,
+          "Separators divide steps, waterfall and background actions",
+        );
+        const patternBackground = await page
+          .locator(".integration-pattern-actions")
+          .getByRole("button", { name: "As Bkg", exact: true })
+          .locator("svg")
+          .evaluate((svg) => svg.innerHTML);
+        assert.equal(
+          geometry.backgroundGlyph,
+          patternBackground,
+          "Overlay and pattern use the same background glyph",
+        );
+        assert.ok(
+          geometry.backgroundGlyph.includes("#e77777"),
+          "The background glyph has a red baseline",
+        );
+        await page.screenshot({
+          path: path.join(artifacts, `${name}-${label}-overlay.png`),
+        });
+      };
+
+      // Qt splits the task controls themselves, independently of the plot layout.
+      const controls = page.locator(".integration-controls");
+      const panel = (name) =>
+        page.getByRole("tabpanel", { name: `${name} controls`, exact: true });
+      const filename = page.getByRole("textbox", {
+        name: "Image filename",
+        exact: true,
+      });
+      const expectColumns = async (count) => {
+        await page.waitForFunction(
+          (count) =>
+            document.querySelector(".integration-controls")?.dataset
+              .controlColumns === String(count),
+          count,
+        );
+        await settle();
+      };
+      for (const large of [false, true]) {
+        await button("Settings").click();
+        await button(large ? "Larger" : "Standard").click();
+        await button("Close settings").click();
+        for (const [width, columns] of [
+          [2400, 2],
+          [3600, 3],
+        ]) {
+          await page.setViewportSize({ width, height: 1000 });
+          await expectColumns(columns);
+          await tab("Image").click();
+          await tab("Phase").click();
+          assert.ok(await panel("Image").isVisible());
+          assert.ok(await panel("Phase").isVisible());
+          const imageBox = await panel("Image").boundingBox(),
+            phaseBox = await panel("Phase").boundingBox();
+          assert.ok(
+            phaseBox.x >= imageBox.x + imageBox.width - 1,
+            "Phase stays to the right of file controls",
+          );
+          assert.ok(Math.abs(imageBox.y - phaseBox.y) < 1);
+          // Edits and image browsing remain available together through the real worker.
+          const oldPressure = (await state()).integration.phases[1].pressure;
+          await enter(pressure, oldPressure + 1);
+          await waitFor(
+            (s) => s.integration.phases[1].pressure === oldPressure + 1,
+          );
+          await button("Integration next image").click();
+          await waitFor((s) => s.imagePath?.endsWith("/scan_1.npy"));
+          await button("Integration previous image").click();
+          await waitFor((s) => s.imagePath?.endsWith("/scan_0.npy"));
+          assert.ok(await pressure.isVisible());
+          for (const name of [
+            "Pattern",
+            "Background",
+            "Corrections",
+            "Image",
+          ]) {
+            await tab(name).click();
+            assert.ok(await panel(name).isVisible());
+            assert.ok(await panel("Phase").isVisible());
+          }
+          await tab("Overlay").click();
+          assert.ok(await panel("Image").isVisible());
+          assert.ok(await panel("Overlay").isVisible());
+          await verifyOverlayLayout(
+            `${columns}-columns-${large ? "large" : "standard"}`,
+          );
+          assert.equal(await panel("Phase").isVisible(), columns === 3);
+          await tab("Phase").click();
+          const actualFilename = await filename.inputValue();
+          await filename.fill("pending-resize.npy");
+          await filename.evaluate((el) => (window.__splitFilename = el));
+          await page
+            .getByTestId("phase-controls")
+            .evaluate((el) => (window.__splitPhase = el));
+          await page.screenshot({
+            path: path.join(
+              artifacts,
+              `${name}-${columns}-columns-${large ? "large" : "standard"}.png`,
+            ),
+          });
+          await page.setViewportSize({ width: 1440, height: 1000 });
+          await expectColumns(1);
+          await page.setViewportSize({ width, height: 1000 });
+          await expectColumns(columns);
+          assert.equal(await filename.inputValue(), "pending-resize.npy");
+          assert.ok(
+            await filename.evaluate((el) => el === window.__splitFilename),
+          );
+          assert.ok(
+            await page
+              .getByTestId("phase-controls")
+              .evaluate((el) => el === window.__splitPhase),
+          );
+          await filename.fill(actualFilename);
+          await button("Collapse Integration controls").click();
+          assert.equal(await panel("Phase").isVisible(), false);
+          await tab("Image").click();
+          assert.ok(await panel("Phase").isVisible());
+          const overflowing = await controls
+            .locator(".integration-tabs, .integration-fieldset:not([hidden])")
+            .evaluateAll((elements) =>
+              elements
+                .filter((el) => el.scrollWidth > el.clientWidth + 1)
+                .map((el) => el.className),
+            );
+          assert.deepEqual(
+            overflowing,
+            [],
+            "Visible split controls have no horizontal overflow",
+          );
+        }
+      }
+      // Text-size changes alone must update the breakpoint, without a resize.
+      await page.setViewportSize({ width: 2100, height: 1000 });
+      await expectColumns(1); // Larger text needs more room.
+      await button("Settings").click();
+      await button("Standard").click();
+      await button("Close settings").click();
+      await expectColumns(2);
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      await expectColumns(1);
+      await tab("Phase").click();
+
       assert.equal(await button("Save List").isDisabled(), true);
 
       // Resize without replacing scientific canvases or discarding plot zoom.
@@ -268,7 +639,12 @@ try {
                   right: actions.right,
                   bottom: actions.bottom,
                 },
-                parameters: { x: parameters.x, y: parameters.y },
+                width: el.clientWidth,
+                parameters: {
+                  x: parameters.x,
+                  y: parameters.y,
+                  bottom: parameters.bottom,
+                },
                 centering: [...el.querySelectorAll('input[type="color"]')].map(
                   (input) => {
                     const swatch = input.getBoundingClientRect(),
@@ -282,12 +658,19 @@ try {
             });
           assert.ok(
             arrangement.actions.right <= arrangement.table.x,
-            "Ordinary widths retain the left action rail",
+            "Phase actions remain in the left rail at every width",
           );
-          assert.ok(
-            arrangement.parameters.x >= arrangement.table.right,
-            "Ordinary widths retain step controls on the right",
-          );
+          if (arrangement.width <= 600) {
+            assert.ok(
+              arrangement.parameters.bottom <= arrangement.table.y,
+              "Narrow phase columns keep compact step controls above the table",
+            );
+          } else {
+            assert.ok(
+              arrangement.parameters.x >= arrangement.table.right,
+              "Wide phase columns retain step controls on the right",
+            );
+          }
           assert.ok(
             arrangement.centering.every((d) => d < 1),
             "Color swatches are centered with the row text",
@@ -312,6 +695,113 @@ try {
             ),
           );
           assert.ok(geometry.fields.every((w) => w >= 90));
+          const compactFields = await page
+            .getByTestId("phase-controls")
+            .evaluate((el) => {
+              const fields = [
+                ...el.querySelectorAll(".phase-condition-step input"),
+              ].map((n) => n.getBoundingClientRect().toJSON());
+              const value = el
+                .querySelector(".phase-condition-value input")
+                .getBoundingClientRect();
+              const reference = el.querySelector(
+                ".phase-selected-reference select",
+              );
+              const shownReference =
+                reference && reference.getClientRects().length
+                  ? reference.getBoundingClientRect().height
+                  : null;
+              const parameters = el.querySelector(".phase-parameters");
+              const bounds = parameters.getBoundingClientRect();
+              const inputs = [...parameters.querySelectorAll("input")].map(
+                (input) => input.getBoundingClientRect(),
+              );
+              const parameterGeometry = {
+                horizontalOverflow:
+                  parameters.scrollWidth > parameters.clientWidth,
+                leftPadding: Math.min(
+                  ...inputs.map((box) => box.left - bounds.left),
+                ),
+                rightPadding: Math.min(
+                  ...inputs.map((box) => bounds.right - box.right),
+                ),
+                applyLabel: el
+                  .querySelector(".phase-apply-all")
+                  .innerText.trim(),
+              };
+              const toolbar = el.querySelector(".phase-toolbar");
+              const clear = toolbar
+                .querySelector('[aria-label="Removes all phases"]')
+                .getBoundingClientRect();
+              const remove = toolbar
+                .querySelector(
+                  '[aria-label="Removes currently selected phase"]',
+                )
+                .getBoundingClientRect();
+              return {
+                fields,
+                parameterGeometry,
+                valueHeight: value.height,
+                shownReference,
+                clearance: clear.top - remove.bottom,
+                listButtons: ["Save List", "Load List"].every((name) =>
+                  el.querySelector(`.phase-parameters [aria-label="${name}"]`),
+                ),
+                separators: toolbar.querySelectorAll(".phase-clear-group hr")
+                  .length,
+                order: [...toolbar.querySelectorAll("button")].map((b) =>
+                  b.getAttribute("aria-label"),
+                ),
+                railOverflow: toolbar.scrollHeight > toolbar.clientHeight + 1,
+              };
+            });
+          assert.ok(
+            compactFields.fields.every(
+              (f) => f.width <= 72 && f.height === compactFields.valueHeight,
+            ),
+            "Step fields have compact widths and the same height as phase values",
+          );
+          if (compactFields.shownReference !== null)
+            assert.equal(
+              compactFields.shownReference,
+              compactFields.valueHeight,
+              "Selected reference uses the compact table control height",
+            );
+          assert.ok(
+            compactFields.listButtons &&
+              compactFields.clearance >= 8 &&
+              compactFields.separators === 2,
+            "Compact list actions sit with the steps; separators surround Clear All",
+          );
+          assert.equal(
+            compactFields.parameterGeometry.horizontalOverflow,
+            false,
+            "The phase parameters fit without a horizontal scrollbar",
+          );
+          assert.ok(
+            compactFields.parameterGeometry.leftPadding >= 6 &&
+              compactFields.parameterGeometry.rightPadding >= 6,
+            "Step and checkbox borders have padding inside the parameter pane",
+          );
+          assert.equal(
+            compactFields.parameterGeometry.applyLabel,
+            arrangement.width <= 600 ? "All" : "Apply to all",
+          );
+          assert.deepEqual(compactFields.order, [
+            "Add phase…",
+            "Browse EoS Material Database",
+            "Edit selected Phase",
+            "Removes currently selected phase",
+            "Removes all phases",
+            "Move phase up",
+            "Move phase down",
+          ]);
+          assert.equal(
+            compactFields.railOverflow,
+            false,
+            `The full action rail fits at ${width} (${large ? "large" : "standard"}): ${JSON.stringify(compactFields)}`,
+          );
+
           assert.equal(
             await detector.evaluate((el) => el === window.__responsiveDetector),
             true,
@@ -354,9 +844,12 @@ try {
               `${name}-${width}-${large ? "large" : "standard"}-phase.png`,
             ),
           });
+          await tab("Overlay").click();
+          await verifyOverlayLayout(`${width}-${large ? "large" : "standard"}`);
+          await tab("Phase").click();
         }
       }
-      // Only a genuinely narrow task panel moves its rail and steps above the table.
+      // Narrow task panels keep their action rail and move only steps above the table.
       await page.setViewportSize({ width: 1440, height: 1000 });
       const imageDivider = page.getByRole("separator", {
         name: "Image and analysis divider",
@@ -373,14 +866,50 @@ try {
             parameters = box(".phase-parameters");
           return {
             width: el.clientWidth,
-            above: rail.bottom <= table.top && parameters.bottom <= table.top,
+            above: rail.right <= table.left && parameters.bottom <= table.top,
             overflow: el.scrollWidth > el.clientWidth + 1,
           };
         });
       assert.ok(
         compact.width < 600 && compact.above && !compact.overflow,
-        "Only the constrained phase panel uses top actions and visible step fields",
+        "The constrained phase panel keeps left actions and compact step fields above the table",
       );
+      await tab("Overlay").click();
+      await verifyOverlayLayout("compact-large");
+      await enter(
+        page.getByRole("spinbutton", {
+          name: "Waterfall separation",
+          exact: true,
+        }),
+        7.5,
+      );
+      await waitFor((s) => s.integration.waterfallSeparation === 7.5);
+      await page
+        .locator(".qt-overlay-parameters")
+        .getByRole("button", { name: "Waterfall", exact: true })
+        .click();
+      await waitFor((s) => s.integration.overlays[0].offset === -7.5);
+      await page
+        .locator(".qt-overlay-parameters")
+        .getByRole("button", { name: "Reset", exact: true })
+        .click();
+      await waitFor((s) => s.integration.overlays[0].offset === 0);
+      await page
+        .getByRole("button", { name: "Auto waterfall spacing", exact: true })
+        .click();
+      await waitFor(
+        (s) =>
+          s.integration.waterfallSeparation > 0 &&
+          s.integration.overlays[0].offset ===
+            -s.integration.waterfallSeparation,
+      );
+      await page
+        .locator(".qt-overlay-parameters")
+        .getByRole("button", { name: "Reset", exact: true })
+        .click();
+      await waitFor((s) => s.integration.overlays[0].offset === 0);
+
+      await tab("Phase").click();
       const pStep = page.getByRole("spinbutton", {
         name: "P step",
         exact: true,
@@ -678,11 +1207,23 @@ try {
         "true",
       );
       assert.ok((await state()).imagePath.endsWith("/scan_2.npy"));
+      await tab("Phase").click();
+      await clearPhases.click();
+      await clearDialog
+        .getByRole("button", { name: "Clear all", exact: true })
+        .click();
+      await waitFor((s) => s.integration.phases.length === 0);
+      assert.equal(
+        clearCommands(),
+        beforeClear + 1,
+        "Only explicit confirmation clears phases",
+      );
+      assert.equal(await clearPhases.isDisabled(), true);
       assert.deepEqual(errors, []);
       reports.push({
         browser: name,
         checks:
-          "Full-width compact controls; wide right panel; full phase names; Qt phase colors; aligned swatches; Qt rail/steps except constrained panels; directly accessible P/T steps; apply-all; references; Batch frame selection, keyboard switch and renderer preservation; full-height dock with detached image; full-width controls/pattern with both detached; restored dock size/collapse",
+          "Qt one/two/three control columns at both text sizes; simultaneous native pressure editing and file browsing; independent tab selections; mounted drafts across breakpoints; full-width compact controls; wide right panel; full phase names; Qt phase colors; aligned swatches; compact step/reference fields with padded borders and no parameter scrollbar; responsive Apply to all/All label; compact Overlay fields, responsive layout, padded borders and no horizontal overflow; real overlay scale/offset stepping; compact list actions beside steps; native phase reordering with stable selection and Undo/Redo; separated Clear All with Cancel/Escape/focus return and confirmed native deletion; directly accessible P/T steps; apply-all; references; Batch frame selection, keyboard switch and renderer preservation; full-height dock with detached image; full-width controls/pattern with both detached; restored dock size/collapse",
         errors,
       });
     } finally {

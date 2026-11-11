@@ -1,12 +1,19 @@
 import { Button, Input, Portal, Popover } from "./ui";
 import { Dialog } from "./Dialog";
+import { PatternBackgroundIcon, WaterfallIcon } from "./DiffractionActionIcons";
 import {
   DataTable,
   TableBodyScroll,
   TableScroll,
   TableActions,
 } from "./DataTable";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import type { KeyboardEvent as RowKeyEvent } from "react";
 import { ORIGINAL_PATTERN_UID } from "./integration";
 import {
@@ -47,6 +54,66 @@ export function IntegrationOverlayControls({
   originalColor: string;
   onOriginalColorChange: (color: string) => void;
 }) {
+  const controlsRef = useRef<HTMLDivElement>(null);
+  const [toolbarLayout, setToolbarLayout] = useState("single");
+  useLayoutEffect(() => {
+    const node = controlsRef.current;
+    if (!node) return;
+    const parameters = node.querySelector<HTMLElement>(
+      ".qt-overlay-parameters",
+    )!;
+    const steps = node.querySelector<HTMLElement>(".qt-overlay-step-controls")!;
+    const waterfall = node.querySelector<HTMLElement>(
+      ".qt-overlay-waterfall-actions",
+    )!;
+    const background = node.querySelector<HTMLElement>(
+      ".qt-overlay-background-action",
+    )!;
+    const measure = () => {
+      if (!node.clientWidth) return;
+      if (node.clientWidth > 600) {
+        setToolbarLayout("single");
+        return;
+      }
+      const style = getComputedStyle(parameters);
+      const gap = parseFloat(style.columnGap) || 0;
+      const available =
+        parameters.clientWidth -
+        parseFloat(style.paddingLeft) -
+        parseFloat(style.paddingRight);
+      const spacing = node.querySelector<HTMLInputElement>(
+        '[aria-label="Waterfall separation"]',
+      )!;
+      const spacingWidth =
+        parseFloat(getComputedStyle(spacing).width) +
+        parseFloat(getComputedStyle(waterfall).columnGap);
+      const hidden = node.dataset.toolbarLayout?.endsWith("reduced");
+      const fullWaterfall =
+        waterfall.getBoundingClientRect().width + (hidden ? spacingWidth : 0);
+      const backgroundWidth = background.getBoundingClientRect().width;
+      const full =
+        steps.getBoundingClientRect().width +
+        fullWaterfall +
+        backgroundWidth +
+        2 * gap;
+      // Prefer hiding the optional spacing box to wrapping any action. Once a
+      // second row is necessary, restore it if the complete action row fits.
+      setToolbarLayout(
+        available + 0.5 >= full
+          ? "single"
+          : available + 0.5 >= full - spacingWidth
+            ? "reduced"
+            : available + 0.5 >= fullWaterfall + backgroundWidth + gap
+              ? "two-rows"
+              : "two-rows-reduced",
+      );
+    };
+    const observer = new ResizeObserver(measure);
+    for (const element of [node, parameters, steps, waterfall, background])
+      observer.observe(element);
+    measure();
+    return () => observer.disconnect();
+  }, []);
   const [selectedUid, select] = useState<string | null>(retained.selectedUid);
   useEffect(
     () => onSelectionChange(selectedUid),
@@ -186,7 +253,11 @@ export function IntegrationOverlayControls({
   };
 
   return (
-    <div className="qt-overlay-controls">
+    <div
+      ref={controlsRef}
+      className="qt-overlay-controls"
+      data-toolbar-layout={toolbarLayout}
+    >
       <TableActions
         orientation="vertical"
         className="qt-overlay-actions"
@@ -456,41 +527,65 @@ export function IntegrationOverlayControls({
         aria-label="Overlay parameters"
       >
         <TableScroll className="qt-overlay-parameter-scroll">
-          <span className="integration-parameter-caption">Step sizes</span>
-          <label title="Scale step">
-            <span>Scale</span>
-            <OverlayNumber
-              label="Scale Step"
-              value={scaleStep}
-              min={0.0001}
-              max={10}
-              multiply
-              onCommit={setScaleStep}
-            />
-          </label>
-          <label title="Offset step">
-            <span>Offset</span>
-            <OverlayNumber
-              label="Offset Step"
-              value={offsetStep}
-              min={0.0001}
-              max={100000}
-              multiply
-              onCommit={setOffsetStep}
-            />
-          </label>
+          <div className="qt-overlay-step-controls">
+            <label title="Scale step">
+              <span>Scale</span>
+              <OverlayNumber
+                label="Scale Step"
+                value={scaleStep}
+                min={0.0001}
+                max={10}
+                multiply
+                onCommit={setScaleStep}
+              />
+            </label>
+            <label title="Offset step">
+              <span>Offset</span>
+              <OverlayNumber
+                label="Offset Step"
+                value={offsetStep}
+                min={0.0001}
+                max={100000}
+                multiply
+                onCommit={setOffsetStep}
+              />
+            </label>
+          </div>
           <hr />
           <div className="qt-overlay-waterfall-actions">
             <Button
-              title="Apply waterfall separation"
+              aria-label="Waterfall"
+              title={`Apply waterfall separation (${source.waterfallSeparation} intensity units)`}
               disabled={!overlays.length}
               onClick={() => action("waterfall")}
             >
-              Waterfall
+              <WaterfallIcon
+                className="qt-overlay-waterfall-icon"
+                size={16}
+                aria-hidden="true"
+              />
+              <span className="qt-overlay-waterfall-label">Waterfall</span>
             </Button>
+            <label
+              className="qt-overlay-spacing-field"
+              title="Waterfall separation"
+            >
+              <span>Spacing</span>
+              <OverlayNumber
+                label="Waterfall separation"
+                value={source.waterfallSeparation}
+                min={-100000}
+                step={0.01}
+                max={100000}
+                multiply
+                onCommit={(separation) =>
+                  action("waterfall_separation", { separation })
+                }
+              />
+            </label>
             <Button
               aria-label="Auto waterfall spacing"
-              title="Auto spacing: estimate and apply 10% of the largest scaled intensity range, rounded up; existing offsets are ignored"
+              title="Auto spacing: 10% of mean scaled intensity above each pattern’s minimum, averaged across patterns and rounded up; existing offsets are ignored"
               disabled={!overlays.length}
               onClick={() => action("waterfall_auto")}
             >
@@ -505,29 +600,16 @@ export function IntegrationOverlayControls({
               <RotateCcw size={16} aria-hidden="true" />
             </Button>
           </div>
-          <label title="Waterfall separation">
-            <span>Spacing</span>
-            <OverlayNumber
-              label="Waterfall separation"
-              value={source.waterfallSeparation}
-              min={-100000}
-              step={0.01}
-              max={100000}
-              multiply
-              onCommit={(separation) =>
-                action("waterfall_separation", { separation })
-              }
-            />
-          </label>
         </TableScroll>
         <div className="qt-overlay-background-action">
           <Button
+            aria-label="As Bkg"
             title="Set selected overlay as background"
             aria-pressed={selected?.background ?? false}
             disabled={!selected}
             onClick={() => action("background", { index })}
           >
-            As Bkg
+            <PatternBackgroundIcon size={16} aria-hidden="true" />
           </Button>
         </div>
       </div>
