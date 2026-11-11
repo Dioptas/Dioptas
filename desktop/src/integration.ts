@@ -69,6 +69,7 @@ export interface IntegrationState {
   }[];
   sameConditions: boolean;
   phaseColdPressure: boolean;
+  phaseDacThermalPressureFactor: number;
   phases: {
     uid?: string;
     name: string;

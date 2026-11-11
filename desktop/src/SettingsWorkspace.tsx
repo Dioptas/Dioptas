@@ -7,6 +7,7 @@ import {
   Check,
   Keyboard,
   Layers,
+  Gem,
   Scan,
   SlidersHorizontal,
   Type,
@@ -22,6 +23,7 @@ import "./settings.css";
 import { CustomCommandSettings } from "./CustomCommandSettings";
 import { ConfigurationBrowsingSettings } from "./ConfigurationBrowsingSettings";
 import { ProcessingWorkerSettings } from "./ProcessingWorkerSettings";
+import { DacThermalPressureControls } from "./DacThermalPressureControls";
 import type { CustomCommandController } from "./customCommands";
 
 const categories = [
@@ -51,6 +53,12 @@ const categories = [
     name: "Custom actions",
     icon: Terminal,
     description: "Create sidebar buttons for your own programs and scripts.",
+  },
+  {
+    name: "Phase",
+    icon: Gem,
+    description:
+      "Set how pressure and temperature determine phase-line positions.",
   },
 ] as const;
 
@@ -268,6 +276,28 @@ export function SettingsWorkspace({
                 ready.
               </p>
             )}
+          </div>
+          <div
+            id="settings-panel-5"
+            className="settings-tabpanel settings-phase"
+            role="tabpanel"
+            aria-labelledby="settings-tab-phase"
+            hidden={section !== 5}
+          >
+            <section className="settings-card">
+              <h3>DAC thermal pressure</h3>
+              {state?.integration && (
+                <DacThermalPressureControls
+                  source={state.integration}
+                  ready={ready}
+                  run={run}
+                />
+              )}
+              <p className="settings-detail">
+                Applies to all phases in every configuration. Saved with the
+                project; Undo/Redo restores the setting and phase positions.
+              </p>
+            </section>
           </div>
           <div
             id="settings-panel-4"

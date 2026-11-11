@@ -96,6 +96,7 @@ if (selected.has("--ui")) {
     "native_corrections_smoke",
     "correction_previews_smoke",
     "native_project_smoke",
+    "dac_thermal_pressure_smoke",
     "native_geometry_mask_smoke",
     "native_detector_smoke",
     "native_lacosmic_smoke",

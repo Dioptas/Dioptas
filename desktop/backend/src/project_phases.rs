@@ -11,9 +11,11 @@ pub(super) fn load(s: &mut Session, document: &Value) -> Result<(), String> {
         &options["dac_thermal_pressure_enabled"],
         "DAC thermal pressure",
     )?;
-    if s.phases.cold_pressure && options["dac_thermal_pressure_factor"].as_f64() != Some(0.25) {
-        return Err("This project's DAC thermal-pressure factor is not supported by the current native phase adapter.".into());
-    }
+    s.phases.dac_fraction = crate::phase_dac::DacFraction::try_from(
+        options["dac_thermal_pressure_factor"]
+            .as_f64()
+            .ok_or("The DAC thermal-pressure fraction must be a finite number.")?,
+    )?;
     let rows = document["phases"].as_array().cloned().unwrap_or_default();
     if rows.len() > 1000 {
         return Err("Project contains too many phases.".into());
@@ -32,13 +34,27 @@ pub(super) fn load(s: &mut Session, document: &Value) -> Result<(), String> {
         };
         doc["name"] = row["name"].clone();
         doc["symmetry"] = state["symmetry"].clone();
-        doc["lattice"] = json!({"a":state["a0"],"b":state["b0"],"c":state["c0"],"alpha":state["alpha0"],"beta":state["beta0"],"gamma":state["gamma0"]});
+        // Flat CrystalState may expand symmetry-implied axes. Preserve the
+        // authored document when it describes the same cell (including absent
+        // redundant axes), rather than rewriting published source metadata.
+        let same_cell = crystal::cell(&doc).is_ok_and(|c| {
+            [
+                ("a0", c.a_angstrom),
+                ("b0", c.b_angstrom),
+                ("c0", c.c_angstrom),
+                ("alpha0", c.alpha_deg),
+                ("beta0", c.beta_deg),
+                ("gamma0", c.gamma_deg),
+            ]
+            .iter()
+            .all(|(key, value)| state[*key].as_f64() == Some(*value))
+        });
+        if !has_document || !same_cell {
+            doc["lattice"] = json!({"a":state["a0"],"b":state["b0"],"c":state["c0"],"alpha":state["alpha0"],"beta":state["beta0"],"gamma":state["gamma0"]});
+        }
         doc["eos_records"] = state["eos_records"].clone();
         if !state["zc"].is_null() {
             doc["formula_units_per_cell"] = state["zc"].clone();
-        }
-        if !doc["source"].is_object() {
-            doc["source"] = json!({});
         }
         for (from, to) in [
             ("k0", "k0"),
@@ -52,11 +68,15 @@ pub(super) fn load(s: &mut Session, document: &Value) -> Result<(), String> {
         ] {
             // CrystalState fills absent coefficients with zero. Keep that
             // absence in authored CIF/material documents unless the flat
-            // state actually supplies an edit or a legacy coefficient.
+            // state supplies a legacy coefficient. Canonical records already
+            // own K0/K0-prime; their flat display mirrors are not legacy edits.
             if !has_document
                 || doc["source"]["legacy"].get(to).is_some()
-                || state[from] != defaults()["crystal"][from]
+                || (phases::records(&doc).is_empty() && state[from] != defaults()["crystal"][from])
             {
+                if !doc["source"].is_object() {
+                    doc["source"] = json!({});
+                }
                 if !doc["source"]["legacy"].is_object() {
                     doc["source"]["legacy"] = json!({});
                 }
@@ -100,7 +120,9 @@ pub(super) fn load(s: &mut Session, document: &Value) -> Result<(), String> {
             .ok_or("Invalid phase color.")?;
         let rgb = color
             .iter()
-            .map(|v| integer(v, "Phase color", 0, 255))
+            // Qt calculate_color stores float RGB channels; QColor/its hex
+            // adapter truncates them to bytes when presenting a phase.
+            .map(|v| finite(v, "Phase color", 0.0, 255.0).map(|v| v as u8))
             .collect::<Result<Vec<_>, _>>()?;
         let count = phases::records(&doc).len();
         let reference = if count == 0 {
@@ -137,7 +159,7 @@ pub(super) fn load(s: &mut Session, document: &Value) -> Result<(), String> {
         };
         p.recalculate(
             s.settings.geometry.wavelength * 1e10,
-            s.phases.cold_pressure,
+            s.phases.effective_dac_fraction(),
             false,
         )?;
         s.phases.items.push(Arc::new(p));
@@ -157,6 +179,7 @@ pub(super) fn save(s: &Session, doc: &mut Value) -> Result<(), String> {
     doc["phase"] = with_defaults("phase", &doc["phase"]);
     doc["phase"]["same_conditions"] = json!(s.phases.same_conditions);
     doc["phase"]["dac_thermal_pressure_enabled"] = json!(s.phases.cold_pressure);
+    doc["phase"]["dac_thermal_pressure_factor"] = json!(s.phases.dac_fraction);
     let old = doc["phases"].as_array().cloned().unwrap_or_default();
     let mut rows = vec![];
     for p in &s.phases.items {

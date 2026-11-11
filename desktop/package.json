@@ -85,6 +85,8 @@
     "test:map-window-native": "npm run test:map-window",
     "test:detector-window": "node scripts/detector_window_smoke.mjs && node scripts/detector_source_smoke.mjs",
     "test:detector-window-native": "node scripts/detector_window_native.mjs",
+    "test:dac-thermal-pressure": "node scripts/dac_thermal_pressure_smoke.mjs",
+    "test:dac-project-reference": "node scripts/dac_thermal_pressure_project_parity.mjs",
     "test:companion-windows": "node scripts/companion_windows_smoke.mjs"
   },
   "dependencies": {

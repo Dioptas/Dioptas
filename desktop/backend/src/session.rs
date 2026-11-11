@@ -2235,6 +2235,8 @@ impl Session {
         result["state"]["maskDetails"]["filename"] = json!(self.mask_filename);
         result["state"]["integration"]["sameConditions"] = json!(self.phases.same_conditions);
         result["state"]["integration"]["phaseColdPressure"] = json!(self.phases.cold_pressure);
+        result["state"]["integration"]["phaseDacThermalPressureFactor"] =
+            json!(self.phases.dac_fraction);
         for (key, value) in self.processing.details().as_object().unwrap() {
             result["state"]["integration"][key] = value.clone();
         }

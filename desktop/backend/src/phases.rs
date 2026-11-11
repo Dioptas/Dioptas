@@ -31,6 +31,8 @@ pub(crate) struct Phases {
     pub items: Vec<Arc<Phase>>,
     pub same_conditions: bool,
     pub cold_pressure: bool,
+    #[serde(default)]
+    pub dac_fraction: crate::phase_dac::DacFraction,
     pub next_uid: u64,
 }
 impl Default for Phases {
@@ -39,6 +41,7 @@ impl Default for Phases {
             items: vec![],
             same_conditions: true,
             cold_pressure: false,
+            dac_fraction: Default::default(),
             next_uid: 1,
         }
     }
@@ -435,7 +438,7 @@ impl Phases {
             current_volume: 0.0,
             eos_cache: None,
         };
-        if let Err(error) = p.recalculate(wavelength, self.cold_pressure, true) {
+        if let Err(error) = p.recalculate(wavelength, self.effective_dac_fraction(), true) {
             let fallback = p
                 .reference
                 .and_then(|i| records(&p.document).get(i))
@@ -451,7 +454,7 @@ impl Phases {
             if let Some((pressure, temperature)) = fallback.filter(|_| p.pressure == 0.0) {
                 p.pressure = pressure;
                 p.temperature = temperature;
-                p.recalculate(wavelength, self.cold_pressure, false)?;
+                p.recalculate(wavelength, self.effective_dac_fraction(), false)?;
             } else {
                 return Err(error);
             }
@@ -567,7 +570,7 @@ impl Phase {
     pub fn recalculate(
         &mut self,
         wavelength: f64,
-        cold: bool,
+        dac_fraction: Option<crate::phase_dac::DacFraction>,
         structure: bool,
     ) -> Result<(), String> {
         let c = crystal::cell(&self.document)?;
@@ -615,6 +618,12 @@ impl Phase {
                 .eos_records
                 .get(index)
                 .ok_or("Unknown EOS record.")?;
+            if dac_fraction.is_some_and(|f| f64::from(f) != 0.0)
+                && record.eos.is_thermal()
+                && native_document["eos_records"][index]["thermal"].is_null()
+            {
+                return Err("DAC confinement is not supported for this thermal EoS model.".into());
+            }
             let coefficients = self.legacy_coefficients();
             if self.pressure < 0.0
                 || native_document["eos_records"][index]["thermal"].is_null()
@@ -646,12 +655,10 @@ impl Phase {
                         .map_err(|e| e.to_string())?
                 }
             } else {
-                if cold && self.has_thermal() {
-                    record.volume_with_dac_confinement(
-                        self.pressure,
-                        temperature,
-                        record.reference_temperature,
-                    )
+                if let Some(fraction) =
+                    dac_fraction.filter(|f| f64::from(*f) != 0.0 && self.has_thermal())
+                {
+                    record.volume_with_dac_confinement(self.pressure, temperature, fraction.into())
                 } else {
                     record.volume(self.pressure, temperature)
                 }

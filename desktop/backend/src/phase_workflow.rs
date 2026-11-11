@@ -633,6 +633,7 @@ impl Session {
         Ok(Some(reply))
     }
     fn phase_edit(&mut self, args: &Value, wavelength: f64) -> Result<Option<usize>, String> {
+        let dac_fraction = self.phases.effective_dac_fraction();
         let op = if args["operation"] == "editor_transaction" {
             args["edit_operation"].as_str()
         } else {
@@ -709,6 +710,23 @@ impl Session {
                 )?;
                 return Ok(Some(i));
             }
+            "dac_thermal_pressure" => {
+                let enabled = args
+                    .get("enabled")
+                    .map_or(Ok(self.phases.cold_pressure), |v| {
+                        boolean(v, "DAC thermal pressure")
+                    })?;
+                let fraction =
+                    args.get("factor")
+                        .map_or(Ok(self.phases.dac_fraction), |v| {
+                            crate::phase_dac::DacFraction::try_from(v.as_f64().ok_or(
+                                "The DAC thermal-pressure fraction must be a finite number.",
+                            )?)
+                        })?;
+                self.phases
+                    .set_dac_thermal_pressure(enabled, fraction, wavelength)?;
+                return Ok(None);
+            }
             "same_conditions" => {
                 self.phases.same_conditions = boolean(&args["enabled"], "Same conditions")?;
                 return Ok(None);
@@ -763,7 +781,7 @@ impl Session {
             let p = Arc::make_mut(&mut self.phases.items[i]);
             p.document = doc;
             p.modified = false;
-            p.recalculate(wavelength, self.phases.cold_pressure, true)?;
+            p.recalculate(wavelength, dac_fraction, true)?;
             return Ok(Some(i));
         }
         let p = Arc::make_mut(&mut self.phases.items[i]);
@@ -1246,7 +1264,7 @@ impl Session {
         if op != "update" {
             p.modified = true;
         }
-        p.recalculate(wavelength, self.phases.cold_pressure, structure)?;
+        p.recalculate(wavelength, dac_fraction, structure)?;
         if op == "update"
             && self.phases.same_conditions
             && (args.get("pressure").is_some() || args.get("temperature").is_some())
@@ -1256,7 +1274,7 @@ impl Session {
                 let other = Arc::make_mut(other);
                 other.pressure = pressure;
                 other.temperature = temperature;
-                other.recalculate(wavelength, self.phases.cold_pressure, false)?;
+                other.recalculate(wavelength, dac_fraction, false)?;
             }
         }
         Ok(Some(i))
@@ -1520,6 +1538,7 @@ impl Session {
             .map_err(|e| e.to_string())?;
         let minimum = self.phase_minimum();
         let wavelength = self.settings.geometry.wavelength * 1e10;
+        let dac_fraction = self.phases.effective_dac_fraction();
         for row in reader.records() {
             let row = row.map_err(|e| e.to_string())?;
             if row.len() != 6 {
@@ -1564,7 +1583,7 @@ impl Session {
                 0.0,
                 9999999.0,
             )?;
-            p.recalculate(wavelength, self.phases.cold_pressure, false)?;
+            p.recalculate(wavelength, dac_fraction, false)?;
         }
         self.rebuild_pattern()?;
         self.revision += 1;
