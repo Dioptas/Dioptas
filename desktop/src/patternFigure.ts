@@ -57,6 +57,9 @@ export type PatternFigureOptions = {
   legend: FigureLegendPosition;
   phaseLegend: FigureLegendPosition | "rows";
   phaseTickWeight: "uniform" | "intensity";
+  phaseRowSpacing: number;
+  phaseTickHeight: number;
+  phaseGuides: boolean;
   phases: "plot" | "rows" | "none";
   grid: boolean;
   box: boolean;
@@ -105,6 +108,9 @@ export function defaultPatternFigureSettings(
       legend: "auto",
       phaseLegend: "rows",
       phaseTickWeight: "intensity",
+      phaseRowSpacing: 5,
+      phaseTickHeight: 2.5,
+      phaseGuides: true,
       phases: source.phases.length ? "rows" : "none",
       grid: false,
       box: true,
@@ -228,6 +234,14 @@ export function validatePatternFigure(
 ) {
   if (!finiteBetween(o.width, 50, 400) || !finiteBetween(o.height, 45, 400))
     throw Error("Use a width of 50–400 mm and a height of 45–400 mm.");
+  if (
+    !finiteBetween(o.phaseRowSpacing, 1, 20) ||
+    !finiteBetween(o.phaseTickHeight, 0.5, 10) ||
+    typeof o.phaseGuides !== "boolean"
+  )
+    throw Error(
+      "Use phase row spacing of 1–20 mm and tick height of 0.5–10 mm.",
+    );
   if (!finiteBetween(o.fontSize, 6, 24))
     throw Error("Use a font size of 6–24 pt.");
   if (
@@ -501,8 +515,13 @@ export function renderPatternFigure(
   const rowLabelLines = phases.map((p) =>
     rowLabels ? wrap(p.label, Math.max(fs * 3, phaseLabelWidth - fs)) : [],
   );
+  const phaseTickHeight = (o.phaseTickHeight * 72) / 25.4;
   const rowHeights = phases.map((_, i) =>
-    Math.max(fs * 1.65, rowLabelLines[i].length * fs * 1.15 + fs * 0.35),
+    Math.max(
+      (o.phaseRowSpacing * 72) / 25.4,
+      phaseTickHeight + fs * 0.8,
+      rowLabelLines[i].length * fs * 1.15 + fs * 0.35,
+    ),
   );
   const rowsHeight =
     o.phases === "rows" && phases.length
@@ -697,7 +716,8 @@ export function renderPatternFigure(
     for (const [i, phase] of phases.entries()) {
       const rowTop =
         bottom + fs * 0.45 + rowHeights.slice(0, i).reduce((a, b) => a + b, 0);
-      const y = rowTop + rowHeights[i] / 2 + fs * 0.425;
+      const center = rowTop + rowHeights[i] / 2;
+      const y = center + phaseTickHeight / 2;
       const references = source.phases.filter(
         (l) =>
           phaseId(l) === phase.id &&
@@ -708,13 +728,14 @@ export function renderPatternFigure(
       );
       const maximum = Math.max(1e-20, ...references.map((l) => l.intensity));
       recording.group(`Phase reference row: ${phase.label}`, () => {
-        line(L, y, R, y, o.theme === "dark" ? "#65717d" : "#c5c5c5", 0.3);
+        if (o.phaseGuides)
+          line(L, y, R, y, o.theme === "dark" ? "#65717d" : "#c5c5c5", 0.3);
         for (const ref of references)
           line(
             px(ref.x),
             y,
             px(ref.x),
-            y - fs * 0.85,
+            y - phaseTickHeight,
             phase.color,
             o.phaseTickWeight === "intensity"
               ? 0.45 + 0.7 * Math.sqrt(ref.intensity / maximum)
@@ -726,11 +747,7 @@ export function renderPatternFigure(
             text(
               label,
               R + fs * 0.65,
-              rowTop +
-                rowHeights[i] / 2 -
-                labelHeight / 2 +
-                fs * 0.575 +
-                j * fs * 1.15,
+              center - labelHeight / 2 + fs * 0.575 + j * fs * 1.15,
               "left",
               phase.color,
             ),

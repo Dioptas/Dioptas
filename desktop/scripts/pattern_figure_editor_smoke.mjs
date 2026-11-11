@@ -5,6 +5,7 @@ import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
 import { Resvg } from "@resvg/resvg-js";
 import { nativeClient } from "./native_backend_client.mjs";
+import { exerciseFigureStyles } from "./pattern_figure_styles.mjs";
 const desktop = fileURLToPath(new URL("../", import.meta.url));
 const artifacts = new URL(
   "../artifacts/pattern-figure-editor/",
@@ -185,7 +186,9 @@ try {
                 segments.some(
                   ([x0, y0, x1, y1]) =>
                     x0 !== x1 ||
-                    Math.abs(y0 - y1 - settings.options.fontSize * 0.85) > 1e-7,
+                    Math.abs(
+                      y0 - y1 - (settings.options.phaseTickHeight * 72) / 25.4,
+                    ) > 1e-7,
                 )
               )
                 throw Error("Reference ticks must have equal height");
@@ -664,6 +667,9 @@ try {
         });
         delete legacy.settings.options.phaseLegend;
         delete legacy.settings.options.phaseTickWeight;
+        delete legacy.settings.options.phaseRowSpacing;
+        delete legacy.settings.options.phaseTickHeight;
+        delete legacy.settings.options.phaseGuides;
         localStorage.setItem(
           "dioptas-pattern-figure-v1",
           JSON.stringify(legacy),
@@ -674,7 +680,10 @@ try {
         );
         if (
           migrated.options.fontSize !== 8 ||
-          migrated.options.phaseLegend !== "rows"
+          migrated.options.phaseLegend !== "rows" ||
+          migrated.options.phaseRowSpacing !== 5 ||
+          migrated.options.phaseTickHeight !== 2.5 ||
+          migrated.options.phaseGuides !== true
         )
           throw Error("The legacy single-column preset was not migrated");
         localStorage.setItem("dioptas-pattern-figure-v1", "invalid");
@@ -695,6 +704,7 @@ try {
         const options = figure.defaultPatternFigureSettings(negative).options;
         figure.renderPatternFigure(negative, options);
       });
+      await exerciseFigureStyles(page, artifacts, name);
       assert.deepEqual(errors, []);
       receipts.push({
         name,
@@ -702,6 +712,8 @@ try {
         independentSvg: true,
         pngDimensionsAndDensity: true,
         settingsRestored: true,
+        reusableStyles: true,
+        phaseRowControls: true,
         scientificSourceUnchanged: true,
       });
     } finally {

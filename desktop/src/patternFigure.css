@@ -224,3 +224,32 @@
     border-top: 1px solid var(--ui-border);
   }
 }
+
+.pattern-figure-style-library {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ui-border);
+}
+.pattern-figure-style-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pattern-figure-style-actions > button {
+  flex: 1;
+}
+
+.pattern-figure-style-choice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.pattern-figure-layout:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

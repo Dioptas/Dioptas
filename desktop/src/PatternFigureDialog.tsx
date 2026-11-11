@@ -15,6 +15,7 @@ import {
   type PatternFigureSource,
   type PhaseStyle,
 } from "./patternFigure";
+import { FigureStyleLibrary } from "./FigureStyleLibrary";
 import "./patternFigure.css";
 
 export function PatternFigureDialog({
@@ -84,7 +85,16 @@ export function PatternFigureDialog({
     );
   const field = (
     label: string,
-    key: "width" | "height" | "fontSize" | "xMin" | "xMax" | "yMin" | "yMax",
+    key:
+      | "width"
+      | "height"
+      | "fontSize"
+      | "xMin"
+      | "xMax"
+      | "yMin"
+      | "yMax"
+      | "phaseRowSpacing"
+      | "phaseTickHeight",
     min?: number,
     max?: number,
   ) => (
@@ -112,7 +122,10 @@ export function PatternFigureDialog({
       />
     </label>
   );
-  const check = (label: string, key: "grid" | "box" | "yTicks") => (
+  const check = (
+    label: string,
+    key: "grid" | "box" | "yTicks" | "phaseGuides",
+  ) => (
     <label className="pattern-figure-check">
       <Input
         aria-label={label}
@@ -276,135 +289,144 @@ export function PatternFigureDialog({
             role="tabpanel"
             aria-label={`Figure ${section}`}
           >
-            {section === "layout" && (
-              <>
-                <div className="pattern-figure-section-heading">
-                  <h3>Figure & layout</h3>
-                  <Button
-                    type="button"
-                    aria-label="Reset figure settings"
-                    onClick={() => {
-                      setSettings(
-                        defaultPatternFigureSettings(
-                          source,
-                          initialFormat ?? "svg",
-                        ),
-                      );
-                      setNotice("Figure settings reset.");
+            <div
+              className="pattern-figure-layout"
+              hidden={section !== "layout"}
+            >
+              <div className="pattern-figure-section-heading">
+                <h3>Figure & layout</h3>
+                <Button
+                  type="button"
+                  aria-label="Reset figure settings"
+                  onClick={() => {
+                    setSettings(
+                      defaultPatternFigureSettings(
+                        source,
+                        initialFormat ?? "svg",
+                      ),
+                    );
+                    setNotice("Figure settings reset.");
+                    setSaveError("");
+                  }}
+                >
+                  Reset
+                </Button>
+              </div>
+              <FigureStyleLibrary
+                source={source}
+                settings={settings}
+                valid={!!preview.svg}
+                onApply={(value) => {
+                  setSettings(value);
+                  setNotice("");
+                  setSaveError("");
+                }}
+              />
+              <label>
+                Figure size
+                <Select
+                  aria-label="Figure size preset"
+                  value={
+                    ["90x80", "180x115", "240x135"].includes(
+                      `${o.width}x${o.height}`,
+                    )
+                      ? `${o.width}x${o.height}`
+                      : "custom"
+                  }
+                  onChange={(e) => {
+                    const preset =
+                      patternFigurePresets[
+                        e.target.value as keyof typeof patternFigurePresets
+                      ];
+                    if (preset) {
+                      setSettings((s) => ({
+                        ...s,
+                        options: { ...s.options, ...preset },
+                      }));
+                      setNotice("");
                       setSaveError("");
-                    }}
-                  >
-                    Reset
-                  </Button>
-                </div>
-                <label>
-                  Figure size
-                  <Select
-                    aria-label="Figure size preset"
-                    value={
-                      ["90x80", "180x115", "240x135"].includes(
-                        `${o.width}x${o.height}`,
-                      )
-                        ? `${o.width}x${o.height}`
-                        : "custom"
                     }
-                    onChange={(e) => {
-                      const preset =
-                        patternFigurePresets[
-                          e.target.value as keyof typeof patternFigurePresets
-                        ];
-                      if (preset) {
-                        setSettings((s) => ({
-                          ...s,
-                          options: { ...s.options, ...preset },
-                        }));
-                        setNotice("");
-                        setSaveError("");
-                      }
-                    }}
-                  >
-                    <option value="90x80">Journal · Single column</option>
-                    <option value="180x115">Journal · Double column</option>
-                    <option value="240x135">Presentation · Widescreen</option>
-                    <option value="custom">Custom</option>
-                  </Select>
-                </label>
-                <div className="pattern-figure-pair">
-                  {field("Width (mm)", "width", 50, 400)}
-                  {field("Height (mm)", "height", 45, 400)}
-                </div>
-                <p className="pattern-figure-caption">
-                  Presets include print typography: 8 pt for single column, 10
-                  pt for double column, and 14 pt for presentations.
-                </p>
-                {textField("Title", "title")}
-                <div className="pattern-figure-pair">
-                  <label>
-                    Font
-                    <Select
-                      aria-label="Figure font"
-                      value={o.font}
-                      onChange={(e) =>
-                        change(
-                          "font",
-                          e.target.value as PatternFigureOptions["font"],
-                        )
-                      }
-                    >
-                      {["Arial", "Helvetica", "Times New Roman"].map((font) => (
-                        <option key={font}>{font}</option>
-                      ))}
-                    </Select>
-                  </label>
-                  {field("Font size (pt)", "fontSize", 6, 24)}
-                </div>
+                  }}
+                >
+                  <option value="90x80">Journal · Single column</option>
+                  <option value="180x115">Journal · Double column</option>
+                  <option value="240x135">Presentation · Widescreen</option>
+                  <option value="custom">Custom</option>
+                </Select>
+              </label>
+              <div className="pattern-figure-pair">
+                {field("Width (mm)", "width", 50, 400)}
+                {field("Height (mm)", "height", 45, 400)}
+              </div>
+              <p className="pattern-figure-caption">
+                Presets include print typography: 8 pt for single column, 10 pt
+                for double column, and 14 pt for presentations.
+              </p>
+              {textField("Title", "title")}
+              <div className="pattern-figure-pair">
                 <label>
-                  Background
+                  Font
                   <Select
-                    aria-label="Figure background"
-                    value={o.theme}
-                    onChange={(e) =>
-                      appearance(
-                        e.target.value as PatternFigureOptions["theme"],
-                      )
-                    }
-                  >
-                    <option value="white">White paper</option>
-                    <option value="transparent">Transparent</option>
-                    <option value="dark">Dark</option>
-                  </Select>
-                </label>
-                <label>
-                  Curve legend
-                  <Select
-                    aria-label="Curve legend position"
-                    value={o.legend}
+                    aria-label="Figure font"
+                    value={o.font}
                     onChange={(e) =>
                       change(
-                        "legend",
-                        e.target.value as PatternFigureOptions["legend"],
+                        "font",
+                        e.target.value as PatternFigureOptions["font"],
                       )
                     }
                   >
-                    {[
-                      ["auto", "Auto · Open space or below plot"],
-                      ["top-left", "Inside · Upper left"],
-                      ["top-right", "Inside · Upper right"],
-                      ["bottom-left", "Inside · Lower left"],
-                      ["bottom-right", "Inside · Lower right"],
-                      ["above", "Above plot"],
-                      ["below", "Below plot"],
-                      ["right", "To the right"],
-                      ["none", "Hidden"],
-                    ].map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
+                    {["Arial", "Helvetica", "Times New Roman"].map((font) => (
+                      <option key={font}>{font}</option>
                     ))}
                   </Select>
                 </label>
-              </>
-            )}
+                {field("Font size (pt)", "fontSize", 6, 24)}
+              </div>
+              <label>
+                Background
+                <Select
+                  aria-label="Figure background"
+                  value={o.theme}
+                  onChange={(e) =>
+                    appearance(e.target.value as PatternFigureOptions["theme"])
+                  }
+                >
+                  <option value="white">White paper</option>
+                  <option value="transparent">Transparent</option>
+                  <option value="dark">Dark</option>
+                </Select>
+              </label>
+              <label>
+                Curve legend
+                <Select
+                  aria-label="Curve legend position"
+                  value={o.legend}
+                  onChange={(e) =>
+                    change(
+                      "legend",
+                      e.target.value as PatternFigureOptions["legend"],
+                    )
+                  }
+                >
+                  {[
+                    ["auto", "Auto · Open space or below plot"],
+                    ["top-left", "Inside · Upper left"],
+                    ["top-right", "Inside · Upper right"],
+                    ["bottom-left", "Inside · Lower left"],
+                    ["bottom-right", "Inside · Lower right"],
+                    ["above", "Above plot"],
+                    ["below", "Below plot"],
+                    ["right", "To the right"],
+                    ["none", "Hidden"],
+                  ].map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </Select>
+              </label>
+            </div>
             {section === "axes" && (
               <>
                 <h3>Axes & ranges</h3>
@@ -698,6 +720,29 @@ export function PatternFigureDialog({
                     <option value="uniform">Uniform</option>
                   </Select>
                 </label>
+                {o.phases === "rows" && (
+                  <>
+                    <div className="pattern-figure-pair">
+                      {field(
+                        "Phase row spacing (mm)",
+                        "phaseRowSpacing",
+                        1,
+                        20,
+                      )}
+                      {field(
+                        "Phase tick height (mm)",
+                        "phaseTickHeight",
+                        0.5,
+                        10,
+                      )}
+                    </div>
+                    {check("Show phase row guides", "phaseGuides")}
+                    <p className="pattern-figure-caption">
+                      Row spacing expands when needed to fit ticks and wrapped
+                      labels.
+                    </p>
+                  </>
+                )}
                 {!o.phaseStyles.length && (
                   <p>No visible phase references in the source plot.</p>
                 )}
@@ -708,31 +753,65 @@ export function PatternFigureDialog({
                   separate from the curve legend.
                 </p>
                 {o.phaseStyles.map((p, i) => (
-                  <div className="pattern-figure-entry" key={p.id}>
-                    <Input
-                      type="checkbox"
-                      aria-label={`Show figure phase ${i + 1}`}
-                      checked={p.visible}
-                      onChange={(e) =>
-                        phaseChange(p.id, { visible: e.target.checked })
-                      }
-                    />
-                    <Input
-                      type="color"
-                      aria-label={`Figure phase ${i + 1} color`}
-                      value={p.color}
-                      onChange={(e) =>
-                        phaseChange(p.id, { color: e.target.value })
-                      }
-                    />
-                    <Input
-                      aria-label={`Figure phase ${i + 1} label`}
-                      value={p.label}
-                      maxLength={240}
-                      onChange={(e) =>
-                        phaseChange(p.id, { label: e.target.value })
-                      }
-                    />
+                  <div className="pattern-figure-curve" key={p.id}>
+                    <div className="pattern-figure-entry">
+                      <Input
+                        type="checkbox"
+                        aria-label={`Show figure phase ${i + 1}`}
+                        checked={p.visible}
+                        onChange={(e) =>
+                          phaseChange(p.id, { visible: e.target.checked })
+                        }
+                      />
+                      <Input
+                        type="color"
+                        aria-label={`Figure phase ${i + 1} color`}
+                        value={p.color}
+                        onChange={(e) =>
+                          phaseChange(p.id, { color: e.target.value })
+                        }
+                      />
+                      <Input
+                        aria-label={`Figure phase ${i + 1} label`}
+                        value={p.label}
+                        maxLength={240}
+                        onChange={(e) =>
+                          phaseChange(p.id, { label: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="pattern-figure-order">
+                      <Button
+                        type="button"
+                        disabled={!i}
+                        aria-label={`Move figure phase ${i + 1} up`}
+                        onClick={() => {
+                          const values = [...o.phaseStyles];
+                          [values[i - 1], values[i]] = [
+                            values[i],
+                            values[i - 1],
+                          ];
+                          change("phaseStyles", values);
+                        }}
+                      >
+                        ↑ Up
+                      </Button>
+                      <Button
+                        type="button"
+                        disabled={i === o.phaseStyles.length - 1}
+                        aria-label={`Move figure phase ${i + 1} down`}
+                        onClick={() => {
+                          const values = [...o.phaseStyles];
+                          [values[i + 1], values[i]] = [
+                            values[i],
+                            values[i + 1],
+                          ];
+                          change("phaseStyles", values);
+                        }}
+                      >
+                        ↓ Down
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </>

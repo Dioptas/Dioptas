@@ -161,3 +161,35 @@ linear/log/√ cases. They verify stacked baselines, equal heights, uniform and
 intensity-dependent widths, independent legend contents, unchanged source data,
 legacy preferences, and 8 pt at actual-size scaling. Independent resvg PNG/SVG
 artifacts include both row labels and separate legends at single-column size.
+
+
+## Reusable styles and phase-row controls — November 11, 2026
+
+Layout now includes a local, named style library. Save the current appearance,
+select and apply a saved style, or expand the management controls to update,
+rename or delete one. Styles transfer dimensions, typography, backgrounds,
+legend/axis appearance, phase-row geometry, curve colors/widths/line styles and
+phase colors. Palettes follow the current drawing order and repeat when the
+new dataset has more entries. Labels, titles, identities, visibility, order,
+axis scales and numerical limits stay with the current figure. File format
+and resolution are independent. Styles are saved on this computer under the
+app's local preferences; they are not embedded in projects or export files.
+Corrupt entries are ignored individually, and failed local writes are reported
+without replacing the in-memory library.
+
+Phases now have Up/Down controls, which reorder both reference rows and the
+separate phase legend. Minimum row spacing (1–20 mm), tick height (0.5–10 mm)
+and horizontal row guides are adjustable. Row spacing expands to fit tall
+ticks and wrapped labels. Every reference retains its original horizontal
+coordinate and intensity weighting. These edits affect only the exported
+figure; application phase order and scientific data remain unchanged. Existing
+appearance preferences receive defaults for the new row controls.
+
+The editor headless check exercises style creation, duplicate-name handling,
+application, update/rename, deletion, reopening, unavailable storage, malformed
+entries and palettes applied to another dataset with more/fewer/no phases. It
+checks preservation of labels, custom ranges, scale, hidden entries, current
+order and source arrays. Phase checks verify reordering, unchanged reference
+positions, physical row/tick dimensions, guide visibility, legacy defaults and
+space for tall ticks and wrapped names. Chromium/WebKit screenshots cover both
+text sizes, including the compact responsive layout.
