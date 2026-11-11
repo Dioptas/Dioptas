@@ -20,6 +20,22 @@
       "url": "https://raw.githubusercontent.com/madsmtm/objc2/8852b424193ca41602281b3d7540d7c8ed51e49a/LICENSE.md"
     }
   ],
+  "dlopen2@0.8.2": [
+    {
+      "basis": "Repository-level license at the exact .cargo_vcs_info.json revision of the published crate; omitted from its package archive.",
+      "file": "OpenByteDev-dlopen2-cc80e4a0a90d-LICENSE",
+      "sha256": "39fa265207450e77c62e90c5594a06c085b655d8374c7ced4bf7894b6bd95dd2",
+      "url": "https://raw.githubusercontent.com/OpenByteDev/dlopen2/cc80e4a0a90d499b677fdf7743699b4b3a43a989/LICENSE"
+    }
+  ],
+  "dlopen2_derive@0.4.3": [
+    {
+      "basis": "Repository-level license at the exact .cargo_vcs_info.json revision of the published crate; omitted from its package archive.",
+      "file": "OpenByteDev-dlopen2-cc80e4a0a90d-LICENSE",
+      "sha256": "39fa265207450e77c62e90c5594a06c085b655d8374c7ced4bf7894b6bd95dd2",
+      "url": "https://raw.githubusercontent.com/OpenByteDev/dlopen2/cc80e4a0a90d499b677fdf7743699b4b3a43a989/LICENSE"
+    }
+  ],
   "hdf5-metno-derive@0.10.2": [
     {
       "file": "metno-hdf5-rust-f9041d021afb-LICENSE-APACHE",
@@ -66,6 +82,20 @@
       "file": "metno-hdf5-rust-33406e38b3f1-LICENSE-MIT",
       "sha256": "d4d628ae2b5e9a4eb4278a431f9d133f957827ebfaf4277c75a9a877683133d3",
       "url": "https://raw.githubusercontent.com/metno/hdf5-rust/33406e38b3f18f0a9470abcefe0f768a877750c5/LICENSE-MIT"
+    }
+  ],
+  "libappindicator-sys@0.9.0": [
+    {
+      "basis": "Repository-level license at the exact .cargo_vcs_info.json revision of the published crate; omitted from its package archive.",
+      "file": "tauri-apps-libappindicator-rs-eafd1e3682a1-LICENSE-MIT",
+      "sha256": "eb227437252b2a7a9c1fc342c93ade1f3d7ce38cc6dd754f613db07d53ceff0b",
+      "url": "https://raw.githubusercontent.com/tauri-apps/libappindicator-rs/eafd1e3682a1247f595410266091e9684021cb6f/LICENSE-MIT"
+    },
+    {
+      "basis": "Repository-level license at the exact .cargo_vcs_info.json revision of the published crate; omitted from its package archive.",
+      "file": "tauri-apps-libappindicator-rs-eafd1e3682a1-LICENSE-APACHE",
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "url": "https://raw.githubusercontent.com/tauri-apps/libappindicator-rs/eafd1e3682a1247f595410266091e9684021cb6f/LICENSE-APACHE"
     }
   ],
   "moyo@0.15.0": [

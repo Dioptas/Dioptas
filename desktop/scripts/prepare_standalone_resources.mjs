@@ -29,6 +29,36 @@ async function notices(directory, recursive = true) {
   return result;
 }
 
+// Resolve every package through the same fail-closed path used by staging.
+// Version-specific, hash-pinned upstream texts cover incomplete crate archives.
+export async function cargoLicenseFiles(item, overridesDirectory, overrides) {
+  const directory = path.dirname(item.manifest_path);
+  let files = await notices(directory, item.source !== null);
+  if (item.license_file) files.push(path.resolve(directory, item.license_file));
+  // Workspace crates can inherit a repository-level license.
+  if (files.length === 0) {
+    let parent = path.dirname(directory);
+    for (
+      let depth = 0;
+      depth < 5 && parent !== path.dirname(parent);
+      depth++, parent = path.dirname(parent)
+    ) {
+      files = await notices(parent, false);
+      if (files.length) break;
+    }
+  }
+  const override = overrides[`${item.name}@${item.version}`] || [];
+  for (const record of override) {
+    const file = path.join(overridesDirectory, record.file);
+    if (digest(await readFile(file)) !== record.sha256)
+      throw Error(`Changed pinned license text: ${record.file}`);
+    files.push(file);
+  }
+  if (!files.length)
+    throw Error(`Missing license text for ${item.name} ${item.version}`);
+  return { files, override };
+}
+
 export async function prepareStandaloneResources(target) {
   const output = path.join(desktop, "src-tauri/resources/dioptas");
   // Only this generated staging directory is replaced.
@@ -80,31 +110,11 @@ export async function prepareStandaloneResources(target) {
   for (const item of [...packages.values()].sort((a, b) =>
     a.id.localeCompare(b.id),
   )) {
-    const directory = path.dirname(item.manifest_path);
-    let files = await notices(directory, item.source !== null);
-    if (item.license_file)
-      files.push(path.resolve(directory, item.license_file));
-    // Workspace crates can inherit a repository-level license.
-    if (files.length === 0) {
-      let parent = path.dirname(directory);
-      for (
-        let depth = 0;
-        depth < 5 && parent !== path.dirname(parent);
-        depth++, parent = path.dirname(parent)
-      ) {
-        files = await notices(parent, false);
-        if (files.length) break;
-      }
-    }
-    const override = overrides[`${item.name}@${item.version}`] || [];
-    for (const record of override) {
-      const file = path.join(overridesDirectory, record.file);
-      if (digest(await readFile(file)) !== record.sha256)
-        throw Error(`Changed pinned license text: ${record.file}`);
-      files.push(file);
-    }
-    if (!files.length)
-      throw Error(`Missing license text for ${item.name} ${item.version}`);
+    const { files, override } = await cargoLicenseFiles(
+      item,
+      overridesDirectory,
+      overrides,
+    );
     const texts = [];
     const key = `${item.name}-${item.version}-${digest(item.source || "application").slice(0, 8)}`;
     for (const file of [...new Set(files)].sort()) {
