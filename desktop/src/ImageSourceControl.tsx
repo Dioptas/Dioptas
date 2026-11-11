@@ -78,9 +78,14 @@ export function ImageSourceControl({
             <option
               key={source.dataset}
               value={source.dataset}
-              title={`${source.dataset} · ${source.frames} frames · ${source.shape[1]} × ${source.shape[0]}`}
+              title={
+                source.needs_bindings
+                  ? `${source.dataset} · source files required`
+                  : `${source.dataset} · ${source.frames} frames · ${source.shape?.[1]} × ${source.shape?.[0]}`
+              }
             >
               {sourceLabel(source.dataset)}
+              {source.needs_bindings ? " · needs sources" : ""}
             </option>
           ))}
           {state?.selectedImageSource && !selected && (

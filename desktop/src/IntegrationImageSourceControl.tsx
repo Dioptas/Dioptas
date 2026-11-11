@@ -35,7 +35,7 @@ export function IntegrationImageSourceControl({
   };
   const options = sources.map((item) => ({
     value: item.dataset,
-    label: name(item.dataset),
+    label: `${name(item.dataset)}${item.needs_bindings ? " · needs sources" : ""}`,
   }));
   if (automatic)
     options.unshift({

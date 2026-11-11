@@ -1,3 +1,5 @@
+import { Hdf5SourceDialog } from "./Hdf5SourceDialog";
+import type { Hdf5SourceRequest } from "./types";
 import { useCakeProfileNavigation } from "./useCakeProfileNavigation";
 import { useCakeRadialAxis } from "./useCakeRadialAxis";
 import { cakeSourcePixel } from "./cakeRadialAxis";
@@ -523,6 +525,8 @@ export default function App() {
   const [calibrationResetRequest, setCalibrationResetRequest] =
     useState<CalibrationResetRequest>();
   const calibrationResetOpener = useRef<HTMLElement | null>(null);
+  const [hdf5SourceRequest, setHdf5SourceRequest] =
+    useState<Hdf5SourceRequest>();
   const [pixel, setPixel] = useState<NonNullable<Response["pixel"]> | null>(
     null,
   );
@@ -925,6 +929,15 @@ export default function App() {
           action: command,
           bufferId: result.image?.bufferId,
         });
+        if (result.hdf5SourceRequest) {
+          if (
+            document.activeElement instanceof HTMLElement &&
+            document.activeElement !== document.body
+          )
+            calibrationResetOpener.current = document.activeElement;
+          setHdf5SourceRequest(result.hdf5SourceRequest);
+          return;
+        }
         if (result.imageChange || result.calibrationChange) {
           if (
             document.activeElement instanceof HTMLElement &&
@@ -3572,6 +3585,27 @@ export default function App() {
             )}
           </IntegrationWorkspace>
           {draftReplacement.dialog}
+          {hdf5SourceRequest && (
+            <Hdf5SourceDialog
+              key={JSON.stringify(hdf5SourceRequest)}
+              request={hdf5SourceRequest}
+              onCancel={() => {
+                setHdf5SourceRequest(undefined);
+                const opener = calibrationResetOpener.current;
+                requestAnimationFrame(() => opener?.focus());
+              }}
+              chooseFile={async (directory) => {
+                const result = await bridge.current?.("choose_hdf5_companion", {
+                  directory,
+                });
+                return result?.chosenPath;
+              }}
+              onOpen={(options) => {
+                setHdf5SourceRequest(undefined);
+                void run("open_image", options, "Opening HDF5 source…");
+              }}
+            />
+          )}
           {calibrationResetRequest && (
             <CalibrationResetDialog
               request={calibrationResetRequest}

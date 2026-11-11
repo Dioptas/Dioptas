@@ -189,7 +189,12 @@ impl Session {
                 } else {
                     batch_workflow::source_paths(args)?
                 };
-                let series = self.integrate_series(paths, &json!({"preview_map":true}))?;
+                let mut options = json!({"preview_map":true});
+                if args["reintegrate"] == true {
+                    options["reader_options"] =
+                        json!(self.scan.as_ref().unwrap().series.reader_options);
+                }
+                let series = self.integrate_series(paths, &options)?;
                 self.scan = Some(Scan::new_with_analysis(
                     series,
                     &self.patterns,

@@ -264,6 +264,15 @@ async fn desktop_invoke(
         payload["editor_only"] = json!(true);
     }
     tauri::async_runtime::spawn_blocking(move || {
+        if action == "choose_hdf5_companion" {
+            let mut dialog = app.dialog().file().set_title("Choose the declared HDF5 source file");
+            if let Some(directory) = payload["directory"].as_str() { dialog = dialog.set_directory(directory); }
+            let Some(selected) = dialog.blocking_pick_file() else {
+                return Ok(Packet::metadata(json!({"ok":true,"cancelled":true})));
+            };
+            let selected = selected.into_path().map_err(|e|e.to_string())?;
+            return Ok(Packet::metadata(json!({"ok":true,"chosenPath":selected.to_string_lossy()})));
+        }
         if folder_choice(&action, &payload) {
             let Some(selected) = app.dialog().file().blocking_pick_folder() else {
                 return Ok(Packet::metadata(json!({"ok": true, "cancelled": true})));

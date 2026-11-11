@@ -679,7 +679,13 @@ impl Session {
                     options["dataset"] = json!(dataset);
                 }
                 self.control.check()?;
-                let candidate = Image::prepare(&image.path, &options)?;
+                let candidate = match Image::prepare(&image.path, &options) {
+                    Ok(candidate) => candidate,
+                    Err(_) => {
+                        options["source_frame"] = json!(frame);
+                        return self.dispatch("open_image", &options);
+                    }
+                };
                 // Qt retains the frame position, clamping to a shorter series.
                 options["frame"] = json!(frame.min(candidate.frames - 1));
                 options["defer_integration"] = json!(defer);
@@ -1474,6 +1480,10 @@ impl Session {
                 "frame",
                 "dataset",
                 "follow_external_links",
+                "hdf5_bindings",
+                "hdf5_printf",
+                "hdf5_snapshot",
+                "source_frame",
                 "cbf_dialect",
                 "defer_integration",
                 "directory",
@@ -1496,7 +1506,25 @@ impl Session {
         };
         let mut trace =
             crate::frame_trace::FrameTrace::new("open-image", args["frame"].as_u64().unwrap_or(0));
-        let mut image = Image::prepare(&file, args)?;
+        let mut image = match Image::prepare(&file, args) {
+            Ok(image) => image,
+            Err(error) => {
+                self.control.check()?;
+                if let Ok(Some(request)) = Image::binding_request(&file, args) {
+                    return Ok(Some(Reply::metadata(
+                        json!({"ok":true,"cancelled":true,"hdf5SourceRequest":request}),
+                    )));
+                }
+                return Err(error);
+            }
+        };
+        if let Some(frame) = args.get("source_frame") {
+            let frame = frame
+                .as_u64()
+                .and_then(|v| usize::try_from(v).ok())
+                .ok_or("Invalid retained source frame.")?;
+            image.frame = frame.min(image.frames - 1);
+        }
         trace.mark("metadata");
         if let Some(reply) = self.image_change(&image, args)? {
             return Ok(Some(reply));
@@ -1531,9 +1559,10 @@ impl Session {
             } else {
                 Vec::new()
             };
+            let frame = image.frame;
             self.engine.load_frame(
                 &mut image,
-                args.get("frame").and_then(Value::as_u64).unwrap_or(0) as usize,
+                frame,
                 (self.settings.calibrated
                     && !coordinates_changed
                     && !defer

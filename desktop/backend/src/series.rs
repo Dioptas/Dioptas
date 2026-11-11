@@ -25,6 +25,7 @@ pub(crate) struct Series {
     pub entries: Arc<Vec<Entry>>,
     pub paths: Vec<String>,
     pub file_counts: Vec<usize>,
+    pub reader_options: std::collections::BTreeMap<String, Value>,
     pub total: usize,
     pub selected: usize,
     pub normalization: [usize; 2],
@@ -125,6 +126,25 @@ impl Series {
                 );
             }
         }
+        s.reader_options = self.reader_options.clone();
+        for (path, options) in &other.reader_options {
+            if s.reader_options
+                .get(path)
+                .is_some_and(|previous| previous != options)
+            {
+                return Err(
+                    "A scan append cannot replace the source contract for an existing file.".into(),
+                );
+            }
+            s.reader_options.insert(path.clone(), options.clone());
+        }
+        if serde_json::to_vec(&s.reader_options)
+            .map_err(|e| e.to_string())?
+            .len()
+            > 16 * 1024 * 1024
+        {
+            return Err("Series source contracts exceed the 16 MiB metadata bound.".into());
+        }
         s.calibration = self.calibration.clone();
         s.mask = self.mask.clone();
         Ok(s)
@@ -171,6 +191,7 @@ impl Series {
             entries: Arc::new(entries),
             paths,
             file_counts,
+            reader_options: Default::default(),
             total,
             selected: 0,
             normalization: [0, n],
@@ -491,8 +512,11 @@ impl Series {
                     .and_then(|a| a.write_scalar(&w))
                     .map_err(|e| e.to_string())?;
             }
-            let metadata = json!({"entries":self.entries,"paths":paths,"file_counts":self.file_counts,"total":self.total,"selected":self.selected,"normalization":self.normalization,"reference":self.reference,"normalized":self.normalized,"batch_background":self.batch_background,"export_name":self.export_name});
+            let metadata = json!({"entries":self.entries,"paths":paths,"file_counts":self.file_counts,"total":self.total,"selected":self.selected,"normalization":self.normalization,"reference":self.reference,"normalized":self.normalized,"batch_background":self.batch_background,"export_name":self.export_name,"reader_options":self.reader_options});
             let meta = serde_json::to_vec(&metadata).map_err(|e| e.to_string())?;
+            if meta.len() > 16 * 1024 * 1024 {
+                return Err("Series source metadata exceeds 16 MiB.".into());
+            }
             result
                 .new_dataset_builder()
                 .with_data(&meta)
@@ -687,6 +711,18 @@ impl Series {
             let v: Value =
                 serde_json::from_slice(&meta.read_raw::<u8>().map_err(|e| e.to_string())?)
                     .map_err(|e| e.to_string())?;
+            if let Some(options) = v.get("reader_options") {
+                s.reader_options =
+                    serde_json::from_value(options.clone()).map_err(|e| e.to_string())?;
+                let known_paths: std::collections::HashSet<_> = s.paths.iter().collect();
+                if s.reader_options.len() > s.paths.len()
+                    || s.reader_options
+                        .iter()
+                        .any(|(path, v)| !known_paths.contains(path) || !v.is_object())
+                {
+                    return Err("Invalid stored series source contracts.".into());
+                }
+            }
             if let Some(total) = v["total"].as_u64() {
                 if total > 1_000_000 {
                     return Err("Stored source count exceeds one million frames.".into());

@@ -303,6 +303,7 @@ impl Session {
                 self.settings.trim_zeros = false;
                 let mut images = Vec::new();
                 let mut total = 0usize;
+                let mut contract_bytes = 0usize;
                 let mut expected = self.image.as_ref().map(|i| i.shape);
                 let options = self
                     .image
@@ -312,7 +313,8 @@ impl Session {
                 for (i, p) in paths.iter().enumerate() {
                     self.control.check()?;
                     self.control.publish(json!({"running":true,"current":i,"total":paths.len(),"label":"Reading series metadata"}));
-                    let mut image = Image::prepare(Path::new(p), &options)?;
+                    let source_options = args["reader_options"].get(p).unwrap_or(&options);
+                    let mut image = Image::prepare(Path::new(p), source_options)?;
                     image.orient(&self.settings.transformations, &self.control)?;
                     if image.shape == [0, 0] {
                         image.read(0)?;
@@ -326,7 +328,23 @@ impl Session {
                         .filter(|t| *t <= 1_000_000)
                         .ok_or("The series exceeds one million frames.")?;
                     let fingerprint = image.source_fingerprint()?;
-                    images.push((image.path.clone(), image.frames, image.shape, fingerprint));
+                    contract_bytes = contract_bytes.saturating_add(
+                        serde_json::to_vec(&image.options)
+                            .map_err(|e| e.to_string())?
+                            .len(),
+                    );
+                    if contract_bytes > 16 * 1024 * 1024 {
+                        return Err(
+                            "Series source contracts exceed the 16 MiB metadata bound.".into()
+                        );
+                    }
+                    images.push((
+                        image.path.clone(),
+                        image.frames,
+                        image.shape,
+                        fingerprint,
+                        image.options.clone(),
+                    ));
                 }
                 let start = args
                     .get("start")
@@ -358,13 +376,13 @@ impl Session {
                     count,
                 };
                 rows.publish_progress(&self.control);
-                for (source, frames, shape, fingerprint) in &images {
+                for (source, frames, shape, fingerprint, options) in &images {
                     for (path, identity) in fingerprint {
                         if crate::image::FileIdentity::read(path)? != *identity {
                             return Err("A series source changed after metadata discovery.".into());
                         }
                     }
-                    let mut image = Image::prepare(source, &options)?;
+                    let mut image = Image::prepare(source, options)?;
                     image.orient(&self.settings.transformations, &self.control)?;
                     if image.frames != *frames
                         || image.shape != *shape
@@ -610,7 +628,7 @@ impl Session {
                         )?;
                     }
                 }
-                for (_, _, _, fingerprint) in &images {
+                for (_, _, _, fingerprint, _) in &images {
                     for (path, identity) in fingerprint {
                         if crate::image::FileIdentity::read(path)? != *identity {
                             return Err("A series source changed during integration; no partial series was published.".into());
@@ -625,11 +643,17 @@ impl Session {
                     rows.entries,
                     images
                         .iter()
-                        .map(|(p, _, _, _)| p.to_string_lossy().into_owned())
+                        .map(|(p, _, _, _, _)| p.to_string_lossy().into_owned())
                         .collect(),
                     total,
                 )?;
-                series.file_counts = images.iter().map(|(_, frames, _, _)| *frames).collect();
+                series.file_counts = images.iter().map(|(_, frames, _, _, _)| *frames).collect();
+                series.reader_options = images
+                    .iter()
+                    .map(|(path, _, _, _, options)| {
+                        (path.to_string_lossy().into_owned(), options.clone())
+                    })
+                    .collect();
                 series.sigma = rows.sigma.map(Arc::new);
                 series.raw_sigma = series.sigma.clone();
                 series.spread = rows.spread.map(Arc::new);
@@ -681,11 +705,16 @@ impl Session {
         let mut warning = Value::Null;
         if available {
             let checkpoint = self.checkpoint();
-            let mut args = self
-                .image
-                .as_ref()
-                .map(|i| i.options.clone())
-                .unwrap_or(json!({}));
+            let mut args = series
+                .reader_options
+                .get(&entry.path)
+                .cloned()
+                .unwrap_or_else(|| {
+                    self.image
+                        .as_ref()
+                        .map(|i| i.options.clone())
+                        .unwrap_or(json!({}))
+                });
             args["path"] = json!(entry.path);
             args["frame"] = json!(entry.frame);
             args["defer_integration"] = json!(defer);
@@ -695,7 +724,7 @@ impl Session {
             // The outer selection publishes the completed state. Building an
             // intermediate open-image reply duplicates metadata and ring paths.
             let loaded = self.open_image_model(&args, defer).and_then(|reply| {
-                if reply.is_some_and(|r| r.result.get("imageChange").is_some()) { Err("Detector dimensions changed; open this image manually to reset calibration.".into()) }
+                if let Some(r) = reply { Err(if r.result.get("imageChange").is_some() { "Detector dimensions changed; open this image manually to reset calibration.".into() } else { "HDF5 source files are missing; open the master to select its companions.".into() }) }
                 else { Ok(()) }
             });
             if loaded.is_ok() {
@@ -779,7 +808,12 @@ impl Session {
                 {
                     self.batch = Some(Series::load_processed(Path::new(&paths[0]))?);
                 } else {
-                    self.batch = Some(self.integrate_batch_with_background(paths, args)?);
+                    let mut options = args.clone();
+                    if args["reintegrate"] == true {
+                        options["reader_options"] =
+                            json!(self.batch.as_ref().unwrap().reader_options);
+                    }
+                    self.batch = Some(self.integrate_batch_with_background(paths, &options)?);
                 }
                 self.batch.as_mut().unwrap().selected = 0;
                 let b = self.batch.as_ref().unwrap().clone();

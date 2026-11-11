@@ -91,7 +91,8 @@
     "test:phase-metadata": "node scripts/phase_metadata_smoke.mjs",
     "test:phase-editor-workflows": "npm run backend:prepare -- --debug && npm run build && node scripts/phase_editor_workflow_smoke.mjs",
     "test:phase-model-help": "node scripts/phase_model_help_smoke.mjs",
-    "generate:phase-equations": "node scripts/generate_phase_equations.mjs"
+    "generate:phase-equations": "node scripts/generate_phase_equations.mjs",
+    "test:hdf5-master-vds": "node scripts/hdf5_master_vds_smoke.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",

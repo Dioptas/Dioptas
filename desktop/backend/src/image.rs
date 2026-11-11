@@ -175,9 +175,13 @@ impl Image {
     /// Discover authoritative metadata and freeze sources without decoding pixels.
     pub fn prepare(path: &Path, options: &Value) -> Result<Self, String> {
         let path = path.canonicalize().map_err(|e| e.to_string())?;
+        crate::hdf5_loading::check_snapshot(&path, options)?;
+        let mut settings = options.clone();
+        settings["path"] = serde_json::json!(path);
+        let options = &settings;
         let input = Input::open(&path, Default::default()).map_err(|e| e.to_string())?;
         let follow = match options.get("follow_external_links") {
-            None => false,
+            None => true,
             Some(v) => v
                 .as_bool()
                 .ok_or("follow_external_links must be a boolean.")?,
@@ -191,6 +195,18 @@ impl Image {
             ..Default::default()
         };
         let physical_path = input.source_path().map_err(|e| e.to_string())?;
+        let owned_transport: Vec<_> = input
+            .transport_paths()
+            .map_err(|e| e.to_string())?
+            .into_iter()
+            .filter(|p| *p != path)
+            .flat_map(|p| {
+                [
+                    p.to_path_buf(),
+                    p.canonicalize().unwrap_or_else(|_| p.into()),
+                ]
+            })
+            .collect();
         let origin = input
             .provenance()
             .map_err(|e| e.to_string())?
@@ -235,7 +251,7 @@ impl Image {
                 | dioptrin_io::discovery::Codec::Lambda
         );
         if is_hdf5 {
-            match crate::hdf5_sources::discover(physical_path, hdf5_options) {
+            match crate::hdf5_sources::discover(physical_path, hdf5_options, options) {
                 Ok(found) => sources = found,
                 Err(error) => source_discovery_error = Some(error),
             }
@@ -255,35 +271,49 @@ impl Image {
                 | dioptrin_io::discovery::Codec::Lima
                 | dioptrin_io::discovery::Codec::Lambda
         );
-        let reader = if let Some(dataset) = options.get("dataset") {
-            input.read_hdf5(
-                dioptrin_io::hdf5::typed::Selection::Dataset(
-                    dataset.as_str().ok_or("dataset must be a string.")?,
-                ),
-                hdf5_options,
-                None,
-            )
+        let reader = if is_hdf5 {
+            use dioptrin_io::{discovery::Codec, hdf5::typed::Selection};
+            let selection = if let Some(dataset) = options.get("dataset") {
+                Selection::Dataset(dataset.as_str().ok_or("dataset must be a string.")?)
+            } else {
+                match codec {
+                    Codec::Eiger => Selection::Eiger,
+                    Codec::Lima => Selection::Lima,
+                    Codec::Lambda => Selection::Lambda,
+                    _ => return Err("Choose an HDF5 image dataset.".into()),
+                }
+            };
+            crate::hdf5_loading::open(input, selection, hdf5_options, &options)?
         } else if let Some(dialect) = options.get("cbf_dialect") {
             let mode = match dialect.as_str() {
                 Some("legacy32") => dioptrin_io::cbf::ByteOffsetMode::Legacy32,
                 Some("extended64") => dioptrin_io::cbf::ByteOffsetMode::Extended64,
                 _ => return Err("Choose legacy32 or extended64 CBF dialect.".into()),
             };
-            input.read(
-                dioptrin_io::wrapped::Format::Cbf(mode),
-                Default::default(),
-                Default::default(),
-            )
+            input
+                .read(
+                    dioptrin_io::wrapped::Format::Cbf(mode),
+                    Default::default(),
+                    Default::default(),
+                )
+                .map_err(|e| e.to_string())?
         } else {
-            use dioptrin_io::{discovery::Codec, hdf5::typed::Selection};
-            match codec {
-                Codec::Eiger => input.read_hdf5(Selection::Eiger, hdf5_options, None),
-                Codec::Lima => input.read_hdf5(Selection::Lima, hdf5_options, None),
-                Codec::Lambda => input.read_hdf5(Selection::Lambda, hdf5_options, None),
-                _ => input.read_discovered(Default::default(), Default::default()),
+            input
+                .read_discovered(Default::default(), Default::default())
+                .map_err(|e| e.to_string())?
+        };
+        if is_hdf5 {
+            options["follow_external_links"] = serde_json::json!(follow);
+            let mut files = vec![];
+            for b in reader.source_bindings().map_err(|e| e.to_string())? {
+                for p in [b.requested, b.resolved] {
+                    if !owned_transport.contains(&p) && !files.iter().any(|(path, _)| *path == p) {
+                        files.push((p.clone(), FileIdentity::read(&p)?));
+                    }
+                }
             }
+            options["hdf5_snapshot"] = crate::hdf5_loading::snapshot(&path, files);
         }
-        .map_err(|e| e.to_string())?;
         let frames = reader.frames();
         if let Some(dataset) = options.get("dataset").and_then(Value::as_str)
             && !sources.iter().any(|s| s.dataset == dataset)
@@ -291,8 +321,9 @@ impl Image {
         {
             sources.push(crate::hdf5_sources::Source {
                 dataset: dataset.into(),
-                frames,
-                shape: m.shape,
+                needs_bindings: false,
+                frames: Some(frames),
+                shape: Some(m.shape),
             });
         }
         let frame = match options.get("frame") {
@@ -337,13 +368,89 @@ impl Image {
             source_discovery_error,
             automatic_source,
             options: Value::Object(
-                ["dataset", "follow_external_links", "cbf_dialect"]
-                    .into_iter()
-                    .filter_map(|k| options.get(k).map(|v| (k.into(), v.clone())))
-                    .collect(),
+                [
+                    "dataset",
+                    "follow_external_links",
+                    "cbf_dialect",
+                    "hdf5_bindings",
+                    "hdf5_printf",
+                    "hdf5_snapshot",
+                ]
+                .into_iter()
+                .filter_map(|k| options.get(k).map(|v| (k.into(), v.clone())))
+                .collect(),
             ),
         };
         Ok(image)
+    }
+    pub(crate) fn binding_request(path: &Path, options: &Value) -> Result<Option<Value>, String> {
+        use dioptrin_io::{
+            discovery::Codec,
+            hdf5::typed::{self, Selection},
+        };
+        let path = path.canonicalize().map_err(|e| e.to_string())?;
+        crate::hdf5_loading::check_snapshot(&path, options)?;
+        let mut settings = options.clone();
+        settings["path"] = serde_json::json!(path);
+        let options = &settings;
+        let input = Input::open(&path, Default::default()).map_err(|e| e.to_string())?;
+        let physical = input.source_path().map_err(|e| e.to_string())?;
+        let policy = typed::Options {
+            external_links: if options["follow_external_links"].as_bool() == Some(false) {
+                typed::ExternalLinks::Reject
+            } else {
+                typed::ExternalLinks::FollowSnapshot
+            },
+            ..Default::default()
+        };
+        if let Some(dataset) = options["dataset"].as_str() {
+            return crate::hdf5_loading::request(
+                physical,
+                Selection::Dataset(dataset),
+                policy,
+                options,
+            );
+        }
+        let origin = input
+            .provenance()
+            .map_err(|e| e.to_string())?
+            .origin_directory;
+        let codec = match input
+            .discover()
+            .map_err(|e| e.to_string())
+            .and_then(|d| d.require_unique().map_err(|e| e.to_string()))
+        {
+            Ok(c) => c,
+            Err(_) => {
+                dioptrin_io::hdf5::discovery::discover_snapshot(physical, policy, origin.as_deref())
+                    .map_err(|e| e.to_string())?
+            }
+        };
+        let selection = match codec {
+            Codec::Eiger => Selection::Eiger,
+            Codec::Lima => Selection::Lima,
+            Codec::Lambda => Selection::Lambda,
+            Codec::Hdf5 => {
+                for dataset in
+                    dioptrin_io::hdf5::catalog::image_paths(physical, policy, origin.as_deref())
+                        .map_err(|e| e.to_string())?
+                {
+                    if let Some(request) = crate::hdf5_loading::request(
+                        physical,
+                        Selection::Dataset(&dataset),
+                        policy,
+                        options,
+                    )? {
+                        let mut request = request;
+                        request["options"]["dataset"] = serde_json::json!(dataset);
+                        return Ok(Some(request));
+                    }
+                }
+                return Ok(None);
+            }
+            _ => return Ok(None),
+        };
+        crate::hdf5_loading::request(physical, selection, policy, options)
     }
     pub fn from_cached(
         path: PathBuf,
@@ -482,6 +589,10 @@ impl Image {
     pub fn source_fingerprint(&self) -> Result<Vec<(PathBuf, FileIdentity)>, String> {
         if self.reader.is_none() {
             return Err("Open the original detector source before bulk processing.".into());
+        }
+        self.check_sources()?;
+        if let Some(files) = crate::hdf5_loading::fingerprint(&self.path, &self.options)? {
+            return Ok(files);
         }
         let bindings = self
             .reader
@@ -747,7 +858,7 @@ pub struct CombinedSource {
     pub bindings: Vec<dioptrin_io::SourceBinding>,
     pub identity: FileIdentity,
 }
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FileIdentity {
     length: u64,
     modified: std::time::SystemTime,

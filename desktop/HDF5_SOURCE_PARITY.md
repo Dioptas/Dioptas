@@ -49,19 +49,12 @@ The separate file arrows always browse files, using their own File step and
 Name/Time setting, and open the destination's first frame. They retain the
 selected HDF5 source and never substitute a frame when a neighboring file is missing.
 
-Discovery uses the pinned native NeXus immutable metadata snapshot for exact
-soft/external-link resolution and typed readers for dataset admission. Metadata
-enumeration visits only concrete paths from that validated graph; it does not
-invoke HDF5 external-file search or decode scientific pixels. Group cycles and
-alias expansion are bounded. External links retain the existing explicit
-`follow_external_links: true` command/project setting, including after source
-switches and navigation; the dropdown never enables that policy implicitly.
-There is no new external-link consent/relocation UI. Recognized automatic or
-explicitly named sources can still load when unrelated metadata prevents a full
-catalog; the source control displays that discovery error instead of hiding it.
-Existing native reader limits, VDS/raw-storage admission and immutable-file
-requirements still apply. This is scoped qualification, not coverage of every
-HDF5 producer or unsupported native reader format.
+Discovery and source-contract resolution now belong to the native library. The
+standard interface opens exact external-link masters and supported VDS/raw
+sources through its explicit contracts. See [master/VDS interoperability](HDF5_MASTER_VDS_PARITY.md)
+for the current loading dialog, ownership, persistence, qualification and limits.
+The earlier explicit opt-in-only desktop policy below is superseded by that
+workflow; the native library's Reject default remains unchanged.
 
 ## Verification
 
@@ -78,8 +71,8 @@ uses Rust-generated real HDF5 files to cover:
 - Independent configurations, owned project caches, offline reopen and recovery
   to selected-source navigation when files return.
 - Automatic concatenated Eiger series, explicit dataset and automatic switches,
-  external dataset/group links and soft aliases, default link rejection and
-  explicit FollowSnapshot admission.
+  external dataset/group links and soft aliases, explicit link rejection and
+  FollowSnapshot admission.
 
 `npm run test:hdf5-sources` uses that same Rust processor (Python/PATH unavailable)
 and Rust-generated HDF5 fixtures through headless Chromium and WebKit. It covers

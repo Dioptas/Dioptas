@@ -13,7 +13,7 @@ default = ["dioptrin"]
 dioptrin = []
 
 [dependencies]
-dioptrin-io = { git = "https://github.com/CPrescher/dioptrin-io", rev = "344011962df431a6a47e3a3fb727aa9c65df3131", features = ["wrappers", "hdf5", "containers", "bruker", "oxford", "raxis", "fixed", "fit2d", "kcd", "mpa", "esperanto", "mar345", "xsd"] }
+dioptrin-io = { git = "https://github.com/CPrescher/dioptrin-io", rev = "9a0a2de5c46b2a0ceb5ad00a23a104cb203efb42", features = ["wrappers", "hdf5", "containers", "bruker", "oxford", "raxis", "fixed", "fit2d", "kcd", "mpa", "esperanto", "mar345", "xsd"] }
 dioptrin = { git = "https://github.com/CPrescher/Dioptrin", rev = "0c0d4fccc2b38a5f53b481ebf507c80cfb9a44c6", default-features = false }
 half = "2"
 serde = { version = "1", features = ["derive", "rc"] }
@@ -90,3 +90,6 @@ opt-level = 2
 # Float-to-JSON formatting of full calibration contours is also a hot path.
 [profile.dev.package.zmij]
 opt-level = 2
+
+[dev-dependencies]
+flate2 = "1"

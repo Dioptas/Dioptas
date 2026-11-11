@@ -1,0 +1,45 @@
+.hdf5-source-dialog {
+  width: min(680px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.hdf5-source-dialog h2,
+.hdf5-source-dialog p {
+  margin: 0;
+}
+.hdf5-source-requirements {
+  overflow: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.hdf5-source-requirement {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.hdf5-source-requirement label {
+  font-weight: 600;
+}
+.hdf5-source-owner {
+  color: var(--text-muted, #aaa);
+  font-size: 0.9em;
+}
+.hdf5-source-file {
+  display: flex;
+  gap: 8px;
+}
+.hdf5-source-file input {
+  flex: 1;
+  min-width: 0;
+}
+.hdf5-source-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

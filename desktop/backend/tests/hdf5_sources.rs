@@ -468,7 +468,12 @@ fn automatic_eiger_series_and_explicit_link_policy_are_preserved() {
     }
     let mut s = Session::new(root());
     assert_eq!(
-        invoke(&mut s, "open_image", json!({"path":master})).result["ok"],
+        invoke(
+            &mut s,
+            "open_image",
+            json!({"path":master,"follow_external_links":false})
+        )
+        .result["ok"],
         false
     );
     let auto = call(

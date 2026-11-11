@@ -101,7 +101,13 @@ export interface State {
   imageName: string | null;
   imagePath: string | null;
   imageSources?:
-    { dataset: string; frames: number; shape: [number, number] }[] | null;
+    | {
+        dataset: string;
+        frames: number | null;
+        shape: [number, number] | null;
+        needs_bindings?: boolean;
+      }[]
+    | null;
   selectedImageSource?: string | null;
   automaticImageSource?: boolean;
   imageSourceError?: string | null;
@@ -218,7 +224,22 @@ export interface PackedPoints {
   length: number;
   data: Raster["data"];
 }
+export interface Hdf5SourceRequest {
+  path: string;
+  options: Record<string, unknown>;
+  requirements: Array<{
+    kind: "vds" | "raw" | "printf";
+    owner: string;
+    stored_filename: string;
+    expected_file?: string;
+    dataset?: string;
+    mapping_index?: number;
+    declared_dataset?: string;
+  }>;
+}
 export interface Response {
+  hdf5SourceRequest?: Hdf5SourceRequest;
+  chosenPath?: string;
   imageUnavailable?: boolean;
   configurationNavigation?: { advanced: number[]; skipped: number[] };
   configurationReset?: boolean;

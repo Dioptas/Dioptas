@@ -104,6 +104,7 @@ if (selected.has("--ui")) {
     "native_file_errors_smoke",
     "image_change_smoke",
     "hdf5_sources_smoke",
+    "hdf5_master_vds_smoke",
     "detector_window_smoke",
     "detector_source_smoke",
     "companion_windows_smoke",
