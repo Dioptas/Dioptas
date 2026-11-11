@@ -493,6 +493,10 @@ try {
             .click();
           await idle();
         }
+        await page.waitForFunction(
+          async () => !!(await window.__nativeInvoke("state", {})).cake,
+        );
+        const sourceCake = (await invoke("state")).cake;
         for (const [label, patternUnit] of [
           ["2θ", "2th_deg"],
           ["Q", "q_A^-1"],
@@ -508,7 +512,8 @@ try {
           const beforeClick = await invoke("state");
           assert.equal(beforeClick.state.unit, patternUnit);
           const cakeUnit = beforeClick.cake.unit;
-          assert.ok(["2th_deg", "q_A^-1"].includes(cakeUnit));
+          assert.equal(cakeUnit, sourceCake.unit);
+          assert.equal(beforeClick.cake.bufferId, sourceCake.bufferId);
           const canvas = page.getByTestId("cake-canvas");
           assert.equal(
             await canvas.getAttribute("data-radial-source-unit"),

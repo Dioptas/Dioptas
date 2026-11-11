@@ -166,7 +166,20 @@ fn processing_export_project_flow(unit: &str) {
             "integration_open_pattern",
             json!({"path":output}),
         );
-        close(&values(&reread, "x"), &values(&actual, "x"));
+        let expected_x = if suffix == "fxye" && unit == "d_A" {
+            // GSAS CONS is angular even when the live pattern displays d.
+            let wavelength = actual.result["state"]["geometry"]["wavelength"]
+                .as_f64()
+                .unwrap()
+                * 1e10;
+            values(&actual, "x")
+                .iter()
+                .map(|d| 2.0 * (wavelength / (2.0 * d)).asin().to_degrees())
+                .collect()
+        } else {
+            values(&actual, "x")
+        };
+        close(&values(&reread, "x"), &expected_x);
         close(&values(&reread, "y"), &values(&actual, "y"));
         if ["xye", "fxye"].contains(&suffix) {
             // Imported PatternModel curves deliberately do not advertise
