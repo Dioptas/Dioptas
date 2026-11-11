@@ -402,3 +402,51 @@ denied. Rust-backed headless Chromium/WebKit checks pass Integration responsive
 workflows, 48 Phase-height layouts, 304 Overlay-width samples and full Batch
 companion/dock workflows. Workflow syntax and expressions pass actionlint. These
 checks do not qualify a new cross-platform binary release.
+
+## Review corrections and command foundations — November 11, 2026
+
+The full-code-review follow-up fixes the nine recorded findings and adds
+regressions at the affected command, project, transport and UI boundaries:
+
+- Oversized export requests fail before the host writes to stdio. Direct-client
+  oversized frames are bounded, drained and rejected while retaining the session.
+- Project serialization clears removed flat-field references. Background edits
+  and project loading share one typed validator, including the supported upper
+  iteration/order limits and legacy project values.
+- Single-pattern and automatic d-axis FXYE exports use physical angular
+  coordinates, with the same export-unit selection as Batch. Live pattern units,
+  samples and counting errors retain their scientific ownership.
+- Queued overlay edits target stable UIDs, including Undo grouping. Deleted
+  identities cannot redirect later edits to a different row.
+- One shared host/processor command policy owns cancellation classification,
+  including transfer corrections and delegated image/frame/source loading.
+- Incoming files that fail while being written are retried after their own
+  size/modification time changes and becomes stable again. Unchanged corrupt
+  files do not block later arrivals. This is a top-level-file watcher; it does
+  not watch changes confined to an HDF5 master's external children.
+- Series construction, metadata and append use a shared immutable file index,
+  retaining first-row, sparse-frame-count and source-order semantics with linear
+  indexing work.
+- Waterfall checks cover both intended layouts and the mean-based spacing
+  heuristic. Project checks distinguish cake source/display units and require
+  the scientific cake buffer to survive unit-only changes.
+
+After the complete fixes-only local gate passed, the first frontend architecture
+increment extracted ordered command scheduling from `App.tsx` into a pure
+coordinator. Its explicit outcomes and reservation cleanup have adversarial unit
+coverage. Response application and the existing controls remain owned by the
+React application. See [the command contract](COMMAND_CONTRACT.md) for ownership
+and the next typed-protocol/reducer boundaries.
+
+The fixes-only gate passed 283 Rust tests (two existing opt-in checks ignored),
+117 frontend tests, all native headless workflows, 18 independent numerical
+reference groups and 37 Tauri host tests. The coordinator adds six frontend
+tests and is validated separately across the headless UI gate. Local receipts
+are under `desktop/artifacts/review-fixes/`; no visible native windows are needed
+for these checks.
+
+Clean CI dependency resolution also replaces the unreachable PhaseSmith source
+pin with the public 0.8.1 revision. All source files in its six linked crates
+retain identical Git blob identities; the changes are package manifests. Current
+pins and the source-identity audit are documented in
+[native integration qualification](NATIVE_INTEGRATION_PARITY.md).
