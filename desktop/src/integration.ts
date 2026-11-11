@@ -101,12 +101,7 @@ export interface IntegrationState {
   frame: number;
   frames: number;
 }
-export type IntegrationRun = (
-  command: string,
-  args?: Record<string, unknown>,
-  message?: string,
-  onSuccess?: (result: Response) => void,
-) => Promise<void>;
+export type { Run as IntegrationRun } from "./commandContracts";
 
 /** UI-only identity for the non-removable measured-pattern row. */
 export const ORIGINAL_PATTERN_UID = "original-pattern";

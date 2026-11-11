@@ -348,10 +348,8 @@ export interface Response {
   } | null;
   rings?: RingOverlay[];
 }
-export type Invoke = (
-  command: string,
-  args?: Record<string, unknown>,
-) => Promise<Response>;
+export type { Invoke } from "./commandContracts";
+import type { Invoke } from "./commandContracts";
 declare global {
   interface Window {
     pywebview?: { api: { invoke: Invoke } };
