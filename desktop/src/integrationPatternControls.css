@@ -1,0 +1,30 @@
+/* Keep Pattern's save choices together, with the same file browser as Image. */
+.integration-pattern-files,
+.integration-pattern-files .integration-file-browser {
+  gap: 4px;
+}
+.integration-pattern-files .integration-pattern-options {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+  align-items: start;
+  padding-top: 4px;
+}
+.integration-pattern-files .integration-autocreate {
+  margin-left: 0;
+  order: 0;
+}
+.integration-pattern-files .integration-pattern-types {
+  gap: 4px 10px;
+  min-height: 30px;
+}
+.integration-pattern-types .check-row {
+  min-height: 30px;
+  white-space: nowrap;
+}
+@container (max-width: 360px) {
+  .integration-pattern-files .integration-pattern-options {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}

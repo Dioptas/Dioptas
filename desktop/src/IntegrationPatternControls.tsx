@@ -1,11 +1,11 @@
 import { Input, Button } from "./ui";
 import { MiddleElidedInput } from "./MiddleElidedInput";
-import { PathInput } from "./PathInput";
 import { useEffect, useState } from "react";
 import type { IntegrationState } from "./integration";
 import { Check } from "./IntegrationFields";
 import { IntegrationFileNavigator } from "./IntegrationFileNavigator";
 import "./integrationFileControls.css";
+import "./integrationPatternControls.css";
 
 /** Qt PatternWidget: a file browser and one row of autocreate formats. */
 export function IntegrationPatternControls({
@@ -65,7 +65,10 @@ export function IntegrationPatternControls({
                 event.preventDefault();
                 loadFilename();
               }
-              if (event.key === "Escape") setFileDraft(filename);
+              if (event.key === "Escape") {
+                event.preventDefault();
+                setFileDraft(filename);
+              }
             }}
             title={fileDraft === filename ? path || filename : fileDraft}
             aria-description="Enter a filename, then press Enter or Load pattern"
@@ -86,7 +89,7 @@ export function IntegrationPatternControls({
 
       <div className="integration-folder-row">
         <span className="integration-browse-label">Folder</span>
-        <PathInput
+        <MiddleElidedInput
           className="integration-file-path"
           aria-label="Pattern directory"
           value={directoryDraft}
@@ -98,8 +101,10 @@ export function IntegrationPatternControls({
                 path: directoryDraft,
               });
             }
-            if (event.key === "Escape")
+            if (event.key === "Escape") {
+              event.preventDefault();
               setDirectoryDraft(source.outputDirectory);
+            }
           }}
           title="Pattern input folder and autocreate output folder"
           placeholder="Pattern directory"
@@ -107,8 +112,24 @@ export function IntegrationPatternControls({
         />
       </div>
       <div className="integration-file-options integration-pattern-options">
-        <div className="integration-pattern-types">
-          <span>Pattern types:</span>
+        <label className="check-row integration-autocreate">
+          <Input
+            type="checkbox"
+            checked={source.autoSave}
+            onChange={(event) =>
+              action("integration_autocreate", {
+                enabled: event.target.checked,
+                directory: directoryDraft,
+              })
+            }
+          />
+          Autocreate
+        </label>
+        <div
+          className="integration-pattern-types"
+          role="group"
+          aria-label="Autocreate pattern formats"
+        >
           {[".xy", ".xye", ".chi", ".dat", ".fxye"].map((format) => (
             <Check
               key={format}
@@ -124,19 +145,6 @@ export function IntegrationPatternControls({
             />
           ))}
         </div>
-        <label className="check-row integration-autocreate">
-          <Input
-            type="checkbox"
-            checked={source.autoSave}
-            onChange={(event) =>
-              action("integration_autocreate", {
-                enabled: event.target.checked,
-                directory: directoryDraft,
-              })
-            }
-          />
-          Autocreate
-        </label>
       </div>
     </div>
   );

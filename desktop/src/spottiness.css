@@ -1,14 +1,33 @@
 .spottiness-pattern-controls {
+  grid-column: 1 / -1;
   display: grid;
-  gap: 12px;
+  gap: 4px;
+  min-width: 0;
 }
 .spottiness-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 14px;
+  gap: 6px 12px;
   border-top: 1px solid var(--border, #3d444c);
-  padding-top: 10px;
+  padding-top: 4px;
+}
+.integration-controls .spottiness-help,
+.integration-controls .spottiness-save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  min-height: 30px;
+  padding: 0;
+  flex: 0 0 30px;
+}
+.integration-controls .spottiness-save {
+  margin-left: auto;
+}
+.spottiness-controls > .check-row {
+  min-height: 30px;
 }
 .spottiness-explanation {
   flex-basis: 100%;

@@ -344,6 +344,8 @@ try {
           ),
         });
       }
+      // Profile is available in Cake view.
+      await page.getByRole("button", { name: "Cake", exact: true }).click();
       await page
         .getByRole("button", { name: "Azimuthal profile", exact: true })
         .click();
@@ -351,7 +353,7 @@ try {
         name: "Azimuthal profile",
         exact: true,
       });
-      await profile.getByTestId("pattern-canvas").waitFor();
+      await profile.getByTestId("cake-profile-canvas").waitFor();
       assert.equal(
         await page
           .getByRole("region", { name: "Spottiness diagnostic", exact: true })

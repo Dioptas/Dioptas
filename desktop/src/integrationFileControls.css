@@ -397,6 +397,13 @@
 }
 
 @container (max-width: 540px) {
+  .integration-file-browser-aligned .integration-file-toolbar {
+    margin-left: 0;
+    gap: 6px 8px;
+  }
+  .integration-file-browser-aligned .integration-file-order > span {
+    display: none;
+  }
   .integration-file-browser-aligned .integration-file-order {
     margin-left: 0;
   }
