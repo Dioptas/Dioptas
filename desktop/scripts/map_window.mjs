@@ -1,36 +1,67 @@
-// Headless companion workflow against the explicit legacy Python reference bridge.
+// Headless companion workflow: --native uses Rust; otherwise use the explicit Python reference.
 import { setInterfaceTextSize } from "./plot_navigation.mjs";
+import { selectIntegrationDisplay } from "./integration_display.mjs";
+import { nativeClient } from "./native_backend_client.mjs";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { chromium, webkit } from "playwright";
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const artifacts = path.join(root, "desktop/artifacts");
-await mkdir(artifacts, { recursive: true });
-const host = spawn(
-  path.join(root, ".venv/bin/python"),
-  ["-u", "desktop/scripts/bridge_host.py"],
-  { cwd: root, stdio: ["pipe", "pipe", "pipe"] },
-);
+const useNative = process.argv.includes("--native");
+const engineName = process.argv.includes("--webkit") ? "webkit" : "chromium";
+const runtimeName = useNative ? "rust" : "python-reference";
+const evidence = path.join(artifacts, "map-window", runtimeName, engineName);
+await mkdir(evidence, { recursive: true });
+const native = useNative ? nativeClient() : null;
+const host = useNative
+  ? null
+  : spawn(
+      path.join(root, ".venv/bin/python"),
+      ["-u", "desktop/scripts/bridge_host.py"],
+      { cwd: root, stdio: ["pipe", "pipe", "pipe"] },
+    );
+const scanFolder = path.join(root, "dioptas/tests/data/map");
+const scanPaths = useNative
+  ? (await readdir(scanFolder))
+      .filter((name) => name.endsWith(".tif"))
+      .sort()
+      .map((name) => path.join(scanFolder, name))
+  : [];
 let identifier = 0;
 const pending = new Map(),
-  logs = [],
+  logs = native?.diagnostics ?? [],
   requests = [];
-host.stderr.on("data", (b) => logs.push(b.toString()));
-createInterface({ input: host.stdout }).on("line", (line) => {
-  const message = JSON.parse(line),
-    task = pending.get(message.id);
-  if (task) {
-    clearTimeout(task.timer);
-    pending.delete(message.id);
-    task.resolve(message.result);
-  }
-});
-function invoke(action, payload = {}) {
+if (host) {
+  host.stderr.on("data", (b) => logs.push(b.toString()));
+  createInterface({ input: host.stdout }).on("line", (line) => {
+    const message = JSON.parse(line),
+      task = pending.get(message.id);
+    if (task) {
+      clearTimeout(task.timer);
+      pending.delete(message.id);
+      task.resolve(message.result);
+    }
+  });
+}
+async function invoke(action, payload = {}) {
   requests.push(action);
+  if (native) {
+    // Stand in for Tauri's file chooser; scientific commands go unchanged to Rust.
+    if (action === "map_load" && !payload.paths && !payload.reintegrate)
+      payload = { ...payload, paths: scanPaths };
+    if (action === "map_export" && !payload.path)
+      payload = {
+        ...payload,
+        path: path.join(evidence, payload.png_data ? "map.png" : "map.txt"),
+      };
+    const reply = await native.invoke(action, payload);
+    assert.equal(reply.ok, true, `${action}: ${reply.error}`);
+    return native.browserResult(reply);
+  }
   return new Promise((resolve, reject) => {
     const id = ++identifier;
     const timer = setTimeout(() => reject(Error(`Timed out ${action}`)), 45000);
@@ -38,13 +69,9 @@ function invoke(action, payload = {}) {
     host.stdin.write(JSON.stringify({ id, action, payload }) + "\n");
   });
 }
-const engineName = process.argv.includes("--webkit") ? "webkit" : "chromium";
 const browser = await (engineName === "webkit" ? webkit : chromium).launch({
   headless: true,
 });
-// Keep each browser's evidence, including when these checks run together.
-const evidence = path.join(artifacts, "map-window", engineName);
-await mkdir(evidence, { recursive: true });
 const context = await browser.newContext({
   viewport: { width: 1600, height: 1000 },
 });
@@ -110,6 +137,7 @@ const click = async (name) => {
   await ready();
 };
 try {
+  if (native) assert.equal((await native.invoke("__host__")).runtime, "rust");
   assert.equal((await invoke("example")).ok, true);
   assert.equal(
     (
@@ -140,6 +168,15 @@ try {
       document
         .querySelector('[aria-label="Integration"]')
         .getAttribute("aria-pressed") === "true",
+  );
+  // Rust deliberately skips hidden cakes. Exercise regeneration while Cake is
+  // actually displayed, using the same demand policy as the desktop.
+  await selectIntegrationDisplay(page, "cake");
+  await ready();
+  const cakeBeforeSelection = (await invoke("state")).cake;
+  assert.ok(
+    cakeBeforeSelection,
+    "Showing Cake did not request its native grid",
   );
   const scanCanvas = child.locator(
     '[data-testid="scan-map"] [data-testid="detector-canvas"]',
@@ -201,6 +238,12 @@ try {
     selected.cake,
     "Detached map selection did not regenerate the cake",
   );
+  if (native)
+    assert.notEqual(
+      selected.cake.bufferId,
+      cakeBeforeSelection.bufferId,
+      "Map selection retained the previous image's cake",
+    );
   assert.equal(selected.state.integrationDirty, false);
   assert.deepEqual(selected.map.selectedCell, [2, 2]);
   await page.screenshot({
@@ -242,6 +285,11 @@ try {
   await page.waitForFunction(() =>
     document.querySelector(".app-status")?.textContent.includes("map.png"),
   );
+  if (native)
+    assert.deepEqual(
+      [...(await readFile(path.join(evidence, "map.png"))).subarray(0, 8)],
+      [137, 80, 78, 71, 13, 10, 26, 10],
+    );
   await click("Map");
   await page.getByRole("button", { name: "Show map", exact: true }).click();
   assert.equal(context.pages().length, 2, "Show map opened a duplicate window");
@@ -373,6 +421,8 @@ try {
       {
         ok: true,
         browser: engineName,
+        runtime: runtimeName,
+        processorPid: native?.child.pid,
         selected: 4,
         renderedCellCoordinates: true,
         resizedBeforeSelections: true,
@@ -389,7 +439,7 @@ try {
     ),
   );
   console.log(
-    `${engineName}: detached Map frame selection, rapid selections, export, contrast and dock/close/reopen passed`,
+    `${engineName} (${runtimeName}): detached Map frame selection, rapid selections, export, contrast and dock/close/reopen passed`,
   );
 } catch (error) {
   console.log(
@@ -405,6 +455,7 @@ try {
   throw error;
 } finally {
   await browser.close();
-  host.stdin.end();
+  if (native) await native.close();
+  else host.stdin.end();
   await writeFile(path.join(evidence, "map-window-smoke.log"), logs.join(""));
 }

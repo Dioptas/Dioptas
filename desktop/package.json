@@ -80,6 +80,7 @@
     "test:cake-profile": "node scripts/cake_profile_smoke.mjs",
     "test:correction-previews": "node scripts/correction_previews_smoke.mjs",
     "test:map-window": "node scripts/map_window.mjs && node scripts/map_window.mjs --webkit",
+    "test:map-window-native": "node scripts/map_window.mjs --native && node scripts/map_window.mjs --native --webkit",
     "test:detector-window": "node scripts/detector_window_smoke.mjs && node scripts/detector_source_smoke.mjs",
     "test:detector-window-native": "node scripts/detector_window_native.mjs"
   },
