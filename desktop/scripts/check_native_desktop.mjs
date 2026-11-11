@@ -35,6 +35,9 @@ function run(name, command, args, cwd = desktop) {
 }
 const node = (name, script, ...args) =>
   run(name, process.execPath, ["scripts/" + script, ...args]);
+// Every gate checks the shared boundary, including processor-only CI jobs that
+// do not install frontend dependencies.
+node("native-contract-generation", "generate_native_contracts.mjs", "--check");
 if (selected.has("--processor")) {
   run("rust-format", "cargo", [
     "fmt",

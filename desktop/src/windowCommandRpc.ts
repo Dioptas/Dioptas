@@ -9,6 +9,8 @@ import type {
   RunInvocation,
 } from "./commandContracts";
 import type { Response } from "./types";
+import { forwardRun } from "./commandDispatch.ts";
+import type { CommandRunner, RunnerInvocation } from "./commandRunner";
 
 export type ScientificWindowRequest = {
   [C in CommandName]: {
@@ -31,11 +33,16 @@ export type WindowCommandRequest =
 type WindowInvocation =
   CommandInvocation | [command: "batch_hide", payload?: Record<string, never>];
 export type WindowRunInvocation =
-  | RunInvocation
+  | RunnerInvocation
   | [command: "batch_hide", payload?: Record<string, never>, message?: string];
-export type WindowRun = <const A extends WindowRunInvocation>(
-  ...call: A
-) => Promise<void>;
+export interface WindowRunner<Result = void> extends CommandRunner<Result> {
+  (
+    command: "batch_hide",
+    payload?: Record<string, never>,
+    message?: string,
+  ): Promise<Result>;
+}
+export type WindowRun = WindowRunner;
 export type WindowCommandAcknowledgement = Pick<
   Response,
   "ok" | "error" | "cancelled"
@@ -97,10 +104,14 @@ export class WindowCommandRpc {
     // Keep this transport assertion here rather than in detached UI components.
     return (await this.call(true, call[0], call[1])) as CommandResult<A[0]>;
   };
-  readonly edit = <const A extends WindowRunInvocation>(
-    ...call: A
-  ): Promise<WindowCommandAcknowledgement> =>
-    this.call(false, call[0], call[1]);
+  readonly edit: WindowRunner<WindowCommandAcknowledgement> = (
+    ...call: WindowRunInvocation
+  ) => this.editInvocation(call);
+  editInvocation(
+    call: WindowRunInvocation,
+  ): Promise<WindowCommandAcknowledgement> {
+    return this.call(false, call[0], call[1]);
+  }
 
   receive(id: string, result: Response) {
     const task = this.pending.get(id);
@@ -124,7 +135,10 @@ export function readWindowCommand(
   request: ScientificWindowRequest,
   reader: CommandRequestReader,
 ) {
-  return reader(...([request.command, request.args] as CommandInvocation));
+  return reader.apply(undefined, [
+    request.command,
+    request.args,
+  ] as CommandInvocation);
 }
 export function runWindowCommand(
   request: ScientificWindowRequest,
@@ -132,7 +146,10 @@ export function runWindowCommand(
   message: string,
   onSuccess: (result: Response) => void,
 ) {
-  return run(
-    ...([request.command, request.args, message, onSuccess] as RunInvocation),
-  );
+  return forwardRun(run, [
+    request.command,
+    request.args,
+    message,
+    onSuccess,
+  ] as RunInvocation);
 }

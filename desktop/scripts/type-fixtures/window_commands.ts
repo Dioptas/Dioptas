@@ -1,8 +1,10 @@
 import type { WindowCommandRequest, WindowRun } from "../../src/windowCommandRpc";
 import { WindowCommandRpc } from "../../src/windowCommandRpc";
+import type { BatchRun } from "../../src/batchDomain";
 
 declare const rpc: WindowCommandRpc;
 declare const run: WindowRun;
+declare const batch: BatchRun;
 rpc.read("map_levels", { clipping: 0.1 });
 rpc.edit("integration_save_batch", { format: "xy" });
 rpc.edit("batch_hide");
@@ -14,6 +16,10 @@ rpc.read("batch_hide");
 rpc.edit("batch_hide", { unexpected: true });
 // @ts-expect-error Export formats remain constrained across the detached boundary.
 rpc.edit("integration_save_batch", { format: "unknown" });
+// @ts-expect-error Correct fields must not hide an extra detached payload field.
+rpc.edit("integration_save_batch", { format: "xy", typo: true });
+// @ts-expect-error Batch controls observe snapshots rather than response callbacks.
+batch("batch_select", { index: 1 }, undefined, () => {});
 // @ts-expect-error Required native command arguments remain required in windows.
 run("batch_unit");
 // @ts-expect-error The window envelope preserves the command/payload relation.

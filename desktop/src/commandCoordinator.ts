@@ -1,5 +1,5 @@
-/** Scheduling policy for the main workspace's processor commands. Scientific
- * response application, drafts, dialogs and display preparation stay with App.
+/** Scheduling policy for the main workspace's processor commands. App composes
+ * the commandResponse transaction and workspaceResponse application owners.
  */
 type InteractiveKind =
   "mask" | "background" | "correction" | "overlay" | "frame" | "map-region";

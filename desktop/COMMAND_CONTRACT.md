@@ -2,8 +2,9 @@
 
 `command_contract.rs` is compiled into the Tauri host and Rust processor. It is
 the source of truth for the request-frame byte limit and execution policy.
-Scientific payloads/results still retain their existing JSON protocol; this
-registry is the first step toward typed command schemas, not a new transport.
+Scientific payloads/results retain their existing JSON protocol. React invokes
+Tauri's `desktop_invoke`; the host forwards requests over its owned processor
+stdio connection and returns metadata plus binary raster buffers through Tauri.
 
 - `OutOfBand` commands are progress and cancellation. They bypass the host's
   ordinary command/swap gate.
@@ -41,9 +42,7 @@ transfer-processing cancellation with full state restoration.
 ## Frontend command ownership
 
 `src/commandCoordinator.ts` owns workspace command admission, ordered execution,
-interactive reservations and release after completion or failure. It is a pure
-TypeScript module: the React application owns scientific response application,
-drafts, dialogs, progress presentation and display preparation. A reservation is
+interactive reservations and release after completion or failure. A reservation is
 released in `finally`, including when a queued command becomes obsolete or its
 identity predicate throws.
 
@@ -115,3 +114,37 @@ numeric and request round trips, explicit legacy dispatch, borrowed string and
 decision storage, response precedence, unchanged binary framing, and a real host
 session remaining usable after rejected structural input. The development watcher
 also observes shared schema, generator and generated Rust changes.
+
+## Frontend payloads and results
+
+
+`src/commandContracts.ts` maps frontend command names to payloads and result
+fields. `Invoke`, `Run` and request-reader APIs retain the relationship between a
+command and its payload through correlated argument tuples. Command-specific
+success fields are distinct from failures, cancellations and deferred decisions.
+HDF5, image and calibration decisions take precedence over cancellation because
+existing deferred replies can also contain `cancelled: true`.
+
+Detached Batch/Map messages use the same correlated command types.
+`src/windowCommandRpc.ts` owns request-id correlation, pending-request cleanup
+and the decode assertion at that IPC boundary. Edit replies contain only an
+acknowledgement; scientific data arrives through the existing refresh/snapshot
+path. Local `batch_hide` remains a window action outside the scientific registry.
+
+## Response ownership
+
+`src/responseSnapshot.ts` owns the pure transition for processor-owned session,
+detector, pattern, cake, Batch and Map data. Its hook publishes that model to
+React. `src/workspaceResponse.ts` applies synchronous canonical-source refs and
+coordinates display preferences, inspection and workspace effects through named
+domain ports. Canonical backend state remains separate from the rendered
+pattern-only state, which retains existing detector geometry and option drafts.
+
+`src/commandResponse.ts` owns the response transaction: deferred dialogs,
+stored-map fallback, linked-position and Auto-level preparation, publication,
+completion effects/callbacks, and state refresh after errors. `App.tsx` composes
+these owners with the coordinator and the existing UI. Preparation and callbacks
+remain inside the command reservation. Omitted products retain prior data;
+explicit null clears the nullable products that already support it. Immutable
+buffer identities and scientific arrays continue through the existing binary
+raster implementation without copies introduced by response application.

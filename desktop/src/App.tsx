@@ -1,10 +1,13 @@
 import type {
   CommandInvocation,
+  CheckedInvocation,
+  CheckedRunInvocation,
   RunInvocation,
   CommandRequestReader,
 } from "./commandContracts";
 import {
   submitWorkspaceCommand,
+  forwardScheduledRun,
   retryStoredMap,
   notifyScheduledSuccess,
   scheduledInvocation,
@@ -13,6 +16,7 @@ import {
   withCommandSuccess,
 } from "./workspaceCommands";
 import type { ScheduledRun, ScheduledRunInvocation } from "./workspaceCommands";
+import { forwardInvoke } from "./commandDispatch";
 import { handleCommandResponse } from "./commandResponse";
 import { useResponseSnapshot } from "./useResponseSnapshot";
 import { clickContext } from "./responseSnapshot";
@@ -374,7 +378,7 @@ export default function App() {
   const requestMap: CommandRequestReader = async <
     const A extends CommandInvocation,
   >(
-    ...call: A
+    ...call: CheckedInvocation<A>
   ) => {
     const [command] = call;
     // Batch snapshots/levels are read-only and the worker serializes them.
@@ -387,7 +391,7 @@ export default function App() {
     )
       return;
     try {
-      const result = await bridge.current<A>(...call);
+      const result = await forwardInvoke(bridge.current, call);
       if (!result.ok) setError(result.error ?? "Map command failed.");
       return result;
     } catch (error) {
@@ -621,7 +625,7 @@ export default function App() {
   );
   const run = useCallback<ScheduledRun>(
     async <const A extends ScheduledRunInvocation>(
-      ...call: A
+      ...call: CheckedRunInvocation<A>
     ): Promise<void> => {
       const [
         command,
@@ -637,7 +641,10 @@ export default function App() {
       if (
         !replaceDrafts &&
         draftReplacement.request(command, () => {
-          void run(...scheduledInvocation(call, { replaceDrafts: true }));
+          void forwardScheduledRun(
+            run,
+            scheduledInvocation(call, { replaceDrafts: true }),
+          );
         })
       )
         return;
@@ -940,10 +947,12 @@ export default function App() {
           invoke,
           () => requestedProductsRef.current,
         );
-        bridge.current = <const A extends CommandInvocation>(...call: A) =>
+        bridge.current = <const A extends CommandInvocation>(
+          ...call: CheckedInvocation<A>
+        ) =>
           supportsRequestedProducts.current
-            ? displayInvoke<A>(...call)
-            : invoke<A>(...call);
+            ? forwardInvoke(displayInvoke, call)
+            : forwardInvoke(invoke, call);
         await run("state", {}, "Opening workspace…");
       })
       .catch((e) => {
@@ -1330,10 +1339,10 @@ export default function App() {
     withScheduling(run, { queueIfBusy: true }),
   );
   const customInvoke = useCallback<Invoke>(
-    <const A extends CommandInvocation>(...call: A) => {
+    <const A extends CommandInvocation>(...call: CheckedInvocation<A>) => {
       if (!bridge.current)
         return Promise.reject(new Error("The desktop bridge is unavailable."));
-      return bridge.current<A>(...call);
+      return forwardInvoke(bridge.current, call);
     },
     [],
   );
@@ -1372,8 +1381,9 @@ export default function App() {
     run: withScheduling(run, { queueIfBusy: true }),
     // Like native child reads, browser popup reads use the processing worker's
     // serialization rather than being dropped during a quiet main-window edit.
-    request: async <const A extends CommandInvocation>(...call: A) =>
-      bridge.current?.<A>(...call),
+    request: async <const A extends CommandInvocation>(
+      ...call: CheckedInvocation<A>
+    ) => (bridge.current ? forwardInvoke(bridge.current, call) : undefined),
     status: {
       clicked: clickPositionReading,
       ready,

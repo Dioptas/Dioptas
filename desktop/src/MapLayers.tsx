@@ -1,4 +1,5 @@
-import type { RunInvocation } from "./commandContracts";
+import type { CheckedRunInvocation } from "./commandContracts";
+import { forwardRunner, type RunnerInvocation } from "./commandRunner";
 import type { MapWindowChanges } from "./commandPayloads";
 import { Button, Input, Select } from "./ui";
 import { useEffect, useState, useRef, type CSSProperties } from "react";
@@ -106,7 +107,7 @@ export function MapLayers({
     refreshRanges((n) => n + 1);
   }, [unit, map.labels[0]]);
   type Edit = {
-    call: RunInvocation;
+    call: RunnerInvocation;
     after?: () => void;
   };
   const enqueue = (build: () => Edit | null) => {
@@ -116,7 +117,7 @@ export function MapLayers({
       .then(async () => {
         setRangeError(null);
         const edit = build();
-        if (edit) await latest.current.run(...edit.call);
+        if (edit) await forwardRunner(latest.current.run, edit.call);
         // Let the parent's response update the source values before the next edit.
         await new Promise<void>((resolve) =>
           requestAnimationFrame(() => resolve()),
@@ -127,8 +128,9 @@ export function MapLayers({
     tail.current = task.catch(() => {});
     return task;
   };
-  const edit: MapRun = <const A extends RunInvocation>(...call: A) =>
-    enqueue(() => ({ call }));
+  const edit: MapRun = <const A extends RunnerInvocation>(
+    ...call: CheckedRunInvocation<A>
+  ) => enqueue(() => ({ call }));
   const updateWindow = (index: number, changes: MapWindowChanges) =>
     enqueue(() => {
       const roi = latest.current.map.rois[index];

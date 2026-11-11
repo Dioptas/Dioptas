@@ -1,4 +1,5 @@
-import type { RunInvocation } from "./commandContracts";
+import type { CheckedRunInvocation } from "./commandContracts";
+import { forwardRunner, type RunnerInvocation } from "./commandRunner";
 import { DockWindowIcon } from "./WindowIcons";
 import { DetectorSurface, useDetectorDetached } from "./DetectorWindow";
 import { Input, Button } from "./ui";
@@ -134,15 +135,15 @@ export function MapView({
     observer.observe(topPanel.current);
     return () => observer.disconnect();
   }, []);
-  const sourceRun: MapRun = async <const A extends RunInvocation>(
-    ...call: A
+  const sourceRun: MapRun = async <const A extends RunnerInvocation>(
+    ...call: CheckedRunInvocation<A>
   ) => {
     const command = call[0];
     if (
       ["map_load", "map_folder", "map_batch", "map_normalize"].includes(command)
     )
       setLive(false);
-    await run<A>(...call);
+    await forwardRunner(run, call);
   };
   const mapIdentity = JSON.stringify([
     state?.projectName,

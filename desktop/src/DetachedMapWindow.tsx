@@ -13,8 +13,10 @@ import { usePlotReadout } from "./plotReadout";
 import type { Invoke, Response } from "./types";
 import type {
   CommandInvocation,
+  CheckedInvocation,
   CommandRequestReader,
 } from "./commandContracts";
+import { forwardInvoke } from "./commandDispatch";
 import { WindowCommandRpc, type WindowRunInvocation } from "./windowCommandRpc";
 import type { MapData, MapRun } from "./mapDomain";
 import "./map.css";
@@ -39,11 +41,13 @@ export function DetachedMapWindow() {
     () => new WindowCommandRpc((message) => channel.current?.send(message)),
   );
   const request = useCallback<CommandRequestReader>(
-    async <const A extends CommandInvocation>(...call: A) => {
+    async <const A extends CommandInvocation>(
+      ...call: CheckedInvocation<A>
+    ) => {
       try {
         const response = bridge.current
-          ? await bridge.current<A>(...call)
-          : await rpc.read<A>(...call);
+          ? await forwardInvoke(bridge.current, call)
+          : await forwardInvoke(rpc.read, call);
         setReadError(
           response.ok ? null : (response.error ?? "Could not update the map."),
         );
@@ -110,7 +114,7 @@ export function DetachedMapWindow() {
   const run = useCallback<MapRun>(
     async <const A extends WindowRunInvocation>(...call: A) => {
       setError(null);
-      const response = await rpc.edit<A>(...call);
+      const response = await rpc.editInvocation(call);
       if (!response.ok) setError(response.error ?? "Map command failed.");
     },
     [rpc],

@@ -12,9 +12,15 @@ import type { BatchData } from "./batchDomain";
 import type { Invoke } from "./types";
 import type {
   CommandInvocation,
+  CheckedInvocation,
   CommandRequestReader,
 } from "./commandContracts";
-import { WindowCommandRpc, type WindowRun, type WindowRunInvocation } from "./windowCommandRpc";
+import { forwardInvoke } from "./commandDispatch";
+import {
+  WindowCommandRpc,
+  type WindowRun,
+  type WindowRunInvocation,
+} from "./windowCommandRpc";
 import { BatchWindowSync, batchWindowError } from "./batchWindowState";
 import { ReadingFields } from "./PlotStatus";
 
@@ -34,11 +40,13 @@ export function DetachedBatchWindow() {
     () => new WindowCommandRpc((message) => channel.current?.send(message)),
   );
   const request = useCallback<CommandRequestReader>(
-    async <const A extends CommandInvocation>(...call: A) => {
+    async <const A extends CommandInvocation>(
+      ...call: CheckedInvocation<A>
+    ) => {
       try {
         const r = bridge.current
-          ? await bridge.current<A>(...call)
-          : await rpc.read<A>(...call);
+          ? await forwardInvoke(bridge.current, call)
+          : await forwardInvoke(rpc.read, call);
         if (!r.ok) setError(r.error ?? "Could not refresh Batch.");
         return r;
       } catch (e) {
@@ -91,7 +99,7 @@ export function DetachedBatchWindow() {
   const run = useCallback<WindowRun>(
     async <const A extends WindowRunInvocation>(...call: A) => {
       setError(null);
-      const r = await rpc.edit<A>(...call);
+      const r = await rpc.editInvocation(call);
       if (!r.ok) setError(r.error ?? "Batch command failed.");
     },
     [rpc],

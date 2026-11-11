@@ -1,11 +1,14 @@
 import type {
   CommandInvocation,
+  CheckedInvocation,
+  CheckedRunInvocation,
   CommandName,
   Run,
   RunInvocation,
   Invoke,
 } from "./commandContracts";
 import type { Response } from "./types";
+import { forwardInvoke, forwardRun } from "./commandDispatch.ts";
 
 export type ScheduledRunInvocation<C extends CommandName = CommandName> = {
   [K in C]: [
@@ -16,8 +19,14 @@ export type ScheduledRunInvocation<C extends CommandName = CommandName> = {
   ];
 }[C];
 export type ScheduledRun = <const A extends ScheduledRunInvocation>(
-  ...call: A
+  ...call: CheckedRunInvocation<A>
 ) => Promise<void>;
+export function forwardScheduledRun<A extends ScheduledRunInvocation>(
+  run: ScheduledRun,
+  call: CheckedRunInvocation<A>,
+): Promise<void> {
+  return run.apply(undefined, call);
+}
 export interface SchedulingOptions {
   shouldRun?: () => boolean;
   queueIfBusy?: boolean;
@@ -58,8 +67,8 @@ export function withScheduling(
   run: ScheduledRun,
   options: SchedulingOptions,
 ): Run {
-  return <const A extends RunInvocation>(...call: A) =>
-    run(...scheduledInvocation(call, options));
+  return <const A extends RunInvocation>(...call: CheckedRunInvocation<A>) =>
+    forwardScheduledRun(run, scheduledInvocation(call, options));
 }
 export function submitWorkspaceCommand(
   invoke: Invoke,
@@ -85,14 +94,14 @@ export function submitWorkspaceCommand(
       invocation[0],
       { ...invocation[1], defer_integration: true },
     ] as CommandInvocation;
-    return invoke(...deferred);
+    return forwardInvoke(invoke, deferred);
   }
   if (invocation[0] === "map_select")
     return invoke("map_select", {
       ...invocation[1],
       integration_view: mode === "integration",
     });
-  return invoke(...invocation);
+  return forwardInvoke(invoke, invocation);
 }
 export function retryStoredMap(
   invoke: Invoke,
@@ -113,7 +122,7 @@ export function withCommandMessage(
   message: string,
   options: SchedulingOptions = {},
 ) {
-  return <const A extends CommandInvocation>(...call: A) => {
+  return <const A extends CommandInvocation>(...call: CheckedInvocation<A>) => {
     const scheduled = [
       call[0],
       call[1],
@@ -123,14 +132,14 @@ export function withCommandMessage(
       options.queueIfBusy,
       options.replaceDrafts,
     ] as ScheduledRunInvocation;
-    return run(...scheduled);
+    return forwardScheduledRun(run, scheduled);
   };
 }
 export function withCommandSuccess(
   run: ScheduledRun,
   completed: (command: CommandName) => void,
 ): Run {
-  return <const A extends RunInvocation>(...call: A) => {
+  return <const A extends RunInvocation>(...call: CheckedRunInvocation<A>) => {
     const scheduled = [
       call[0],
       call[1],
@@ -140,7 +149,7 @@ export function withCommandSuccess(
         completed(call[0]);
       },
     ] as ScheduledRunInvocation;
-    return run(...scheduled);
+    return forwardScheduledRun(run, scheduled);
   };
 }
 /** A queue may coalesce callers before invoking a command once. Capture its
@@ -158,6 +167,6 @@ export async function captureCommandResponse(
       response = result;
     },
   ] as RunInvocation;
-  await run(...captured);
+  await forwardRun(run, captured);
   return response;
 }
