@@ -18,6 +18,19 @@ const ready = (page) =>
       document.querySelector('[data-testid="batch-surface"]')?.dataset
         .renderState === "ready",
   );
+// renderState can still describe the preceding React commit. Require both the
+// new scientific buffer and the peak fixture's committed canvas metadata.
+const peakFixtureReady = (previousBuffer) => {
+  const canvas = document.querySelector('[data-testid="batch-surface"]');
+  return (
+    window.surfaceBuffer !== previousBuffer &&
+    window.surfaceBuffer?.byteLength === 64 * 2048 * 4 &&
+    canvas?.dataset.frameLast === "64" &&
+    canvas.dataset.unit === "2th_deg" &&
+    canvas.dataset.resolution === "fast" &&
+    canvas.dataset.renderState === "ready"
+  );
+};
 const details = (surface) => surface.evaluate((c) => ({ ...c.dataset }));
 const checksum = (page) =>
   page.evaluate(async () =>
@@ -72,8 +85,43 @@ try {
         exact: true,
       });
       await select.selectOption("fast");
-      await page.evaluate(() => window.setSurfacePeakFixture());
+      const previousBuffer = await page.evaluateHandle(
+        () => window.surfaceBuffer,
+      );
+      await page.evaluate(() => {
+        // Hold the fixture update independently of browser/CI timing. The old
+        // readiness predicate must return while this source commit is pending.
+        const commit = window.setSurfacePeakFixture;
+        window.setSurfacePeakFixture = () => {
+          window.commitSurfacePeakFixture = () => {
+            window.setSurfacePeakFixture = commit;
+            setTimeout(commit, 0);
+          };
+        };
+        window.setSurfacePeakFixture();
+      });
       await ready(page);
+      assert.equal(
+        await page.evaluate(
+          (previous) =>
+            window.surfaceBuffer === previous &&
+            previous.byteLength === 4 * 5 * 4,
+          previousBuffer,
+        ),
+        true,
+        "The old ready flag can precede the deliberately deferred fixture commit",
+      );
+      assert.equal(
+        await page.evaluate(peakFixtureReady, previousBuffer),
+        false,
+      );
+      const fixtureReady = page.waitForFunction(
+        peakFixtureReady,
+        previousBuffer,
+      );
+      await page.evaluate(() => window.commitSurfacePeakFixture());
+      await fixtureReady;
+      await previousBuffer.dispose();
       const sourceHash = await checksum(page);
       const fast = await details(surface);
       assert.ok(Number(fast.vertices) <= 8192);
@@ -394,6 +442,7 @@ try {
           fine: +fine.renderMs,
           moving: +moving.renderMs,
         },
+        deferredFixtureCommitWait: true,
         sourceUnchanged: true,
         errors,
       });
