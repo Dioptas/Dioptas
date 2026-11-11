@@ -647,6 +647,7 @@
 }
 .detached-map-footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -654,6 +655,9 @@
   padding: 4px 10px;
   font-size: var(--text-small);
   border-top: 1px solid #ffffff10;
+}
+.map-click-reading {
+  color: #7bd78b;
 }
 .detached-map-footer span {
   overflow: hidden;

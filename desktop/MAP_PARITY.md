@@ -612,3 +612,18 @@ backend/Cargo.toml --bin dioptas-processor`. Receipts, processor PIDs, screensho
 and logs are under `artifacts/map-window/rust/{chromium,webkit}/`.
 These are headless browser checks of Rust scientific processing and companion
 routing; visible native OS dialogs and window placement were not rerun.
+
+## Shared click readout with the detached Map (2026-11-11)
+
+The Map companion now displays the shared last radial click separately from its
+live row/column/intensity readout. Pattern clicks update that retained coordinate
+in both windows without changing the selected scan cell or map intensity grid.
+A Map cell selects a scan point, not a radial coordinate: it loads that point's
+image/pattern while retaining the selected physical radial position and marker.
+
+The Rust-backed headless test exercises pattern → Map cell → pattern → Map cell.
+It verifies changed scan images and pattern values, unchanged radial selection
+on cell changes, unchanged scan selection/grid on pattern clicks, the selected
+cell marker and matching click fields in both footers. Chromium and WebKit pass,
+along with the build and all 113 frontend tests. Screenshots/receipts are under
+`artifacts/map-window/rust/{chromium,webkit}/`.

@@ -31,6 +31,7 @@ export function useMapWindow({
   onError: (error: string) => void;
 }) {
   const [detached, setDetached] = useState(false);
+  const clickReadoutKey = JSON.stringify(status.clicked ?? null);
   const [session] = useState(() => crypto.randomUUID());
   const latest = useRef({ run, request, status, onOpen, onDock, onError });
   latest.current = { run, request, status, onOpen, onDock, onError };
@@ -121,6 +122,7 @@ export function useMapWindow({
     status.largeText,
     status.error,
     status.revision,
+    clickReadoutKey,
     status.progress,
   ]);
   const open = async () => {

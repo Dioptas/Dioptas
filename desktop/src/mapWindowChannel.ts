@@ -7,6 +7,7 @@ export type MapWindowStatus = {
   calibrated: boolean;
   largeText: boolean;
   error: string | null;
+  clicked?: import("./plotReadout").PlotReading | null;
   revision?: number;
   progress?: {
     running: boolean;

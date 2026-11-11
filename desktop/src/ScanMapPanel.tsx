@@ -157,7 +157,11 @@ export function ScanMapPanel({
       }
     >
       {map && scanRaster ? (
-        <div className="detector-workspace map-raster" data-testid="scan-map">
+        <div
+          className="detector-workspace map-raster"
+          data-testid="scan-map"
+          data-selected-cell={map.selectedCell?.join(",")}
+        >
           <RasterView
             raster={preview ?? scanRaster}
             contours={contours}

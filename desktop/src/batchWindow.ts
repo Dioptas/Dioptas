@@ -8,7 +8,6 @@ import type { Response } from "./types";
 
 export interface BatchWindowStatus extends MapWindowStatus {
   position?: import("./linkedPosition").PatternPosition;
-  clicked?: import("./plotReadout").PlotReading | null;
   progress?: {
     running: boolean;
     current: number;

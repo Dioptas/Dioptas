@@ -248,6 +248,134 @@ try {
       [1, 1],
     ],
   );
+  // A Map cell chooses the scan point, not a radial coordinate. Pattern clicks
+  // set the shared radial bookmark; cell changes must retain it on the new curve.
+  const patternCanvas = page.getByTestId("pattern-canvas");
+  const waitPatternMarker = (radial) =>
+    page.waitForFunction(
+      (value) =>
+        Math.abs(
+          Number(
+            document.querySelector('[data-testid="pattern-canvas"]').dataset
+              .linkedPosition,
+          ) - value,
+        ) < 1e-8,
+      radial,
+    );
+  const waitMapCell = (cell) =>
+    child.waitForFunction(
+      (expected) =>
+        document.querySelector('[data-testid="scan-map"]').dataset
+          .selectedCell === expected,
+      cell.join(","),
+    );
+  const sharedClick = async () => {
+    const fields = await page
+      .getByTestId("click-readout")
+      .locator("[data-field]")
+      .allTextContents();
+    assert.ok(fields.length > 0);
+    await child.getByTestId("map-click-readout").waitFor();
+    await child.waitForFunction(
+      (expected) =>
+        JSON.stringify(
+          [
+            ...document.querySelectorAll(
+              '[data-testid="map-click-readout"] [data-field]',
+            ),
+          ].map((el) => el.textContent),
+        ) === JSON.stringify(expected),
+      fields,
+    );
+    return fields;
+  };
+  const clickPattern = async (fraction) => {
+    const point = await patternCanvas.evaluate(
+      (el, fraction) => ({
+        x: +el.dataset.plotLeft + +el.dataset.plotWidth * fraction,
+        y: +el.dataset.plotTop + +el.dataset.plotHeight * 0.5,
+      }),
+      fraction,
+    );
+    await patternCanvas.click({ position: point });
+    await ready();
+    const result = await invoke("state");
+    assert.ok(result.linked);
+    await waitPatternMarker(result.linked.radial);
+    return result;
+  };
+  const mapBeforePatternClick = (await invoke("state")).map;
+  const firstPatternClick = await clickPattern(0.32);
+  assert.equal(
+    firstPatternClick.map.selected,
+    4,
+    "Pattern click changed the scan point",
+  );
+  assert.equal(
+    firstPatternClick.map.raster.bufferId,
+    mapBeforePatternClick.raster.bufferId,
+    "Pattern click replaced the scan-map intensity grid",
+  );
+  await waitMapCell([1, 1]);
+  const firstPatternFields = await sharedClick();
+  await scanClickChild(0, 2);
+  await page.waitForFunction(
+    (name) => document.title.includes(name),
+    initial.map.labels[2],
+  );
+  await ready();
+  const fromMapCell = await invoke("state");
+  assert.equal(fromMapCell.map.selected, 2);
+  assert.deepEqual(fromMapCell.map.selectedCell, [0, 2]);
+  assert.notEqual(
+    fromMapCell.state.imagePath,
+    firstPatternClick.state.imagePath,
+  );
+  assert.notDeepEqual(
+    fromMapCell.pattern.y,
+    firstPatternClick.pattern.y,
+    "Map click did not load the selected scan pattern",
+  );
+  assert.ok(
+    Math.abs(fromMapCell.linked.twoTheta - firstPatternClick.linked.twoTheta) <
+      1e-8,
+    "Scan selection lost the selected physical radial position",
+  );
+  await waitPatternMarker(fromMapCell.linked.radial);
+  await waitMapCell([0, 2]);
+  assert.deepEqual(await sharedClick(), firstPatternFields);
+  const secondPatternClick = await clickPattern(0.57);
+  assert.equal(secondPatternClick.map.selected, 2);
+  assert.ok(
+    Math.abs(secondPatternClick.linked.radial - fromMapCell.linked.radial) >
+      1e-3,
+  );
+  await waitMapCell([0, 2]);
+  const secondPatternFields = await sharedClick();
+  assert.notDeepEqual(
+    secondPatternFields,
+    firstPatternFields,
+    "New pattern click did not update the Map window's retained click readout",
+  );
+  await scanClickChild(1, 1);
+  await page.waitForFunction(
+    (name) => document.title.includes(name),
+    initial.map.labels[4],
+  );
+  await ready();
+  const restoredCell = await invoke("state");
+  assert.equal(restoredCell.map.selected, 4);
+  assert.ok(
+    Math.abs(
+      restoredCell.linked.twoTheta - secondPatternClick.linked.twoTheta,
+    ) < 1e-8,
+  );
+  await waitPatternMarker(restoredCell.linked.radial);
+  await waitMapCell([1, 1]);
+  assert.deepEqual(await sharedClick(), secondPatternFields);
+  await child.screenshot({
+    path: path.join(evidence, "shared-click-readout.png"),
+  });
   assert.equal(await child.getByRole("alert").count(), 0);
   await child.getByLabel("Smooth map", { exact: true }).check();
   await child.getByLabel("Map contours", { exact: true }).check();
@@ -398,6 +526,9 @@ try {
         selections: await page.evaluate(() => window.__mapSelectRequests),
         cakeRegenerated: true,
         rapidSelections: true,
+        patternClickUpdatesMapReadout: true,
+        mapCellUpdatesPatternAndRetainsClick: true,
+        sharedClickReadouts: true,
         dockCloseReopen: true,
         contrastPaletteRetained: true,
         minimumSizeLargeText: true,

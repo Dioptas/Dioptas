@@ -1,6 +1,7 @@
 import { DockWindowIcon } from "./WindowIcons";
 import { Button } from "./ui";
 import { StatusMessage } from "./StatusMessage";
+import { ReadingFields } from "./PlotStatus";
 import { processingProgressText } from "./processingProgress";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isTauri } from "@tauri-apps/api/core";
@@ -192,10 +193,15 @@ export function DetachedMapWindow() {
         />
       </div>
       <footer className="detached-map-footer">
-        <span>
+        <span data-testid="map-readout">
           {readout.reading?.text ??
             "Select a map cell to inspect it in the main window."}
         </span>
+        {status.clicked && (
+          <span className="map-click-reading" data-testid="map-click-readout">
+            Click <ReadingFields reading={status.clicked} />
+          </span>
+        )}
         <StatusMessage
           error={error || readError || status.error || null}
           message={

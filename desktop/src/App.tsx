@@ -1683,6 +1683,7 @@ export default function App() {
     // serialization rather than being dropped during a quiet main-window edit.
     request: async (command, args) => bridge.current?.(command, args),
     status: {
+      clicked: clickPositionReading,
       ready,
       calibrated: !!state?.calibrated,
       largeText,

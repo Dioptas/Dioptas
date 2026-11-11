@@ -340,3 +340,10 @@ its footer, separately from live mouse values. Regression checks exercise Batch
 Pattern clicks must keep the Batch's selected frame and intensity matrix intact.
 Only the changing click metadata is forwarded to the companion. Both headless
 Rust-backed Batch browser workflows, the build and 113 frontend tests pass.
+
+The Map companion now shares the retained radial click readout. Pattern clicks
+update it in the child; scan-cell clicks load the selected pattern while keeping
+that physical radial bookmark. Regression coverage verifies both directions,
+matching footer fields, selected-cell publication, changed scan patterns and
+retention of the map grid/frame on pattern-only clicks. Rust-backed Chromium and
+WebKit workflows, the production build and all 113 frontend tests pass.
