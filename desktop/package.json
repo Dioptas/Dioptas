@@ -83,7 +83,8 @@
     "test:map-window": "node scripts/map_window.mjs && node scripts/map_window.mjs --webkit",
     "test:map-window-native": "npm run test:map-window",
     "test:detector-window": "node scripts/detector_window_smoke.mjs && node scripts/detector_source_smoke.mjs",
-    "test:detector-window-native": "node scripts/detector_window_native.mjs"
+    "test:detector-window-native": "node scripts/detector_window_native.mjs",
+    "test:companion-windows": "node scripts/companion_windows_smoke.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",

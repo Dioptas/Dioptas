@@ -347,3 +347,14 @@ that physical radial bookmark. Regression coverage verifies both directions,
 matching footer fields, selected-cell publication, changed scan patterns and
 retention of the map grid/frame on pattern-only clicks. Rust-backed Chromium and
 WebKit workflows, the production build and all 113 frontend tests pass.
+
+## Simultaneous detector, Batch and Map companions (2026-11-11)
+
+Added `npm run test:companion-windows`: one Rust owner with all three companions
+and the main pattern open together. Headless Chromium and WebKit pass ten click
+transitions each, covering image, pattern, Batch, Map, Cake and Q units. Each
+step verifies four matching retained-click readouts and linked markers, keeps
+Batch/Map frame selections independent and preserves the radial bookmark when
+switching Map cells. The companions remain open and reuse one processor per
+browser run. Evidence is in `desktop/artifacts/companion-windows/`.
+Only regression coverage and its command/documentation were added.

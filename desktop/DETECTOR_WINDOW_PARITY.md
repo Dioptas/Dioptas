@@ -188,3 +188,18 @@ pattern clicks update the cake's radial marker and click point while retaining
 the selected azimuth. Both footer readouts must match after every click. The
 source grid remains in 2θ while Q labels are displayed. Chromium and WebKit pass
 against Rust with no application change needed.
+
+## All three companions detached together (2026-11-11)
+
+`npm run test:companion-windows` opens detector, Batch and Map companions together
+with one Rust processor and the main pattern. Ten sequential checks per browser
+exercise image, pattern, Batch frame/radial and Map-cell clicks, switch the
+detector companion to Cake, and repeat links with Q display units. Every step
+requires identical last-click fields across all four footers, the linked pattern
+and Batch markers, the detector/cake point, and the correct independent Batch
+frame and Map cell. Map selection must retain the physical radial bookmark.
+
+Headless Chromium and WebKit pass. All three companions remain open through the
+sequence and use the same processor PID. Receipts and four-window screenshots
+are under `artifacts/companion-windows/`. This adds joint regression coverage;
+no application correction or visible OS-window campaign was needed.
