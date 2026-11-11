@@ -451,15 +451,17 @@ try {
       observingAutomaticCancellation = true;
       // Subscribe before triggering the fit: an action acknowledgement can
       // arrive after its quiet native job has finished on a busy CI browser.
-      // The observer still waits for actual native progress and clicks the real
-      // footer control; no processor request is held or replaced by a fake fit.
+      // The observer still waits for actual native progress. Keyboard activation
+      // avoids spending the short cancellation window waiting for footer layout
+      // stability; the manual case above covers pointer activation.
       const cancelAutomaticFit = (async () => {
         await cancelAuto.waitFor();
         assert.equal(
           await page.getByLabel("Iterations", { exact: true }).isEnabled(),
           true,
         );
-        await cancelAuto.click();
+        assert.equal(await cancelAuto.isEnabled(), true);
+        await cancelAuto.press("Enter");
       })();
       await Promise.all([
         // Cancellation restores unchecked state. Click avoids .check() testing
