@@ -587,7 +587,7 @@ try {
   assert.equal(await loadButton.isDisabled(), true);
   assert.equal(
     await db
-      .getByRole("button", { name: "Export .eosmat…", exact: true })
+      .getByRole("button", { name: "Save…", exact: true })
       .isDisabled(),
     true,
   );
@@ -744,7 +744,7 @@ try {
   await query("gold");
   await select(gold);
   await db
-    .getByRole("button", { name: "Export .eosmat…", exact: true })
+    .getByRole("button", { name: "Save…", exact: true })
     .click();
   await ready();
   assert.equal(await db.isVisible(), true);

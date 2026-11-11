@@ -246,3 +246,19 @@ build, 117 frontend checks, 33 host tests, the new model-help check, and the
 existing publication-metadata regression in both Chromium and WebKit. All 27
 linked equation-reference anchors were checked against the public manual.
 The actual OS browser was not opened during headless verification.
+
+
+### Optional explanations and heat-capacity help
+
+**Show model explanations** at the top of the EoS page controls the equation
+and explanation blocks. It starts off, persists locally across reopening, and
+is shared by open editors. Compact contextual manual links remain visible.
+The preference changes presentation only, without a scientific transaction.
+Cᵥ,max has an always-visible hint for its high-temperature molar constant-volume
+heat-capacity meaning and the blank/default `3nR` convention (n = atoms per
+formula unit). Expanded help shows the Debye energy equation, units and molar
+normalization. The initial material save action is now labeled **Save…**, then
+**Save** after association with an EOSMAT file; **Save As…** always chooses a
+destination. Both initial save buttons use the same existing EOSMAT path.
+Headless checks cover the default/remembered toggle, retained links and scientific
+values, Cᵥ,max help/default, and the renamed initial Save action.

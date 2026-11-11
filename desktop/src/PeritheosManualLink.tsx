@@ -5,15 +5,19 @@ import { useState } from "react";
 export function PeritheosManualLink({
   href,
   label = "PeriTheos manual",
+  accessibleLabel,
 }: {
   href: string;
   label?: string;
+  accessibleLabel?: string;
 }) {
   const [error, setError] = useState("");
   return (
     <>
       <a
         href={href}
+        aria-label={accessibleLabel}
+        title={accessibleLabel}
         target="_blank"
         rel="noreferrer"
         onClick={(event) => {

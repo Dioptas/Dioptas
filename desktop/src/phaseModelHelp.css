@@ -37,3 +37,20 @@
   padding-left: 8px;
   border-left: 2px solid var(--ui-border);
 }
+
+.pe-model-help-compact {
+  margin: 0 0 8px;
+}
+.pe-model-help-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 3px 0 12px;
+  font-size: var(--text-small);
+}
+.pe-parameter-hint {
+  margin: 2px 0 6px;
+  color: var(--ui-muted);
+  font-size: var(--text-small);
+  line-height: 1.4;
+}

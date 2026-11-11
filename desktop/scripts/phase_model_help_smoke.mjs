@@ -92,8 +92,8 @@ try {
               }
           }
         const { React } = window.fixture;
-        function Editor() {
-          const [value, setValue] = React.useState(data);
+        function Editor({ initial = data }) {
+          const [value, setValue] = React.useState(initial);
           window.editorHelpData = value;
           window.setHelpEditorData = setValue;
           return React.createElement(PhaseEditor, {
@@ -113,6 +113,11 @@ try {
         }
         document.getElementById("fixture").classList.add("app");
         window.paint(Editor, {});
+        window.remountHelpEditor = () =>
+          window.paint(Editor, {
+            key: crypto.randomUUID(),
+            initial: window.editorHelpData,
+          });
         return { choices, urls: [...urls] };
       }, data);
       const ready = () => page.waitForFunction(() => !window.modelPending);
@@ -122,6 +127,54 @@ try {
       const select = (label) =>
         page.getByRole("combobox", { name: label, exact: true });
       const lawHelp = page.locator("#pe-choice-debye_temperature_law-help");
+      const explanations = page.getByRole("checkbox", {
+        name: "Show model explanations",
+        exact: true,
+      });
+      assert.equal(
+        await explanations.isChecked(),
+        false,
+        "Model explanations should start collapsed",
+      );
+      assert.equal(await page.locator(".pe-model-help math").count(), 0);
+      assert.equal(
+        await lawHelp.getByRole("link").count(),
+        1,
+        "Manual links must remain available when explanations are hidden",
+      );
+      await page
+        .getByText(
+          "High-temperature molar Cᵥ limit. Blank = 3nR; n = atoms per formula unit.",
+          { exact: true },
+        )
+        .waitFor();
+      assert.match(
+        await page.getByLabel("Cᵥ,max", { exact: true }).getAttribute("title"),
+        /blank uses default 3nR/,
+      );
+      assert(
+        await page
+          .getByRole("button", { name: "Save…", exact: true })
+          .isVisible(),
+      );
+      const beforeToggle = await page.evaluate(() =>
+        JSON.stringify(window.editorHelpData),
+      );
+      await explanations.check();
+      assert.equal(
+        await page.evaluate(() => JSON.stringify(window.editorHelpData)),
+        beforeToggle,
+        "Help visibility must not edit model parameters",
+      );
+      const cvHelp = page.locator("#pe-choice-Cvmax-help");
+      assert.equal(await cvHelp.locator("math").count(), 2);
+      assert.match(await cvHelp.innerText(), /constant volume/);
+      assert.match(await cvHelp.innerText(), /3nR/);
+      await explanations.uncheck();
+      assert.equal(await lawHelp.locator("math").count(), 0);
+      assert.equal(await cvHelp.getByRole("link").count(), 1);
+      await explanations.check();
+
       await lawHelp
         .getByText("Integrated Grüneisen law", { exact: true })
         .waitFor();
@@ -275,6 +328,21 @@ try {
         await cubic.getByRole("link").isVisible(),
         "Read-only records must retain documentation access",
       );
+      await page.evaluate(() => window.remountHelpEditor());
+      await page
+        .getByRole("tab", { name: "Equation of state", exact: true })
+        .click();
+      assert.equal(
+        await explanations.isChecked(),
+        true,
+        "Explanation preference must survive reopening the editor",
+      );
+      await explanations.uncheck();
+      await page.evaluate(() => window.remountHelpEditor());
+      await page
+        .getByRole("tab", { name: "Equation of state", exact: true })
+        .click();
+      assert.equal(await explanations.isChecked(), false);
       assert.deepEqual(errors, []);
       receipts.push({
         name,
@@ -282,6 +350,8 @@ try {
         nativeLinkPreservesEditor: true,
         equationsRendered: true,
         liveChoices: true,
+        rememberedHelpToggle: true,
+        cvmaxExplained: true,
       });
     } finally {
       await browser.close();

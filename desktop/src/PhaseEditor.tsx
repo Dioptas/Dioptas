@@ -18,7 +18,8 @@ import { PhaseEditorConfirm } from "./PhaseEditorConfirm";
 import { PhaseAssessmentBadge } from "./PhaseAssessmentBadge";
 import { PhaseEditorMetadata } from "./PhaseEditorMetadata";
 import { PhaseModelExplanation } from "./PhaseModelExplanation";
-import { choiceHelp, modelHelp } from "./phaseModelHelp";
+import { choiceHelp, modelHelp, parameterHelp } from "./phaseModelHelp";
+import { ModelExplanationToggle } from "./ModelExplanationToggle";
 import "./phaseEditor.css";
 
 export function PhaseEditor({
@@ -208,7 +209,7 @@ export function PhaseEditor({
             )?.value ?? "integrated_expansivity",
           ),
         )
-      : null;
+      : parameterHelp(f.key);
     const helpId = `pe-choice-${f.key}-help`;
     const editor = (
       <label
@@ -254,7 +255,7 @@ export function PhaseEditor({
             optional={thermal && !f.required}
             title={
               thermal
-                ? `${f.description ? `${f.description} · ` : ""}${f.key}${f.isDefault ? " · constructor default" : ""}${!f.required ? `; blank uses default ${f.default ?? "unset"}` : "; required"}`
+                ? `${f.description ? `${f.description} · ` : ""}${f.key}${f.isDefault ? " · constructor default" : ""}${!f.required ? `; blank uses default ${f.key === "Cvmax" ? "3nR" : (f.default ?? "unset")}` : "; required"}`
                 : f.key
             }
             onCommit={(value) =>
@@ -270,12 +271,18 @@ export function PhaseEditor({
         <span className="pe-unit">{f.unit}</span>
       </label>
     );
-    return f.choices?.length ? (
+    return f.choices?.length || help ? (
       <div
         className="pe-choice-with-help"
         key={`${data.index}-${data.reference}-${f.key}`}
       >
         {editor}
+        {f.key === "Cvmax" && (
+          <p className="pe-parameter-hint">
+            High-temperature molar Cᵥ limit. Blank = 3nR; n = atoms per formula
+            unit.
+          </p>
+        )}
         {help && <PhaseModelExplanation id={helpId} help={help} />}
       </div>
     ) : (
@@ -584,6 +591,7 @@ export function PhaseEditor({
             aria-labelledby="pe-tab-1"
             hidden={tab !== "Equation of state"}
           >
+            <ModelExplanationToggle />
             <div className="pe-record-picker">
               {!!data.references.length && (
                 <label className="pe-selector">
@@ -1182,7 +1190,9 @@ export function PhaseEditor({
           className="primary"
           title={
             data.editable
-              ? "Save this material"
+              ? data.canSaveCurrent
+                ? "Save changes to the current .eosmat file"
+                : "Choose an .eosmat file to save this material"
               : "Use Edit a copy to create an editable material"
           }
           disabled={
@@ -1193,11 +1203,11 @@ export function PhaseEditor({
           }
           onClick={() => void save("eosmat", data.canSaveCurrent)}
         >
-          {data.canSaveCurrent ? "Save" : "Export .eosmat…"}
+          {data.canSaveCurrent ? "Save" : "Save…"}
         </Button>
         <Button
           disabled={locked || metadataDirty}
-          title="Save .eosmat to retain EoS records, provenance and atomic positions"
+          title="Choose a different .eosmat file, retaining EoS records, provenance and atomic positions"
           onClick={() => void save("eosmat")}
         >
           Save As…

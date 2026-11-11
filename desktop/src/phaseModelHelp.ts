@@ -470,3 +470,28 @@ export function choiceHelp(
   }
   return null;
 }
+
+export function parameterHelp(key: string): ModelHelp | null {
+  if (key !== "Cvmax") return null;
+  const cv = sub("C", "V,max");
+  return {
+    title: "High-temperature heat-capacity limit",
+    description:
+      "Cᵥ,max sets the high-temperature limit of molar heat capacity at constant volume, in J mol⁻¹ K⁻¹. It scales Debye vibrational energy and thermal pressure.",
+    url: equationUrl("debye-energy-and-heat-capacity"),
+    equations: [
+      eq("Default Cᵥ,max = 3nR", cv, mo("="), mn(3), mi("n"), mi("R")),
+      eq(
+        "E_D(V,T) = Cᵥ,max T D₃(Θ(V)/T)",
+        sub("E", "D"),
+        parens(mi("V"), mo(","), mi("T")),
+        mo("="),
+        cv,
+        mi("T"),
+        sub("D", "3"),
+        parens(fraction(theta, mi("T"))),
+      ),
+    ],
+    note: "Leave blank to use 3nR. n is atoms per formula unit; R is the molar gas constant (about 8.314 J mol⁻¹ K⁻¹). The molar basis must match the material’s formula-unit volume.",
+  };
+}
