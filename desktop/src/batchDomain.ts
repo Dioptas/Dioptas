@@ -28,4 +28,4 @@ export interface BatchData {
   phaseLines?: import("./types").Pattern["phaseLines"];
   position?: import("./linkedPosition").PatternPosition | null;
 }
-export type BatchRun = import("./windowCommandRpc").WindowRun;
+export type BatchRun = import("./commandContracts").Run;

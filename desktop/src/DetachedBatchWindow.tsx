@@ -8,13 +8,13 @@ import { mapWindowChannel } from "./mapWindowChannel";
 import type { BatchWindowStatus } from "./batchWindow";
 import { BatchView } from "./BatchView";
 import { usePlotReadout } from "./plotReadout";
-import type { BatchData, BatchRun } from "./batchDomain";
+import type { BatchData } from "./batchDomain";
 import type { Invoke } from "./types";
 import type {
   CommandInvocation,
   CommandRequestReader,
 } from "./commandContracts";
-import { WindowCommandRpc, type WindowRunInvocation } from "./windowCommandRpc";
+import { WindowCommandRpc, type WindowRun, type WindowRunInvocation } from "./windowCommandRpc";
 import { BatchWindowSync, batchWindowError } from "./batchWindowState";
 import { ReadingFields } from "./PlotStatus";
 
@@ -88,7 +88,7 @@ export function DetachedBatchWindow() {
       rpc.close();
     };
   }, [request]);
-  const run = useCallback<BatchRun>(
+  const run = useCallback<WindowRun>(
     async <const A extends WindowRunInvocation>(...call: A) => {
       setError(null);
       const r = await rpc.edit<A>(...call);
