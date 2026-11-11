@@ -294,10 +294,7 @@ mod panic_tests {
                 .contains("test native failure")
         );
         assert!(reply.encode(42, &[]).unwrap().len() > 4);
-        assert_eq!(
-            guarded(|| Reply::success()).ok().unwrap().result["ok"],
-            true
-        );
+        assert_eq!(guarded(Reply::success).ok().unwrap().result["ok"], true);
     }
 }
 
