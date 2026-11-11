@@ -27,6 +27,11 @@ try {
     });
     const commands = [],
       errors = [];
+    let observingAutomaticCancellation = false;
+    const automaticCancellation = {
+      nativeProgress: false,
+      nativeCancelled: false,
+    };
     let backgroundGate = null;
     let backgroundStarted = null;
     const invoke = async (action, payload = {}) => {
@@ -48,6 +53,20 @@ try {
           ],
         };
       const r = await native.invoke(action, payload);
+      if (observingAutomaticCancellation) {
+        if (
+          action === "progress" &&
+          r.progress?.running &&
+          r.progress.label === "Applying pattern background to batch"
+        )
+          automaticCancellation.nativeProgress = true;
+        if (
+          action === "integration_background" &&
+          payload.enabled === true &&
+          payload.iterations === 99999
+        )
+          automaticCancellation.nativeCancelled = r.cancelled === true;
+      }
       assert.equal(r.ok, true, `${action}: ${r.error}`);
       return r;
     };
@@ -420,28 +439,49 @@ try {
       );
       await ready();
       const beforeAutoCancel = (await invoke("batch_snapshot")).batch;
-      await page
-        .getByRole("checkbox", {
-          name: "Subtract automatic pattern background",
-          exact: true,
-        })
-        .check();
       const cancelAuto = page.getByRole("button", {
         name: "Cancel processing",
         exact: true,
       });
-      await cancelAuto.waitFor();
-      assert.equal(
-        await page.getByLabel("Iterations", { exact: true }).isEnabled(),
-        true,
-      );
-      await cancelAuto.click();
+      const automaticBackgroundToggle = page.getByRole("checkbox", {
+        name: "Subtract automatic pattern background",
+        exact: true,
+      });
+      assert.equal(await automaticBackgroundToggle.isChecked(), false);
+      observingAutomaticCancellation = true;
+      // Subscribe before triggering the fit: an action acknowledgement can
+      // arrive after its quiet native job has finished on a busy CI browser.
+      // The observer still waits for actual native progress and clicks the real
+      // footer control; no processor request is held or replaced by a fake fit.
+      const cancelAutomaticFit = (async () => {
+        await cancelAuto.waitFor();
+        assert.equal(
+          await page.getByLabel("Iterations", { exact: true }).isEnabled(),
+          true,
+        );
+        await cancelAuto.click();
+      })();
+      await Promise.all([
+        // Cancellation restores unchecked state. Click avoids .check() testing
+        // its postcondition after the independently observed fit was cancelled.
+        automaticBackgroundToggle.click(),
+        cancelAutomaticFit,
+      ]);
       await page.waitForFunction(
         () =>
           document.querySelector('[data-testid="pattern-canvas"]')?.dataset
             .regionUpdating === "false",
       );
       await ready();
+      assert.deepEqual(
+        automaticCancellation,
+        {
+          nativeProgress: true,
+          nativeCancelled: true,
+        },
+        "Automatic cancellation must interrupt the actual native background job",
+      );
+      observingAutomaticCancellation = false;
       assert.deepEqual(
         (await invoke("batch_snapshot")).batch,
         beforeAutoCancel,
@@ -468,6 +508,7 @@ try {
         automaticUpdates: true,
         coalescedEdits: true,
         automaticCancellation: true,
+        nativeAutomaticCancellation: automaticCancellation,
       });
     } catch (error) {
       const diagnostics = [];
@@ -488,7 +529,12 @@ try {
       await writeFile(
         path.join(artifacts, `${name}-failure.json`),
         JSON.stringify(
-          { error: String(error), diagnostics, commands: commands.slice(-30) },
+          {
+            error: String(error),
+            diagnostics,
+            commands: commands.slice(-30),
+            automaticCancellation,
+          },
           null,
           2,
         ),
