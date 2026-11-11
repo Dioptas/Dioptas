@@ -68,7 +68,7 @@ Pinned native dependencies:
 | --- | --- | --- |
 | dioptrin-io | `344011962df431a6a47e3a3fb727aa9c65df3131` | Typed readers, bounded combined raw-HDF5 fold |
 | Dioptrin | `5e245da8c3df4735f2d0d28933c22fe16ac70c1f` | Shared fixed plans, integration, geometry/calibration |
-| PhaseSmith | `f0925305c70fc8ea5965d14f03aa51b8399621d8` | Powder, crystallography, CIF, Bruckner |
+| PhaseSmith | `e47507f4adf32ea2a137ddf6b735db88f8a67537` | Powder, crystallography, CIF, Bruckner |
 | Peritheos | `3c79b1aedf28c348a49cc22d9f24d92895546283` | EoS/thermal evaluation and authored core documents |
 
 The owner retains at most one pattern plan, cake plan and combined raw source.
