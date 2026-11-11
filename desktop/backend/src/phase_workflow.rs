@@ -12,6 +12,9 @@ fn schema() -> &'static Value {
     })
 }
 fn compatibility(eos: &str, thermal: &str, parameters: &Value) -> String {
+    if thermal == "SoundVelocityDebyeHelmholtz" {
+        return "SoundVelocityDebyeHelmholtz is not implemented in the linked Peritheos Rust 0.18.0 engine.".into();
+    }
     if !["", "none", "alphakt"].contains(&thermal) && eos == "LinearUsUpHugoniot" {
         return "A Hugoniot reference cannot have a thermal correction.".into();
     }
@@ -954,6 +957,9 @@ impl Session {
                 p.require_editable()?;
                 ensure_record(p);
                 let kind = args["value"].as_str().ok_or("Choose a thermal model.")?;
+                if kind == "SoundVelocityDebyeHelmholtz" {
+                    return Err(compatibility("", kind, &Value::Null));
+                }
                 if kind == "none" || kind == "alphakt" {
                     let coefficients = p.legacy_coefficients();
                     for (key, value) in ["alphat", "dalphadt", "dk0dt", "dk0pdt"]
@@ -1023,10 +1029,16 @@ impl Session {
                     if field["required"] == true {
                         return Err("This thermal coefficient is required.".into());
                     }
-                    r["thermal"]["parameters"]
-                        .as_object_mut()
-                        .unwrap()
-                        .remove(key);
+                    if field["default"].is_number() {
+                        // The Rust EOSMAT loader expects these constructor defaults
+                        // explicitly (notably double-Debye n/Ve/anharmonic terms).
+                        r["thermal"]["parameters"][key] = field["default"].clone();
+                    } else {
+                        r["thermal"]["parameters"]
+                            .as_object_mut()
+                            .unwrap()
+                            .remove(key);
+                    }
                 } else if field["choices"].as_array().is_some_and(|c| !c.is_empty()) {
                     if !field["choices"]
                         .as_array()

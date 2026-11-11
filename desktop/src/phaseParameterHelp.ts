@@ -276,7 +276,7 @@ const definitions: Record<string, Definition> = {
   ],
   dk0pdt: [
     "Legacy K₀′ temperature slope",
-    "Adds (dK₀′/dT)(T − 298 K) to the legacy BM3 pressure derivative.",
+    "Adds (dK₀′/dT)(T − 298 K) to the selected legacy EoS when that family has a K₀′ parameter.",
     "K⁻¹",
   ],
 };
@@ -335,7 +335,7 @@ function definition(
       "Volume-dependence coefficient",
       model === "MultiOscillatorGruneisen" || model === "Sokolova2016"
         ? "Coefficient β in t̃(x) = t − βx^(1/3), which modifies the generalized Grüneisen function. β = 0 recovers its reduced form."
-        : "Exponent β in γ(x) = γ∞ + (γ₀ − γ∞)x^β, with x = V/V₀. It controls the approach to the limiting Grüneisen parameter.",
+        : "Exponent β in γ(x) = γ∞ + (γ₀ − γ∞)x^β, with x = V/V₀. It controls the approach to the limiting Grüneisen parameter. β must be positive in this engine; β = 0 is rejected.",
       "dimensionless",
     ];
   if (key === "m")
@@ -379,7 +379,7 @@ function definition(
   if (/^(mE[12]|mb1?|m_[BE][12])$/.test(key))
     return [
       "Oscillator multiplicity",
-      "Weight of this vibrational mode in the summed energy and pressure. A zero optional multiplicity disables that mode; retain the source model's mode-count normalization.",
+      "Weight of this vibrational mode in the summed energy and pressure. MultiOscillatorGruneisen/Sokolova permits zero weights to disable modes. DorogokupetsOganov2007 requires four positive weights summing to 3n (within 0.005).",
       "dimensionless",
     ];
   if (/^(d|d1|d_B[12])$/.test(key))

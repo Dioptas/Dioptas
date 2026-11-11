@@ -86,9 +86,14 @@ try {
             if (help.description.startsWith("See the model definition"))
               throw Error(`Missing model help: ${name}`);
             urls.add(help.url);
-            if (!help.equations?.length)
-              throw Error(`Missing model equations: ${name}`);
-            modelsWithEquations++;
+            if (name === "SoundVelocityDebyeHelmholtz") {
+              if (help.equations?.length)
+                throw Error("Unsupported model has equations");
+            } else {
+              if (!help.equations?.length)
+                throw Error(`Missing model equations: ${name}`);
+              modelsWithEquations++;
+            }
             const numericFields =
               kind === "thermal"
                 ? spec.fields.filter((f) => !f.choices.length)
@@ -143,6 +148,29 @@ try {
                 }
               }
           }
+        // Regression checks for source-audit findings and configuration-dependent help.
+        const mathText = (help) =>
+          new DOMParser().parseFromString(
+            `<div>${(help.equations ?? []).map((e) => e.math).join("")}</div>`,
+            "application/xml",
+          ).documentElement.textContent;
+        const dewaele = modelHelp("thermal", "Dewaele2006", {
+          thermal_pressure_reference: "absolute_zero",
+          zero_point_pressure: "included",
+        });
+        if (!mathText(dewaele).includes("ZP"))
+          throw Error("Missing zero-point pressure equation");
+        const omitted = modelHelp("thermal", "Dewaele2006", {
+          thermal_pressure_reference: "absolute_zero",
+        });
+        if (mathText(omitted).includes("ZP"))
+          throw Error("Incorrect zero-point pressure addition");
+        for (const model of ["Dewaele2006", "DorogokupetsOganov2007"]) {
+          if (mathText(modelHelp("thermal", model)).includes("β=0"))
+            throw Error("Unsupported beta=0 limit");
+        }
+        if (!mathText(modelHelp("thermal", "alphakt")).includes("selected"))
+          throw Error("Legacy correction must use selected EOS");
         const { React } = window.fixture;
         function Editor({ initial = data }) {
           const [value, setValue] = React.useState(initial);

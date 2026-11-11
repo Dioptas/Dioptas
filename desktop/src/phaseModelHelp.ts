@@ -172,7 +172,7 @@ const thermalDescriptions: Record<string, [string, string]> = {
   ],
   SoundVelocityDebyeHelmholtz: [
     "sound-velocity-quasi-debye-helmholtz-eos",
-    "Derives the Debye temperature from longitudinal and shear sound velocities and density.",
+    "The sound-velocity Debye model is present in editor metadata but is not implemented in the linked PeriTheos Rust engine.",
   ],
 };
 export function modelHelp(

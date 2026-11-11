@@ -64,7 +64,7 @@
   "thermal:alphakt": [
     "\\Delta T=T-298\\,{\\rm K},\\quad \\alpha=\\alpha_{T0}+\\frac{d\\alpha}{dT}\\Delta T",
     "K(T)=K_0+\\frac{dK_0}{dT}\\Delta T,\\quad K^\\prime(T)=K_0^\\prime+\\frac{dK_0^\\prime}{dT}\\Delta T",
-    "P>0:\\quad V=V_{\\rm BM3}\\!\\left(P-\\alpha K(T)\\Delta T;V_0,K(T),K^\\prime(T)\\right)",
+    "P>0:\\quad V=V_{\\rm selected\\ EoS}\\!\\left(P-\\alpha K(T)\\Delta T;V_0,K(T),K^\\prime(T)\\right)",
     "P=0:\\quad V=V_0(1+\\alpha\\Delta T)",
     "P<0:\\quad V=V_0(1-P/K_0)"
   ],
@@ -202,7 +202,6 @@
   "thermal:Dewaele2006": [
     "x=V/V_0",
     "\\gamma(x)=\\gamma_\\infty+(\\gamma_0-\\gamma_\\infty)x^\\beta,\n\\qquad\n\\Theta(x)=\\Theta_0x^{-\\gamma_\\infty}\n\\exp\\!\\left[\\frac{\\gamma_0-\\gamma_\\infty}{\\beta}(1-x^\\beta)\\right]",
-    "\\beta=0:\\quad\\gamma=\\gamma_0,\\quad\\Theta(V)=\\Theta_0x^{-\\gamma_0}",
     "P_* =10^{-4}\\frac{3nR}{V}\\left[\\gamma T D_3(\\Theta/T)+\\frac12\\left(m a_0x^m+g e_0x^g\\right)T^2\\right]"
   ],
   "dewaele:relative": [
@@ -215,7 +214,6 @@
     "x=V/V_0",
     "\\gamma(x)=\\gamma_\\infty+(\\gamma_0-\\gamma_\\infty)x^\\beta",
     "\\Theta_i(x)=\\Theta_{i0}x^{-\\gamma_\\infty}\n\\exp\\left[\\frac{\\gamma_0-\\gamma_\\infty}{\\beta}\n(1-x^\\beta)\\right]",
-    "\\beta=0:\\quad\\gamma=\\gamma_0,\\quad\\Theta_i(V)=\\Theta_{i0}x^{-\\gamma_0}",
     "\\varepsilon_B(\\Theta,T,d)=\\frac{\\Theta(d-1)}{2d}\n+\\frac{T\\Theta d}\n{(Td+\\Theta)[(1+\\Theta/(Td))^d-1]}",
     "\\varepsilon_E(\\Theta,T)=\\Theta\\left(\\frac12+\n\\frac{1}{\\exp(\\Theta/T)-1}\\right)",
     "P_{\\mathrm{qh}}=10^{-4}\\frac{\\gamma(x)}{V}\n\\sum_i m_iR\\varepsilon_i",
@@ -225,17 +223,7 @@
     "P_*=P_{\\rm qh}-10^{-4}\\frac{\\partial(F_{\\rm anh}+F_{\\rm el}+F_{\\rm def})}{\\partial V}",
     "P(V,T)=P_{\\mathrm{ref}}(V)+P_*(V,T)-P_*(V,T_r)"
   ],
-  "thermal:SoundVelocityDebyeHelmholtz": [
-    "\\rho=M/(10V),\\quad V_m=10^{-5}V",
-    "C_l^{\\rm fit}=a_l+b_l\\rho,\\qquad C_s^{\\rm fit}=a_s+b_s\\rho",
-    "\\tau=C_l^{\\rm fit}/C_s^{\\rm fit},\\quad\\mu=\\frac{\\tau^2-2}{2(\\tau^2-1)}",
-    "B_s=-V\\,\\partial P_c/\\partial V",
-    "G=\\frac{3(1-2\\mu)}{2(1+\\mu)}B_s,\\quad\nC_l^2=\\frac{B_s+4G/3}{\\rho},\\quad C_s^2=\\frac{G}{\\rho}",
-    "\\frac{3}{C_{\\rm eff}^3}=\\frac{1}{C_l^3}+\\frac{2}{C_s^3}",
-    "\\Theta=\\frac{\\hbar}{k_B}\\left(6\\pi^2\\frac{nN_A}{V_m}\\right)^{1/3}(10^3 C_{\\rm eff})",
-    "E_{\\rm ph}=3nRTD_3(\\Theta/T),\\quad\\gamma=-\\partial\\ln\\Theta/\\partial\\ln V",
-    "P=P_{\\rm ref}+10^{-4}\\frac{\\gamma}{V}[E_{\\rm ph}(V,T)-E_{\\rm ph}(V,T_r)]"
-  ],
+  "thermal:SoundVelocityDebyeHelmholtz": [],
   "increment:debye": [
     "\\Delta P_D=10^{-4}\\frac{\\gamma(V)}{V}[E_D(V,T)-E_D(V,T_r)]"
   ],
@@ -244,5 +232,13 @@
   ],
   "total:debye": [
     "P(V,T)=P_{\\rm ref}(V)+\\Delta P_D(V,T)"
+  ],
+  "dewaele:zero-point": [
+    "P_{\\rm ZP}(V)=10^{-4}\\frac{9nR}{8V}\\gamma(V)\\Theta(V)",
+    "P=P_c(V)+P_*(V,T)+P_{\\rm ZP}(V)"
+  ],
+  "double:coincident": [
+    "w_A=\\begin{cases}(\\gamma_B-\\gamma_j)/(\\gamma_B-\\gamma_A),&|\\gamma_B-\\gamma_A|>10^{-12}\\\\1/2,&\\text{otherwise}\\end{cases}",
+    "\\frac{dw_A}{dV}=0\\quad\\text{in the coincident-temperature branch}"
   ]
 }
