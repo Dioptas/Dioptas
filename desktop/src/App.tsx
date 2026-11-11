@@ -1,3 +1,22 @@
+import type {
+  CommandInvocation,
+  RunInvocation,
+  CommandRequestReader,
+} from "./commandContracts";
+import {
+  submitWorkspaceCommand,
+  retryStoredMap,
+  notifyScheduledSuccess,
+  scheduledInvocation,
+  withScheduling,
+  withCommandMessage,
+  withCommandSuccess,
+} from "./workspaceCommands";
+import type { ScheduledRun, ScheduledRunInvocation } from "./workspaceCommands";
+import { handleCommandResponse } from "./commandResponse";
+import { useResponseSnapshot } from "./useResponseSnapshot";
+import { clickContext } from "./responseSnapshot";
+import { applyWorkspaceResponse } from "./workspaceResponse";
 import { CommandCoordinator, commandPolicy } from "./commandCoordinator";
 import { Hdf5SourceDialog } from "./Hdf5SourceDialog";
 import type { Hdf5SourceRequest } from "./types";
@@ -38,11 +57,9 @@ import { useGeometryDraft } from "./geometryDraft";
 import { useWorkflowNotice } from "./useWorkflowNotice";
 import { scientificValue } from "./ScientificNumberInput";
 import {
-  historyActionLabel,
   scientificHistoryCommand,
   scientificHistoryAction,
   isScientificHistoryCommand,
-  isCalibrationHistoryCommand,
   canTraverseScientificHistory,
 } from "./historyLabels";
 import {
@@ -78,7 +95,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { connect, updateWindowTitle } from "./bridge";
-import { fileOperationFailure, recordAction } from "./errorReporting";
+import { recordAction } from "./errorReporting";
 import { SettingsWorkspace } from "./SettingsWorkspace";
 import { useProcessingWorkerPreference } from "./ProcessingWorkerSettings";
 import { useCustomCommands } from "./customCommands";
@@ -95,7 +112,7 @@ import {
   coordinateValue,
   type SourcedReading,
 } from "./PlotStatus";
-import { restoreMapPosition, type PatternPosition } from "./linkedPosition";
+import type { PatternPosition } from "./linkedPosition";
 import { radialFields, radialValues } from "./radialReadout";
 import { detectorPlotSetup, patternPlotSetup } from "./diffractionPlotSetup";
 import {
@@ -118,9 +135,7 @@ import type {
 import { number } from "./types";
 import { BatchDock } from "./BatchDock";
 import { useBatchWindow } from "./batchWindow";
-import type { BatchData } from "./batchDomain";
 import { MapView } from "./MapView";
-import type { MapData } from "./mapDomain";
 import { useMapWindow } from "./mapWindow";
 import { MaskView } from "./MaskView";
 import { MaskPanel } from "./MaskPanel";
@@ -143,7 +158,6 @@ import {
   readImageAutoLevels,
   useImageDisplayPreferences,
 } from "./useImageDisplayPreferences";
-import { prepareDetectorImage } from "./prepareDetectorImage";
 import { colorMaps } from "./colorMaps";
 import { useConfigurationImageDisplays } from "./useConfigurationImageDisplays";
 import { IntegrationView } from "./IntegrationView";
@@ -164,21 +178,27 @@ import type { RingOverlay } from "./types";
 import type { ZoomMode } from "./usePlotNavigation";
 import { LoadCalibrationButton } from "./LoadCalibrationButton";
 
-function clickContext(state: State | null) {
-  return JSON.stringify([
-    state?.imagePath,
-    state?.selectedImageSource,
-    state?.configurationContext ?? state?.configurationIndex,
-    state?.projectName,
-    state?.integration.frame,
-    state?.integration.patternName,
-    state?.calibration.transformations,
-    state?.geometry,
-    state?.shape,
-  ]);
-}
-
 export default function App() {
+  const responseSnapshot = useResponseSnapshot();
+  const {
+    state,
+    setState,
+    image,
+    rawImage,
+    mask,
+    cake,
+    pattern,
+    batch,
+    map,
+    rings,
+    linked,
+    batchWarning,
+    mapWarning,
+    showOriginalPattern,
+    setShowOriginalPattern,
+    originalPatternColor,
+    setOriginalPatternColor,
+  } = responseSnapshot;
   const beforePreviewCommand = useRef<(command: string) => void>(() => {});
   const [plotViews] = useState(createPlotViews);
   const cakeWindowViewport =
@@ -198,8 +218,6 @@ export default function App() {
   const [sqrtPattern, setSqrtPattern] = useState(false);
   const [patternAntialias, setPatternAntialias] = useState(true);
   const [patternAutoRange, setPatternAutoRange] = useState(true);
-  const [showOriginalPattern, setShowOriginalPattern] = useState(true);
-  const [originalPatternColor, setOriginalPatternColor] = useState("#ffffff");
   const [selectedOverlayUid, setSelectedOverlayUid] = useState<string | null>(
     null,
   );
@@ -208,7 +226,6 @@ export default function App() {
   const [correctedImage, setCorrectedImage] = useState(true);
   const correctedImageRef = useRef(true);
   correctedImageRef.current = correctedImage;
-  const [rawImage, setRawImage] = useState<Raster | null>(null);
   const [showImagePhases, setShowImagePhases] = useState(false);
   const [phaseGuides, setPhaseGuides] = useState<RingOverlay[]>([]);
   const phaseGuideRevision = useRef<number | null>(null);
@@ -262,7 +279,6 @@ export default function App() {
   }, [showConfigurationControls]);
   const [showRings, setShowRings] = useState(true),
     [showNumbers, setShowNumbers] = useState(true);
-  const [linked, setLinked] = useState<Response["linked"]>();
   const currentLinked = useRef<Response["linked"]>(undefined);
   const retainedClickContext = useRef<string | undefined>(undefined);
   const [clickedReading, setClickedReading] = useState<SourcedReading | null>(
@@ -349,20 +365,18 @@ export default function App() {
   } | null>(null);
   const [mapPatternZoom, setMapPatternZoom] =
     usePlotZoomPreference("map-pattern");
-  const [batch, setBatch] = useState<BatchData | null>(null);
   const [batchDockVisible, setBatchDockVisible] = useState(
     () =>
       readLayoutFlag(layoutKeys.batchOpen) &&
       readLayoutFlag(layoutKeys.batchDocked),
   );
   const [batchOpenRequest, setBatchOpenRequest] = useState(0);
-  const [batchWarning, setBatchWarning] = useState<string | null>(null);
-  const [map, setMap] = useState<MapData | null>(null);
-  const [mapWarning, setMapWarning] = useState<string | null>(null);
-  const requestMap = async (
-    command: string,
-    args: Record<string, unknown> = {},
+  const requestMap: CommandRequestReader = async <
+    const A extends CommandInvocation,
+  >(
+    ...call: A
   ) => {
+    const [command] = call;
     // Batch snapshots/levels are read-only and the worker serializes them.
     // A quiet image-level update must not drop the companion's refresh.
     if (
@@ -373,7 +387,7 @@ export default function App() {
     )
       return;
     try {
-      const result = await bridge.current(command, args);
+      const result = await bridge.current<A>(...call);
       if (!result.ok) setError(result.error ?? "Map command failed.");
       return result;
     } catch (error) {
@@ -384,11 +398,9 @@ export default function App() {
   const [pickingEnabled, setPickingEnabled] = useState(true);
   const [ring, setRing] = useState(1),
     [automatic, setAutomatic] = useState(true);
-  const [rings, setRings] = useState<RingOverlay[]>([]);
   const bridge = useRef<Invoke | null>(null);
   const [commands] = useState(() => new CommandCoordinator());
   const currentState = useRef<State | null>(null);
-  const [state, setState] = useState<State | null>(null);
   const { cake: requestedCake, rings: requestedRings } =
     requestedDisplayProducts({
       mode,
@@ -430,10 +442,6 @@ export default function App() {
       console.warn("Could not update the native window title:", error),
     );
   }, [state?.imageName]);
-  const [image, setImage] = useState<Raster | null>(null),
-    [mask, setMask] = useState<Raster | null>(null);
-  const [cake, setCake] = useState<Cake | null>(null),
-    [pattern, setPattern] = useState<Pattern | null>(null);
   const displayedCake = useShiftedCake(
     cake,
     mode === "integration" ? cakeShift : 0,
@@ -529,219 +537,107 @@ export default function App() {
   const hoverRequest = useRef(false);
   const canDeferIntegration = useRef(false);
   const apply = useCallback(
-    (result: Response, resetImageView = true, retainClick = false) => {
-      if (!result.ok)
-        throw new Error(
-          result.error || "The operation could not be completed.",
-        );
-      const configurationDisplay = beginConfigurationDisplay(
+    (result: Response, resetImageView = true, retainClick = false) =>
+      applyWorkspaceResponse(
         result,
-        currentState.current,
-      );
-      if (result.batchWaterfallCreated) setOverlayReveal((n) => n + 1);
-      if ("batch" in result) setBatch(result.batch ?? null);
-      if (result.batchPhaseLines !== undefined)
-        setBatch((b) => (b ? { ...b, phaseLines: result.batchPhaseLines } : b));
-      if (result.batchPosition) {
-        setLocalPatternClick(result.batchPosition);
-        setLocalImageClick(null);
-        const fields = radialFields(
-          result.batchPosition.x,
-          result.batchPosition.unit,
-          result.batchWavelength ?? undefined,
-        );
-        setClickedReading({
-          source: "batch",
-          fields,
-          text: fields.map((f) => `${f.label} ${f.value}`).join(" · "),
-        });
-      }
-      if (result.batchSelection !== undefined)
-        setBatch((b) =>
-          b
-            ? {
-                ...b,
-                selected: result.batchSelection!,
-                pattern: result.pattern ?? b.pattern,
-                position: result.batchPosition ?? b.position,
-              }
-            : b,
-        );
-      if ("batchWarning" in result)
-        setBatchWarning(result.batchWarning ?? null);
-      if (result.batchOpened) {
-        setMode("integration");
-        setBatchOpenRequest((v) => v + 1);
-      }
-      if ("map" in result) setMap(result.map ?? null);
-      if ("mapWarning" in result) setMapWarning(result.mapWarning ?? null);
-      if (result.state) {
-        supportsRequestedProducts.current =
-          result.state.supportsRequestedProducts === true;
-        if (result.calibrationReset) {
-          resetFitDraft(result.state.calibration);
-          resetGeometryDraft(result.state.calibration);
-        }
-        if (result.calibrationReset || result.imageStateReset) {
-          setSelectedPicks([]);
-          setPhaseGuides([]);
-        }
-        if (retainClick)
-          retainedClickContext.current = clickContext(result.state);
-        currentState.current = result.state;
-        if (
-          typeof result.state.integration.originalPatternVisible === "boolean"
-        )
-          setShowOriginalPattern(
-            result.state.integration.originalPatternVisible,
-          );
-        if (result.state.integration.originalPatternColor)
-          setOriginalPatternColor(
-            result.state.integration.originalPatternColor,
-          );
-        // An existing live preview may still have the earlier Python worker
-        // loaded until the user restarts it.
-        canDeferIntegration.current = "integrationDirty" in result.state;
-        if (result.patternOnly && !result.phaseOnly)
-          phaseGuideRevision.current = result.state.revision;
-        setState((previous) => {
-          const next = result.state!;
-          if (!previous || !result.patternOnly) return next;
-          // Retain unchanged detector/controls inputs during a pattern-only edit.
-          return {
-            ...next,
-            calibration: {
-              ...previous.calibration,
-              canUndo: next.calibration.canUndo,
-              canRedo: next.calibration.canRedo,
+        {
+          snapshot: responseSnapshot,
+          configuration: { begin: beginConfigurationDisplay },
+          session: {
+            current: currentState,
+            supportsProducts: supportsRequestedProducts,
+            canDefer: canDeferIntegration,
+            retainedClick: retainedClickContext,
+            phaseGuideRevision,
+            resetCalibrationDrafts: (next) => {
+              resetFitDraft(next.calibration);
+              resetGeometryDraft(next.calibration);
             },
-            geometry: previous.geometry,
-            integration: { ...next.integration, roi: previous.integration.roi },
-          };
-        });
-      }
-      if (result.phaseGuides) setPhaseGuides(result.phaseGuides);
-      if (result.clearImage) {
-        setImage(null);
-        setRawImage(null);
-        setMask(null);
-        setPixel(null);
-        imageSource.current = null;
-        rawImageSource.current = null;
-        ++hoverSequence.current;
-        hoverLatest.current = null;
-      }
-      if (result.rawImage) {
-        rawImageSource.current = result.rawImage;
-        setRawImage(result.rawImage);
-      }
-      if (result.image) {
-        const sourceChanged =
-          result.image.data !== imageSource.current?.data ||
-          result.image.width !== imageSource.current?.width ||
-          result.image.height !== imageSource.current?.height;
-        imageSource.current = result.image;
-        ++hoverSequence.current;
-        hoverLatest.current = null;
-        if (hoverTimer.current) clearTimeout(hoverTimer.current);
-        hoverTimer.current = null;
-        setPixel(null);
-        setImage(result.image);
-        // Recovery and state refreshes can resend the same detector image.
-        // Only a changed source should replace the user's contrast limits.
-        if (
-          sourceChanged &&
-          (detectorAutoActive.current ||
-            configurationDisplay.configurationChanged)
-        ) {
-          setLimits(
-            activeMode.current === "integration" &&
-              !correctedImageRef.current &&
-              result.rawImage
-              ? result.rawImage.limits
-              : result.image.limits,
-          );
-        }
-        if (resetImageView) setResetKey((k) => k + 1);
-      }
-      if (result.levels)
-        (result.display === "cake" ? setCakeLimits : setLimits)(result.levels);
-      if (result.nextRing !== undefined) setRing(result.nextRing);
-      if ("linked" in result) {
-        currentLinked.current = result.linked;
-        setLinked(result.linked);
-      }
-      if (result.mask)
-        setMask((previous) =>
-          previous?.data === result.mask!.data &&
-          previous.width === result.mask!.width &&
-          previous.height === result.mask!.height
-            ? previous
-            : result.mask!,
-        );
-      if (result.rings) {
-        if (!result.rings.length && !requestedProductsRef.current.rings)
-          requestedRingContext.current = null;
-        setRings(result.rings);
-      }
-      if ("pattern" in result) setPattern(result.pattern ?? null);
-      if ("cake" in result) {
-        setCake(result.cake ?? null);
-        if (
-          result.cake &&
-          (cakeAutoActive.current || configurationDisplay.cakeDisplayChanged) &&
-          (result.cake.data !== cakeSource.current?.data ||
-            result.cake.width !== cakeSource.current?.width ||
-            result.cake.height !== cakeSource.current?.height)
-        )
-          setCakeLimits(result.cake.limits);
-        cakeSource.current = result.cake ?? null;
-      }
-      configurationDisplay.restore();
-      if (configurationDisplay.configurationChanged) {
-        setSelectedPicks([]);
-        setPhaseGuides([]);
-      }
-      if (result.configurationNavigation) {
-        const { advanced, skipped } = result.configurationNavigation;
-        setNotice(
-          advanced.length
-            ? `Advanced ${advanced.length} configuration${advanced.length === 1 ? "" : "s"}${skipped.length ? ` · ${skipped.length} without a matching file` : ""}`
-            : "No matching files for configuration browsing",
-        );
-      }
-      if (result.savedPath || result.savedPaths?.length) {
-        setNotice(
-          result.savedPaths?.length
-            ? `Saved ${result.savedPaths.length} batch files`
-            : `Saved ${result.savedPath!.split(/[\\/]/).at(-1)}`,
-        );
-      }
-    },
+            clearCalibrationSelection: () => {
+              setSelectedPicks([]);
+              setPhaseGuides([]);
+            },
+          },
+          detector: {
+            source: imageSource,
+            rawSource: rawImageSource,
+            autoActive: detectorAutoActive,
+            useRaw: () =>
+              activeMode.current === "integration" &&
+              !correctedImageRef.current,
+            levels: setLimits,
+            resetView: () => setResetKey((k) => k + 1),
+            invalidateHover: (clearTimer) => {
+              ++hoverSequence.current;
+              hoverLatest.current = null;
+              if (clearTimer) {
+                if (hoverTimer.current) clearTimeout(hoverTimer.current);
+                hoverTimer.current = null;
+              }
+              setPixel(null);
+            },
+          },
+          cake: {
+            source: cakeSource,
+            autoActive: cakeAutoActive,
+            levels: setCakeLimits,
+          },
+          inspection: {
+            linked: currentLinked,
+            batchPosition: (next) => {
+              setLocalPatternClick(next.batchPosition!);
+              setLocalImageClick(null);
+              const fields = radialFields(
+                next.batchPosition!.x,
+                next.batchPosition!.unit,
+                next.batchWavelength ?? undefined,
+              );
+              setClickedReading({
+                source: "batch",
+                fields,
+                text: fields.map((f) => `${f.label} ${f.value}`).join(" · "),
+              });
+            },
+          },
+          products: {
+            guides: setPhaseGuides,
+            ring: setRing,
+            requestedRings: requestedProductsRef,
+            requestedRingContext,
+          },
+          workflow: {
+            revealOverlays: () => setOverlayReveal((n) => n + 1),
+            openBatch: () => {
+              setMode("integration");
+              setBatchOpenRequest((v) => v + 1);
+            },
+            notice: setNotice,
+          },
+        },
+        resetImageView,
+        retainClick,
+      ),
     [],
   );
-  const run = useCallback(
-    async (
-      command: string,
-      args: Record<string, unknown> = {},
-      message = "Processing…",
-      onSuccess?: (result: Response) => void,
-      shouldRun?: () => boolean,
-      queueIfBusy = false,
-      replaceDrafts = false,
+  const run = useCallback<ScheduledRun>(
+    async <const A extends ScheduledRunInvocation>(
+      ...call: A
     ): Promise<void> => {
+      const [
+        command,
+        payload,
+        suppliedMessage,
+        ,
+        shouldRun,
+        queueIfBusy = false,
+        replaceDrafts = false,
+      ] = call;
+      const args = { ...payload };
+      const message = suppliedMessage ?? "Processing…";
       if (
         !replaceDrafts &&
         draftReplacement.request(command, () => {
-          void run(
-            command,
-            args,
-            message,
-            onSuccess,
-            shouldRun,
-            queueIfBusy,
-            true,
-          );
+          void run(...scheduledInvocation(call, { replaceDrafts: true }));
         })
       )
         return;
@@ -809,192 +705,71 @@ export default function App() {
             );
           navigationTrace("command-start", { action: command });
           try {
-            const selectedPosition = currentLinked.current;
-            let result = await invoke(
-              command,
-              commandMode === "mask" &&
-                canDeferIntegration.current &&
-                ![
-                  "configuration",
-                  "configuration_select",
-                  "combination_settings",
-                  "configuration_navigation",
-                  "save_combined_pattern",
-                  "processing_workers",
-                ].includes(command)
-                ? { ...args, defer_integration: true }
-                : command === "map_select"
-                  ? { ...args, integration_view: commandMode === "integration" }
-                  : args,
-            );
-            navigationTrace("command-response", {
-              action: command,
-              bufferId: result.image?.bufferId,
-            });
-            if (result.hdf5SourceRequest) {
-              if (
-                document.activeElement instanceof HTMLElement &&
-                document.activeElement !== document.body
-              )
-                calibrationResetOpener.current = document.activeElement;
-              setHdf5SourceRequest(result.hdf5SourceRequest);
-              return { status: "deferred", value: result };
-            }
-            if (result.imageChange || result.calibrationChange) {
-              if (
-                document.activeElement instanceof HTMLElement &&
-                document.activeElement !== document.body
-              )
-                calibrationResetOpener.current = document.activeElement;
-              setCalibrationResetRequest(
-                result.imageChange ?? result.calibrationChange,
-              );
-              return { status: "deferred", value: result };
-            }
-            // Stored-only map projects can be inspected even when their raw files are unavailable.
-            if (
-              command === "map_select" &&
-              args.reintegrate === true &&
-              !result.ok &&
-              result.error ===
-                "Reintegration needs the original image and a loaded calibration."
-            ) {
-              result = await invoke(command, {
-                ...args,
-                integration_view: commandMode === "integration",
-                reintegrate: false,
-              });
-            }
-            const retainMapClick =
-              result.ok &&
-              ((!!result.map &&
-                (command === "map_select" || command === "map_poll")) ||
-                result.batchSelection !== undefined);
-            if (retainMapClick)
-              result = await restoreMapPosition(
-                invoke,
-                result,
-                selectedPosition,
-              );
-            const display = detectorDisplay.current;
-            const raw =
-              commandMode === "integration" && !correctedImageRef.current;
-            if (detectorAutoActive.current)
-              result = await prepareDetectorImage(
-                invoke,
-                result,
-                raw ? rawImageSource.current : imageSource.current,
-                readImageAutoLevels(display.name, display.filterGaps),
-                raw,
-              );
-            navigationTrace("command-prepared", {
-              action: command,
-              bufferId: result.image?.bufferId,
-            });
-            // Qt's unit buttons relabel the existing cake. Retain the same pixel
-            // viewport while its axis changes (the pattern owns its unit adapter).
-            const unitOnly =
-              ["settings", "integration_settings"].includes(command) &&
-              Object.keys(args).length === 1 &&
-              "unit" in args;
-            apply(result, !unitOnly, retainMapClick);
-            navigationTrace("command-applied", {
-              action: command,
-              bufferId: result.image?.bufferId,
-            });
-            if (command === "next_image" && result.ok)
-              setNotice(
-                result.imageUnavailable
-                  ? Number(args.direction ?? 1) < 0
-                    ? "No previous image available"
-                    : "No new image available"
-                  : null,
-              );
-            if (!result.cancelled && result.state) {
-              if (["open_project", "example"].includes(command))
-                resetIntegrationDraft(result.state);
-              if (
-                ["open_project", "example", "open_calibration"].includes(
-                  command,
-                )
-              ) {
-                resetGeometryDraft(result.state.calibration);
-                resetFitDraft(result.state.calibration);
-              }
-            }
-            if (!result.cancelled && result.state) {
-              if (command === "manual_geometry")
-                resetGeometryDraft(result.state.calibration);
-              if (command === "calibrate")
-                resetFitDraft(result.state.calibration);
-            }
-            if (
-              command === "save_project" &&
-              result.savedPath &&
-              pendingOptionDrafts.current
-            ) {
-              setNotice(
-                `Saved ${result.savedPath.split(/[\\/]/).at(-1)} · unapplied option drafts remain in this session`,
-              );
-            }
-            if (result.correctionNotice) setNotice(result.correctionNotice);
-            if (command === "pick_peak" && result.noPeakFound)
-              setNotice("No peaks found in this area");
-            if (command === "open_calibration" && !result.cancelled) {
-              setNotice(
-                `Loaded calibration: ${result.state?.calibrationName ?? "PONI"}${result.state?.hasImage ? "" : " · Load a matching detector image"}`,
-              );
-            }
-            if (isScientificHistoryCommand(command)) {
-              setNotice(
-                `${command.startsWith("undo") ? "Undid" : "Redid"} ${historyActionLabel(historyLabel)}`,
-              );
-            }
-            if (command === "integration_autoprocess_poll" && result.state)
-              setError(result.state.integration.autoProcessError || null);
-            if (
-              (command === "load_peaks" && !result.cancelled) ||
-              isCalibrationHistoryCommand(command) ||
-              [
-                "clear_peaks",
-                "remove_pick",
-                "remove_picks",
-                "open_image",
-                "select_image_source",
-                "example",
-                "image_transform",
-                "open_project",
-              ].includes(command)
-            )
-              setSelectedPicks((previous) => (previous.length ? [] : previous));
-            if (
-              !result.cancelled &&
-              ["calibrate", "manual_geometry", "open_calibration"].includes(
+            return await handleCommandResponse(
+              {
                 command,
-              )
-            ) {
-              setCalibrationStep(
-                command === "open_calibration" && !result.state?.hasImage
-                  ? 0
-                  : 3,
-              );
-            }
-            onSuccess?.(result);
-            return result.cancelled
-              ? { status: "cancelled", value: result }
-              : { status: "applied", value: result };
-          } catch (e) {
-            const details = e instanceof Error ? e.message : String(e);
-            const failure = fileOperationFailure(command, details, args);
-            setError(failure?.title ?? details);
-            try {
-              // Recovery refreshes the current image too. A failed peak pick must
-              // keep the user's zoom so they can retry at the same location.
-              apply(await invoke("state"), false);
-            } catch {
-              /* Keep the original error visible. */
-            }
-            return { status: "failed", error: e };
+                args,
+                historyLabel,
+                invoke,
+                selectedPosition: currentLinked.current,
+                pendingDrafts: () => pendingOptionDrafts.current,
+                submit: () =>
+                  submitWorkspaceCommand(
+                    invoke,
+                    call,
+                    commandMode,
+                    canDeferIntegration.current,
+                  ),
+                retryStoredMap: () => retryStoredMap(invoke, call, commandMode),
+                detector: {
+                  autoActive: () => detectorAutoActive.current,
+                  raw: () =>
+                    commandMode === "integration" && !correctedImageRef.current,
+                  previous: (raw) =>
+                    raw ? rawImageSource.current : imageSource.current,
+                  autoLevels: () => {
+                    const display = detectorDisplay.current;
+                    return readImageAutoLevels(
+                      display.name,
+                      display.filterGaps,
+                    );
+                  },
+                },
+              },
+              {
+                apply,
+                trace: (event, result) =>
+                  navigationTrace(event, {
+                    action: command,
+                    bufferId: result.image?.bufferId,
+                  }),
+                defer: (decision) => {
+                  if (
+                    document.activeElement instanceof HTMLElement &&
+                    document.activeElement !== document.body
+                  )
+                    calibrationResetOpener.current = document.activeElement;
+                  if (decision.kind === "hdf5")
+                    setHdf5SourceRequest(decision.request);
+                  else setCalibrationResetRequest(decision.request);
+                },
+                drafts: {
+                  integration: resetIntegrationDraft,
+                  geometry: resetGeometryDraft,
+                  fit: resetFitDraft,
+                },
+                workflow: {
+                  notice: setNotice,
+                  error: setError,
+                  clearPicks: () =>
+                    setSelectedPicks((previous) =>
+                      previous.length ? [] : previous,
+                    ),
+                  calibrationStep: setCalibrationStep,
+                },
+                success: (result) => notifyScheduledSuccess(call, result),
+              },
+            );
           } finally {
             if (quietBackgroundJob) {
               ++progressGeneration.current;
@@ -1056,16 +831,10 @@ export default function App() {
   useEffect(() => {
     if (!navigationTimingEnabled) return;
     const probe = {
-      run: (action: string, payload: Record<string, unknown> = {}) =>
-        run(
-          action,
-          payload,
-          "Preparing navigation benchmark…",
-          undefined,
-          undefined,
-          false,
-          true,
-        ),
+      run: withCommandMessage(run, "Preparing navigation benchmark…", {
+        queueIfBusy: false,
+        replaceDrafts: true,
+      }),
       state: () => currentState.current,
       image: () => imageSource.current,
     };
@@ -1171,10 +940,10 @@ export default function App() {
           invoke,
           () => requestedProductsRef.current,
         );
-        bridge.current = (action, payload) =>
+        bridge.current = <const A extends CommandInvocation>(...call: A) =>
           supportsRequestedProducts.current
-            ? displayInvoke(action, payload)
-            : invoke(action, payload);
+            ? displayInvoke<A>(...call)
+            : invoke<A>(...call);
         await run("state", {}, "Opening workspace…");
       })
       .catch((e) => {
@@ -1280,11 +1049,8 @@ export default function App() {
         );
       } else if (mod && key === "s") {
         event.preventDefault();
-        void run(
-          mode === "mask" ? "mask_file" : "save_project",
-          mode === "mask" ? { save: true } : {},
-          "Saving…",
-        );
+        if (mode === "mask") void run("mask_file", { save: true }, "Saving…");
+        else void run("save_project", {}, "Saving…");
       } else if (mod && key === "z") {
         event.preventDefault();
         if (
@@ -1561,14 +1327,16 @@ export default function App() {
   useIntegrationSettingsAutoApply(
     integrationDraft,
     ready,
-    (command, args, message) =>
-      run(command, args, message, undefined, undefined, true),
+    withScheduling(run, { queueIfBusy: true }),
   );
-  const customInvoke = useCallback<Invoke>((command, args) => {
-    if (!bridge.current)
-      return Promise.reject(new Error("The desktop bridge is unavailable."));
-    return bridge.current(command, args);
-  }, []);
+  const customInvoke = useCallback<Invoke>(
+    <const A extends CommandInvocation>(...call: A) => {
+      if (!bridge.current)
+        return Promise.reject(new Error("The desktop bridge is unavailable."));
+      return bridge.current<A>(...call);
+    },
+    [],
+  );
   const customCommands = useCustomCommands(customInvoke, state);
   const customHistoryActive = settingsOpen && customActionsOpen;
   useLayoutEffect(() => {
@@ -1601,11 +1369,11 @@ export default function App() {
     customCommands.redo,
   ]);
   const mapWindow = useMapWindow({
-    run: (command, args, message, done) =>
-      run(command, args, message, done, undefined, true),
+    run: withScheduling(run, { queueIfBusy: true }),
     // Like native child reads, browser popup reads use the processing worker's
     // serialization rather than being dropped during a quiet main-window edit.
-    request: async (command, args) => bridge.current?.(command, args),
+    request: async <const A extends CommandInvocation>(...call: A) =>
+      bridge.current?.<A>(...call),
     status: {
       clicked: clickPositionReading,
       ready,
@@ -2102,9 +1870,8 @@ export default function App() {
   }, [batchOpenRequest]);
   const configurationControlsVisible =
     showConfigurationControls && !!state?.configurationLabels && !settingsOpen;
-  const runImageControl = useCallback<import("./integration").IntegrationRun>(
-    (command, args, message, done) =>
-      run(command, args, message, done, undefined, true),
+  const runImageControl = useMemo(
+    () => withScheduling(run, { queueIfBusy: true }),
     [run],
   );
   const imageControls = (
@@ -3315,8 +3082,8 @@ export default function App() {
                           state={state}
                           ready={ready}
                           run={run}
-                          runProcessing={(command, args, message, onSuccess) =>
-                            run(command, args, message, onSuccess, () => {
+                          runProcessing={withScheduling(run, {
+                            shouldRun: () => {
                               const current = currentState.current;
                               return (
                                 current?.projectName === state?.projectName &&
@@ -3326,8 +3093,8 @@ export default function App() {
                                 current?.selectedImageSource ===
                                   state?.selectedImageSource
                               );
-                            })
-                          }
+                            },
+                          })}
                           backgroundSettings={liveBackground.settings}
                           onBackgroundChange={liveBackground.change}
                           backgroundUpdating={liveBackground.updating}
@@ -3561,12 +3328,9 @@ export default function App() {
               onConventionChange={setValidationConvention}
               ready={ready}
               onClose={() => setManualGeometryOpen(false)}
-              run={(command, args, message) =>
-                run(command, args, message, () => {
-                  if (command === "manual_geometry")
-                    setManualGeometryOpen(false);
-                })
-              }
+              run={withCommandSuccess(run, (command) => {
+                if (command === "manual_geometry") setManualGeometryOpen(false);
+              })}
             />
           )}
           {settingsOpen && (
