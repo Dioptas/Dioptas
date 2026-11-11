@@ -150,6 +150,46 @@ try {
         await click("Edit selected Phase");
         await eos();
       };
+      const traverseHistory = async (action, keyboard = false) => {
+        await click("Close");
+        await dialog.waitFor({ state: "hidden" });
+        assert(
+          await button(action).isEnabled(),
+          `${action} should be available`,
+        );
+        const count = calls.length;
+        if (keyboard) {
+          await button(action).focus();
+          await page.keyboard.press(
+            action === "Undo" ? "Control+z" : "Control+Shift+z",
+          );
+          await ready();
+        } else await click(action);
+        assert(
+          calls
+            .slice(count)
+            .some((c) => c.action.startsWith(action.toLowerCase())),
+          `${action} must reach scientific history`,
+        );
+        await click("Edit selected Phase");
+        await eos();
+        return state();
+      };
+      const historyState = (data) => ({
+        uid: data.uid,
+        references: data.references,
+        reference: data.reference,
+        defaultReference: data.defaultReference,
+        recordData: data.recordData,
+        eosType: data.eosType,
+        thermalSelection: data.thermalSelection,
+        eosFields: data.eosFields,
+        thermalFields: data.thermalFields,
+        materialFields: data.materialFields,
+        lattice: data.lattice,
+        reflections: data.reflections,
+        structure: data.structure,
+      });
       const snapshotStructure = (data) => ({
         lattice: Object.fromEntries(
           ["a0", "b0", "c0", "alpha0", "beta0", "gamma0"].map((k) => [
@@ -189,7 +229,10 @@ try {
         },
       );
       const structure = snapshotStructure(await state());
+      await click("Save As…");
+      const documentBeforeClear = JSON.parse(await readFile(file, "utf8"));
       const detectorBefore = await invoke("state");
+      let beforeClear, afterClear;
       await step(
         "cancel and Escape from clear leave every record unchanged",
         async () => {
@@ -216,9 +259,11 @@ try {
       await step(
         "clear every EOS preserves lattice, atoms and reflections",
         async () => {
+          beforeClear = await state();
           await click("Clear all records…");
           await click("Clear all records");
           const empty = await state();
+          afterClear = empty;
           assert.equal(empty.references.length, 0);
           assert.equal(empty.recordData, null);
           // With no selected EOS, V0 comes from the retained cubic lattice.
@@ -235,9 +280,57 @@ try {
         },
       );
       await step(
+        "undo/redo clear-all restores every record and the selected/default EOS",
+        async () => {
+          const restored = await traverseHistory("Undo");
+          assert.deepEqual(historyState(restored), historyState(beforeClear));
+          assert(await select("Equation of state model").isEnabled());
+          assert.equal(
+            await select("Editor material record").inputValue(),
+            String(beforeClear.reference),
+          );
+          // A separate export verifies every restored record, not only the selection.
+          chooser = "alternate";
+          await click("Save As…");
+          const restoredDocument = JSON.parse(
+            await readFile(alternate, "utf8"),
+          );
+          assert.deepEqual(
+            restoredDocument.eos_records,
+            documentBeforeClear.eos_records,
+          );
+          assert.deepEqual(
+            restoredDocument.datasets,
+            documentBeforeClear.datasets,
+          );
+          chooser = "save";
+          assert.deepEqual(
+            historyState(await traverseHistory("Redo")),
+            historyState(afterClear),
+          );
+          assert(await button("Add record").isEnabled());
+          assert(await button("Delete record…").isDisabled());
+        },
+      );
+      await step(
+        "keyboard undo/redo repeats clear-all without losing records or structure",
+        async () => {
+          for (let repeat = 0; repeat < 2; repeat++) {
+            assert.deepEqual(
+              historyState(await traverseHistory("Undo", true)),
+              historyState(beforeClear),
+            );
+            assert.deepEqual(
+              historyState(await traverseHistory("Redo", true)),
+              historyState(afterClear),
+            );
+          }
+        },
+      );
+      await step(
         "empty EOS material saves, reloads and creates valid K0=100 record",
         async () => {
-          await click("Save…");
+          await click((await state()).canSaveCurrent ? "Save" : "Save…");
           assert.equal(
             JSON.parse(await readFile(file, "utf8")).eos_records.length,
             0,
@@ -354,11 +447,97 @@ try {
         },
       );
       await step(
-        "deleting the last EOS also permits a new valid EOS",
+        "delete-last undo/redo and add-record history restore exact models",
         async () => {
+          const beforeDelete = await state();
           await click("Delete record…");
           await click("Confirm delete");
-          assert.equal((await state()).references.length, 0);
+          const deleted = await state();
+          assert.equal(deleted.references.length, 0);
+          assert.deepEqual(
+            historyState(await traverseHistory("Undo")),
+            historyState(beforeDelete),
+          );
+          // Rejected edits must not discard the redo of the deletion.
+          await edit("K0", "0");
+          assert.match(
+            await dialog.locator("footer [role=status]").innerText(),
+            /Edit not applied/,
+          );
+          assert.deepEqual(
+            historyState(await traverseHistory("Redo")),
+            historyState(deleted),
+          );
+          await click("Add record");
+          const added = await state();
+          assert.equal(added.recordData.eos.parameters.K0, 100);
+          assert.deepEqual(
+            historyState(await traverseHistory("Undo")),
+            historyState(deleted),
+          );
+          assert.deepEqual(
+            historyState(await traverseHistory("Undo")),
+            historyState(beforeDelete),
+          );
+          assert.deepEqual(
+            historyState(await traverseHistory("Redo")),
+            historyState(deleted),
+          );
+          assert.deepEqual(
+            historyState(await traverseHistory("Redo")),
+            historyState(added),
+          );
+        },
+      );
+      await step(
+        "a new edit after undoing add-record discards the obsolete redo branch",
+        async () => {
+          const added = await state();
+          assert.equal(
+            (await traverseHistory("Undo", true)).references.length,
+            0,
+          );
+          await click("Add record");
+          assert.equal((await model()).eos.parameters.K0, 100);
+          await edit("K0", "125");
+          await click("Close");
+          await dialog.waitFor({ state: "hidden" });
+          assert(await button("Redo").isDisabled());
+          await click("Edit selected Phase");
+          await eos();
+          assert.equal((await model()).eos.parameters.K0, 125);
+          assert.deepEqual(
+            snapshotStructure(await state()),
+            snapshotStructure(added),
+          );
+        },
+      );
+      await step(
+        "delete every record individually, undo all deletions, then redo them",
+        async () => {
+          for (const value of [150, 175]) {
+            await click("Duplicate as custom");
+            await edit("K0", String(value));
+          }
+          await click("Set default");
+          const checkpoints = [await state()];
+          while ((await state()).references.length) {
+            await click("Delete record…");
+            await click("Confirm delete");
+            checkpoints.push(await state());
+          }
+          assert.equal(checkpoints.length, 4);
+          for (let i = checkpoints.length - 2; i >= 0; i--)
+            assert.deepEqual(
+              historyState(await traverseHistory("Undo")),
+              historyState(checkpoints[i]),
+            );
+          for (let i = 1; i < checkpoints.length; i++)
+            assert.deepEqual(
+              historyState(await traverseHistory("Redo")),
+              historyState(checkpoints[i]),
+            );
+          assert(await button("Add record").isEnabled());
           await click("Add record");
           assert.equal((await model()).eos.parameters.K0, 100);
         },
@@ -619,6 +798,18 @@ try {
       });
       receipts.push({ name, steps, pageErrors: errors });
     } catch (error) {
+      await writeFile(
+        path.join(artifacts, `${name}-history-debug.json`),
+        JSON.stringify(
+          {
+            stage,
+            calls: calls.slice(-25),
+            native: await native.invoke("state"),
+          },
+          null,
+          2,
+        ),
+      );
       await page
         .screenshot({ path: path.join(artifacts, `${name}-failure.png`) })
         .catch(() => {});

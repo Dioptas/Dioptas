@@ -14,7 +14,7 @@ windows, files and live worker sessions are not used.
 
 The same suite is included in `npm run test:ci-native`'s UI gates.
 
-## Covered workflows (16 per browser)
+## Covered workflows (20 per browser)
 
 1. Published material stays read-only; Edit a copy creates an independent
    editable structure with atomic sites and reflections retained.
@@ -32,6 +32,8 @@ The same suite is included in `npm run test:ci-native`'s UI gates.
 8. Duplicate, switch and set default maintain independent records; cancel
    deletion preserves them; confirmed deletion selects the remaining record.
 9. Deleting the last EoS permits creating another valid 100 GPa record.
+   Undo/redo traverses the deletion and recreation separately, restoring exact
+   model and selection states. A rejected edit preserves the redo branch.
 10. Model changes update the displayed equations; the unsupported sound-velocity
     choice remains disabled; Dewaele beta = 0 rolls back cleanly.
 11. Custom Cvmax can be cleared to the 3nR convention; q = 0 is accepted.
@@ -45,6 +47,15 @@ The same suite is included in `npm run test:ci-native`'s UI gates.
     structure, model controls and help preference under the same calibration.
 16. GUI pressure/temperature changes respectively compress/expand the calculated
     volume, and the reopened editor displays that result.
+17. Undo clear-all restores all records, selection, default EoS, parameter fields,
+    lattice, reflections and structure. A separate Save As verifies all original
+    records and dataset links; Redo returns to the empty state.
+18. Keyboard Undo/Redo repeatedly traverses clear-all and restores those exact
+    snapshots, using the app's scientific history rather than textbox history.
+19. Undoing Add and then making an accepted new edit disables the obsolete redo
+    branch; the new model remains editable.
+20. Delete three distinct records one at a time; undo every deletion and redo
+    every deletion, checking selection/default/parameters at each checkpoint.
 
 Clearing all records deliberately changes the displayed V0 from the former
 record's fitted volume to the volume calculated from the retained lattice.
@@ -61,11 +72,18 @@ Ve = 1). The Phase Editor now supplies numeric defaults from constructor metadat
 to its field editor so Enter/blur display the accepted default consistently.
 Tr and Cvmax retain their meaningful blank/unset conventions.
 
+The history checks found another UI bug: pattern-only responses retained the
+previous calibration-control object including stale Undo/Redo availability.
+The Rust history remained intact, but Redo could appear disabled after a phase
+undo. The app now refreshes these two availability flags while retaining the
+unchanged detector/fit inputs. No history stacks or saved scientific data were
+changed by this fix.
+
 ## Evidence and limits
 
 `artifacts/phase-editor-workflows/validation.json` records each passed workflow;
 completed screenshots and failure screenshot/HTML are written alongside it.
-All 16 workflows pass in both browsers (32 workflow runs), with no page errors.
+All 20 workflows pass in both browsers (40 workflow runs), with no page errors.
 The existing model-help, publication-metadata and unit checks are separate gates.
 
 Only the OS file chooser is replaced with deterministic temporary paths and a

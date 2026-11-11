@@ -614,7 +614,11 @@ export default function App() {
           // Retain unchanged detector/controls inputs during a pattern-only edit.
           return {
             ...next,
-            calibration: previous.calibration,
+            calibration: {
+              ...previous.calibration,
+              canUndo: next.calibration.canUndo,
+              canRedo: next.calibration.canRedo,
+            },
             geometry: previous.geometry,
             integration: { ...next.integration, roi: previous.integration.roi },
           };
