@@ -1,13 +1,15 @@
 # Dioptas Rust desktop development
 
-An experimental React/Tauri desktop interface for Dioptas with Calibration,
-Mask, Integration and Map modes, plus a linked Batch window. It lives beside the existing Qt application
-and uses its scientific models and file formats. It is not a complete
-replacement yet.
+The active Dioptas development application uses React/Tauri with native
+Rust/Dioptrin processing, providing Calibration, Mask, Integration and Map modes
+plus a linked Batch window. It retains Dioptas workflows and file formats;
+qualified behavior and remaining limitations are recorded in the parity guides.
 
-The consolidated development branch is `codex/rust-desktop`. New desktop work
-uses this checkout; the single-crystal experiment stays separate. See the
-[consolidation record](RUST_DESKTOP_CONSOLIDATION.md) for included branches and
+The development branch is `develop`, promoted from `codex/rust-desktop` on
+November 11, 2026. The former Qt `develop` is preserved on `legacy/qt`, and
+existing stable releases remain Qt applications. New desktop work targets
+`develop`; the single-crystal experiment stays separate. See the
+[consolidation record](RUST_DESKTOP_CONSOLIDATION.md) for branch history and
 verification.
 
 The desktop uses Dioptrin **0.12.0** plus the Massif, cached compatibility

@@ -1,6 +1,10 @@
 name: CI_docs
 
-on: [push, pull_request]
+on:
+  push:
+    branches: ['legacy/qt', 'main']
+  pull_request:
+    branches: ['legacy/qt', 'main']
 
 jobs:
   documentation:

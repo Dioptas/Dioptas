@@ -54,7 +54,9 @@ and CALIBRATION_PARITY.md before changing its command or plot boundaries.
 ## Working branch and checkouts
 
 The cohesive development checkout is `worktrees/rust-desktop`, branch
-`codex/rust-desktop`, reached through the workspace's `Dioptas` symlink.
+`develop`, reached through the workspace's `Dioptas` symlink. The former
+`codex/rust-desktop` branch is retained for compatibility; new work targets
+`develop`. Qt maintenance belongs on `legacy/qt`.
 Continue new desktop work here. The Qt checkout, earlier view worktrees and
 experimental `codex/desktop-scxrd` checkout are preserved separately.
 Create separate worktrees from the actual application repository when needed;

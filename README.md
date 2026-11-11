@@ -1,139 +1,60 @@
 # Dioptas
 
-A GUI program for fast analysis of powder X-ray diffraction images. It provides the capability of calibrating,
-creating masks, having pattern overlays and showing phase lines.
+Dioptas is a desktop application for calibration, masking, integration and
+exploration of powder X-ray diffraction images, with phase references, pattern
+overlays, Batch processing and linked scan maps.
 
-## Documentation
+Development on `develop` uses **Rust, React and Tauri**. Scientific processing
+runs in Rust/Dioptrin over a Tauri-owned stdio connection; the default desktop
+runtime needs no Python installation.
 
-The full user manual is hosted on Read the Docs:
+## Run the development application
 
-https://dioptas.readthedocs.io/
+Install Node/npm, Rust, a C/C++ compiler, CMake, Git and the platform prerequisites
+for Tauri, then run:
+
+```sh
+git clone --branch develop https://github.com/Dioptas/Dioptas.git
+cd Dioptas/desktop
+npm ci
+npm run tauri:dev
+```
+
+See the [desktop development guide](desktop/README.md) for example data,
+packaging, headless checks and workflow details, and the
+[native qualification inventory](desktop/NATIVE_FUNCTIONAL_COVERAGE.md) for
+coverage and remaining limitations. Branch promotion does not constitute a new
+binary release or a claim of complete Qt parity.
+
+## Branches and released Qt versions
+
+- **`develop`**: active Rust/React/Tauri development.
+- **[`legacy/qt`](https://github.com/Dioptas/Dioptas/tree/legacy/qt)**: the preserved
+  Qt/Python development line, starting at the former `develop` tip
+  `253d0fda505d4f9b159644050efe2f574ce8a3d9` (Qt 0.13.0).
+- **`main` and existing release tags**: the existing stable release history.
+- **`codex/rust-desktop`**: retained as a compatibility branch for existing
+  desktop feature worktrees; new desktop work should target `develop`.
+
+The existing [downloads](https://github.com/Dioptas/Dioptas/releases),
+[PyPI package](https://pypi.org/project/dioptas/) and
+[Read the Docs manual](https://dioptas.readthedocs.io/) describe released Qt
+versions. For Qt installation, development and maintenance, use the
+[legacy Qt guide](https://github.com/Dioptas/Dioptas/blob/legacy/qt/README.md):
+
+```sh
+git clone --branch legacy/qt https://github.com/Dioptas/Dioptas.git Dioptas-qt
+```
+
+Python sources in this branch remain available for explicit compatibility and
+independent numerical references. New scientific desktop commands belong in
+`desktop/backend`; they must not silently fall back to Python.
+
+The Rust desktop workflow owns native processor, Tauri host, headless UI and
+independent reference checks. Qt CI and branch packages target `legacy/qt` and
+`main`. The inherited Qt release workflow rejects tags outside the legacy Qt
+line; Rust release packaging remains a separate release task.
 
 ## Maintainer
 
 Clemens Prescher (clemens.prescher@gmail.com)
-
-## Requirements
-
-- Python 3.11–3.15 (3.15 is currently a prerelease)
-
-Dioptas runs on 64-bit Windows, macOS, and Linux. Python packages support
-Python 3.11–3.15. The standalone macOS application targets Apple silicon;
-Intel Mac users can install the Python package.
-
-The offline material library and EoS calculations are supplied by Peritheos
-(0.17.x), with diffraction reflections calculated by PhaseSmith 0.7.
-Both dependencies are installed automatically with the Python package and
-included in standalone applications.
-
-## Installation
-
-### Executables
-
-Executable versions for Windows, macOS, and Linux can be downloaded from:
-
-https://github.com/Dioptas/Dioptas/releases
-
-The executable versions are self-contained and do not need a Python installation.
-Under Windows and Linux the program can be started by running the executable (e.g. Dioptas.exe or Dioptas).
-On macOS, open the `.dmg` and drag Dioptas to Applications. A `.tar.gz` archive of the application is also available.
-
-Signed and notarized releases use macOS's normal first-launch confirmation.
-Older releases and ordinary branch builds may show a warning that the app
-"cannot be verified". For those builds, remove the quarantine attribute in Terminal:
-
-```bash
-xattr -dr com.apple.quarantine /Applications/Dioptas_*.app
-```
-
-Maintainers: see the [macOS signing setup guide](installer/macos/README.md) for
-certificate creation, GitHub secrets, and a signed test build before releasing.
-
-### Python Package
-
-Use a Python 3.11–3.15 environment and install the Dioptas package with pip.
-Python 3.15 currently requires source builds of several dependencies and a
-native build toolchain; Python 3.13 is the simpler installation choice.
-
-```bash
-python -m pip install dioptas
-```
-
-and then run Dioptas by typing:
-
-```bash
-dioptas
-```
-
-on the command line.
-
-Dioptas is also available from conda-forge. Its available version can lag behind
-GitHub and PyPI; check the resolved version before relying on new features:
-
-```bash
-conda config --add channels conda-forge
-conda install dioptas
-```
-
-## Running the Program from source
-
-In order to run the program from source, the easiest way is to use the uv package manager.
-Clone the repository from github and navigate to the repository:
-
-```bash
-git clone https://github.com/Dioptas/Dioptas.git
-cd Dioptas
-```
-
-Note: This will clone the `develop` branch by default, which contains the latest development version.
-If you want to use the latest stable release instead, switch to the `main` branch after cloning:
-
-```bash
-git checkout main
-```
-
-Install uv and the dependencies by running:
-
-```bash
-python -m pip install uv
-uv sync
-```
-
-This will create a new environment with all the required python packages in `.venv`.
-
-Afterward the program can be started by running:
-
-```bash
-uv run dioptas
-```
-
-In order to run the program without uv, you need to install the required packages yourself.
-The packages are listed in the file `pyproject.toml`. The program can then be started by running:
-
-```bash
-python run.py
-```
-
-## Scripting API
-
-Dioptas can also be used as a Python library for headless integration from scripts and Jupyter notebooks.
-Set up your experiment in the GUI, save a `.dio` project file, then use it in code:
-
-```python
-from dioptas.pipeline import Pipeline
-
-# Load full setup (calibration, mask, corrections, etc.) from a project file
-p = Pipeline.from_project("experiment.dio")
-
-# Override the mask if needed
-p.load_mask("new_beamstop.mask")
-
-# Integrate a single image
-pattern = p.integrate("sample_001.tiff")
-pattern.save("sample_001.xy")
-
-# Batch integrate with a glob pattern
-patterns = p.integrate_batch("data/sample_*.tif")
-```
-
-See the [scripting API documentation](docs/source/scripting_api.rst) for the full reference.

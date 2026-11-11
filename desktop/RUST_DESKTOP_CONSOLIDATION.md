@@ -1,6 +1,7 @@
 # Rust desktop consolidation — November 8, 2026
 
-The primary desktop development branch is `codex/rust-desktop`, checked out at
+The primary desktop development branch is `develop` (promoted from
+`codex/rust-desktop` on November 11, 2026), checked out at
 `/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop`.
 The workspace's `Dioptas` symlink and launcher select it. New scientific desktop
 features belong in `desktop/backend`; Rust/Dioptrin is the default processor and
@@ -368,3 +369,36 @@ plots and recreated companions must propagate; Map cell changes must retain
 the bookmark. Both 2θ/Image and Q/Cake workflows are covered, including Map's
 separate image surface and stored-pattern units. The test is now part of the
 default native UI gate as well as `npm run test:companion-windows`.
+
+## Promotion to develop — November 11, 2026
+
+The former Qt `origin/develop` tip
+`253d0fda505d4f9b159644050efe2f574ce8a3d9` is preserved unchanged on
+`legacy/qt`. The promotion joins the divergent histories while retaining the
+Rust desktop implementation tree; it does not reapply Qt release changes to
+the native application. Both histories remain reachable without rewriting
+`develop`. Existing release tags and `main` are preserved.
+
+The primary worktree and workspace symlink stay in place, now on `develop`.
+`codex/rust-desktop` remains a compatibility branch. The single-crystal
+experiment and other feature worktrees remain separate.
+
+Root documentation directs new development to Rust/React/Tauri and released Qt
+users to the legacy guide. Qt CI and automatic branch packaging target the Qt
+branches; the native desktop workflow continues to own Rust qualification.
+The inherited Qt tag workflow verifies that a tag is on the legacy Qt line
+before building or publishing. This promotion does not publish a release.
+
+The previously uncommitted native changes were reviewed and committed before
+promotion: `212ad25c` (mean-signal waterfall spacing), `c8817442` (phase ordering,
+compact controls and clear confirmation) and `8e3111f6` (responsive Integration
+groups and Overlay toolbars). A pre-existing Clippy test-module placement issue
+was fixed without changing phase calculations. The original 18 files were
+verified byte-for-byte before committing.
+
+Promotion validation: 117 frontend tests, frontend production build, 269 Rust
+tests (two existing ignored checks), native formatting and Clippy with warnings
+denied. Rust-backed headless Chromium/WebKit checks pass Integration responsive
+workflows, 48 Phase-height layouts, 304 Overlay-width samples and full Batch
+companion/dock workflows. Workflow syntax and expressions pass actionlint. These
+checks do not qualify a new cross-platform binary release.

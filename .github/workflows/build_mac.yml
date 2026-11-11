@@ -4,7 +4,7 @@ name: CD_MACOS
 
 on:
   push:
-    branches: ['**']
+    branches: ['legacy/qt', 'main', 'codex/release-**']
   workflow_dispatch:
     inputs:
       sign_and_notarize:

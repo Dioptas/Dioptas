@@ -2,9 +2,9 @@ name: Rust desktop
 
 on:
   push:
-    paths: ['desktop/**', 'dioptas/**', 'pyproject.toml', 'uv.lock', '.github/workflows/CI_rust_desktop.yml']
+    paths: ['desktop/**', 'README.md', 'dioptas/**', 'pyproject.toml', 'uv.lock', '.github/workflows/CI_rust_desktop.yml']
   pull_request:
-    paths: ['desktop/**', 'dioptas/**', 'pyproject.toml', 'uv.lock', '.github/workflows/CI_rust_desktop.yml']
+    paths: ['desktop/**', 'README.md', 'dioptas/**', 'pyproject.toml', 'uv.lock', '.github/workflows/CI_rust_desktop.yml']
   workflow_dispatch:
 
 permissions:

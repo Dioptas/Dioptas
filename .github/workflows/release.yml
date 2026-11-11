@@ -12,7 +12,24 @@ env:
   DIOPTRIN_RELEASE: "v0.6.1"
 
 jobs:
+  qt_release_source:
+    name: Verify legacy Qt release source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Require a tag on the legacy Qt line
+        shell: bash
+        run: |
+          git fetch origin refs/heads/legacy/qt:refs/remotes/origin/legacy/qt
+          if ! git merge-base --is-ancestor HEAD refs/remotes/origin/legacy/qt; then
+            echo "::error::This workflow packages Qt. Create Qt release tags from legacy/qt."
+            exit 1
+          fi
+
   build_linux:
+    needs: qt_release_source
     runs-on: ubuntu-latest
     env:
       QT_QPA_PLATFORM: offscreen
@@ -96,6 +113,7 @@ jobs:
           dist/Dioptas_Linux.AppImage
 
   build_windows:
+    needs: qt_release_source
     runs-on: windows-latest
     env:
       DIOPTAS_REQUIRE_C_EXT: "1"
@@ -178,6 +196,7 @@ jobs:
           dist/Dioptas_*_Setup.exe
 
   build_macos:
+    needs: qt_release_source
     runs-on: macos-latest
     timeout-minutes: 240
     env:
@@ -300,10 +319,11 @@ jobs:
           dist/Dioptas_MacOS.dmg
 
     - name: Remove signing keychain and credentials
-      if: always()
+      if: always() && needs.qt_release_source.result == 'success'
       run: python installer/macos/signing.py cleanup
 
   build_packages:
+    needs: qt_release_source
     uses: ./.github/workflows/build_packages.yml
 
   create_release:
@@ -377,8 +397,8 @@ jobs:
     # PyPI: one wheel job failed and pypi-publish was silently *skipped*, so
     # the run needed a click-through to notice. This job makes that loud.
     name: Verify the release is complete
-    needs: [create_release, pypi-publish]
-    if: always()
+    needs: [qt_release_source, create_release, pypi-publish]
+    if: always() && needs.qt_release_source.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Fail if PyPI publishing did not run

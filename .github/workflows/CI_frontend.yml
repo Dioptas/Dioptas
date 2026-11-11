@@ -2,7 +2,11 @@
 
 name: CI_frontend
 
-on: [push, pull_request]
+on:
+  push:
+    branches: ['legacy/qt', 'main']
+  pull_request:
+    branches: ['legacy/qt', 'main']
 
 jobs:
   test:
