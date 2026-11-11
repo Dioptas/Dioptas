@@ -36,7 +36,12 @@ try {
         errors = [];
       page.on("pageerror", (e) => errors.push(e.message));
       await page.exposeFunction("__patternInvoke", async (a, p) =>
-        native.browserResult(await native.invoke(a, p)),
+        native.browserResult(
+          await native.invoke(
+            a,
+            a === "integration_output_directory" ? { path: temp } : p,
+          ),
+        ),
       );
       await page.addInitScript(() => {
         window.pywebview = {
@@ -51,12 +56,23 @@ try {
       const settle = () => page.waitForTimeout(150);
       await button("Integration").click();
       await tab("Pattern").click();
-      await field("Pattern directory").fill(temp);
-      await field("Pattern directory").press("Enter");
+      assert.equal(await field("Pattern directory").count(), 0);
+      await button("Choose pattern folder").click();
       await settle();
-      await field("Pattern directory").fill("discarded");
-      await field("Pattern directory").press("Escape");
-      assert.equal(await field("Pattern directory").inputValue(), temp);
+      assert.equal(
+        await page.locator('[aria-label="Pattern folder"]').textContent(),
+        temp,
+      );
+      assert.equal(
+        await page
+          .locator('[aria-label="Pattern folder"] [title]')
+          .getAttribute("title"),
+        temp,
+      );
+      assert.ok(
+        (await page.locator('[aria-label="Pattern location"]').boundingBox())
+          .height <= 24,
+      );
       await field("Pattern filename").fill("long_diffraction_pattern_00001.xy");
       await field("Pattern filename").press("Enter");
       await settle();

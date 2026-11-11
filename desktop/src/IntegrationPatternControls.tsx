@@ -1,5 +1,5 @@
 import { Input, Button } from "./ui";
-import { MiddleElidedInput } from "./MiddleElidedInput";
+import { MiddleElidedInput, MiddleElidedText } from "./MiddleElidedInput";
 import { useEffect, useState } from "react";
 import type { IntegrationState } from "./integration";
 import { Check } from "./IntegrationFields";
@@ -22,17 +22,13 @@ export function IntegrationPatternControls({
   const path = source.patternPath ?? "";
   const filename = path.split(/[\\/]/).at(-1) ?? "";
   const [fileDraft, setFileDraft] = useState(filename);
-  const [directoryDraft, setDirectoryDraft] = useState(source.outputDirectory);
+  const directory = source.outputDirectory;
   useEffect(() => setFileDraft(filename), [filename, path]);
-  useEffect(
-    () => setDirectoryDraft(source.outputDirectory),
-    [source.outputDirectory],
-  );
   const loadFilename = () => {
     if (fileDraft.trim())
       action("integration_open_pattern", {
         path: fileDraft.trim(),
-        directory: directoryDraft,
+        directory,
       });
   };
   return (
@@ -48,8 +44,7 @@ export function IntegrationPatternControls({
         }
         onLoad={() => {
           if (fileDraft.trim() && fileDraft !== filename) loadFilename();
-          else
-            action("integration_open_pattern", { directory: directoryDraft });
+          else action("integration_open_pattern", { directory });
         }}
         onNavigate={(direction) =>
           action("integration_open_pattern", { direction, step })
@@ -79,7 +74,7 @@ export function IntegrationPatternControls({
         folderControl={
           <Button
             aria-label="Choose pattern folder"
-            title="Choose pattern input and autocreate output folder"
+            title={`Pattern input and autocreate output folder: ${directory || "Choose a folder"}`}
             onClick={() => action("integration_output_directory")}
           >
             Folder…
@@ -87,29 +82,17 @@ export function IntegrationPatternControls({
         }
       />
 
-      <div className="integration-folder-row">
-        <span className="integration-browse-label">Folder</span>
-        <MiddleElidedInput
-          className="integration-file-path"
-          aria-label="Pattern directory"
-          value={directoryDraft}
-          onChange={(event) => setDirectoryDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              action("integration_output_directory", {
-                path: directoryDraft,
-              });
-            }
-            if (event.key === "Escape") {
-              event.preventDefault();
-              setDirectoryDraft(source.outputDirectory);
-            }
-          }}
-          title="Pattern input folder and autocreate output folder"
-          placeholder="Pattern directory"
-          spellCheck={false}
-        />
+      <div className="integration-image-status" aria-label="Pattern location">
+        <div
+          className="integration-image-location-line"
+          aria-label="Pattern folder"
+        >
+          {directory ? (
+            <MiddleElidedText value={directory} />
+          ) : (
+            <span>Load a pattern or choose a folder</span>
+          )}
+        </div>
       </div>
       <div className="integration-file-options integration-pattern-options">
         <label className="check-row integration-autocreate">
@@ -119,7 +102,7 @@ export function IntegrationPatternControls({
             onChange={(event) =>
               action("integration_autocreate", {
                 enabled: event.target.checked,
-                directory: directoryDraft,
+                directory,
               })
             }
           />
