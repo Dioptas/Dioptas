@@ -1,0 +1,368 @@
+{
+  "version": 1,
+  "description": "Structural native DTO coverage only; scientific ranges, defaults, alternative operations and legacy dispatch remain in native handlers. Fields marked validate:false are typed frontend metadata whose tolerant legacy native behavior is retained.",
+  "enums": {
+    "FileOrder": [
+      "number",
+      "time"
+    ],
+    "TransferSource": [
+      "original",
+      "response"
+    ],
+    "ConfigurationTarget": [
+      "file",
+      "folder"
+    ],
+    "ConfigurationScope": [
+      "active",
+      "all"
+    ],
+    "ResponseDisposition": [
+      "applied",
+      "cancelled",
+      "deferred",
+      "failed"
+    ],
+    "DecisionKind": [
+      "hdf5_source",
+      "image_change",
+      "calibration_change"
+    ]
+  },
+  "records": {
+    "RequestedProducts": {
+      "strict": true,
+      "fields": {
+        "cake": {
+          "type": "boolean"
+        },
+        "rings": {
+          "type": "boolean",
+          "optional": true
+        }
+      },
+      "partialRust": false
+    },
+    "NativeTransportMetadata": {
+      "fields": {
+        "requested_products": {
+          "type": "RequestedProducts",
+          "optional": true
+        },
+        "defer_integration": {
+          "type": "boolean",
+          "optional": true,
+          "validate": false
+        }
+      }
+    },
+    "PixelPayload": {
+      "fields": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "source": {
+          "type": "string",
+          "optional": true,
+          "nullable": true,
+          "validate": false
+        }
+      }
+    },
+    "PickPeakPayload": {
+      "fields": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "ring": {
+          "type": "number"
+        },
+        "automatic": {
+          "type": "boolean",
+          "optional": true
+        },
+        "search_size": {
+          "type": "number",
+          "optional": true
+        }
+      }
+    },
+    "ImageSourcePayload": {
+      "fields": {
+        "dataset": {
+          "type": "string"
+        }
+      }
+    },
+    "FrameNavigationPayload": {
+      "fields": {
+        "frame": {
+          "type": "number",
+          "optional": true
+        },
+        "direction": {
+          "type": "number",
+          "optional": true
+        },
+        "step": {
+          "type": "number",
+          "optional": true
+        },
+        "mode": {
+          "type": "FileOrder",
+          "optional": true
+        }
+      }
+    },
+    "TransferPayload": {
+      "fields": {
+        "source": {
+          "type": "TransferSource",
+          "optional": true
+        },
+        "path": {
+          "type": "string",
+          "optional": true,
+          "nullable": true
+        },
+        "enabled": {
+          "type": "boolean",
+          "optional": true
+        },
+        "reset": {
+          "type": "boolean",
+          "optional": true
+        }
+      }
+    },
+    "FlatFieldPayload": {
+      "fields": {
+        "path": {
+          "type": "string",
+          "optional": true,
+          "nullable": true
+        },
+        "enabled": {
+          "type": "boolean",
+          "optional": true
+        },
+        "reset": {
+          "type": "boolean",
+          "optional": true
+        }
+      }
+    },
+    "ImageBackgroundPayload": {
+      "fields": {
+        "path": {
+          "type": "string",
+          "optional": true,
+          "nullable": true
+        },
+        "reset": {
+          "type": "boolean",
+          "optional": true
+        },
+        "scale": {
+          "type": "number",
+          "optional": true
+        },
+        "offset": {
+          "type": "number",
+          "optional": true
+        },
+        "poisson": {
+          "type": "boolean",
+          "optional": true
+        }
+      }
+    },
+    "CombinationPayload": {
+      "fields": {
+        "patterns": {
+          "type": "boolean",
+          "optional": true
+        },
+        "cakes": {
+          "type": "boolean",
+          "optional": true
+        },
+        "factor": {
+          "type": "number",
+          "optional": true
+        }
+      }
+    },
+    "ConfigurationSelectPayload": {
+      "fields": {
+        "index": {
+          "type": "number"
+        }
+      }
+    },
+    "ConfigurationRenamePayload": {
+      "fields": {
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "ConfigurationRemovePayload": {
+      "fields": {
+        "index": {
+          "type": "number",
+          "optional": true
+        }
+      }
+    },
+    "EmptyPayload": {
+      "fields": {}
+    },
+    "ConfigurationNavigationPayload": {
+      "fields": {
+        "target": {
+          "type": "ConfigurationTarget"
+        },
+        "direction": {
+          "type": "number"
+        },
+        "step": {
+          "type": "number",
+          "optional": true
+        },
+        "number_position": {
+          "type": "number",
+          "optional": true
+        },
+        "mec": {
+          "type": "boolean",
+          "optional": true
+        },
+        "scope": {
+          "type": "ConfigurationScope",
+          "optional": true
+        },
+        "folder_number_position": {
+          "type": "number",
+          "optional": true
+        },
+        "folder_filename_position": {
+          "type": "number",
+          "optional": true
+        },
+        "folder_filename_step": {
+          "type": "number",
+          "optional": true
+        }
+      }
+    },
+    "ProcessingWorkersPayload": {
+      "fields": {
+        "workers": {
+          "type": "number",
+          "optional": true,
+          "nullable": true
+        }
+      }
+    },
+    "CakeProfilePayload": {
+      "fields": {
+        "two_theta": {
+          "type": "number"
+        },
+        "bins": {
+          "type": "number"
+        },
+        "shift": {
+          "type": "number"
+        },
+        "path": {
+          "type": "string",
+          "optional": true,
+          "nullable": true
+        },
+        "directory": {
+          "type": "string",
+          "optional": true,
+          "nullable": true
+        },
+        "suggested_name": {
+          "type": "string",
+          "optional": true,
+          "nullable": true
+        }
+      }
+    },
+    "Hdf5CompanionPayload": {
+      "fields": {
+        "directory": {
+          "type": "string",
+          "optional": true,
+          "nullable": true
+        }
+      }
+    }
+  },
+  "commands": {
+    "pixel": {
+      "record": "PixelPayload"
+    },
+    "pick_peak": {
+      "record": "PickPeakPayload"
+    },
+    "select_image_source": {
+      "record": "ImageSourcePayload"
+    },
+    "integration_navigation": {
+      "record": "FrameNavigationPayload"
+    },
+    "integration_transfer": {
+      "record": "TransferPayload"
+    },
+    "integration_flat_field": {
+      "record": "FlatFieldPayload"
+    },
+    "integration_image_background": {
+      "record": "ImageBackgroundPayload"
+    },
+    "combination_settings": {
+      "record": "CombinationPayload"
+    },
+    "configuration_select": {
+      "record": "ConfigurationSelectPayload"
+    },
+    "configuration_navigation": {
+      "record": "ConfigurationNavigationPayload"
+    },
+    "processing_workers": {
+      "record": "ProcessingWorkersPayload"
+    },
+    "cake_profile": {
+      "record": "CakeProfilePayload"
+    },
+    "save_cake_profile": {
+      "record": "CakeProfilePayload"
+    },
+    "choose_hdf5_companion": {
+      "record": "Hdf5CompanionPayload"
+    },
+    "configuration": {
+      "selector": "operation",
+      "default": "select",
+      "variants": {
+        "select": "ConfigurationSelectPayload",
+        "add": "EmptyPayload",
+        "duplicate": "EmptyPayload",
+        "rename": "ConfigurationRenamePayload",
+        "remove": "ConfigurationRemovePayload"
+      }
+    }
+  }
+}
