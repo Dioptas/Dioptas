@@ -581,33 +581,34 @@ window title, clean integration state and regenerated cake.
 The check resizes before both the first edge-cell selection and the rapid-click
 sequence. A controlled extraction gate replaces the old 200 ms delay, and the
 actual backend request order must be (2,2), (0,0), (1,1). Chromium and WebKit keep
-separate receipts/screenshots under `artifacts/map-window/<browser>/`.
+separate receipts/screenshots under `artifacts/map-window/rust/<browser>/`.
 
-`npm run test:map-window` runs both headless browsers against the existing
-explicit Python reference bridge. Both pass frame selection, queued selections,
+`npm run test:map-window` runs both headless browsers against Rust. Both pass
+frame selection, queued selections,
 PNG export, layers, palette/contrast retention, compact Larger text layout and
 dock/close/reopen. The production build also passes. Application processing and
 native window management are unchanged by this fixture correction.
 
-## Rust-backed Map companion workflow (2026-11-11)
+## Rust-only Map companion workflow (2026-11-11)
 
-`npm run test:map-window-native` runs the same headless companion workflow in
-Chromium and WebKit against the real Rust/Dioptrin stdio processor. The test
-asserts `__host__.runtime == "rust"`; the native client disables Python and PATH
-fallback. Its only file-chooser adapter supplies the nine existing scan TIFFs
-and an export path. `npm run test:map-window` retains the explicit Python
-reference check. Both commands pass on the consolidated checkout.
+`npm run test:map-window` runs the headless companion workflow in Chromium and
+WebKit against the real Rust/Dioptrin stdio processor. The older command
+`npm run test:map-window-native` is an alias for the same checks. Direct
+`node scripts/map_window.mjs` also defaults to Rust; add `--webkit` for WebKit.
+The Map window harness contains no Python runner or reference mode.
 
-The shared fixture now shows Cake before checking regeneration, matching the
-Rust display-demand policy: hidden cakes are not calculated. Native selection
-must replace the prior displayed cake buffer. Both backends verify selected
-frame/cell/title, ordered rapid selections, clean integration, layer edits,
-PNG export, retained contrast/palette, compact Larger text, window reuse and
-dock/close/reopen. The Rust export also checks the saved PNG signature.
+The test asserts `__host__.runtime == "rust"`; the native client disables Python
+and PATH fallback. Its only file-chooser adapter supplies the nine existing
+scan TIFFs and an export path. Both browsers pass on the consolidated checkout.
 
-Built the current processor with `cargo build --locked --manifest-path
-backend/Cargo.toml --bin dioptas-processor`. Browser/runtime-specific receipts,
-processor PIDs, screenshots and logs are under
-`artifacts/map-window/{rust,python-reference}/{chromium,webkit}/`.
+The fixture shows Cake before checking regeneration, matching Rust's display
+demand policy: hidden cakes are not calculated. Selection must replace the prior
+displayed cake buffer. Checks cover selected frame/cell/title, ordered rapid
+selections, clean integration, layer edits, PNG export and its saved signature,
+retained contrast/palette, compact Larger text, window reuse and dock/close/reopen.
+
+Build the processor with `cargo build --locked --manifest-path
+backend/Cargo.toml --bin dioptas-processor`. Receipts, processor PIDs, screenshots
+and logs are under `artifacts/map-window/rust/{chromium,webkit}/`.
 These are headless browser checks of Rust scientific processing and companion
 routing; visible native OS dialogs and window placement were not rerun.

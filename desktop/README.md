@@ -1016,6 +1016,10 @@ and the other native scripts use headless Chromium/WebKit. See the audit for
 scope and the no-Python host-test invocation. Native window smokes below are
 explicit checks for behavior that needs an actual window.
 
+`npm run test:map-window` checks the detached Map workflow with the native Rust
+processor in headless Chromium and WebKit. `test:map-window-native` is an alias
+for that command. These Map window checks have no Python runner or reference mode.
+
 For independent Python references and the legacy comparison bridge:
 
 ```sh

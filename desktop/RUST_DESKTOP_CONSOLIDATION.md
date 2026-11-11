@@ -274,26 +274,27 @@ layout before clicking. The strengthened fixture verifies forwarded cell
 coordinates, backend frame/cell state, title, clean integration and regenerated
 cake. Its rapid-selection test uses a controlled gate and checks command order.
 
-`npm run test:map-window` passes in headless Chromium and WebKit against the
-existing explicit Python reference bridge, including selection after resizing,
+`npm run test:map-window` passes in headless Chromium and WebKit against Rust,
+including selection after resizing,
 export, display preferences and dock/close/reopen. Production build passes.
 Receipts and screenshots are preserved separately under
-`desktop/artifacts/map-window/chromium/` and `webkit/`. No application scientific
+`desktop/artifacts/map-window/rust/chromium/` and `webkit/`. No application scientific
 or native window-management code changed.
 
-## Rust-backed Map window checks (2026-11-11)
+## Rust-only Map window checks (2026-11-11)
 
-Added `npm run test:map-window-native` using the real native stdio processor
-with Python fallback disabled. Headless Chromium and WebKit pass frame/cell/title
-selection after resizing, deterministic queued clicks, visible cake regeneration,
-layer edits, PNG export, display-state retention, compact Larger text and
-dock/close/reopen. The fixture displays Cake before asserting regeneration,
-respecting the native policy of skipping hidden cakes, and verifies a new cake
-buffer after native selection.
+`npm run test:map-window` now runs the real native stdio processor by default.
+The harness's Python runner and reference mode have been removed.
+`npm run test:map-window-native` remains an alias for the default command.
 
-The current Rust processor build and both Python reference browser runs also
-pass. Runtime/browser-specific receipts record the Rust processor PID and ordered
-cell requests under `desktop/artifacts/map-window/rust/{chromium,webkit}/`;
-reference evidence is kept separately under `python-reference/`. Only the test
-harness and commands changed; no scientific implementation or native OS window
-management changed. See [Map parity](MAP_PARITY.md).
+Headless Chromium and WebKit pass frame/cell/title selection after resizing,
+deterministic queued clicks, visible cake regeneration, layer edits, PNG export,
+display-state retention, compact Larger text and dock/close/reopen. The fixture
+displays Cake before asserting regeneration, respecting the native policy of
+skipping hidden cakes, and verifies a new cake buffer after selection.
+
+The Rust processor build passes. Receipts record the runtime, processor PID
+and ordered cell requests under
+`desktop/artifacts/map-window/rust/{chromium,webkit}/`. Only the test harness and
+commands changed; no scientific implementation or native OS window management
+changed. See [Map parity](MAP_PARITY.md).
