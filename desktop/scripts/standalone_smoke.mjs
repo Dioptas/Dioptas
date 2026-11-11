@@ -22,7 +22,15 @@ const application =
     desktop,
     "src-tauri/target/release/bundle/macos/Dioptas Desktop.app",
   );
-const inspection = await inspectStandalone(application);
+const preserveSignature = process.argv.includes("--preserve-signature");
+const inspectionOptions = preserveSignature
+  ? { teamIdentifier: process.env.DIOPTAS_APPLE_TEAM_ID }
+  : {};
+assert(
+  !preserveSignature || inspectionOptions.teamIdentifier,
+  "Set DIOPTAS_APPLE_TEAM_ID when preserving a release signature",
+);
+const inspection = await inspectStandalone(application, inspectionOptions);
 // Tauri intentionally rejects symlinked macOS executable paths (/var -> /private/var).
 const directory = await realpath(
   await mkdtemp(path.join(os.tmpdir(), "Dioptas standalone qualification ")),
@@ -34,17 +42,23 @@ const logs = [];
 let report;
 try {
   await cp(application, app, { recursive: true });
-  const plist = path.join(app, "Contents/Info.plist");
-  execFileSync("/usr/bin/plutil", [
-    "-replace",
-    "CFBundleIdentifier",
-    "-string",
-    `org.dioptas.standalone-qualification-${process.pid}`,
-    plist,
-  ]);
-  execFileSync("/usr/bin/codesign", ["--force", "--deep", "--sign", "-", app], {
-    stdio: ["ignore", "ignore", "pipe"],
-  });
+  if (!preserveSignature) {
+    const plist = path.join(app, "Contents/Info.plist");
+    execFileSync("/usr/bin/plutil", [
+      "-replace",
+      "CFBundleIdentifier",
+      "-string",
+      `org.dioptas.standalone-qualification-${process.pid}`,
+      plist,
+    ]);
+    execFileSync(
+      "/usr/bin/codesign",
+      ["--force", "--deep", "--sign", "-", app],
+      {
+        stdio: ["ignore", "ignore", "pipe"],
+      },
+    );
+  }
   const home = path.join(directory, "home"),
     output = path.join(directory, "output");
   await mkdir(home);
@@ -126,7 +140,7 @@ try {
     assert(
       (await readFile(path.join(output, "standalone.xy"), "utf8")).length > 100,
     );
-    await inspectStandalone(app); // Signed resources must also remain intact after use.
+    await inspectStandalone(app, inspectionOptions); // Signed resources must also remain intact after use.
     report = {
       ...report,
       sourceAccess: "denied by verified sandbox policy",

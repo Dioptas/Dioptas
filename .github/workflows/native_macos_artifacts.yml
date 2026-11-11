@@ -1,0 +1,93 @@
+name: Native macOS artifacts (no publishing)
+
+on:
+  workflow_dispatch:
+  # Bootstrap verification on this implementation branch. Remove after the
+  # initial signed run; routine candidates are explicitly dispatched.
+  push:
+    branches: ['codex/native-installers']
+    paths: ['desktop/**', 'installer/macos/signing.py', '.github/workflows/native_macos_artifacts.yml']
+
+permissions:
+  contents: read
+
+# Do not cancel an Apple submission when another candidate starts.
+concurrency:
+  group: native-macos-artifacts-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  macos:
+    name: Signed DMG (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            target: aarch64-apple-darwin
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 240
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '14.0'
+      DIOPTAS_RELEASE_TARGET: ${{ matrix.target }}
+      HDF5_PLUGIN_PRELOAD: '::'
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - name: Install Rust
+        run: rustup update stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            desktop/backend -> target
+            desktop/src-tauri -> target
+          key: native-release-${{ matrix.target }}
+      - run: npm ci
+        working-directory: desktop
+      - name: Check shared release configuration
+        run: npm run test:release-config
+        working-directory: desktop
+      - name: Prepare Developer ID and notarization credentials
+        run: python3 installer/macos/signing.py setup
+        env:
+          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      - name: Build, sign, notarize and verify installed DMG
+        run: npm run release:macos -- --notarize --native-smoke
+        working-directory: desktop
+      - name: Retain installers, checksums and verification
+        uses: actions/upload-artifact@v7
+        with:
+          name: Dioptas-native-${{ matrix.target }}
+          path: |
+            desktop/artifacts/native-release/**/*.dmg
+            desktop/artifacts/native-release/**/*.app.tar.gz
+            desktop/artifacts/native-release/**/SHA256SUMS
+            desktop/artifacts/native-release/**/build.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Retain notarization logs and recovery payloads
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: Dioptas-native-diagnostics-${{ matrix.target }}
+          path: |
+            desktop/artifacts/native-release/**/dist/notarization/
+            desktop/artifacts/native-release/**/dist/notarization-payloads/
+            desktop/artifacts/native-release/**/*.dmg
+            desktop/artifacts/standalone/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Remove temporary signing keychain
+        if: always()
+        run: python3 installer/macos/signing.py cleanup

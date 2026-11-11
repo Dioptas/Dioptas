@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   lstat,
@@ -11,9 +11,20 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { signatureDetails, requireDeveloperId } from "./release_config.mjs";
 
 const desktop = fileURLToPath(new URL("../", import.meta.url));
-export async function inspectStandalone(application) {
+export function inspectSignature(file) {
+  const displayed = spawnSync(
+    "/usr/bin/codesign",
+    ["--display", "--verbose=4", file],
+    { encoding: "utf8" },
+  );
+  assert.equal(displayed.status, 0, displayed.stderr);
+  return signatureDetails(displayed.stdout + displayed.stderr);
+}
+
+export async function inspectStandalone(application, options = {}) {
   const app = await realpath(application);
   const resources = path.join(app, "Contents/Resources/dioptas");
   const manifest = JSON.parse(
@@ -106,12 +117,16 @@ export async function inspectStandalone(application) {
           [expected],
           `Unexpected architecture: ${file}`,
         );
+        const signing = inspectSignature(file);
+        if (options.teamIdentifier)
+          requireDeveloperId(signing, options.teamIdentifier);
         binaries.push({
           path: path.relative(app, file),
           sha256: createHash("sha256").update(bytes).digest("hex"),
           minimumOS: versions,
           architectures,
           libraries,
+          signing,
         });
       }
     }
@@ -131,7 +146,7 @@ export async function inspectStandalone(application) {
   return {
     application: app,
     minimumOS: minimum,
-    signature: "ad-hoc; integrity verified; not notarized",
+    signature: binaries[0].signing.kind,
     resources: manifest.files.length,
     cargoNotices: notices.cargo.length,
     javascriptNotices: notices.javascript.length,

@@ -298,6 +298,12 @@ with no publication/notarization step. Windows/Linux and universal macOS
 packaging remain unqualified. The local native artifact and relocation checks
 are documented in that ledger.
 
+For signed installer candidates, see [native release packaging](NATIVE_RELEASE.md).
+`npm run release:macos` uses the shared release configuration and Developer ID
+credentials; the artifact-only workflow also notarizes and tests Apple Silicon
+and Intel DMGs. It does not publish a release. The application version comes
+from `package.json`; the current `0.1.0` remains a packaging test version.
+
 Development still supports `DIOPTAS_SOURCE_ROOT` for the Python comparison
 backend and `DIOPTAS_NATIVE_PROCESSOR` for an explicit Rust executable.
 Release Rust startup uses installed resources and a sibling processor, with

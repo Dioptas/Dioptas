@@ -9,7 +9,7 @@ const application =
   process.argv[2] ??
   path.join(
     root,
-    "desktop/src-tauri/target/debug/bundle/macos/Dioptas Desktop.app",
+    "desktop/src-tauri/target/release/bundle/macos/Dioptas Desktop.app",
   );
 const inspection = await inspectStandalone(application);
 const directory = await realpath(
@@ -38,17 +38,37 @@ try {
       "Contents/Resources/dioptas/examples/CeO2_Pilatus1M.poni",
     ),
   });
-  await call("integration_settings", { bins: 128, cake_bins: 24, poisson_errors: true });
+  await call("integration_settings", {
+    bins: 128,
+    cake_bins: 24,
+    poisson_errors: true,
+  });
   for (const kind of ["cylinder", "sphere"]) {
     const corrected = await call("integration_correction", {
-      kind, enabled: true, parameters: { radius: 0.2, beam_width: 0.12 },
+      kind,
+      enabled: true,
+      parameters: { radius: 0.2, beam_width: 0.12 },
       material: { mode: "formula", formula: "SiO2", density: 2.2 },
-      ...(kind === "cylinder" ? {
-        parameters: { radius: 0.2, beam_width: 0.12, axis_tilt: 35, axis_rotation: 23, wall_thickness: 0.02 },
-        container: { enabled: true, material: { mode: "formula", formula: "SiO2", density: 2.23 } },
-      } : {}),
+      ...(kind === "cylinder"
+        ? {
+            parameters: {
+              radius: 0.2,
+              beam_width: 0.12,
+              axis_tilt: 35,
+              axis_rotation: 23,
+              wall_thickness: 0.02,
+            },
+            container: {
+              enabled: true,
+              material: { mode: "formula", formula: "SiO2", density: 2.23 },
+            },
+          }
+        : {}),
     });
-    assert.ok(corrected.state.integration.corrections[kind].parameters.absorption_coefficient > 0);
+    assert.ok(
+      corrected.state.integration.corrections[kind].parameters
+        .absorption_coefficient > 0,
+    );
     assert.ok(corrected.pattern.sigma.some((v) => v > 0));
     assert.ok(corrected.pattern.y.every(Number.isFinite));
   }
@@ -65,8 +85,14 @@ try {
   assert.equal(restored.state.configurationCount, 2);
   assert.equal(restored.state.combination.patterns, true);
   assert.deepEqual(restored.pattern, result.pattern);
-  assert.equal(restored.state.integration.corrections.cylinder.container.enabled, true);
-  assert.equal(restored.state.integration.corrections.sphere.material.mode, "formula");
+  assert.equal(
+    restored.state.integration.corrections.cylinder.container.enabled,
+    true,
+  );
+  assert.equal(
+    restored.state.integration.corrections.sphere.material.mode,
+    "formula",
+  );
   await call("save_combined_pattern", {
     path: path.join(directory, "portable.xy"),
   });

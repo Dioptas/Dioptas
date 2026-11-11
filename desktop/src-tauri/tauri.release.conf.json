@@ -1,0 +1,34 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Dioptas Desktop",
+  "identifier": "org.dioptas.desktop",
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Dioptas",
+        "width": 1440,
+        "height": 940,
+        "minWidth": 1000,
+        "minHeight": 700,
+        "backgroundColor": "#101419",
+        "theme": "Dark",
+        "dragDropEnabled": false
+      }
+    ]
+  },
+  "bundle": {
+    "publisher": "Clemens Prescher",
+    "category": "Education",
+    "homepage": "https://github.com/Dioptas/Dioptas",
+    "shortDescription": "Calibration and integration of diffraction images",
+    "longDescription": "Dioptas processes diffraction images locally with native Rust algorithms, including calibration, masking, integration, batch processing and maps.",
+    "license": "MIT",
+    "icon": ["icons/icon.icns", "icons/icon.ico", "icons/icon.png"],
+    "createUpdaterArtifacts": false,
+    "macOS": {
+      "minimumSystemVersion": "14.0",
+      "hardenedRuntime": true
+    }
+  }
+}
