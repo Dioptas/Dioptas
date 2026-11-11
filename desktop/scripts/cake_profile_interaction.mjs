@@ -1,5 +1,149 @@
 import assert from "node:assert/strict";
 
+/** Hold the pointer down while proving native profiles arrive for both edges. */
+export async function checkCakeProfileWidthResize(
+  page,
+  profile,
+  cake,
+  ready,
+  backpressure,
+) {
+  const field = page.getByLabel("Integral width", { exact: true });
+  const original = Number(await field.inputValue());
+  const snapshot = () =>
+    cake.evaluate((el) => ({
+      view: [
+        el.dataset.viewXMin,
+        el.dataset.viewXMax,
+        el.dataset.viewYMin,
+        el.dataset.viewYMax,
+      ],
+      linked: el.dataset.linkedPosition,
+    }));
+  const before = await snapshot();
+  const begin = async (edge) => {
+    const g = await cake.evaluate((el) => {
+      const r = el.getBoundingClientRect(),
+        d = el.dataset;
+      return {
+        x: r.x,
+        y: r.y,
+        left: +d.plotLeft,
+        top: +d.plotTop,
+        width: +d.plotWidth,
+        height: +d.plotHeight,
+        min: +d.viewXMin,
+        max: +d.viewXMax,
+        columns: +d.fullWidth,
+        band: d.profileWindow.split(",").map(Number),
+      };
+    });
+    const scale = g.width / (g.max - g.min);
+    const source =
+      edge === "min" ? Math.max(0, g.band[0]) : Math.min(g.columns, g.band[1]);
+    const x = g.x + g.left + (source - g.min) * scale,
+      y = g.y + g.top + g.height * 0.4;
+    await page.mouse.move(x, y);
+    assert.equal(
+      await cake.evaluate((el) => getComputedStyle(el).cursor),
+      "ew-resize",
+    );
+    await page.mouse.down();
+    const start = Number(await field.inputValue());
+    return async (bins) => {
+      await page.mouse.move(
+        x + ((edge === "max" ? 1 : -1) * (bins - start) * scale) / 2,
+        y,
+        { steps: 3 },
+      );
+      await page.waitForFunction(
+        (bins) =>
+          Number(
+            document.querySelector('input[aria-label="Integral width"]').value,
+          ) === bins,
+        bins,
+      );
+      assert.ok(
+        +(await profile.getAttribute("data-profile-row-count")) > 0,
+        "The curve must remain present during width updates",
+      );
+      assert.equal(
+        await profile.getAttribute("aria-description"),
+        null,
+        "No loading message during a width drag",
+      );
+      assert.deepEqual(
+        await snapshot(),
+        before,
+        "Dragging an edge must not zoom or move the radial selection",
+      );
+    };
+  };
+  for (const edge of ["max", "min"]) {
+    const move = await begin(edge);
+    for (const bins of [7, 11]) {
+      await move(bins);
+      await page.waitForFunction(
+        (bins) =>
+          document.querySelector('[data-testid="cake-profile-canvas"]').dataset
+            .profileBins === String(bins),
+        bins,
+      );
+      assert.equal(
+        await cake.getAttribute("data-profile-resizing"),
+        "true",
+        "The updated native profile arrived before mouse release",
+      );
+    }
+    await page.mouse.up();
+    await ready();
+    await field.fill(String(original));
+    await field.press("Enter");
+    await ready();
+  }
+  // A transport stall must leave only the latest requested width queued.
+  if (backpressure) {
+    backpressure.hold();
+    const move = await begin("max");
+    await move(7);
+    await backpressure.started();
+    for (const bins of [9, 11, 13, 15, 17, 19, 21]) await move(bins);
+    assert.equal(
+      backpressure.calls(),
+      1,
+      "Intermediate widths must coalesce while native work is pending",
+    );
+    await page.mouse.up();
+    backpressure.release();
+    await ready();
+    await page.waitForFunction(
+      () =>
+        document.querySelector('[data-testid="cake-profile-canvas"]').dataset
+          .profileBins === "21",
+    );
+    assert.equal(
+      backpressure.calls(),
+      2,
+      "Only the stalled and final widths should reach the native owner",
+    );
+    await field.fill(String(original));
+    await field.press("Enter");
+    await ready();
+  }
+  const move = await begin("max");
+  await move(1);
+  await cake.press("Escape");
+  await page.mouse.up();
+  await ready();
+  assert.equal(
+    Number(await field.inputValue()),
+    original,
+    "Escape restores the previous width",
+  );
+  assert.equal(+(await profile.getAttribute("data-profile-bins")), original);
+  assert.deepEqual(await snapshot(), before);
+}
+
 /** Exercise the outer shared axis and resize handle as a user would. */
 export async function checkCakeProfileInteraction(
   page,

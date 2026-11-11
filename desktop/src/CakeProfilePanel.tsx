@@ -1,4 +1,6 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { cakeSourcePixel } from "./cakeRadialAxis";
+import { previewProfileWindow } from "./useCakeProfileResize";
 import { Columns2, Save } from "lucide-react";
 import { useCakeProfileWindow } from "./CakeProfileWorkspace";
 import { Button } from "./ui";
@@ -43,52 +45,108 @@ export function CakeProfilePanel({
 }) {
   const [result, setResult] = useState<{
     key: string;
+    source: string;
     profile: CakeProfile;
   } | null>(null);
   const args = useMemo(
     () => ({ two_theta: linked?.twoTheta, bins, shift: 0 }),
     [linked?.twoTheta, bins],
   );
-  const key = JSON.stringify([
+  const source = JSON.stringify([
     state?.revision,
     state?.configurationContext ?? state?.configurationIndex,
     state?.combination?.cakes,
     state?.geometry.wavelength,
     state?.unit,
     cake?.bufferId,
-    args,
+    linked?.twoTheta,
   ]);
+  const key = JSON.stringify([source, bins]);
   const eligible =
     !!state?.hasImage &&
     state.calibrated &&
     !state.integrationDirty &&
     linked != null;
+  const active = useRef({ source, eligible });
+  active.current = { source, eligible };
+  const alive = useRef(true),
+    fetching = useRef(false);
+  const pending = useRef<{
+    key: string;
+    source: string;
+    args: typeof args;
+    run: IntegrationRun;
+  } | null>(null);
   useEffect(() => {
-    if (!ready || !eligible) return;
-    let current = true;
-    void run("cake_profile", args, "", (reply) => {
-      if (current && reply.cakeProfile)
-        setResult({ key, profile: reply.cakeProfile });
-    });
+    alive.current = true;
     return () => {
-      current = false;
+      alive.current = false;
+      pending.current = null;
     };
-  }, [key, ready, eligible, run, args]);
+  }, []);
+  useEffect(() => {
+    pending.current = ready && eligible ? { key, source, args, run } : null;
+    if (fetching.current || !pending.current) return;
+    fetching.current = true;
+    void (async () => {
+      try {
+        while (alive.current && pending.current) {
+          const request = pending.current;
+          pending.current = null;
+          await request.run("cake_profile", request.args, "", (reply) => {
+            if (
+              alive.current &&
+              active.current.eligible &&
+              active.current.source === request.source &&
+              reply.cakeProfile
+            )
+              setResult({
+                key: request.key,
+                source: request.source,
+                profile: reply.cakeProfile,
+              });
+          });
+        }
+      } finally {
+        fetching.current = false;
+      }
+    })();
+  }, [key, source, ready, eligible, run, args]);
   useEffect(() => () => reportPlot("profile", null), [reportPlot]);
   // The slider only wraps existing source rows, exactly like the cake display.
   // Keep extraction independent of it so moving the slider never clears the curve.
   const profile = useMemo(() => {
-    if (!eligible || result?.key !== key) return null;
+    if (!eligible || result?.source !== source) return null;
     return shiftCakeProfile(result.profile, shift);
-  }, [eligible, result, key, shift]);
+  }, [eligible, result, source, shift]);
   const available = !!profile?.x.length;
   const window = useCakeProfileWindow();
   const setWindowRange = window?.setRange;
-  const radialWindow = profile?.radialWindow;
+  const center = cake && profile ? cakeSourcePixel(cake, profile.radial) : null;
+  const radialWindow = useMemo(
+    () =>
+      !profile?.radialWindow || center == null || !cake
+        ? null
+        : profile.bins === bins
+          ? profile.radialWindow
+          : previewProfileWindow(center, bins, cake.fullWidth),
+    [profile?.radialWindow, profile?.bins, center, bins, cake?.fullWidth],
+  );
   useLayoutEffect(() => {
     setWindowRange?.(radialWindow ?? null);
     return () => setWindowRange?.(null);
   }, [radialWindow, setWindowRange]);
+  const editor = window?.editor;
+  useLayoutEffect(() => {
+    if (!editor) return;
+    editor.current =
+      available && center != null
+        ? { bins, onBins, ready, center, source }
+        : null;
+    return () => {
+      editor.current = null;
+    };
+  }, [editor, available, center, bins, onBins, ready, source]);
   return (
     <section className="cake-profile-panel" aria-label="Azimuthal profile">
       <form

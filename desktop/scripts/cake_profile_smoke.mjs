@@ -1,4 +1,7 @@
-import { checkCakeProfileInteraction } from "./cake_profile_interaction.mjs";
+import {
+  checkCakeProfileInteraction,
+  checkCakeProfileWidthResize,
+} from "./cake_profile_interaction.mjs";
 import { shiftCakeProfile } from "../src/shiftCakeProfile.ts";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, readFile, writeFile, rm } from "node:fs/promises";
@@ -29,10 +32,18 @@ try {
       let pending = 0,
         cancelSave = false;
       const profiles = [];
+      let holdNextProfile = false,
+        releaseProfile;
       const invoke = async (action, payload = {}) => {
         pending++;
         try {
           calls.push([action, structuredClone(payload)]);
+          if (action === "cake_profile" && holdNextProfile) {
+            holdNextProfile = false;
+            await new Promise((resolve) => {
+              releaseProfile = resolve;
+            });
+          }
           if (action === "save_cake_profile") {
             if (cancelSave) return { ok: true, cancelled: true };
             payload = { ...payload, path: path.join(temp, `${engine}.xy`) };
@@ -309,6 +320,28 @@ try {
       await assertProfileWindow();
       await cakeCanvas.press("f");
       await idle();
+      let readsBeforeHold;
+      await checkCakeProfileWidthResize(page, profilePlot, cakeCanvas, idle, {
+        hold() {
+          readsBeforeHold = calls.filter(([a]) => a === "cake_profile").length;
+          holdNextProfile = true;
+        },
+        async started() {
+          for (let i = 0; i < 50 && !releaseProfile; i++)
+            await page.waitForTimeout(10);
+          assert.ok(releaseProfile);
+        },
+        calls() {
+          return (
+            calls.filter(([a]) => a === "cake_profile").length - readsBeforeHold
+          );
+        },
+        release() {
+          releaseProfile();
+          releaseProfile = undefined;
+        },
+      });
+      await assertProfileWindow();
       const assertShared = async () => {
         const read = async (canvas) =>
           canvas.evaluate((el) => {
@@ -336,6 +369,12 @@ try {
         );
       };
       await assertShared();
+      await cakeCanvas.press("+");
+      await idle();
+      await checkCakeProfileWidthResize(page, profilePlot, cakeCanvas, idle);
+      await cakeCanvas.press("f");
+      await idle();
+      await assertProfileWindow();
       // Edge-clipping status must not squeeze or reposition the width/save controls.
       const resizeHandle = page.getByRole("separator", {
         name: "Profile and cake divider",
@@ -499,11 +538,9 @@ try {
       const widthBeforeToggle = (await profilePlot.boundingBox()).width;
       await button("Profile Y-range zoom").click();
       await idle();
-      await panel
-        .locator("..")
-        .screenshot({
-          path: path.join(artifacts, `${engine}-vertical-slice.png`),
-        });
+      await panel.locator("..").screenshot({
+        path: path.join(artifacts, `${engine}-vertical-slice.png`),
+      });
       await button("Azimuthal profile").click();
       await idle();
       await button("Azimuthal profile").click();
@@ -772,6 +809,7 @@ try {
         nativeBinWindowOverlay: true,
         profileToggleOnlyInCake: true,
         profileVerticalSliceAndRectangle: true,
+        liveWidthEdgeDragAndCoalescing: true,
         errors,
       });
     } finally {

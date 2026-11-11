@@ -1,4 +1,7 @@
-import { checkCakeProfileInteraction } from "./cake_profile_interaction.mjs";
+import {
+  checkCakeProfileInteraction,
+  checkCakeProfileWidthResize,
+} from "./cake_profile_interaction.mjs";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { mkdtemp, rm, mkdir, writeFile, readFile } from "node:fs/promises";
@@ -90,7 +93,10 @@ try {
         }),
         errors = [];
       context.on("page", (p) =>
-        p.on("pageerror", (e) => errors.push(e.message)),
+        p.on("pageerror", (e) => {
+          errors.push(e.message);
+          console.error(`${name}: ${e.message}`);
+        }),
       );
       let previewRequests = 0;
       let profileRequests = 0;
@@ -185,7 +191,23 @@ try {
         name: "Azimuthal profile",
         exact: true,
       });
-      await profile.getByTestId("cake-profile-canvas").waitFor();
+      await profile
+        .getByTestId("cake-profile-canvas")
+        .waitFor()
+        .catch(async (error) => {
+          await mkdir(artifacts, { recursive: true });
+          await child.screenshot({
+            path: path.join(artifacts, `${name}-profile-open-failure.png`),
+          });
+          console.error(
+            await child
+              .locator("textarea")
+              .first()
+              .inputValue()
+              .catch(() => error.message),
+          );
+          throw error;
+        });
       await child.getByRole("button", { name: "Image", exact: true }).click();
       await ready();
       assert.equal(await profile.isVisible(), false);
@@ -238,6 +260,12 @@ try {
         assert.equal(p.max, c.max);
       };
       await checkProfileAlignment();
+      await checkCakeProfileWidthResize(
+        child,
+        profile.getByTestId("cake-profile-canvas"),
+        child.getByTestId("cake-canvas"),
+        ready,
+      );
       const bandToggle = profile.getByRole("button", {
         name: "Show profile bin width",
         exact: true,
@@ -500,6 +528,7 @@ try {
         resizableProfileAndOuterAxisDrag: true,
         profileOnlyInCake: true,
         detachedProfileBandToggle: true,
+        detachedLiveWidthEdgeDrag: true,
         orientation: true,
         calibratedSourceCancel: true,
         sourceReset: true,

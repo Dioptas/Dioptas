@@ -135,13 +135,15 @@ export function detectorTools(
               );
               return [key, { callback: `${prefix}.${key}` }];
             }
-            // Profile extraction uses the native grid identity and azimuth extent only.
+            // Keep source-grid metadata for the profile and interactive width guide.
             if (key === "cake" && value) {
               const cake = value as import("./types").Cake;
               return [
                 key,
                 {
                   sourceBufferId: cake.bufferId,
+                  radialRange: cake.radialRange,
+                  unit: cake.unit,
                   azimuthRange: cake.azimuthRange,
                   fullHeight: cake.fullHeight,
                   fullWidth: cake.fullWidth,

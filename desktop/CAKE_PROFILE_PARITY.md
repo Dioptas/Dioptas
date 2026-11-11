@@ -34,6 +34,16 @@ detached views share the same source-grid bounds. Toggling the guide neither
 requests profiles nor saves anything. The guide is omitted from image exports,
 like the existing linked click markers.
 
+Drag either orange boundary to change **Bins** around the fixed linked radial
+position. Width changes in integer bins (minimum 1); the band previews the new
+window immediately in source pixels, including zoomed views. Native profiles
+update while the pointer remains down. The last valid curve stays visible until
+the next native result arrives; width-only updates do not show a loading message.
+Only one extraction is in flight, with newer widths replacing the pending one.
+The final requested width always wins. Escape cancels a drag and restores its
+starting width. Secondary-button pan and ordinary clicks retain their shared
+behavior; the same interaction works in detached cake windows.
+
 ## Scientific ownership and Qt reference
 
 `backend/src/cake_profile.rs` extracts from `Session::displayed_cake_values()`:
@@ -240,3 +250,10 @@ widths 1, 3 and 9; screenshots are saved as `*-gaps-width-*.png`.
 The same tests compare the actually drawn width band against native bounds at
 edges, after zoom, unit changes and shifts. Detached-source checks exercise its
 toggle too. The minimum profile pane width is 160 px to fit both toolbar icons.
+Edge-drag regressions hold the pointer down until updated native profiles arrive
+from both boundaries, repeat at a zoomed scale and in detached views, preserve
+the selected radial position/viewport and verify Escape rollback. A deliberately
+stalled native request proves that intermediate widths coalesce into one final
+pending request without blanking the curve. Detached profile metadata includes
+the radial grid needed to map bin widths, while scientific pixels remain owned
+by the native session.

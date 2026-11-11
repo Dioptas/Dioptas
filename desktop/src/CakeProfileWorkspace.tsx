@@ -22,11 +22,19 @@ type Event = PointerEvent<HTMLCanvasElement>;
 type Navigation = ReturnType<typeof usePlotNavigation>;
 type Plot = { element: HTMLCanvasElement; navigation: Navigation };
 type Start = { clientX: number; clientY: number; pointerId: number };
+export type CakeProfileEditor = {
+  bins: number;
+  onBins: (bins: number) => void;
+  ready: boolean;
+  center: number;
+  source: string;
+};
 const ProfileWindow = createContext<{
   visible: boolean;
   setVisible: (visible: boolean) => void;
   range: [number, number] | null;
   setRange: (range: [number, number] | null) => void;
+  editor: RefObject<CakeProfileEditor | null>;
 } | null>(null);
 
 export const useCakeProfileWindow = () => useContext(ProfileWindow);
@@ -237,8 +245,15 @@ export function CakeProfileWorkspace({
   const gestures = useMemo(axisGestures, []);
   const [visible, setVisible] = useState(true);
   const [range, setRange] = useState<[number, number] | null>(null);
+  const editor = useRef<CakeProfileEditor | null>(null);
   const window = useMemo(
-    () => ({ visible: !!profile && visible, setVisible, range, setRange }),
+    () => ({
+      visible: !!profile && visible,
+      setVisible,
+      range,
+      setRange,
+      editor,
+    }),
     [profile, visible, range],
   );
   return (

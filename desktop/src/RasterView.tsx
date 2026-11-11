@@ -3,6 +3,7 @@ import {
   useCakeProfileWindow,
 } from "./CakeProfileWorkspace";
 import { usePlotTypography } from "./usePlotTypography";
+import { useCakeProfileResize } from "./useCakeProfileResize";
 import { navigationTrace } from "./navigationTiming";
 import {
   useCallback,
@@ -324,6 +325,20 @@ export function RasterView({
     sy = plotHeight / (view.yMax - view.yMin);
   const ox = left - view.xMin * sx,
     oy = top + (view.yMax - raster.fullHeight) * sy;
+  const profileResize = useCakeProfileResize(
+    canvas,
+    profileRange,
+    profileWindow?.editor,
+    {
+      ox,
+      sx,
+      left,
+      top,
+      width: plotWidth,
+      height: plotHeight,
+      columns: raster.fullWidth,
+    },
+  );
   useEffect(() => {
     if (size.width > 100 && size.height > 100)
       onResolution?.({ x: 1 / sx, y: 1 / sy });
@@ -338,7 +353,8 @@ export function RasterView({
   });
   const displayedRoi = roiInteraction.roi;
   usePlotWheel(canvas, (event) => {
-    if (!roiInteraction.dragging) navigation.onWheel(event);
+    if (!roiInteraction.dragging && !profileResize.dragging)
+      navigation.onWheel(event);
   });
   const zoom = fitWidth / (view.xMax - view.xMin);
   const editableRoi = !!onRoiChange;
@@ -598,10 +614,13 @@ export function RasterView({
           context.fillRect(x0, top, x1 - x0, plotHeight);
           context.globalAlpha = 0.85;
           context.strokeStyle = "#ff9500";
-          context.lineWidth = 1;
           context.beginPath();
+          context.lineWidth = profileResize.edge === "min" ? 2 : 1;
           context.moveTo(x0, top);
           context.lineTo(x0, top + plotHeight);
+          context.stroke();
+          context.beginPath();
+          context.lineWidth = profileResize.edge === "max" ? 2 : 1;
           context.moveTo(x1, top);
           context.lineTo(x1, top + plotHeight);
           context.stroke();
@@ -917,6 +936,7 @@ export function RasterView({
       cakeAxis,
       showCakeAzimuthAxis,
       profileRange,
+      profileResize.edge,
       raster,
       sx,
       sy,
@@ -993,7 +1013,10 @@ export function RasterView({
       <canvas
         ref={canvas}
         tabIndex={0}
-        onKeyDown={navigation.onKeyDown}
+        onKeyDown={(event) => {
+          if (!profileResize.onKeyDown(event)) navigation.onKeyDown(event);
+        }}
+        data-profile-resizing={profileResize.dragging || undefined}
         data-testid={cake ? "cake-canvas" : "detector-canvas"}
         data-plot-font-size={typography.size}
         aria-label={
@@ -1008,7 +1031,9 @@ export function RasterView({
         style={{
           width: "100%",
           height: "100%",
-          cursor: roiInteraction.cursor(cursor),
+          cursor: profileResize.edge
+            ? "ew-resize"
+            : roiInteraction.cursor(cursor),
         }}
         data-renderer={renderer}
         data-roi={displayedRoi?.join(",")}
@@ -1061,6 +1086,7 @@ export function RasterView({
         onContextMenu={(event) => event.preventDefault()}
         onAuxClick={(event) => event.preventDefault()}
         onPointerDown={(event) => {
+          if (profileResize.onPointerDown(event)) return;
           if (roiInteraction.onPointerDown(event)) return;
           const brushDrag =
             painting && event.shiftKey && !isPlotSecondaryGesture(event);
@@ -1074,6 +1100,7 @@ export function RasterView({
           if (point) addPoint(point);
         }}
         onPointerMove={(event) => {
+          if (profileResize.onPointerMove(event)) return;
           if (cake && axisGesture?.move(event)) return;
           const { point, screen } = position(event);
           setCursor(screen);
@@ -1095,7 +1122,8 @@ export function RasterView({
         onPointerUp={(event) => {
           if (cake && axisGesture?.finish(event)) return;
           if (roiInteraction.onPointerUp(event)) return;
-          const result = navigation.onPointerUp(event);
+          const result =
+            profileResize.onPointerUp(event) ?? navigation.onPointerUp(event);
           const { point } = position(event);
           if (result === "click" && point && !busy) {
             if (painting) onStroke?.([[point.x, point.y]], tool === "erase");
@@ -1123,14 +1151,19 @@ export function RasterView({
           setStroke([]);
         }}
         onPointerCancel={(event) => {
+          if (profileResize.onPointerCancel()) return;
           if (cake && axisGesture?.cancel(event)) return;
           roiInteraction.onPointerCancel();
           navigation.onPointerCancel(event);
           drag.current = null;
           setStroke([]);
         }}
-        onLostPointerCapture={roiInteraction.onLostPointerCapture}
+        onLostPointerCapture={(event) => {
+          profileResize.onLostPointerCapture(event);
+          roiInteraction.onLostPointerCapture(event);
+        }}
         onPointerLeave={() => {
+          profileResize.onPointerLeave();
           setCursor(null);
           onHover?.(null);
         }}

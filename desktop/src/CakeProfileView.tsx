@@ -328,6 +328,7 @@ export function CakeProfileView({
         data-azimuth-max={cake ? azimuthAt(view.yMax) : undefined}
         data-profile-row-count={profile?.y.length ?? 0}
         data-profile-shift-bins={profile?.shiftBins ?? 0}
+        data-profile-bins={profile?.bins}
         data-zoom-mode={zoomMode}
         aria-description={emptyMessage}
         onKeyDown={navigation.onKeyDown}

@@ -3,7 +3,9 @@ import { test } from "node:test";
 import {
   detectorPresentation,
   detectorPacket,
+  detectorTools,
 } from "../src/detectorSnapshot.ts";
+import { cakeSourcePixel } from "../src/cakeRadialAxis.ts";
 import { RasterTransfer, decodeRaster } from "../src/rasterTransfer.ts";
 
 const image = {
@@ -18,6 +20,31 @@ const image = {
   limits: [-6, 70000],
   histogram: { edges: [-6, 1, 70000], counts: [1, 3] },
 };
+
+test("detached profile metadata retains the radial grid for width dragging without copying pixels", () => {
+  let bins;
+  const cake = {
+    ...image,
+    fullWidth: 3,
+    radialRange: [1, 3],
+    azimuthRange: [-90, 90],
+    unit: "q_A^-1",
+  };
+  const tools = detectorTools(null, {
+    cake,
+    onBins: (n) => {
+      bins = n;
+    },
+  });
+  const copy = JSON.parse(JSON.stringify(tools.profile)).cake;
+  assert.deepEqual(copy.radialRange, cake.radialRange);
+  assert.equal(copy.unit, "q_A^-1");
+  assert.equal(copy.sourceBufferId, cake.bufferId);
+  assert.equal(copy.data, undefined);
+  assert.equal(cakeSourcePixel(copy, 2), 1.5);
+  tools.callbacks.get("profile.onBins")(7);
+  assert.equal(bins, 7);
+});
 
 test("detector presentation retains callbacks, histogram and source identity without pixels in metadata", async () => {
   let picked, saved;
