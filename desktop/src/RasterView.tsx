@@ -24,6 +24,8 @@ import {
 } from "./cakeRadialAxis";
 import type { PlotViewport } from "./plotViewport";
 import { decodeRaster } from "./rasterTransfer";
+import { forEachPoint } from "./phaseGuidePoints";
+import { PhaseGuidePainter } from "./PhaseGuidePainter";
 import { colorsFor } from "./colorMaps";
 import { WebGLRaster } from "./WebGLRaster";
 import { rasterCanvas } from "./rasterCanvas";
@@ -179,6 +181,9 @@ export function RasterView({
     [mask?.data, mask?.dtype],
   );
   const [lower, upper] = limits ?? raster.limits;
+  const phasePainter = useRef<PhaseGuidePainter | null>(null);
+  if (!(phasePainter.current instanceof PhaseGuidePainter))
+    phasePainter.current = new PhaseGuidePainter();
   const softwareCache = useRef<{
     colourKey: unknown[];
     key: unknown[];
@@ -471,13 +476,40 @@ export function RasterView({
           (a, b) =>
             Number(a.ring === activeRing) - Number(b.ring === activeRing),
         );
+        const phaseRings = ordered.filter((r) => r.phaseIndex !== undefined);
+        const phasePrefix =
+          phaseRings.length > 0 &&
+          ordered
+            .slice(0, phaseRings.length)
+            .every((r) => r.phaseIndex !== undefined);
+        if (phasePrefix)
+          phasePainter.current!.draw(
+            context,
+            phaseRings,
+            {
+              width: size.width,
+              height: size.height,
+              dpr,
+              left,
+              top,
+              plotWidth,
+              plotHeight,
+              sx,
+              sy,
+              ox,
+              oy,
+              fullHeight: raster.fullHeight,
+            },
+            exporting,
+          );
         for (const ring of ordered) {
+          if (phasePrefix && ring.phaseIndex !== undefined) continue;
           const active = ring.ring === activeRing,
             linked = ring.ring <= 0 && !ring.color;
           if (exporting && linked) continue;
           const path = () => {
             context.beginPath();
-            ring.points.forEach(([x, y], i) => {
+            forEachPoint(ring.points, (x, y, i) => {
               const px = ox + x * sx,
                 py = oy + (raster.fullHeight - y) * sy;
               if (i) context.lineTo(px, py);
@@ -508,7 +540,9 @@ export function RasterView({
             const angle = ring.ring * 0.65;
             const tx = left + plotWidth * (0.5 + 0.32 * Math.cos(angle)),
               ty = top + plotHeight * (0.5 + 0.32 * Math.sin(angle));
-            const candidates = ring.points
+            const pointArray: number[][] = [];
+            forEachPoint(ring.points, (x, y) => pointArray.push([x, y]));
+            const candidates = pointArray
               .map(([x, y]) => ({
                 x: ox + x * sx,
                 y: oy + (raster.fullHeight - y) * sy,

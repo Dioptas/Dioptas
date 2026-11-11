@@ -1,5 +1,6 @@
 import type { Raster, Response } from "./types";
 import { navigationTrace } from "./navigationTiming.ts";
+import { pointBufferSize } from "./phaseGuidePoints.ts";
 
 // Bound retained source buffers, including images we have just browsed away from.
 export class ByteCache<K, V> {
@@ -133,6 +134,16 @@ export class RasterTransfer {
       if (Array.isArray(value)) return value.map(hydrate);
       if (!value || typeof value !== "object") return value;
       const obj = value as Record<string, unknown>;
+      if (typeof obj.bufferId === "string" && obj.dtype === "xy-f64le") {
+        const data =
+          incoming.get(obj.bufferId) ??
+          known.get(obj.bufferId) ??
+          this.buffers.get(obj.bufferId);
+        if (!data || data.byteLength !== pointBufferSize(obj))
+          throw Error("Missing or invalid cached phase-line buffer.");
+        this.remember(obj.bufferId, data);
+        return { ...obj, data };
+      }
       if (
         typeof obj.bufferId === "string" &&
         (obj.dtype === "f32le" || obj.dtype === "u8")

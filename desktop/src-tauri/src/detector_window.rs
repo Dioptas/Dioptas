@@ -40,17 +40,42 @@ fn references(value: &Value, output: &mut HashMap<String, usize>) -> Result<(), 
                         .filter(|n| *n > 0 && *n <= 100_000)
                         .ok_or("Invalid detector dimensions.")
                 };
-                let bytes = match values.get("dtype").and_then(Value::as_str) {
-                    Some("u8") => 1,
-                    Some("f32le") => 4,
-                    _ => return Err("Invalid detector data type.".into()),
+                let size = if values.get("dtype").and_then(Value::as_str) == Some("xy-f64le") {
+                    let count = values
+                        .get("count")
+                        .and_then(Value::as_u64)
+                        .filter(|n| *n >= 2)
+                        .ok_or("Invalid phase-line dimensions.")?;
+                    let offset = values
+                        .get("offset")
+                        .and_then(Value::as_u64)
+                        .ok_or("Invalid phase-line offset.")?;
+                    let length = values
+                        .get("length")
+                        .and_then(Value::as_u64)
+                        .filter(|n| *n >= 2)
+                        .ok_or("Invalid phase-line length.")?;
+                    if offset.checked_add(length).is_none_or(|n| n > count) {
+                        return Err("Invalid phase-line range.".into());
+                    }
+                    count
+                        .checked_mul(16)
+                        .filter(|n| *n <= MAX_PIXELS as u64)
+                        .ok_or("Phase lines exceed the display bound.")?
+                        as usize
+                } else {
+                    let bytes = match values.get("dtype").and_then(Value::as_str) {
+                        Some("u8") => 1,
+                        Some("f32le") => 4,
+                        _ => return Err("Invalid detector data type.".into()),
+                    };
+                    dimension("width")?
+                        .checked_mul(dimension("height")?)
+                        .and_then(|n| n.checked_mul(bytes))
+                        .filter(|n| *n <= MAX_PIXELS as u64)
+                        .ok_or("Detector buffer exceeds the display bound.")?
+                        as usize
                 };
-                let size = dimension("width")?
-                    .checked_mul(dimension("height")?)
-                    .and_then(|n| n.checked_mul(bytes))
-                    .filter(|n| *n <= MAX_PIXELS as u64)
-                    .ok_or("Detector buffer exceeds the display bound.")?
-                    as usize;
                 if output
                     .insert(id.to_owned(), size)
                     .is_some_and(|previous| previous != size)
@@ -94,7 +119,7 @@ impl Snapshot {
             .ok_or("Missing detector presentation.")?;
         let mut required = HashMap::new();
         references(result, &mut required)?;
-        if required.len() > 4 || required.values().sum::<usize>() > MAX_PIXELS {
+        if required.len() > 256 || required.values().sum::<usize>() > MAX_PIXELS {
             return Err("Detector pixels exceed the display bound.".into());
         }
         let mut buffers = HashMap::new();
@@ -213,6 +238,47 @@ pub fn clear(app: &tauri::AppHandle) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn many_phase_buffers_are_retained_and_invalid_coordinate_ranges_are_atomic() {
+        let rings: Vec<_> = (0..20).map(|i| json!({"ring":0,"phaseIndex":i,"points":{"bufferId":format!("phase-{i}"),"dtype":"xy-f64le","count":2,"offset":0,"length":2}})).collect();
+        let mut header = json!({"result":{"ok":true,"presentation":{"raster":{"rings":rings}}},"buffers":(0..20).map(|i| json!({"id":format!("phase-{i}"),"length":32})).collect::<Vec<_>>()});
+        let frame = |header: &Value, pixels: bool| {
+            let bytes = serde_json::to_vec(header).unwrap();
+            let mut packet = (bytes.len() as u32).to_le_bytes().to_vec();
+            packet.extend(bytes);
+            if pixels {
+                packet.extend(vec![0; 20 * 32]);
+            }
+            packet
+        };
+        let mut store = Snapshot::default();
+        store.publish(&frame(&header, true)).unwrap();
+        assert_eq!(store.buffers.len(), 20);
+        let known: Vec<_> = store.buffers.keys().cloned().collect();
+        let packet = store.packet(&known);
+        assert_eq!(
+            packet.len(),
+            4 + u32::from_le_bytes(packet[..4].try_into().unwrap()) as usize
+        );
+        let original = store.buffers["phase-0"].clone();
+        header["buffers"] = json!([]);
+        store.publish(&frame(&header, false)).unwrap();
+        assert!(Arc::ptr_eq(&original, &store.buffers["phase-0"]));
+        for invalid in [
+            json!({"count":2,"offset":1,"length":2}),
+            json!({"count":2,"offset":u64::MAX,"length":2}),
+            json!({"count":u64::MAX,"offset":0,"length":2}),
+        ] {
+            let points = header["result"]["presentation"]["raster"]["rings"][0]["points"]
+                .as_object_mut()
+                .unwrap();
+            for (key, value) in invalid.as_object().unwrap() {
+                points.insert(key.clone(), value.clone());
+            }
+            assert!(store.publish(&frame(&header, false)).is_err());
+            assert!(Arc::ptr_eq(&original, &store.buffers["phase-0"]));
+        }
+    }
     fn frame(id: &str, pixels: Option<Vec<u8>>) -> Vec<u8> {
         let raster = json!({"bufferId": id, "width": 2, "height": 1, "dtype": "f32le"});
         let header = json!({"result": {"ok": true, "presentation": {"identity": id, "raster": {"raster": raster.clone()}, "intensity": {"raster": raster}}}, "buffers": pixels.as_ref().map(|p| vec![json!({"id": id, "length": p.len()})]).unwrap_or_default()}).to_string();

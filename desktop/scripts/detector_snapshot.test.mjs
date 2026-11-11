@@ -7,6 +7,7 @@ import {
 } from "../src/detectorSnapshot.ts";
 import { cakeSourcePixel } from "../src/cakeRadialAxis.ts";
 import { RasterTransfer, decodeRaster } from "../src/rasterTransfer.ts";
+import { forEachPoint } from "../src/phaseGuidePoints.ts";
 
 const image = {
   bufferId: "detector-a",
@@ -20,6 +21,43 @@ const image = {
   limits: [-6, 70000],
   histogram: { edges: [-6, 1, 70000], counts: [1, 3] },
 };
+test("detached phase lines use binary buffers and metadata retains no coordinate bytes", async () => {
+  const data = new Float64Array([1.2345678901234567, 2, 3, 4]).buffer;
+  const points = {
+    bufferId: "phase",
+    dtype: "xy-f64le",
+    count: 2,
+    offset: 0,
+    length: 2,
+    data,
+  };
+  const value = detectorPresentation(
+    "phase-view",
+    { raster: image, rings: [{ ring: 0, phaseIndex: 0, points }] },
+    { raster: image },
+  );
+  assert.equal(value.buffers.size, 2);
+  assert.equal(value.presentation.raster.rings[0].points.data, undefined);
+  const transfer = new RasterTransfer(
+    async (_, __, known) =>
+      detectorPacket(
+        { ok: true, presentation: value.presentation },
+        value.buffers,
+        new Set(known),
+      ).buffer,
+  );
+  const first = await transfer.call("snapshot");
+  const last = await transfer.call("snapshot");
+  const a = first.presentation.raster.rings[0].points,
+    b = last.presentation.raster.rings[0].points;
+  assert.equal(a.data, b.data);
+  const pairs = [];
+  forEachPoint(b, (x, y) => pairs.push([x, y]));
+  assert.deepEqual(pairs, [
+    [1.2345678901234567, 2],
+    [3, 4],
+  ]);
+});
 
 test("detached profile metadata retains the radial grid for width dragging without copying pixels", () => {
   let bins;

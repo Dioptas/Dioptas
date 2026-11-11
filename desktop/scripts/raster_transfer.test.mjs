@@ -5,6 +5,7 @@ import {
   ByteCache,
   decodeRaster,
 } from "../src/rasterTransfer.ts";
+import { forEachPoint, packedCoordinates } from "../src/phaseGuidePoints.ts";
 
 const image = (id, width = 2, dtype = "f32le") => ({
   width,
@@ -15,6 +16,49 @@ const image = (id, width = 2, dtype = "f32le") => ({
   dtype,
   limits: [0, 1],
   bufferId: id,
+});
+test("phase coordinate slices retain float64 bits and reuse advertised phase buffers", async () => {
+  const coords = new Float64Array([
+    -0, 1e-300, 1.2345678901234567, 4095.9999999999995, 20, -30,
+  ]);
+  const points = {
+    bufferId: "phase",
+    dtype: "xy-f64le",
+    count: 3,
+    offset: 1,
+    length: 2,
+  };
+  const transfer = new RasterTransfer(async (_, __, known) =>
+    frame(
+      { ok: true, phaseGuides: [{ points }] },
+      known.includes("phase") ? {} : { phase: coords.buffer },
+    ),
+  );
+  const first = (await transfer.call("guides")).phaseGuides[0].points;
+  const last = (await transfer.call("guides")).phaseGuides[0].points;
+  assert.equal(first.data, last.data);
+  assert.equal(packedCoordinates(first), packedCoordinates(last));
+  const pairs = [];
+  forEachPoint(last, (x, y) => pairs.push([x, y]));
+  assert.deepEqual(pairs, [
+    [coords[2], coords[3]],
+    [20, -30],
+  ]);
+  for (const bad of [
+    { offset: 2 },
+    { length: 4 },
+    { count: 4 },
+    { count: Infinity },
+    { offset: -1 },
+  ]) {
+    const broken = new RasterTransfer(async () =>
+      frame(
+        { ok: true, phaseGuides: [{ points: { ...points, ...bad } }] },
+        { phase: coords.buffer },
+      ),
+    );
+    await assert.rejects(broken.call("guides"), /phase-line/);
+  }
 });
 function frame(result, buffers = {}, align = false) {
   const entries = Object.entries(buffers);

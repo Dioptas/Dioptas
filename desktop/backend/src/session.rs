@@ -162,6 +162,8 @@ pub struct Session {
     inspection: Option<linked::Inspection>,
     inspection_contour: std::cell::RefCell<Option<linked::ContourCache>>,
     inspection_field: std::cell::RefCell<Option<linked::FieldCache>>,
+    #[cfg(feature = "dioptrin")]
+    phase_guide_field: std::cell::RefCell<Option<phase_workflow::GuideFieldCache>>,
     mask: Arc<Vec<u8>>,
     mask_filename: Option<String>,
     mask_mode: bool,
@@ -238,6 +240,8 @@ impl Session {
             inspection: None,
             inspection_contour: Default::default(),
             inspection_field: Default::default(),
+            #[cfg(feature = "dioptrin")]
+            phase_guide_field: Default::default(),
             mask: Arc::new(vec![]),
             mask_filename: None,
             mask_mode: true,
@@ -1374,7 +1378,7 @@ impl Session {
                 return self.mask_plugin(args, defer);
             }
             "integration_phase_guides" => {
-                return self.phase_guides();
+                return self.phase_guides(args);
             }
             #[cfg(feature = "dioptrin")]
             "integration_diagnostics" => {
@@ -2119,6 +2123,7 @@ impl Session {
             .unwrap_or_default();
         let mut result = json!({"ok": true, "backend": {"runtime": "rust", "experimental": true}, "state": {
             "supportsRequestedProducts": true,
+            "supportsBinaryPhaseGuides": true,
             "revision": self.revision, "hasImage": self.image.is_some(), "imageName": name, "imagePath": image_path, "shape": shape,
             "imageSources":self.image.as_ref().map(|i|&i.sources),
             "selectedImageSource":self.image.as_ref().and_then(|i|i.options.get("dataset")),

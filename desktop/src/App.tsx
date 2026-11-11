@@ -1930,7 +1930,7 @@ export default function App() {
       const revision = state.revision;
       void run(
         "integration_phase_guides",
-        {},
+        state.supportsBinaryPhaseGuides ? { binary: true } : {},
         "",
         undefined,
         () => phaseGuideRevision.current === revision,

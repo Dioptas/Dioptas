@@ -94,6 +94,7 @@ export interface State {
     automatic: number;
   };
   supportsRequestedProducts?: boolean;
+  supportsBinaryPhaseGuides?: boolean;
   revision: number;
   hasImage: boolean;
   imageName: string | null;
@@ -206,7 +207,15 @@ export interface RingOverlay {
   phaseIndex?: number;
   reflectionIndex?: number;
   twoTheta?: number;
-  points: number[][];
+  points: number[][] | PackedPoints;
+}
+export interface PackedPoints {
+  bufferId: string;
+  dtype: "xy-f64le";
+  count: number;
+  offset: number;
+  length: number;
+  data: Raster["data"];
 }
 export interface Response {
   imageUnavailable?: boolean;

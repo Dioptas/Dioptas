@@ -306,17 +306,61 @@ fn update_cell(p: &mut Phase) -> Result<(), String> {
     p.document["source"]["structure_modified"] = json!(true);
     Ok(())
 }
+#[cfg(feature = "dioptrin")]
+pub(super) struct GuideFieldCache {
+    geometry: Geometry,
+    shape: [usize; 2],
+    field: crate::contours::IndexedField,
+    contours: std::collections::HashMap<u64, Value>,
+    buffers: std::collections::HashMap<String, GuideBuffer>,
+}
+#[cfg(feature = "dioptrin")]
+struct GuideBuffer {
+    targets: Vec<u64>,
+    buffer: crate::protocol::Buffer,
+}
+
 impl Session {
-    pub(super) fn phase_guides(&self) -> Result<Reply, String> {
+    pub(super) fn phase_guides(&self, args: &Value) -> Result<Reply, String> {
+        let mut trace = crate::frame_trace::FrameTrace::new("phase-guides", self.revision);
         #[allow(unused_mut)] // Geometry guides are populated only with the optional engine.
         let mut guides: Vec<Value> = vec![];
+        let binary = args["binary"].as_bool().unwrap_or(false);
+        let mut buffers = vec![];
         #[cfg(feature = "dioptrin")]
         if let Some(image) = &self.image
             && self.settings.calibrated
         {
-            let native = self.native_geometry(image.shape)?;
-            let angles = native.calc_tth_all();
-            let step = image.shape[0].max(image.shape[1]).div_ceil(512).max(1);
+            // Pressure, temperature, lattice and style edits change targets,
+            // not detector geometry. Reuse the exact display sample grid and
+            // its strip bounds; do not scan every detector pixel per reflection.
+            let mut cached = self.phase_guide_field.borrow_mut();
+            if !cached
+                .as_ref()
+                .is_some_and(|c| c.geometry == self.settings.geometry && c.shape == image.shape)
+            {
+                let native = self.native_geometry(image.shape)?;
+                let step = image.shape[0].max(image.shape[1]).div_ceil(512).max(1);
+                *cached = Some(GuideFieldCache {
+                    geometry: self.settings.geometry.clone(),
+                    shape: image.shape,
+                    field: crate::contours::IndexedField::sampled(
+                        native.calc_tth_all(),
+                        image.shape,
+                        step,
+                    ),
+                    contours: Default::default(),
+                    buffers: Default::default(),
+                });
+            }
+            let cached = cached.as_mut().unwrap();
+            trace.mark("field");
+            let mut previous = std::mem::take(&mut cached.contours);
+            let mut next = std::collections::HashMap::new();
+            let field = &cached.field;
+            let mut lines = vec![];
+            let mut requested = std::collections::HashSet::new();
+            let mut missing = vec![];
             for (i, p) in self
                 .phases
                 .items
@@ -336,20 +380,90 @@ impl Session {
                     if !t.is_finite() {
                         continue;
                     }
-                    let paths = crate::contours::contours_at_step(
-                        &angles,
-                        image.shape,
-                        &[(0, t.to_radians())],
-                        step,
-                    );
+                    let target = t.to_radians();
+                    // Other phases usually retain their angles during an edit.
+                    // Keep only the latest request's targets, so scrubbing
+                    // pressure cannot accumulate an unbounded contour history.
+                    let key = target.to_bits();
+                    if requested.insert(key) {
+                        if let Some(paths) = previous.remove(&key) {
+                            next.insert(key, paths);
+                        } else {
+                            missing.push((key, target));
+                        }
+                    }
                     let intensity = if maximum > 0.0 { r[4] / maximum } else { 0.0 };
-                    for path in paths.as_array().unwrap() {
-                        guides.push(json!({"ring":0,"twoTheta":t,"color":p.color,"points":path["points"],"phaseIndex":i,"reflectionIndex":j,"lineWidth":1.0+3.0*intensity,"opacity":0.3+0.4*intensity}));
+                    lines.push((i, j, t, &p.color, intensity, key));
+                }
+            }
+            trace.mark("targets");
+            let targets: Vec<_> = missing.iter().map(|(_, target)| *target).collect();
+            for ((key, _), paths) in missing.into_iter().zip(field.contours(&targets)) {
+                next.insert(key, paths);
+            }
+            trace.mark("contours");
+            let mut retained = std::collections::HashMap::new();
+            for phase in lines.chunk_by(|a, b| a.0 == b.0) {
+                let i = phase[0].0;
+                let mut point_offset = 0;
+                let packed = if binary {
+                    let uid = &self.phases.items[i].uid;
+                    let targets: Vec<_> = phase.iter().map(|line| line.5).collect();
+                    let hit = cached.buffers.remove(uid).filter(|b| b.targets == targets);
+                    let packed = hit.unwrap_or_else(|| {
+                        let mut bytes = vec![];
+                        for line in phase {
+                            for path in next[&line.5].as_array().unwrap() {
+                                for point in path["points"].as_array().unwrap() {
+                                    for coordinate in point.as_array().unwrap() {
+                                        bytes.extend_from_slice(
+                                            &coordinate.as_f64().unwrap().to_le_bytes(),
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                        GuideBuffer {
+                            targets,
+                            buffer: crate::protocol::Buffer::new(bytes),
+                        }
+                    });
+                    let descriptor = (packed.buffer.id.clone(), packed.buffer.bytes.len() / 16);
+                    if descriptor.1 > 0 {
+                        buffers.push(packed.buffer.clone());
+                    }
+                    retained.insert(uid.clone(), packed);
+                    Some(descriptor)
+                } else {
+                    None
+                };
+                for &(i, j, t, color, intensity, key) in phase {
+                    for path in next[&key].as_array().unwrap() {
+                        let points = if let Some((id, count)) = &packed {
+                            let length = path["points"].as_array().unwrap().len();
+                            let descriptor = json!({"bufferId":id,"dtype":"xy-f64le","count":count,"offset":point_offset,"length":length});
+                            point_offset += length;
+                            descriptor
+                        } else {
+                            path["points"].clone()
+                        };
+                        let mut guide = json!({"ring":0,"twoTheta":t,"color":color,"phaseIndex":i,"reflectionIndex":j,"lineWidth":1.0+3.0*intensity,"opacity":0.3+0.4*intensity});
+                        guide["points"] = points;
+                        guides.push(guide);
                     }
                 }
             }
+            cached.buffers = retained;
+            trace.mark("metadata");
+            cached.contours = next;
         }
-        Ok(Reply::metadata(json!({"ok":true,"phaseGuides":guides})))
+        // Move the large array into the reply; json! on Vec<Value> recursively
+        // clones every coordinate for a second time.
+        let mut result = json!({"ok":true});
+        result["phaseGuides"] = Value::Array(guides);
+        trace.mark("reply");
+        let _ = binary; // Diagnostic builds return the same empty metadata.
+        Ok(Reply { result, buffers })
     }
     fn phase_minimum(&self) -> f64 {
         self.patterns
@@ -1474,5 +1588,268 @@ fn ensure_record(p: &mut Phase) {
         let r = custom_record(p);
         p.document["eos_records"] = json!([r]);
         p.reference = Some(0);
+    }
+}
+
+#[cfg(all(test, feature = "dioptrin"))]
+mod guide_tests {
+    use super::*;
+
+    fn call(s: &mut Session, action: &str, payload: Value) {
+        let reply = s.invoke(&crate::protocol::Request {
+            id: 1,
+            action: action.into(),
+            payload,
+            cached_buffers: vec![],
+        });
+        assert_eq!(reply.result["ok"], true, "{}", reply.result);
+    }
+
+    // Compare against the preceding uncached algorithm, including exact point
+    // order, source-pixel interpolation, reflection identity and line styling.
+    fn check(s: &Session) -> Value {
+        let image = s.image.as_ref().unwrap();
+        let angles = s.native_geometry(image.shape).unwrap().calc_tth_all();
+        let step = image.shape[0].max(image.shape[1]).div_ceil(512).max(1);
+        let mut expected = vec![];
+        for (i, p) in s.phases.items.iter().enumerate().filter(|(_, p)| p.visible) {
+            let maximum = p.reflections.iter().map(|r| r[4]).fold(0.0, f64::max);
+            let scale = (p.current_volume / p.reference_volume()).cbrt();
+            for (j, r) in p.reflections.iter().enumerate() {
+                let t = crate::pattern::convert_coordinate(
+                    p.cell_spacing(r) * scale,
+                    "d_A",
+                    "2th_deg",
+                    s.settings.geometry.wavelength,
+                );
+                if !t.is_finite() {
+                    continue;
+                }
+                let paths = crate::contours::contours_at_step(
+                    &angles,
+                    image.shape,
+                    &[(0, t.to_radians())],
+                    step,
+                );
+                let intensity = if maximum > 0.0 { r[4] / maximum } else { 0.0 };
+                for path in paths.as_array().unwrap() {
+                    expected.push(json!({"ring":0,"twoTheta":t,"color":p.color,"points":path["points"],"phaseIndex":i,"reflectionIndex":j,"lineWidth":1.0+3.0*intensity,"opacity":0.3+0.4*intensity}));
+                }
+            }
+        }
+        let actual = s.phase_guides(&json!({})).unwrap().result["phaseGuides"].clone();
+        assert_eq!(actual, json!(expected));
+        let packed = s.phase_guides(&json!({"binary":true})).unwrap();
+        assert_eq!(
+            packed.result["phaseGuides"].as_array().unwrap().len(),
+            actual.as_array().unwrap().len()
+        );
+        for (line, reference) in packed.result["phaseGuides"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .zip(actual.as_array().unwrap())
+        {
+            let points = &line["points"];
+            let buffer = packed
+                .buffers
+                .iter()
+                .find(|b| b.id == points["bufferId"].as_str().unwrap())
+                .unwrap();
+            assert_eq!(
+                buffer.bytes.len(),
+                points["count"].as_u64().unwrap() as usize * 16
+            );
+            assert_eq!(
+                points["length"].as_u64().unwrap() as usize,
+                reference["points"].as_array().unwrap().len()
+            );
+            let offset = points["offset"].as_u64().unwrap() as usize * 16;
+            for (i, pair) in reference["points"].as_array().unwrap().iter().enumerate() {
+                for axis in 0..2 {
+                    let at = offset + i * 16 + axis * 8;
+                    let value = f64::from_le_bytes(buffer.bytes[at..at + 8].try_into().unwrap());
+                    assert_eq!(value.to_bits(), pair[axis].as_f64().unwrap().to_bits());
+                }
+            }
+            let mut metadata = line.clone();
+            metadata["points"] = reference["points"].clone();
+            assert_eq!(&metadata, reference);
+        }
+        actual
+    }
+
+    #[test]
+    fn shared_phase_levels_match_legacy_for_individual_and_all_phase_edits() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let mut s = Session::new(root.clone());
+        call(
+            &mut s,
+            "integration_settings",
+            json!({"bins":128,"cake_bins":36}),
+        );
+        call(
+            &mut s,
+            "integration_phase",
+            json!({"operation":"same_conditions","enabled":false}),
+        );
+        call(
+            &mut s,
+            "open_calibration",
+            json!({"path":root.join("dioptas/tests/data/CeO2_Pilatus1M.poni")}),
+        );
+        call(
+            &mut s,
+            "open_image",
+            json!({"path":root.join("dioptas/tests/data/CeO2_Pilatus1M.tif")}),
+        );
+        for index in 0..10 {
+            let name = ["mo.jcpds", "au_version3.jcpds", "pt.jcpds"][index % 3];
+            call(
+                &mut s,
+                "integration_phase",
+                json!({"operation":"load","path":root.join("dioptas/tests/data/jcpds").join(name)}),
+            );
+            let a0 = crystal::cell(&s.phases.items[index].document)
+                .unwrap()
+                .a_angstrom;
+            call(
+                &mut s,
+                "integration_phase",
+                json!({"operation":"parameter","index":index,"parameter":"a0","value":a0*(1.+index as f64*0.002)}),
+            );
+        }
+        let original = check(&s);
+        assert_eq!(check(&s), original);
+        let packed = s.phase_guides(&json!({"binary":true})).unwrap();
+        let known: Vec<_> = packed.buffers.iter().map(|b| b.id.clone()).collect();
+        let warm = s.phase_guides(&json!({"binary":true})).unwrap();
+        for (a, b) in packed.buffers.iter().zip(&warm.buffers) {
+            assert!(Arc::ptr_eq(&a.bytes, &b.bytes));
+        }
+        let packet = warm.encode(1, &known).unwrap();
+        let length = u32::from_le_bytes(packet[..4].try_into().unwrap()) as usize;
+        assert_eq!(
+            packet.len(),
+            4 + length,
+            "Unchanged phases transfer metadata only"
+        );
+        call(
+            &mut s,
+            "integration_phase",
+            json!({"operation":"update","index":0,"pressure":12.0}),
+        );
+        let changed = check(&s);
+        assert_ne!(changed, original);
+        let unchanged = |v: &Value| {
+            v.as_array()
+                .unwrap()
+                .iter()
+                .filter(|g| g["phaseIndex"] != 0)
+                .cloned()
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(unchanged(&changed), unchanged(&original));
+        let packed = s.phase_guides(&json!({"binary":true})).unwrap();
+        let packet = packed.encode(1, &known).unwrap();
+        let length = u32::from_le_bytes(packet[..4].try_into().unwrap()) as usize;
+        let header: Value = serde_json::from_slice(&packet[4..4 + length]).unwrap();
+        assert_eq!(
+            header["buffers"].as_array().unwrap().len(),
+            1,
+            "Only the edited phase transfers new coordinates"
+        );
+        call(
+            &mut s,
+            "integration_phase",
+            json!({"operation":"same_conditions","enabled":true}),
+        );
+        call(
+            &mut s,
+            "integration_phase",
+            json!({"operation":"update","index":0,"pressure":15.0}),
+        );
+        let all = check(&s);
+        assert_ne!(unchanged(&all), unchanged(&original));
+        call(
+            &mut s,
+            "integration_phase",
+            json!({"operation":"update","index":2,"visible":false}),
+        );
+        assert!(
+            check(&s)
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|g| g["phaseIndex"] != 2)
+        );
+        // Identical angles share geometry but keep their own phase identity and
+        // styling in the reply.
+        s.phases.items.push(s.phases.items[0].clone());
+        check(&s);
+    }
+
+    #[test]
+    fn detector_guides_reuse_samples_and_follow_phase_geometry_and_shape_changes() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let mut s = Session::new(root.clone());
+        call(
+            &mut s,
+            "integration_settings",
+            json!({"bins":128,"cake_bins":36}),
+        );
+        call(
+            &mut s,
+            "open_calibration",
+            json!({"path":root.join("dioptas/tests/data/CeO2_Pilatus1M.poni")}),
+        );
+        call(
+            &mut s,
+            "open_image",
+            json!({"path":root.join("dioptas/tests/data/CeO2_Pilatus1M.tif")}),
+        );
+        call(
+            &mut s,
+            "integration_phase",
+            json!({"operation":"load","path":root.join("dioptas/tests/data/jcpds/mo.jcpds")}),
+        );
+        let original = check(&s);
+        assert!(!original.as_array().unwrap().is_empty());
+        assert_eq!(check(&s), original);
+        for payload in [
+            json!({"operation":"update","index":0,"pressure":12.0}),
+            json!({"operation":"update","index":0,"temperature":600.0}),
+            json!({"operation":"parameter","index":0,"parameter":"a0","value":3.2}),
+            json!({"operation":"parameter","index":0,"parameter":"k0","value":280.0}),
+            json!({"operation":"update","index":0,"color":"#123456"}),
+        ] {
+            call(&mut s, "integration_phase", payload);
+            assert_ne!(check(&s), original);
+            assert!(
+                s.phase_guide_field
+                    .borrow()
+                    .as_ref()
+                    .unwrap()
+                    .contours
+                    .len()
+                    <= s.phases.items[0].reflections.len()
+            );
+        }
+        call(&mut s, "undo_calibration", json!({}));
+        check(&s);
+        call(&mut s, "redo_calibration", json!({}));
+        check(&s);
+
+        // Exercise the guide cache's geometry and shape keys directly without
+        // invoking unrelated image reintegration or size-confirmation dialogs.
+        s.settings.geometry.rot1 += 0.03;
+        let rotated = check(&s);
+        assert_ne!(rotated, original);
+        s.settings.geometry.detector = None;
+        s.image.as_mut().unwrap().shape = [620, 550];
+        let resized = check(&s);
+        assert_ne!(resized, rotated);
+        let cache = s.phase_guide_field.borrow();
+        assert_eq!(cache.as_ref().unwrap().shape, [620, 550]);
     }
 }

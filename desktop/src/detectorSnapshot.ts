@@ -41,6 +41,24 @@ export function detectorPresentation(
 ) {
   const callbacks = new Map<string, (...args: any[]) => unknown>();
   const buffers = new Map<string, Raster["data"]>();
+  const cleanPoints = (value: unknown): unknown => {
+    if (Array.isArray(value)) {
+      // Legacy point pairs already belong to their immutable ring; only packed
+      // descriptors need cleaning, never traverse every scalar coordinate.
+      if (Array.isArray(value[0]) || typeof value[0] === "number") return value;
+      return value.map(cleanPoints);
+    }
+    if (!value || typeof value !== "object") return value;
+    const obj = value as Record<string, unknown>;
+    if (obj.dtype === "xy-f64le" && typeof obj.bufferId === "string") {
+      buffers.set(obj.bufferId, obj.data as Raster["data"]);
+      const { data: _, ...metadata } = obj;
+      return metadata;
+    }
+    return Object.fromEntries(
+      Object.entries(obj).map(([key, item]) => [key, cleanPoints(item)]),
+    );
+  };
   const clean = (props: Record<string, unknown>, prefix: string) =>
     Object.fromEntries(
       Object.entries(props).flatMap(([key, value]) => {
@@ -66,7 +84,7 @@ export function detectorPresentation(
           const { data: _, ...metadata } = image;
           return [[key, { ...metadata, bufferId }]];
         }
-        return [[key, value]];
+        return [[key, key === "rings" ? cleanPoints(value) : value]];
       }),
     );
   const view = raster.viewport as

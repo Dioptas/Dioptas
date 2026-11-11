@@ -37,6 +37,9 @@ export function nativeClient(options = {}) {
     packetHeader = null,
     readingHeader = false,
     nextId = 0;
+  let headerBytes,
+    lastPacketBytes = 0,
+    lastHeaderBytes = 0;
   child.stderr.on("data", (bytes) => diagnostics.push(bytes.toString()));
   function fail(error) {
     for (const task of pending.values()) {
@@ -50,6 +53,8 @@ export function nativeClient(options = {}) {
     fail(new Error(`Native processor exited ${code}: ${diagnostics.join("")}`)),
   );
   function finishPacket(bytes) {
+    lastPacketBytes = 4 + headerBytes.length + bytes.length;
+    lastHeaderBytes = headerBytes.length;
     let offset = 0;
     for (const buffer of packetHeader.buffers) {
       buffers.set(
@@ -61,6 +66,13 @@ export function nativeClient(options = {}) {
     const id = packetHeader.id;
     const task = pending.get(id);
     const result = packetHeader.result;
+    let packet;
+    if (task?.packet) {
+      packet = Buffer.allocUnsafe(lastPacketBytes);
+      packet.writeUInt32LE(headerBytes.length, 0);
+      headerBytes.copy(packet, 4);
+      bytes.copy(packet, 4 + headerBytes.length);
+    }
     packetHeader = null;
     input = Buffer.alloc(4);
     filled = 0;
@@ -68,7 +80,7 @@ export function nativeClient(options = {}) {
     if (task) {
       clearTimeout(task.timer);
       pending.delete(id);
-      task.resolve(result);
+      task.resolve(task.packet ? packet : result);
     }
   }
   // Fill each header/payload once. Repeated Buffer.concat copies a 40-MB
@@ -87,6 +99,7 @@ export function nativeClient(options = {}) {
           continue;
         }
         if (readingHeader) {
+          headerBytes = input;
           packetHeader = JSON.parse(input);
           const size = packetHeader.buffers.reduce(
             (sum, b) => sum + b.length,
@@ -116,20 +129,20 @@ export function nativeClient(options = {}) {
       fail(error);
     }
   });
-  const invoke = (action, payload = {}) =>
+  const request = (action, payload = {}, cachedBuffers, packet = false) =>
     new Promise((resolve, reject) => {
       const id = ++nextId;
       const timer = setTimeout(() => {
         pending.delete(id);
         reject(new Error(`Native command timed out: ${action}`));
       }, 45000);
-      pending.set(id, { resolve, reject, timer });
+      pending.set(id, { resolve, reject, timer, packet });
       child.stdin.write(
         JSON.stringify({
           id,
           action,
           payload,
-          cachedBuffers: [...buffers.keys()].slice(-64),
+          cachedBuffers: cachedBuffers ?? [...buffers.keys()].slice(-64),
         }) + "\n",
       );
     });
@@ -150,7 +163,15 @@ export function nativeClient(options = {}) {
   }
   return {
     child,
-    invoke,
+    invoke: (action, payload = {}) => request(action, payload),
+    invokePacket: (action, payload = {}, cachedBuffers = []) =>
+      request(action, payload, cachedBuffers, true),
+    get lastPacketBytes() {
+      return lastPacketBytes;
+    },
+    get lastHeaderBytes() {
+      return lastHeaderBytes;
+    },
     browserResult,
     buffers,
     diagnostics,

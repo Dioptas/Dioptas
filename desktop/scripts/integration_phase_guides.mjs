@@ -8,11 +8,15 @@ export async function capturePhaseGuideStrokes(page) {
       CanvasRenderingContext2D.prototype.stroke = stroke;
     };
     CanvasRenderingContext2D.prototype.stroke = function (...args) {
-      const view = this.canvas.dataset.testid;
+      const view =
+        this.canvas.dataset.testid === "phase-lines-layer"
+          ? "detector-canvas"
+          : this.canvas.dataset.testid;
       if (
         (view === "detector-canvas" || view === "cake-canvas") &&
-        Number(this.canvas.dataset.plotWidth) > 200 &&
-        Number(this.canvas.dataset.plotHeight) > 100
+        (this.canvas.dataset.testid === "phase-lines-layer" ||
+          (Number(this.canvas.dataset.plotWidth) > 200 &&
+            Number(this.canvas.dataset.plotHeight) > 100))
       )
         window.__phaseGuideStrokes.push({
           view,
