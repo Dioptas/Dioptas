@@ -20,7 +20,7 @@ export function DacThermalPressureControls({
   if (!queue.current)
     queue.current = createPhaseCommandQueue(() => latestRun.current);
   const enabled = source.phaseColdPressure;
-  const set = (args: Record<string, unknown>) =>
+  const set = (args: { enabled?: boolean; factor?: number }) =>
     queue.current!(
       "integration_phase",
       { operation: "dac_thermal_pressure", ...args },

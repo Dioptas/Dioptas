@@ -58,7 +58,8 @@ export function withScheduling(
   run: ScheduledRun,
   options: SchedulingOptions,
 ): Run {
-  return (...call) => run(...scheduledInvocation(call, options));
+  return <const A extends RunInvocation>(...call: A) =>
+    run(...scheduledInvocation(call, options));
 }
 export function submitWorkspaceCommand(
   invoke: Invoke,
@@ -129,7 +130,7 @@ export function withCommandSuccess(
   run: ScheduledRun,
   completed: (command: CommandName) => void,
 ): Run {
-  return (...call) => {
+  return <const A extends RunInvocation>(...call: A) => {
     const scheduled = [
       call[0],
       call[1],
@@ -141,4 +142,22 @@ export function withCommandSuccess(
     ] as ScheduledRunInvocation;
     return run(...scheduled);
   };
+}
+/** A queue may coalesce callers before invoking a command once. Capture its
+ * correlated result without delivering any one caller's callback prematurely. */
+export async function captureCommandResponse(
+  run: Run,
+  call: RunInvocation,
+): Promise<Response | undefined> {
+  let response: Response | undefined;
+  const captured = [
+    call[0],
+    call[1],
+    call[2],
+    (result: Response) => {
+      response = result;
+    },
+  ] as RunInvocation;
+  await run(...captured);
+  return response;
 }

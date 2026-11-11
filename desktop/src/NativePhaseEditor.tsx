@@ -4,7 +4,12 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { connect } from "./bridge";
 import { PhaseEditor } from "./PhaseEditor";
 import type { EditorData } from "./phaseEditorTypes";
-import type { IntegrationRun } from "./integration";
+import type {
+  PhaseEditorRun,
+  PhaseEditorRunInvocation,
+} from "./phaseEditorTypes";
+import { phaseEditorInvocation } from "./phaseEditorCommands";
+import { notifyScheduledSuccess } from "./workspaceCommands";
 import type { Invoke } from "./types";
 
 export function NativePhaseEditor() {
@@ -112,29 +117,30 @@ export function NativePhaseEditor() {
       for (const p of subscriptions) void p.then((stop) => stop());
     };
   }, [refresh]);
-  const run = useCallback<IntegrationRun>(
-    async (command, args = {}, _message, onSuccess) => {
+  const run = useCallback<PhaseEditorRun>(
+    async <const A extends PhaseEditorRunInvocation>(...call: A) => {
+      const [command, args] = call;
       if (!bridge.current) return;
       const target =
-        typeof args.editor_uid === "string" ? args.editor_uid : uid.current;
+        args && "editor_uid" in args && typeof args.editor_uid === "string"
+          ? args.editor_uid
+          : uid.current;
       const current =
         target === uid.current ? ++generation.current : generation.current;
       pending.current = true;
       setReady(false);
       setError("");
       try {
-        const result = await bridge.current(command, {
-          ...args,
-          editor_uid: target,
-          editor_only: true,
-        });
+        const result = await bridge.current(
+          ...phaseEditorInvocation(call, target),
+        );
         if (!result.ok) throw Error(result.error);
         if (current === generation.current && target === uid.current) {
           appliedRevision.current =
             result.phaseRevision ?? appliedRevision.current;
           if (result.phaseEditor)
             uid.current = (result.phaseEditor as EditorData).uid;
-          onSuccess?.(result);
+          notifyScheduledSuccess(call, result);
         }
         if (command !== "integration_phase_editor" && !result.cancelled)
           await emit("phase-editor-changed", {

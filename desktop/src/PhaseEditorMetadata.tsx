@@ -3,7 +3,12 @@ import { Button, Input, TextArea } from "./ui";
 import type { EditorData, EditorEdit } from "./phaseEditorTypes";
 import "./phaseEditorMetadata.css";
 
-type RecordData = Record<string, any>;
+import type { JsonObject, JsonValue } from "./commandPayloads";
+type RecordData = JsonObject;
+const object = (value: JsonValue | undefined): JsonObject =>
+  value != null && typeof value === "object" && !Array.isArray(value)
+    ? value
+    : {};
 type Draft = Record<string, string | boolean>;
 const ranges = [
   ["experimental_pressure_range_gpa", "Experimental pressure", "GPa"],
@@ -27,24 +32,28 @@ const shown = (value: unknown) =>
       ? JSON.stringify(value)
       : String(value);
 function rows(record: RecordData) {
-  return ["eos", "thermal"].flatMap((scope) => {
-    const block = scope === "eos" ? record : record.thermal || {};
+  return (["eos", "thermal"] as const).flatMap((scope) => {
+    const block = scope === "eos" ? record : object(record.thermal);
+    const parameters = object(object(record[scope]).parameters);
+    const errors = object(block.parameter_errors);
+    const fixedValue = block.fixed_parameters;
+    const fixed = Array.isArray(fixedValue)
+      ? fixedValue.filter((value): value is string => typeof value === "string")
+      : [];
     return [
       ...new Set([
-        ...Object.keys(record[scope]?.parameters || {}),
-        ...Object.keys(block.parameter_errors || {}),
-        ...(Array.isArray(block.fixed_parameters)
-          ? block.fixed_parameters.filter((v: unknown) => typeof v === "string")
-          : []),
+        ...Object.keys(parameters),
+        ...Object.keys(errors),
+        ...fixed,
       ]),
     ]
-      .filter((key) => typeof record[scope]?.parameters?.[key] !== "string")
+      .filter((key) => typeof parameters[key] !== "string")
       .map((key) => ({
         scope,
         key,
-        value: record[scope]?.parameters?.[key],
-        error: block.parameter_errors?.[key],
-        fixed: block.fixed_parameters?.includes(key) || false,
+        value: parameters[key],
+        error: errors[key],
+        fixed: fixed.includes(key),
       }));
   });
 }
@@ -52,7 +61,7 @@ function initial(record: RecordData): Draft {
   const ref =
     typeof record.reference === "string"
       ? { details: record.reference }
-      : record.reference || {};
+      : object(record.reference);
   const values: Draft = {
     notes: shown(record.notes),
     temperature_ref: shown(record.temperature_ref),
@@ -64,12 +73,14 @@ function initial(record: RecordData): Draft {
         ? ref.authors.join("; ")
         : shown(ref[key]);
   for (const [key] of ranges)
-    for (const bound of [0, 1])
+    for (const bound of [0, 1]) {
+      const range = key.startsWith("experimental_")
+        ? record[key]
+        : object(record.validity)[key];
       values[`${key}.${bound}`] = shown(
-        (key.startsWith("experimental_")
-          ? record[key]
-          : record.validity?.[key])?.[bound],
+        Array.isArray(range) ? range[bound] : undefined,
       );
+    }
   for (const row of rows(record)) {
     values[`${row.scope}.${row.key}.error`] = shown(row.error);
     values[`${row.scope}.${row.key}.fixed`] = row.fixed;
@@ -159,7 +170,10 @@ export function PhaseEditorMetadata({
             key === "notes"
               ? String(draft[key]).trim()
               : numeric(key, "Reference temperature");
-      if (changes.temperature_ref != null && changes.temperature_ref < 0) {
+      if (
+        typeof changes.temperature_ref === "number" &&
+        changes.temperature_ref < 0
+      ) {
         setInvalidField("temperature_ref");
         throw Error("Reference temperature must be nonnegative (K).");
       }
@@ -255,7 +269,7 @@ export function PhaseEditorMetadata({
   const ref =
     typeof baseline.reference === "string"
       ? { details: baseline.reference }
-      : baseline.reference || {};
+      : object(baseline.reference);
   const citation = [
     Array.isArray(ref.authors)
       ? ref.authors.join(", ") + (ref.authors_truncated ? " et al." : "")

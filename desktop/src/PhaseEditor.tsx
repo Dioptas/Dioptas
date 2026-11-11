@@ -5,7 +5,7 @@ import { TabList } from "./TabList";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CopyPlus, ListX, Plus, Star, Trash2 } from "lucide-react";
 import { DataTable, TableScroll } from "./DataTable";
-import type { IntegrationRun } from "./integration";
+import type { PhaseEditorRun } from "./phaseEditorTypes";
 import type { PhaseEditorData } from "./integrationPhase";
 import type {
   EditorData,
@@ -35,7 +35,7 @@ export function PhaseEditor({
 }: {
   data: PhaseEditorData;
   ready: boolean;
-  run: IntegrationRun;
+  run: PhaseEditorRun;
   onData: (v: PhaseEditorData) => void;
   onClose: () => void;
   detached?: boolean;

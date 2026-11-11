@@ -36,7 +36,7 @@ export interface EditorData extends BasePhaseEditorData {
   defaultReference: number;
   eosFields: EditorField[];
   materialFields: EditorField[];
-  recordData: Record<string, unknown> | null;
+  recordData: import("./commandPayloads").JsonObject | null;
   recordToken: string;
   thermalFields: EditorField[];
   thermalSelection: string;
@@ -68,7 +68,21 @@ export interface EditorData extends BasePhaseEditorData {
   };
 }
 
-export type EditorEdit = (
-  operation: string,
-  args?: Record<string, unknown>,
-) => Promise<boolean>;
+export type { PhaseEditorEdit as EditorEdit } from "./commandPayloads";
+export type PhaseEditorCommand =
+  "integration_phase" | "integration_phase_editor" | "integration_phase_export";
+export type PhaseEditorInvocation =
+  import("./commandContracts").CommandInvocation<PhaseEditorCommand>;
+export type PhaseEditorRunInvocation =
+  import("./commandContracts").RunInvocation<PhaseEditorCommand>;
+export interface PhaseEditorRun {
+  <C extends PhaseEditorCommand>(
+    command: import("./commandContracts").SingleCommand<C>,
+    payload: import("./commandContracts").CommandPayload<NoInfer<C>>,
+    message?: string,
+    onSuccess?: (
+      response: import("./commandContracts").CommandResult<C>,
+    ) => void,
+  ): Promise<void>;
+  <const A extends PhaseEditorRunInvocation>(...call: A): Promise<void>;
+}

@@ -1,22 +1,22 @@
 import type { IntegrationRun } from "./integration";
+import type { RunInvocation } from "./commandContracts";
 import type { Response } from "./types";
+import {
+  captureCommandResponse,
+  notifyScheduledSuccess,
+} from "./workspaceCommands.ts";
 
 type Waiter = {
   done: () => void;
   fail: (error: unknown) => void;
-  onSuccess?: (response: Response) => void;
+  deliver: (response: Response) => void;
 };
-type Entry = {
-  command: string;
-  args: Record<string, unknown>;
-  message?: string;
-  key: string | null;
-  waiters: Waiter[];
-};
+type Entry = { call: RunInvocation; key: string | null; waiters: Waiter[] };
 
-function conditionKey(command: string, args: Record<string, unknown>) {
-  if (command !== "integration_phase" || args.operation !== "update")
+function conditionKey(call: RunInvocation) {
+  if (call[0] !== "integration_phase" || call[1].operation !== "update")
     return null;
+  const args = call[1];
   const fields = Object.keys(args).filter(
     (key) => !["operation", "index", "editor_uid"].includes(key),
   );
@@ -25,7 +25,8 @@ function conditionKey(command: string, args: Record<string, unknown>) {
   return `${args.editor_uid ?? args.index}:${fields[0]}`;
 }
 
-/** Collapse consecutive queued P/T values, preserving every discrete action's order. */
+/** Collapse consecutive queued P/T values, preserving discrete action order and
+ * each caller's typed callback. The stored tuple keeps command/payload correlated. */
 export function createPhaseCommandQueue(
   currentRun: () => IntegrationRun,
 ): IntegrationRun {
@@ -38,18 +39,13 @@ export function createPhaseCommandQueue(
       while (pending.length) {
         const next = pending.shift()!;
         try {
-          let response: Response | undefined;
-          await currentRun()(
-            next.command,
-            next.args,
-            next.message,
-            (result) => {
-              response = result;
-            },
+          const response = await captureCommandResponse(
+            currentRun(),
+            next.call,
           );
           for (const waiter of next.waiters) {
             try {
-              if (response) waiter.onSuccess?.(response);
+              if (response) waiter.deliver(response);
               waiter.done();
             } catch (error) {
               waiter.fail(error);
@@ -63,16 +59,19 @@ export function createPhaseCommandQueue(
       running = false;
     }
   };
-  return (command, args = {}, message, onSuccess) =>
+  return <const A extends RunInvocation>(...call: A) =>
     new Promise<void>((done, fail) => {
-      const key = conditionKey(command, args);
-      const tail = pending.at(-1);
-      const waiter = { done, fail, onSuccess };
+      const key = conditionKey(call),
+        tail = pending.at(-1);
+      const waiter = {
+        done,
+        fail,
+        deliver: (response: Response) => notifyScheduledSuccess(call, response),
+      };
       if (key != null && tail?.key === key) {
-        tail.args = args;
-        tail.message = message;
+        tail.call = call;
         tail.waiters.push(waiter);
-      } else pending.push({ command, args, message, key, waiters: [waiter] });
+      } else pending.push({ call, key, waiters: [waiter] });
       void drain();
     });
 }

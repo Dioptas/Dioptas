@@ -1,3 +1,6 @@
+import { operationPayload } from "./commandDispatch";
+import type { OperationCall } from "./commandDispatch";
+import type { PhasePayload } from "./commandPayloads";
 import { Button, Input, Select, Portal } from "./ui";
 import { Dialog, DialogHeader } from "./Dialog";
 import { PhaseDatabase } from "./PhaseDatabase";
@@ -135,8 +138,12 @@ export function IntegrationPhaseControls({
     }
     previousCount.current = source.phases.length;
   }, [source.phases, selected]);
-  const action = (operation: string, args: Record<string, unknown> = {}) =>
-    run("integration_phase", { operation, ...args }, "Updating phases…");
+  const action = (...call: OperationCall<PhasePayload>) =>
+    run(
+      "integration_phase",
+      operationPayload<PhasePayload>(call),
+      "Updating phases…",
+    );
   const inspect = (index: number) =>
     void run(
       "integration_phase_editor",
