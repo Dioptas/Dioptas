@@ -1,5 +1,9 @@
 import type {
   CommandInvocation,
+  CheckedInvocation,
+  CheckedRunInvocation,
+  CheckedRequest,
+  CommandAction,
   CommandName,
   CommandPayload,
   CommandRequest,
@@ -13,40 +17,58 @@ import type {
 /** Tuple reconstruction is kept here: adding common transport metadata cannot
  * change the command/payload pairing. No scientific values or buffers are copied. */
 export function withTransportMetadata<A extends CommandInvocation>(
-  call: A,
+  call: CheckedInvocation<A>,
   metadata: TransportMetadata,
-): A {
-  return [call[0], { ...call[1], ...metadata }] as A;
+): CheckedInvocation<A> {
+  return [call[0], { ...call[1], ...metadata }] as CheckedInvocation<A>;
 }
 export function invocationOf<C extends CommandName>(
   request: CommandRequest<C>,
 ): CommandInvocation<C> {
   return [request.command, request.payload] as CommandInvocation<C>;
 }
+/** Forwarding uses apply because TypeScript 7 loses the tuple relation when
+ * spreading a generic exact-key intersection. Only checked correlated calls
+ * enter these helpers; the assertion retains the same command's result type. */
+export function forwardInvoke<A extends CommandInvocation>(
+  invoke: Invoke,
+  call: CheckedInvocation<A>,
+): Promise<CommandResult<A[0]>> {
+  return invoke.apply(undefined, call) as Promise<CommandResult<A[0]>>;
+}
+export function forwardRun<A extends RunInvocation>(
+  run: Run,
+  call: CheckedRunInvocation<A>,
+): Promise<void> {
+  return run.apply(undefined, call);
+}
+export function forwardAction<A extends CommandInvocation>(
+  action: CommandAction,
+  call: CheckedInvocation<A>,
+): void {
+  action.apply(undefined, call);
+}
 export function invokeCommand<R extends CommandRequest>(
   invoke: Invoke,
-  request: R,
+  request: CheckedRequest<R>,
 ): Promise<CommandResult<R["command"]>> {
-  // The request object is discriminated; this mechanical tuple conversion
-  // preserves its pairing when TypeScript cannot distribute a generic index.
-  return invoke(
-    ...([request.command, request.payload] as CommandInvocation),
-  ) as Promise<CommandResult<R["command"]>>;
+  return forwardInvoke(invoke, [
+    request.command,
+    request.payload,
+  ] as CommandInvocation) as Promise<CommandResult<R["command"]>>;
 }
 export function runCommand<R extends CommandRequest>(
   run: Run,
-  request: R,
+  request: CheckedRequest<R>,
   message?: string,
   onSuccess?: (response: CommandResult<R["command"]>) => void,
 ): Promise<void> {
-  return run(
-    ...([
-      request.command,
-      request.payload,
-      message,
-      onSuccess,
-    ] as RunInvocation),
-  );
+  return forwardRun(run, [
+    request.command,
+    request.payload,
+    message,
+    onSuccess,
+  ] as RunInvocation);
 }
 export type ActionInvocation<C extends CommandName = CommandName> = {
   [K in C]: {} extends CommandPayload<K>
@@ -74,11 +96,13 @@ export interface RunAction<C extends CommandName = CommandName> {
           onSuccess?: (result: CommandResult<K>) => void,
         ]
   ): Promise<void>;
-  <const A extends ActionInvocation<C>>(...call: A): Promise<void>;
+  <const A extends ActionInvocation<C>>(
+    ...call: CheckedRunInvocation<A>
+  ): Promise<void>;
 }
 export function fixedMessageAction(run: Run, message: string): RunAction {
-  return <A extends ActionInvocation>(...call: A) =>
-    run(...([call[0], call[1], message, call[2]] as RunInvocation));
+  return <A extends ActionInvocation>(...call: CheckedRunInvocation<A>) =>
+    forwardRun(run, [call[0], call[1], message, call[2]] as RunInvocation);
 }
 
 type OperationNames<P> = P extends { operation?: infer O extends string }

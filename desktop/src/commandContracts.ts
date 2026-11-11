@@ -160,7 +160,7 @@ export interface CommandContracts {
     WorkspaceDelta & { linked: Response["linked"] }
   >;
   pixel: Spec<
-    NativePayloadContracts["pixel"],
+    NativePayloadContracts["pixel"] & { raw?: boolean },
     { pixel: NonNullable<Response["pixel"]> }
   >;
   image_levels: Spec<
@@ -485,6 +485,38 @@ type IsUnion<T, All = T> = T extends All
   : never;
 export type SingleCommand<C extends CommandName> = C &
   (IsUnion<C> extends true ? never : unknown);
+type PayloadKeys<T> = T extends unknown ? keyof T : never;
+export type ExactPayload<C extends CommandName, T> = T extends object
+  ? T & Record<Exclude<keyof T, PayloadKeys<CommandPayload<C>>>, never>
+  : T;
+/** Extra keys must be rejected by the forwarding overload too; a structurally
+ * assignable tuple alone would otherwise let literal typos escape validation. */
+type ExtraInvocationKeys<A extends readonly [CommandName, ...unknown[]]> =
+  A extends [
+    command: infer C extends CommandName,
+    payload: infer Payload,
+    ...tail: unknown[],
+  ]
+    ? Exclude<keyof Payload, PayloadKeys<CommandPayload<C>>>
+    : never;
+export type CheckedInvocation<A extends readonly [CommandName, ...unknown[]]> =
+  A &
+    ([ExtraInvocationKeys<A>] extends [never]
+      ? unknown
+      : { readonly unexpectedPayloadKeys: ExtraInvocationKeys<A> });
+export type CheckedRunInvocation<
+  A extends readonly [CommandName, ...unknown[]],
+> = CheckedInvocation<A>;
+type ExtraRequestKeys<R extends CommandRequest> = R extends {
+  command: infer C extends CommandName;
+  payload: infer Payload;
+}
+  ? Exclude<keyof Payload, PayloadKeys<CommandPayload<C>>>
+  : never;
+export type CheckedRequest<R extends CommandRequest> = R &
+  ([ExtraRequestKeys<R>] extends [never]
+    ? unknown
+    : { readonly unexpectedPayloadKeys: ExtraRequestKeys<R> });
 export interface Invoke {
   <C extends CommandName>(
     command: SingleCommand<C>,
@@ -492,7 +524,9 @@ export interface Invoke {
       ? [payload?: CommandPayload<NoInfer<C>>]
       : [payload: CommandPayload<NoInfer<C>>]
   ): Promise<CommandResult<C>>;
-  <const A extends CommandInvocation>(...call: A): Promise<CommandResult<A[0]>>;
+  <const A extends CommandInvocation>(
+    ...call: CheckedInvocation<A>
+  ): Promise<CommandResult<A[0]>>;
 }
 export type RunInvocation<C extends CommandName = CommandName> = {
   [K in C]: {} extends CommandPayload<K>
@@ -509,8 +543,8 @@ export type RunInvocation<C extends CommandName = CommandName> = {
         onSuccess?: (result: CommandResult<K>) => void,
       ];
 }[C];
-export interface Run {
-  <C extends CommandName>(
+export interface ScopedRun<Names extends CommandName = CommandName> {
+  <C extends Names>(
     command: SingleCommand<C>,
     ...args: {} extends CommandPayload<NoInfer<C>>
       ? [
@@ -524,17 +558,20 @@ export interface Run {
           onSuccess?: (result: CommandResult<C>) => void,
         ]
   ): Promise<void>;
-  <const A extends RunInvocation>(...call: A): Promise<void>;
+  <const A extends RunInvocation<Names>>(
+    ...call: CheckedRunInvocation<A>
+  ): Promise<void>;
 }
+export type Run = ScopedRun<CommandName>;
 export type CommandAction<C extends CommandName = CommandName> = <
   const A extends CommandInvocation<C>,
 >(
-  ...call: A
+  ...call: CheckedInvocation<A>
 ) => void;
 export type CommandRequestReader<C extends CommandName = CommandName> = <
   const A extends CommandInvocation<C>,
 >(
-  ...call: A
+  ...call: CheckedInvocation<A>
 ) => Promise<CommandResult<A[0]> | undefined>;
 
 /** The detached detector snapshot has its own host command and transport. */

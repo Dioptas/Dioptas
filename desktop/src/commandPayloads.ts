@@ -331,6 +331,9 @@ export interface NormalizationPayload {
   window?: string;
 }
 export interface BatchLoadPayload extends FilePayload, ReaderOptions {
+  start?: number;
+  stop?: number;
+  step?: number;
   paths?: string[];
   reintegrate?: boolean;
   mask?: string;
