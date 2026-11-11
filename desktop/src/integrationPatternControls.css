@@ -4,27 +4,18 @@
   gap: 4px;
 }
 .integration-pattern-files .integration-pattern-options {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: 6px 16px;
-  align-items: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
   padding-top: 4px;
 }
 .integration-pattern-files .integration-autocreate {
   margin-left: 0;
   order: 0;
 }
-.integration-pattern-files .integration-pattern-types {
-  gap: 4px 10px;
-  min-height: 30px;
-}
-.integration-pattern-types .check-row {
+.integration-pattern-options > .check-row {
   min-height: 30px;
   white-space: nowrap;
-}
-@container (max-width: 360px) {
-  .integration-pattern-files .integration-pattern-options {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
-  }
+  flex: 0 0 auto;
 }

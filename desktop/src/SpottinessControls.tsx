@@ -24,29 +24,32 @@ export function SpottinessControls({
           action("integration_settings", { azimuthal_std: enabled })
         }
       />
-      <Check
-        label="Relative spread (std / mean)"
-        displayLabel="Relative (std / mean)"
-        checked={!!source.spottinessRelative}
-        disabled={!source.azimuthalStd}
-        onChange={(relative) =>
-          action("integration_settings", { spottiness_relative: relative })
-        }
-      />
-      <Button
-        className="spottiness-save"
-        aria-label="Save Spottiness…"
-        title="Save Spottiness…"
-        disabled={!source.spottinessAvailable}
-        onClick={() =>
-          action("integration_save_spottiness", {
-            directory: source.outputDirectory,
-            suggested_name: `${source.patternName || "pattern"}_spottiness.csv`,
-          })
-        }
-      >
-        <Download size={16} aria-hidden="true" />
-      </Button>
+      {source.azimuthalStd && (
+        <>
+          <Check
+            label="Relative spread (std / mean)"
+            displayLabel="Relative (std / mean)"
+            checked={!!source.spottinessRelative}
+            onChange={(relative) =>
+              action("integration_settings", { spottiness_relative: relative })
+            }
+          />
+          <Button
+            className="spottiness-save"
+            aria-label="Save Spottiness…"
+            title="Save Spottiness…"
+            disabled={!source.spottinessAvailable}
+            onClick={() =>
+              action("integration_save_spottiness", {
+                directory: source.outputDirectory,
+                suggested_name: `${source.patternName || "pattern"}_spottiness.csv`,
+              })
+            }
+          >
+            <Download size={16} aria-hidden="true" />
+          </Button>
+        </>
+      )}
       <Button
         className="spottiness-help"
         aria-label="About Spottiness"

@@ -89,8 +89,11 @@ export function IntegrationView({
   const [frameStep, setFrameStep] = useState(1);
   const [patternStep, setPatternStep] = useState(1);
   if (!source || !state) return null;
-  const action = (command: string, args: Record<string, unknown> = {}) =>
-    void run(command, args, "Updating integration…");
+  const action = (
+    command: string,
+    args: Record<string, unknown> = {},
+    onSuccess?: Parameters<IntegrationRun>[3],
+  ) => run(command, args, "Updating integration…", onSuccess);
   return (
     <div className="integration-controls">
       <div className="integration-controls-header">

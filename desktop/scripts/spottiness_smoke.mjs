@@ -83,8 +83,8 @@ try {
         name: "Save Spottiness…",
         exact: true,
       });
-      assert.equal(await relative.isEnabled(), false);
-      assert.equal(await save.isEnabled(), false);
+      assert.equal(await relative.count(), 0);
+      assert.equal(await save.count(), 0);
       await show.click();
       await page
         .getByRole("region", { name: "Spottiness diagnostic", exact: true })
@@ -368,8 +368,8 @@ try {
       await page
         .getByRole("region", { name: "Spottiness diagnostic", exact: true })
         .waitFor({ state: "detached" });
-      assert.equal(await relative.isEnabled(), false);
-      assert.equal(await save.isEnabled(), false);
+      assert.equal(await relative.count(), 0);
+      assert.equal(await save.count(), 0);
       assert.equal(
         await page
           .locator('.pattern-panel canvas[data-testid="pattern-canvas"]')

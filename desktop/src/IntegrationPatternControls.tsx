@@ -1,7 +1,7 @@
 import { Input, Button } from "./ui";
 import { MiddleElidedInput, MiddleElidedText } from "./MiddleElidedInput";
 import { useEffect, useState } from "react";
-import type { IntegrationState } from "./integration";
+import type { IntegrationRun, IntegrationState } from "./integration";
 import { Check } from "./IntegrationFields";
 import { IntegrationFileNavigator } from "./IntegrationFileNavigator";
 import "./integrationFileControls.css";
@@ -15,7 +15,11 @@ export function IntegrationPatternControls({
   setStep,
 }: {
   source: IntegrationState;
-  action: (command: string, args?: Record<string, unknown>) => void;
+  action: (
+    command: string,
+    args?: Record<string, unknown>,
+    onSuccess?: Parameters<IntegrationRun>[3],
+  ) => Promise<void>;
   step: number;
   setStep: (value: number) => void;
 }) {
@@ -30,6 +34,25 @@ export function IntegrationPatternControls({
         path: fileDraft.trim(),
         directory,
       });
+  };
+  const setAutocreate = async (enabled: boolean) => {
+    if (enabled && !directory) {
+      let selected: string | undefined;
+      await action("integration_output_directory", {}, (result) => {
+        if (!result.cancelled)
+          selected = result.state?.integration?.outputDirectory;
+      });
+      if (selected)
+        await action("integration_autocreate", {
+          enabled: true,
+          directory: selected,
+        });
+    } else {
+      await action("integration_autocreate", {
+        enabled,
+        ...(directory ? { directory } : {}),
+      });
+    }
   };
   return (
     <div className="integration-file-controls integration-files-aligned integration-pattern-files">
@@ -94,40 +117,33 @@ export function IntegrationPatternControls({
           )}
         </div>
       </div>
-      <div className="integration-file-options integration-pattern-options">
+      <div
+        className="integration-file-options integration-pattern-options"
+        role="group"
+        aria-label="Autocreate pattern formats"
+      >
         <label className="check-row integration-autocreate">
           <Input
             type="checkbox"
             checked={source.autoSave}
-            onChange={(event) =>
-              action("integration_autocreate", {
-                enabled: event.target.checked,
-                directory,
-              })
-            }
+            onChange={(event) => setAutocreate(event.target.checked)}
           />
           Autocreate
         </label>
-        <div
-          className="integration-pattern-types"
-          role="group"
-          aria-label="Autocreate pattern formats"
-        >
-          {[".xy", ".xye", ".chi", ".dat", ".fxye"].map((format) => (
-            <Check
-              key={format}
-              label={format}
-              checked={source.formats.includes(format)}
-              onChange={(enabled) =>
-                action("integration_settings", {
-                  formats: enabled
-                    ? [...source.formats, format]
-                    : source.formats.filter((entry) => entry !== format),
-                })
-              }
-            />
-          ))}
-        </div>
+        {[".xy", ".xye", ".chi", ".dat", ".fxye"].map((format) => (
+          <Check
+            key={format}
+            label={format}
+            checked={source.formats.includes(format)}
+            onChange={(enabled) =>
+              action("integration_settings", {
+                formats: enabled
+                  ? [...source.formats, format]
+                  : source.formats.filter((entry) => entry !== format),
+              })
+            }
+          />
+        ))}
       </div>
     </div>
   );

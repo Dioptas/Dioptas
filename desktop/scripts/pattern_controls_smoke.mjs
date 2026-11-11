@@ -35,14 +35,19 @@ try {
         }),
         errors = [];
       page.on("pageerror", (e) => errors.push(e.message));
-      await page.exposeFunction("__patternInvoke", async (a, p) =>
-        native.browserResult(
-          await native.invoke(
-            a,
-            a === "integration_output_directory" ? { path: temp } : p,
-          ),
-        ),
-      );
+      let cancelFolder = true;
+      const commands = [];
+      await page.exposeFunction("__patternInvoke", async (a, p) => {
+        commands.push(a);
+        if (a === "integration_output_directory" && cancelFolder)
+          return { ok: true, cancelled: true };
+        const result = await native.invoke(
+          a,
+          a === "integration_output_directory" ? { path: temp } : p,
+        );
+        assert.ok(result.ok, `${a}: ${result.error}`);
+        return native.browserResult(result);
+      });
       await page.addInitScript(() => {
         window.pywebview = {
           api: { invoke: (a, p) => window.__patternInvoke(a, p) },
@@ -57,8 +62,30 @@ try {
       await button("Integration").click();
       await tab("Pattern").click();
       assert.equal(await field("Pattern directory").count(), 0);
+      // Empty-folder enabling asks first; cancel never enables Autocreate.
+      await check("Autocreate").click();
+      await settle();
+      assert.ok(commands.includes("integration_output_directory"));
+      assert.equal(commands.includes("integration_autocreate"), false);
+      assert.equal(await check("Autocreate").isChecked(), false);
+      assert.equal(
+        (await native.invoke("state")).state.integration.autoSave,
+        false,
+      );
+      cancelFolder = false;
+      await check("Autocreate").click();
+      await page.waitForFunction(
+        () => document.querySelector(".integration-autocreate input")?.checked,
+      );
+      assert.equal(
+        (await native.invoke("state")).state.integration.outputDirectory,
+        temp,
+      );
+      await check("Autocreate").click();
+      await settle();
       await button("Choose pattern folder").click();
       await settle();
+      assert.equal(await check("Autocreate").isChecked(), false);
       assert.equal(
         await page.locator('[aria-label="Pattern folder"]').textContent(),
         temp,
@@ -152,6 +179,13 @@ try {
                   parseFloat(getComputedStyle(panel).paddingLeft) -
                   parseFloat(getComputedStyle(panel).paddingRight),
                 overflow: panel.scrollWidth > panel.clientWidth + 1,
+                saveRows: new Set(
+                  [
+                    ...panel.querySelectorAll(
+                      ".integration-pattern-options > .check-row",
+                    ),
+                  ].map((el) => Math.round(el.getBoundingClientRect().top)),
+                ).size,
                 clipped: [...panel.querySelectorAll("button,input,select")]
                   .filter((el) => {
                     const r = el.getBoundingClientRect();
@@ -168,6 +202,7 @@ try {
           );
           assert.equal(geometry.overflow, false, JSON.stringify(geometry));
           assert.deepEqual(geometry.clipped, [], JSON.stringify(geometry));
+          if (geometry.width > 500) assert.equal(geometry.saveRows, 1);
           if (!large && label === "top")
             assert.ok(geometry.height <= 200, JSON.stringify(geometry));
           const p = await page
@@ -199,6 +234,22 @@ try {
               })
               .press("Home");
             await settle();
+            await page.waitForFunction(
+              () =>
+                new Set(
+                  [
+                    ...document.querySelectorAll(
+                      ".integration-pattern-options > .check-row",
+                    ),
+                  ].map((el) => Math.round(el.getBoundingClientRect().top)),
+                ).size === 1,
+            );
+            await page.screenshot({
+              path: path.join(
+                artifacts,
+                `${name}-${large ? "larger" : "standard"}-restored.png`,
+              ),
+            });
           }
         }
       }
