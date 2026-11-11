@@ -19,7 +19,7 @@
     "tauri:build": "tauri build --no-bundle",
     "tauri:smoke": "node scripts/tauri_smoke.mjs",
     "dev": "vite --host 127.0.0.1",
-    "build": "tsc --noEmit && vite build",
+    "build": "node scripts/generate_phase_equations.mjs --check && tsc --noEmit && vite build",
     "smoke": "node scripts/native_backend_smoke.mjs",
     "format": "prettier --write src 'scripts/*.{mjs,js}' vite.config.ts src-tauri/*.json src-tauri/capabilities/*.json",
     "test:batch-surface-gpu": "node scripts/batch_surface_gpu_smoke.mjs",
@@ -89,7 +89,8 @@
     "test:dac-project-reference": "node scripts/dac_thermal_pressure_project_parity.mjs",
     "test:companion-windows": "node scripts/companion_windows_smoke.mjs",
     "test:phase-metadata": "node scripts/phase_metadata_smoke.mjs",
-    "test:phase-model-help": "node scripts/phase_model_help_smoke.mjs"
+    "test:phase-model-help": "node scripts/phase_model_help_smoke.mjs",
+    "generate:phase-equations": "node scripts/generate_phase_equations.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",
@@ -104,6 +105,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "katex": "^0.19.1",
     "playwright": "^1.64.1",
     "prettier": "^3.9.10",
     "typescript": "^7.0.2",

@@ -1,3 +1,4 @@
+import { phaseModelEquations, phaseEquationNote } from "./phaseEquationSets";
 export type ModelHelp = {
   title: string;
   description: string;
@@ -174,7 +175,11 @@ const thermalDescriptions: Record<string, [string, string]> = {
     "Derives the Debye temperature from longitudinal and shear sound velocities and density.",
   ],
 };
-export function modelHelp(kind: "eos" | "thermal", name: string): ModelHelp {
+export function modelHelp(
+  kind: "eos" | "thermal",
+  name: string,
+  configuration: Record<string, unknown> = {},
+): ModelHelp {
   const [anchor, description] = (kind === "eos"
     ? eosDescriptions
     : thermalDescriptions)[name] ?? [
@@ -190,6 +195,8 @@ export function modelHelp(kind: "eos" | "thermal", name: string): ModelHelp {
           : name,
     description,
     url: equationUrl(anchor),
+    equations: phaseModelEquations(kind, name, configuration),
+    note: phaseEquationNote(kind, name),
   };
 }
 

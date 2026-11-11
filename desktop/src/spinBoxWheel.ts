@@ -20,12 +20,13 @@ function consume(event: WheelEvent) {
 export function useSpinBoxWheel(
   input: RefObject<HTMLInputElement | null>,
   onStep: (direction: number) => void,
+  enabled = true,
 ) {
   const latest = useRef(onStep);
   latest.current = onStep;
   useEffect(() => {
     const element = input.current;
-    if (!element) return;
+    if (!element || !enabled) return;
     const surface =
       element.closest<HTMLElement>(".pe-number-stepped") ?? element;
     const wheel = (event: WheelEvent) => {
@@ -36,7 +37,7 @@ export function useSpinBoxWheel(
     };
     surface.addEventListener("wheel", wheel, { passive: false });
     return () => surface.removeEventListener("wheel", wheel);
-  }, [input]);
+  }, [input, enabled]);
 }
 
 /** Cover native number inputs in every workspace and detached window. */

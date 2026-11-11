@@ -57,11 +57,26 @@ try {
         const { PhaseEditor } = await import("/src/PhaseEditor.tsx");
         const { modelHelp, choiceHelp } =
           await import("/src/phaseModelHelp.ts");
+        const { phaseParameterHelp } =
+          await import("/src/phaseParameterHelp.ts");
+        const generated = (await import("/src/phaseEquations.generated.json"))
+          .default;
+        for (const expressions of Object.values(generated))
+          for (const equation of expressions) {
+            const xml = new DOMParser().parseFromString(
+              equation.math,
+              "application/xml",
+            );
+            if (xml.querySelector("parsererror") || !xml.querySelector("math"))
+              throw Error("Invalid generated MathML");
+          }
         const schema = await (
           await fetch("/backend/resources/phase-editor-schema.json")
         ).json();
         const urls = new Set();
-        let choices = 0;
+        let choices = 0,
+          parameters = 0,
+          modelsWithEquations = 0;
         for (const [kind, models] of [
           ["eos", schema.eos],
           ["thermal", schema.thermal],
@@ -71,6 +86,43 @@ try {
             if (help.description.startsWith("See the model definition"))
               throw Error(`Missing model help: ${name}`);
             urls.add(help.url);
+            if (!help.equations?.length)
+              throw Error(`Missing model equations: ${name}`);
+            modelsWithEquations++;
+            const numericFields =
+              kind === "thermal"
+                ? spec.fields.filter((f) => !f.choices.length)
+                : spec.map((key) => ({
+                    key:
+                      {
+                        K0: "k0",
+                        K0_prime: "k0p0",
+                        K0_double_prime: "k0pp0",
+                        P0: "p0",
+                        Z: "z",
+                      }[key] ?? key,
+                    label: key,
+                    unit: "",
+                  }));
+            for (const field of numericFields) {
+              const help = phaseParameterHelp(field, {
+                eosType: kind === "eos" ? name : "BM3",
+                thermalType: kind === "thermal" ? name : "none",
+                fields: spec.fields ?? [],
+                blankAllowed: field.required === false,
+              });
+              if (
+                !help.description ||
+                help.description.startsWith("Coefficient used by")
+              )
+                throw Error(
+                  `Missing parameter explanation: ${name}/${field.key}`,
+                );
+              if (!help.note.includes("Units:"))
+                throw Error("Parameter units missing");
+              urls.add(help.url);
+              parameters++;
+            }
             for (const field of spec.fields ?? [])
               for (const value of field.choices ?? []) {
                 const help = choiceHelp(field.key, value);
@@ -118,7 +170,7 @@ try {
             key: crypto.randomUUID(),
             initial: window.editorHelpData,
           });
-        return { choices, urls: [...urls] };
+        return { choices, parameters, modelsWithEquations, urls: [...urls] };
       }, data);
       const ready = () => page.waitForFunction(() => !window.modelPending);
       await page
@@ -172,9 +224,112 @@ try {
       assert.match(await cvHelp.innerText(), /3nR/);
       await explanations.uncheck();
       assert.equal(await lawHelp.locator("math").count(), 0);
-      assert.equal(await cvHelp.getByRole("link").count(), 1);
+      assert.equal(await cvHelp.getByRole("link").count(), 0);
       await explanations.check();
-
+      assert.equal(
+        await page.locator("#pe-choice-k0-help .pe-model-help").count(),
+        1,
+      );
+      assert.match(
+        await page.locator("#pe-choice-gamma0-help").innerText(),
+        /couples vibrational energy/,
+      );
+      assert.match(
+        await page.locator("#pe-choice-theta0-help").innerText(),
+        /energy scale/,
+      );
+      await select("Equation of state model").selectOption("Vinet");
+      await ready();
+      await page
+        .locator("#pe-eos-model-help")
+        .getByText("Vinet", { exact: true })
+        .waitFor();
+      assert.equal(await page.locator("#pe-eos-model-help math").count(), 3);
+      assert.match(
+        await page
+          .locator("#pe-eos-model-help annotation")
+          .allTextContents()
+          .then((items) => items.join(" ")),
+        /exp/,
+      );
+      await select("Equation of state model").selectOption("BM3");
+      await ready();
+      await page
+        .locator("#pe-eos-model-help")
+        .getByText("BM3", { exact: true })
+        .waitFor();
+      assert.equal(await page.locator("#pe-eos-model-help math").count(), 2);
+      // Plain fields must leave both their value and ordinary scrolling untouched.
+      const plainK = page.getByLabel("K0", { exact: true });
+      const beforeWheel = await page.evaluate(() =>
+        JSON.stringify(window.editorHelpData),
+      );
+      for (const label of ["K0", "γ₀", "Reflection 1 intensity"]) {
+        const field = page.getByRole("textbox", { name: label, exact: true });
+        const before = await field.inputValue();
+        for (const focus of [false, true]) {
+          if (focus) await field.focus();
+          const consumed = await field.evaluate((el) => {
+            const event = new WheelEvent("wheel", {
+              deltaY: 120,
+              bubbles: true,
+              cancelable: true,
+            });
+            el.dispatchEvent(event);
+            return event.defaultPrevented;
+          });
+          assert.equal(consumed, false, `${label} must allow scrolling`);
+          assert.equal(await field.inputValue(), before);
+        }
+      }
+      assert.equal(
+        await page.evaluate(() => JSON.stringify(window.editorHelpData)),
+        beforeWheel,
+      );
+      await plainK.scrollIntoViewIfNeeded();
+      await plainK.focus();
+      await plainK.hover();
+      const scrollTop = await page
+        .locator(".pe-eos-page")
+        .evaluate((el) => el.scrollTop);
+      await page.mouse.wheel(0, 180);
+      await page.waitForFunction(
+        (top) => document.querySelector(".pe-eos-page").scrollTop > top,
+        scrollTop,
+      );
+      assert.equal(
+        await page.evaluate(() => JSON.stringify(window.editorHelpData)),
+        beforeWheel,
+      );
+      await page
+        .getByRole("tab", { name: "Volume & structure", exact: true })
+        .click();
+      const spin = page.getByLabel("a₀", { exact: true });
+      const originalA = Number(await spin.inputValue());
+      for (const [delta, expected] of [
+        [-100, originalA + 0.01],
+        [100, originalA],
+      ]) {
+        const consumed = await spin.evaluate((el, deltaY) => {
+          const event = new WheelEvent("wheel", {
+            deltaY,
+            bubbles: true,
+            cancelable: true,
+          });
+          el.dispatchEvent(event);
+          return event.defaultPrevented;
+        }, delta);
+        assert.equal(consumed, true, "Visible spinboxes retain wheel stepping");
+        await page.waitForFunction(
+          (expected) =>
+            Math.abs(window.editorHelpData.lattice.a0 - expected) < 1e-8,
+          expected,
+        );
+        await ready();
+      }
+      await page
+        .getByRole("tab", { name: "Equation of state", exact: true })
+        .click();
       await lawHelp
         .getByText("Integrated Grüneisen law", { exact: true })
         .waitFor();
@@ -261,6 +416,12 @@ try {
         .locator("#pe-choice-thermal_pressure_reference-help")
         .getByText("Absolute-zero cold curve", { exact: true })
         .waitFor();
+      await select("Thermal model").selectOption("Dewaele2006");
+      await ready();
+      const zeroPoint = page.getByLabel("Zero-point pressure", { exact: true });
+      await zeroPoint.waitFor();
+      assert.equal(await zeroPoint.inputValue(), "omitted");
+      assert.equal(await zeroPoint.getAttribute("readonly"), "");
       await select("Thermal model").selectOption("AlphaKT");
       await ready();
       await select("Expansion law").selectOption(
@@ -352,6 +513,8 @@ try {
         liveChoices: true,
         rememberedHelpToggle: true,
         cvmaxExplained: true,
+        allParametersExplained: true,
+        wheelOnlyOnSpinboxes: true,
       });
     } finally {
       await browser.close();

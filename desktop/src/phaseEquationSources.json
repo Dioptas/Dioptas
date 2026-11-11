@@ -1,0 +1,248 @@
+{
+  "eos:BM2": [
+    "f_E=\\frac{1}{2}\\left[\\left(\\frac{V_0}{V}\\right)^{2/3}-1\\right]",
+    "P=3K_0 f_E(1+2f_E)^{5/2}",
+    "K_0'=4"
+  ],
+  "eos:BM2Reference": [
+    "P(V)=P_0+\\frac32 K_0[(V_0/V)^{7/3}-(V_0/V)^{5/3}]",
+    "K_0'=4,\\qquad P(V_0)=P_0"
+  ],
+  "eos:BM3": [
+    "f_E=\\frac{1}{2}\\left[\\left(\\frac{V_0}{V}\\right)^{2/3}-1\\right]",
+    "P=3K_0 f_E(1+2f_E)^{5/2}\n\\left[1+\\frac{3}{2}(K_0'-4)f_E\\right]"
+  ],
+  "eos:BM4": [
+    "f_E=\\frac{1}{2}\\left[\\left(\\frac{V_0}{V}\\right)^{2/3}-1\\right]",
+    "\\zeta=\\frac{3}{4}(4-K_0'),\n\\qquad\n\\xi=\\frac{3}{8}\\left[\nK_0K_0''+(K_0'-4)(K_0'-3)+\\frac{35}{9}\n\\right]",
+    "P=3K_0 f_E(1+2f_E)^{5/2}\n\\left(1-2\\zeta f_E+4\\xi f_E^2\\right)"
+  ],
+  "eos:NaturalStrain2": [
+    "f_N=\\frac{1}{3}\\ln\\left(\\frac{V_0}{V}\\right)",
+    "P=3K_0\\frac{V_0}{V}\n\\left(f_N+A f_N^2+B f_N^3\\right)",
+    "A=0,\\qquad B=0"
+  ],
+  "eos:NaturalStrain3": [
+    "f_N=\\frac{1}{3}\\ln\\left(\\frac{V_0}{V}\\right)",
+    "P=3K_0\\frac{V_0}{V}\n\\left(f_N+A f_N^2+B f_N^3\\right)",
+    "A=\\frac32(K_0'-2),\\qquad B=0"
+  ],
+  "eos:NaturalStrain4": [
+    "f_N=\\frac{1}{3}\\ln\\left(\\frac{V_0}{V}\\right)",
+    "P=3K_0\\frac{V_0}{V}\n\\left(f_N+A f_N^2+B f_N^3\\right)",
+    "A=\\frac32(K_0'-2),\\qquad B=\\frac32\\left[K_0K_0''+1+(K_0'-2)+(K_0'-2)^2\\right]"
+  ],
+  "eos:Murnaghan": [
+    "K_T(P)=K_0+K_0'P",
+    "P=\\frac{K_0}{K_0'}\n\\left[\\left(\\frac{V_0}{V}\\right)^{K_0'}-1\\right],\n\\qquad\nV=V_0\\left(1+\\frac{K_0'}{K_0}P\\right)^{-1/K_0'}",
+    "K_0'=0:\\quad P=K_0\\ln(V_0/V)"
+  ],
+  "eos:Vinet": [
+    "x=\\left(\\frac{V}{V_0}\\right)^{1/3},\n\\qquad\n\\eta=\\frac{3}{2}(K_0'-1)",
+    "P=3K_0\\frac{1-x}{x^2}\\exp[\\eta(1-x)]",
+    "K_T=K_0x^{-2}\\exp[\\eta(1-x)]\n\\left[1+(1+\\eta x)(1-x)\\right]"
+  ],
+  "eos:ModifiedTait": [
+    "v=V/V_0",
+    "a=\\frac{1+K_0'}{1+K_0'+K_0K_0''}",
+    "b=\\frac{K_0'}{K_0}-\\frac{K_0''}{1+K_0'},\n\\qquad\nc=\\frac{1+K_0'+K_0K_0''}\n{K_0'^2+K_0'-K_0K_0''}",
+    "P=\\frac{1}{b}\\left[\n\\left(\\frac{v+a-1}{a}\\right)^{-1/c}-1\n\\right]",
+    "V=V_0\\left[1-a+a(1+bP)^{-c}\\right]"
+  ],
+  "eos:Holzapfel": [
+    "x=\\left(\\frac{V}{V_0}\\right)^{1/3},\n\\qquad\nP_{\\mathrm{FG0}}=1003.6\n\\left(\\frac{Zn}{10V_0}\\right)^{5/3}",
+    "c_0=-\\ln\\left(\\frac{3K_0}{P_{\\mathrm{FG0}}}\\right),\n\\qquad\nc_2=\\frac{3}{2}(K_0'-3)-c_0",
+    "P=3K_0\\exp[c_0(1-x)]\n\\left(x^{-5}-x^{-4}\\right)\n\\left(1+c_2x-c_2x^2\\right)"
+  ],
+  "thermal:none": [
+    "P(V,T)=P_{\\rm ref}(V)"
+  ],
+  "thermal:AlphaKT": [
+    "P(V,T)=P_{\\rm iso}\\!\\left(V;V_0(T),K_0(T),K_0^\\prime(T)\\right)",
+    "K'_0(T)=K'_0(T_r)+\\mathtt{dKprime\\_dT}(T-T_r)\n+\\mathtt{kprime\\_log\\_coefficient}(T-T_r)\\ln(T/T_r)"
+  ],
+  "thermal:alphakt": [
+    "\\Delta T=T-298\\,{\\rm K},\\quad \\alpha=\\alpha_{T0}+\\frac{d\\alpha}{dT}\\Delta T",
+    "K(T)=K_0+\\frac{dK_0}{dT}\\Delta T,\\quad K^\\prime(T)=K_0^\\prime+\\frac{dK_0^\\prime}{dT}\\Delta T",
+    "P>0:\\quad V=V_{\\rm BM3}\\!\\left(P-\\alpha K(T)\\Delta T;V_0,K(T),K^\\prime(T)\\right)",
+    "P=0:\\quad V=V_0(1+\\alpha\\Delta T)",
+    "P<0:\\quad V=V_0(1-P/K_0)"
+  ],
+  "common:debye": [
+    "x=V/V_0,\\qquad y=\\Theta(V)/T",
+    "D_3(y)=\\frac{3}{y^3}\\int_0^y\\frac{z^3}{e^z-1}\\,dz",
+    "E_D(V,T)=C_{V,\\max}\\,T D_3(y),\\qquad C_{V,\\max}=3nR\\ {\\rm by\\ default}"
+  ],
+  "common:fixed-debye": [
+    "x=V/V_0,\\qquad y=\\Theta(V)/T",
+    "D_3(y)=\\frac{3}{y^3}\\int_0^y\\frac{z^3}{e^z-1}\\,dz",
+    "E_D(V,T)=3nRTD_3(y)"
+  ],
+  "common:integrated-law": [
+    "\\gamma(V)=\\gamma_0x^q",
+    "q\\ne0:\\quad\\Theta(V)=\\Theta_0\\exp\\!\\left[-\\frac{\\gamma_0}{q}(x^q-1)\\right]",
+    "q=0:\\quad\\Theta(V)=\\Theta_0x^{-\\gamma_0}"
+  ],
+  "common:einstein": [
+    "x=V/V_0,\\qquad y=\\Theta(V)/T",
+    "E_E(V,T)=\\frac{3nR\\Theta(V)}{e^{\\Theta(V)/T}-1},\\qquad\nC_{V,E}=3nR\\frac{y^2e^y}{(e^y-1)^2}"
+  ],
+  "pressure:reference_temperature": [
+    "P(V,T)=P_{\\rm ref}(V)+10^{-4}\\frac{\\gamma(V)}{V}\\left[E(V,T)-E(V,T_r)\\right]"
+  ],
+  "pressure:absolute_zero": [
+    "P(V,T)=P_c(V)+10^{-4}\\frac{\\gamma(V)}{V}E(V,T)"
+  ],
+  "pressure:reference_isentrope": [
+    "T_S(V)=T_r\\Theta(V)/\\Theta_0",
+    "P(V,T)=P_S(V)+10^{-4}\\frac{\\gamma(V)}{V}\\left[E(V,T)-E(V,T_S(V))\\right]"
+  ],
+  "thermal:MieGruneisenDebye": [
+    "E(V,T)=E_D(V,T)"
+  ],
+  "thermal:MieGruneisenEinstein": [
+    "E(V,T)=E_E(V,T)"
+  ],
+  "thermal:AsymptoticPowerLawMieGruneisenDebye": [
+    "\\gamma(V)=\\gamma_0\\left\\{1+a\\left[x^b-1\\right]\\right\\}",
+    "\\Theta(V)=\\Theta_0\\exp\\left[-\\gamma_0\\left\\{\n(1-a)\\ln x+\\frac{a}{b}(x^b-1)\n\\right\\}\\right], \\qquad b\\ne0",
+    "b=0:\\quad \\gamma=\\gamma_0,\\quad \\Theta=\\Theta_0x^{-\\gamma_0}"
+  ],
+  "thermal:AsymptoticPowerLawMieGruneisenDebyeExcess": [
+    "\\gamma(V)=\\gamma_0\\left\\{1+a\\left[x^b-1\\right]\\right\\}",
+    "\\Theta(V)=\\Theta_0\\exp\\left[-\\gamma_0\\left\\{\n(1-a)\\ln x+\\frac{a}{b}(x^b-1)\n\\right\\}\\right], \\qquad b\\ne0",
+    "b=0:\\quad\\gamma=\\gamma_0,\\quad\\Theta=\\Theta_0x^{-\\gamma_0}",
+    "F_{\\mathrm{ex}}(V,T)=-\\frac{1}{2}\\beta_0\n\\left(\\frac{V}{V_0}\\right)^mT^2",
+    "\\Delta P_{\\rm ex}=10^{-4}\\frac{\\beta_0m}{2V_0}x^{m-1}(T^2-T_r^2)",
+    "P=P_{\\rm ref}+\\Delta P_D+\\Delta P_{\\rm ex}"
+  ],
+  "thermal:LinearThermalPressure": [
+    "P(V,T)=P_{\\mathrm{ref}}(V)+\\alpha K_T(T-T_r)"
+  ],
+  "thermal:LogVolumeThermalPressure": [
+    "P(V,T)=P_{\\mathrm{ref}}(V)+\n\\left[\\alpha K_{T,r}+\n\\left(\\frac{\\partial K_T}{\\partial T}\\right)_V\n\\ln\\left(\\frac{V_0}{V}\\right)\\right](T-T_r)"
+  ],
+  "thermal:SecondOrderTaylorThermalPressure": [
+    "\\eta=1-\\frac{V}{V_0},\\qquad \\Delta\\eta=\\eta-\\eta_0,\n\\qquad \\Delta T=T-T_r",
+    "P(V,T)=P_c(V)+c_0+c_1\\Delta\\eta+c_2\\Delta T\n+\\frac{c_3}{2}\\Delta\\eta^2+\\frac{c_4}{2}\\Delta T^2\n+\\frac{c_5}{2}\\Delta\\eta\\Delta T"
+  ],
+  "thermal:HollandPowellThermalPressure": [
+    "P(V,T)=P_{\\rm ref}(V)+\\Delta P_{\\rm th}(T)",
+    "E_E(T)=\\frac{3nR\\Theta}{\\exp(\\Theta/T)-1},\n\\qquad\n\\phi=\\frac{\\alpha_0K_0}{C_V(T_r)}",
+    "\\Delta P_{\\mathrm{th}}(T)=\n\\phi\\left[E_E(T)-E_E(T_r)\\right]",
+    "\\gamma(V)=10^4V\\phi",
+    "C_V(T_r)=\\left.\\frac{\\partial E_E}{\\partial T}\\right|_{T_r}"
+  ],
+  "thermal:ThermalModifiedTait": [
+    "P(V,T)=P_{\\rm ref}(V)+\\Delta P_{\\rm th}(T)",
+    "E_E(T)=\\frac{3nR\\Theta}{\\exp(\\Theta/T)-1},\n\\qquad\n\\phi=\\frac{\\alpha_0K_0}{C_V(T_r)}",
+    "\\Delta P_{\\mathrm{th}}(T)=\n\\phi\\left[E_E(T)-E_E(T_r)\\right]",
+    "\\gamma(V)=10^4V\\phi",
+    "C_V(T_r)=\\left.\\frac{\\partial E_E}{\\partial T}\\right|_{T_r}"
+  ],
+  "thermal:DebyeQuadraticThermalPressure": [
+    "P=P_{\\rm ref}+\\Delta P_D+A x^m(T^2-T_r^2)"
+  ],
+  "common:reference-energy": [
+    "F_{\\rm ref}(V)=\\phi_0-10^4\\int_{V_0}^{V}P_{\\rm ref}(v)\\,dv"
+  ],
+  "thermal:DoubleDebyeHelmholtz": [
+    "i\\in\\{A,B,1\\}",
+    "\\theta_i(V)=\\theta_{i0}(V/V_p)^{-b_i}\n\\exp[a_i(V_p-V)],\\qquad \\gamma_i=a_iV+b_i",
+    "F_D=R\\left[\\frac98\\theta+3T\\ln(1-e^{-\\theta/T})\n-TD_3(\\theta/T)\\right]",
+    "U_D=R\\left[\\frac98\\theta+3T D_3(\\theta/T)\\right]",
+    "w_A=\\frac{\\theta_B-\\theta_1}{\\theta_B-\\theta_A},\\qquad\nw_B=1-w_A",
+    "F_{\\rm ion}=n(w_AF_D(\\theta_A,T)+w_BF_D(\\theta_B,T))",
+    "\\alpha(V)=\\alpha_0(V/V_e)^\\kappa,\\qquad\nF_{\\rm anh}=-\\frac12nR\\alpha(V)T^2",
+    "P_{\\rm ion}=\\frac{n}{10^4}\\left[\n\\frac{w_A\\gamma_AU_A+w_B\\gamma_BU_B}{V}\n-\\frac{dw_A}{dV}(F_A-F_B)\\right]",
+    "P_{\\rm anh}=\\frac{nR\\kappa\\alpha(V)T^2}{2V\\,10^4}"
+  ],
+  "thermal:DoubleDebyeLogMomentHelmholtz": [
+    "i\\in\\{A,B,0\\}",
+    "\\theta_i(V)=\\theta_{i0}(V/V_p)^{-b_i}\n\\exp[a_i(V_p-V)],\\qquad \\gamma_i=a_iV+b_i",
+    "F_D=R\\left[\\frac98\\theta+3T\\ln(1-e^{-\\theta/T})\n-TD_3(\\theta/T)\\right]",
+    "U_D=R\\left[\\frac98\\theta+3T D_3(\\theta/T)\\right]",
+    "w_A=\\frac{\\ln(\\theta_B/\\theta_0)}{\\ln(\\theta_B/\\theta_A)},\\qquad\nw_B=1-w_A",
+    "F_{\\rm ion}=n(w_AF_D(\\theta_A,T)+w_BF_D(\\theta_B,T))",
+    "F_{\\rm anh}=-nR aT^2",
+    "P_{\\rm ion}=-10^{-4}\\left(\\frac{\\partial F_{\\rm ion}}{\\partial V}\\right)_T,\\quad P_{\\rm anh}=0"
+  ],
+  "double:absolute": [
+    "F=F_{\\rm ref}+F_{\\rm ion}+F_{\\rm anh}",
+    "P=-10^{-4}(\\partial F/\\partial V)_T"
+  ],
+  "double:relative": [
+    "F(V,T)=F_{\\rm ref}(V)+F_{\\rm ion}(V,T)-F_{\\rm ion}(V,T_r)\n+F_{\\rm anh}(V,T)-F_{\\rm anh}(V,T_r)",
+    "P(V,T)=P_{\\rm ref}(V)+P_{\\rm ion}(V,T)-P_{\\rm ion}(V,T_r)\n+P_{\\rm anh}(V,T)-P_{\\rm anh}(V,T_r)"
+  ],
+  "thermal:MultiOscillatorGruneisen": [
+    "x=V/V_0",
+    "\\widetilde t(x)=t-\\beta x^{1/3}",
+    "\\gamma(x)=\\delta+\n\\frac{-3K_T+2P\\widetilde t+9K_TK_T'-6\\widetilde tK_T}\n{6(3K_T-2P\\widetilde t)}",
+    "\\Theta_i(x)=\\Theta_{i0}\\exp[I_\\gamma(x)],\n\\qquad\nI_\\gamma(x)=\\int_x^1\\frac{\\gamma(u)}{u}\\,du",
+    "\\varepsilon_E(\\Theta,T)=\n\\frac{\\Theta}{2}+\\frac{\\Theta}{\\exp(\\Theta/T)-1}",
+    "\\varepsilon_B(\\Theta,T,d)=\n\\frac{\\Theta(d-1)}{2d}\n+\\frac{T\\Theta d}\n{(Td+\\Theta)\\left[\\left(1+\\frac{\\Theta}{Td}\\right)^d-1\\right]}",
+    "P_i(V,T)=\\frac{m_iR\\,\\varepsilon_i[\\Theta_i(V),T]\\,\\gamma(V)}{V}",
+    "\\Delta P_{\\mathrm{th}}=10^{-4}\\left\\{\n\\sum_i[P_i(V,T)-P_i(V,T_r)]\n+C_2(V)(T^2-T_r^2)\n\\right\\}",
+    "C_2(V)=\\frac{3nR}{2\\times10^6V}\n\\left[a_0m\\,x^m+e_0g\\,x^g\\right]",
+    "P=P_{\\rm ref}+\\Delta P_{\\rm th}"
+  ],
+  "thermal:Sokolova2016": [
+    "x=V/V_0",
+    "\\widetilde t(x)=t-\\beta x^{1/3}",
+    "\\gamma(x)=\\delta+\n\\frac{-3K_T+2P\\widetilde t+9K_TK_T'-6\\widetilde tK_T}\n{6(3K_T-2P\\widetilde t)}",
+    "\\Theta_i(x)=\\Theta_{i0}\\exp[I_\\gamma(x)],\n\\qquad\nI_\\gamma(x)=\\int_x^1\\frac{\\gamma(u)}{u}\\,du",
+    "\\varepsilon_E(\\Theta,T)=\n\\frac{\\Theta}{2}+\\frac{\\Theta}{\\exp(\\Theta/T)-1}",
+    "\\varepsilon_B(\\Theta,T,d)=\n\\frac{\\Theta(d-1)}{2d}\n+\\frac{T\\Theta d}\n{(Td+\\Theta)\\left[\\left(1+\\frac{\\Theta}{Td}\\right)^d-1\\right]}",
+    "P_i(V,T)=\\frac{m_iR\\,\\varepsilon_i[\\Theta_i(V),T]\\,\\gamma(V)}{V}",
+    "\\Delta P_{\\mathrm{th}}=10^{-4}\\left\\{\n\\sum_i[P_i(V,T)-P_i(V,T_r)]\n+C_2(V)(T^2-T_r^2)\n\\right\\}",
+    "C_2(V)=\\frac{3nR}{2\\times10^6V}\n\\left[a_0m\\,x^m+e_0g\\,x^g\\right]",
+    "P=P_{\\rm ref}+\\Delta P_{\\rm th}"
+  ],
+  "thermal:Dewaele2006": [
+    "x=V/V_0",
+    "\\gamma(x)=\\gamma_\\infty+(\\gamma_0-\\gamma_\\infty)x^\\beta,\n\\qquad\n\\Theta(x)=\\Theta_0x^{-\\gamma_\\infty}\n\\exp\\!\\left[\\frac{\\gamma_0-\\gamma_\\infty}{\\beta}(1-x^\\beta)\\right]",
+    "\\beta=0:\\quad\\gamma=\\gamma_0,\\quad\\Theta(V)=\\Theta_0x^{-\\gamma_0}",
+    "P_* =10^{-4}\\frac{3nR}{V}\\left[\\gamma T D_3(\\Theta/T)+\\frac12\\left(m a_0x^m+g e_0x^g\\right)T^2\\right]"
+  ],
+  "dewaele:relative": [
+    "P=P_{\\rm ref}(V)+P_*(V,T)-P_*(V,T_r)"
+  ],
+  "dewaele:absolute": [
+    "P=P_c(V)+P_*(V,T)"
+  ],
+  "thermal:DorogokupetsOganov2007": [
+    "x=V/V_0",
+    "\\gamma(x)=\\gamma_\\infty+(\\gamma_0-\\gamma_\\infty)x^\\beta",
+    "\\Theta_i(x)=\\Theta_{i0}x^{-\\gamma_\\infty}\n\\exp\\left[\\frac{\\gamma_0-\\gamma_\\infty}{\\beta}\n(1-x^\\beta)\\right]",
+    "\\beta=0:\\quad\\gamma=\\gamma_0,\\quad\\Theta_i(V)=\\Theta_{i0}x^{-\\gamma_0}",
+    "\\varepsilon_B(\\Theta,T,d)=\\frac{\\Theta(d-1)}{2d}\n+\\frac{T\\Theta d}\n{(Td+\\Theta)[(1+\\Theta/(Td))^d-1]}",
+    "\\varepsilon_E(\\Theta,T)=\\Theta\\left(\\frac12+\n\\frac{1}{\\exp(\\Theta/T)-1}\\right)",
+    "P_{\\mathrm{qh}}=10^{-4}\\frac{\\gamma(x)}{V}\n\\sum_i m_iR\\varepsilon_i",
+    "n_i=[\\exp(\\Theta_i/T)-1]^{-1},\\quad E_i=\\Theta_i(1/2+n_i)",
+    "F_{\\mathrm{anh}}=\\sum_i m_iR\\frac{a\\,10^{-6}x^m}{6}\n\\left[E_i^2+2\\Theta_i^2n_i(n_i+1)\\right]",
+    "F_{\\mathrm{el}}=-\\frac32nRe\\,10^{-6}x^gT^2,\n\\qquad\nF_{\\mathrm{def}}=-\\frac32nRT\n\\exp\\left(\\frac{S}{x}-\\frac{H}{Tx^2}\\right)",
+    "P_*=P_{\\rm qh}-10^{-4}\\frac{\\partial(F_{\\rm anh}+F_{\\rm el}+F_{\\rm def})}{\\partial V}",
+    "P(V,T)=P_{\\mathrm{ref}}(V)+P_*(V,T)-P_*(V,T_r)"
+  ],
+  "thermal:SoundVelocityDebyeHelmholtz": [
+    "\\rho=M/(10V),\\quad V_m=10^{-5}V",
+    "C_l^{\\rm fit}=a_l+b_l\\rho,\\qquad C_s^{\\rm fit}=a_s+b_s\\rho",
+    "\\tau=C_l^{\\rm fit}/C_s^{\\rm fit},\\quad\\mu=\\frac{\\tau^2-2}{2(\\tau^2-1)}",
+    "B_s=-V\\,\\partial P_c/\\partial V",
+    "G=\\frac{3(1-2\\mu)}{2(1+\\mu)}B_s,\\quad\nC_l^2=\\frac{B_s+4G/3}{\\rho},\\quad C_s^2=\\frac{G}{\\rho}",
+    "\\frac{3}{C_{\\rm eff}^3}=\\frac{1}{C_l^3}+\\frac{2}{C_s^3}",
+    "\\Theta=\\frac{\\hbar}{k_B}\\left(6\\pi^2\\frac{nN_A}{V_m}\\right)^{1/3}(10^3 C_{\\rm eff})",
+    "E_{\\rm ph}=3nRTD_3(\\Theta/T),\\quad\\gamma=-\\partial\\ln\\Theta/\\partial\\ln V",
+    "P=P_{\\rm ref}+10^{-4}\\frac{\\gamma}{V}[E_{\\rm ph}(V,T)-E_{\\rm ph}(V,T_r)]"
+  ],
+  "increment:debye": [
+    "\\Delta P_D=10^{-4}\\frac{\\gamma(V)}{V}[E_D(V,T)-E_D(V,T_r)]"
+  ],
+  "function:debye": [
+    "D_3(y)=\\frac{3}{y^3}\\int_0^y\\frac{z^3}{e^z-1}\\,dz"
+  ],
+  "total:debye": [
+    "P(V,T)=P_{\\rm ref}(V)+\\Delta P_D(V,T)"
+  ]
+}

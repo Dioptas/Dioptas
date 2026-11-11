@@ -96,6 +96,10 @@ try {
     (await call("integration_phase_editor", { index: 0 })).phaseEditor;
   const wheel = async (label, direction, count = 1) => {
     const input = page.getByLabel(label, { exact: true });
+    const isSpinbox = await input.evaluate(
+      (el) =>
+        !!el.closest(".pe-number-stepped")?.querySelector(".pe-number-steps"),
+    );
     const scroll = await page
       .locator(".pe-parameter-scroll:not([hidden])")
       .evaluate((el) => el.scrollTop);
@@ -109,7 +113,7 @@ try {
         el.dispatchEvent(event);
         return event.defaultPrevented;
       }, direction * 100);
-      assert.ok(prevented);
+      assert.equal(prevented, isSpinbox);
     }
     await ready();
     assert.equal(
@@ -259,7 +263,7 @@ try {
     "66.04",
   );
   await wheel("Reflection 1 intensity", -1);
-  assert.equal((await state()).reflections[0].intensity, 67.0396789);
+  assert.equal((await state()).reflections[0].intensity, 66.0396789);
   await wheel("Reflection 1 intensity", 1);
   assert.equal((await state()).reflections[0].intensity, 66.0396789);
   await page.getByLabel("Reflection 1 intensity", { exact: true }).blur();

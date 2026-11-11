@@ -18,7 +18,9 @@ import { PhaseEditorConfirm } from "./PhaseEditorConfirm";
 import { PhaseAssessmentBadge } from "./PhaseAssessmentBadge";
 import { PhaseEditorMetadata } from "./PhaseEditorMetadata";
 import { PhaseModelExplanation } from "./PhaseModelExplanation";
-import { choiceHelp, modelHelp, parameterHelp } from "./phaseModelHelp";
+import { choiceHelp, modelHelp } from "./phaseModelHelp";
+import { phaseParameterHelp } from "./phaseParameterHelp";
+import { PhaseParameterExplanation } from "./PhaseParameterExplanation";
 import { ModelExplanationToggle } from "./ModelExplanationToggle";
 import "./phaseEditor.css";
 
@@ -209,7 +211,12 @@ export function PhaseEditor({
             )?.value ?? "integrated_expansivity",
           ),
         )
-      : parameterHelp(f.key);
+      : phaseParameterHelp(f, {
+          eosType: data.eosType,
+          thermalType: data.thermalType || (legacy ? "alphakt" : "none"),
+          fields: data.thermalFields,
+          blankAllowed: thermal && !f.required,
+        });
     const helpId = `pe-choice-${f.key}-help`;
     const editor = (
       <label
@@ -244,9 +251,18 @@ export function PhaseEditor({
               </option>
             ))}
           </Select>
+        ) : typeof f.value === "string" || typeof f.default === "string" ? (
+          <Input
+            aria-label={f.label}
+            aria-describedby={helpId}
+            value={String(f.value ?? f.default ?? "")}
+            readOnly
+            title={help?.description ?? f.description}
+          />
         ) : (
           <EditorNumber
             label={f.label}
+            descriptionId={helpId}
             value={f.value == null ? null : Number(f.value)}
             disabled={metadataDirty || !data.eosEditable}
             min={f.min}
@@ -256,7 +272,7 @@ export function PhaseEditor({
             title={
               thermal
                 ? `${f.description ? `${f.description} · ` : ""}${f.key}${f.isDefault ? " · constructor default" : ""}${!f.required ? `; blank uses default ${f.key === "Cvmax" ? "3nR" : (f.default ?? "unset")}` : "; required"}`
-                : f.key
+                : `${help?.description ?? f.key}${help?.note ? ` · ${help.note}` : ""}`
             }
             onCommit={(value) =>
               act(
@@ -273,7 +289,11 @@ export function PhaseEditor({
     );
     return f.choices?.length || help ? (
       <div
-        className="pe-choice-with-help"
+        className={
+          f.choices?.length
+            ? "pe-choice-with-help"
+            : `pe-parameter-with-help${(f.unit?.length ?? 0) > 8 ? " pe-field-wide" : ""}`
+        }
         key={`${data.index}-${data.reference}-${f.key}`}
       >
         {editor}
@@ -283,7 +303,12 @@ export function PhaseEditor({
             unit.
           </p>
         )}
-        {help && <PhaseModelExplanation id={helpId} help={help} />}
+        {help &&
+          (f.choices?.length ? (
+            <PhaseModelExplanation id={helpId} help={help} />
+          ) : (
+            <PhaseParameterExplanation id={helpId} help={help} />
+          ))}
       </div>
     ) : (
       editor
@@ -803,6 +828,9 @@ export function PhaseEditor({
               help={modelHelp(
                 "thermal",
                 !data.thermalType && legacy ? "alphakt" : data.thermalSelection,
+                Object.fromEntries(
+                  data.thermalFields.map((field) => [field.key, field.value]),
+                ),
               )}
             />
             <h3 className="pe-parameter-heading">EoS parameters</h3>

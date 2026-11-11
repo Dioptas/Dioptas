@@ -262,3 +262,44 @@ normalization. The initial material save action is now labeled **Save…**, then
 destination. Both initial save buttons use the same existing EOSMAT path.
 Headless checks cover the default/remembered toggle, retained links and scientific
 values, Cᵥ,max help/default, and the renamed initial Save action.
+
+
+### Parameter coverage, model equations, and wheel behavior
+
+Every EoS, thermal and material-normalization parameter now has contextual help
+under **Show model explanations**, including units, required/optional behavior
+and constructor defaults. Meanings follow the selected model: for example,
+AlphaKT expansivity differs from double-Debye anharmonic alpha0, and micro-K⁻¹
+source coefficients retain their explicit scale. Numeric parameter help is hidden
+when the switch is off, preserving the compact two-column parameter layout;
+model/law manual links and the short Cᵥ,max hint remain available.
+
+All 11 offered isothermal families and 18 thermal models have displayed defining
+equations, including pressure, strain/oscillator definitions and the selected
+thermal reference convention. The equations are authored in
+`phaseEquationSources.json` and compiled to static MathML with
+`npm run generate:phase-equations`. KaTeX is a development-only typesetter: no
+KaTeX runtime, remote renderer, font download or scientific calculation is added
+to the app. The production build checks that generated MathML is current.
+Reference-isotherm/cold/isentrope pressure baselines and the double-Debye optional
+Tr convention select the appropriate displayed formulas. Complex-model help
+retains source normalization, limiting-case notes and the linked manual.
+
+Mouse-wheel stepping in Phase Editor is now enabled only for EditorNumber
+controls with visible spinbox arrows and a defined increment. Ordinary EoS,
+thermal, normalization, reflection and atomic-site numeric text fields leave
+wheel events available for scrolling, including while focused. Explicit spinbox
+arrows and their wheel increments retain their validation and commit queue.
+
+Adding a new EoS after clearing/deleting the last record now replaces a missing,
+nonfinite or nonpositive legacy starting K0 with **100 GPa**. Adding a record
+from an existing valid EoS retains its source parameters. This is an initial
+editing estimate. Native regression tests cover clear/delete, new record creation,
+subsequent pressure/thermal-model edits and preservation of an existing modulus.
+
+The headless model-help check verifies all 194 parameter/model combinations in
+the current schema, all 29 model equation sets, MathML parsing, selected Vinet/BM3
+equations, live parameter-help updates, toggle persistence and scientific
+immutability. Chromium/WebKit tests exercise unfocused/focused ordinary fields,
+real wheel scrolling, reflection intensities and permitted lattice spinbox
+stepping. Existing publication-metadata layout/editing regression checks pass.

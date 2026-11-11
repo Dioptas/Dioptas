@@ -54,3 +54,15 @@
   font-size: var(--text-small);
   line-height: 1.4;
 }
+
+.pe-parameter-with-help {
+  min-width: 0;
+}
+.pe-parameter-with-help > .pe-field {
+  width: 100%;
+}
+@container phase-parameters (min-width: 37.5em) {
+  .pe-parameter-with-help.pe-field-wide {
+    grid-column: 1 / -1;
+  }
+}

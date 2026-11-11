@@ -15,6 +15,7 @@ export function EditorNumber({
   optional = false,
   integer = false,
   title,
+  descriptionId,
   significantDigits,
   stepper = false,
 }: {
@@ -28,6 +29,7 @@ export function EditorNumber({
   optional?: boolean;
   integer?: boolean;
   title?: string;
+  descriptionId?: string;
   significantDigits?: number;
   stepper?: boolean;
 }) {
@@ -132,48 +134,54 @@ export function EditorNumber({
     setText(String(next));
     void commit(String(next));
   };
-  useSpinBoxWheel(input, (direction) => {
-    const current =
-      wheelTarget.current ??
-      (dirty.current || focused.current ? Number(input.current?.value) : value);
-    if (
-      disabled ||
-      current == null ||
-      !input.current?.value.trim() ||
-      !Number.isFinite(current)
-    )
-      return;
-    input.current.focus({ preventScroll: true });
-    const quantum = step === "any" ? 1 : step;
-    wheelTarget.current = Math.min(
-      max ?? Infinity,
-      Math.max(
-        min ?? -Infinity,
-        Number((current + direction * quantum).toPrecision(12)),
-      ),
-    );
-    setText(String(wheelTarget.current));
-    if (wheelRunning.current) return;
-    wheelRunning.current = true;
-    setWheelBusy(true);
-    void (async () => {
-      try {
-        while (wheelTarget.current != null) {
-          if (pendingAction.current) await pendingAction.current;
-          const target = wheelTarget.current;
-          dirty.current = true;
-          if (!(await commit(String(target)))) {
-            wheelTarget.current = null;
-            break;
+  useSpinBoxWheel(
+    input,
+    (direction) => {
+      const current =
+        wheelTarget.current ??
+        (dirty.current || focused.current
+          ? Number(input.current?.value)
+          : value);
+      if (
+        disabled ||
+        current == null ||
+        !input.current?.value.trim() ||
+        !Number.isFinite(current)
+      )
+        return;
+      input.current.focus({ preventScroll: true });
+      const quantum = step === "any" ? 1 : step;
+      wheelTarget.current = Math.min(
+        max ?? Infinity,
+        Math.max(
+          min ?? -Infinity,
+          Number((current + direction * quantum).toPrecision(12)),
+        ),
+      );
+      setText(String(wheelTarget.current));
+      if (wheelRunning.current) return;
+      wheelRunning.current = true;
+      setWheelBusy(true);
+      void (async () => {
+        try {
+          while (wheelTarget.current != null) {
+            if (pendingAction.current) await pendingAction.current;
+            const target = wheelTarget.current;
+            dirty.current = true;
+            if (!(await commit(String(target)))) {
+              wheelTarget.current = null;
+              break;
+            }
+            if (wheelTarget.current === target) wheelTarget.current = null;
           }
-          if (wheelTarget.current === target) wheelTarget.current = null;
+        } finally {
+          wheelRunning.current = false;
+          setWheelBusy(false);
         }
-      } finally {
-        wheelRunning.current = false;
-        setWheelBusy(false);
-      }
-    })();
-  });
+      })();
+    },
+    stepper && step !== "any",
+  );
   return (
     <span className={`pe-number${stepper ? " pe-number-stepped" : ""}`}>
       <Input
@@ -187,7 +195,10 @@ export function EditorNumber({
         readOnly={pending || wheelBusy}
         aria-busy={pending || wheelBusy}
         aria-invalid={!!error}
-        aria-describedby={error ? id : undefined}
+        aria-describedby={
+          [error ? id : undefined, descriptionId].filter(Boolean).join(" ") ||
+          undefined
+        }
         data-editor-number="true"
         onFocus={() => {
           focused.current = true;
