@@ -66,9 +66,11 @@
 .cake-profile-tools .field-label input {
   width: 60px;
   min-width: 0;
+  height: 28px;
+  min-height: 28px;
+  padding: 3px 5px;
 }
 .cake-profile-tools button {
-  padding: 4px;
   flex: 0 0 auto;
 }
 .cake-profile-edge {

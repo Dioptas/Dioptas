@@ -78,7 +78,7 @@ export function CakeProfilePanel({
   return (
     <section className="cake-profile-panel" aria-label="Azimuthal profile">
       <form
-        className="cake-profile-tools"
+        className="cake-profile-tools plot-controls"
         onSubmit={(event) => {
           event.preventDefault();
           if (!available || !ready) return;
@@ -104,6 +104,7 @@ export function CakeProfilePanel({
           onChange={onBins}
         />
         <Button
+          className="plot-tool-button icon-button"
           aria-label="Save azimuthal profile"
           title="Save azimuth (degrees) and native intensity; no error column"
           disabled={!ready || !available}
