@@ -735,6 +735,96 @@ fn incoming_file_integration_autosaves_and_mismatch_stops_without_mutation() {
 }
 
 #[test]
+fn incoming_file_retries_a_changed_failed_source_without_blocking_or_reprocessing() {
+    let temp = tempfile::tempdir().unwrap();
+    let directory = temp.path();
+    let baseline = directory.join("scan_001.npy");
+    let incoming = directory.join("scan_002.npy");
+    let next = directory.join("scan_003.npy");
+    let calibration = directory.join("g.poni");
+    let output = directory.join("output");
+    fs::create_dir(&output).unwrap();
+    image(&baseline, 0.);
+    poni(&calibration);
+    let mut session = prepared(&baseline, &calibration, "2th_deg");
+    call(
+        &mut session,
+        "integration_autocreate",
+        json!({"enabled":true,"directory":output}),
+    );
+    call(
+        &mut session,
+        "integration_autoprocess",
+        json!({"enabled":true}),
+    );
+    let before = call(&mut session, "state", json!({}));
+
+    // An acquisition may pause long enough to look stable before it is readable.
+    fs::write(&incoming, b"incomplete acquisition").unwrap();
+    for _ in 0..2 {
+        call(&mut session, "integration_autoprocess_poll", json!({}));
+    }
+    let failed = call(&mut session, "state", json!({}));
+    assert_eq!(failed.result["image"], before.result["image"]);
+    assert_eq!(failed.result["pattern"], before.result["pattern"]);
+    assert!(
+        failed.result["state"]["integration"]["autoProcessError"]
+            .as_str()
+            .unwrap()
+            .contains("scan_002.npy")
+    );
+    assert!(!output.join("scan_002.xy").exists());
+    for _ in 0..3 {
+        // An unchanged corrupt source is skipped, not repeatedly loaded.
+        assert!(
+            call(&mut session, "integration_autoprocess_poll", json!({}))
+                .result
+                .get("state")
+                .is_none()
+        );
+    }
+
+    // Later images remain processable while the failed source is unchanged.
+    image(&next, 30.);
+    for _ in 0..2 {
+        call(&mut session, "integration_autoprocess_poll", json!({}));
+    }
+    assert_eq!(
+        call(&mut session, "state", json!({})).result["state"]["imageName"],
+        "scan_003.npy"
+    );
+    assert!(output.join("scan_003.xy").is_file());
+
+    image(&incoming, 20.);
+    call(&mut session, "integration_autoprocess_poll", json!({}));
+    assert_eq!(
+        call(&mut session, "state", json!({})).result["state"]["imageName"],
+        "scan_003.npy",
+        "The completed source still needs two stable scans"
+    );
+    call(&mut session, "integration_autoprocess_poll", json!({}));
+    let completed = call(&mut session, "state", json!({}));
+    assert_eq!(completed.result["state"]["imageName"], "scan_002.npy");
+    assert_eq!(
+        completed.result["state"]["integration"]["autoProcessError"],
+        ""
+    );
+    assert!(output.join("scan_002.xy").is_file());
+    let mut reference = prepared(&incoming, &calibration, "2th_deg");
+    close(
+        &values(&completed, "y"),
+        &values(&call(&mut reference, "state", json!({})), "y"),
+    );
+    for _ in 0..3 {
+        call(&mut session, "integration_autoprocess_poll", json!({}));
+    }
+    assert_eq!(
+        call(&mut session, "state", json!({})).result,
+        completed.result
+    );
+}
+
+#[test]
 fn watched_folder_survives_reference_browsing_and_changes_only_explicitly() {
     let temp = tempfile::tempdir().unwrap();
     let acquisition = temp.path().join("acquisition");

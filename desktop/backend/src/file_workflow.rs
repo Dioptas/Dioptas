@@ -5,6 +5,12 @@ use std::{
     collections::{BTreeMap, BTreeSet, VecDeque},
     time::SystemTime,
 };
+type FileStamp = (u64, SystemTime);
+
+struct IncomingImage {
+    path: PathBuf,
+    stamp: Option<FileStamp>,
+}
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub(super) struct Files {
@@ -14,8 +20,12 @@ pub(super) struct Files {
     pub auto_process: bool,
     pub auto_error: String,
     known: BTreeSet<PathBuf>,
-    pending: BTreeMap<PathBuf, (u64, SystemTime)>,
+    pending: BTreeMap<PathBuf, FileStamp>,
     queue: VecDeque<PathBuf>,
+    // A failed acquisition is retried only after its source changes. Older
+    // development checkpoints predate this field.
+    #[serde(default)]
+    failed: BTreeMap<PathBuf, FileStamp>,
 }
 impl Default for Files {
     fn default() -> Self {
@@ -28,6 +38,7 @@ impl Default for Files {
             known: BTreeSet::new(),
             pending: BTreeMap::new(),
             queue: VecDeque::new(),
+            failed: BTreeMap::new(),
         }
     }
 }
@@ -37,6 +48,7 @@ impl Files {
         self.auto_error.clear();
         self.queue.clear();
         self.pending.clear();
+        self.failed.clear();
     }
 }
 pub(super) fn image_file(path: &Path) -> bool {
@@ -184,12 +196,26 @@ impl Files {
         self.known = self.scan()?;
         self.pending.clear();
         self.queue.clear();
+        self.failed.clear();
         Ok(())
     }
-    pub fn poll(&mut self) -> Result<Option<PathBuf>, String> {
+    fn poll(&mut self) -> Result<Option<IncomingImage>, String> {
         let paths = self.scan()?;
         self.known.retain(|p| paths.contains(p));
         self.pending.retain(|p, _| paths.contains(p));
+        self.failed.retain(|p, _| paths.contains(p));
+        let mut changed = Vec::new();
+        for (path, previous) in &self.failed {
+            let m = std::fs::metadata(path).map_err(|e| e.to_string())?;
+            if (m.len(), m.modified().map_err(|e| e.to_string())?) != *previous {
+                changed.push(path.clone());
+            }
+        }
+        for path in changed {
+            self.failed.remove(&path);
+            self.known.remove(&path);
+            self.pending.remove(&path);
+        }
         let mut ready = Vec::new();
         for path in paths.difference(&self.known) {
             let m = std::fs::metadata(path).map_err(|e| e.to_string())?;
@@ -203,10 +229,19 @@ impl Files {
         ready.sort();
         for (_, path) in ready {
             self.known.insert(path.clone());
-            self.pending.remove(&path);
+            // Keep the admission fingerprint until this queued image is read.
+            // Recording it after a failure could mistake a newly completed
+            // source for the version that failed during decoding.
             self.queue.push_back(path);
         }
-        Ok(self.queue.pop_front())
+        Ok(self.queue.pop_front().map(|path| {
+            let stamp = self.pending.remove(&path).or_else(|| {
+                // Compatibility with an old development handoff's queue.
+                let m = std::fs::metadata(&path).ok()?;
+                Some((m.len(), m.modified().ok()?))
+            });
+            IncomingImage { path, stamp }
+        }))
     }
 }
 fn directory(args: &Value) -> Result<String, String> {
@@ -342,7 +377,7 @@ impl Session {
                 if !self.files.auto_process {
                     return Ok(Some(Reply::metadata(json!({"ok":true}))));
                 }
-                let Some(path) = self.files.poll()? else {
+                let Some(IncomingImage { path, stamp }) = self.files.poll()? else {
                     return Ok(Some(Reply::metadata(json!({"ok":true}))));
                 };
                 // A corrupt incoming file must not discard the prior session or
@@ -371,6 +406,9 @@ impl Session {
                     }
                     Err(e) => {
                         self.restore_checkpoint(checkpoint);
+                        if let Some(stamp) = stamp {
+                            self.files.failed.insert(path.clone(), stamp);
+                        }
                         self.files.auto_error = format!(
                             "{}: {e}",
                             path.file_name().unwrap_or_default().to_string_lossy()
