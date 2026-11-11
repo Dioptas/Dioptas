@@ -149,8 +149,9 @@ try {
         page
           .getByRole("navigation", { name: "Correction type" })
           .getByRole("button", { name: label, exact: true, pressed: true });
-      const selectType = async (label) => {
+      const selectType = async (label, clicked) => {
         await type(label).click();
+        clicked?.();
         await selectedType(label).waitFor();
       };
       const state = async () => (await native.invoke("state")).state;
@@ -233,8 +234,23 @@ try {
             };
             window.addEventListener("click", hold, true);
           });
-          const navigation = selectType(label);
+          let reportClick,
+            navigationCompleted = false;
+          const clickCompleted = new Promise((resolve) => {
+            reportClick = resolve;
+          });
+          const navigation = selectType(label, reportClick).then(() => {
+            navigationCompleted = true;
+          });
+          await clickCompleted;
+          // This round trip follows the completed click, so a click-only helper
+          // has also settled its promise before the held-navigation assertion.
           await page.waitForFunction(() => window.__heldCorrectionNavigation);
+          assert.equal(
+            navigationCompleted,
+            false,
+            "Tab selection must remain pending until the requested pane commits",
+          );
           assert.equal(await selectedType(label).count(), 0);
           assert.equal(await selectedType("Plate").count(), 1);
           assert.equal(
