@@ -1737,6 +1737,16 @@ export default function App() {
       state?.configurationContext ?? state?.configurationIndex,
     ]),
   );
+  const mainPlotReading =
+    detectorWindow.detached &&
+    plotReading &&
+    ["detector", "cake", "profile"].includes(plotReading.source)
+      ? null
+      : plotReading;
+  const hideMainClickReading =
+    detectorWindow.detached &&
+    clickedReading &&
+    ["detector", "cake", "profile"].includes(clickedReading.source);
   const inspectDetector = (point: {
     x: number;
     y: number;
@@ -3656,19 +3666,20 @@ export default function App() {
               <span
                 data-testid="mouse-readout"
                 className="plot-status-reading"
-                data-plot={plotReading?.source}
-                data-pixel-x={plotReading?.x}
-                data-pixel-row={plotReading?.row}
-                title={plotReading?.text}
+                data-plot={mainPlotReading?.source}
+                data-pixel-x={mainPlotReading?.x}
+                data-pixel-row={mainPlotReading?.row}
+                title={mainPlotReading?.text}
               >
-                {plotReading ? (
-                  <ReadingFields reading={plotReading} />
+                {mainPlotReading ? (
+                  <ReadingFields reading={mainPlotReading} />
                 ) : (
                   (state?.imageName ?? "No image loaded")
                 )}
               </span>
             </div>
             {!correctionPreview.map &&
+              !hideMainClickReading &&
               !settingsOpen &&
               (mode === "integration" || mode === "map") && (
                 <div className="plot-status-line clicked-position">

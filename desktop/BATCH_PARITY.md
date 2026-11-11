@@ -273,3 +273,26 @@ identity through the image-only transition, and restoring a resized/collapsed
 dock when the image returns. Screenshots and receipts are under
 `artifacts/integration-responsive/`. The Integration panel workflow, all 113
 frontend tests and the production build also pass.
+
+## Rust-only Batch window checks (2026-11-11)
+
+`npm run test:batch-window` runs the full companion/dock workflow in headless
+Chromium and WebKit using the Rust stdio processor. The harness no longer
+launches the Python bridge or uses Python to prepare images. The new
+`backend/examples/batch_window_fixture.rs` reads the real CeO2 detector through
+the Rust image reader and writes six full-resolution, scaled float32 TIFFs.
+Every browser asserts the processor runtime and records its PID; the native
+client disables Python/PATH fallback.
+
+The migrated check exercises add/average/save, ordered frame selection, visible
+cake regeneration, histogram/zoom/phase controls, Q/d normalization, reintegration,
+HDF5 export and stored-only import, compact layouts and saved docking preferences.
+Normalization assertions check the actual inclusive stored bins rather than the
+old reference backend's unsnapped region metadata. Compact options are scrolled
+to verify each field, and splitter checks run in the wide layout where that
+divider exists. Scientific commands and application behavior are unchanged.
+
+Both browser runs pass. Receipts/screenshots/logs are under
+`artifacts/batch-window/rust/{chromium,webkit}/`. The separate visible native
+window scripts now explicitly request `--backend=rust`; their OS-window campaigns
+were not rerun for this headless follow-up.

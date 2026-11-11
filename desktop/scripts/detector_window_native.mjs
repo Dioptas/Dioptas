@@ -37,7 +37,7 @@ await new Promise((resolve, reject) => {
 });
 const child = spawn(
   "src-tauri/target/debug/dioptas-desktop",
-  ["--smoke", "--example", "--detector-smoke"],
+  ["--backend=rust", "--smoke", "--example", "--detector-smoke"],
   { cwd: desktop, env: profile.env, stdio: ["ignore", "pipe", "pipe"] },
 );
 let output = "";

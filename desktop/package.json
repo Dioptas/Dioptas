@@ -39,6 +39,7 @@
     "benchmark:pattern": "node scripts/pattern_benchmark.mjs",
     "benchmark:pattern:native": "node scripts/pattern_native_benchmark.mjs",
     "test:pattern-quality": "node scripts/pattern_quality.mjs",
+    "test:batch-window": "node scripts/batch_smoke.mjs && node scripts/batch_smoke.mjs --webkit",
     "test:batch-export": "node scripts/batch_export_smoke.mjs",
     "test:batch-background-export": "node scripts/batch_export_smoke.mjs --background",
     "test:processing-workers": "node scripts/processing_workers_smoke.mjs",

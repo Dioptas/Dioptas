@@ -53,8 +53,18 @@ let capturing = Promise.resolve();
 const child = spawn(
   live ? "npm" : "src-tauri/target/debug/dioptas-desktop",
   live
-    ? ["run", "tauri:dev", "--", "--", "--", "--example", "--smoke"]
+    ? [
+        "run",
+        "tauri:dev",
+        "--",
+        "--",
+        "--",
+        "--backend=rust",
+        "--example",
+        "--smoke",
+      ]
     : [
+        "--backend=rust",
         "--example",
         "--smoke",
         ...(mapSmoke ? ["--map-smoke"] : batchSmoke ? ["--batch-smoke"] : []),

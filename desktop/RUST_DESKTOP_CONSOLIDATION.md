@@ -298,3 +298,25 @@ and ordered cell requests under
 `desktop/artifacts/map-window/rust/{chromium,webkit}/`. Only the test harness and
 commands changed; no scientific implementation or native OS window management
 changed. See [Map parity](MAP_PARITY.md).
+
+## Rust-only detector and Batch companion checks (2026-11-11)
+
+Audited and reran `test:detector-window`: its worker and fixture generation use
+Rust, with no Python bridge. The source check now explicitly asserts the runtime.
+Migrated the older Batch companion test to the Rust processor and a Rust example
+that generates the six scaled real detector TIFFs. `test:batch-window` runs
+Chromium and WebKit; its fixture/file chooser remains test-only, and the native
+client disables Python/PATH fallback. Separate visible detector/Batch smoke and
+layout scripts explicitly request `--backend=rust`.
+
+Both headless detector and full Batch companion/dock workflows pass, along with
+the production build and 113 frontend tests. Batch assertions now use native
+inclusive normalization bins and current compact-layout scrolling/tab behavior.
+Evidence is under `desktop/artifacts/detector-window/` and
+`desktop/artifacts/batch-window/rust/{chromium,webkit}/`.
+
+Detached detector/cake/profile coordinates are also no longer duplicated in the
+main footer. Their own window keeps live and click readouts; the main pattern
+retains its readout, and docking restores the detector footer. Regression checks
+cover these transitions. Scientific processing and linked inspection are unchanged.
+Visible OS-window campaigns were not rerun for this headless follow-up.

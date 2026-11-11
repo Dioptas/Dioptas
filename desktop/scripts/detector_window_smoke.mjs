@@ -219,6 +219,15 @@ for (const [name, browserType] of [
     await child.getByRole("button", { name: "Cake", exact: true }).click();
     await child.getByTestId("cake-canvas").waitFor();
     assert.equal(await child.getByTestId("detector-canvas").count(), 0);
+    await child.getByTestId("cake-canvas").hover();
+    await child.waitForFunction(() =>
+      document.querySelector('[data-testid="detector-readout"] [data-field]'),
+    );
+    await page.waitForFunction(
+      () =>
+        !document.querySelector('[data-testid="mouse-readout"]').dataset.plot,
+    );
+
     // The complete bar stays within two rows with the window action last,
     // including the additional cake shift controls and larger interface text.
     for (const large of [false, true]) {
@@ -323,6 +332,14 @@ for (const [name, browserType] of [
         .querySelector('[data-testid="detector-readout"]')
         .textContent.includes("I"),
     );
+    await page.waitForFunction(
+      () =>
+        !document.querySelector('[data-testid="mouse-readout"]').dataset.plot,
+    );
+    assert.equal(
+      await page.getByTestId("mouse-readout").locator("[data-field]").count(),
+      0,
+    );
     await child.mouse.click(x, y);
     await child.waitForFunction(
       () =>
@@ -330,6 +347,15 @@ for (const [name, browserType] of [
           .clickX != null,
     );
     assert.ok((await native.invoke("state")).linked?.imagePoint);
+    await page.getByTestId("click-readout").waitFor({ state: "detached" });
+    await child.getByTestId("detector-click-readout").waitFor();
+    await page.getByTestId("pattern-canvas").hover();
+    await page.waitForFunction(
+      () =>
+        document.querySelector('[data-testid="mouse-readout"]').dataset.plot ===
+        "pattern",
+    );
+
     // Main task controls still mutate the very same session and appear remotely.
     await child
       .getByRole("button", { name: "Image region of interest", exact: true })
@@ -433,6 +459,12 @@ for (const [name, browserType] of [
       .getByRole("button", { name: "Dock detector image", exact: true })
       .click();
     await page.getByTestId("detector-canvas").waitFor();
+    await page.getByTestId("detector-canvas").hover();
+    await page.waitForFunction(
+      () =>
+        document.querySelector('[data-testid="mouse-readout"]').dataset.plot ===
+        "detector",
+    );
     const patternRedocked = await page.locator(".pattern-panel").boundingBox();
     assert.ok(
       Math.abs(patternRedocked.width - patternBefore.width) < 2,
@@ -665,6 +697,9 @@ for (const [name, browserType] of [
       calibrationPicking: true,
       detectorPngExport: true,
       completeDetachedToolbar: true,
+      readoutsStayWithTheirWindow: true,
+      runtime: "rust",
+      processorPid: native.child.pid,
       patternUsesFreedImageSpace: true,
       detachedCakeSwitch: true,
       sharedMapDetector: true,

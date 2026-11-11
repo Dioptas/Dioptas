@@ -50,6 +50,7 @@ try {
     const native = nativeClient();
     let browser;
     try {
+      assert.equal((await native.invoke("__host__")).runtime, "rust");
       await native.invoke("open_image", {
         path: source,
         dataset: "/a",

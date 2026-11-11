@@ -1,71 +1,75 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawn } from "node:child_process";
-import { createInterface } from "node:readline";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
+import { mkdir, mkdtemp, rm, writeFile, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { chromium, webkit } from "playwright";
 import { selectIntegrationDisplay } from "./integration_display.mjs";
+import { nativeClient } from "./native_backend_client.mjs";
 const root = fileURLToPath(new URL("../../", import.meta.url));
-const artifacts = path.join(root, "desktop/artifacts");
+const engineName = process.argv.includes("--webkit") ? "webkit" : "chromium";
+const artifacts = path.join(
+  root,
+  "desktop/artifacts/batch-window/rust",
+  engineName,
+);
 await mkdir(artifacts, { recursive: true });
 const temporary = await mkdtemp(path.join(tmpdir(), "dioptas-batch-window-"));
-// Scaled fixture copies distinguish the rendered row order, not just labels.
-execFileSync(path.join(root, ".venv/bin/python"), [
-  "-c",
-  `import sys, pathlib, fabio
-data = fabio.open(sys.argv[1]).data.astype("float32")
-for i in range(6):
-    fabio.tifimage.TifImage(data=data * (i + 1)).write(str(pathlib.Path(sys.argv[2]) / f"series_{i + 1}.tif"))`,
-  path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
-  temporary,
-]);
+// Generate scaled real TIFFs using Rust, including all fixture preparation.
+execFileSync(
+  "cargo",
+  [
+    "run",
+    "--quiet",
+    "--locked",
+    "--manifest-path",
+    path.join(root, "desktop/backend/Cargo.toml"),
+    "--example",
+    "batch_window_fixture",
+    "--",
+    path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
+    temporary,
+  ],
+  { cwd: root, stdio: "inherit" },
+);
 const paths = Array.from({ length: 6 }, (_, i) =>
   path.join(temporary, `series_${i + 1}.tif`),
 );
-const host = spawn(
-  path.join(root, ".venv/bin/python"),
-  ["-u", "desktop/scripts/bridge_host.py"],
-  {
-    cwd: root,
-    env: {
-      ...process.env,
-      OMP_NUM_THREADS: "2",
-      DIOPTAS_CUSTOM_COMMANDS_FILE: path.join(temporary, "commands.json"),
-    },
-    stdio: ["pipe", "pipe", "pipe"],
-  },
-);
-let identifier = 0;
+const native = nativeClient();
 let processed = false;
-const pending = new Map(),
-  logs = [],
+const logs = native.diagnostics,
   requests = [];
-host.stderr.on("data", (b) => logs.push(b.toString()));
-createInterface({ input: host.stdout }).on("line", (line) => {
-  const m = JSON.parse(line),
-    task = pending.get(m.id);
-  if (task) {
-    clearTimeout(task.timer);
-    pending.delete(m.id);
-    task.resolve(m.result);
-  }
-});
-function invoke(action, payload = {}) {
+async function invoke(action, payload = {}) {
   if (action === "open_image" && payload.multiple && !payload.paths)
     payload = { ...payload, paths };
   if (action === "open_image" && payload.batch_mode === "save")
     payload = { ...payload, output_directory: temporary };
-  if (action === "batch_load_data" && processed)
-    payload = { paths: [path.join(artifacts, "batch.h5")] };
+  if (action === "batch_load_data")
+    payload = {
+      ...payload,
+      paths: processed ? [path.join(artifacts, "batch.h5")] : paths,
+    };
+  if (action === "integration_save_batch" && !payload.path)
+    payload = { ...payload, path: path.join(artifacts, "batch.h5") };
+  if (
+    action === "integration_phase" &&
+    payload.operation === "load" &&
+    !payload.path
+  )
+    payload = {
+      ...payload,
+      path: path.join(root, "dioptas/tests/data/jcpds/au_version3.jcpds"),
+    };
+  if (action === "integration_phase_files" && !payload.paths)
+    payload = {
+      ...payload,
+      paths: [path.join(root, "dioptas/tests/data/jcpds/au_version3.jcpds")],
+    };
   requests.push(action);
-  return new Promise((resolve, reject) => {
-    const id = ++identifier,
-      timer = setTimeout(() => reject(Error(`Timed out ${action}`)), 45000);
-    pending.set(id, { resolve, timer });
-    host.stdin.write(JSON.stringify({ id, action, payload }) + "\n");
-  });
+  const reply = await native.invoke(action, payload);
+  assert.equal(reply.ok, true, `${action}: ${reply.error}`);
+  return native.browserResult(reply);
 }
 const engine = process.argv.includes("--webkit") ? webkit : chromium;
 const browser = await engine.launch({ headless: true });
@@ -104,6 +108,12 @@ await page.addInitScript(() => {
   });
 });
 const ready = async () => {
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+  );
   await page.waitForFunction(
     () =>
       document.querySelector(".app") &&
@@ -202,6 +212,7 @@ const checkBatchLayout = async (p) => {
 };
 let child;
 try {
+  assert.equal((await native.invoke("__host__")).runtime, "rust");
   assert.equal((await invoke("example")).ok, true);
   assert.equal(
     (
@@ -243,7 +254,7 @@ try {
     if (mode === "save")
       await page
         .getByRole("status")
-        .filter({ hasText: "Saved 6 batch images" })
+        .filter({ hasText: "Saved 6 batch files" })
         .waitFor();
     else
       await page.waitForFunction(
@@ -252,6 +263,13 @@ try {
           "series_1.tif",
       );
     await ready();
+    if (mode === "save")
+      assert.equal(
+        (await readdir(temporary)).filter((name) =>
+          /^batch_series_\d+\.tiff$/.test(name),
+        ).length,
+        6,
+      );
     assert.equal(context.pages().length, 1);
     assert.equal((await invoke("state")).batch, null);
   }
@@ -266,6 +284,9 @@ try {
   child = await opened;
   await child.waitForLoadState();
   await selected(child, 1);
+  // Cake is generated on demand in Rust; make it visible before checking it.
+  await selectIntegrationDisplay(page, "cake");
+  await ready();
   assert.equal(await batchButton.getAttribute("aria-pressed"), "true");
   assert.equal(
     await page
@@ -491,13 +512,23 @@ try {
   await child.getByRole("tab", { name: "2D", exact: true }).click();
   assert.equal(await canvas.getAttribute("data-zoom-mode"), "horizontal");
   await child.getByRole("button", { name: "Options", exact: true }).click();
-  assert(await child.getByRole("button", { name: "Apply normalization region", exact: true }).isDisabled());
-  const maximumAngle = child.getByLabel("Normalization maximum 2θ", { exact: true });
+  assert(
+    await child
+      .getByRole("button", { name: "Apply normalization region", exact: true })
+      .isDisabled(),
+  );
+  const maximumAngle = child.getByLabel("Normalization maximum 2θ", {
+    exact: true,
+  });
   await maximumAngle.fill("-1");
   const errorId = await maximumAngle.getAttribute("aria-describedby");
   assert(errorId);
   assert((await child.locator(`[id="${errorId}"]`).innerText()).includes("2θ"));
-  assert(await child.getByRole("button", { name: "Apply normalization region", exact: true }).isDisabled());
+  assert(
+    await child
+      .getByRole("button", { name: "Apply normalization region", exact: true })
+      .isDisabled(),
+  );
   await child.getByLabel("Normalization minimum 2θ", { exact: true }).fill("0");
   await child
     .getByLabel("Normalization maximum 2θ", { exact: true })
@@ -548,20 +579,29 @@ try {
   // Companion mutations cross postMessage before entering the main queue.
   // Wait for the real processor result rather than treating an idle main view
   // before message delivery as command completion.
+  const qBatch = (await invoke("state")).batch;
+  assert.equal(qBatch.unit, "q_A^-1");
+  const included = qBatch.x.flatMap((x, i) =>
+    x >= 0.5 && x <= 1.5 ? [i] : [],
+  );
+  assert.ok(included.length > 1, "Q region must contain stored samples");
+  const expectedBins = [included[0], included.at(-1) + 1];
   const applyDeadline = Date.now() + 10000;
-  while ((await invoke("state")).batch.normalizationRegion.unit !== "q_A^-1") {
+  while (
+    JSON.stringify((await invoke("state")).batch.normalizationRange) !==
+    JSON.stringify(expectedBins)
+  ) {
     assert(
       Date.now() < applyDeadline,
-      "Q normalization settings reach the processor",
+      "Q normalization settings reach the processor as inclusive stored bins",
     );
     await child.waitForTimeout(30);
   }
   await ready();
-  assert.deepEqual((await invoke("state")).batch.normalizationRegion, {
-    minimum: 0.5,
-    maximum: 1.5,
-    unit: "q_A^-1",
-  });
+  assert.deepEqual(
+    (await invoke("state")).batch.normalizationRange,
+    expectedBins,
+  );
   await child.screenshot({
     path: path.join(artifacts, "batch-normalization-q.png"),
   });
@@ -585,8 +625,8 @@ try {
       .getByLabel("Normalization maximum d", { exact: true })
       .inputValue(),
   );
-  assert(Math.abs(minimumD - (2 * Math.PI) / 1.5) < 1e-12);
-  assert(Math.abs(maximumD - (2 * Math.PI) / 0.5) < 1e-12);
+  assert(Math.abs(minimumD - (2 * Math.PI) / qBatch.x[included.at(-1)]) < 1e-9);
+  assert(Math.abs(maximumD - (2 * Math.PI) / qBatch.x[included[0]]) < 1e-9);
   await child.getByRole("tab", { name: "2D", exact: true }).click();
   await click(child, "Batch unit 2θ");
   await child.waitForFunction(
@@ -646,7 +686,9 @@ try {
   await selected(child, 1);
   assert.equal((await invoke("state")).batch.entries.length, 3);
   await click(child, "Save batch data");
-  await child.getByRole("button", { name: "Choose file…", exact: true }).click();
+  await child
+    .getByRole("button", { name: "Choose file…", exact: true })
+    .click();
   await child.waitForTimeout(200);
   await ready();
   // Source contrast and overview zoom survive docking across webviews.
@@ -911,7 +953,9 @@ try {
       "Batch stop frame",
       "Batch frame step",
     ]) {
-      const field = await dock.getByLabel(label, { exact: true }).boundingBox();
+      const input = dock.getByLabel(label, { exact: true });
+      await input.scrollIntoViewIfNeeded();
+      const field = await input.boundingBox();
       assert(
         field.x >= optionBounds.x &&
           field.x + field.width <= optionBounds.x + optionBounds.width,
@@ -950,6 +994,13 @@ try {
     Math.abs(pathBounds.box - pathBounds.text) < 1,
     JSON.stringify(pathBounds),
   );
+  // Compact layouts switch Image/Batch tabs and omit their vertical splitter.
+  // Restore the wide layout before exercising the shared divider and image tools.
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await page
+    .locator(".app")
+    .evaluate((app) => app.setAttribute("data-text-size", "normal"));
+  await ready();
   const grip = (e) => {
     const s = getComputedStyle(e);
     return [s.width, s.height, s.backgroundColor, s.opacity];
@@ -1142,6 +1193,10 @@ try {
     JSON.stringify(
       {
         ok: true,
+        runtime: "rust",
+        browser: engineName,
+        processorPid: native.child.pid,
+        fixtureGenerator: "rust",
         companionWindow: true,
         lowerLeftDock: true,
         linkedCake: true,
@@ -1153,7 +1208,7 @@ try {
       2,
     ),
   );
-  console.log("Batch companion/dock smoke passed");
+  console.log(`${engineName} (rust): Batch companion/dock smoke passed`);
 } catch (e) {
   await page
     .screenshot({ path: path.join(artifacts, "batch-failure-main.png") })
@@ -1165,7 +1220,7 @@ try {
   throw e;
 } finally {
   await browser.close();
-  host.stdin.end();
+  await native.close();
   await writeFile(path.join(artifacts, "batch-smoke.log"), logs.join(""));
   await rm(temporary, { recursive: true, force: true });
 }
