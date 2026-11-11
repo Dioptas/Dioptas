@@ -168,6 +168,29 @@ pub(crate) struct Background {
     pub order: usize,
     pub range: Option<[f64; 2]>,
 }
+impl Background {
+    /// One typed validation boundary for live edits and persisted projects.
+    /// Order zero and the wider smoothing interval retain legacy project support.
+    pub(crate) fn from_value(value: Value) -> Result<Self, String> {
+        let settings: Self = serde_json::from_value(value)
+            .map_err(|e| format!("Invalid pattern background settings: {e}"))?;
+        if !settings.smoothing.is_finite() || !(1e-9..=1e9).contains(&settings.smoothing) {
+            return Err("Background smoothing must be between 1e-9 and 1e9.".into());
+        }
+        if !(1..=99999).contains(&settings.iterations) {
+            return Err("Background iterations must be between 1 and 99999.".into());
+        }
+        if settings.order > 1000 {
+            return Err("Background polynomial order must be between 0 and 1000.".into());
+        }
+        if let Some([low, high]) = settings.range
+            && (!low.is_finite() || !high.is_finite() || low < -1e12 || high > 1e12 || low >= high)
+        {
+            return Err("Background range needs finite, increasing bounds within ±1e12.".into());
+        }
+        Ok(settings)
+    }
+}
 impl Default for Background {
     fn default() -> Self {
         Self {
@@ -398,49 +421,21 @@ impl Patterns {
     }
     pub fn configure_background(&mut self, args: &Value) -> Result<(), String> {
         let enabled = boolean(&args["enabled"])?;
-        let mut b = self.background.clone();
-        b.enabled = enabled;
-        b.smoothing = args
-            .get("smoothing")
-            .map(|v| finite(v, "Smooth width", 1e-6, 1e7))
-            .transpose()?
-            .unwrap_or(if enabled { 0.1 } else { b.smoothing });
-        for (key, slot, max, default) in [
-            ("iterations", &mut b.iterations, 99999, 150),
-            ("order", &mut b.order, 1000, 50),
-        ] {
-            *slot = if let Some(v) = args.get(key) {
-                let v = finite(v, key, 1.0, max as f64)?;
-                if v.fract() != 0.0 {
-                    return Err(format!("{key} must be an integer."));
-                }
-                v as usize
-            } else if enabled {
-                default
-            } else {
-                *slot
-            };
+        // Enabling without explicit fields retains the established reset-to-defaults
+        // behavior; disabling without fields retains the current draft.
+        let defaults = if enabled {
+            Background::default()
+        } else {
+            self.background.clone()
+        };
+        let mut value = serde_json::to_value(defaults).map_err(|e| e.to_string())?;
+        value["enabled"] = json!(enabled);
+        for key in ["smoothing", "iterations", "order", "range"] {
+            if let Some(field) = args.get(key) {
+                value[key] = field.clone();
+            }
         }
-        if let Some(v) = args.get("range") {
-            b.range = if v.is_null() {
-                None
-            } else {
-                let a = v
-                    .as_array()
-                    .filter(|v| v.len() == 2)
-                    .ok_or("Background range needs two values.")?;
-                let r = [
-                    finite(&a[0], "Range minimum", -1e12, 1e12)?,
-                    finite(&a[1], "Range maximum", -1e12, 1e12)?,
-                ];
-                if r[0] >= r[1] {
-                    return Err("Background minimum must be below maximum.".into());
-                }
-                Some(r)
-            };
-        } else if enabled {
-            b.range = None;
-        }
+        let mut b = Background::from_value(value)?;
         if enabled && self.raw.is_none() {
             return Err("Load or integrate a pattern first.".into());
         }

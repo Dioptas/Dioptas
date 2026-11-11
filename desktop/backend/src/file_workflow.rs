@@ -259,6 +259,15 @@ pub(super) fn export_curve(
 ) -> Result<(), String> {
     atomic_write(path, &curve_bytes(path, curve, unit, wavelength)?)
 }
+/// GSAS CONS stores angular coordinates in centidegrees. Keep every exporter
+/// on the same physical unit contract, including Batch and automatic saves.
+pub(super) fn export_unit<'a>(extension: &str, unit: &'a str) -> &'a str {
+    if extension == "fxye" && unit == "d_A" {
+        "2th_deg"
+    } else {
+        unit
+    }
+}
 pub(super) fn curve_bytes(
     path: &Path,
     curve: &Curve,
@@ -276,6 +285,38 @@ pub(super) fn curve_bytes(
     if ["xye", "fxye"].contains(&extension.as_str()) && curve.sigma.is_none() {
         return Err("Enable Calculate Poisson errors and integrate before saving errors.".into());
     }
+    if curve.x.is_empty()
+        || curve.x.len() != curve.y.len()
+        || curve
+            .sigma
+            .as_ref()
+            .is_some_and(|s| s.len() != curve.x.len())
+    {
+        return Err("Pattern export needs matching, non-empty sample arrays.".into());
+    }
+    let requested_unit = unit;
+    let unit = export_unit(&extension, unit);
+    let curve = if unit != requested_unit {
+        if !wavelength.is_finite() || wavelength <= 0.0 {
+            return Err("Angular FXYE export needs a positive, finite wavelength.".into());
+        }
+        let x: Vec<_> = curve
+            .x
+            .iter()
+            .map(|&x| crate::pattern::convert_coordinate(x, requested_unit, unit, wavelength))
+            .collect();
+        if x.iter().any(|x| !x.is_finite()) {
+            return Err(
+                "Pattern coordinates cannot be converted for FXYE at this wavelength.".into(),
+            );
+        }
+        std::borrow::Cow::Owned(Curve {
+            x: Arc::new(x),
+            ..curve.clone()
+        })
+    } else {
+        std::borrow::Cow::Borrowed(curve)
+    };
     let mut text = if extension == "chi" {
         format!("{}\n{unit}\n\n       {}\n", path.display(), curve.x.len())
     } else {
@@ -846,6 +887,43 @@ mod navigation_tests {
         assert_eq!(
             neighbor(&directory.join("alias/a.tif"), "time", 1).unwrap(),
             Some(second)
+        );
+    }
+}
+
+#[cfg(test)]
+mod export_unit_tests {
+    use super::*;
+    #[test]
+    fn angular_fxye_rejects_unphysical_conversion_without_replacing_destination() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("output.fxye");
+        std::fs::write(&path, "keep old export").unwrap();
+        let curve = Curve {
+            x: Arc::new(vec![0.1, 0.2]),
+            y: Arc::new(vec![10., 20.]),
+            sigma: Some(Arc::new(vec![1., 2.])),
+            spread: None,
+        };
+        for wavelength in [0., f64::NAN, 5e-10] {
+            assert!(export_curve(&path, &curve, "d_A", wavelength).is_err());
+            assert_eq!(std::fs::read_to_string(&path).unwrap(), "keep old export");
+        }
+        let q = curve_bytes(&path, &curve, "q_A^-1", 5e-10).unwrap();
+        let q = String::from_utf8(q).unwrap();
+        assert!(q.contains(" CONQ "));
+        assert!(
+            q.lines()
+                .any(|line| line.starts_with("1.00000000000000006e-1\t"))
+        );
+        let xy = String::from_utf8(
+            curve_bytes(&dir.path().join("data.xy"), &curve, "d_A", 5e-10).unwrap(),
+        )
+        .unwrap();
+        assert!(xy.contains("# d_A\tI"));
+        assert!(
+            xy.lines()
+                .any(|line| line.starts_with("1.00000000000000006e-1\t"))
         );
     }
 }

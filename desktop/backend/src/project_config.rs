@@ -642,24 +642,13 @@ pub(super) fn load(
             .to_string_lossy()
             .into_owned();
     }
-    s.patterns.background = Background {
-        enabled: boolean(&pat["auto_bkg_enabled"], "Pattern background")?,
-        smoothing: finite(&pat["auto_bkg_smoothing"], "Smoothing", 1e-9, 1e9)?,
-        iterations: integer(&pat["auto_bkg_iterations"], "Iterations", 1, 10000)?,
-        order: integer(&pat["auto_bkg_poly_order"], "Polynomial order", 0, 100)?,
-        range: pat["auto_bkg_roi"]
-            .as_array()
-            .map(|v| {
-                if v.len() != 2 {
-                    return Err::<[f64; 2], String>("Invalid pattern background ROI.".into());
-                }
-                Ok([
-                    finite(&v[0], "Background minimum", -1e12, 1e12)?,
-                    finite(&v[1], "Background maximum", -1e12, 1e12)?,
-                ])
-            })
-            .transpose()?,
-    };
+    s.patterns.background = Background::from_value(json!({
+        "enabled":pat["auto_bkg_enabled"],
+        "smoothing":pat["auto_bkg_smoothing"],
+        "iterations":pat["auto_bkg_iterations"],
+        "order":pat["auto_bkg_poly_order"],
+        "range":pat["auto_bkg_roi"],
+    }))?;
     s.patterns.background_uid = optional_string(&pat["background_overlay_uid"]);
     if let Some(uid) = &s.patterns.background_uid
         && !s.patterns.overlays.iter().any(|o| o.uid == *uid)
@@ -973,6 +962,12 @@ pub(super) fn save(
         if enabled {
             corrections["flat_field"] = json!({"filename":path});
         }
+    } else {
+        // The source document belongs to the last project load. Absence is an
+        // authored edit too: never resurrect an old reference on the next load.
+        doc["native_desktop"]["flat_response"] = Value::Null;
+        doc["native_desktop"]["flat_filename"] = Value::Null;
+        doc["native_desktop"]["flat_enabled"] = json!(false);
     }
     doc["native_desktop"]["source_variance"] = if let Some(image) = image {
         if let Some(v) = &image.source_variance {

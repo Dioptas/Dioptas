@@ -95,11 +95,7 @@ fn export_patterns(
     let requested_unit = unit;
     // GSAS CONS encodes 2theta in centidegrees. Qt's legacy d/CONS path
     // labels d spacings as angles; do not produce that ambiguous file here.
-    let unit = if ext == "fxye" && unit == "d_A" {
-        "2th_deg"
-    } else {
-        unit
-    };
+    let unit = file_workflow::export_unit(&ext, unit);
     let size = series.data.len();
     for (label, array) in [
         ("counting errors", &series.sigma),

@@ -2,11 +2,40 @@
 use crate::{display::Raster, pattern::Curve};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use std::{path::Path, str::FromStr, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    path::Path,
+    str::FromStr,
+    sync::Arc,
+};
 #[derive(Clone, Serialize, Deserialize)]
 pub(crate) struct Entry {
     pub path: String,
     pub frame: usize,
+}
+#[derive(Default)]
+struct FileSummary {
+    first: usize,
+    entries: usize,
+    frame_count: usize,
+}
+/// Immutable acquisition lookup, shared by cloned series. Build once per
+/// source list instead of scanning every frame for each file in each reply.
+fn index_files<'a>(
+    entries: impl Iterator<Item = (usize, &'a Entry)>,
+) -> HashMap<String, FileSummary> {
+    let mut files = HashMap::<String, FileSummary>::new();
+    for (row, entry) in entries {
+        let summary = files
+            .entry(entry.path.clone())
+            .or_insert_with(|| FileSummary {
+                first: row,
+                ..Default::default()
+            });
+        summary.entries += 1;
+        summary.frame_count = summary.frame_count.max(entry.frame.saturating_add(1));
+    }
+    files
 }
 #[derive(Clone)]
 pub(crate) struct Series {
@@ -23,6 +52,7 @@ pub(crate) struct Series {
     pub unit: String,
     pub wavelength: Option<f64>,
     pub entries: Arc<Vec<Entry>>,
+    file_index: Arc<HashMap<String, FileSummary>>,
     pub paths: Vec<String>,
     pub file_counts: Vec<usize>,
     pub reader_options: std::collections::BTreeMap<String, Value>,
@@ -60,8 +90,9 @@ impl Series {
         let mut entries = self.entries.as_ref().clone();
         entries.extend(other.entries.iter().cloned());
         let mut paths = self.paths.clone();
+        let mut known: HashSet<_> = paths.iter().cloned().collect();
         for p in &other.paths {
-            if !paths.contains(p) {
+            if known.insert(p.clone()) {
                 paths.push(p.clone());
             }
         }
@@ -77,24 +108,17 @@ impl Series {
         if self.background.is_some() || other.background.is_some() {
             return Err("Reintegrate series backgrounds before appending frames.".into());
         }
+        let mut counts = HashMap::<&str, usize>::new();
+        for series in [self, other] {
+            for (path, &count) in series.paths.iter().zip(&series.file_counts) {
+                let entry = counts.entry(path.as_str()).or_default();
+                *entry = (*entry).max(count);
+            }
+        }
         s.file_counts = s
             .paths
             .iter()
-            .map(|p| {
-                self.paths
-                    .iter()
-                    .position(|a| a == p)
-                    .map(|i| self.file_counts[i])
-                    .unwrap_or(0)
-                    .max(
-                        other
-                            .paths
-                            .iter()
-                            .position(|a| a == p)
-                            .map(|i| other.file_counts[i])
-                            .unwrap_or(0),
-                    )
-            })
+            .map(|p| counts.get(p.as_str()).copied().unwrap_or(0))
             .collect();
         match (&self.spread, &other.spread) {
             (Some(a), Some(b)) => {
@@ -168,16 +192,10 @@ impl Series {
         {
             return Err("A series needs a bounded non-empty intensity matrix, finite radial axis and supported unit.".into());
         }
+        let file_index = Arc::new(index_files(entries.iter().enumerate()));
         let file_counts = paths
             .iter()
-            .map(|p| {
-                entries
-                    .iter()
-                    .filter(|e| e.path == *p)
-                    .map(|e| e.frame + 1)
-                    .max()
-                    .unwrap_or(0)
-            })
+            .map(|p| file_index.get(p).map_or(0, |file| file.frame_count))
             .collect();
         let raster = Raster::image(&data, [entries.len(), x.len()]);
         let n = x.len();
@@ -189,6 +207,7 @@ impl Series {
             unit,
             wavelength,
             entries: Arc::new(entries),
+            file_index,
             paths,
             file_counts,
             reader_options: Default::default(),
@@ -346,7 +365,12 @@ impl Series {
             .profile(self.selected, unit)
             .or_else(|_| self.profile(self.selected, &self.unit))
             .unwrap();
-        let files:Vec<_>=self.paths.iter().enumerate().filter(|(_,p)|!p.is_empty()).map(|(i,p)|json!({"path":p,"name":Path::new(p).file_name().unwrap_or_default().to_string_lossy(),"frames":self.file_counts.get(i).copied().unwrap_or_else(||self.entries.iter().filter(|e|e.path==*p).count()),"first":self.entries.iter().position(|e|e.path==*p)})).collect();
+        let files: Vec<_> = self.paths.iter().enumerate().filter(|(_, p)| !p.is_empty()).map(|(i,p)| {
+            let summary = self.file_index.get(p);
+            json!({"path":p,"name":Path::new(p).file_name().unwrap_or_default().to_string_lossy(),
+                "frames":self.file_counts.get(i).copied().unwrap_or_else(||summary.map_or(0, |f| f.entries)),
+                "first":summary.map(|f| f.first)})
+        }).collect();
         json!({"id":self.background_raster().buffer.id,"exportBaseName":self.export_name,"waterfallKey":crate::batch_waterfall::identity(self),"raster":self.background_raster().metadata,"backgroundState":self.background_metadata(),"sourceBins":self.background_bins(),"x":&curve.x[self.background_bins()[0]..self.background_bins()[1]],"wavelength":self.wavelength,"unit":unit,"sourceUnit":self.unit,"entries":self.entries.iter().map(|e|json!({"path":e.path,"name":if e.path.is_empty(){"Stored pattern".into()}else{Path::new(&e.path).file_name().unwrap_or_default().to_string_lossy()},"frame":e.frame+1})).collect::<Vec<_>>(),"files":files,"pattern":{"x":curve.x,"y":curve.y,"sigma":curve.sigma,"unit":unit},"selected":self.selected,"total":self.total,"canReintegrate":self.paths.iter().any(|p|!p.is_empty()&&Path::new(p).is_file()),"normalized":self.normalized,"normalizationRange":self.normalization,"normalizationReference":self.reference,"normalizationReferenceName":self.entries.get(self.reference).map(|e|if e.path.is_empty(){format!("Stored pattern · frame {}", self.reference+1)}else{Path::new(&e.path).file_name().unwrap_or_default().to_string_lossy().into_owned()}),"normalizationRegion":{"minimum":self.x[self.normalization[0]].min(self.x[self.normalization[1]-1]),"maximum":self.x[self.normalization[0]].max(self.x[self.normalization[1]-1]),"unit":self.unit},"calibration":self.calibration,"mask":self.mask,"phaseLines":phases,"position":null})
     }
     pub fn save(&self, path: &Path) -> Result<(), String> {
@@ -416,8 +440,17 @@ impl Series {
                     .map_err(|e| e.to_string())?;
             }
             let mut paths = self.paths.clone();
+            let mut path_indices = HashMap::new();
+            for (i, path) in paths.iter().enumerate() {
+                // Preserve the first occurrence if an imported source list
+                // contains duplicate paths, matching the original position map.
+                path_indices.entry(path.clone()).or_insert(i);
+            }
             for e in self.entries.iter() {
-                if !paths.contains(&e.path) {
+                if let std::collections::hash_map::Entry::Vacant(entry) =
+                    path_indices.entry(e.path.clone())
+                {
+                    entry.insert(paths.len());
                     paths.push(e.path.clone());
                 }
             }
@@ -436,12 +469,7 @@ impl Series {
             let positions: Vec<i64> = self
                 .entries
                 .iter()
-                .flat_map(|e| {
-                    [
-                        paths.iter().position(|p| *p == e.path).unwrap() as i64,
-                        e.frame as i64,
-                    ]
-                })
+                .flat_map(|e| [path_indices[&e.path] as i64, e.frame as i64])
                 .collect();
             process
                 .new_dataset::<i64>()
@@ -465,7 +493,7 @@ impl Series {
                             .file_counts
                             .get(i)
                             .copied()
-                            .unwrap_or_else(|| self.entries.iter().filter(|e| e.path == *p).count())
+                            .unwrap_or_else(|| self.file_index.get(p).map_or(0, |f| f.entries))
                             as u64,
                 );
             }
@@ -474,16 +502,17 @@ impl Series {
                 .with_data(&filemap)
                 .create("file_map")
                 .map_err(|e| e.to_string())?;
-            let all_positions: Vec<i64> = paths
-                .iter()
-                .enumerate()
-                .flat_map(|(i, _)| {
-                    (0..self.file_counts.get(i).copied().unwrap_or_else(|| {
-                        self.entries.iter().filter(|e| e.path == paths[i]).count()
-                    }))
-                        .flat_map(move |frame| [i as i64, frame as i64])
-                })
-                .collect();
+            let all_positions: Vec<i64> =
+                paths
+                    .iter()
+                    .enumerate()
+                    .flat_map(|(i, _)| {
+                        (0..self.file_counts.get(i).copied().unwrap_or_else(|| {
+                            self.file_index.get(&paths[i]).map_or(0, |f| f.entries)
+                        }))
+                            .flat_map(move |frame| [i as i64, frame as i64])
+                    })
+                    .collect();
             process
                 .new_dataset::<i64>()
                 .shape([all_positions.len() / 2, 2])
@@ -844,4 +873,88 @@ pub(crate) fn read_std(dataset: &hdf5::Dataset, shape: &[usize]) -> Result<Vec<f
         return Err("Counting std must be finite and nonnegative.".into());
     }
     Ok(values)
+}
+
+#[cfg(test)]
+mod file_index_tests {
+    use super::*;
+    #[test]
+    fn source_index_consumes_each_frame_once_and_preserves_first_and_sparse_frame_counts() {
+        let entries: Vec<_> = (0..100_000)
+            .map(|i| Entry {
+                path: format!("source_{}.h5", i % 10_000),
+                frame: i / 10_000 * 3,
+            })
+            .collect();
+        let mut visits = 0;
+        let index = index_files(entries.iter().enumerate().inspect(|_| visits += 1));
+        assert_eq!(visits, entries.len());
+        assert_eq!(index.len(), 10_000);
+        for i in 0..10_000 {
+            let file = &index[&format!("source_{i}.h5")];
+            assert_eq!(file.first, i);
+            assert_eq!(file.entries, 10);
+            assert_eq!(file.frame_count, 28);
+        }
+    }
+    fn fixture(entries: &[(&str, usize)], paths: &[&str]) -> Series {
+        Series::new(
+            vec![1., 2.],
+            vec![100.; entries.len() * 2],
+            "q_A^-1".into(),
+            None,
+            entries
+                .iter()
+                .map(|(p, f)| Entry {
+                    path: (*p).into(),
+                    frame: *f,
+                })
+                .collect(),
+            paths.iter().map(|p| (*p).into()).collect(),
+            20,
+        )
+        .unwrap()
+    }
+    #[test]
+    fn append_metadata_and_processed_round_trip_share_correct_source_lookup() {
+        let mut a = fixture(
+            &[("missing/a", 2), ("missing/b", 0), ("missing/a", 5)],
+            &["missing/b", "missing/a"],
+        );
+        a.file_counts = vec![7, 20];
+        let mut b = fixture(
+            &[("missing/c", 3), ("missing/a", 8)],
+            &["missing/a", "missing/c"],
+        );
+        b.file_counts = vec![40, 10];
+        let s = a.append(&b).unwrap();
+        assert_eq!(s.paths, vec!["missing/b", "missing/a", "missing/c"]);
+        assert_eq!(s.file_counts, vec![7, 40, 10]);
+        let metadata = s.metadata("q_A^-1", Value::Null);
+        assert_eq!(metadata["files"][0]["first"], 1);
+        assert_eq!(metadata["files"][1]["first"], 0);
+        assert_eq!(metadata["files"][2]["first"], 3);
+        assert_eq!(metadata["files"][1]["frames"], 40);
+        let cloned = s.clone();
+        assert!(Arc::ptr_eq(&s.file_index, &cloned.file_index));
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("stored.h5");
+        s.save(&p).unwrap();
+        let restored = Series::load(&p).unwrap();
+        assert_eq!(
+            restored.metadata("q_A^-1", Value::Null)["files"],
+            metadata["files"]
+        );
+        assert_eq!(
+            restored
+                .entries
+                .iter()
+                .map(|e| (&e.path, e.frame))
+                .collect::<Vec<_>>(),
+            s.entries
+                .iter()
+                .map(|e| (&e.path, e.frame))
+                .collect::<Vec<_>>()
+        );
+    }
 }
