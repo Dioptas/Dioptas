@@ -1,4 +1,4 @@
-//! Qt's fractional radial-window extraction on the owned, corrected f64 cake.
+//! Fractional radial-window extraction on the owned, corrected f64 cake.
 //! This is a projection of an existing cake, never a second integrator.
 use super::*;
 
@@ -42,9 +42,20 @@ fn extract(
     let Some(position) = position else {
         return Ok((vec![], vec![], 0, false));
     };
-    // Qt: tth_center = partial_index + .5; left/right = center +/- bins/2.
-    // Integrating the overlap reproduces its y1 + y2 + y3, but clips at
-    // detector edges instead of negative-index wrapping or IndexError.
+    // One bin means the source column under the click, without blending a
+    // neighboring column across a zero-valued stripe. Wider windows retain
+    // their subpixel center and fractional endpoint overlap.
+    let overlap_epsilon = 64. * f64::EPSILON * (columns.max(bins) as f64).max(1.);
+    let position = if bins == 1 {
+        (position + 0.5 + overlap_epsilon)
+            .floor()
+            .min((columns - 1) as f64)
+    } else {
+        position
+    };
+    // Keep fractional overlap, but omit zero-valued empty bins before averaging.
+    // Averaging first would turn a valid/empty pair into a spurious intermediate
+    // intensity that the plot's zero-value gap filter cannot recognize.
     let left = position + 0.5 - bins as f64 / 2.;
     let right = position + 0.5 + bins as f64 / 2.;
     let start = left.floor().max(0.) as usize;
@@ -55,12 +66,19 @@ fn extract(
     let mut y = Vec::with_capacity(rows);
     for row in 0..rows {
         let mut total = 0.;
+        let mut valid_weight = 0.;
         for (offset, weight) in weights.iter().enumerate() {
-            if *weight > 0. {
-                total += weight * data[row * columns + start + offset];
+            let value = data[row * columns + start + offset];
+            if *weight > overlap_epsilon && value != 0. {
+                total += weight * value;
+                valid_weight += weight;
             }
         }
-        y.push(total / bins as f64);
+        y.push(if valid_weight > 0. {
+            total / valid_weight
+        } else {
+            0.
+        });
     }
     let step = if rows > 1 {
         (azimuth[1] - azimuth[0]) / (rows - 1) as f64
@@ -171,7 +189,7 @@ impl Session {
                 .is_some_and(|e| e.eq_ignore_ascii_case("csv"));
             let separator = if csv { "," } else { " " };
             let mut text = format!(
-                "# Dioptas azimuthal profile\n# radial = {:.17e} {}; 2theta = {:.17e} deg; width = {} bins; shift = {} azimuth bins; clipped = {}\n# azimuth_deg{}intensity_au\n",
+                "# Dioptas azimuthal profile\n# radial = {:.17e} {}; 2theta = {:.17e} deg; width = {} bins; shift = {} azimuth bins; clipped = {}\n# sampling = source column for width 1; fractional radial overlap for wider windows\n# average = nonzero cake bins normalized by their overlap; empty rows = 0\n# azimuth_deg{}intensity_au\n",
                 profile.radial, profile.radial_unit, tth, bins, shift_bins, clipped, separator
             );
             for (&x, &y) in profile.x.iter().zip(&profile.y) {
@@ -210,22 +228,66 @@ mod tests {
         .unwrap()
     }
     #[test]
-    fn qt_fractional_window_and_width_divisor() {
+    fn fractional_window_omits_empty_bins() {
         assert_eq!(profile(2., 1, 0.).1, [30., 300., -3., 0.]);
-        assert_eq!(profile(2.5, 1, 0.).1, [35., 350., -3.5, 0.5]);
-        assert_eq!(profile(2.7, 1, 0.).1[0], 37.);
-        assert_eq!(profile(2.5, 2, 0.).1, profile(2.5, 1, 0.).1);
-        assert_eq!(profile(2., 2, 0.).1, [30., 300., -3., 0.5]);
-        assert_eq!(profile(2., 3, 0.).1, [30., 300., -3., 2. / 3.]);
+        assert_eq!(profile(2.5, 1, 0.).1, [40., 400., -4., 1.]);
+        assert_eq!(profile(2.7, 1, 0.).1[0], 40.);
+        assert_eq!(profile(2.49, 1, 0.).1, [30., 300., -3., 0.]);
+        assert_eq!(profile(2.5, 2, 0.).1, [35., 350., -3.5, 1.]);
+        assert_eq!(profile(2., 2, 0.).1, [30., 300., -3., 1.]);
+        assert_eq!(profile(2., 3, 0.).1, [30., 300., -3., 1.]);
     }
     #[test]
-    fn edges_clip_without_wrapping_or_renormalizing_and_outside_is_empty() {
+    fn empty_step_never_dilutes_adjacent_intensity_at_fractional_positions_or_wide_windows() {
+        // A slanted zero-valued stripe intersects neighboring radial bins at
+        // different azimuths. Off-center clicks must not interpolate into a gap.
+        let values = [
+            100., 100., 100., 100., 100., 100., 100., 0., 100., 100., 100., 0., 0., 100., 100., 0.,
+            0., 0., 0., 0., -100., -100., 0., -100., -100.,
+        ];
+        for position in [0., 1., 1.25, 1.5, 1.9, 2., 2.5, 4.] {
+            for bins in [1, 2, 3, 5, 20, 1_000_000] {
+                let (_, y, _, _) =
+                    extract(&values, [5, 5], [0., 4.], [-144., 144.], position, bins, 0.).unwrap();
+                assert!((y[0] - 100.).abs() < 1e-10);
+                for v in &y[1..3] {
+                    assert!(
+                        *v == 0. || (*v - 100.).abs() < 1e-10,
+                        "{position}/{bins}: {y:?}"
+                    );
+                }
+                assert_eq!(y[3], 0.);
+                assert!(y[4] == 0. || (y[4] + 100.).abs() < 1e-10);
+            }
+        }
+        let p = extract(&[20., 0., 40., 80.], [1, 4], [0., 3.], [0., 0.], 1.5, 4, 0.).unwrap();
+        assert_eq!(p.1, [140. / 3.]);
+        let p = extract(&[1e-14, 0.], [1, 2], [0., 1.], [0., 0.], 0.25, 1, 0.).unwrap();
+        assert_eq!(p.1, [1e-14]);
+        // Conversion roundoff must not amplify an almost-zero overlap with a
+        // neighboring populated column into a complete spurious sample.
+        for bins in [1, 3] {
+            let p = extract(
+                &[100., 0., 0., 0., 100.],
+                [1, 5],
+                [0., 4.],
+                [0., 0.],
+                2. + 1e-14,
+                bins,
+                0.,
+            )
+            .unwrap();
+            assert_eq!(p.1, [0.]);
+        }
+    }
+    #[test]
+    fn edges_clip_without_wrapping_and_average_available_bins_and_outside_is_empty() {
         assert_eq!(profile(0., 1, 0.).1[0], 10.);
         assert_eq!(profile(4., 1, 0.).1[0], 50.);
-        assert_eq!(profile(0., 2, 0.).1[0], 10.);
-        assert_eq!(profile(4., 2, 0.).1[0], 35.);
+        assert_eq!(profile(0., 2, 0.).1[0], 20. / 1.5);
+        assert_eq!(profile(4., 2, 0.).1[0], 70. / 1.5);
         assert!(profile(0., 2, 0.).3);
-        assert_eq!(profile(2., 1_000_000, 0.).1[0], 150. / 1_000_000.);
+        assert_eq!(profile(2., 1_000_000, 0.).1[0], 30.);
         assert!(profile(-0.1, 1, 0.).0.is_empty());
         assert!(profile(4.1, 1, 0.).0.is_empty());
     }
@@ -294,7 +356,7 @@ mod tests {
             .collect()
     }
     #[cfg(feature = "dioptrin")]
-    fn verify_qt(s: &mut Session) -> Value {
+    fn verify_projection(s: &mut Session) -> Value {
         // Only this explicitly requested product may build a missing cake.
         call(
             s,
@@ -328,9 +390,15 @@ mod tests {
                     .clone();
                 let y = numbers(&p["y"]);
                 assert_eq!(y.len(), rows);
-                let left = index + 0.5 - bins as f64 / 2.;
-                let right = index + 0.5 + bins as f64 / 2.;
-                // Literal Qt y1/slice/y3, clipping missing radial columns.
+                let center = if bins == 1 {
+                    (index + 0.5).floor()
+                } else {
+                    index
+                };
+                let left = center + 0.5 - bins as f64 / 2.;
+                let right = center + 0.5 + bins as f64 / 2.;
+                // Independent endpoint/interior sum, with the same overlap
+                // integral applied to nonzero-bin occupancy for normalization.
                 let sample = |row: usize, col: isize| -> f64 {
                     if col < 0 || col >= n as isize {
                         0.
@@ -347,7 +415,19 @@ mod tests {
                         .map(|col| data[row * n + col])
                         .sum();
                     let y3 = (right - right.floor()) * sample(row, right.floor() as isize);
-                    let expected = (y1 + y2 + y3) / bins as f64;
+                    let present = |col: isize| if sample(row, col) != 0. { 1. } else { 0. };
+                    let w1 = (left.ceil() - left).abs() * present(left.floor() as isize);
+                    let w2: f64 = (left.ceil().max(0.) as usize
+                        ..(right.floor().max(0.) as usize).min(n))
+                        .map(|col| present(col as isize))
+                        .sum();
+                    let w3 = (right - right.floor()) * present(right.floor() as isize);
+                    let weight = w1 + w2 + w3;
+                    let expected = if weight > 0. {
+                        (y1 + y2 + y3) / weight
+                    } else {
+                        0.
+                    };
                     let conversion_roundoff = 1e-12
                         * data[row * n..(row + 1) * n]
                             .iter()
@@ -377,11 +457,12 @@ mod tests {
     }
     #[test]
     #[cfg(feature = "dioptrin")]
-    fn native_owned_cakes_masks_corrections_units_and_combination_follow_qt_projection() {
+    fn native_owned_cakes_masks_corrections_units_and_combination_use_nonzero_weighted_projection()
+    {
         let temp = tempfile::tempdir().unwrap();
         let mut s = setup(temp.path());
         assert!(s.cake.is_none());
-        verify_qt(&mut s);
+        verify_projection(&mut s);
         let uncorrected = s.cake_values.as_ref().unwrap().clone();
         let mask = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/asymmetric.mask");
         call(&mut s, "mask_file", json!({"path":mask}));
@@ -397,7 +478,7 @@ mod tests {
             "integration_correction",
             json!({"kind":"cbn","enabled":true,"parameters":{"tilt":7,"tilt_rotation":31,"diamond_thickness":1.9}}),
         );
-        verify_qt(&mut s);
+        verify_projection(&mut s);
         assert_ne!(*uncorrected, **s.cake_values.as_ref().unwrap());
         for wavelength in [0.4, 0.8] {
             let g = s.settings.geometry.clone();
@@ -411,7 +492,7 @@ mod tests {
             );
             for unit in ["2th_deg", "q_A^-1", "d_A"] {
                 call(&mut s, "integration_settings", json!({"unit":unit}));
-                verify_qt(&mut s);
+                verify_projection(&mut s);
             }
         }
         call(&mut s, "configuration", json!({"operation":"duplicate"}));
@@ -423,11 +504,11 @@ mod tests {
                 "combination_settings",
                 json!({"patterns":true,"cakes":true}),
             );
-            verify_qt(&mut s);
+            verify_projection(&mut s);
             assert_eq!(s.project.selected, selected);
             // Source grid ownership belongs to combination, not this extractor.
             // Axis relabeling may retain an earlier declared scientific unit;
-            // verify_qt always derives its reference from that actual unit.
+            // verify_projection always derives its reference from that actual unit.
         }
         let before = call(
             &mut s,

@@ -23,10 +23,17 @@ The port references `CalibrationModel.cake_integral`,
 `ImageController.plot_cake_integral/_update_cake_integral/save_cake_integral`,
 `CakeImgWidget` and the Qt cake controls. Convert the selected physical 2θ to
 the cake's declared scientific radial unit using the session wavelength. The
-metadata endpoints are bin centers. For fractional index p and width w, average
-the overlaps of columns with `[p + 0.5 - w/2, p + 0.5 + w/2]`, dividing by w.
-This reproduces Qt's fractional y1/slice/y3 expression for valid interior
-windows. A width of one linearly interpolates neighboring columns.
+metadata endpoints are bin centers. Width 1 selects the source column containing
+the click, matching the cake pixel readout, without interpolation into a neighboring
+masked/empty column. For width w > 1 and fractional index p, use overlaps with
+`[p + 0.5 - w/2, p + 0.5 + w/2]`. Zero-valued source bins do not contribute to
+the numerator or denominator: each azimuth row is the overlap-weighted mean of
+its available nonzero bins. Fully empty rows remain zero and plot as gaps.
+This deliberately extends the initial Qt fractional-window projection, whose
+fixed-width divisor diluted valid intensity with empty bins. Very small overlap
+weights within floating-point coordinate roundoff are ignored, avoiding false
+populated samples at exact bin boundaries. No intensity threshold is used;
+small nonzero and signed intensities remain intact.
 
 The azimuth roll uses the same integer row shift as `useShiftedCake` and shifts
 the degree coordinates by that many bin steps. The existing desktop slider is
@@ -48,8 +55,8 @@ relabeling is separate from these source coordinates.
 
 - Qt's helper excludes its first bin center and can wrap negative radial
   indices or raise IndexError when a wide window extends beyond an edge. The
-  native path accepts both endpoint centers, clips missing columns to zero,
-  keeps the requested-width divisor and explains clipping in the toolbar/Save
+  native path accepts both endpoint centers, averages available nonzero columns,
+  and explains clipping in the toolbar/Save
   tooltip. Positions outside
   the center range return an empty profile and cannot be saved.
 - The layout follows Qt: intensity is horizontal to the left of the cake and
@@ -65,8 +72,9 @@ relabeling is separate from these source coordinates.
 - Qt's plot changes nonpositive intensities to NaN and its save action uses the
   plotted intensity/pixel arrays. The desktop profile draws zero-valued samples
   as gaps and excludes them from automatic intensity limits; signed nonzero
-  intensities remain visible. Native extraction and saves retain all numerical
-  values, including zeros. Files contain actual azimuth bin centers in degrees,
+  intensities remain visible. Native extraction and saves use the same nonzero-bin
+  mean, retaining fully empty rows as zero. Export comments identify the sampling
+  and averaging rules. Files contain actual azimuth bin centers in degrees,
   followed by native intensity in a.u., with metadata comments and no invented
   error column. Nonfinite data fail export before replacing an existing file.
 - Width, visibility and zoom are session view state; no new project fields or
@@ -89,10 +97,11 @@ npm test
 npm run test:cake-profile
 ```
 
-- Native library: 68 passed, 2 existing external-image checks ignored; includes
-  five profile tests. Requested-products regression: 5 passed. Native Clippy
+- Native library: 72 passed, 2 existing external-image checks ignored; includes
+  six profile tests. Requested-products regression: 5 passed. Native Clippy
   passes with warnings denied. Tauri host: 27 passed, including chooser filters.
-- Numerical tests use a literal independent Qt y1/slice/y3 reference expression
+- Numerical tests use an independent endpoint/interior overlap reference with
+  nonzero-bin normalization and direct source-column selection for width 1
   on actual native float64 cakes, plus fixed synthetic expectations. They cover
   center/fractional/first/last/outside selections; widths 1/2/3/9/1,000,000;
   positive/negative shifts and half ties; a one-column cake and narrow sectors;
@@ -185,7 +194,7 @@ browser regressions, the frontend build and 113 frontend tests also pass.
 The bin-width input has a fixed 48 × 24 px box with 1 px vertical and 2 px
 horizontal padding. Its field and Save button do not flex in response to
 selection status. The inline three-dot edge-clipping marker has been removed;
-the existing toolbar/Save tooltip explains the missing-bin contribution when
+the existing toolbar/Save tooltip explains averaging available nonzero bins when
 applicable. Numerical extraction and export metadata still report clipping.
 The headless profile check selects center and both radial-edge positions with
 a narrow profile panel and asserts identical control positions and dimensions.
@@ -197,3 +206,11 @@ The headless profile regression also checks positive/negative slider movements,
 rounding ties, zero and both endpoints against independent native shifted
 extractions. It asserts unchanged native request counts, a continuously present
 profile, shared cake/profile axes and the native save path.
+
+The empty-stripe regression checks constant positive/negative plateaus, slanted
+zero bands, fractional click positions, edge clipping and widths 1, 2, 3, 5, 20
+and 1,000,000. True low intensities are retained; coordinate-roundoff overlaps
+cannot populate an empty row. Native owned-cake checks independently verify
+masked/corrected, combined and converted-unit projections. Chromium/WebKit
+check actual curve gaps, automatic intensity limits and matching exports for
+widths 1, 3 and 9; screenshots are saved as `*-gaps-width-*.png`.
