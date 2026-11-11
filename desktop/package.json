@@ -89,6 +89,7 @@
     "test:dac-project-reference": "node scripts/dac_thermal_pressure_project_parity.mjs",
     "test:companion-windows": "node scripts/companion_windows_smoke.mjs",
     "test:phase-metadata": "node scripts/phase_metadata_smoke.mjs",
+    "test:phase-editor-workflows": "npm run backend:prepare -- --debug && npm run build && node scripts/phase_editor_workflow_smoke.mjs",
     "test:phase-model-help": "node scripts/phase_model_help_smoke.mjs",
     "generate:phase-equations": "node scripts/generate_phase_equations.mjs"
   },

@@ -81,6 +81,7 @@ if (selected.has("--ui")) {
     "native_calibration_smoke",
     "native_mask_smoke",
     "native_integration_workflow_smoke",
+    "phase_editor_workflow_smoke",
     "pattern_figure_export_smoke",
     "pattern_figure_save_smoke",
     "pattern_figure_editor_smoke",

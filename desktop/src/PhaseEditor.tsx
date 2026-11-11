@@ -269,6 +269,11 @@ export function PhaseEditor({
             max={f.max}
             integer={f.integer}
             optional={thermal && !f.required}
+            blankDefault={
+              thermal && !f.required && typeof f.default === "number"
+                ? f.default
+                : undefined
+            }
             title={
               thermal
                 ? `${f.description ? `${f.description} · ` : ""}${f.key}${f.isDefault ? " · constructor default" : ""}${!f.required ? `; blank uses default ${f.key === "Cvmax" ? "3nR" : (f.default ?? "unset")}` : "; required"}`

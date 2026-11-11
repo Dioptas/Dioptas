@@ -13,6 +13,7 @@ export function EditorNumber({
   max,
   step = "any",
   optional = false,
+  blankDefault,
   integer = false,
   title,
   descriptionId,
@@ -27,6 +28,7 @@ export function EditorNumber({
   max?: number;
   step?: number | "any";
   optional?: boolean;
+  blankDefault?: number;
   integer?: boolean;
   title?: string;
   descriptionId?: string;
@@ -75,7 +77,7 @@ export function EditorNumber({
     if (pendingAction.current || disabled) return false;
     if (!dirty.current) return true;
     const empty = !draft.trim();
-    const n = empty ? null : Number(draft);
+    const n = empty ? (blankDefault ?? null) : Number(draft);
     if (
       (empty && !optional) ||
       (n != null &&
@@ -92,6 +94,9 @@ export function EditorNumber({
       return false;
     }
     setError("");
+    // A cleared optional coefficient may resolve to a concrete constructor
+    // default even when the model value itself has not changed.
+    if (empty && blankDefault != null) setText(display(blankDefault));
     if (n === last.current) {
       dirty.current = false;
       return true;
@@ -214,7 +219,10 @@ export function EditorNumber({
           focused.current = false;
           const draft = text;
           void commit().then((ok) => {
-            if (ok) setText(display(draft.trim() ? Number(draft) : null));
+            if (ok)
+              setText(
+                display(draft.trim() ? Number(draft) : (blankDefault ?? null)),
+              );
           });
         }}
         onKeyDown={(e) => {
