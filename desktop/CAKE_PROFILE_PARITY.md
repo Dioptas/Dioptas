@@ -34,6 +34,11 @@ in degrees and rounds to cake rows (JavaScript ties toward positive infinity);
 Qt's slider is directly in rows. Narrow sectors are not rolled, matching the
 existing desktop cake control. No source cake, image, scientific settings,
 configuration identity/selection or integration history is changed by extraction.
+The UI requests unshifted native samples and wraps those existing rows locally
+when the slider moves; slider movement performs no profile request and never
+clears the curve. Saving still asks Rust for the selected shift and writes its
+native float64 samples. Initial loading/empty messages are drawn inside the
+clipped plot area, leaving the shared azimuth axis unobscured.
 A missing cake is produced through `ensure_cake`, with per-command display demand
 restored afterward. Closing Profile with Image displayed restores ordinary lazy
 cake demand. Combined cakes' explicit units are respected; displayed axis
@@ -185,3 +190,8 @@ a narrow profile panel and asserts identical control positions and dimensions.
 The input overrides the general form field's top margin so it shares a vertical
 center with the Bins label and Save icon. Chromium and WebKit check this alignment
 at both viewport sizes and with larger text enabled.
+
+The headless profile regression also checks positive/negative slider movements,
+rounding ties, zero and both endpoints against independent native shifted
+extractions. It asserts unchanged native request counts, a continuously present
+profile, shared cake/profile axes and the native save path.

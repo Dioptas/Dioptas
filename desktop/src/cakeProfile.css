@@ -75,15 +75,6 @@
 .cake-profile-tools button {
   flex: 0 0 auto;
 }
-.cake-profile-empty {
-  position: absolute;
-  top: 40%;
-  left: 5px;
-  right: 5px;
-  pointer-events: none;
-  text-align: center;
-  color: var(--muted);
-}
 .cake-profile-view {
   flex: 1;
   min-height: 0;

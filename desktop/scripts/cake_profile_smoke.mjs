@@ -1,4 +1,5 @@
 import { checkCakeProfileInteraction } from "./cake_profile_interaction.mjs";
+import { shiftCakeProfile } from "../src/shiftCakeProfile.ts";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -95,7 +96,10 @@ try {
         exact: true,
       });
       assert.ok(await panel.isVisible());
-      assert.ok(await panel.getByText("Click a ring.").isVisible());
+      assert.equal(
+        await panel.locator("canvas").getAttribute("aria-description"),
+        "Click a ring.",
+      );
       const radialPlot = page
         .locator(".pattern-panel")
         .getByTestId("pattern-canvas");
@@ -376,9 +380,45 @@ try {
       assert.match(footer, /Q/);
       assert.match(footer, /2θ/);
       await clickPlot(page.getByTestId("cake-canvas"));
-      await page.getByLabel("Cake azimuth shift", { exact: true }).fill("90");
       await idle();
-      assert.equal(profiles.at(-1).shiftBins, 9);
+      const sourceProfile = structuredClone(profiles.at(-1));
+      const readsBeforeShift = calls.filter(
+        ([a]) => a === "cake_profile",
+      ).length;
+      for (const shift of [-180, -95, -5, 0, 5, 95, 180, 90]) {
+        await page
+          .getByLabel("Cake azimuth shift", { exact: true })
+          .fill(String(shift));
+        await idle();
+        // Compare the display wrap to the independent native extraction/export path.
+        const reference = await native.invoke("cake_profile", {
+          two_theta: sourceProfile.twoTheta,
+          bins: sourceProfile.bins,
+          shift,
+        });
+        assert.equal(reference.ok, true, reference.error);
+        const expected = reference.cakeProfile;
+        const displayed = shiftCakeProfile(sourceProfile, shift);
+        assert.deepEqual(displayed.y, expected.y);
+        assert.equal(displayed.shiftBins, expected.shiftBins);
+        displayed.x.forEach((x, i) =>
+          assert.ok(Math.abs(x - expected.x[i]) < 1e-10),
+        );
+        assert.equal(
+          +(await profilePlot.getAttribute("data-profile-row-count")),
+          36,
+        );
+        assert.equal(
+          +(await profilePlot.getAttribute("data-profile-shift-bins")),
+          expected.shiftBins,
+        );
+        assert.equal(await profilePlot.getAttribute("aria-description"), null);
+        assert.equal(
+          calls.filter(([a]) => a === "cake_profile").length,
+          readsBeforeShift,
+        );
+        await assertShared();
+      }
       await assertUnitTransitions("2th_deg");
       await button("Save azimuthal profile").click();
       await idle();
@@ -528,6 +568,7 @@ try {
         resizableWidthAndAxisDrag: true,
         stableToolbarAtCakeEdges: true,
         verticallyCenteredControls: true,
+        immediateSliderWrapMatchesNative: true,
         errors,
       });
     } finally {

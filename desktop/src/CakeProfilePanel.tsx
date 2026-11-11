@@ -3,6 +3,7 @@ import { Save } from "lucide-react";
 import { Button } from "./ui";
 import { Field } from "./IntegrationFields";
 import { CakeProfileView } from "./CakeProfileView";
+import { shiftCakeProfile } from "./shiftCakeProfile";
 import { coordinateValue, intensityValue } from "./readoutNumbers";
 import { radialFields } from "./radialReadout";
 import type { Cake, CakeProfile, Response, State } from "./types";
@@ -44,8 +45,8 @@ export function CakeProfilePanel({
     profile: CakeProfile;
   } | null>(null);
   const args = useMemo(
-    () => ({ two_theta: linked?.twoTheta, bins, shift }),
-    [linked?.twoTheta, bins, shift],
+    () => ({ two_theta: linked?.twoTheta, bins, shift: 0 }),
+    [linked?.twoTheta, bins],
   );
   const key = JSON.stringify([
     state?.revision,
@@ -73,7 +74,12 @@ export function CakeProfilePanel({
     };
   }, [key, ready, eligible, run, args]);
   useEffect(() => () => reportPlot("profile", null), [reportPlot]);
-  const profile = eligible && result?.key === key ? result.profile : null;
+  // The slider only wraps existing source rows, exactly like the cake display.
+  // Keep extraction independent of it so moving the slider never clears the curve.
+  const profile = useMemo(() => {
+    if (!eligible || result?.key !== key) return null;
+    return shiftCakeProfile(result.profile, shift);
+  }, [eligible, result, key, shift]);
   const available = !!profile?.x.length;
   return (
     <section className="cake-profile-panel" aria-label="Azimuthal profile">
@@ -91,6 +97,7 @@ export function CakeProfilePanel({
             "save_cake_profile",
             {
               ...args,
+              shift,
               directory: state?.integration.outputDirectory,
               suggested_name: `${state?.imageName?.replace(/\.[^.]+$/, "") ?? "cake"}_azimuth.xy`,
             },
@@ -124,6 +131,15 @@ export function CakeProfilePanel({
       </form>
       <CakeProfileView
         profile={available ? profile : null}
+        emptyMessage={
+          available
+            ? undefined
+            : !eligible
+              ? "Click a ring."
+              : profile
+                ? "Outside cake."
+                : "Loading profile…"
+        }
         cake={cake}
         cakeView={cakeView}
         onAzimuthRange={onAzimuthRange}
@@ -167,15 +183,6 @@ export function CakeProfilePanel({
           )
         }
       />
-      {!available && (
-        <div className="cake-profile-empty" role="status">
-          {!eligible
-            ? "Click a ring."
-            : profile
-              ? "Outside cake."
-              : "Preparing…"}
-        </div>
-      )}
     </section>
   );
 }

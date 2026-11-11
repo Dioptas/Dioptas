@@ -15,6 +15,7 @@ import type { PlotViewport } from "./plotViewport";
 /** The profile uses exactly the cake's source row coordinates, not a new axis. */
 export function CakeProfileView({
   profile,
+  emptyMessage,
   cake,
   cakeView,
   onAzimuthRange,
@@ -24,6 +25,7 @@ export function CakeProfileView({
   onHover,
 }: {
   profile: CakeProfile | null;
+  emptyMessage?: string;
   cake: Cake | null;
   cakeView: PlotRange;
   onAzimuthRange: (range: [number, number]) => void;
@@ -219,6 +221,13 @@ export function CakeProfileView({
     c.beginPath();
     c.rect(left, top, width, height);
     c.clip();
+    if (emptyMessage) {
+      c.font = typography.text;
+      c.fillStyle = typography.muted;
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+      c.fillText(emptyMessage, left + width / 2, top + height / 2);
+    }
     c.strokeStyle = "#ffffff";
     c.lineWidth = 1.5;
     c.beginPath();
@@ -261,6 +270,7 @@ export function CakeProfileView({
     c.restore();
   }, [
     profile,
+    emptyMessage,
     cake,
     selectedAzimuth,
     size,
@@ -292,6 +302,8 @@ export function CakeProfileView({
         data-azimuth-min={cake ? azimuthAt(view.yMin) : undefined}
         data-azimuth-max={cake ? azimuthAt(view.yMax) : undefined}
         data-profile-row-count={profile?.y.length ?? 0}
+        data-profile-shift-bins={profile?.shiftBins ?? 0}
+        aria-description={emptyMessage}
         onKeyDown={navigation.onKeyDown}
         onContextMenu={(event) => event.preventDefault()}
         onPointerDown={(event) => {
