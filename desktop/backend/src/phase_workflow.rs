@@ -95,7 +95,7 @@ fn record_mut(p: &mut Phase) -> Result<&mut Value, String> {
         .ok_or_else(|| "Unknown EoS record.".into())
 }
 fn custom_record(p: &Phase) -> Value {
-    let mut record = json!({"identifier":format!("{}_custom",p.uid),"label":"Custom EoS","reference":"User-created EoS","parameter_errors":{},"fixed_parameters":[],"eos":{"type":"BM3","model":"birch_murnaghan_3","parameters":{"V0":crystal::volume(crystal::cell(&p.document).unwrap()).unwrap(),"K0":p.document["source"]["legacy"]["k0"].as_f64().unwrap_or(100.0),"K0_prime":p.document["source"]["legacy"]["k0p"].as_f64().unwrap_or(4.0)}},"temperature_ref":298.15,"scientific_validation":{"status":"deferred","note":"User-created EoS; not primary-source validated."}});
+    let mut record = json!({"identifier":format!("{}_custom",p.uid),"label":"Custom EoS","reference":"User-created EoS","parameter_errors":{},"fixed_parameters":[],"eos":{"type":"BM3","model":"birch_murnaghan_3","parameters":{"V0":crystal::volume(crystal::cell(&p.document).unwrap()).unwrap(),"K0":p.document["source"]["legacy"]["k0"].as_f64().filter(|k| k.is_finite() && *k > 0.0).unwrap_or(100.0),"K0_prime":p.document["source"]["legacy"]["k0p"].as_f64().unwrap_or(4.0)}},"temperature_ref":298.15,"scientific_validation":{"status":"deferred","note":"User-created EoS; not primary-source validated."}});
     for key in ["n", "z"] {
         if let Some(v) = material_number(p, key) {
             record["eos"]["parameters"][key_name(key)] = json!(v);
