@@ -1,3 +1,4 @@
+import { useCakeAxisGesture } from "./CakeProfileWorkspace";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   usePlotNavigation,
@@ -54,7 +55,8 @@ export function CakeProfileView({
     return () => observer.disconnect();
   }, []);
   // Match RasterView's cake plot insets. Both canvases occupy the same grid row.
-  const left = 8,
+  const [axisWidth, setAxisWidth] = useState(60);
+  const left = axisWidth,
     right = 6,
     top = 20,
     bottom = 44 * typography.scale;
@@ -108,6 +110,7 @@ export function CakeProfileView({
     undefined,
     viewport,
   );
+  const axisGesture = useCakeAxisGesture("profile", canvas, navigation);
   usePlotWheel(canvas, navigation.onWheel);
   const view = navigation.view;
   const yPixel = (row: number) =>
@@ -177,6 +180,38 @@ export function CakeProfileView({
       c.textAlign = "left";
       c.fillText(ticks.annotation, left, top - 6);
     }
+    // One far-left azimuth axis labels both the row projection and the cake.
+    const yAxis = linearAxisTicks(
+      azimuthAt(view.yMin),
+      azimuthAt(view.yMax),
+      Math.max(1, Math.floor(height / (48 * typography.scale))),
+    );
+    const tickWidth = Math.max(
+      0,
+      ...yAxis.ticks.map((t) => c.measureText(t.label).width),
+    );
+    setAxisWidth(Math.max(60, Math.ceil(tickWidth) + 36));
+    c.textAlign = "right";
+    for (const tick of yAxis.ticks) {
+      const [low, high] = cake?.azimuthRange ?? [0, 1];
+      const y = yPixel(((tick.value - low) / (high - low)) * rows);
+      c.beginPath();
+      c.moveTo(left - 4, y);
+      c.lineTo(left, y);
+      c.stroke();
+      c.fillText(tick.label, left - 8, y + 3);
+    }
+    if (yAxis.annotation) {
+      c.textAlign = "left";
+      c.fillText(yAxis.annotation, left, top - 6);
+    }
+    c.save();
+    c.translate(11, top + height / 2);
+    c.rotate(-Math.PI / 2);
+    c.textAlign = "center";
+    c.textBaseline = "middle";
+    c.fillText(height < 120 ? "χ (°)" : "Azimuth (°)", 0, 0);
+    c.restore();
     c.textAlign = "center";
     c.font = typography.text;
     c.fillText("Intensity", left + width / 2, size.height - 3);
@@ -235,6 +270,7 @@ export function CakeProfileView({
     view.xMax,
     view.yMin,
     view.yMax,
+    axisWidth,
     navigation.selection,
   ]);
   useEffect(() => () => onHover(null), []);
@@ -258,14 +294,28 @@ export function CakeProfileView({
         data-profile-row-count={profile?.y.length ?? 0}
         onKeyDown={navigation.onKeyDown}
         onContextMenu={(event) => event.preventDefault()}
-        onPointerDown={(event) => navigation.onPointerDown(event)}
+        onPointerDown={(event) => {
+          const point = navigation.screen(event);
+          if (
+            point.x < left &&
+            point.y >= top &&
+            point.y <= top + height &&
+            axisGesture?.start(event)
+          )
+            return;
+          navigation.onPointerDown(event);
+        }}
         onPointerMove={(event) => {
+          if (axisGesture?.move(event)) return;
           navigation.onPointerMove(event);
           onHover(pointAt(event));
         }}
         onPointerLeave={() => onHover(null)}
-        onPointerCancel={navigation.onPointerCancel}
+        onPointerCancel={(event) => {
+          if (!axisGesture?.cancel(event)) navigation.onPointerCancel(event);
+        }}
         onPointerUp={(event) => {
+          if (axisGesture?.finish(event)) return;
           if (navigation.onPointerUp(event) === "click") {
             const point = pointAt(event);
             if (point) onInspect(point.azimuth);

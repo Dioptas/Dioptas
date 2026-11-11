@@ -1,3 +1,4 @@
+import { useCakeAxisGesture } from "./CakeProfileWorkspace";
 import { usePlotTypography } from "./usePlotTypography";
 import { navigationTrace } from "./navigationTiming";
 import {
@@ -72,6 +73,7 @@ export function RasterView({
   onHover,
   onResolution,
   cake = false,
+  showCakeAzimuthAxis = true,
   radialAxis,
   zoomMode = "rectangle",
   onZoomMode,
@@ -105,6 +107,7 @@ export function RasterView({
   busy?: boolean;
   resetKey?: number;
   cake?: boolean;
+  showCakeAzimuthAxis?: boolean;
   radialAxis?: CakeRadialAxis;
   zoomMode?: ZoomMode;
   onZoomMode?: (mode: ZoomMode) => void;
@@ -268,7 +271,7 @@ export function RasterView({
     return () => observer.disconnect();
   }, []);
   const typography = usePlotTypography(canvas);
-  const left = cake ? cakeAxisWidth : imagePadding,
+  const left = cake ? (showCakeAzimuthAxis ? cakeAxisWidth : 8) : imagePadding,
     right = cake ? 22 : imagePadding,
     top = cake ? 20 : imagePadding,
     bottom = cake ? 44 * typography.scale : imagePadding;
@@ -293,6 +296,7 @@ export function RasterView({
     undefined,
     viewport,
   );
+  const axisGesture = useCakeAxisGesture("cake", canvas, navigation);
   const [resetSource, setResetSource] = useState([
     raster.fullWidth,
     raster.fullHeight,
@@ -799,7 +803,8 @@ export function RasterView({
           ...yAxis.ticks.map((tick) => context.measureText(tick.label).width),
         );
         // Reserve separate space for the rotated title even without an offset.
-        setCakeAxisWidth(Math.max(60, Math.ceil(tickWidth) + 36));
+        if (showCakeAzimuthAxis)
+          setCakeAxisWidth(Math.max(60, Math.ceil(tickWidth) + 36));
         let intervals = Math.max(1, Math.floor(plotWidth / 80));
         let xTicks = cakeAxis!.ticks(view.xMin, view.xMax, intervals);
         while (intervals > 1) {
@@ -834,18 +839,20 @@ export function RasterView({
             size.height - 18,
           );
         }
-        context.textAlign = "right";
-        for (const tick of yAxis.ticks) {
-          const y = top + ((yMax - tick.value) / (yMax - yMin)) * plotHeight;
-          context.beginPath();
-          context.moveTo(left - 4, y);
-          context.lineTo(left, y);
-          context.stroke();
-          context.fillText(tick.label, left - 8, y + 3);
-        }
-        if (yAxis.annotation) {
-          context.textAlign = "left";
-          context.fillText(yAxis.annotation, left, top - 6);
+        if (showCakeAzimuthAxis) {
+          context.textAlign = "right";
+          for (const tick of yAxis.ticks) {
+            const y = top + ((yMax - tick.value) / (yMax - yMin)) * plotHeight;
+            context.beginPath();
+            context.moveTo(left - 4, y);
+            context.lineTo(left, y);
+            context.stroke();
+            context.fillText(tick.label, left - 8, y + 3);
+          }
+          if (yAxis.annotation) {
+            context.textAlign = "left";
+            context.fillText(yAxis.annotation, left, top - 6);
+          }
         }
         context.fillStyle = typography.muted;
         context.textAlign = "center";
@@ -855,14 +862,16 @@ export function RasterView({
           left + plotWidth / 2,
           size.height - 3,
         );
-        context.save();
-        context.translate(11, top + plotHeight / 2);
-        context.rotate(-Math.PI / 2);
-        context.textBaseline = "middle";
-        // The optional profile shares this pane at compact window heights.
-        // Keep the title inside the canvas when the cake is shallow.
-        context.fillText(plotHeight < 120 ? "χ (°)" : "Azimuth (°)", 0, 0);
-        context.restore();
+        if (showCakeAzimuthAxis) {
+          context.save();
+          context.translate(11, top + plotHeight / 2);
+          context.rotate(-Math.PI / 2);
+          context.textBaseline = "middle";
+          // The optional profile shares this pane at compact window heights.
+          // Keep the title inside the canvas when the cake is shallow.
+          context.fillText(plotHeight < 120 ? "χ (°)" : "Azimuth (°)", 0, 0);
+          context.restore();
+        }
       }
     },
     [
@@ -882,6 +891,7 @@ export function RasterView({
       tool,
       cake,
       cakeAxis,
+      showCakeAzimuthAxis,
       raster,
       sx,
       sy,
@@ -1008,6 +1018,7 @@ export function RasterView({
         data-radial-axis-note={cakeAxis?.note}
         data-azimuth-min={cake ? (raster as Cake).azimuthRange[0] : undefined}
         data-azimuth-max={cake ? (raster as Cake).azimuthRange[1] : undefined}
+        data-shows-azimuth-axis={cake ? showCakeAzimuthAxis : undefined}
         data-ring-count={cake ? calibrantLines.length : rings.length}
         data-click-x={clickedPoint?.x}
         data-click-y={clickedPoint?.y}
@@ -1037,6 +1048,7 @@ export function RasterView({
           if (point) addPoint(point);
         }}
         onPointerMove={(event) => {
+          if (cake && axisGesture?.move(event)) return;
           const { point, screen } = position(event);
           setCursor(screen);
           if (point) {
@@ -1055,6 +1067,7 @@ export function RasterView({
           if (drag.current && point) addPoint(point);
         }}
         onPointerUp={(event) => {
+          if (cake && axisGesture?.finish(event)) return;
           if (roiInteraction.onPointerUp(event)) return;
           const result = navigation.onPointerUp(event);
           const { point } = position(event);
@@ -1084,6 +1097,7 @@ export function RasterView({
           setStroke([]);
         }}
         onPointerCancel={(event) => {
+          if (cake && axisGesture?.cancel(event)) return;
           roiInteraction.onPointerCancel();
           navigation.onPointerCancel(event);
           drag.current = null;

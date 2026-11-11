@@ -163,6 +163,9 @@ It appears only in Cake view at the linked detector/cake/pattern radial position
 fractional radial average; its save icon exports azimuth in degrees and intensity
 through the native chooser. Turning Profile on from Image switches to Cake;
 Image mode hides the profile.
+Drag the small divider to change the profile width (double-click resets it).
+The shared azimuth labels are on the far left; an axis-started left drag can
+select a zoom region in the profile or continue into the cake.
 See [azimuthal-profile semantics and checks](CAKE_PROFILE_PARITY.md).
 
 Integration and Map use the same `RasterView` and `PatternView` renderers.

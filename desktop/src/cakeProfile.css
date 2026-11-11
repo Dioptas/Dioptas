@@ -1,7 +1,10 @@
 /* A shared plot row keeps the profile and cake aligned with either histogram layout. */
 .detector-workspace:has(> .cake-profile-panel) {
   display: grid;
-  grid-template-columns: clamp(140px, 26%, 190px) minmax(0, 1fr) auto;
+  grid-template-columns: var(--cake-profile-width, 170px) 8px minmax(
+      0,
+      1fr
+    ) auto;
   grid-template-rows: minmax(0, 1fr);
   min-width: 0;
 }
@@ -10,18 +13,18 @@
   grid-row: 1;
 }
 .detector-workspace:has(> .cake-profile-panel) > .raster-container {
-  grid-column: 2;
+  grid-column: 3;
   grid-row: 1;
   margin-top: 34px;
 }
 .detector-workspace:has(> .cake-profile-panel) > .image-intensity {
-  grid-column: 3;
+  grid-column: 4;
   grid-row: 1;
 }
 .detector-workspace:has(> .cake-profile-panel):has(
     > .image-intensity[data-orientation="horizontal"]
   ) {
-  grid-template-columns: clamp(140px, 26%, 190px) minmax(0, 1fr);
+  grid-template-columns: var(--cake-profile-width, 170px) 8px minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
 }
 .detector-workspace:has(> .cake-profile-panel):has(
@@ -34,7 +37,7 @@
 .detector-workspace:has(> .cake-profile-panel):has(
     > .image-intensity[data-orientation="horizontal"]
   )
-  > :is(.cake-profile-panel, .raster-container) {
+  > :is(.cake-profile-panel, .raster-container, .cake-profile-divider-slot) {
   grid-row: 2;
 }
 .detector-workspace > .cake-profile-panel {
@@ -93,4 +96,19 @@
   height: 100%;
   touch-action: none;
   overscroll-behavior: contain;
+}
+
+.cake-profile-divider-slot {
+  grid-column: 2;
+  grid-row: 1;
+  min-height: 0;
+}
+.cake-profile-divider {
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+}
+.cake-profile-divider span {
+  width: 2px;
+  height: 38px;
 }

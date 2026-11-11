@@ -1,5 +1,6 @@
 /** Local window layout preferences, separate from scientific project contents. */
 export const layoutKeys = {
+  cakeProfileWidth: "dioptas-layout:cake-profile-width",
   imageShare: "dioptas-layout:image-share",
   spottinessShare: "dioptas-layout:spottiness-main-share",
   controlsShare: "dioptas-layout:controls-share",

@@ -1,3 +1,4 @@
+import { CakeProfileWorkspace } from "./CakeProfileWorkspace";
 import {
   Children,
   createContext,
@@ -394,10 +395,9 @@ export function DetectorSurface({
         </div>
       ) : (
         <>
-          <div className="detector-workspace">
-            {profile}
+          <CakeProfileWorkspace profile={profile}>
             {children}
-          </div>
+          </CakeProfileWorkspace>
           {owner && enabled && showUndock && (
             <Button
               className="plot-tool-button detector-window-action"

@@ -2861,6 +2861,9 @@ export default function App() {
                                 zoomMode={cakeZoom}
                                 onZoomMode={setCakeZoom}
                                 cake
+                                showCakeAzimuthAxis={
+                                  !(mode === "integration" && profileVisible)
+                                }
                                 limits={cakeLimits}
                                 log={cakeLog}
                                 palette={cakePalette}

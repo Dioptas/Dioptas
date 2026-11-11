@@ -1,3 +1,4 @@
+import { checkCakeProfileInteraction } from "./cake_profile_interaction.mjs";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { mkdtemp, rm, mkdir, writeFile, readFile } from "node:fs/promises";
@@ -222,6 +223,12 @@ try {
         assert.equal(p.max, c.max);
       };
       await checkProfileAlignment();
+      await checkCakeProfileInteraction(
+        child,
+        profile.getByTestId("cake-profile-canvas"),
+        child.getByTestId("cake-canvas"),
+        ready,
+      );
       await profile.getByTestId("cake-profile-canvas").press("+");
       await ready();
       await checkProfileAlignment();
@@ -445,6 +452,7 @@ try {
         noDuplicatePreviewCalculation: true,
         retainedCakeQAndProfile: true,
         sharedAzimuth: true,
+        resizableProfileAndOuterAxisDrag: true,
         profileOnlyInCake: true,
         orientation: true,
         calibratedSourceCancel: true,

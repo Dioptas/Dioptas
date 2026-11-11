@@ -1,3 +1,4 @@
+import { checkCakeProfileInteraction } from "./cake_profile_interaction.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -251,6 +252,25 @@ try {
         await idle();
         await assertShared();
       }
+      const scienceBeforeResize = await invoke("state");
+      const extractedBeforeResize = structuredClone(profiles.at(-1));
+      await checkCakeProfileInteraction(page, profilePlot, cakeCanvas, idle);
+      const scienceAfterResize = await invoke("state");
+      assert.equal(
+        scienceAfterResize.cake.bufferId,
+        scienceBeforeResize.cake.bufferId,
+      );
+      assert.deepEqual(scienceAfterResize.pattern, scienceBeforeResize.pattern);
+      assert.deepEqual(profiles.at(-1), extractedBeforeResize);
+      const widthBeforeToggle = (await profilePlot.boundingBox()).width;
+      await button("Azimuthal profile").click();
+      await idle();
+      await button("Azimuthal profile").click();
+      await idle();
+      assert.ok(
+        Math.abs((await profilePlot.boundingBox()).width - widthBeforeToggle) <
+          1.1,
+      );
       const originalY = +(await cakeCanvas.getAttribute("data-view-y-max"));
       const radialBeforeProfileZoom =
         await cakeCanvas.getAttribute("data-view-x-max");
@@ -441,6 +461,7 @@ try {
         unitTransitionsKeepSourceProfileAndBothViewports: true,
         profileLeftOfCakeWithSharedAzimuth: true,
         profileHiddenInImageMode: true,
+        resizableWidthAndAxisDrag: true,
         errors,
       });
     } finally {

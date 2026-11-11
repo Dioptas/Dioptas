@@ -49,7 +49,7 @@ relabeling is separate from these source coordinates.
 - The layout follows Qt: intensity is horizontal to the left of the cake and
   azimuth is shared vertically. `CakeProfileView` draws each native profile
   sample at its cake-row center (`i + 0.5`), using the same plot insets and a
-  common source-pixel y viewport. The cake owns the single visible azimuth axis.
+  common source-pixel y viewport. The profile carries the single visible azimuth axis at the far left of both plots.
   Gestures, tick generation and typography reuse the shared plot primitives.
   Cake navigation updates the profile; profile navigation updates cake azimuth
   without changing the radial interval. F in the profile restores full azimuth
@@ -145,3 +145,28 @@ pass the updated profile workflow (both histogram orientations), cake-Q-axis,
 correction-preview and detached-source workflows. The detached checks include
 close/reopen and Back from a correction preview, keeping the selected source,
 scientific results and detector orientation intact.
+
+
+## Width divider and outer-axis gestures — November 11, 2026
+
+A compact divider between the profile and cake adjusts the profile width. It
+reuses `LayoutDivider`: drag, Left/Right (Shift for larger steps), Home or
+double-click for the default, and End for the maximum. The width is remembered
+as a window layout preference, with bounds that keep the neighboring cake
+usable. Resizing the window temporarily clamps the displayed width without
+erasing the preferred value. This works in the main and detached cake views.
+
+The shared azimuth labels and title now sit entirely on the far left of the
+profile. A left-button zoom selection starting on that axis can extend into
+the profile or across the divider into the cake. The plot under the released
+pointer determines the intensity or radial interval; azimuth stays linked.
+Crossing back to the profile before release selects its interval. The divider
+itself retains its separate width-resize gesture. The implementation forwards
+axis-started gestures to the existing plot navigation primitive within each
+window; no scientific processing or arrays are changed.
+
+Updated Chromium/WebKit profile and detached-source checks cover pointer and
+keyboard resizing, persisted width and reset, axis drags into either plot and
+back across the divider, shared y limits, unchanged scientific viewports during
+resize, source pixels and profile samples. Cake-Q-axis and native calibration
+browser regressions, the frontend build and 113 frontend tests also pass.
