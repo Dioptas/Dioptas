@@ -412,6 +412,7 @@ try {
         for (const large of [false, true]) {
           await page.setViewportSize({ width, height: 940 });
           await setInterfaceTextSize(page, large);
+          await ready();
           await page
             .getByRole("tabpanel", { name: "Image controls", exact: true })
             .evaluate((element) => {
@@ -477,10 +478,23 @@ try {
             ) < 2,
             "Folder stays beside the filename",
           );
+          // Measure related columns in one layout snapshot; responsive controls
+          // can rerender between separate boundingBox calls after a text resize.
+          const columns = await controls.evaluate((element) => ({
+            file: element
+              .querySelector('[aria-label="Image filename"]')
+              .getBoundingClientRect().x,
+            source: element
+              .querySelector('[aria-label="Image source"]')
+              .getBoundingClientRect().x,
+            load: element
+              .querySelector(".integration-file-load")
+              .getBoundingClientRect().x,
+          }));
           assert.ok(
-            Math.abs(filenameBox.x - sourceBox.x) < 2 &&
-              Math.abs(filenameBox.x - loadBox.x) < 2,
-            "Load, File and Source share their aligned control column",
+            Math.abs(columns.file - columns.source) < 2 &&
+              Math.abs(columns.file - columns.load) < 2,
+            `Load, File and Source share their aligned control column: ${JSON.stringify(columns)}`,
           );
           assert.equal(
             await page
