@@ -132,7 +132,7 @@ export function IntegrationCorrectionControls({
     const definition = correction.fields[key];
     return (
       <ProcessingNumberField
-        key={key}
+        key={`${tab}:${key}`}
         label={definition.label}
         value={
           correction.enabled
