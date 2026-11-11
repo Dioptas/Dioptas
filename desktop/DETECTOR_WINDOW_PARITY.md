@@ -203,3 +203,18 @@ Headless Chromium and WebKit pass. All three companions remain open through the
 sequence and use the same processor PID. Receipts and four-window screenshots
 are under `artifacts/companion-windows/`. This adds joint regression coverage;
 no application correction or visible OS-window campaign was needed.
+
+## Click retention through docking cycles (2026-11-11)
+
+The same `test:companion-windows` command now covers 42 transitions per browser,
+including two dock/re-detach cycles for each companion while the other two stay
+open. It verifies retained physical radial/azimuth bookmarks at each transition,
+new pattern clicks reaching the docked view, clicks from docked and reopened
+views reaching the other windows, and independent Batch/Map selections. The
+second cycle uses Q and Cake; Map's image surface and independently displayed
+pattern units are checked in their actual coordinates.
+
+The regression is included in the default native desktop UI gate
+(`npm run test:ci-native`, or `-- --ui` for its UI section). It uses the real Rust
+stdio processor, headless Chromium and WebKit, and no Python checks. Receipts
+record each docking state; failures include plot metadata and screenshots.

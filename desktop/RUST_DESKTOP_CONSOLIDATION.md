@@ -358,3 +358,13 @@ Batch/Map frame selections independent and preserves the radial bookmark when
 switching Map cells. The companions remain open and reuse one processor per
 browser run. Evidence is in `desktop/artifacts/companion-windows/`.
 Only regression coverage and its command/documentation were added.
+
+## Dock/re-detach click synchronization regression (2026-11-11)
+
+Extended the joint companion test to 42 checks in each browser. Detector, Batch
+and Map each dock and detach twice, retaining the physical click bookmark while
+the other companions remain open. New clicks from the main pattern, docked
+plots and recreated companions must propagate; Map cell changes must retain
+the bookmark. Both 2θ/Image and Q/Cake workflows are covered, including Map's
+separate image surface and stored-pattern units. The test is now part of the
+default native UI gate as well as `npm run test:companion-windows`.

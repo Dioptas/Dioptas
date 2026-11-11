@@ -104,6 +104,7 @@ if (selected.has("--ui")) {
     "hdf5_sources_smoke",
     "detector_window_smoke",
     "detector_source_smoke",
+    "companion_windows_smoke",
   ])
     node(script, `${script}.mjs`);
   node("batch_background_export", "batch_export_smoke.mjs", "--background");

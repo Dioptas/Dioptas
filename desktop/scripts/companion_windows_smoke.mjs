@@ -95,13 +95,13 @@ for (const [name, engine] of [
     await main
       .getByRole("button", { name: "Batch view…", exact: true })
       .click();
-    const batch = await batchPopup;
+    let batch = await batchPopup;
     batch.setDefaultTimeout(20000);
     await batch.getByTestId("batch-heatmap").waitFor();
     await main.getByRole("button", { name: "Map", exact: true }).click();
     const mapPopup = main.waitForEvent("popup");
     await main.getByRole("button", { name: "Detach map", exact: true }).click();
-    const map = await mapPopup;
+    let map = await mapPopup;
     map.setDefaultTimeout(20000);
     await map.getByTestId("scan-map").waitFor();
     await main
@@ -111,7 +111,7 @@ for (const [name, engine] of [
     await main
       .getByRole("button", { name: "Undock detector image", exact: true })
       .click();
-    const image = await imagePopup;
+    let image = await imagePopup;
     image.setDefaultTimeout(20000);
     await image.getByTestId("detector-canvas").waitFor();
     await ready();
@@ -135,15 +135,33 @@ for (const [name, engine] of [
         (wavelength * 1e10);
       return unit === "q_A^-1" ? q : (2 * Math.PI) / q;
     };
-    const check = async (step) => {
+    const check = async (step, { retainedFrom, changedFrom } = {}) => {
       await ready();
       const state = await call("state");
       assert.ok(state.linked, `${step}: missing shared inspection`);
-      assert.equal(
-        context.pages().length,
-        4,
+      const surfaces = new Set([main, image, batch, map]);
+      assert.deepEqual(
+        new Set(context.pages()),
+        surfaces,
         `${step}: a companion closed or duplicated`,
       );
+      if (retainedFrom) {
+        close(
+          state.linked.twoTheta,
+          retainedFrom.linked.twoTheta,
+          `${step}: radial bookmark lost`,
+        );
+        close(
+          state.linked.azimuth,
+          retainedFrom.linked.azimuth,
+          `${step}: azimuth bookmark lost`,
+        );
+      }
+      if (changedFrom)
+        assert.ok(
+          Math.abs(state.linked.twoTheta - changedFrom.linked.twoTheta) > 1e-3,
+          `${step}: click did not change the physical radial position`,
+        );
       assert.equal(
         state.batch.selected,
         batchFrame,
@@ -160,6 +178,7 @@ for (const [name, engine] of [
         [batch, "batch-click-readout"],
         [map, "map-click-readout"],
       ]) {
+        if (page === main) continue;
         await page.getByTestId(id).waitFor();
         await page.waitForFunction(
           ({ id, expected }) =>
@@ -173,6 +192,27 @@ for (const [name, engine] of [
           { id, expected },
         );
       }
+      // A selected stored Map pattern can use a different axis unit from the
+      // Integration settings. Compare the same physical position in that axis.
+      let patternUnit = state.pattern.unit;
+      if (map === main) {
+        patternUnit = null;
+        for (const [label, unit] of [
+          ["2θ", "2th_deg"],
+          ["Q", "q_A^-1"],
+          ["d", "d_A"],
+        ])
+          if (
+            (await main
+              .getByRole("button", {
+                name: `Map pattern unit ${label}`,
+                exact: true,
+              })
+              .getAttribute("aria-pressed")) === "true"
+          )
+            patternUnit = unit;
+        assert.ok(patternUnit, `${step}: missing active Map pattern unit`);
+      }
       await main.waitForFunction(
         (radial) =>
           Math.abs(
@@ -181,7 +221,7 @@ for (const [name, engine] of [
                 .linkedPosition,
             ) - radial,
           ) < 1e-7,
-        state.linked.radial,
+        linkedValue(state.linked, patternUnit, state.state.geometry.wavelength),
       );
       const batchUnit = await batch
         .getByTestId("batch-heatmap")
@@ -208,7 +248,14 @@ for (const [name, engine] of [
             .selectedCell === cell,
         state.map.selectedCell.join(","),
       );
-      if (imageKind === "image") {
+      // Map owns an image surface; Integration restores its Image/Cake choice.
+      const activeImageKind = map === main ? "image" : imageKind;
+      await image
+        .getByTestId(
+          `${activeImageKind === "image" ? "detector" : "cake"}-canvas`,
+        )
+        .waitFor();
+      if (activeImageKind === "image") {
         assert.ok(
           state.linked.imagePoint,
           `${step}: no projected detector point`,
@@ -261,23 +308,29 @@ for (const [name, engine] of [
       steps.push({
         step,
         unit: state.state.unit,
+        patternUnit,
         radial: state.linked.radial,
         twoTheta: state.linked.twoTheta,
         azimuth: state.linked.azimuth,
         batchFrame,
         mapFrame,
         fields: expected,
+        detached: {
+          detector: image !== main,
+          batch: batch !== main,
+          map: map !== main,
+        },
       });
       return state;
     };
-    const clickImage = async () => {
+    const clickImage = async (fraction = 0.65) => {
       const canvas = image.getByTestId("detector-canvas");
-      const point = await canvas.evaluate((el) => {
+      const point = await canvas.evaluate((el, fraction) => {
         const d = el.dataset;
         return {
           x:
             +d.plotLeft +
-            ((+d.fullWidth * 0.65 - +d.viewXMin) /
+            ((+d.fullWidth * fraction - +d.viewXMin) /
               (+d.viewXMax - +d.viewXMin)) *
               +d.plotWidth,
           y:
@@ -286,7 +339,7 @@ for (const [name, engine] of [
               (+d.viewYMax - +d.viewYMin)) *
               +d.plotHeight,
         };
-      });
+      }, fraction);
       await canvas.click({ position: point });
     };
     const clickPattern = async (fraction) => {
@@ -375,11 +428,18 @@ for (const [name, engine] of [
     const cakeCanvas = image.getByTestId("cake-canvas");
     await cakeCanvas.waitFor();
     await ready();
-    const cakePoint = await cakeCanvas.evaluate((el) => ({
-      x: +el.dataset.plotLeft + +el.dataset.plotWidth * 0.37,
-      y: +el.dataset.plotTop + +el.dataset.plotHeight * 0.4,
-    }));
-    await cakeCanvas.click({ position: cakePoint });
+    const clickCake = async (fraction) => {
+      const canvas = image.getByTestId("cake-canvas");
+      const point = await canvas.evaluate(
+        (el, f) => ({
+          x: +el.dataset.plotLeft + +el.dataset.plotWidth * f,
+          y: +el.dataset.plotTop + +el.dataset.plotHeight * 0.4,
+        }),
+        fraction,
+      );
+      await canvas.click({ position: point });
+    };
+    await clickCake(0.37);
     await check("detached cake click with Batch and Map open");
     await clickPattern(0.48);
     await check("pattern updates detached cake, Batch and Map");
@@ -406,6 +466,100 @@ for (const [name, engine] of [
     await ready();
     await clickImage();
     await check("image click updates all companions in Q");
+    // Recreate each companion twice. The others stay open to catch a reconnect
+    // losing the shared bookmark or publishing stale state back to its owner.
+    for (const [cycle, unit] of ["2θ", "Q"].entries()) {
+      await main
+        .getByRole("button", { name: `Pattern unit ${unit}`, exact: true })
+        .click();
+      await ready();
+      if (cycle === 1) {
+        await image.getByRole("button", { name: "Cake", exact: true }).click();
+        imageKind = "cake";
+        await image.getByTestId("cake-canvas").waitFor();
+      }
+      const prefix = `${unit} docking cycle`;
+      let before = await check(`${prefix}: baseline`);
+      const dock = async (page, button) => {
+        const closed = page.waitForEvent("close");
+        await page.getByRole("button", { name: button, exact: true }).click();
+        await closed;
+      };
+      const detach = async (button, testId) => {
+        const popup = main.waitForEvent("popup");
+        await main.getByRole("button", { name: button, exact: true }).click();
+        const page = await popup;
+        page.setDefaultTimeout(20000);
+        await page.getByTestId(testId).waitFor();
+        return page;
+      };
+      await dock(image, "Dock detector image");
+      image = main;
+      before = await check(`${prefix}: detector docked`, {
+        retainedFrom: before,
+      });
+      await clickPattern(0.36);
+      before = await check(`${prefix}: pattern to docked detector`, {
+        changedFrom: before,
+      });
+      if (imageKind === "cake") await clickCake(0.44);
+      else await clickImage(0.58);
+      before = await check(`${prefix}: docked detector to companions`, {
+        changedFrom: before,
+      });
+      image = await detach(
+        "Undock detector image",
+        `${imageKind === "cake" ? "cake" : "detector"}-canvas`,
+      );
+      before = await check(`${prefix}: detector detached again`, {
+        retainedFrom: before,
+      });
+      if (imageKind === "cake") await clickCake(0.39);
+      else await clickImage(0.68);
+      before = await check(`${prefix}: reopened detector click`, {
+        changedFrom: before,
+      });
+
+      await dock(batch, "Dock batch below image");
+      batch = main;
+      before = await check(`${prefix}: Batch docked`, { retainedFrom: before });
+      await clickPattern(0.34);
+      before = await check(`${prefix}: pattern to docked Batch`, {
+        changedFrom: before,
+      });
+      await clickBatch(4 + cycle, 0.47);
+      before = await check(`${prefix}: docked Batch to companions`, {
+        changedFrom: before,
+      });
+      batch = await detach("Detach batch", "batch-heatmap");
+      before = await check(`${prefix}: Batch detached again`, {
+        retainedFrom: before,
+      });
+      await clickBatch(6 + cycle, 0.52);
+      before = await check(`${prefix}: reopened Batch click`, {
+        changedFrom: before,
+      });
+
+      await dock(map, "Dock map");
+      map = main;
+      before = await check(`${prefix}: Map docked`, { retainedFrom: before });
+      await clickPattern(0.38);
+      before = await check(`${prefix}: pattern to docked Map`, {
+        changedFrom: before,
+      });
+      await clickMap(1, cycle);
+      before = await check(`${prefix}: docked Map retains bookmark`, {
+        retainedFrom: before,
+      });
+      map = await detach("Detach map", "scan-map");
+      before = await check(`${prefix}: Map detached again`, {
+        retainedFrom: before,
+      });
+      await clickMap(2, cycle);
+      await check(`${prefix}: reopened Map retains bookmark`, {
+        retainedFrom: before,
+      });
+    }
     assert.equal(native.child.exitCode, null);
     assert.deepEqual(errors, []);
     assert.deepEqual(failures, []);
@@ -424,6 +578,7 @@ for (const [name, engine] of [
       processorPid: native.child.pid,
       simultaneousCompanions: 3,
       allClickReadoutsMatch: true,
+      dockingCyclesPerCompanion: 2,
       steps,
       errors,
       failures,
@@ -438,12 +593,32 @@ for (const [name, engine] of [
       `${name}: all three Rust-backed companions share click state across ${steps.length} checks`,
     );
   } catch (error) {
+    const snapshot = await native.invoke("state").catch(() => ({}));
+    const diagnostics = {
+      linked: snapshot.linked,
+      unit: snapshot.state?.unit,
+      patternUnit: snapshot.pattern?.unit,
+      pages: await Promise.all(
+        (browser?.contexts().flatMap((c) => c.pages()) ?? []).map(
+          async (page) => ({
+            url: page.url(),
+            plots: await page
+              .locator(
+                '[data-testid="pattern-canvas"], [data-testid="detector-canvas"], [data-testid="cake-canvas"], [data-testid="batch-heatmap"]',
+              )
+              .evaluateAll((els) => els.map((el) => ({ ...el.dataset })))
+              .catch(() => []),
+          }),
+        ),
+      ),
+    };
     await writeFile(
       path.join(artifacts, `${name}-failure.json`),
       JSON.stringify(
         {
           error: String(error),
           stack: error.stack,
+          diagnostics,
           errors,
           failures,
           commands,
