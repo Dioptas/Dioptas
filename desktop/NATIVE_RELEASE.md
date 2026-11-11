@@ -82,8 +82,9 @@ Candidate outputs are under `artifacts/native-release/<version>-<target>-<run>/`
   original signed ZIP under `dist/notarization-payloads/` for recovery.
 
 Successful candidates and diagnostics are retained as Actions artifacts for
-14 days. No release is published. Manual dispatch becomes available once the
-workflow is present on the repository's default branch.
+14 days. No release is published. The registered workflow can be dispatched
+for this branch with `gh workflow run native_macos_artifacts.yml --ref BRANCH`.
+The Actions UI's Run workflow button requires the workflow on the default branch.
 
 The workflow accepts an architecture and an optional `recovery_run_id`. For a
 run whose app was accepted by Apple but whose DMG packaging failed, recovery
@@ -118,3 +119,31 @@ Local DMGs can be rechecked with `npm run test:macos-dmg -- /absolute/path.dmg`.
 Set `DIOPTAS_APPLE_TEAM_ID` to require Developer ID signing; add `--notarized`
 to require stapled tickets and Gatekeeper acceptance, and `--native-smoke` only
 when testing the native WebKit boundary.
+
+## Verification on November 11, 2026
+
+- Apple Silicon: the [clean native macOS 15 job](https://github.com/Dioptas/Dioptas/actions/runs/43102048555/job/130795732247)
+  built and signed the current app, obtained Apple acceptance for the app and
+  DMG, stapled both, and passed copied-installation, processor and native WebKit
+  checks. The downloaded DMG also passed signature/ticket/Gatekeeper and copied
+  processor checks on the local macOS 26.6.2 machine.
+- Intel: the original native macOS 15 job built/signed the app, passed the
+  processor checks, and obtained Apple acceptance, then hit `hdiutil` resource
+  contention during DMG creation. The [recovery run](https://github.com/Dioptas/Dioptas/actions/runs/43106031129)
+  reused that exact accepted app, obtained its existing ticket, built/signed a
+  new DMG, obtained Apple acceptance and passed all installed-app checks,
+  including native WebKit on Intel. Only the new DMG was submitted during
+  recovery. Downloaded checksums, DMG signature, staple and Gatekeeper
+  assessment passed locally as well.
+- Both applications come from `c3513f72`; Intel recovery uses packaging revision
+  `1ea89f88`. Reports preserve both revisions. The retry/error-classification,
+  signing and configuration tests pass; local Chromium/WebKit checks cover the
+  two corrected fixture/cancellation timing races without renderer changes.
+- The [full native CI run at `1ea89f88`](https://github.com/Dioptas/Dioptas/actions/runs/43106012596)
+  passed all four jobs: complete headless desktop/Tauri checks, macOS processor,
+  Linux processor/coverage and independent numerical references.
+
+The verified local candidates and reports are in ignored
+`artifacts/native-release/verified-2026-11-11/`. No public release or release tag
+was created. macOS 14 remains the declared build minimum, not a runtime tested
+here; Windows/Linux and universal macOS remain outside this qualification.
