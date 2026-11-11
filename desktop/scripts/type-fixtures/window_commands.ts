@@ -23,7 +23,7 @@ async function edited() {
   // @ts-expect-error An edit acknowledgement does not contain a saved-path result.
   acknowledgement.savedPath;
   const result = await rpc.read("map_levels");
-  if (result.ok && !result.cancelled && !result.imageChange && !result.calibrationChange && !result.hdf5SourceRequest) {
+  if (result.ok && !result.cancelled && !result.imageChange && !result.calibrationChange && !result.hdf5SourceRequest && result.mapLevels) {
     const levels: [number, number] = result.mapLevels;
     void levels;
   }

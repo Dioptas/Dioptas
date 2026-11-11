@@ -11,7 +11,9 @@ declare const hdf5Decision: NonNullable<Response["hdf5SourceRequest"]>;
 const imageDeferred = { ok: true, cancelled: true, imageChange: imageDecision } satisfies CommandResult<"open_image">;
 const hdf5Deferred = { ok: true, cancelled: true, hdf5SourceRequest: hdf5Decision } satisfies CommandResult<"open_image">;
 const batchImages = { ok: true, savedPaths: ["one.tif"], imageBatchSaved: true } satisfies CommandResult<"open_image">;
-void [multifile, singleFile, closedWindow, imageDeferred, hdf5Deferred, batchImages];
+const emptyMapLevels = { ok: true, mapLevels: null } satisfies CommandResult<"map_levels">;
+const emptyBatchLevels = { ok: true, batchLevels: null } satisfies CommandResult<"batch_levels">;
+void [multifile, singleFile, closedWindow, imageDeferred, hdf5Deferred, batchImages, emptyMapLevels, emptyBatchLevels];
 
 // @ts-expect-error A successful non-cancelled state reply must include state.
 const missingState: CommandResult<"state"> = { ok: true };
