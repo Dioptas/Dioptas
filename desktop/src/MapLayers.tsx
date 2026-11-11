@@ -1,3 +1,5 @@
+import type { RunInvocation } from "./commandContracts";
+import type { MapWindowChanges } from "./commandPayloads";
 import { Button, Input, Select } from "./ui";
 import { useEffect, useState, useRef, type CSSProperties } from "react";
 import { Plus, Trash2 } from "lucide-react";
@@ -104,8 +106,7 @@ export function MapLayers({
     refreshRanges((n) => n + 1);
   }, [unit, map.labels[0]]);
   type Edit = {
-    command: string;
-    args: Record<string, unknown>;
+    call: RunInvocation;
     after?: () => void;
   };
   const enqueue = (build: () => Edit | null) => {
@@ -115,7 +116,7 @@ export function MapLayers({
       .then(async () => {
         setRangeError(null);
         const edit = build();
-        if (edit) await latest.current.run(edit.command, edit.args);
+        if (edit) await latest.current.run(...edit.call);
         // Let the parent's response update the source values before the next edit.
         await new Promise<void>((resolve) =>
           requestAnimationFrame(() => resolve()),
@@ -126,14 +127,12 @@ export function MapLayers({
     tail.current = task.catch(() => {});
     return task;
   };
-  const edit: MapRun = (command, args = {}) =>
-    enqueue(() => ({ command, args }));
-  const updateWindow = (index: number, changes: Record<string, unknown>) =>
+  const edit: MapRun = <const A extends RunInvocation>(...call: A) =>
+    enqueue(() => ({ call }));
+  const updateWindow = (index: number, changes: MapWindowChanges) =>
     enqueue(() => {
       const roi = latest.current.map.rois[index];
-      return roi
-        ? { command: "map_roi", args: { name: roi.name, ...changes } }
-        : null;
+      return roi ? { call: ["map_roi", { name: roi.name, ...changes }] } : null;
     });
   const rangeIn = (
     minimum: number,
@@ -179,8 +178,10 @@ export function MapLayers({
         return null;
       }
       return {
-        command: "map_roi",
-        args: { name: roi.name, minimum: stored[0], maximum: stored[1] },
+        call: [
+          "map_roi",
+          { name: roi.name, minimum: stored[0], maximum: stored[1] },
+        ],
         after: () => {
           if (rangeDrafts.current[key]?.version === snapshot.version) {
             delete rangeDrafts.current[key];
@@ -328,8 +329,20 @@ export function MapLayers({
                       value={roi.reduction + (roi.background ? ":bkg" : "")}
                       onChange={(e) => {
                         const [reduction, bg] = e.target.value.split(":");
+                        const supported = [
+                          "sum",
+                          "mean",
+                          "max",
+                          "area",
+                          "center",
+                          "width",
+                        ] as const;
+                        const selected = supported.find(
+                          (value) => value === reduction,
+                        );
+                        if (!selected) return;
                         void updateWindow(index, {
-                          reduction,
+                          reduction: selected,
                           background: bg === "bkg",
                         });
                       }}

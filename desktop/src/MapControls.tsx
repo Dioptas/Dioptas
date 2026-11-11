@@ -146,7 +146,10 @@ export function MapControls({
     }
   };
   const selected = map?.selectedSlot;
-  const arrange = (op: string, args = {}) =>
+  const arrange = (
+    op: import("./commandPayloads").MapArrangePayload["op"],
+    args: { offset?: number } = {},
+  ) =>
     run("map_arrange", { op, slot: selected, index: map?.selected, ...args });
   return (
     <div className="map-controls">

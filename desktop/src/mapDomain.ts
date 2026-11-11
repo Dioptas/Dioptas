@@ -40,8 +40,4 @@ export interface MapData {
   slotIndices: number[][];
   values: (number | null)[][];
 }
-export type MapRun = (
-  command: string,
-  args?: Record<string, unknown>,
-  message?: string,
-) => Promise<void>;
+export type MapRun = import("./commandContracts").Run;

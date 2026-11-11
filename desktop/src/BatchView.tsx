@@ -65,10 +65,7 @@ export function BatchView({
   calibrated: boolean;
   ready: boolean;
   run: BatchRun;
-  request: (
-    command: string,
-    args?: Record<string, unknown>,
-  ) => Promise<Response | undefined>;
+  request: import("./commandContracts").CommandRequestReader;
   reportPlot: ReportPlot;
   collapsed?: boolean;
   docked?: boolean;

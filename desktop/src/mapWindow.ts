@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { IntegrationRun } from "./integration";
 import type { Response } from "./types";
+import { readWindowCommand, runWindowCommand } from "./windowCommandRpc";
 import { mapWindowChannel, type MapWindowStatus } from "./mapWindowChannel";
 
 const reads = new Set([
@@ -21,10 +22,7 @@ export function useMapWindow({
   onError,
 }: {
   run: IntegrationRun;
-  request: (
-    command: string,
-    args?: Record<string, unknown>,
-  ) => Promise<Response | undefined>;
+  request: import("./commandContracts").CommandRequestReader;
   status: MapWindowStatus;
   onOpen: () => void;
   onDock: () => void;
@@ -60,19 +58,25 @@ export function useMapWindow({
       } else if (message.type === "dock") {
         void dock();
       } else if (message.type === "request") {
-        const { id, command, args, read } = message;
+        const { id, command, read } = message;
         let result: Response = {
           ok: false,
           error: "The main window is busy. Try again when processing finishes.",
         };
         try {
-          if (read && reads.has(command)) {
-            result = (await latest.current.request(command, args)) ?? result;
-          } else if (!read && edits.has(command)) {
+          if (message.command !== "batch_hide" && read && reads.has(command)) {
+            result =
+              (await readWindowCommand(message, latest.current.request)) ??
+              result;
+          } else if (
+            message.command !== "batch_hide" &&
+            !read &&
+            edits.has(command)
+          ) {
             // All changes go through the main window's existing ordered queue.
-            await latest.current.run(
-              command,
-              args,
+            await runWindowCommand(
+              message,
+              latest.current.run,
               command === "map_select" ? "" : "Processing map…",
               (response) => {
                 result = {

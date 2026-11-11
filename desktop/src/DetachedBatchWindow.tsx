@@ -9,7 +9,12 @@ import type { BatchWindowStatus } from "./batchWindow";
 import { BatchView } from "./BatchView";
 import { usePlotReadout } from "./plotReadout";
 import type { BatchData, BatchRun } from "./batchDomain";
-import type { Invoke, Response } from "./types";
+import type { Invoke } from "./types";
+import type {
+  CommandInvocation,
+  CommandRequestReader,
+} from "./commandContracts";
+import { WindowCommandRpc, type WindowRunInvocation } from "./windowCommandRpc";
 import { BatchWindowSync, batchWindowError } from "./batchWindowState";
 import { ReadingFields } from "./PlotStatus";
 
@@ -25,40 +30,20 @@ export function DetachedBatchWindow() {
   const readout = usePlotReadout();
   const bridge = useRef<Invoke | null>(null);
   const channel = useRef<ReturnType<typeof mapWindowChannel> | null>(null);
-  const pending = useRef(
-    new Map<
-      string,
-      { resolve: (r: Response) => void; timer: ReturnType<typeof setTimeout> }
-    >(),
+  const [rpc] = useState(
+    () => new WindowCommandRpc((message) => channel.current?.send(message)),
   );
-  const rpc = useCallback(
-    (
-      command: string,
-      args: Record<string, unknown> = {},
-      read = false,
-    ): Promise<Response> =>
-      new Promise((resolve) => {
-        const id = crypto.randomUUID();
-        const timer = setTimeout(() => {
-          pending.current.delete(id);
-          resolve({ ok: false, error: "The main window did not respond." });
-        }, 120000);
-        pending.current.set(id, { resolve, timer });
-        channel.current?.send({ type: "request", id, command, args, read });
-      }),
-    [],
-  );
-  const request = useCallback(
-    async (command: string, args: Record<string, unknown> = {}) => {
+  const request = useCallback<CommandRequestReader>(
+    async <const A extends CommandInvocation>(...call: A) => {
       try {
         const r = bridge.current
-          ? await bridge.current(command, args)
-          : await rpc(command, args, true);
+          ? await bridge.current<A>(...call)
+          : await rpc.read<A>(...call);
         if (!r.ok) setError(r.error ?? "Could not refresh Batch.");
         return r;
       } catch (e) {
         setError(String(e));
-        return { ok: false, error: String(e) };
+        return undefined;
       }
     },
     [rpc],
@@ -73,7 +58,7 @@ export function DetachedBatchWindow() {
     channel.current = transport;
     const sync = new BatchWindowSync(async () => {
       const r = await request("batch_snapshot");
-      return r.ok && "batch" in r ? (r.batch ?? null) : undefined;
+      return r?.ok && "batch" in r ? (r.batch ?? null) : undefined;
     }, setBatch);
     const subscription = transport.listen((message) => {
       if (message.type === "refresh") {
@@ -83,12 +68,7 @@ export function DetachedBatchWindow() {
         )
           setStatus(message.status);
       } else if (message.type === "response") {
-        const task = pending.current.get(message.id);
-        if (task) {
-          clearTimeout(task.timer);
-          pending.current.delete(message.id);
-          task.resolve(message.result);
-        }
+        rpc.receive(message.id, message.result);
       }
     });
     void subscription
@@ -105,17 +85,13 @@ export function DetachedBatchWindow() {
       window.removeEventListener("beforeunload", closing);
       void subscription.then((stop) => stop());
       transport.close();
-      for (const task of pending.current.values()) {
-        clearTimeout(task.timer);
-        task.resolve({ ok: false, cancelled: true });
-      }
-      pending.current.clear();
+      rpc.close();
     };
   }, [request]);
   const run = useCallback<BatchRun>(
-    async (command, args = {}) => {
+    async <const A extends WindowRunInvocation>(...call: A) => {
       setError(null);
-      const r = await rpc(command, args);
+      const r = await rpc.edit<A>(...call);
       if (!r.ok) setError(r.error ?? "Batch command failed.");
     },
     [rpc],

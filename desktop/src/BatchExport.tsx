@@ -31,7 +31,7 @@ export function BatchExport({
   run: BatchRun;
 }) {
   const [open, setOpen] = useState(false);
-  const [format, setFormat] = useState("h5");
+  const [format, setFormat] = useState<(typeof formats)[number][0]>("h5");
   const [captureError, setCaptureError] = useState<string | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const close = () => {
@@ -68,7 +68,12 @@ export function BatchExport({
           <Select
             aria-label="Batch export format"
             value={format}
-            onChange={(e) => setFormat(e.target.value)}
+            onChange={(e) => {
+              const selected = formats.find(
+                ([value]) => value === e.target.value,
+              );
+              if (selected) setFormat(selected[0]);
+            }}
           >
             {formats.map(([value, label]) => (
               <option

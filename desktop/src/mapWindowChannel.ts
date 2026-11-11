@@ -1,6 +1,7 @@
 import { isTauri } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import type { Response } from "./types";
+import type { WindowCommandRequest } from "./windowCommandRpc";
 
 export type MapWindowStatus = {
   ready: boolean;
@@ -26,13 +27,7 @@ export type MapWindowMessage =
       status: MapWindowStatus;
       batchUpdate?: import("./batchWindowState").BatchWindowUpdate;
     }
-  | {
-      type: "request";
-      id: string;
-      command: string;
-      args: Record<string, unknown>;
-      read: boolean;
-    }
+  | WindowCommandRequest
   | { type: "response"; id: string; result: Response };
 
 /** Native notifications contain no pixels; browser popups share their opener's bridge. */

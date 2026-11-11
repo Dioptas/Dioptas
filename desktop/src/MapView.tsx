@@ -1,3 +1,4 @@
+import type { RunInvocation } from "./commandContracts";
 import { DockWindowIcon } from "./WindowIcons";
 import { DetectorSurface, useDetectorDetached } from "./DetectorWindow";
 import { Input, Button } from "./ui";
@@ -81,10 +82,7 @@ export function MapView({
   ready: boolean;
   error?: string | null;
   run: MapRun;
-  request: (
-    command: string,
-    args?: Record<string, unknown>,
-  ) => Promise<Response | undefined>;
+  request: import("./commandContracts").CommandRequestReader;
   mapWindow: { detached: boolean; open: () => void; dock: () => void };
   reportPlot: ReportPlot;
   onDetectorHover: (point: { x: number; y: number } | null) => void;
@@ -136,12 +134,15 @@ export function MapView({
     observer.observe(topPanel.current);
     return () => observer.disconnect();
   }, []);
-  const sourceRun: MapRun = async (command, args, message) => {
+  const sourceRun: MapRun = async <const A extends RunInvocation>(
+    ...call: A
+  ) => {
+    const command = call[0];
     if (
       ["map_load", "map_folder", "map_batch", "map_normalize"].includes(command)
     )
       setLive(false);
-    await run(command, args, message);
+    await run<A>(...call);
   };
   const mapIdentity = JSON.stringify([
     state?.projectName,
@@ -294,11 +295,10 @@ export function MapView({
       initialAutoActive={d.initialAutoActive}
       onAutoActiveChange={d.setAutoActive}
       onAuto={async (settings) => {
-        const result = await request(
-          kind === "map" ? "map_levels" : "image_levels",
-          { ...settings },
-        );
-        const levels = kind === "map" ? result?.mapLevels : result?.levels;
+        const levels =
+          kind === "map"
+            ? (await request("map_levels", { ...settings }))?.mapLevels
+            : (await request("image_levels", { ...settings }))?.levels;
         if (levels) d.setAutoLimits(levels);
       }}
     />

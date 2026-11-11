@@ -28,10 +28,7 @@ export function ScanMapPanel({
   calibrated: boolean;
   ready: boolean;
   run: MapRun;
-  request: (
-    command: string,
-    args?: Record<string, unknown>,
-  ) => Promise<Response | undefined>;
+  request: import("./commandContracts").CommandRequestReader;
   reintegrate: boolean;
   reportPlot: ReportPlot;
   actions?: ReactNode;

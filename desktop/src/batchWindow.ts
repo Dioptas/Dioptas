@@ -5,6 +5,7 @@ import type { IntegrationRun } from "./integration";
 import { batchWindowUpdate, BATCH_BUSY_MESSAGE } from "./batchWindowState";
 import type { BatchData } from "./batchDomain";
 import type { Response } from "./types";
+import { readWindowCommand, runWindowCommand } from "./windowCommandRpc";
 
 export interface BatchWindowStatus extends MapWindowStatus {
   position?: import("./linkedPosition").PatternPosition;
@@ -48,10 +49,7 @@ export function useBatchWindow({
 }: {
   batch: BatchData | null;
   run: IntegrationRun;
-  request: (
-    command: string,
-    args?: Record<string, unknown>,
-  ) => Promise<Response | undefined>;
+  request: import("./commandContracts").CommandRequestReader;
   status: BatchWindowStatus;
   onDock: () => void;
   onOpen: () => void;
@@ -138,14 +136,16 @@ export function useBatchWindow({
           latest.current.onError(String(e));
         }
       } else if (message.type === "request") {
-        const { id, command, args, read } = message;
+        const { id, command, read } = message;
         let result: Response = {
           ok: false,
           error: BATCH_BUSY_MESSAGE,
         };
         try {
-          if (read && reads.has(command))
-            result = (await latest.current.request(command, args)) ?? result;
+          if (message.command !== "batch_hide" && read && reads.has(command))
+            result =
+              (await readWindowCommand(message, latest.current.request)) ??
+              result;
           else if (!read && command === "cancel_refinement") {
             await latest.current.cancel();
             result = { ok: true };
@@ -153,9 +153,9 @@ export function useBatchWindow({
             await hide();
             result = { ok: true };
           } else if (!read && edits.has(command)) {
-            await latest.current.run(
-              command,
-              args,
+            await runWindowCommand(
+              message,
+              latest.current.run,
               command === "batch_select"
                 ? "Loading batch frame…"
                 : "Processing batch…",

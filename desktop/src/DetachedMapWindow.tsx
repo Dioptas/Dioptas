@@ -11,6 +11,11 @@ import { ScanMapPanel } from "./ScanMapPanel";
 import { useMapPreference } from "./mapPreferences";
 import { usePlotReadout } from "./plotReadout";
 import type { Invoke, Response } from "./types";
+import type {
+  CommandInvocation,
+  CommandRequestReader,
+} from "./commandContracts";
+import { WindowCommandRpc, type WindowRunInvocation } from "./windowCommandRpc";
 import type { MapData, MapRun } from "./mapDomain";
 import "./map.css";
 
@@ -30,45 +35,22 @@ export function DetachedMapWindow() {
   const readout = usePlotReadout();
   const bridge = useRef<Invoke | null>(null);
   const channel = useRef<ReturnType<typeof mapWindowChannel> | null>(null);
-  const pending = useRef(
-    new Map<
-      string,
-      {
-        resolve: (response: Response) => void;
-        timer: ReturnType<typeof setTimeout>;
-      }
-    >(),
+  const [rpc] = useState(
+    () => new WindowCommandRpc((message) => channel.current?.send(message)),
   );
-  const rpc = useCallback(
-    (
-      command: string,
-      args: Record<string, unknown> = {},
-      read = false,
-    ): Promise<Response> =>
-      new Promise((resolve) => {
-        const id = crypto.randomUUID();
-        const timer = setTimeout(() => {
-          pending.current.delete(id);
-          resolve({ ok: false, error: "The main window did not respond." });
-        }, 120000);
-        pending.current.set(id, { resolve, timer });
-        channel.current?.send({ type: "request", id, command, args, read });
-      }),
-    [],
-  );
-  const request = useCallback(
-    async (command: string, args: Record<string, unknown> = {}) => {
+  const request = useCallback<CommandRequestReader>(
+    async <const A extends CommandInvocation>(...call: A) => {
       try {
         const response = bridge.current
-          ? await bridge.current(command, args)
-          : await rpc(command, args, true);
+          ? await bridge.current<A>(...call)
+          : await rpc.read<A>(...call);
         setReadError(
           response.ok ? null : (response.error ?? "Could not update the map."),
         );
         return response;
       } catch (error) {
         setReadError(String(error));
-        return { ok: false, error: String(error) };
+        return undefined;
       }
     },
     [rpc],
@@ -90,7 +72,7 @@ export function DetachedMapWindow() {
         while (queued && !disposed) {
           queued = false;
           const result = await request("map_snapshot");
-          if (!disposed && result.ok && "map" in result)
+          if (!disposed && result?.ok && "map" in result)
             setMap(result.map ?? null);
         }
       } catch (error) {
@@ -106,12 +88,7 @@ export function DetachedMapWindow() {
           void refresh();
         }
       } else if (message.type === "response") {
-        const task = pending.current.get(message.id);
-        if (task) {
-          clearTimeout(task.timer);
-          pending.current.delete(message.id);
-          task.resolve(message.result);
-        }
+        rpc.receive(message.id, message.result);
       }
     });
     void subscription
@@ -127,17 +104,13 @@ export function DetachedMapWindow() {
       window.removeEventListener("beforeunload", closing);
       void subscription.then((stop) => stop());
       transport.close();
-      for (const task of pending.current.values()) {
-        clearTimeout(task.timer);
-        task.resolve({ ok: false, cancelled: true });
-      }
-      pending.current.clear();
+      rpc.close();
     };
   }, [request]);
   const run = useCallback<MapRun>(
-    async (command, args = {}) => {
+    async <const A extends WindowRunInvocation>(...call: A) => {
       setError(null);
-      const response = await rpc(command, args);
+      const response = await rpc.edit<A>(...call);
       if (!response.ok) setError(response.error ?? "Map command failed.");
     },
     [rpc],
@@ -152,7 +125,7 @@ export function DetachedMapWindow() {
       polling = true;
       void request("progress")
         .then((result) => {
-          if (active && result.ok)
+          if (active && result?.ok)
             setProgressPreview(result.progress?.mapPreview);
         })
         .finally(() => {
