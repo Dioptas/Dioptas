@@ -66,10 +66,18 @@ Pinned native dependencies:
 
 | Library | Revision | Role |
 | --- | --- | --- |
-| dioptrin-io | `344011962df431a6a47e3a3fb727aa9c65df3131` | Typed readers, bounded combined raw-HDF5 fold |
-| Dioptrin | `5e245da8c3df4735f2d0d28933c22fe16ac70c1f` | Shared fixed plans, integration, geometry/calibration |
+| dioptrin-io | `dc6e30394e4374350020f8e1335f805f19e8364e` (`v0.3.0`) | Typed readers, bounded combined raw-HDF5 fold |
+| Dioptrin | `0c0d4fccc2b38a5f53b481ebf507c80cfb9a44c6` | Shared fixed plans, integration, geometry/calibration |
 | PhaseSmith | `e47507f4adf32ea2a137ddf6b735db88f8a67537` | Powder, crystallography, CIF, Bruckner |
 | Peritheos | `3c79b1aedf28c348a49cc22d9f24d92895546283` | EoS/thermal evaluation and authored core documents |
+
+The PhaseSmith pin was updated on November 11, 2026 to the publicly reachable
+`0.8.1` release after clean CI runners could no longer fetch the previous
+`f0925305` revision. Every source file in the six linked PhaseSmith crates
+(core, crystallography, execution, engine, io and model) has the same Git blob
+identity in both revisions; only package manifests changed. This restores clean
+dependency resolution without changing the linked scientific implementation.
+Earlier qualification sections below retain their historical revision context.
 
 The owner retains at most one pattern plan, cake plan and combined raw source.
 Unchanged source/settings reuse the warm state. Eligible native-endian, full-frame
