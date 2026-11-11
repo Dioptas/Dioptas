@@ -1,3 +1,4 @@
+import { DockWindowIcon } from "./WindowIcons";
 import { DetectorSurface, useDetectorDetached } from "./DetectorWindow";
 import { Input, Button } from "./ui";
 import { LayoutDivider } from "./LayoutDivider";
@@ -8,7 +9,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import { PanelLeftClose, ExternalLink, MoveHorizontal } from "lucide-react";
+import { ExternalLink, MoveHorizontal } from "lucide-react";
 import { RasterView } from "./RasterView";
 import { PatternView } from "./PatternView";
 import { ImageIntensity } from "./ImageIntensity";
@@ -416,7 +417,7 @@ export function MapView({
                   title="Dock map here"
                   onClick={mapWindow.dock}
                 >
-                  <PanelLeftClose size={16} />
+                  <DockWindowIcon size={16} />
                 </Button>
               </div>
             </div>

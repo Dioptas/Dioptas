@@ -1,3 +1,4 @@
+import { DockWindowIcon } from "./WindowIcons";
 import { Button, Input } from "./ui";
 import { scientificValue } from "./ScientificNumberInput";
 import { geometrySourceLabel } from "./GeometryProvenance";
@@ -6,7 +7,6 @@ import { useMemo, type ReactNode } from "react";
 import { decodeRaster } from "./rasterTransfer";
 import {
   ExternalLink,
-  PanelLeftClose,
   FolderOpen,
   ImageMinus,
   Image as ImageIcon,
@@ -233,7 +233,7 @@ export function IntegrationImageControls({
             disabled={!detached && !state?.hasImage}
           >
             {detached ? (
-              <PanelLeftClose size={16} />
+              <DockWindowIcon size={16} />
             ) : (
               <ExternalLink size={16} />
             )}

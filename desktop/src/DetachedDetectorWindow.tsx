@@ -1,3 +1,4 @@
+import { DockWindowIcon } from "./WindowIcons";
 import { IntegrationImageControls } from "./IntegrationPlotControls";
 import { CakeProfilePanel } from "./CakeProfilePanel";
 import { createCakeRadialAxis } from "./cakeRadialAxis";
@@ -10,7 +11,6 @@ import {
   type ComponentProps,
 } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
-import { PanelLeftClose } from "lucide-react";
 import { Button } from "./ui";
 import { RasterView, type RasterExport } from "./RasterView";
 import { ImageIntensity } from "./ImageIntensity";
@@ -354,7 +354,7 @@ export function DetachedDetectorWindow() {
               title="Return the image to the main window"
               onClick={() => channel.current?.send({ type: "dock" })}
             >
-              <PanelLeftClose size={16} />
+              <DockWindowIcon size={16} />
             </Button>
           </div>
         )}

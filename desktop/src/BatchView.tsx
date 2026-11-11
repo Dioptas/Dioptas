@@ -1,3 +1,4 @@
+import { DockWindowIcon } from "./WindowIcons";
 import { Button } from "./ui";
 import { scientificValue } from "./ScientificNumberInput";
 import { TabList } from "./TabList";
@@ -11,7 +12,6 @@ import {
   FolderOpen,
   ChartNoAxesColumn,
   Unlink,
-  PanelBottomClose,
   Settings2,
   X,
 } from "lucide-react";
@@ -380,7 +380,7 @@ export function BatchView({
               title="Move Batch to a separate window"
               onClick={onDetach}
             >
-              <ExternalLink size={15} />
+              <ExternalLink size={16} />
             </Button>
           )}
           {onDock && (
@@ -389,7 +389,7 @@ export function BatchView({
               title="Dock below the image in Integration"
               onClick={onDock}
             >
-              <PanelBottomClose size={15} />
+              <DockWindowIcon size={16} />
             </Button>
           )}
           {docked && (

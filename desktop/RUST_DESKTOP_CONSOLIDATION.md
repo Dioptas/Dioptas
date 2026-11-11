@@ -251,3 +251,17 @@ Verified with headless Chromium/WebKit Integration responsive and panel workflow
 113 frontend tests and the production build. Bounds assertions cover the full
 Batch pane and heatmap area, both floating views, re-docking, renderer retention,
 and restoration of resized/collapsed preferences. See [Batch parity](BATCH_PARITY.md).
+
+## Shared docking icon (2026-11-11)
+
+Detector, Batch and Map now share a 16 px `DockWindowIcon`: the existing
+ExternalLink window outline with its diagonal arrow pointing back inside.
+Main-window and companion Dock actions use the same component; Batch's Detach
+icon also uses the matching 16 px size.
+
+Production build, 113 frontend tests and headless Chromium/WebKit Integration
+responsive checks pass. Focused native-processor Map detach/dock checks pass in
+both browsers, including the shared icon and button size. A 16/32 px rendered
+icon comparison is in `artifacts/window-icons/`. The broader legacy
+`map_window.mjs` check timed out at its frame-selection/title assertion before
+reaching docking; that workflow was not changed for this icon update.

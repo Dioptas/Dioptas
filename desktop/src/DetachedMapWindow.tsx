@@ -1,8 +1,8 @@
+import { DockWindowIcon } from "./WindowIcons";
 import { Button } from "./ui";
 import { StatusMessage } from "./StatusMessage";
 import { processingProgressText } from "./processingProgress";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PanelLeftClose } from "lucide-react";
 import { isTauri } from "@tauri-apps/api/core";
 import { connect } from "./bridge";
 import { mapWindowChannel, type MapWindowStatus } from "./mapWindowChannel";
@@ -186,7 +186,7 @@ export function DetachedMapWindow() {
               onClick={() => channel.current?.send({ type: "dock" })}
               title="Return the map to Map mode in the main window"
             >
-              <PanelLeftClose size={16} />
+              <DockWindowIcon size={16} />
             </Button>
           }
         />
