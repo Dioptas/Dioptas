@@ -74,20 +74,6 @@ fn initial_color(index: u64) -> String {
     )
 }
 
-#[cfg(test)]
-mod color_tests {
-    #[test]
-    fn initial_colors_match_qt_phase_model_and_hex_conversion() {
-        let expected = [
-            "#cc8028", "#5dcc28", "#28ccae", "#282fcc", "#cc28bb", "#cc4f28", "#8dcc28", "#28cc7d",
-            "#2860cc", "#ab28cc", "#cc2832", "#becc28",
-        ];
-        for (index, color) in expected.iter().enumerate() {
-            assert_eq!(super::initial_color(index as u64), *color);
-        }
-    }
-}
-
 pub(crate) fn catalog() -> &'static Vec<Value> {
     static C: OnceLock<Vec<Value>> = OnceLock::new();
     C.get_or_init(|| {
@@ -865,4 +851,18 @@ fn read_jcpds(path: &Path) -> Result<Value, String> {
     }
     doc["peaks"] = json!(peaks);
     Ok(doc)
+}
+
+#[cfg(test)]
+mod color_tests {
+    #[test]
+    fn initial_colors_match_qt_phase_model_and_hex_conversion() {
+        let expected = [
+            "#cc8028", "#5dcc28", "#28ccae", "#282fcc", "#cc28bb", "#cc4f28", "#8dcc28", "#28cc7d",
+            "#2860cc", "#ab28cc", "#cc2832", "#becc28",
+        ];
+        for (index, color) in expected.iter().enumerate() {
+            assert_eq!(super::initial_color(index as u64), *color);
+        }
+    }
 }

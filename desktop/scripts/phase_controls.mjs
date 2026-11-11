@@ -311,6 +311,11 @@ try {
   await click("Toggle all phase visibility");
   await click("Save List");
   await click("Removes all phases");
+  await page
+    .getByRole("dialog", { name: "Clear all phases?", exact: true })
+    .getByRole("button", { name: "Clear all", exact: true })
+    .click();
+  await ready();
   await click("Load List");
   assert.deepEqual(
     (await call("state")).state.integration.phases.map((p) => p.pressure),

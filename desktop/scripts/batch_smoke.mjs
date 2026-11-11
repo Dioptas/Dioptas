@@ -850,6 +850,10 @@ try {
   });
   await page.getByRole("tab", { name: "Phase", exact: true }).click();
   await click(page, "Removes all phases");
+  await page
+    .getByRole("dialog", { name: "Clear all phases?", exact: true })
+    .getByRole("button", { name: "Clear all", exact: true })
+    .click();
   await ready();
   assert(await phaseToggle.isDisabled());
   await click(page, "Add phase…");

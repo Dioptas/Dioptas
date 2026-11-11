@@ -5,9 +5,26 @@ import { isTauri } from "@tauri-apps/api/core";
 import { openNativePhaseEditor } from "./phaseEditorWindow";
 import type { EditorData } from "./phaseEditorTypes";
 import { DataTable, TableScroll, TableActions } from "./DataTable";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
-import { Database, FolderOpen, Pencil, RotateCcw, Trash2 } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Database,
+  FileInput,
+  FileOutput,
+  FolderOpen,
+  ListX,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import type { IntegrationRun, IntegrationState } from "./integration";
 import type {
   PhaseEditorData,
@@ -39,9 +56,30 @@ export function IntegrationPhaseControls({
   if (!commandQueue.current)
     commandQueue.current = createPhaseCommandQueue(() => latestRun.current);
   const run = commandQueue.current;
-  const [selected, setSelected] = useState(source.phases.length - 1);
+  const [selected, setSelectedIndex] = useState(source.phases.length - 1);
+  const selectedUid = useRef(source.phases.at(-1)?.uid);
+  const setSelected = (index: number) => {
+    selectedUid.current = source.phases[index]?.uid;
+    setSelectedIndex(index);
+  };
   const previousCount = useRef(source.phases.length);
   const tableRef = useRef<HTMLTableElement>(null);
+  const clearDialog = useRef<HTMLDialogElement>(null);
+  const clearButton = useRef<HTMLButtonElement>(null);
+  const positionClearDialog = useCallback(() => {
+    const dialog = clearDialog.current,
+      button = clearButton.current;
+    if (!dialog?.open || !button) return;
+    const anchor = button.getBoundingClientRect(),
+      gap = 8;
+    dialog.style.left = `${Math.max(gap, Math.min(anchor.right - dialog.offsetWidth, window.innerWidth - dialog.offsetWidth - gap))}px`;
+    const below = anchor.bottom + gap;
+    dialog.style.top = `${below + dialog.offsetHeight <= window.innerHeight - gap ? below : Math.max(gap, anchor.top - dialog.offsetHeight - gap)}px`;
+  }, []);
+  useEffect(() => {
+    window.addEventListener("resize", positionClearDialog);
+    return () => window.removeEventListener("resize", positionClearDialog);
+  }, [positionClearDialog]);
   useEffect(() => {
     const table = tableRef.current;
     const scroll = table?.parentElement;
@@ -85,13 +123,18 @@ export function IntegrationPhaseControls({
   const [catalog, setCatalog] = useState<PhaseMaterial[] | null>(null);
   const [editor, setEditor] = useState<PhaseEditorData | null>(null);
   const phase = source.phases[selected];
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (source.phases.length > previousCount.current)
       setSelected(source.phases.length - 1);
-    else if (selected >= source.phases.length)
-      setSelected(source.phases.length - 1);
+    else {
+      const index = selectedUid.current
+        ? source.phases.findIndex((p) => p.uid === selectedUid.current)
+        : selected;
+      if (index >= 0 && index < source.phases.length) setSelectedIndex(index);
+      else setSelected(Math.min(selected, source.phases.length - 1));
+    }
     previousCount.current = source.phases.length;
-  }, [source.phases.length, selected]);
+  }, [source.phases, selected]);
   const action = (operation: string, args: Record<string, unknown> = {}) =>
     run("integration_phase", { operation, ...args }, "Updating phases…");
   const inspect = (index: number) =>
@@ -153,6 +196,7 @@ export function IntegrationPhaseControls({
       data-testid="phase-controls"
     >
       <TableActions
+        orientation="vertical"
         className="phase-toolbar"
         role="toolbar"
         aria-label="Phase actions"
@@ -197,16 +241,52 @@ export function IntegrationPhaseControls({
         >
           <Trash2 />
         </PhaseIcon>
-        <PhaseIcon
-          label="Removes all phases"
-          disabled={!source.phases.length}
-          onClick={() => {
-            action("clear");
-            setEditor(null);
-          }}
-        >
-          <RotateCcw />
-        </PhaseIcon>
+        <div className="phase-clear-group">
+          <hr />
+          <Button
+            ref={clearButton}
+            type="button"
+            aria-label="Removes all phases"
+            title="Clear all phases"
+            className="danger"
+            disabled={!source.phases.length}
+            onClick={() => {
+              clearDialog.current?.showModal();
+              positionClearDialog();
+            }}
+          >
+            <ListX size={18} aria-hidden="true" />
+          </Button>
+          <hr />
+        </div>
+        <div className="phase-move-actions">
+          <PhaseIcon
+            label="Move phase up"
+            disabled={selected <= 0}
+            onClick={() =>
+              action("move", {
+                index: selected,
+                editor_uid: phase?.uid,
+                direction: -1,
+              })
+            }
+          >
+            <ArrowUp />
+          </PhaseIcon>
+          <PhaseIcon
+            label="Move phase down"
+            disabled={selected < 0 || selected >= source.phases.length - 1}
+            onClick={() =>
+              action("move", {
+                index: selected,
+                editor_uid: phase?.uid,
+                direction: 1,
+              })
+            }
+          >
+            <ArrowDown />
+          </PhaseIcon>
+        </div>
       </TableActions>
       <TableScroll className="phase-table-scroll">
         <DataTable ref={tableRef} className="phase-table" aria-label="Phases">
@@ -373,8 +453,10 @@ export function IntegrationPhaseControls({
           {reference(phase, selected, "Selected phase reference")}
         </label>
       )}
-      <div className="phase-parameters" aria-label="Phase conditions and lists">
-        <span className="phase-step-caption">Step sizes</span>
+      <div
+        className="phase-parameters"
+        aria-label="Phase condition steps and lists"
+      >
         <div className="phase-step-controls">
           <label className="phase-condition-step">
             <span title="Pressure step">P step</span>
@@ -421,18 +503,19 @@ export function IntegrationPhaseControls({
               action("same_conditions", { enabled: e.target.checked })
             }
           />
-          Apply P/T to all
+          <span className="phase-apply-all-full">Apply to all</span>
+          <span className="phase-apply-all-compact">All</span>
         </label>
-
         <div className="phase-list-actions">
-          <Button
+          <PhaseIcon
+            label="Save List"
             disabled={
               !source.phases.length || source.phases.some((p) => !p.fileBacked)
             }
             title={
               source.phases.some((p) => !p.fileBacked)
                 ? "Phase lists reference files on disk. Save a project to retain database or unsaved phases."
-                : "Save Phase List"
+                : "Save phase list…"
             }
             onClick={() =>
               void run(
@@ -442,9 +525,11 @@ export function IntegrationPhaseControls({
               )
             }
           >
-            Save List
-          </Button>
-          <Button
+            <FileOutput />
+          </PhaseIcon>
+          <PhaseIcon
+            label="Load List"
+            title="Load phase list…"
             onClick={() =>
               void run(
                 "integration_phase_list",
@@ -453,10 +538,42 @@ export function IntegrationPhaseControls({
               )
             }
           >
-            Load List
-          </Button>
+            <FileInput />
+          </PhaseIcon>
         </div>
       </div>
+      <Dialog
+        autoOpen={false}
+        dialogRef={clearDialog}
+        returnFocusRef={clearButton}
+        className="clear-peaks-dialog"
+        aria-labelledby="clear-phases-title"
+        aria-describedby="clear-phases-description"
+      >
+        <h2 id="clear-phases-title">Clear all phases?</h2>
+        <p id="clear-phases-description">This will remove all loaded phases.</p>
+        <div className="clear-peaks-dialog-actions">
+          <Button
+            type="button"
+            autoFocus
+            onClick={() => clearDialog.current?.close()}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            className="clear-peaks-confirm"
+            disabled={!source.phases.length}
+            onClick={() => {
+              clearDialog.current?.close();
+              action("clear");
+              setEditor(null);
+            }}
+          >
+            Clear all
+          </Button>
+        </div>
+      </Dialog>
       {importFiles && (
         <PhaseImportDialog
           files={importFiles}

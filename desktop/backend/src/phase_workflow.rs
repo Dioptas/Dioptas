@@ -765,6 +765,16 @@ impl Session {
             self.phases.items.remove(i);
             return Ok(None);
         }
+        if op == "move" {
+            let direction = args["direction"]
+                .as_i64()
+                .filter(|d| [-1, 1].contains(d))
+                .ok_or("Choose phase direction -1 or 1.")?;
+            let target =
+                (i as i64 + direction).clamp(0, self.phases.items.len() as i64 - 1) as usize;
+            self.phases.items.swap(i, target);
+            return Ok(Some(target));
+        }
         if op == "editor_copy" {
             let mut p = self.phases.items[i].as_ref().clone();
             let source_name = p.name().to_string();
