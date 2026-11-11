@@ -229,7 +229,10 @@ export function IntegrationOverlayControls({
       { operation, ...args },
       "Updating overlays…",
     );
-  const move = (direction: number) => action("move", { index, direction });
+  const target = (row: number) =>
+    source.supportsOverlayUids ? { uid: overlays[row]?.uid } : { index: row };
+  const move = (direction: number) =>
+    action("move", { ...target(index), direction });
   const navigateRows = (event: RowKeyEvent<HTMLTableRowElement>) => {
     if (
       event.target !== event.currentTarget ||
@@ -278,7 +281,7 @@ export function IntegrationOverlayControls({
             title="Removes currently selected overlay"
             aria-label="Delete selected overlay"
             disabled={!selected}
-            onClick={() => action("remove", { index })}
+            onClick={() => action("remove", target(index))}
           >
             <Trash2 size={16} />
           </Button>
@@ -464,7 +467,7 @@ export function IntegrationOverlayControls({
                     checked={overlay.visible}
                     onChange={(e) =>
                       action("update", {
-                        index: row,
+                        ...target(row),
                         visible: e.target.checked,
                       })
                     }
@@ -476,7 +479,10 @@ export function IntegrationOverlayControls({
                     aria-label={`Overlay ${row + 1} color`}
                     value={overlay.color}
                     onChange={(e) =>
-                      action("update", { index: row, color: e.target.value })
+                      action("update", {
+                        ...target(row),
+                        color: e.target.value,
+                      })
                     }
                   />
                 </td>
@@ -484,7 +490,9 @@ export function IntegrationOverlayControls({
                   <OverlayName
                     name={overlay.name}
                     label={`Overlay ${row + 1} name`}
-                    onCommit={(name) => action("update", { index: row, name })}
+                    onCommit={(name) =>
+                      action("update", { ...target(row), name })
+                    }
                   />
                 </td>
                 <td>
@@ -495,7 +503,7 @@ export function IntegrationOverlayControls({
                     min={-9999999}
                     max={9999999}
                     onCommit={(scale) =>
-                      action("update", { index: row, scale })
+                      action("update", { ...target(row), scale })
                     }
                   />
                 </td>
@@ -507,7 +515,7 @@ export function IntegrationOverlayControls({
                     min={-9999999}
                     max={9999999}
                     onCommit={(offset) =>
-                      action("update", { index: row, offset })
+                      action("update", { ...target(row), offset })
                     }
                   />
                 </td>
@@ -607,7 +615,7 @@ export function IntegrationOverlayControls({
             title="Set selected overlay as background"
             aria-pressed={selected?.background ?? false}
             disabled={!selected}
-            onClick={() => action("background", { index })}
+            onClick={() => action("background", target(index))}
           >
             <PatternBackgroundIcon size={16} aria-hidden="true" />
           </Button>
@@ -665,7 +673,7 @@ export function IntegrationOverlayControls({
                   const row = overlays.findIndex((o) => o.uid === menu.uid);
                   setMenu(null);
                   menuTrigger.current?.focus();
-                  if (row >= 0) action("match_intensity", { index: row });
+                  if (row >= 0) action("match_intensity", target(row));
                 }}
               >
                 Match intensity

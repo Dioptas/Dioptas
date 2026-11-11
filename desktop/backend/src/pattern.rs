@@ -417,7 +417,7 @@ impl Patterns {
     pub fn details(&self) -> Value {
         json!({"patternName":self.name,"patternPath":if self.imported{self.path.clone().unwrap_or_default()}else{String::new()},"originalPatternColor":self.color,"originalPatternVisible":self.visible,
         "patternFileIteration":self.file_mode,"patternBackground":{"enabled":self.background.enabled,"smoothing":self.background.smoothing,"iterations":self.background.iterations,"order":self.background.order,"range":self.background.range,"overlay":self.background_uid.is_some()||self.anonymous_background.is_some()},
-        "overlays":self.overlays.iter().map(|o|json!({"uid":o.uid,"name":o.name,"visible":o.visible,"color":o.color,"scale":o.scale,"offset":o.offset,"background":self.background_uid.as_ref()==Some(&o.uid),"batchSource":o.batch_source})).collect::<Vec<_>>(),"waterfallSeparation":self.separation,"overlayDirectory":self.directory})
+        "supportsOverlayUids":true,"overlays":self.overlays.iter().map(|o|json!({"uid":o.uid,"name":o.name,"visible":o.visible,"color":o.color,"scale":o.scale,"offset":o.offset,"background":self.background_uid.as_ref()==Some(&o.uid),"batchSource":o.batch_source})).collect::<Vec<_>>(),"waterfallSeparation":self.separation,"overlayDirectory":self.directory})
     }
     pub fn configure_background(&mut self, args: &Value) -> Result<(), String> {
         let enabled = boolean(&args["enabled"])?;
@@ -726,11 +726,22 @@ impl Patterns {
                 }
             }
             _ => {
-                let i = args["index"]
-                    .as_u64()
-                    .map(|v| v as usize)
-                    .filter(|&i| i < self.overlays.len())
-                    .ok_or("Choose an overlay.")?;
+                // A queued reorder/removal changes indices. Resolve stable identities
+                // when the edit executes, and never redirect a missing UID to an index.
+                // Index-only clients remain supported for explicit Python compatibility.
+                let i = if let Some(uid) = args.get("uid") {
+                    let uid = uid.as_str().ok_or("Overlay identity must be text.")?;
+                    self.overlays
+                        .iter()
+                        .position(|overlay| overlay.uid == uid)
+                        .ok_or("The selected overlay no longer exists.")?
+                } else {
+                    args["index"]
+                        .as_u64()
+                        .and_then(|v| usize::try_from(v).ok())
+                        .filter(|&i| i < self.overlays.len())
+                        .ok_or("Choose an overlay.")?
+                };
                 match op {
                     "remove" => {
                         let o = self.overlays.remove(i);
@@ -780,7 +791,7 @@ impl Patterns {
                     "update" => {
                         for (key, v) in args.as_object().unwrap() {
                             match key.as_str() {
-                                "operation" | "index" => {}
+                                "operation" | "index" | "uid" => {}
                                 "scale" => {
                                     self.overlays[i].scale =
                                         finite(v, "Scale", -9999999.0, 9999999.0)?.max(0.0)

@@ -105,7 +105,10 @@ impl IntegrationHistory {
                 .unwrap()
                 .keys()
                 .find(|k| *k == "scale" || *k == "offset")
-                .map(|field| format!("overlay:{}:{field}", args["index"]))
+                .map(|field| {
+                    let identity = args.get("uid").unwrap_or(&args["index"]);
+                    format!("overlay:{identity}:{field}")
+                })
         } else {
             None
         };

@@ -483,7 +483,8 @@ try {
         await readFile(path.join(temp, `${name}-combined.xy`), "utf8"),
       );
       // Exercise the actual cake-click payload against the Rust child: the
-      // combined cake uses Q in Q mode; individual cakes and d-mode cakes use 2θ.
+      // Scientific pixels retain their source grid while the displayed axis
+      // follows 2θ/Q. d retains the preceding cake axis. Payloads stay in source units.
       await page.getByRole("button", { name: "Cake", exact: true }).click();
       for (const combinedCake of [true, false]) {
         if (!combinedCake) {
@@ -501,15 +502,22 @@ try {
             .getByRole("button", { name: `Pattern unit ${label}`, exact: true })
             .click();
           await idle();
-          const cakeUnit =
-            combinedCake && patternUnit === "q_A^-1" ? "q_A^-1" : "2th_deg";
           await page.waitForFunction(
             async () => !!(await window.__nativeInvoke("state", {})).cake,
           );
           const beforeClick = await invoke("state");
           assert.equal(beforeClick.state.unit, patternUnit);
-          assert.equal(beforeClick.cake.unit, cakeUnit);
+          const cakeUnit = beforeClick.cake.unit;
+          assert.ok(["2th_deg", "q_A^-1"].includes(cakeUnit));
           const canvas = page.getByTestId("cake-canvas");
+          assert.equal(
+            await canvas.getAttribute("data-radial-source-unit"),
+            cakeUnit,
+          );
+          assert.equal(
+            await canvas.getAttribute("data-radial-display-unit"),
+            patternUnit === "d_A" ? "q_A^-1" : patternUnit,
+          );
           await canvas.press("f");
           const dims = await canvas.evaluate((el) => ({
             left: +el.dataset.plotLeft,

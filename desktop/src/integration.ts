@@ -7,6 +7,8 @@ export type CorrectionMaterial = {
   density: number;
 };
 export interface IntegrationState {
+  /** Stable targets for queued overlay edits; absent on legacy Python workers. */
+  supportsOverlayUids?: boolean;
   roi: [number, number, number, number] | null;
   automaticBinning: boolean;
   actualBins: number;

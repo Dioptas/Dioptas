@@ -163,56 +163,85 @@ try {
           .innerText(),
         "A",
       );
-      for (const large of [false, true]) {
-        const layout = await page
-          .locator(".qt-overlay-waterfall-actions")
-          .evaluate((row, large) => {
-            const host = document.querySelector("[data-text-size]"),
-              previous = host.getAttribute("data-text-size");
-            host.setAttribute("data-text-size", large ? "large" : "normal");
-            const buttons = [...row.querySelectorAll("button")],
-              bounds = row.getBoundingClientRect();
-            const result = buttons.map((button) => {
-              const r = button.getBoundingClientRect(),
-                range = document.createRange();
-              range.selectNodeContents(button);
-              return {
-                left: r.left,
-                right: r.right,
-                y: r.y,
-                height: r.height,
-                width: r.width,
-                textWidth: range.getBoundingClientRect().width,
-              };
-            });
-            host.setAttribute("data-text-size", previous);
-            return { buttons: result, left: bounds.left, right: bounds.right };
-          }, large);
-        assert.equal(layout.buttons.length, 3);
-        assert.ok(
-          layout.buttons.every(
-            (b) =>
-              Math.abs(b.y - layout.buttons[0].y) < 1 &&
-              b.left >= layout.left - 1 &&
-              b.right <= layout.right + 1,
-          ),
-        );
-        assert.ok(
-          layout.buttons[0].width >= layout.buttons[0].textWidth + 8,
-          `Waterfall text fits beside A and Reset: ${JSON.stringify({ large, ...layout })}`,
-        );
+      // Both supported layouts are intentional: a stacked wide-panel rail and
+      // a compact toolbar. Test their containment rather than assuming one row.
+      for (const compact of [false, true]) {
+        for (const large of [false, true]) {
+          const layout = await page
+            .locator(".qt-overlay-waterfall-actions")
+            .evaluate(
+              async (row, { large, compact }) => {
+                const host = document.querySelector("[data-text-size]"),
+                  previous = host.getAttribute("data-text-size");
+                const panel = row.closest(".integration-tab-overlay");
+                const previousStyle = panel.style.cssText;
+                if (compact) panel.style.maxWidth = "550px";
+                host.setAttribute("data-text-size", large ? "large" : "normal");
+                await new Promise((resolve) =>
+                  requestAnimationFrame(() => requestAnimationFrame(resolve)),
+                );
+                const buttons = [...row.querySelectorAll("button")],
+                  bounds = row.getBoundingClientRect();
+                const result = buttons.map((button) => {
+                  const r = button.getBoundingClientRect(),
+                    range = document.createRange();
+                  range.selectNodeContents(button);
+                  return {
+                    left: r.left,
+                    right: r.right,
+                    y: r.y,
+                    height: r.height,
+                    width: r.width,
+                    textWidth: range.getBoundingClientRect().width,
+                  };
+                });
+                const measuredCompact =
+                  getComputedStyle(row).gridTemplateColumns.split(" ").length >
+                  2;
+                host.setAttribute("data-text-size", previous);
+                panel.style.cssText = previousStyle;
+                return {
+                  buttons: result,
+                  compact: measuredCompact,
+                  left: bounds.left,
+                  right: bounds.right,
+                };
+              },
+              { large, compact },
+            );
+          assert.equal(layout.compact, compact);
+          assert.equal(layout.buttons.length, 3);
+          assert.ok(
+            layout.buttons.every(
+              (b) =>
+                (!layout.compact || Math.abs(b.y - layout.buttons[0].y) < 1) &&
+                b.left >= layout.left - 1 &&
+                b.right <= layout.right + 1,
+            ),
+          );
+          assert.ok(
+            layout.buttons[0].width >= layout.buttons[0].textWidth + 8,
+            `Waterfall text fits beside A and Reset: ${JSON.stringify({ large, ...layout })}`,
+          );
+        }
       }
       const spacing = page.getByRole("spinbutton", {
         name: "Waterfall separation",
         exact: true,
       });
       assert.equal(Number(await spacing.inputValue()), generatedSpacing);
+      // Auto uses each curve's mean above its own minimum, then gives each
+      // nonflat curve equal weight; constant offsets do not change spacing.
+      const signals = state.pattern.curves.flatMap((curve) => {
+        const values = curve.y.filter(Number.isFinite);
+        const minimum = Math.min(...values);
+        return minimum < Math.max(...values)
+          ? [values.reduce((sum, y) => sum + y - minimum, 0) / values.length]
+          : [];
+      });
       const range =
-        Math.max(
-          ...state.pattern.curves.map(
-            (c) => Math.max(...c.y) - Math.min(...c.y),
-          ),
-        ) * 0.1;
+        (signals.reduce((sum, signal) => sum + signal, 0) / signals.length) *
+        0.1;
       const base = 10 ** Math.floor(Math.log10(range));
       const expectedSpacing =
         base * [1, 2, 5, 10].find((v) => v >= range / base);
