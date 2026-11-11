@@ -1,3 +1,10 @@
+import type { ComponentProps } from "react";
+import type { CakeProfilePanel } from "./CakeProfilePanel";
+import type { IntegrationImageControls } from "./IntegrationPlotControls";
+import type {
+  ProfileInvocation,
+  ProfileReply,
+} from "./detectorProfileCommands";
 import { CakeProfileWorkspace } from "./CakeProfileWorkspace";
 import {
   Children,
@@ -419,19 +426,27 @@ export function DetectorWindowTools({
   controls,
   profile,
 }: {
-  controls: ReactElement | null;
-  profile: ReactElement | null;
+  controls: ReactElement<
+    ComponentProps<typeof IntegrationImageControls>
+  > | null;
+  profile: ReactElement<ComponentProps<typeof CakeProfilePanel>> | null;
 }) {
   const owner = useContext(DetectorWindowContext);
   const latest = useRef(owner);
   latest.current = owner;
-  const controlProps = controls?.props as Record<string, unknown> | undefined;
-  const profileProps = profile?.props as Record<string, unknown> | undefined;
+  const controlProps = controls?.props;
+  const profileProps = profile?.props;
   const value = detectorTools(
     controlProps
       ? {
           ...controlProps,
-          run: async (command: string, args: Record<string, unknown> = {}) => {
+          run: async (
+            command: "settings",
+            args: Pick<
+              import("./commandPayloads").IntegrationSettingsPayload,
+              "use_mask" | "transparent_mask"
+            > = {},
+          ) => {
             if (
               command !== "settings" ||
               !Object.keys(args).length ||
@@ -442,36 +457,28 @@ export function DetectorWindowTools({
               )
             )
               throw Error("This image control is unavailable.");
-            await (controlProps.run as import("./integration").IntegrationRun)(
-              command,
-              args,
-            );
+            await controlProps.run(command, args);
           },
         }
       : null,
     profileProps
       ? {
           ...profileProps,
-          run: async (
-            command: string,
-            args: Record<string, unknown> = {},
-            message = "",
-          ) => {
+          run: async (...call: ProfileInvocation) => {
+            const [command, args, message = ""] = call;
             if (!["cake_profile", "save_cake_profile"].includes(command))
               throw Error("This profile command is unavailable.");
-            let result: Response = { ok: false, cancelled: true };
-            await (profileProps.run as import("./integration").IntegrationRun)(
-              command,
-              args,
-              message,
-              (reply) => {
-                result = {
-                  ok: reply.ok,
-                  error: reply.error,
-                  cakeProfile: reply.cakeProfile,
-                };
-              },
-            );
+            let result: ProfileReply = { ok: false, cancelled: true };
+            const receive = (reply: ProfileReply) => {
+              result = {
+                ok: reply.ok,
+                error: reply.error,
+                cakeProfile: reply.cakeProfile,
+              };
+            };
+            if (command === "cake_profile")
+              await profileProps.run(command, args, message, receive);
+            else await profileProps.run(command, args, message, receive);
             return result;
           },
         }

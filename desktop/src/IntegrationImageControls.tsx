@@ -1,3 +1,5 @@
+import { forwardAction } from "./commandDispatch";
+import type { CommandInvocation, CheckedInvocation } from "./commandContracts";
 import { Input, Button, Select } from "./ui";
 import { IntegrationImageSourceControl } from "./IntegrationImageSourceControl";
 import { MiddleElidedInput, MiddleElidedText } from "./MiddleElidedInput";
@@ -81,9 +83,13 @@ export function IntegrationImageControls({
     source.frame,
     source.frames,
   ]);
-  const send: import("./commandContracts").CommandAction = (...call) => {
+  const send: import("./commandContracts").CommandAction = <
+    A extends CommandInvocation,
+  >(
+    ...call: CheckedInvocation<A>
+  ) => {
     setSourceNotice(null);
-    action(...call);
+    forwardAction<A>(action, call);
   };
   const loadFilename = () => {
     if (fileDraft.trim())

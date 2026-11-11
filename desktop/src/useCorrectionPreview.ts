@@ -80,7 +80,10 @@ export function useCorrectionPreview(
     state?.configurationContext,
   ]);
   const map = visible && selected?.context === context ? selected.map : null;
-  const load = async (kind: string, settings?: AutoLevels) => {
+  const load = async (
+    kind: import("./commandPayloads").CorrectionPreviewKind,
+    settings?: AutoLevels,
+  ) => {
     const epoch = ++generation.current;
     // A failed or superseded request must never leave a preceding map visible.
     if (!settings) setSelected(null);
@@ -119,7 +122,8 @@ export function useCorrectionPreview(
         : undefined;
     },
     close,
-    toggle: (kind: string) => (map?.kind === kind ? close() : void load(kind)),
+    toggle: (kind: import("./commandPayloads").CorrectionPreviewKind) =>
+      map?.kind === kind ? close() : void load(kind),
     auto: (settings: AutoLevels) =>
       map ? load(map.kind, settings) : Promise.resolve(),
     beforeCommand: (command: string) => {

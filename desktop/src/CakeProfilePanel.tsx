@@ -37,7 +37,7 @@ export function CakeProfilePanel({
   bins: number;
   onBins: (bins: number) => void;
   ready: boolean;
-  run: IntegrationRun;
+  run: import("./detectorProfileCommands").ProfileRun;
   reportPlot: ReportPlot;
   onInspect: (azimuth: number) => void;
   cakeView: PlotRange;
@@ -75,7 +75,7 @@ export function CakeProfilePanel({
     key: string;
     source: string;
     args: NonNullable<typeof args>;
-    run: IntegrationRun;
+    run: import("./detectorProfileCommands").ProfileRun;
   } | null>(null);
   useEffect(() => {
     alive.current = true;

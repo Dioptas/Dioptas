@@ -2,7 +2,7 @@ import type { IntegrationState } from "./integration";
 import type { Raster, State } from "./types";
 
 export interface CorrectionPreview {
-  kind: string;
+  kind: import("./commandPayloads").CorrectionPreviewKind;
   label: string;
   units: string;
   convention: "divisor";

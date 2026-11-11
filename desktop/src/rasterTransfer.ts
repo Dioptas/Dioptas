@@ -1,3 +1,4 @@
+import type { CheckedInvocation } from "./commandContracts";
 import type {
   CommandInvocation,
   CommandName,
@@ -84,7 +85,7 @@ export class RasterTransfer {
   }
 
   call<const A extends CommandInvocation>(
-    ...call: A
+    ...call: CheckedInvocation<A>
   ): Promise<CommandResult<A[0]>>;
   call(
     action: "detector_snapshot",
@@ -269,4 +270,13 @@ export function normalizeCompatibilityResult<C extends CommandName>(
   )
     return { ok: true, noPeakFound: true } as CommandResult<C>;
   return response;
+}
+
+/** Detector callback replies are already correlated by the event RPC's id.
+ * Its narrow acknowledgement/data envelope is deliberately different from the
+ * complete native command result. Keep that wire assertion at this boundary. */
+export function detectorProfileReply(
+  value: unknown,
+): import("./detectorProfileCommands").ProfileReply | undefined {
+  return value as import("./detectorProfileCommands").ProfileReply | undefined;
 }

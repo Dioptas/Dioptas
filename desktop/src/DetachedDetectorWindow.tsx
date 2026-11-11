@@ -17,7 +17,7 @@ import { RasterView, type RasterExport } from "./RasterView";
 import { ImageIntensity } from "./ImageIntensity";
 import { ReadingFields } from "./PlotStatus";
 import { StatusMessage } from "./StatusMessage";
-import { RasterTransfer } from "./rasterTransfer";
+import { RasterTransfer, detectorProfileReply } from "./rasterTransfer";
 import {
   detectorWindowChannel,
   type DetectorWindowStatus,
@@ -83,10 +83,14 @@ export function DetachedDetectorWindow() {
       }),
     [],
   );
-  const profileRun = useCallback<import("./integration").IntegrationRun>(
-    async (command, args = {}, message = "", done) => {
-      const reply = (await event("profile.run", [command, args, message])) as
-        Response | undefined;
+  const profileRun = useCallback<
+    import("./detectorProfileCommands").ProfileRun
+  >(
+    async (...call) => {
+      const [command, args, message = "", done] = call;
+      const reply = detectorProfileReply(
+        await event("profile.run", [command, args, message]),
+      );
       if (reply) done?.(reply);
     },
     [event],

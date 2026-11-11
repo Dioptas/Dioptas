@@ -134,6 +134,7 @@ export interface CommandContracts {
   >;
   calibrate: Spec<
     {
+      restart?: boolean;
       refine?: boolean;
       parameters?: P.FitParameters;
       polarization?: number;

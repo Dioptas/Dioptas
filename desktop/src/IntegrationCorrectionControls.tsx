@@ -1,3 +1,4 @@
+import type { CorrectionKind, CorrectionPreviewKind } from "./commandPayloads";
 import { correctionPreviewAvailable } from "./correctionPreview";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ChartNoAxesCombined } from "lucide-react";
@@ -37,11 +38,11 @@ export function IntegrationCorrectionControls({
   tab,
   onTabChange,
 }: {
-  tab: string;
-  onTabChange: (tab: string) => void;
+  tab: CorrectionPreviewKind;
+  onTabChange: (tab: CorrectionPreviewKind) => void;
   state: State;
-  previewKind: string | null;
-  onPreview: (kind: string) => void;
+  previewKind: CorrectionPreviewKind | null;
+  onPreview: (kind: CorrectionPreviewKind) => void;
   run: IntegrationRun;
 }) {
   const source = state.integration;
@@ -55,7 +56,7 @@ export function IntegrationCorrectionControls({
   // Merge each complete edit against the previous successful result, so rapid
   // Tab/Enter edits cannot overwrite a preceding parameter with a stale value.
   const edit = (
-    kind: string,
+    kind: CorrectionKind,
     patch: {
       enabled?: boolean;
       parameters?: Record<string, number>;
@@ -149,7 +150,7 @@ export function IntegrationCorrectionControls({
             correction.container?.material.mode === "formula")
         }
         onCommit={async (value) => {
-          if (correction.enabled)
+          if (correction.enabled && tab !== "flat" && tab !== "transfer")
             await edit(tab, { parameters: { [key]: value } });
           else
             setInactiveParameters((previous) => ({
@@ -192,16 +193,18 @@ export function IntegrationCorrectionControls({
         className="integration-subnav processing-subnav"
         aria-label="Correction type"
       >
-        {[
-          ["flat", "Flat field"],
-          ["transfer", "Transfer"],
-          ["plate", "Plate"],
-          ["slab", "Slab"],
-          ["cylinder", "Cylinder"],
-          ["sphere", "Sphere"],
-          ["cbn", "cBN seat"],
-          ["oiadac", "Detector absorption"],
-        ].map(([key, label]) => (
+        {(
+          [
+            ["flat", "Flat field"],
+            ["transfer", "Transfer"],
+            ["plate", "Plate"],
+            ["slab", "Slab"],
+            ["cylinder", "Cylinder"],
+            ["sphere", "Sphere"],
+            ["cbn", "cBN seat"],
+            ["oiadac", "Detector absorption"],
+          ] as const
+        ).map(([key, label]) => (
           <ProcessingType
             key={key}
             label={label}

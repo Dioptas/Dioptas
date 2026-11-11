@@ -1,3 +1,4 @@
+import type { CustomCommandPayload } from "./commandPayloads";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Invoke } from "./types";
 import { commandIconChoices, type CommandIconId } from "./customCommandIcons";
@@ -119,6 +120,18 @@ export function missingCommandInput(
   return null;
 }
 
+type CustomRequestCall =
+  | [operation?: "list", payload?: {}, recordHistory?: boolean]
+  | [
+      operation: "save",
+      payload: { command: CustomCommand },
+      recordHistory?: boolean,
+    ]
+  | [
+      operation: "delete" | "run",
+      payload: { identifier: string },
+      recordHistory?: boolean,
+    ];
 export function useCustomCommands(invoke: Invoke, session: unknown) {
   const [commands, setCommands] = useState<CustomCommand[]>([]);
   const [runs, setRuns] = useState<Record<string, CustomCommandRun>>({});
@@ -158,11 +171,8 @@ export function useCustomCommands(invoke: Invoke, session: unknown) {
   if (iconPreferences.current === null)
     iconPreferences.current = readIconPreferences();
   const request = useCallback(
-    async (
-      operation = "list",
-      payload: Record<string, unknown> = {},
-      recordHistory = true,
-    ) => {
+    async (...call: CustomRequestCall) => {
+      const [operation = "list", payload = {}, recordHistory = true] = call;
       if (applyingHistory.current && recordHistory) return false;
       if (operation === "list" && mutatePending.current) return false;
       if (operation !== "list" && mutatePending.current) return false;
@@ -173,20 +183,21 @@ export function useCustomCommands(invoke: Invoke, session: unknown) {
       }
       try {
         const before = copyCommands(currentCommands.current);
-        const submitted =
-          operation === "save" && payload.command
-            ? { ...(payload.command as CustomCommand) }
-            : null;
+        const submitted = call[0] === "save" ? { ...call[1].command } : null;
         // Supplying the ID also lets older workers return a newly saved action
         // that can be matched to its frontend-only appearance preference.
         if (submitted && !submitted.id) submitted.id = commandId();
-        const requestPayload = submitted
-          ? { ...payload, command: submitted }
-          : payload;
-        let result = await invoke("custom_command", {
-          operation,
-          ...requestPayload,
-        });
+        let requestPayload: CustomCommandPayload;
+        if (operation === "list") requestPayload = { operation };
+        else if (operation === "save" && submitted)
+          requestPayload = { operation, command: submitted };
+        else if (call[0] === "delete" || call[0] === "run")
+          requestPayload = {
+            operation: call[0],
+            identifier: call[1].identifier,
+          };
+        else throw Error("Choose a custom action operation.");
+        let result = await invoke("custom_command", requestPayload);
         // A preview worker loaded before the expanded icon set may accept only
         // the original symbols. Keep the chosen appearance in the frontend.
         if (
@@ -198,8 +209,7 @@ export function useCustomCommands(invoke: Invoke, session: unknown) {
           ].includes(result.error ?? "")
         ) {
           result = await invoke("custom_command", {
-            operation,
-            ...requestPayload,
+            operation: "save",
             command: { ...submitted, icon: "terminal" },
           });
         }
@@ -218,6 +228,7 @@ export function useCustomCommands(invoke: Invoke, session: unknown) {
           else preferences[submitted.id] = icon;
         } else if (
           operation === "delete" &&
+          "identifier" in payload &&
           typeof payload.identifier === "string"
         ) {
           delete preferences[payload.identifier];
@@ -252,7 +263,9 @@ export function useCustomCommands(invoke: Invoke, session: unknown) {
             recordHistory &&
             (operation === "save" || operation === "delete")
           ) {
-            const affectedId = submitted?.id ?? payload.identifier;
+            const affectedId =
+              submitted?.id ??
+              ("identifier" in payload ? payload.identifier : undefined);
             const previous = before.find(
               (command) => command.id === affectedId,
             );

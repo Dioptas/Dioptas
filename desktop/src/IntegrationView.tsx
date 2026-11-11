@@ -60,8 +60,11 @@ export function IntegrationView({
   setFileStep,
 }: {
   state: State | null;
-  correctionPreviewKind: string | null;
-  onCorrectionPreview: (kind: string) => void;
+  correctionPreviewKind:
+    import("./commandPayloads").CorrectionPreviewKind | null;
+  onCorrectionPreview: (
+    kind: import("./commandPayloads").CorrectionPreviewKind,
+  ) => void;
   overlayReveal?: number;
   controlsCollapsed: boolean;
   onControlsCollapsedChange: (collapsed: boolean) => void;
@@ -144,7 +147,8 @@ export function IntegrationView({
     retainedReferenceTab = referenceTab;
   }, [tab, primaryTab, referenceTab]);
   const [backgroundTab, setBackgroundTab] = useState("pattern");
-  const [correctionTab, setCorrectionTab] = useState("flat");
+  const [correctionTab, setCorrectionTab] =
+    useState<import("./commandPayloads").CorrectionPreviewKind>("flat");
   const [frameStep, setFrameStep] = useState(1);
   const [patternStep, setPatternStep] = useState(1);
   if (!source || !state) return null;

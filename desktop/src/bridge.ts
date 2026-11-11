@@ -1,6 +1,6 @@
 import { withErrorReporting, reportFailure } from "./errorReporting";
 import { RasterTransfer } from "./rasterTransfer";
-import type { Invoke, CommandInvocation } from "./commandContracts";
+import type { Invoke } from "./commandContracts";
 import { isTauri, invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
@@ -25,8 +25,7 @@ async function rawConnect(): Promise<Invoke> {
     const transfer = new RasterTransfer((action, payload, cachedBuffers) =>
       invoke<ArrayBuffer>("desktop_invoke", { action, payload, cachedBuffers }),
     );
-    return async <A extends CommandInvocation>(...call: A) =>
-      transfer.call<A>(...call);
+    return transfer.call.bind(transfer);
   }
   if (window.pywebview?.api.invoke) return window.pywebview.api.invoke;
   return new Promise((resolve, reject) => {

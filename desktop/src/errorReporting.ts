@@ -1,3 +1,5 @@
+import { forwardInvoke } from "./commandDispatch.ts";
+import type { CheckedInvocation } from "./commandContracts";
 import { normalizeCompatibilityResult } from "./rasterTransfer.ts";
 import type { Response } from "./types";
 import type { Invoke, CommandInvocation } from "./commandContracts";
@@ -138,7 +140,7 @@ export function reportFailure(
   );
 }
 export function withErrorReporting(invoke: Invoke): Invoke {
-  return async <A extends CommandInvocation>(...call: A) => {
+  return async <A extends CommandInvocation>(...call: CheckedInvocation<A>) => {
     const [action, args = {}] = call;
     const entry =
       !quiet.has(action) &&
@@ -151,7 +153,7 @@ export function withErrorReporting(invoke: Invoke): Invoke {
         : undefined;
     let response: import("./commandContracts").CommandResult<A[0]>;
     try {
-      response = await invoke<A>(...call);
+      response = await forwardInvoke<A>(invoke, call);
     } catch (error) {
       if (entry) entry.status = "failed";
       reportFailure(action, error, args);

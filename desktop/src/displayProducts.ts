@@ -1,5 +1,6 @@
+import type { CheckedInvocation } from "./commandContracts";
 import type { Invoke, CommandInvocation } from "./commandContracts";
-import { withTransportMetadata } from "./commandDispatch.ts";
+import { withTransportMetadata, forwardInvoke } from "./commandDispatch.ts";
 
 /** One display-demand policy for image browsing, Batch, Map and validation. */
 export function wantsCake(view: {
@@ -31,7 +32,7 @@ export function withRequestedProducts(
   invoke: Invoke,
   products: () => { cake: boolean; rings: boolean },
 ): Invoke {
-  return <A extends CommandInvocation>(...call: A) => {
+  return <A extends CommandInvocation>(...call: CheckedInvocation<A>) => {
     const [action, payload] = call;
     const explicitCake =
       action === "display_products"
@@ -49,8 +50,9 @@ export function withRequestedProducts(
       typeof payload.rings === "boolean"
         ? payload.rings
         : products().rings;
-    return invoke<A>(
-      ...withTransportMetadata(call, {
+    return forwardInvoke<A>(
+      invoke,
+      withTransportMetadata<A>(call, {
         requested_products: { cake: explicitCake, rings: explicitRings },
       }),
     );
