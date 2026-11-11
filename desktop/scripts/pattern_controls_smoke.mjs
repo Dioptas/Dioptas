@@ -64,6 +64,40 @@ try {
       assert.equal(await field("Pattern directory").count(), 0);
       // Empty-folder enabling asks first; cancel never enables Autocreate.
       await check("Autocreate").click();
+      const folderNotice = page.getByRole("dialog", {
+        name: "Choose a save folder",
+        exact: true,
+      });
+      await folderNotice.waitFor();
+      assert.equal(commands.includes("integration_output_directory"), false);
+      assert.equal(await folderNotice.getByRole("button").count(), 2);
+      assert.ok(
+        (await folderNotice.textContent()).includes(
+          "where pattern files will be saved",
+        ),
+      );
+      await page.screenshot({
+        path: path.join(artifacts, `${name}-choose-folder-notice.png`),
+      });
+      await folderNotice
+        .getByRole("button", { name: "Cancel", exact: true })
+        .click();
+      assert.equal(await folderNotice.count(), 0);
+      assert.equal(
+        await check("Autocreate").evaluate(
+          (el) => el === document.activeElement,
+        ),
+        true,
+      );
+      assert.equal(commands.includes("integration_output_directory"), false);
+      await check("Autocreate").click();
+      await page.keyboard.press("Escape");
+      assert.equal(await folderNotice.count(), 0);
+      assert.equal(commands.includes("integration_output_directory"), false);
+      await check("Autocreate").click();
+      await folderNotice
+        .getByRole("button", { name: "Choose folder…", exact: true })
+        .click();
       await settle();
       assert.ok(commands.includes("integration_output_directory"));
       assert.equal(commands.includes("integration_autocreate"), false);
@@ -74,6 +108,9 @@ try {
       );
       cancelFolder = false;
       await check("Autocreate").click();
+      await folderNotice
+        .getByRole("button", { name: "Choose folder…", exact: true })
+        .click();
       await page.waitForFunction(
         () => document.querySelector(".integration-autocreate input")?.checked,
       );
@@ -83,6 +120,7 @@ try {
       );
       await check("Autocreate").click();
       await settle();
+      assert.equal(await folderNotice.count(), 0);
       await button("Choose pattern folder").click();
       await settle();
       assert.equal(await check("Autocreate").isChecked(), false);

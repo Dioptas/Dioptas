@@ -1,6 +1,7 @@
-import { Input, Button } from "./ui";
+import { Input, Button, Portal } from "./ui";
+import { Dialog } from "./Dialog";
 import { MiddleElidedInput, MiddleElidedText } from "./MiddleElidedInput";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import type { IntegrationRun, IntegrationState } from "./integration";
 import { Check } from "./IntegrationFields";
 import { IntegrationFileNavigator } from "./IntegrationFileNavigator";
@@ -26,6 +27,8 @@ export function IntegrationPatternControls({
   const path = source.patternPath ?? "";
   const filename = path.split(/[\\/]/).at(-1) ?? "";
   const [fileDraft, setFileDraft] = useState(filename);
+  const [folderNoticeOpen, setFolderNoticeOpen] = useState(false);
+  const folderNoticeId = useId();
   const directory = source.outputDirectory;
   useEffect(() => setFileDraft(filename), [filename, path]);
   const loadFilename = () => {
@@ -35,18 +38,22 @@ export function IntegrationPatternControls({
         directory,
       });
   };
+  const chooseAutocreateFolder = async () => {
+    setFolderNoticeOpen(false);
+    let selected: string | undefined;
+    await action("integration_output_directory", {}, (result) => {
+      if (!result.cancelled)
+        selected = result.state?.integration?.outputDirectory;
+    });
+    if (selected)
+      await action("integration_autocreate", {
+        enabled: true,
+        directory: selected,
+      });
+  };
   const setAutocreate = async (enabled: boolean) => {
     if (enabled && !directory) {
-      let selected: string | undefined;
-      await action("integration_output_directory", {}, (result) => {
-        if (!result.cancelled)
-          selected = result.state?.integration?.outputDirectory;
-      });
-      if (selected)
-        await action("integration_autocreate", {
-          enabled: true,
-          directory: selected,
-        });
+      setFolderNoticeOpen(true);
     } else {
       await action("integration_autocreate", {
         enabled,
@@ -145,6 +152,35 @@ export function IntegrationPatternControls({
           />
         ))}
       </div>
+      {folderNoticeOpen && (
+        <Portal>
+          <Dialog
+            className="ui-confirm-dialog autocreate-folder-dialog"
+            aria-labelledby={`${folderNoticeId}-title`}
+            aria-describedby={`${folderNoticeId}-description`}
+            onDismiss={() => setFolderNoticeOpen(false)}
+          >
+            <h2 id={`${folderNoticeId}-title`}>Choose a save folder</h2>
+            <p id={`${folderNoticeId}-description`}>
+              Before enabling Autocreate, select the folder where pattern files
+              will be saved.
+            </p>
+            <div className="ui-dialog-actions">
+              <Button type="button" onClick={() => setFolderNoticeOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                autoFocus
+                onClick={chooseAutocreateFolder}
+              >
+                Choose folder…
+              </Button>
+            </div>
+          </Dialog>
+        </Portal>
+      )}
     </div>
   );
 }

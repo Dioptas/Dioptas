@@ -19,3 +19,14 @@
   white-space: nowrap;
   flex: 0 0 auto;
 }
+.ui-confirm-dialog.autocreate-folder-dialog {
+  width: min(420px, calc(100vw - 32px));
+}
+.autocreate-folder-dialog h2 {
+  margin: 0 0 12px;
+  font-size: var(--text-heading);
+}
+.autocreate-folder-dialog p {
+  margin: 0;
+  line-height: 1.5;
+}
