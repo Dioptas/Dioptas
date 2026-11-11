@@ -6,6 +6,7 @@ mod color_picker;
 mod processor;
 mod processor_reload;
 mod phase_editor;
+mod peritheos_manual;
 mod map_window;
 mod detector_window;
 mod smoke_storage;
@@ -235,28 +236,7 @@ fn finish_packet(packet: Result<Packet, String>, action: &str) -> Result<Packet,
             .as_str()
             .filter(|_| result["ok"] == true)
         {
-            if !(url.starts_with("https://") || url.starts_with("http://"))
-                || url.contains(['\n', '\r', '\0'])
-            {
-                return Err("Invalid record documentation URL.".into());
-            }
-            #[cfg(target_os = "macos")]
-            let mut command = std::process::Command::new("open");
-            #[cfg(target_os = "linux")]
-            let mut command = std::process::Command::new("xdg-open");
-            #[cfg(target_os = "windows")]
-            let mut command = {
-                let mut c = std::process::Command::new("rundll32");
-                c.arg("url.dll,FileProtocolHandler");
-                c
-            };
-            command
-                .arg(url)
-                .stdin(std::process::Stdio::null())
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null())
-                .spawn()
-                .map_err(|e| format!("The system browser could not open the documentation: {e}"))?;
+            peritheos_manual::open_system_browser(url)?;
         }
     }
     Ok(packet)
@@ -404,6 +384,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             color_picker::prepare_color_picker,
             desktop_invoke,
+            peritheos_manual::open_peritheos_manual,
             phase_editor::open_phase_editor,
             map_window::open_map_window,
             map_window::close_map_window,

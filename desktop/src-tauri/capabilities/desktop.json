@@ -24,6 +24,7 @@
     "allow-open-detector-window",
     "allow-close-detector-window",
     "allow-publish-detector-snapshot",
-    "core:event:allow-emit-to"
+    "core:event:allow-emit-to",
+    "allow-open-peritheos-manual"
   ]
 }

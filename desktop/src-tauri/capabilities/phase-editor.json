@@ -2,7 +2,9 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "phase-editor",
   "description": "The independent phase editor shares the local processing session through bounded phase commands.",
-  "windows": ["phase-editor"],
+  "windows": [
+    "phase-editor"
+  ],
   "permissions": [
     "allow-desktop-invoke",
     "core:window:allow-close",
@@ -14,6 +16,7 @@
     "core:window:allow-set-position",
     "core:window:allow-set-size",
     "core:window:allow-is-decorated",
-    "core:window:allow-destroy"
+    "core:window:allow-destroy",
+    "allow-open-peritheos-manual"
   ]
 }

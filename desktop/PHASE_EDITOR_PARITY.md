@@ -211,3 +211,38 @@ selector offers the adapter's existing editable types.
 Native macOS and browser tests do not qualify Windows/Linux
 packaging. Source-only scientific records retain the existing model's loading
 and validation restrictions. This is scoped parity, not complete Qt replacement.
+
+
+## Contextual model documentation — November 11, 2026
+
+The EoS and thermal-model selectors now show a short explanation and a link to
+the corresponding section of the PeriTheos manual. Thermal choice fields show
+the selected law beside the control: expansion, reference volume, bulk modulus,
+Debye temperature and thermal-pressure reference. Debye help distinguishes the
+integrated Grüneisen law from the variable-exponent convention, shows the q=0
+limit, defines symbols, and states the different logarithmic volume derivative
+of the variable-exponent law. Other law equations include the absolute- versus
+reference-temperature expansion convention and the cubic reciprocal-modulus
+polynomial. Help follows the backend's current accepted field values.
+
+Equations use local MathML, with accessible equation labels, without loading a
+remote renderer or performing scientific calculations in the UI. Descriptions
+and links are maintained in `phaseModelHelp.ts`, checked against the PeriTheos
+equation reference and the native implementation. Unknown future models fall
+back to the relevant manual overview. Documentation remains available for
+read-only records.
+
+Native links use the host's `open_peritheos_manual` command to open the system
+browser. This command accepts only the PeriTheos manual origin. Existing catalog
+record links retain their current behavior through the same system-browser
+launcher. Help navigation does not send a scientific edit or replace the editor
+page. Browser previews use ordinary external links. `npm run test:phase-model-help`
+checks schema choice coverage, MathML rendering in Chromium/WebKit, accepted
+native law changes, equation/help updates and the native link invocation/error
+path. Host tests cover the manual origin and invalid URL rejection.
+
+Verification passes with the matching native processor: frontend production
+build, 117 frontend checks, 33 host tests, the new model-help check, and the
+existing publication-metadata regression in both Chromium and WebKit. All 27
+linked equation-reference anchors were checked against the public manual.
+The actual OS browser was not opened during headless verification.

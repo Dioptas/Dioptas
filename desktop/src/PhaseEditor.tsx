@@ -17,6 +17,8 @@ import { PhaseEditorStructure } from "./PhaseEditorStructure";
 import { PhaseEditorConfirm } from "./PhaseEditorConfirm";
 import { PhaseAssessmentBadge } from "./PhaseAssessmentBadge";
 import { PhaseEditorMetadata } from "./PhaseEditorMetadata";
+import { PhaseModelExplanation } from "./PhaseModelExplanation";
+import { choiceHelp, modelHelp } from "./phaseModelHelp";
 import "./phaseEditor.css";
 
 export function PhaseEditor({
@@ -195,65 +197,91 @@ export function PhaseEditor({
   // Local edits are serialized without removing keyboard focus during processing.
   const transportLocked = (!ready && pending === 0) || pending > 0;
   const locked = (!ready && pending === 0) || metadataDirty;
-  const field = (f: EditorField, thermal = false) => (
-    <label
-      className={`pe-field${f.choices?.length ? " pe-field-choice" : ""}${(f.unit?.length ?? 0) > 8 ? " pe-field-wide" : ""}`}
-      key={`${data.index}-${data.reference}-${f.key}`}
-    >
-      <span title={f.description ? `${f.description} · ${f.key}` : f.key}>
-        {f.label}
-        {f.isDefault && (
-          <sup className="pe-default" title="Model default">
-            *
-          </sup>
+  const field = (f: EditorField, thermal = false) => {
+    const help = f.choices?.length
+      ? choiceHelp(
+          f.key,
+          String(f.value ?? f.default ?? ""),
+          String(
+            data.thermalFields.find(
+              (field) => field.key === "reference_volume_law",
+            )?.value ?? "integrated_expansivity",
+          ),
+        )
+      : null;
+    const helpId = `pe-choice-${f.key}-help`;
+    const editor = (
+      <label
+        className={`pe-field${f.choices?.length ? " pe-field-choice" : ""}${(f.unit?.length ?? 0) > 8 ? " pe-field-wide" : ""}`}
+        key={`${data.index}-${data.reference}-${f.key}`}
+      >
+        <span title={f.description ? `${f.description} · ${f.key}` : f.key}>
+          {f.label}
+          {f.isDefault && (
+            <sup className="pe-default" title="Model default">
+              *
+            </sup>
+          )}
+        </span>
+        {!!f.choices?.length ? (
+          <Select
+            aria-label={f.label}
+            aria-describedby={help ? helpId : undefined}
+            title={f.description}
+            value={String(f.value ?? "")}
+            disabled={locked || !data.eosEditable}
+            onChange={(e) =>
+              void act("editor_thermal_parameter", {
+                parameter: f.key,
+                value: e.target.value,
+              })
+            }
+          >
+            {f.choices.map((v) => (
+              <option key={v} value={v}>
+                {v.replaceAll("_", " ")}
+              </option>
+            ))}
+          </Select>
+        ) : (
+          <EditorNumber
+            label={f.label}
+            value={f.value == null ? null : Number(f.value)}
+            disabled={metadataDirty || !data.eosEditable}
+            min={f.min}
+            max={f.max}
+            integer={f.integer}
+            optional={thermal && !f.required}
+            title={
+              thermal
+                ? `${f.description ? `${f.description} · ` : ""}${f.key}${f.isDefault ? " · constructor default" : ""}${!f.required ? `; blank uses default ${f.default ?? "unset"}` : "; required"}`
+                : f.key
+            }
+            onCommit={(value) =>
+              act(
+                thermal && data.thermalType
+                  ? "editor_thermal_parameter"
+                  : "editor_parameter",
+                { parameter: f.key, value },
+              )
+            }
+          />
         )}
-      </span>
-      {!!f.choices?.length ? (
-        <Select
-          aria-label={f.label}
-          title={f.description}
-          value={String(f.value ?? "")}
-          disabled={locked || !data.eosEditable}
-          onChange={(e) =>
-            void act("editor_thermal_parameter", {
-              parameter: f.key,
-              value: e.target.value,
-            })
-          }
-        >
-          {f.choices.map((v) => (
-            <option key={v} value={v}>
-              {v.replaceAll("_", " ")}
-            </option>
-          ))}
-        </Select>
-      ) : (
-        <EditorNumber
-          label={f.label}
-          value={f.value == null ? null : Number(f.value)}
-          disabled={metadataDirty || !data.eosEditable}
-          min={f.min}
-          max={f.max}
-          integer={f.integer}
-          optional={thermal && !f.required}
-          title={
-            thermal
-              ? `${f.description ? `${f.description} · ` : ""}${f.key}${f.isDefault ? " · constructor default" : ""}${!f.required ? `; blank uses default ${f.default ?? "unset"}` : "; required"}`
-              : f.key
-          }
-          onCommit={(value) =>
-            act(
-              thermal && data.thermalType
-                ? "editor_thermal_parameter"
-                : "editor_parameter",
-              { parameter: f.key, value },
-            )
-          }
-        />
-      )}
-      <span className="pe-unit">{f.unit}</span>
-    </label>
-  );
+        <span className="pe-unit">{f.unit}</span>
+      </label>
+    );
+    return f.choices?.length ? (
+      <div
+        className="pe-choice-with-help"
+        key={`${data.index}-${data.reference}-${f.key}`}
+      >
+        {editor}
+        {help && <PhaseModelExplanation id={helpId} help={help} />}
+      </div>
+    ) : (
+      editor
+    );
+  };
   const lattice = (key: string, label: string, unit: string, step: number) => (
     <label className="pe-field" key={key}>
       <span>{label}</span>
@@ -699,6 +727,7 @@ export function PhaseEditor({
               EoS{" "}
               <Select
                 aria-label="Equation of state model"
+                aria-describedby="pe-eos-model-help"
                 value={data.eosType}
                 disabled={locked || !data.eosEditable}
                 onChange={(e) =>
@@ -720,10 +749,15 @@ export function PhaseEditor({
                 ))}
               </Select>
             </label>
+            <PhaseModelExplanation
+              id="pe-eos-model-help"
+              help={modelHelp("eos", data.eosType)}
+            />
             <label className="pe-selector">
               Thermal model{" "}
               <Select
                 aria-label="Thermal model"
+                aria-describedby="pe-thermal-model-help"
                 value={
                   !data.thermalType && legacy
                     ? "alphakt"
@@ -756,6 +790,13 @@ export function PhaseEditor({
                 ))}
               </Select>
             </label>
+            <PhaseModelExplanation
+              id="pe-thermal-model-help"
+              help={modelHelp(
+                "thermal",
+                !data.thermalType && legacy ? "alphakt" : data.thermalSelection,
+              )}
+            />
             <h3 className="pe-parameter-heading">EoS parameters</h3>
             <div
               className="pe-eos-fields"

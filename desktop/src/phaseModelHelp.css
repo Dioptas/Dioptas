@@ -1,0 +1,39 @@
+.pe-model-help {
+  min-width: 0;
+  margin: 6px 0 12px;
+  font-size: var(--text-small);
+  line-height: 1.45;
+  color: var(--ui-muted);
+}
+.pe-model-help p {
+  margin: 4px 0;
+  overflow-wrap: anywhere;
+}
+.pe-model-help strong {
+  font-weight: 600;
+  color: var(--ui-text);
+}
+.phase-dialog .pe-model-help a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+.pe-model-equation {
+  overflow-x: auto;
+  max-width: 100%;
+  color: var(--ui-text);
+  padding: 3px 0;
+}
+.pe-model-equation math {
+  font-size: 1.15em;
+  margin: 3px 0;
+}
+.pe-choice-with-help {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.pe-choice-with-help .pe-model-help {
+  padding-left: 8px;
+  border-left: 2px solid var(--ui-border);
+}

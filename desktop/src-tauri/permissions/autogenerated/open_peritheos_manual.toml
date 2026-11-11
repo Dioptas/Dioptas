@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-open-peritheos-manual"
+description = "Enables the open_peritheos_manual command without any pre-configured scope."
+commands.allow = ["open_peritheos_manual"]
+
+[[permission]]
+identifier = "deny-open-peritheos-manual"
+description = "Denies the open_peritheos_manual command without any pre-configured scope."
+commands.deny = ["open_peritheos_manual"]

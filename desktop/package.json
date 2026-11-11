@@ -88,7 +88,8 @@
     "test:dac-thermal-pressure": "node scripts/dac_thermal_pressure_smoke.mjs",
     "test:dac-project-reference": "node scripts/dac_thermal_pressure_project_parity.mjs",
     "test:companion-windows": "node scripts/companion_windows_smoke.mjs",
-    "test:phase-metadata": "node scripts/phase_metadata_smoke.mjs"
+    "test:phase-metadata": "node scripts/phase_metadata_smoke.mjs",
+    "test:phase-model-help": "node scripts/phase_model_help_smoke.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",
