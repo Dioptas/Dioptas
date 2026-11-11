@@ -137,13 +137,16 @@ fn rectangle_uses_exact_rows_bins_units_and_recorded_wavelength() {
             let before = call(&mut s, "batch_snapshot", json!({}));
             let r = call(&mut s, "batch_waterfall", selection(id, 2));
             assert_eq!(curves(&r).len(), 2);
-            assert_eq!(r.result["state"]["integration"]["waterfallSeparation"], 0.1);
+            assert_eq!(
+                r.result["state"]["integration"]["waterfallSeparation"],
+                0.05
+            );
             for (i, row) in [1usize, 3].iter().enumerate() {
                 let selected = call(&mut s, "batch_select", json!({"index":row}));
                 let x = numbers(&selected.result["pattern"]["x"]);
                 close(&numbers(&curves(&r)[i]["x"]), &x[1..6]);
                 let y: Vec<_> = (1..6)
-                    .map(|col| (*row + 1) as f64 * 10. + col as f64 * 0.25 - 0.1 * (2 - i) as f64)
+                    .map(|col| (*row + 1) as f64 * 10. + col as f64 * 0.25 - 0.05 * (2 - i) as f64)
                     .collect();
                 assert_eq!(numbers(&curves(&r)[i]["y"]), y);
                 close(
@@ -243,7 +246,7 @@ fn normalized_waterfalls_replace_repeat_and_round_trip_with_overlay_edits() {
     close(
         &numbers(&curves(&a)[0]["y"]),
         &(1..6)
-            .map(|col| (20. + col as f64 * 0.25) * factor - 0.2)
+            .map(|col| (20. + col as f64 * 0.25) * factor - 0.04)
             .collect::<Vec<_>>(),
     );
     close(
@@ -398,9 +401,12 @@ fn default_and_automatic_spacing_apply_offsets_and_preserve_project_choices() {
         "batch_waterfall",
         selection(&opened.result["batch"]["waterfallKey"], 2),
     );
-    assert_eq!(r.result["state"]["integration"]["waterfallSeparation"], 0.1);
-    assert_eq!(overlays(&r)[0]["offset"], -0.2);
-    assert_eq!(overlays(&r)[1]["offset"], -0.1);
+    assert_eq!(
+        r.result["state"]["integration"]["waterfallSeparation"],
+        0.05
+    );
+    assert_eq!(overlays(&r)[0]["offset"], -0.1);
+    assert_eq!(overlays(&r)[1]["offset"], -0.05);
     let narrow = call(
         &mut s,
         "batch_waterfall",
@@ -408,7 +414,7 @@ fn default_and_automatic_spacing_apply_offsets_and_preserve_project_choices() {
     );
     assert_eq!(
         narrow.result["state"]["integration"]["waterfallSeparation"],
-        0.05
+        0.02
     );
     call(
         &mut s,
@@ -426,14 +432,15 @@ fn default_and_automatic_spacing_apply_offsets_and_preserve_project_choices() {
         "integration_overlay",
         json!({"operation":"waterfall_auto"}),
     );
-    // Selected samples span 1 intensity unit, scaled to 2.5. 10% rounds up to 0.5.
+    // Each curve's mean signal above its minimum is 0.5; after scales 2.5
+    // and 1, the equally weighted mean is 0.875. 10% rounds up to 0.1.
     assert_eq!(
         auto.result["state"]["integration"]["waterfallSeparation"],
-        0.5
+        0.1
     );
-    assert_eq!(overlays(&auto)[0]["offset"], -1.);
-    assert_eq!(overlays(&auto)[1]["offset"], -0.5);
-    assert_eq!(numbers(&curves(&auto)[0]["y"])[0], 20.25 * 2.5 - 1.);
+    assert_eq!(overlays(&auto)[0]["offset"], -0.2);
+    assert_eq!(overlays(&auto)[1]["offset"], -0.1);
+    assert_eq!(numbers(&curves(&auto)[0]["y"])[0], 20.25 * 2.5 - 0.2);
     assert_eq!(
         auto.result["state"]["integration"]["overlays"][0]["batchSource"],
         overlays(&before)[0]["batchSource"]
