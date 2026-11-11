@@ -434,7 +434,7 @@ try {
               "Navigation arrows have compact, usable targets",
             );
           }
-          const controls = page.locator(".integration-file-controls");
+          const controls = page.locator(".integration-image-files-aligned");
           assert.equal(
             await controls.evaluate(
               (element) => element.scrollWidth <= element.clientWidth,

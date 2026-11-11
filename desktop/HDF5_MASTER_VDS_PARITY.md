@@ -129,3 +129,15 @@ Desktop verification also passed the production build, 117 frontend tests, a
 pre-existing `items_after_test_module` lint in `phases.rs`; with that single
 baseline lint excluded, all targets pass with warnings denied. The library's
 strict all-target/all-feature Clippy passes without exclusions.
+
+## Primary integration
+
+Desktop commit `793fcdca` was fast-forwarded into `codex/rust-desktop` with all
+18 pre-existing modified/untracked files preserved byte for byte. The primary
+build and all 117 frontend tests pass. Its full native suite passes 269 tests
+(two existing opt-in checks ignored), including the concurrent local Phase work.
+The new HDF5 workflow passes in headless Chromium and WebKit against the primary
+processor. The older source-layout fixture now targets Image controls explicitly
+when both Image and Pattern controls exist in the current workspace.
+Evidence is under `artifacts/hdf5-primary-integration/`; unrelated local changes
+and user previews/processes were retained.
