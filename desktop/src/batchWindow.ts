@@ -8,6 +8,7 @@ import type { Response } from "./types";
 
 export interface BatchWindowStatus extends MapWindowStatus {
   position?: import("./linkedPosition").PatternPosition;
+  clicked?: import("./plotReadout").PlotReading | null;
   progress?: {
     running: boolean;
     current: number;
@@ -60,6 +61,7 @@ export function useBatchWindow({
   cancel: () => Promise<unknown> | undefined;
 }) {
   const [detached, setDetached] = useState(false);
+  const clickReadoutKey = JSON.stringify(status.clicked ?? null);
   const [session] = useState(() => crypto.randomUUID());
   const latest = useRef({
     batch,
@@ -215,6 +217,7 @@ export function useBatchWindow({
     status.revision,
     status.position?.x,
     status.position?.unit,
+    clickReadoutKey,
     status.progress,
   ]);
   const open = async () => {

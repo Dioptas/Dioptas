@@ -378,15 +378,115 @@ try {
       ),
     ),
   );
-  await child.mouse.move(b.x + 140, b.y + 80);
-  await child.locator('.detached-batch-footer [data-field="I"]').waitFor();
-  assert(
-    await child.locator('.detached-batch-footer [data-field="2θ"]').isVisible(),
+  // Shared physical click state must cross the companion boundary both ways.
+  const firstBatchSelection = state.linked;
+  const firstBatchRaster = state.batch.raster.bufferId;
+  const waitPatternMarker = (radial) =>
+    page.waitForFunction(
+      (value) =>
+        Math.abs(
+          Number(
+            document.querySelector('[data-testid="pattern-canvas"]').dataset
+              .linkedPosition,
+          ) - value,
+        ) < 1e-8,
+      radial,
+    );
+  const waitBatchMarker = (radial) =>
+    child.waitForFunction(
+      (value) =>
+        Math.abs(
+          Number(
+            document.querySelector('[data-testid="batch-heatmap"]').dataset
+              .linkedPosition,
+          ) - value,
+        ) < 1e-8,
+      radial,
+    );
+  const sharedClick = async () => {
+    const fields = await page
+      .getByTestId("click-readout")
+      .locator("[data-field]")
+      .allTextContents();
+    assert.ok(fields.length > 0);
+    await child.getByTestId("batch-click-readout").waitFor();
+    await child.waitForFunction(
+      (expected) =>
+        JSON.stringify(
+          [
+            ...document.querySelectorAll(
+              '[data-testid="batch-click-readout"] [data-field]',
+            ),
+          ].map((el) => el.textContent),
+        ) === JSON.stringify(expected),
+      fields,
+    );
+    return fields;
+  };
+  await waitPatternMarker(firstBatchSelection.radial);
+  await waitBatchMarker(firstBatchSelection.radial);
+  assert.equal(
+    await page.getByTestId("click-readout").getAttribute("data-plot"),
+    "batch",
   );
+  const batchClickFields = await sharedClick();
+  const patternPlot = page.getByTestId("pattern-canvas");
+  const patternPoint = await patternPlot.evaluate((el) => ({
+    x: +el.dataset.plotLeft + +el.dataset.plotWidth * 0.45,
+    y: +el.dataset.plotTop + +el.dataset.plotHeight * 0.5,
+  }));
+  await patternPlot.click({ position: patternPoint });
+  await ready();
+  const patternSelected = await invoke("state");
+  assert.equal(
+    patternSelected.batch.selected,
+    4,
+    "Pattern click changed the selected Batch frame",
+  );
+  assert.equal(
+    patternSelected.batch.raster.bufferId,
+    firstBatchRaster,
+    "Pattern click replaced the Batch intensity matrix",
+  );
+  assert.ok(
+    Math.abs(patternSelected.linked.radial - firstBatchSelection.radial) > 1e-3,
+  );
+  await waitPatternMarker(patternSelected.linked.radial);
+  await waitBatchMarker(patternSelected.linked.radial);
+  assert.equal(
+    await page.getByTestId("click-readout").getAttribute("data-plot"),
+    "pattern",
+  );
+  const patternClickFields = await sharedClick();
+  assert.notDeepEqual(patternClickFields, batchClickFields);
+  const nextBatchPoint = await canvas.evaluate((el) => ({
+    x: +el.dataset.plotLeft + +el.dataset.plotWidth * 0.62,
+    y:
+      +el.dataset.plotTop +
+      ((+el.dataset.viewYMax - 4.5) /
+        (+el.dataset.viewYMax - +el.dataset.viewYMin)) *
+        +el.dataset.plotHeight,
+  }));
+  await canvas.click({ position: nextBatchPoint });
+  await selected(child, 5);
+  const secondBatchSelection = await invoke("state");
+  assert.ok(
+    Math.abs(
+      secondBatchSelection.linked.radial - patternSelected.linked.radial,
+    ) > 1e-3,
+  );
+  await waitPatternMarker(secondBatchSelection.linked.radial);
+  await waitBatchMarker(secondBatchSelection.linked.radial);
+  assert.equal(
+    await page.getByTestId("click-readout").getAttribute("data-plot"),
+    "batch",
+  );
+  assert.notDeepEqual(await sharedClick(), patternClickFields);
+  await child.mouse.move(b.x + 140, b.y + 80);
+  await child.locator('.batch-reading [data-field="I"]').waitFor();
+  assert(await child.locator('.batch-reading [data-field="2θ"]').isVisible());
   assert(
-    await child
-      .locator('.detached-batch-footer [data-field="Frame"]')
-      .isVisible(),
+    await child.locator('.batch-reading [data-field="Frame"]').isVisible(),
   );
   assert.equal(
     (
@@ -411,7 +511,7 @@ try {
       ) > 0,
   );
   await child.mouse.move(b.x + 140, b.y + 80);
-  await child.locator('.detached-batch-footer [data-field="I"]').waitFor();
+  await child.locator('.batch-reading [data-field="I"]').waitFor();
   await child.screenshot({ path: path.join(artifacts, "batch-phases.png") });
   await click(child, "Show batch phases");
   // Both zoom modes share the blue selection, and a slice keeps all frame rows.
@@ -1200,6 +1300,9 @@ try {
         companionWindow: true,
         lowerLeftDock: true,
         linkedCake: true,
+        detachedBatchToPatternClick: true,
+        patternToDetachedBatchClick: true,
+        sharedClickReadouts: true,
         preservedDisplay: true,
         requests,
         consoleErrors: errors,

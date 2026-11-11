@@ -328,11 +328,15 @@
 }
 .detached-batch-footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   font-size: var(--text-meta);
   min-height: 24px;
   min-width: 0;
+}
+.batch-click-reading {
+  color: #7bd78b;
 }
 .detached-batch-footer > span {
   overflow: hidden;
