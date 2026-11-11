@@ -699,7 +699,7 @@ try {
       await button("Load image…").click();
       await ready();
       assert.equal(await filename.inputValue(), path.basename(longFile));
-      const tail = page.locator(".middle-elided-input .middle-elided-tail");
+      const tail = page.locator(".integration-image-files-aligned .middle-elided-input .middle-elided-tail");
       assert.ok((await tail.innerText()).includes("000123"));
       await filename.focus();
       assert.notEqual(
