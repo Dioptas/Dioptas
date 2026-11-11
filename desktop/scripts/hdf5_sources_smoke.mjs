@@ -481,6 +481,8 @@ try {
           // Measure related columns in one layout snapshot; responsive controls
           // can rerender between separate boundingBox calls after a text resize.
           const columns = await controls.evaluate((element) => ({
+            width: element.clientWidth,
+            edge: element.getBoundingClientRect().x,
             file: element
               .querySelector('[aria-label="Image filename"]')
               .getBoundingClientRect().x,
@@ -493,8 +495,11 @@ try {
           }));
           assert.ok(
             Math.abs(columns.file - columns.source) < 2 &&
-              Math.abs(columns.file - columns.load) < 2,
-            `Load, File and Source share their aligned control column: ${JSON.stringify(columns)}`,
+              Math.abs(
+                (columns.width <= 540 ? columns.edge : columns.file) -
+                  columns.load,
+              ) < 2,
+            `File and Source align; Load uses the existing compact toolbar at container widths ≤540 px: ${JSON.stringify(columns)}`,
           );
           assert.equal(
             await page

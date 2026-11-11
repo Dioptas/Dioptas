@@ -138,6 +138,8 @@ build and all 117 frontend tests pass. Its full native suite passes 269 tests
 (two existing opt-in checks ignored), including the concurrent local Phase work.
 The new HDF5 workflow passes in headless Chromium and WebKit against the primary
 processor. The older source-layout fixture now targets Image controls explicitly
-when both Image and Pattern controls exist in the current workspace.
+when both Image and Pattern controls exist in the current workspace. Its
+alignment checks use the actual Image container width, including the existing
+≤540 px compact toolbar rule in a multi-column task panel.
 Evidence is under `artifacts/hdf5-primary-integration/`; unrelated local changes
 and user previews/processes were retained.
