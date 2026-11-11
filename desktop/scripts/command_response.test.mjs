@@ -275,3 +275,24 @@ test("notice precedence, pending drafts and history cancellation retain existing
     [{ kind: "notice", message: "No previous image available" }],
   );
 });
+
+// Failure classification belongs to the transaction, even when the application
+// adapter is replaced by an observer rather than the validating snapshot owner.
+test("a rejected response never reaches snapshot publication or success callbacks", async () => {
+  const seen = [];
+  const h = harness(
+    {
+      command: "pick_peak",
+      submit: async () => ({ ok: false, error: "No image" }),
+      invoke: async () => ({ ok: true }),
+    },
+    { apply: (result, reset) => seen.push({ result, reset }) },
+  );
+  const outcome = await handleCommandResponse(h.context, h.ports);
+  assert.equal(outcome.status, "failed");
+  assert.deepEqual(seen, [{ result: { ok: true }, reset: false }]);
+  assert.equal(
+    h.events.some((event) => event[0] === "success"),
+    false,
+  );
+});

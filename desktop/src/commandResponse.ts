@@ -212,6 +212,8 @@ export async function handleCommandResponse(
         raw,
       );
     ports.trace("command-prepared", result);
+    if (!result.ok)
+      throw new Error(result.error || "The operation could not be completed.");
     const unitOnly =
       ["settings", "integration_settings"].includes(command) &&
       Object.keys(args).length === 1 &&
