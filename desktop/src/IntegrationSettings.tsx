@@ -24,7 +24,7 @@ const optionsPayload = (
   source: IntegrationState | undefined,
   bins: number,
   unit: State["unit"],
-) =>
+): import("./commandPayloads").IntegrationSettingsPayload =>
   source
     ? {
         unit,
@@ -104,11 +104,12 @@ export function useIntegrationSettingsDraft(state: State | null) {
   }, [source?.actualBins, draft?.automaticBinning]);
   const values = optionsPayload(draft, bins, unit);
   const current = optionsPayload(source, currentBins, currentUnit);
-  const changes = Object.fromEntries(
-    Object.entries(values).filter(
-      ([key, value]) => !same(value, current[key as keyof typeof current]),
-    ),
-  );
+  const changes: import("./commandPayloads").IntegrationSettingsPayload =
+    Object.fromEntries(
+      Object.entries(values).filter(
+        ([key, value]) => !same(value, current[key as keyof typeof current]),
+      ),
+    );
   return {
     draft,
     bins,

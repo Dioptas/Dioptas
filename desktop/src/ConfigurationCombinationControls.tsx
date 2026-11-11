@@ -24,8 +24,9 @@ export function ConfigurationCombinationControls({
     [combination?.factor, state?.configurationIndex],
   );
   if (!state || !combination || state.configurationCount < 2) return null;
-  const update = (args: Record<string, unknown>) =>
-    void run("combination_settings", args, "Combining detectors…");
+  const update = (
+    args: import("./commandContracts").CommandPayload<"combination_settings">,
+  ) => void run("combination_settings", args, "Combining detectors…");
   const commit = () => {
     const value = Number(factor);
     if (factor.trim() && Number.isFinite(value) && value !== combination.factor)

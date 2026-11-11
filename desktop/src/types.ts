@@ -226,7 +226,7 @@ export interface PackedPoints {
 }
 export interface Hdf5SourceRequest {
   path: string;
-  options: Record<string, unknown>;
+  options: import("./commandPayloads").ImageOpenPayload;
   requirements: Array<{
     kind: "vds" | "raw" | "printf";
     owner: string;
@@ -252,7 +252,7 @@ export interface Response {
   imageChange?: {
     calibrated?: boolean;
     canKeepCalibration?: boolean;
-    options?: Record<string, unknown>;
+    options?: import("./commandPayloads").ImageOpenPayload;
     path: string;
     frame: number;
     previousShape: [number, number];
@@ -276,14 +276,14 @@ export interface Response {
   batchWavelength?: number | null;
   batchOpened?: boolean;
   batchWaterfallCreated?: boolean;
-  batchLevels?: [number, number];
+  batchLevels?: [number, number] | null;
   batchWarning?: string | null;
   phaseEditor?: PhaseEditorData;
   phaseImport?: PhaseImport;
   phaseCatalog?: PhaseMaterial[];
   map?: MapData | null;
   mapPending?: number;
-  mapLevels?: [number, number];
+  mapLevels?: [number, number] | null;
   mapWarning?: string | null;
   mapPreview?: Raster;
   mapContours?: number[][][];

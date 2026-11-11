@@ -30,7 +30,7 @@ export function IntegrationImageControls({
   setFileStep: (value: number) => void;
   frameStep: number;
   setFrameStep: (value: number) => void;
-  action: (command: string, args?: Record<string, unknown>) => void;
+  action: import("./commandContracts").CommandAction;
 }) {
   const path = state.imagePath ?? "";
   const parent = path.slice(
@@ -81,9 +81,9 @@ export function IntegrationImageControls({
     source.frame,
     source.frames,
   ]);
-  const send = (command: string, args: Record<string, unknown> = {}) => {
+  const send: import("./commandContracts").CommandAction = (...call) => {
     setSourceNotice(null);
-    action(command, args);
+    action(...call);
   };
   const loadFilename = () => {
     if (fileDraft.trim())
@@ -236,7 +236,10 @@ export function IntegrationImageControls({
             aria-label="Batch mode"
             value={source.imageBatchMode ?? "integrate"}
             onChange={(event) =>
-              send("image_batch_mode", { mode: event.target.value })
+              send("image_batch_mode", {
+                mode: event.target
+                  .value as import("./commandPayloads").ImageBatchMode,
+              })
             }
             title="Action when loading multiple images"
           >

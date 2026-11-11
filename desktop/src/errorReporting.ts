@@ -1,4 +1,6 @@
-import type { Invoke, Response } from "./types";
+import { normalizeCompatibilityResult } from "./rasterTransfer.ts";
+import type { Response } from "./types";
+import type { Invoke, CommandInvocation } from "./commandContracts";
 
 export type OperationFailure = {
   title: string;
@@ -98,7 +100,7 @@ export function createErrorReport(
 export function fileOperationFailure(
   command: string,
   details: string,
-  args: Record<string, unknown> = {},
+  args: object = {},
 ): OperationFailure | null {
   const titles: Record<string, string> = {
     open_calibration: "Couldn’t load calibration",
@@ -109,14 +111,15 @@ export function fileOperationFailure(
     open_project: "Couldn’t load project",
     load_peaks: "Couldn’t load peaks",
     open_calibrant: "Couldn’t load calibrant",
-    mask_file: args.save ? "Couldn’t save mask" : "Couldn’t load mask",
+    mask_file:
+      "save" in args && args.save ? "Couldn’t save mask" : "Couldn’t load mask",
   };
   return titles[command] ? { title: titles[command], details } : null;
 }
 export function reportFailure(
   action: string,
   error: unknown,
-  args: Record<string, unknown> = {},
+  args: object = {},
   extra?: unknown,
 ) {
   if (pendingFailure && quiet.has(action)) return;
@@ -135,29 +138,26 @@ export function reportFailure(
   );
 }
 export function withErrorReporting(invoke: Invoke): Invoke {
-  return async (action, args = {}) => {
+  return async <A extends CommandInvocation>(...call: A) => {
+    const [action, args = {}] = call;
     const entry =
       !quiet.has(action) &&
-      !(action === "custom_command" && args.operation === "list")
+      !(
+        action === "custom_command" &&
+        "operation" in args &&
+        args.operation === "list"
+      )
         ? recordAction(action, args)
         : undefined;
-    let response: Response;
+    let response: import("./commandContracts").CommandResult<A[0]>;
     try {
-      response = await invoke(action, args);
+      response = await invoke<A>(...call);
     } catch (error) {
       if (entry) entry.status = "failed";
       reportFailure(action, error, args);
       throw error;
     }
-    // Older live workers and the explicit Python compatibility backend still
-    // return this expected search outcome as an error.
-    if (
-      action === "pick_peak" &&
-      !response.ok &&
-      response.error ===
-        "No peak found here. Click on a bright ring, or try single-peak mode."
-    )
-      response = { ok: true, noPeakFound: true };
+    response = normalizeCompatibilityResult<A[0]>(action, response);
     if (entry)
       entry.status = response.cancelled
         ? "cancelled"
@@ -178,8 +178,9 @@ export function withErrorReporting(invoke: Invoke): Invoke {
         (response as Response & { errorContext?: unknown }).errorContext,
       );
     }
-    if (response.state) {
-      const s = response.state;
+    const snapshot: Response = response;
+    if (snapshot.state) {
+      const s = snapshot.state;
       backend = `${s.calibration.engineLabel} (${s.calibration.engine})`;
       context = JSON.stringify({
         image: s.imagePath,

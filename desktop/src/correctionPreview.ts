@@ -57,7 +57,6 @@ export function retainsCorrectionPreview(command: string) {
     "integration_diagnostics",
     "integration_autoprocess_poll",
     "save_project",
-    "save_pattern",
     "save_combined_pattern",
     "batch_snapshot",
     "map_snapshot",

@@ -20,10 +20,10 @@ export function IntegrationFileNavigator({
   step: number;
   onStepChange: (value: number) => void;
   canNavigate: boolean;
-  order: string;
-  onOrderChange: (mode: string) => void;
+  order: import("./commandPayloads").FileOrder;
+  onOrderChange: (mode: import("./commandPayloads").FileOrder) => void;
   onLoad: () => void;
-  onNavigate: (direction: number) => void;
+  onNavigate: (direction: import("./commandPayloads").Direction) => void;
   filenameControl: ReactNode;
   folderControl: ReactNode;
 }) {
@@ -67,7 +67,11 @@ export function IntegrationFileNavigator({
             aria-label={`${title} file order`}
             title="Browse files by filename number or creation time"
             value={order}
-            onChange={(event) => onOrderChange(event.target.value)}
+            onChange={(event) =>
+              onOrderChange(
+                event.target.value as import("./commandPayloads").FileOrder,
+              )
+            }
           >
             <option value="number">Name</option>
             <option value="time">Time</option>

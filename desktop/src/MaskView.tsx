@@ -1,3 +1,5 @@
+import { runCommand } from "./commandDispatch";
+import type { CommandRequest } from "./commandContracts";
 import { DetectorSurface } from "./DetectorWindow";
 import { Button } from "./ui";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -18,11 +20,7 @@ import {
   type MaskOverlay,
 } from "./maskDomain";
 import "./mask.css";
-export type MaskRun = (
-  command: string,
-  args?: Record<string, unknown>,
-  message?: string,
-) => Promise<void>;
+export type MaskRun = import("./commandContracts").Run;
 
 export function MaskView({
   contrast,
@@ -94,24 +92,30 @@ export function MaskView({
   }, [points.length, tools.shape, onSelectionStatus, cancelSelection]);
   useEffect(() => () => onSelectionStatus(null), [onSelectionStatus]);
   const submitDrawing = async (
-    command: string,
-    args: Record<string, unknown>,
+    request: CommandRequest<"mask_edit" | "mask_stroke">,
     preview: MaskOverlay | null,
   ) => {
     const sequence = ++drawingSequence.current;
     setPending((count) => count + 1);
     setPendingOverlay(preview);
     try {
-      await run(command, args, "Applying mask…");
+      await runCommand(run, request, "Applying mask…");
     } finally {
       setPending((count) => count - 1);
       if (sequence === drawingSequence.current) setPendingOverlay(null);
     }
   };
   const commitShape = (vertices: MaskPoint[]) => {
+    if (tools.shape === "navigate" || tools.shape === "point") return;
     void submitDrawing(
-      "mask_edit",
-      { operation: tools.shape, points: vertices, erase: tools.erase },
+      {
+        command: "mask_edit",
+        payload: {
+          operation: tools.shape,
+          points: vertices,
+          erase: tools.erase,
+        },
+      },
       previewMask(tools.shape, vertices, null, tools.erase),
     );
     setPoints([]);
@@ -221,8 +225,10 @@ export function MaskView({
             }}
             onStroke={(points, erase) =>
               void submitDrawing(
-                "mask_stroke",
-                { points, radius: tools.diameter / 2, erase },
+                {
+                  command: "mask_stroke",
+                  payload: { points, radius: tools.diameter / 2, erase },
+                },
                 null,
               )
             }

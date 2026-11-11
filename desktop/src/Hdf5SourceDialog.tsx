@@ -11,7 +11,7 @@ export function Hdf5SourceDialog({
 }: {
   request: Hdf5SourceRequest;
   onCancel: () => void;
-  onOpen: (options: Record<string, unknown>) => void;
+  onOpen: (options: import("./commandPayloads").ImageOpenPayload) => void;
   chooseFile: (directory: string) => Promise<string | undefined>;
 }) {
   const [values, setValues] = useState(
@@ -31,38 +31,39 @@ export function Hdf5SourceDialog({
       : values[i].trim().length > 0,
   );
   function open() {
-    const bindings = [
-      ...((request.options.hdf5_bindings ?? []) as Record<string, unknown>[]),
-    ];
-    const printf = [
-      ...((request.options.hdf5_printf ?? []) as Record<string, unknown>[]),
-    ];
+    const bindings = [...(request.options.hdf5_bindings ?? [])];
+    const printf = [...(request.options.hdf5_printf ?? [])];
     request.requirements.forEach((r, i) => {
-      const list = r.kind === "printf" ? printf : bindings;
-      const previous = list.findIndex(
-        (b) =>
-          b.owner === r.owner &&
-          b.stored_filename === r.stored_filename &&
-          (r.kind !== "printf" ||
-            (b.dataset === r.dataset && b.mapping_index === r.mapping_index)),
-      );
-      const value =
-        r.kind === "printf"
-          ? {
-              owner: r.owner,
-              dataset: r.dataset,
-              mapping_index: r.mapping_index,
-              stored_filename: r.stored_filename,
-              declared_dataset: r.declared_dataset,
-              blocks: Number(values[i]),
-            }
-          : {
-              owner: r.owner,
-              stored_filename: r.stored_filename,
-              actual_file: values[i],
-            };
-      if (previous < 0) list.push(value);
-      else list[previous] = value;
+      if (r.kind === "printf") {
+        const previous = printf.findIndex(
+          (b) =>
+            b.owner === r.owner &&
+            b.stored_filename === r.stored_filename &&
+            b.dataset === r.dataset &&
+            b.mapping_index === r.mapping_index,
+        );
+        const value = {
+          owner: r.owner,
+          dataset: r.dataset,
+          mapping_index: r.mapping_index,
+          stored_filename: r.stored_filename,
+          declared_dataset: r.declared_dataset,
+          blocks: Number(values[i]),
+        };
+        if (previous < 0) printf.push(value);
+        else printf[previous] = value;
+      } else {
+        const previous = bindings.findIndex(
+          (b) => b.owner === r.owner && b.stored_filename === r.stored_filename,
+        );
+        const value = {
+          owner: r.owner,
+          stored_filename: r.stored_filename,
+          actual_file: values[i],
+        };
+        if (previous < 0) bindings.push(value);
+        else bindings[previous] = value;
+      }
     });
     onOpen({
       ...request.options,

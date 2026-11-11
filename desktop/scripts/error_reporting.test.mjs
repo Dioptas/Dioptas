@@ -87,3 +87,21 @@ test("missed peak picks are normal outcomes; other picking failures remain error
   assert.equal(currentFailure().details, message);
   dismissFailure();
 });
+
+test("legacy peak-miss normalization replaces the response without mutating or retaining error fields", async () => {
+  globalThis.window = new EventTarget();
+  dismissFailure();
+  const original = {
+    ok: false,
+    error:
+      "No peak found here. Click on a bright ring, or try single-peak mode.",
+    errorContext: { stale: true },
+    state: { stale: true },
+  };
+  const copy = structuredClone(original);
+  const result = await withErrorReporting(async () => original)("pick_peak");
+  assert.notEqual(result, original);
+  assert.deepEqual(result, { ok: true, noPeakFound: true });
+  assert.deepEqual(original, copy);
+  assert.equal(currentFailure(), null);
+});

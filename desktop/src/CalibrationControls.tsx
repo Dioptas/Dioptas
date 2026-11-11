@@ -19,12 +19,7 @@ export function CalibrationControls({
   maskControls: ReactNode;
   onDirtyChange: (dirty: boolean) => void;
   onValidityChange: (valid: boolean) => void;
-  run: (
-    command: string,
-    args?: Record<string, unknown>,
-    message?: string,
-    onSuccess?: (result: Response) => void,
-  ) => Promise<void>;
+  run: import("./commandContracts").Run;
 }) {
   const [px, setPx] = useState("79"),
     [py, setPy] = useState("79");

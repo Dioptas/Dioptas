@@ -1,3 +1,5 @@
+import { operationPayload, type OperationCall } from "./commandDispatch";
+import type { CommandPayload } from "./commandContracts";
 import { Button, Input, Select } from "./ui";
 import { useEffect, useState } from "react";
 import type { State } from "./types";
@@ -24,8 +26,12 @@ export function ConfigurationControls({
     setEditing(false);
     setName(label);
   }, [state.configurationIndex, state.configurationContext, label]);
-  const action = (operation: string, extra: Record<string, unknown> = {}) =>
-    run("configuration", { operation, ...extra }, "Updating configurations…");
+  const action = (...call: OperationCall<CommandPayload<"configuration">>) =>
+    run(
+      "configuration",
+      operationPayload<CommandPayload<"configuration">>(call),
+      "Updating configurations…",
+    );
   return (
     <div
       className="configuration-controls"

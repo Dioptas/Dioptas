@@ -23,7 +23,9 @@ export function HistoryControls({
   ready: boolean;
   customActive: boolean;
   custom: CustomCommandController;
-  run: (command: string) => unknown;
+  run: import("./commandContracts").CommandAction<
+    "undo_mask" | "redo_mask" | "undo_calibration" | "redo_calibration"
+  >;
 }) {
   return (
     <div

@@ -1,3 +1,4 @@
+import { fixedMessageAction } from "./commandDispatch";
 import { SpottinessControls } from "./SpottinessControls";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "./ui";
@@ -147,11 +148,7 @@ export function IntegrationView({
   const [frameStep, setFrameStep] = useState(1);
   const [patternStep, setPatternStep] = useState(1);
   if (!source || !state) return null;
-  const action = (
-    command: string,
-    args: Record<string, unknown> = {},
-    onSuccess?: Parameters<IntegrationRun>[3],
-  ) => run(command, args, "Updating integration…", onSuccess);
+  const action = fixedMessageAction(run, "Updating integration…");
   return (
     <div
       ref={container}

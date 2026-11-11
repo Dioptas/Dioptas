@@ -1,3 +1,5 @@
+import { operationPayload, type OperationCall } from "./commandDispatch";
+import type { CommandPayload } from "./commandContracts";
 import { Button, Input, Select } from "./ui";
 import { Fragment, useEffect, useId, useState } from "react";
 import { FolderOpen, Plus, Save, Settings, Stamp } from "lucide-react";
@@ -150,10 +152,13 @@ export function MaskPanel({
     Record<string, boolean>
   >({});
   const enabled = ready && !!state?.hasImage;
-  const edit = (operation: string, extra: Record<string, unknown> = {}) =>
+  const edit = (...call: OperationCall<CommandPayload<"mask_edit">>) =>
     void run(
       "mask_edit",
-      { operation, erase: tools.erase, ...extra },
+      {
+        erase: tools.erase,
+        ...operationPayload<CommandPayload<"mask_edit">>(call),
+      },
       "Applying mask…",
     );
   const bound = (text: string) => (text.trim() === "" ? null : Number(text));
@@ -314,7 +319,7 @@ export function MaskPanel({
         </section>
         <section className="sidebar-section">
           <div className="mask-grid">
-            {["grow", "shrink", "invert", "clear"].map((action) => (
+            {(["grow", "shrink", "invert", "clear"] as const).map((action) => (
               <Button
                 key={action}
                 disabled={!enabled}

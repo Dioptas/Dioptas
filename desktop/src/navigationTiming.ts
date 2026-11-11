@@ -3,7 +3,7 @@
 import type { Raster, State } from "./types";
 
 export type NavigationProbe = {
-  run: (action: string, payload?: Record<string, unknown>) => Promise<void>;
+  run: import("./commandContracts").CommandAction;
   state: () => State | null;
   image: () => Raster | null;
 };

@@ -76,7 +76,7 @@ export function historyActionLabel(action?: string) {
 export function scientificHistoryCommand(
   action: string | undefined,
   redo = false,
-) {
+): "undo_mask" | "redo_mask" | "undo_calibration" | "redo_calibration" {
   const preserveFit =
     !!action && !peakEdits.has(action) && !geometryEdits.has(action);
   return `${redo ? "redo" : "undo"}_${preserveFit ? "mask" : "calibration"}`;

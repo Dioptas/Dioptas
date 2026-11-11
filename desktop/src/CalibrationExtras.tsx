@@ -18,11 +18,7 @@ import {
   type CalibrationFitEditor,
 } from "./useCalibrationFitDraft";
 
-type Run = (
-  command: string,
-  args?: Record<string, unknown>,
-  message?: string,
-) => unknown;
+type Run = import("./commandContracts").Run;
 const fields = [
   ["dist", "Distance", "mm"],
   ["wavelength", "Wavelength", "Å"],

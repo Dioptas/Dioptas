@@ -1,3 +1,5 @@
+import { operationPayload, type OperationCall } from "./commandDispatch";
+import type { CommandPayload } from "./commandContracts";
 import { Button, Input, Portal, Popover } from "./ui";
 import { Dialog } from "./Dialog";
 import { PatternBackgroundIcon, WaterfallIcon } from "./DiffractionActionIcons";
@@ -223,15 +225,17 @@ export function IntegrationOverlayControls({
       document.removeEventListener("keydown", key);
     };
   }, [menu]);
-  const action = (operation: string, args: Record<string, unknown> = {}) =>
+  const action = (
+    ...call: OperationCall<CommandPayload<"integration_overlay">>
+  ) =>
     void run(
       "integration_overlay",
-      { operation, ...args },
+      operationPayload<CommandPayload<"integration_overlay">>(call),
       "Updating overlays…",
     );
-  const target = (row: number) =>
-    source.supportsOverlayUids ? { uid: overlays[row]?.uid } : { index: row };
-  const move = (direction: number) =>
+  const target = (row: number): import("./commandPayloads").OverlayTarget =>
+    source.supportsOverlayUids ? { uid: overlays[row].uid } : { index: row };
+  const move = (direction: import("./commandPayloads").Direction) =>
     action("move", { ...target(index), direction });
   const navigateRows = (event: RowKeyEvent<HTMLTableRowElement>) => {
     if (

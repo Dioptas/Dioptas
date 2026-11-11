@@ -53,6 +53,9 @@ type ProjectDelta = BatchDelta &
   Pick<Response, "configurationNavigation">;
 type PhaseDelta = WorkspaceDelta &
   Pick<Response, "phaseEditor" | "phaseRevision">;
+export type BatchSaved =
+  | { savedPath: string; savedPaths?: never; exportedFrames?: number }
+  | { savedPaths: string[]; exportedFrames: number; savedPath?: never };
 type Saved = { savedPath: string; savedPaths?: string[] };
 type Spec<Payload, Success> = { payload: Payload; success: Success };
 
@@ -79,7 +82,11 @@ export interface CommandContracts {
   example: Spec<P.EmptyPayload, ProjectDelta>;
   open_image: Spec<
     P.ImageOpenPayload,
-    ProjectDelta & Pick<Response, "imageUnavailable">
+    ProjectDelta &
+      Pick<Response, "imageUnavailable"> & {
+        savedPaths?: string[];
+        imageBatchSaved?: boolean;
+      }
   >;
   next_image: Spec<
     {
@@ -109,7 +116,10 @@ export interface CommandContracts {
   >;
   save_calibration: Spec<P.FilePayload, Saved>;
   reset_calibration: Spec<P.EmptyPayload, WorkspaceDelta>;
-  open_calibrant: Spec<P.FilePayload, WorkspaceDelta>;
+  open_calibrant: Spec<
+    P.FilePayload & { validation?: boolean },
+    WorkspaceDelta
+  >;
   detector_file: Spec<P.FilePayload & { reset?: boolean }, WorkspaceDelta>;
   distortion_file: Spec<P.FilePayload & { reset?: boolean }, WorkspaceDelta>;
   calibration_setup: Spec<P.CalibrationSetupPayload, WorkspaceDelta>;
@@ -142,9 +152,9 @@ export interface CommandContracts {
   validation_position: Spec<
     {
       x: number;
-      unit: import("./types").Unit;
+      unit?: import("./types").Unit;
       azimuth?: number;
-      source?: "pattern" | "cake" | "detector";
+      source?: "pattern" | "cake" | "detector" | "image";
       y?: number;
     },
     WorkspaceDelta & { linked: Response["linked"] }
@@ -232,8 +242,10 @@ export interface CommandContracts {
     Saved
   >;
   save_combined_pattern: Spec<P.FilePayload, Saved>;
-  save_pattern: Spec<P.FilePayload, Saved>;
-  integration_diagnostics: Spec<P.EmptyPayload, { diagnostics: P.JsonObject }>;
+  integration_diagnostics: Spec<
+    P.EmptyPayload,
+    { integrationDiagnostics: P.IntegrationDiagnostics }
+  >;
   processing_workers: Spec<
     NativePayloadContracts["processing_workers"],
     WorkspaceDelta
@@ -282,13 +294,13 @@ export interface CommandContracts {
   >;
   integration_phase_export: Spec<
     P.FilePayload &
-      P.PhaseTarget & {
+      (P.PhaseTarget | { material_id: string }) & {
         material_id?: string;
         reference?: number;
         format?: string;
         save_current?: boolean;
       },
-    Saved
+    Saved & Pick<Response, "phaseEditor" | "phaseRevision">
   >;
   integration_phase_list: Spec<
     P.FilePayload & { save?: boolean },
@@ -354,9 +366,9 @@ export interface CommandContracts {
     { subtract?: boolean; cut?: boolean },
     BatchDelta
   >;
-  batch_levels: Spec<P.LevelsPayload, { batchLevels: [number, number] }>;
+  batch_levels: Spec<P.LevelsPayload, { batchLevels: [number, number] | null }>;
   batch_folder_step: Spec<{ direction: P.Direction }, BatchDelta>;
-  integration_save_batch: Spec<P.BatchExportPayload, Saved>;
+  integration_save_batch: Spec<P.BatchExportPayload, BatchSaved>;
   map_load: Spec<P.BatchLoadPayload, MapDelta>;
   map_folder: Spec<P.BatchLoadPayload, MapDelta>;
   map_batch: Spec<P.FilePayload, MapDelta>;
@@ -388,7 +400,7 @@ export interface CommandContracts {
     { use_mask?: boolean; transparent_mask?: boolean; reintegrate?: boolean },
     MapDelta
   >;
-  map_levels: Spec<P.LevelsPayload, { mapLevels: [number, number] }>;
+  map_levels: Spec<P.LevelsPayload, { mapLevels: [number, number] | null }>;
   map_grid: Spec<
     {
       rows?: number;
@@ -430,7 +442,7 @@ export type CommandResult<C extends CommandName> = C extends CommandName
         | ({ ok: true; cancelled?: false } & NoDecision & CommandSuccess<C>)
         | ({ ok: false; error: string; cancelled?: boolean } & NoDecision &
             Partial<CommandSuccess<C>>)
-        | ({ ok: true; cancelled: true } & NoDecision &
+        | ({ ok: boolean; cancelled: true } & NoDecision &
             Partial<CommandSuccess<C>>)
         | ({
             ok: true;
@@ -466,9 +478,22 @@ export type CommandInvocation<C extends CommandName = CommandName> = {
 export type CommandRequest<C extends CommandName = CommandName> = {
   [K in C]: { command: K; payload: CommandPayload<K> };
 }[C];
-export type Invoke = <const A extends CommandInvocation>(
-  ...call: A
-) => Promise<CommandResult<A[0]>>;
+type IsUnion<T, All = T> = T extends All
+  ? [All] extends [T]
+    ? false
+    : true
+  : never;
+export type SingleCommand<C extends CommandName> = C &
+  (IsUnion<C> extends true ? never : unknown);
+export interface Invoke {
+  <C extends CommandName>(
+    command: SingleCommand<C>,
+    ...args: {} extends CommandPayload<NoInfer<C>>
+      ? [payload?: CommandPayload<NoInfer<C>>]
+      : [payload: CommandPayload<NoInfer<C>>]
+  ): Promise<CommandResult<C>>;
+  <const A extends CommandInvocation>(...call: A): Promise<CommandResult<A[0]>>;
+}
 export type RunInvocation<C extends CommandName = CommandName> = {
   [K in C]: {} extends CommandPayload<K>
     ? [
@@ -484,7 +509,23 @@ export type RunInvocation<C extends CommandName = CommandName> = {
         onSuccess?: (result: CommandResult<K>) => void,
       ];
 }[C];
-export type Run = <const A extends RunInvocation>(...call: A) => Promise<void>;
+export interface Run {
+  <C extends CommandName>(
+    command: SingleCommand<C>,
+    ...args: {} extends CommandPayload<NoInfer<C>>
+      ? [
+          payload?: CommandPayload<NoInfer<C>>,
+          message?: string,
+          onSuccess?: (result: CommandResult<C>) => void,
+        ]
+      : [
+          payload: CommandPayload<NoInfer<C>>,
+          message?: string,
+          onSuccess?: (result: CommandResult<C>) => void,
+        ]
+  ): Promise<void>;
+  <const A extends RunInvocation>(...call: A): Promise<void>;
+}
 export type CommandAction<C extends CommandName = CommandName> = <
   const A extends CommandInvocation<C>,
 >(

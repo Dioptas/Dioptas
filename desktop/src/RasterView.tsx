@@ -117,7 +117,7 @@ export function RasterView({
   radialAxis?: CakeRadialAxis;
   zoomMode?: ZoomMode;
   onZoomMode?: (mode: ZoomMode) => void;
-  onStroke?: (points: number[][], erase: boolean) => void;
+  onStroke?: (points: [number, number][], erase: boolean) => void;
   onHover?: (
     point: {
       x: number;
@@ -170,11 +170,13 @@ export function RasterView({
     [radialAxis, cake, raster],
   );
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
-  const [stroke, setStroke] = useState<number[][]>([]);
+  const [stroke, setStroke] = useState<[number, number][]>([]);
   const painting = tool === "mask" || tool === "erase";
-  const drag = useRef<{ x: number; y: number; points: number[][] } | null>(
-    null,
-  );
+  const drag = useRef<{
+    x: number;
+    y: number;
+    points: [number, number][];
+  } | null>(null);
   const data = useMemo(() => decodeRaster(raster), [raster.data, raster.dtype]);
   const maskData = useMemo(
     () => (mask ? decodeRaster(mask) : null),

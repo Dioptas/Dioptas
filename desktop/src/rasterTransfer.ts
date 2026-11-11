@@ -1,3 +1,9 @@
+import type {
+  CommandInvocation,
+  CommandName,
+  CommandResult,
+  DetectorSnapshotResult,
+} from "./commandContracts";
 import type { Raster, Response } from "./types";
 import { navigationTrace } from "./navigationTiming.ts";
 import { pointBufferSize } from "./phaseGuidePoints.ts";
@@ -56,13 +62,13 @@ export class RasterTransfer {
   private buffers: ByteCache<string, RasterBytes>;
   private invoke: (
     action: string,
-    payload: Record<string, unknown>,
+    payload: object,
     cached: string[],
   ) => Promise<ArrayBuffer>;
   constructor(
     invoke: (
       action: string,
-      payload: Record<string, unknown>,
+      payload: object,
       cached: string[],
     ) => Promise<ArrayBuffer>,
     maxBytes = 128 * 1024 * 1024,
@@ -77,10 +83,17 @@ export class RasterTransfer {
     this.buffers.set(id, data, owner.byteLength, owner);
   }
 
+  call<const A extends CommandInvocation>(
+    ...call: A
+  ): Promise<CommandResult<A[0]>>;
+  call(
+    action: "detector_snapshot",
+    payload?: object,
+  ): Promise<DetectorSnapshotResult>;
   async call(
-    action: string,
-    payload: Record<string, unknown> = {},
-  ): Promise<Response> {
+    action: CommandName | "detector_snapshot",
+    payload: object = {},
+  ): Promise<Response | DetectorSnapshotResult> {
     // Pin advertised buffers for this request. A concurrent response may evict
     // them from the LRU before this response arrives.
     const known = this.buffers.snapshot();
@@ -239,4 +252,21 @@ export function decodeRaster(raster: Raster): Float32Array | Uint8Array {
   }
   decoded.set(data, { ...decoded.get(data), [raster.dtype]: values });
   return values;
+}
+
+/** Compatibility-only expected peak miss. Keep this normalization at the wire
+ * boundary: the original error response is untouched and no stale fields leak
+ * into the historical minimal success shape. */
+export function normalizeCompatibilityResult<C extends CommandName>(
+  action: C,
+  response: CommandResult<C>,
+): CommandResult<C> {
+  if (
+    action === "pick_peak" &&
+    !response.ok &&
+    response.error ===
+      "No peak found here. Click on a bright ring, or try single-peak mode."
+  )
+    return { ok: true, noPeakFound: true } as CommandResult<C>;
+  return response;
 }

@@ -25,11 +25,7 @@ export function CalibrationPanel({
   ring: number;
   automatic: boolean;
   setAutomatic: (value: boolean) => void;
-  run: (
-    command: string,
-    args?: Record<string, unknown>,
-    message?: string,
-  ) => unknown;
+  run: import("./commandContracts").Run;
 }) {
   const c = state?.calibration,
     points = c?.picks.reduce((sum, pick) => sum + pick.points.length, 0) ?? 0;

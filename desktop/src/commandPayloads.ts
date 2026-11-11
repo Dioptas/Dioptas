@@ -140,7 +140,17 @@ export type CorrectionParameters = Partial<
     | "capillary_radius"
     | "capillary_thickness"
     | "sample_radius"
-    | "wall_thickness",
+    | "wall_thickness"
+    | "absorption_length"
+    | "absorption_coefficient"
+    | "container_absorption_coefficient"
+    | "plate_tilt"
+    | "plate_rotation"
+    | "slab_tilt"
+    | "slab_rotation"
+    | "beam_width"
+    | "axis_tilt"
+    | "axis_rotation",
     number
   >
 >;
@@ -305,12 +315,11 @@ export type MaskEditPayload = { erase?: boolean } & (
   | { operation: "grow" | "shrink" | "invert" | "clear" | "cosmic" }
 );
 export type MaskOperation = MaskEditPayload["operation"];
-export type MaskPluginPayload = {
-  index: number;
-  operation?: "enable" | "settings" | "imprint" | "reset";
-  enabled?: boolean;
-  settings?: Record<string, string | number | boolean>;
-};
+export type MaskPluginPayload = { name: string } & AtLeastOne<{
+  enabled: boolean;
+  imprint: boolean;
+  settings: Record<string, string | number | boolean>;
+}>;
 export interface NormalizationPayload {
   enabled?: boolean;
   reference?: number;
@@ -366,3 +375,24 @@ export interface FigureExportPayload extends FilePayload {
   figure?: JsonObject;
 }
 export type LevelsPayload = Partial<AutoLevels> & { clipping?: number };
+
+export interface IntegrationDiagnostics {
+  patternPlanBuilds: number;
+  cakePlanBuilds: number;
+  cakeIntegrations: number;
+  combinedDecodes: number;
+  preparedHits: number;
+  residentIntegrations: number;
+  typedImageIntegrations: number;
+  patternOnlyDecodes: number;
+  parallelPixelDecodes: number;
+  lastPixelDecodeMs: number;
+  frameParallelIntegrations: number;
+  seriesWorkerStarts: number;
+  seriesPipelineRuns: number;
+  seriesPendingPeak: number;
+  processedFrameIntegrations: number;
+  dynamicSeriesPlanBuilds: number;
+  sampleCorrectionBuilds: number;
+  sampleCorrectionHits: number;
+}

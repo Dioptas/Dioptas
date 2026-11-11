@@ -9,7 +9,7 @@ export function SpottinessControls({
   action,
 }: {
   state: State;
-  action: (command: string, args?: Record<string, unknown>) => void;
+  action: import("./commandContracts").CommandAction;
 }) {
   const source = state.integration;
   const combined = state.combination?.patterns;

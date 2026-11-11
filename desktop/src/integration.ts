@@ -91,9 +91,9 @@ export interface IntegrationState {
   originalPatternColor?: string;
   originalPatternVisible?: boolean;
   patternPath: string;
-  patternFileIteration: string;
+  patternFileIteration: import("./commandPayloads").FileOrder;
   fileInfo: string;
-  fileIteration: string;
+  fileIteration: import("./commandPayloads").FileOrder;
   imageDirectory: string;
   autoProcess: boolean;
   autoProcessError: string;

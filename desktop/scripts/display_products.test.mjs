@@ -69,3 +69,25 @@ test("one request wrapper covers every browsing entry point and explicit cake ex
   await invoke("display_products", { cake: true });
   assert.equal(seen.at(-1).payload.requested_products.cake, true);
 });
+
+test("explicit display-product requests keep omitted cake false independently of view demand", async () => {
+  const seen = [];
+  const invoke = withRequestedProducts(
+    async (action, payload) => {
+      seen.push({ action, payload });
+      return { ok: true };
+    },
+    () => ({ cake: true, rings: true }),
+  );
+  await invoke("display_products");
+  await invoke("display_products", {});
+  await invoke("display_products", { rings: false });
+  assert.deepEqual(
+    seen.map(({ payload }) => payload.requested_products),
+    [
+      { cake: false, rings: true },
+      { cake: false, rings: true },
+      { cake: false, rings: false },
+    ],
+  );
+});

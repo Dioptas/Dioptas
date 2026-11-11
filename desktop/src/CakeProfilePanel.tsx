@@ -49,7 +49,7 @@ export function CakeProfilePanel({
     profile: CakeProfile;
   } | null>(null);
   const args = useMemo(
-    () => ({ two_theta: linked?.twoTheta, bins, shift: 0 }),
+    () => (linked ? { two_theta: linked.twoTheta, bins, shift: 0 } : null),
     [linked?.twoTheta, bins],
   );
   const source = JSON.stringify([
@@ -74,7 +74,7 @@ export function CakeProfilePanel({
   const pending = useRef<{
     key: string;
     source: string;
-    args: typeof args;
+    args: NonNullable<typeof args>;
     run: IntegrationRun;
   } | null>(null);
   useEffect(() => {
@@ -85,7 +85,8 @@ export function CakeProfilePanel({
     };
   }, []);
   useEffect(() => {
-    pending.current = ready && eligible ? { key, source, args, run } : null;
+    pending.current =
+      ready && eligible && args ? { key, source, args, run } : null;
     if (fetching.current || !pending.current) return;
     fetching.current = true;
     void (async () => {
@@ -158,7 +159,7 @@ export function CakeProfilePanel({
         }
         onSubmit={(event) => {
           event.preventDefault();
-          if (!available || !ready) return;
+          if (!available || !ready || !args) return;
           void run(
             "save_cake_profile",
             {

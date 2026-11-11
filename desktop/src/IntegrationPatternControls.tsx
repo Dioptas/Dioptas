@@ -16,11 +16,7 @@ export function IntegrationPatternControls({
   setStep,
 }: {
   source: IntegrationState;
-  action: (
-    command: string,
-    args?: Record<string, unknown>,
-    onSuccess?: Parameters<IntegrationRun>[3],
-  ) => Promise<void>;
+  action: import("./commandDispatch").RunAction;
   step: number;
   setStep: (value: number) => void;
 }) {

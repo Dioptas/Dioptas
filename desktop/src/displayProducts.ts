@@ -1,4 +1,5 @@
-import type { Invoke } from "./types";
+import type { Invoke, CommandInvocation } from "./commandContracts";
+import { withTransportMetadata } from "./commandDispatch.ts";
 
 /** One display-demand policy for image browsing, Batch, Map and validation. */
 export function wantsCake(view: {
@@ -30,20 +31,28 @@ export function withRequestedProducts(
   invoke: Invoke,
   products: () => { cake: boolean; rings: boolean },
 ): Invoke {
-  return (action, payload = {}) =>
-    invoke(action, {
-      ...payload,
-      requested_products: {
-        cake:
-          action === "display_products"
-            ? payload.cake === true
-            : action === "integration_save_image" && payload.source === "cake"
-              ? true
-              : products().cake,
-        rings:
-          action === "display_products" && typeof payload.rings === "boolean"
-            ? payload.rings
-            : products().rings,
-      },
-    });
+  return <A extends CommandInvocation>(...call: A) => {
+    const [action, payload] = call;
+    const explicitCake =
+      action === "display_products"
+        ? !!payload && "cake" in payload && payload.cake === true
+        : action === "integration_save_image" &&
+            payload &&
+            "source" in payload &&
+            payload.source === "cake"
+          ? true
+          : products().cake;
+    const explicitRings =
+      action === "display_products" &&
+      payload &&
+      "rings" in payload &&
+      typeof payload.rings === "boolean"
+        ? payload.rings
+        : products().rings;
+    return invoke<A>(
+      ...withTransportMetadata(call, {
+        requested_products: { cake: explicitCake, rings: explicitRings },
+      }),
+    );
+  };
 }
