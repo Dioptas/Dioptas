@@ -70,9 +70,7 @@
     "enabled": false,
     "parameters": {
       "detector_thickness": 40.0,
-      "absorption_length": 150.0,
-      "tilt": 0.0,
-      "rotation": 0.0
+      "absorption_length": 150.0
     },
     "fields": {
       "detector_thickness": {
@@ -84,16 +82,6 @@
         "label": "Absorption length (\u00b5m)",
         "min": 0.001,
         "max": 1000000.0
-      },
-      "tilt": {
-        "label": "Detector tilt (\u00b0)",
-        "min": -89.0,
-        "max": 89.0
-      },
-      "rotation": {
-        "label": "Detector rotation (\u00b0)",
-        "min": -360.0,
-        "max": 360.0
       }
     }
   },

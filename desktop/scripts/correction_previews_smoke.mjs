@@ -39,6 +39,13 @@ try {
         delayPreview = false;
       const commands = [],
         errors = [];
+      let latestRevision = -1,
+        preparedRevision = -2,
+        preloadExpected = false;
+      let preloadGate = null,
+        releasePreload,
+        heldPreloads = 0,
+        discardedPreloads = 0;
       const call = async (a, p = {}) => {
         const r = await native.invoke(a, p);
         assert.equal(r.ok, true, `${a}: ${r.error}`);
@@ -83,13 +90,62 @@ try {
           failPreview = false;
           return { ok: false, error: "Injected preview transport failure" };
         }
-        const result = native.browserResult(await native.invoke(a, p));
+        if (a === "integration_correction_preload" && preloadGate) {
+          heldPreloads++;
+          await preloadGate;
+        }
+        let rawResult;
+        if (a === "integration_correction_preview") {
+          const packet = await native.invokePacket(
+            a,
+            p,
+            [...native.buffers.keys()].slice(-64),
+          );
+          const length = packet.readUInt32LE(0);
+          rawResult = JSON.parse(
+            packet.subarray(4, 4 + length).toString(),
+          ).result;
+          if (rawResult.ok)
+            assert.equal(
+              packet.length - 4 - length,
+              0,
+              "Ready Plot must use background-preloaded pixels",
+            );
+        } else rawResult = await native.invoke(a, p);
+        if (rawResult.state) {
+          latestRevision = rawResult.state.revision;
+          const integration = rawResult.state.integration;
+          preloadExpected =
+            !!integration.flatField.filename ||
+            (!!integration.transfer?.original &&
+              !!integration.transfer?.response) ||
+            Object.values(integration.corrections).some((c) => c.enabled);
+        }
+        if (a === "integration_correction_preload" && rawResult.discarded)
+          discardedPreloads++;
+        if (
+          a === "integration_correction_preload" &&
+          rawResult.ok &&
+          !rawResult.discarded &&
+          !rawResult.correctionPreviewPending
+        )
+          preparedRevision = rawResult.revision;
+        const result = native.browserResult(rawResult);
         if (a === "integration_correction_preview" && delayPreview) {
           delayPreview = false;
           await new Promise((resolve) => setTimeout(resolve, 450));
         }
         return result;
       });
+      await page.exposeFunction("__heldPreloads", () => heldPreloads);
+      await page.exposeFunction(
+        "__latestCorrectionRevision",
+        () => latestRevision,
+      );
+      await page.exposeFunction(
+        "__correctionPreloadReady",
+        () => !preloadExpected || latestRevision === preparedRevision,
+      );
       await page.addInitScript(() => {
         window.pywebview = {
           api: { invoke: (a, p) => window.__nativeInvoke(a, p) },
@@ -107,6 +163,35 @@ try {
           .getByRole("navigation", { name: "Correction type" })
           .getByRole("button", { name: label, exact: true });
       const plot = () => button("Plot correction");
+      const preloadReady = () =>
+        page.waitForFunction(
+          async () => await window.__correctionPreloadReady(),
+        );
+      const compactAction = async () => {
+        const row = page.locator(".correction-apply-row");
+        const label = await row.locator(".check-row").boundingBox();
+        const action = await row
+          .locator(".correction-plot-button")
+          .boundingBox();
+        const bounds = await row.boundingBox();
+        assert(label && action && bounds);
+        assert(action.width < 90 && action.height >= 28);
+        assert(
+          Math.abs(action.y + action.height / 2 - label.y - label.height / 2) <
+            2,
+          "Apply and Plot must share one row",
+        );
+        assert(
+          action.x >= label.x + label.width + 5 &&
+            action.x <= label.x + label.width + 15,
+          "Plot must sit beside Apply",
+        );
+        assert(action.x + action.width <= bounds.x + bounds.width + 1);
+        assert.equal(
+          await page.locator(".correction-preview-action").count(),
+          0,
+        );
+      };
       const preview = page.getByRole("region", {
         name: "Correction map preview",
       });
@@ -160,6 +245,140 @@ try {
         await button("Close detector display settings").click();
       };
       assert.equal(await plot().isEnabled(), false);
+      await type("Detector absorption").click();
+      assert.equal(
+        await page
+          .getByRole("spinbutton", { name: "Detector tilt (°)", exact: true })
+          .count(),
+        0,
+      );
+      assert.equal(
+        await page
+          .getByRole("spinbutton", {
+            name: "Detector rotation (°)",
+            exact: true,
+          })
+          .count(),
+        0,
+      );
+      assert.equal(
+        await page
+          .getByRole("spinbutton", {
+            name: "Detector thickness (µm)",
+            exact: true,
+          })
+          .count(),
+        1,
+      );
+      preloadGate = new Promise((resolve) => {
+        releasePreload = resolve;
+      });
+      await page
+        .getByRole("checkbox", {
+          name: "Apply detector absorption",
+          exact: true,
+        })
+        .check();
+      await ready();
+      await page.waitForFunction(
+        async () => (await window.__heldPreloads()) > 0,
+      );
+      assert.equal(
+        await plot().isEnabled(),
+        true,
+        "Apply must finish while preloading is still pending",
+      );
+      assert.equal(await preview.count(), 0);
+      const thickness = page.getByRole("spinbutton", {
+        name: "Detector thickness (µm)",
+        exact: true,
+      });
+      const previousRevision = latestRevision;
+      await thickness.fill("44");
+      await thickness.press("Enter");
+      await ready();
+      await page.waitForFunction(
+        async (revision) =>
+          (await window.__latestCorrectionRevision()) > revision,
+        previousRevision,
+      );
+      preloadGate = null;
+      releasePreload();
+      await preloadReady();
+      assert(
+        discardedPreloads > 0,
+        "Superseded background responses must be rejected quietly",
+      );
+      for (const large of [false, true]) {
+        await button("Settings").click();
+        await button(large ? "Larger" : "Standard").click();
+        await button("Close settings").click();
+        for (const width of [1000, 1440]) {
+          await page.setViewportSize({ width, height: 900 });
+          await page.waitForTimeout(120);
+          await compactAction();
+          await page
+            .locator(".integration-tab-corrections")
+            .screenshot({
+              path: path.join(
+                out,
+                `${name}-actions-${large ? "large" : "standard"}-${width}.png`,
+              ),
+            });
+        }
+      }
+      await button("Settings").click();
+      await button("Standard").click();
+      await button("Close settings").click();
+      await compactAction();
+      const detectorBefore = await science();
+      await preloadReady();
+      await plot().click();
+      await preview.waitFor();
+      assert.match(
+        await preview.innerText(),
+        /Relative detector absorption efficiency/,
+      );
+      await button("Back from correction preview").click();
+      assert.deepEqual(await science(), detectorBefore);
+      await page
+        .getByRole("checkbox", {
+          name: "Apply detector absorption",
+          exact: true,
+        })
+        .uncheck();
+      await ready();
+      for (const [tab, label, kind] of [
+        ["cBN seat", "cBN seat", "cbn"],
+        ["Slab", "slab self-absorption", "slab"],
+        ["Cylinder", "cylinder absorption", "cylinder"],
+        ["Sphere", "sphere absorption", "sphere"],
+      ]) {
+        await type(tab).click();
+        await compactAction();
+        const toggle = page.getByRole("checkbox", {
+          name: `Apply ${label}`,
+          exact: true,
+        });
+        await toggle.check();
+        await ready();
+        const before = await science();
+        await preloadReady();
+        await plot().click();
+        await preview.waitFor();
+        assert.equal(await preview.getAttribute("data-kind"), kind);
+        await button("Back from correction preview").click();
+        await preloadReady();
+        await plot().click();
+        await preview.waitFor();
+        assert.equal(await preview.getAttribute("data-kind"), kind);
+        await button("Back from correction preview").click();
+        assert.deepEqual(await science(), before);
+        await toggle.uncheck();
+        await ready();
+      }
+      await type("Flat field").click();
+      await compactAction();
       await button("Load flat field…").click();
       await ready();
       await page
@@ -177,6 +396,7 @@ try {
       await page.waitForTimeout(180);
       const originalView = await attrs(image),
         before = await science();
+      await preloadReady();
       await plot().click();
       await preview.waitFor();
       assert.match(
@@ -247,6 +467,7 @@ try {
       await page.waitForTimeout(180);
       const cakeView = await attrs(cake),
         cakeBefore = await science();
+      await preloadReady();
       await plot().click();
       await preview.waitFor();
       await button("Back from correction preview").click();
@@ -254,16 +475,19 @@ try {
       assert.deepEqual(await attrs(cake), cakeView);
       assert.deepEqual(await science(), cakeBefore);
       await type("Transfer").click();
+      await compactAction();
       assert.equal(await plot().isEnabled(), false);
       await button("Load transfer original…").click();
       await ready();
       assert.equal(await plot().isEnabled(), false);
       await button("Load transfer response…").click();
       await ready();
+      await preloadReady();
       await plot().click();
       await preview.waitFor();
       assert.match(await preview.innerText(), /response \/ original/);
       await type("Flat field").click();
+      await preloadReady();
       await plot().click();
       await page.waitForFunction(
         () =>
@@ -275,6 +499,7 @@ try {
       await ready();
       assert.equal(await plot().isEnabled(), false);
       await type("Transfer").click();
+      await preloadReady();
       await plot().click();
       await preview.waitFor();
       await button("Calibration").click();
@@ -282,6 +507,7 @@ try {
       await button("Integration").click();
       await type("Transfer").click();
       delayPreview = true;
+      await preloadReady();
       await plot().click();
       await button("Calibration").click();
       await ready();
@@ -293,6 +519,7 @@ try {
       );
       await type("Transfer").click();
       failPreview = true;
+      await preloadReady();
       await plot().click();
       await ready();
       assert.equal(await preview.count(), 0);
@@ -311,6 +538,7 @@ try {
         .getByRole("checkbox", { name: "Apply plate absorption", exact: true })
         .check();
       await ready();
+      await preloadReady();
       await plot().click();
       await preview.waitFor();
       await page
@@ -320,12 +548,14 @@ try {
       await ready();
       assert.equal(await plot().isEnabled(), false);
       await type("Transfer").click();
+      await preloadReady();
       await plot().click();
       await preview.waitFor();
       await page.keyboard.press("Shift+C");
       await button("Duplicate").click();
       await ready();
       assert.equal(await preview.count(), 0);
+      await preloadReady();
       await plot().click();
       await preview.waitFor();
       await page
@@ -333,6 +563,7 @@ try {
         .selectOption("0");
       await ready();
       assert.equal(await preview.count(), 0);
+      await preloadReady();
       await plot().click();
       await preview.waitFor();
       await page.keyboard.press("Shift+C");
@@ -357,12 +588,14 @@ try {
         checks: [
           "disabled/partial references",
           "native map readouts and units",
+          "background prepares/preloads pixels; ready Plot transfers metadata only",
+          "Apply and edits stay usable during delayed preload; stale responses discarded",
           "independent histogram and zoom",
           "unchanged raw/processed/pattern/cake",
           "Cake restoration",
           "replacement/removal/disable/mode/configuration/failure cleanup",
           "late response rejection and native Auto levels",
-          "1440/1100 layout",
+          "compact Apply/Plot row at 1000/1440 in both text sizes; 1440/1100 preview layout",
         ],
         previewCommands: commands.filter(
           ([a]) => a === "integration_correction_preview",

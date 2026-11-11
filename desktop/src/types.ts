@@ -94,6 +94,7 @@ export interface State {
     automatic: number;
   };
   supportsRequestedProducts?: boolean;
+  supportsBackgroundCorrectionPreviews?: boolean;
   supportsBinaryPhaseGuides?: boolean;
   revision: number;
   hasImage: boolean;
@@ -273,6 +274,9 @@ export interface Response {
   state?: State;
   image?: Raster;
   correctionPreview?: import("./correctionPreview").CorrectionPreview;
+  /** Prepared during correction calculation and preloaded into the byte cache. */
+  preparedCorrections?: Raster[];
+  correctionPreviewPending?: boolean;
   rawImage?: Raster;
   phaseGuides?: RingOverlay[];
   mask?: Raster;

@@ -1,6 +1,8 @@
 #![recursion_limit = "256"]
 //! Native processing for the existing desktop command/binary-raster contract.
 //! The default runtime uses Dioptrin directly, without Python.
+#[cfg(feature = "dioptrin")]
+mod analytical_absorption;
 mod background_fit;
 mod background_workers;
 mod batch_background;
@@ -8,9 +10,12 @@ mod batch_pattern_background;
 mod batch_waterfall;
 mod contours;
 pub mod control;
+mod correction_maps;
 #[cfg(feature = "dioptrin")]
 mod correction_preview;
 mod custom_actions;
+#[cfg(feature = "dioptrin")]
+mod detector_absorption;
 mod detector_mask;
 pub mod display;
 mod frame_trace;

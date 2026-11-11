@@ -42,12 +42,30 @@ pub(crate) struct Processing {
     transfer_response: Option<Plane>,
     transfer_enabled: bool,
     pub background_poisson: bool,
+    #[serde(deserialize_with = "deserialize_corrections")]
     corrections: Value,
     #[serde(skip)]
     cache: Option<Cached>,
+    #[serde(skip)]
+    maps: crate::correction_maps::Maps,
     #[cfg(feature = "dioptrin")]
     #[serde(skip)]
-    sample_maps: crate::sample_absorption::Maps,
+    detector_maps: crate::detector_absorption::Maps,
+}
+
+// Development handoffs restore Processing directly instead of going through
+// project import. Migrate their older schema too, including saved Undo states.
+fn deserialize_corrections<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Value, D::Error> {
+    let mut corrections = <Value as serde::Deserialize>::deserialize(deserializer)?;
+    for section in ["parameters", "fields"] {
+        if let Some(values) = corrections["oiadac"][section].as_object_mut() {
+            values.remove("tilt");
+            values.remove("rotation");
+        }
+    }
+    Ok(corrections)
 }
 impl PartialEq for Processing {
     fn eq(&self, other: &Self) -> bool {
@@ -86,8 +104,9 @@ impl Default for Processing {
             background_poisson: true,
             corrections: serde_json::from_str(include_str!("correction_defaults.json")).unwrap(),
             cache: None,
+            maps: crate::correction_maps::Maps::default(),
             #[cfg(feature = "dioptrin")]
-            sample_maps: crate::sample_absorption::Maps::default(),
+            detector_maps: crate::detector_absorption::Maps::default(),
         }
     }
 }
@@ -103,23 +122,208 @@ impl Processing {
         geometry: &Geometry,
         control: &crate::control::Control,
     ) -> Result<Arc<Vec<f64>>, String> {
+        if kind == "flat" {
+            let flat = self.flat.as_ref().ok_or("Load a flat field first.")?;
+            return self.flat_map(flat, image, control);
+        }
+        if kind == "transfer" {
+            let key = self.transfer_key(image)?;
+            let gains = self.transfer_map(image, control)?;
+            return self.transfer_preview_map(key, gains, control);
+        }
         let mut selected = self.clone();
-        selected.background = None;
-        selected.flat_enabled = kind == "flat" && self.flat.is_some();
-        selected.transfer_enabled = kind == "transfer"
-            && self.transfer_original.is_some()
-            && self.transfer_response.is_some();
         for (key, entry) in selected.corrections.as_object_mut().unwrap() {
             entry["enabled"] = json!(key == kind && entry["enabled"] == true);
         }
-        let snapshot = selected.series_snapshot(image, geometry, control)?;
-        match snapshot.operations.into_iter().next() {
-            Some(SeriesOperation::Divide(values)) => Ok(values),
-            Some(SeriesOperation::Multiply(values)) => {
-                Ok(Arc::new(values.iter().map(|gain| 1. / gain).collect()))
-            }
-            None => Err("This correction has no available map. Enable an analytical correction or load complete references first.".into()),
+        selected.resolve_materials(geometry)?;
+        let entry = &selected.corrections[kind];
+        if entry["enabled"] != true {
+            return Err("This correction has no available map. Enable it first.".into());
         }
+        selected.analytical_map(kind, entry, image, geometry, control)
+    }
+
+    #[cfg(feature = "dioptrin")]
+    pub(crate) fn preview_raster(
+        &self,
+        kind: &str,
+        image: &Image,
+        values: Arc<Vec<f64>>,
+        mode: &str,
+        percentile: f64,
+        control: &crate::control::Control,
+    ) -> Result<crate::display::Raster, String> {
+        self.maps
+            .preview(kind, values, image.shape, mode, percentile, control)
+    }
+
+    fn flat_map(
+        &self,
+        flat: &Plane,
+        image: &Image,
+        control: &crate::control::Control,
+    ) -> Result<Arc<Vec<f64>>, String> {
+        if flat.shape != image.source_shape {
+            return Err("Flat-field dimensions differ from the source image.".into());
+        }
+        let key = crate::correction_maps::Key::References(
+            flat.values.clone(),
+            None,
+            flat.shape,
+            image.transformations.clone(),
+        );
+        self.maps.get("flat", key, control, || {
+            crate::transform::apply(&flat.values, flat.shape, &image.transformations, control)
+        })
+    }
+    fn transfer_key(&self, image: &Image) -> Result<crate::correction_maps::Key, String> {
+        let original = self
+            .transfer_original
+            .as_ref()
+            .ok_or("Load both transfer references first.")?;
+        let response = self
+            .transfer_response
+            .as_ref()
+            .ok_or("Load both transfer references first.")?;
+        if original.shape != image.source_shape || response.shape != image.source_shape {
+            return Err("Transfer-reference dimensions differ from the source image.".into());
+        }
+        Ok(crate::correction_maps::Key::References(
+            original.values.clone(),
+            Some(response.values.clone()),
+            original.shape,
+            image.transformations.clone(),
+        ))
+    }
+    fn transfer_map(
+        &self,
+        image: &Image,
+        control: &crate::control::Control,
+    ) -> Result<Arc<Vec<f64>>, String> {
+        let key = self.transfer_key(image)?;
+        let gains = self.maps.get("transfer", key.clone(), control, || {
+            let original = self.transfer_original.as_ref().unwrap();
+            let response = self.transfer_response.as_ref().unwrap();
+            let gains = Arc::new(
+                original
+                    .values
+                    .iter()
+                    .zip(response.values.iter())
+                    .map(|(o, r)| o / r)
+                    .collect(),
+            );
+            crate::transform::apply(&gains, original.shape, &image.transformations, control)
+        })?;
+        self.transfer_preview_map(key, gains.clone(), control)?;
+        Ok(gains)
+    }
+    fn transfer_preview_map(
+        &self,
+        key: crate::correction_maps::Key,
+        gains: Arc<Vec<f64>>,
+        control: &crate::control::Control,
+    ) -> Result<Arc<Vec<f64>>, String> {
+        self.maps.get("transfer-preview", key, control, || {
+            Ok(Arc::new(gains.iter().map(|gain| 1. / gain).collect()))
+        })
+    }
+    pub(crate) fn cancel_preview_preparation(&self) {
+        self.maps.cancel_preparation();
+    }
+    #[cfg(feature = "dioptrin")]
+    pub(crate) fn prepared_previews(
+        &self,
+        image: &Image,
+        geometry: &Geometry,
+    ) -> (Vec<crate::display::Raster>, bool) {
+        use crate::correction_maps::Key;
+        let mut specs = vec![];
+        if let Some(flat) = &self.flat
+            && flat.shape == image.source_shape
+        {
+            specs.push((
+                "flat".into(),
+                Key::References(
+                    flat.values.clone(),
+                    None,
+                    flat.shape,
+                    image.transformations.clone(),
+                ),
+            ));
+        }
+        if let Ok(key) = self.transfer_key(image) {
+            specs.push(("transfer".into(), key));
+        }
+        for (kind, entry) in self.corrections.as_object().unwrap() {
+            if entry["enabled"] != true {
+                continue;
+            }
+            let mut parameters = entry["parameters"].clone();
+            if kind == "cylinder" && entry["container"]["enabled"] != true {
+                parameters["container_absorption_coefficient"] = json!(0.);
+            }
+            specs.push((
+                kind.clone(),
+                Key::Analytical(parameters, Box::new(geometry.clone()), image.shape),
+            ));
+        }
+        self.maps.prepared(&specs)
+    }
+    #[cfg(feature = "dioptrin")]
+    pub(crate) fn prepare_reference_preview(
+        &self,
+        kind: &str,
+        image: &Image,
+        geometry: &Geometry,
+        control: &crate::control::Control,
+    ) -> Result<(), String> {
+        let ready = match kind {
+            "flat" => self.flat.is_some(),
+            "transfer" => self.transfer_original.is_some() && self.transfer_response.is_some(),
+            _ => false,
+        };
+        if ready {
+            self.preview_map(kind, image, geometry, control)?;
+        }
+        Ok(())
+    }
+    #[cfg(feature = "dioptrin")]
+    fn analytical_map(
+        &self,
+        kind: &str,
+        entry: &Value,
+        image: &Image,
+        geometry: &Geometry,
+        control: &crate::control::Control,
+    ) -> Result<Arc<Vec<f64>>, String> {
+        let mut parameters = entry["parameters"].clone();
+        if kind == "cylinder" && entry["container"]["enabled"] != true {
+            parameters["container_absorption_coefficient"] = json!(0.);
+        }
+        let key = crate::correction_maps::Key::Analytical(
+            parameters.clone(),
+            Box::new(geometry.clone()),
+            image.shape,
+        );
+        self.maps.get(kind, key, control, || {
+            if kind == "oiadac" {
+                return self.detector_maps.get(
+                    geometry,
+                    image.shape,
+                    parameters["detector_thickness"].as_f64().unwrap(),
+                    parameters["absorption_length"].as_f64().unwrap(),
+                    control,
+                );
+            }
+
+            let (tth, azi) = self.maps.angles(geometry, image.shape, control)?;
+            let values = if ["cylinder", "sphere"].contains(&kind) {
+                crate::sample_absorption::build(kind, &parameters, &tth, &azi, control)?
+            } else {
+                crate::analytical_absorption::build(kind, &parameters, &tth, &azi, control)?
+            };
+            Ok(Arc::new(values))
+        })
     }
 
     /// Freeze deterministic maps once while preserving every divide/multiply
@@ -150,7 +354,9 @@ impl Processing {
                 .as_ref()
                 .filter(|p| p.shape == image.source_shape)
         {
-            operations.push(SeriesOperation::Divide(orient(flat)?));
+            operations.push(SeriesOperation::Divide(
+                processing.flat_map(flat, image, control)?,
+            ));
         }
         if processing.transfer_enabled
             && let (Some(original), Some(response)) =
@@ -158,65 +364,16 @@ impl Processing {
             && original.shape == image.source_shape
             && response.shape == image.source_shape
         {
-            let gains = Arc::new(
-                original
-                    .values
-                    .iter()
-                    .zip(response.values.iter())
-                    .map(|(o, r)| o / r)
-                    .collect(),
-            );
-            operations.push(SeriesOperation::Multiply(crate::transform::apply(
-                &gains,
-                original.shape,
-                &image.transformations,
-                control,
-            )?));
+            operations.push(SeriesOperation::Multiply(
+                processing.transfer_map(image, control)?,
+            ));
         }
-        let mut angles = None;
         for (kind, entry) in processing.corrections.as_object().unwrap() {
-            if entry["enabled"] != true {
-                continue;
+            if entry["enabled"] == true {
+                operations.push(SeriesOperation::Divide(
+                    processing.analytical_map(kind, entry, image, geometry, control)?,
+                ));
             }
-            let mut parameters = entry["parameters"].clone();
-            if kind == "cylinder" && entry["container"]["enabled"] != true {
-                parameters["container_absorption_coefficient"] = json!(0.);
-            }
-            let factors = if (kind == "cylinder" || kind == "sphere")
-                && let Some(values) =
-                    processing
-                        .sample_maps
-                        .lookup(kind, &parameters, geometry, image.shape)
-            {
-                values
-            } else {
-                if angles.is_none() {
-                    let native = geometry.native_geometry(image.shape)?;
-                    angles = Some((native.calc_tth_all(), native.calc_azimuth_all()));
-                }
-                let (tth, azi) = angles.as_ref().unwrap();
-                let values = if kind == "cylinder" || kind == "sphere" {
-                    crate::sample_absorption::build(kind, &parameters, tth, azi, control)?
-                } else {
-                    let mut values = Vec::with_capacity(tth.len());
-                    for (i, (&t, &a)) in tth.iter().zip(azi).enumerate() {
-                        if i % 65536 == 0 {
-                            control.check()?;
-                        }
-                        let factor = absorption(kind, &parameters, t, a);
-                        if !factor.is_finite() || factor <= 0. {
-                            return Err(
-                                "Correction is not finite and positive across this detector."
-                                    .into(),
-                            );
-                        }
-                        values.push(factor);
-                    }
-                    values
-                };
-                Arc::new(values)
-            };
-            operations.push(SeriesOperation::Divide(factors));
         }
         Ok(SeriesProcessing {
             operations,
@@ -228,10 +385,9 @@ impl Processing {
         })
     }
     pub fn estimated_bytes(&self) -> usize {
+        let map_bytes = self.maps.bytes();
         #[cfg(feature = "dioptrin")]
-        let map_bytes = self.sample_maps.bytes();
-        #[cfg(not(feature = "dioptrin"))]
-        let map_bytes = 0;
+        let map_bytes = map_bytes + self.detector_maps.bytes();
         map_bytes
             + self
                 .cache
@@ -250,7 +406,7 @@ impl Processing {
     }
     #[cfg(feature = "dioptrin")]
     pub fn diagnostics(&self) -> Value {
-        self.sample_maps.diagnostics()
+        self.maps.diagnostics()
     }
     pub fn active(&self) -> bool {
         self.factor != 1.0
@@ -327,6 +483,8 @@ impl Processing {
                     return Err("Reset must be a boolean.".into());
                 }
                 if reset == true {
+                    self.maps.clear("transfer");
+                    self.maps.clear("transfer-preview");
                     if source == "original" {
                         self.transfer_original = None;
                     } else {
@@ -425,6 +583,7 @@ impl Processing {
             .transpose()?
             .unwrap_or(false);
         if reset {
+            self.maps.clear("flat");
             self.flat = None;
             self.flat_enabled = false;
         } else if !enabled {
@@ -472,6 +631,11 @@ impl Processing {
                 .as_object()
                 .ok_or("Correction parameters must be an object.")?
             {
+                // Legacy Qt/native projects supplied independent detector angles.
+                // Calibrated physical geometry now owns these; discard on import.
+                if kind == "oiadac" && ["tilt", "rotation"].contains(&key.as_str()) {
+                    continue;
+                }
                 let field = &entry["fields"][key];
                 if field.is_null() {
                     return Err("Unknown correction parameter.".into());
@@ -654,28 +818,14 @@ impl Processing {
         }
         if self.flat_enabled {
             let flat = self.flat.as_ref().unwrap();
-            let response =
-                crate::transform::apply(&flat.values, flat.shape, &image.transformations, control)?;
+            let response = self.flat_map(flat, image, control)?;
             for ((v, var), f) in values.iter_mut().zip(&mut variance).zip(response.iter()) {
                 *v /= f;
                 *var /= f * f;
             }
         }
         if self.transfer_enabled {
-            let original = self.transfer_original.as_ref().unwrap();
-            let response = self.transfer_response.as_ref().unwrap();
-            let gains: Vec<_> = original
-                .values
-                .iter()
-                .zip(response.values.iter())
-                .map(|(o, r)| o / r)
-                .collect();
-            let gains = crate::transform::apply(
-                &Arc::new(gains),
-                original.shape,
-                &image.transformations,
-                control,
-            )?;
+            let gains = self.transfer_map(image, control)?;
             for ((v, var), gain) in values.iter_mut().zip(&mut variance).zip(gains.iter()) {
                 *v *= gain;
                 *var *= gain * gain;
@@ -683,59 +833,14 @@ impl Processing {
         }
         #[cfg(feature = "dioptrin")]
         if geometry_active {
-            let mut angles = None;
             for (kind, entry) in self.corrections.as_object().unwrap() {
                 if entry["enabled"] != true {
                     continue;
                 }
-                if kind == "cylinder" || kind == "sphere" {
-                    let mut parameters = entry["parameters"].clone();
-                    if kind == "cylinder" && entry["container"]["enabled"] != true {
-                        parameters["container_absorption_coefficient"] = json!(0.);
-                    }
-                    let factors = if let Some(v) =
-                        self.sample_maps
-                            .lookup(kind, &parameters, geometry, image.shape)
-                    {
-                        v
-                    } else {
-                        if angles.is_none() {
-                            let native = geometry.native_geometry(image.shape)?;
-                            angles = Some((native.calc_tth_all(), native.calc_azimuth_all()));
-                        }
-                        let (tth, azi) = angles.as_ref().unwrap();
-                        let factors =
-                            crate::sample_absorption::build(kind, &parameters, tth, azi, control)?;
-                        self.sample_maps.store(
-                            kind,
-                            parameters,
-                            geometry.clone(),
-                            image.shape,
-                            factors,
-                        )
-                    };
-                    for ((v, var), factor) in
-                        values.iter_mut().zip(&mut variance).zip(factors.iter())
-                    {
-                        *v /= factor;
-                        *var /= factor * factor;
-                    }
-                    continue;
-                }
-                if angles.is_none() {
-                    let native = geometry.native_geometry(image.shape)?;
-                    angles = Some((native.calc_tth_all(), native.calc_azimuth_all()));
-                }
-                let (tth, azi) = angles.as_ref().unwrap();
-                for (i, v) in values.iter_mut().enumerate() {
-                    let factor = absorption(kind, &entry["parameters"], tth[i], azi[i]);
-                    if !factor.is_finite() || factor <= 0.0 {
-                        return Err(
-                            "Correction is not finite and positive across this detector.".into(),
-                        );
-                    }
+                let factors = self.analytical_map(kind, entry, image, geometry, control)?;
+                for ((v, var), factor) in values.iter_mut().zip(&mut variance).zip(factors.iter()) {
                     *v /= factor;
-                    variance[i] /= factor * factor;
+                    *var /= factor * factor;
                 }
             }
         }
@@ -887,6 +992,33 @@ mod series_tests {
                     let prepared = processing
                         .series_snapshot(&image, &geometry, &control)
                         .unwrap();
+                    if kind != "none" {
+                        let map = processing
+                            .preview_map(kind, &image, &geometry, &control)
+                            .unwrap();
+                        let again = processing
+                            .preview_map(kind, &image, &geometry, &control)
+                            .unwrap();
+                        assert!(Arc::ptr_eq(&map, &again), "{kind} Plot rebuilt its map");
+                        let Some(SeriesOperation::Divide(snapshot)) = prepared.operations.last()
+                        else {
+                            panic!("Missing analytical divisor");
+                        };
+                        assert!(
+                            Arc::ptr_eq(&map, snapshot),
+                            "{kind} snapshot and Plot use different maps"
+                        );
+                        let first = processing
+                            .preview_raster(kind, &image, map.clone(), "percentile", 2.5, &control)
+                            .unwrap();
+                        let second = processing
+                            .preview_raster(kind, &image, map, "percentile", 2.5, &control)
+                            .unwrap();
+                        assert!(
+                            Arc::ptr_eq(&first.buffer.bytes, &second.buffer.bytes),
+                            "{kind} Plot rebuilt display bytes"
+                        );
+                    }
                     let expected = processing.values(&image, 1, &geometry, &control).unwrap();
                     let expected_var = processing.variance().unwrap();
                     let mut actual = image.values.as_ref().clone();
@@ -940,8 +1072,14 @@ fn material_mu(material: &Value, wavelength: f64) -> Result<f64, String> {
             "Material attenuation requires photon energy from {low} to {high} eV; check the calibration wavelength."
         ));
     }
-    let db = xraydb::XrayDb::load_uncompressed(include_bytes!("../data/attenuation.bin"))
-        .map_err(|e| format!("Could not load embedded X-ray reference data: {e}"))?;
+    static DB: std::sync::OnceLock<Result<xraydb::XrayDb, String>> = std::sync::OnceLock::new();
+    let db = DB
+        .get_or_init(|| {
+            xraydb::XrayDb::load_uncompressed(include_bytes!("../data/attenuation.bin"))
+                .map_err(|e| format!("Could not load embedded X-ray reference data: {e}"))
+        })
+        .as_ref()
+        .map_err(Clone::clone)?;
     let density = material["density"].as_f64().unwrap();
     let mu = db
         .material_mu_named_at(
@@ -957,7 +1095,7 @@ fn material_mu(material: &Value, wavelength: f64) -> Result<f64, String> {
     }
     Ok(mu)
 }
-#[cfg(feature = "dioptrin")]
+#[cfg(all(test, feature = "dioptrin"))]
 fn absorption(kind: &str, p: &Value, tth: f64, azi: f64) -> f64 {
     let n = |key: &str| p[key].as_f64().unwrap();
     if kind == "plate" || kind == "slab" {
@@ -983,15 +1121,6 @@ fn absorption(kind: &str, p: &Value, tth: f64, azi: f64) -> f64 {
             -(-difference).exp_m1() / difference
         };
         thickness * (-incident.min(outgoing) * thickness).exp() * ratio
-    } else if kind == "oiadac" {
-        let tilt = n("tilt").to_radians();
-        let rotation = n("rotation").to_radians();
-        let d = n("detector_thickness");
-        let mu = 1.0 / n("absorption_length");
-        let angle = (tth * tth + tilt * tilt
-            - 2.0 * tilt * tth * (std::f64::consts::PI - azi + rotation).cos())
-        .sqrt();
-        (1.0 - (-mu * d / angle.cos()).exp()) / (1.0 - (-mu * d).exp())
     } else {
         let diam = n("diamond_thickness");
         let ds = n("seat_thickness");
@@ -1028,6 +1157,66 @@ fn absorption(kind: &str, p: &Value, tth: f64, azi: f64) -> f64 {
 #[cfg(all(test, feature = "dioptrin"))]
 mod tests {
     use super::*;
+    #[test]
+    fn optimized_analytical_maps_preserve_the_scalar_reference_bits() {
+        let defaults = Processing::default();
+        let mut cases: Vec<_> = ["cbn", "plate", "slab"]
+            .into_iter()
+            .map(|kind| (kind, defaults.corrections[kind]["parameters"].clone()))
+            .collect();
+        for kind in ["cbn", "plate", "slab"] {
+            let mut p = defaults.corrections[kind]["parameters"].clone();
+            if kind == "cbn" {
+                p["tilt"] = json!(7.);
+                p["tilt_rotation"] = json!(31.);
+                p["center_offset"] = json!(0.02);
+                p["center_offset_angle"] = json!(45.);
+            } else {
+                p[format!("{kind}_tilt")] = json!(12.);
+                p[format!("{kind}_rotation")] = json!(27.);
+            }
+            cases.push((kind, p));
+        }
+        let tth: Vec<_> = (0..4096).map(|i| i as f64 / 4096. * 1.1).collect();
+        let azi: Vec<_> = (0..4096)
+            .map(|i| (i % 67) as f64 / 67. * std::f64::consts::TAU - std::f64::consts::PI)
+            .collect();
+        for (kind, p) in cases {
+            let map = crate::analytical_absorption::build(
+                kind,
+                &p,
+                &tth,
+                &azi,
+                &crate::control::Control::default(),
+            )
+            .unwrap();
+            for (i, &v) in map.iter().enumerate() {
+                assert_eq!(
+                    v.to_bits(),
+                    absorption(kind, &p, tth[i], azi[i]).to_bits(),
+                    "{kind} pixel {i}"
+                );
+            }
+        }
+    }
+    #[test]
+    fn development_handoffs_discard_legacy_detector_angle_fields() {
+        let mut saved = serde_json::to_value(Processing::default()).unwrap();
+        for section in ["parameters", "fields"] {
+            saved["corrections"]["oiadac"][section]["tilt"] = json!(23.);
+            saved["corrections"]["oiadac"][section]["rotation"] = json!(71.);
+        }
+        let restored: Processing = serde_json::from_value(saved).unwrap();
+        for section in ["parameters", "fields"] {
+            assert_eq!(
+                restored.corrections["oiadac"][section]
+                    .as_object()
+                    .unwrap()
+                    .len(),
+                2
+            );
+        }
+    }
     #[test]
     fn slab_equal_path_limit_is_stable_and_zero_absorption_matches_reference() {
         let mut p =

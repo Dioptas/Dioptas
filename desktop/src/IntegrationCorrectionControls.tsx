@@ -1,5 +1,6 @@
 import { correctionPreviewAvailable } from "./correctionPreview";
 import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, ChartNoAxesCombined } from "lucide-react";
 import { Button, Input, Select } from "./ui";
 import type { State } from "./types";
 import type { CorrectionMaterial, IntegrationRun } from "./integration";
@@ -162,6 +163,29 @@ export function IntegrationCorrectionControls({
       />
     );
   };
+  const plotButton = (
+    <Button
+      variant="quiet"
+      className="correction-plot-button"
+      aria-label={
+        previewKind === tab ? "Back from correction preview" : "Plot correction"
+      }
+      aria-pressed={previewKind === tab}
+      disabled={
+        !state.hasImage ||
+        !correctionPreviewAvailable(source, tab) ||
+        switching !== null
+      }
+      onClick={() => onPreview(tab)}
+    >
+      {previewKind === tab ? (
+        <ArrowLeft aria-hidden="true" />
+      ) : (
+        <ChartNoAxesCombined aria-hidden="true" />
+      )}
+      <span>{previewKind === tab ? "Back" : "Plot"}</span>
+    </Button>
+  );
   return (
     <>
       <nav
@@ -194,24 +218,6 @@ export function IntegrationCorrectionControls({
         ))}
       </nav>
       <div className="processing-page">
-        <div className="correction-preview-action">
-          <Button
-            aria-label={
-              previewKind === tab
-                ? "Back from correction preview"
-                : "Plot correction"
-            }
-            aria-pressed={previewKind === tab}
-            disabled={
-              !state.hasImage ||
-              !correctionPreviewAvailable(source, tab) ||
-              switching !== null
-            }
-            onClick={() => onPreview(tab)}
-          >
-            {previewKind === tab ? "Back" : "Plot"}
-          </Button>
-        </div>
         {tab === "flat" ? (
           <div className="processing-form">
             <ProcessingFile
@@ -223,14 +229,18 @@ export function IntegrationCorrectionControls({
                 void run("integration_flat_field", { reset: true })
               }
             />
-            <ProcessingToggle
-              label="Apply flat field"
-              checked={source.flatField.enabled}
-              disabled={!source.flatField.filename}
-              onCommit={(enabled) =>
-                run("integration_flat_field", { enabled }, "")
-              }
-            />
+            <div className="correction-apply-row">
+              <ProcessingToggle
+                label="Apply flat field"
+                displayLabel="Apply"
+                checked={source.flatField.enabled}
+                disabled={!source.flatField.filename}
+                onCommit={(enabled) =>
+                  run("integration_flat_field", { enabled }, "")
+                }
+              />
+              {plotButton}
+            </div>
             <p className="integration-note">
               Corrects pixel sensitivity using the mean-normalized flat field.
             </p>
@@ -254,16 +264,20 @@ export function IntegrationCorrectionControls({
                 }
               />
             ))}
-            <ProcessingToggle
-              label="Apply transfer correction"
-              checked={source.transfer?.enabled ?? false}
-              disabled={
-                !source.transfer?.original || !source.transfer?.response
-              }
-              onCommit={(enabled) =>
-                run("integration_transfer", { enabled }, "")
-              }
-            />
+            <div className="correction-apply-row">
+              <ProcessingToggle
+                label="Apply transfer correction"
+                displayLabel="Apply"
+                checked={source.transfer?.enabled ?? false}
+                disabled={
+                  !source.transfer?.original || !source.transfer?.response
+                }
+                onCommit={(enabled) =>
+                  run("integration_transfer", { enabled }, "")
+                }
+              />
+              {plotButton}
+            </div>
             <p className="integration-note">
               Multiplies counts by original / response. Both references need the
               detector’s source dimensions and finite, positive counts.
@@ -275,28 +289,32 @@ export function IntegrationCorrectionControls({
           </p>
         ) : (
           <div className="processing-form">
-            <ProcessingToggle
-              key={tab}
-              label={`Apply ${name}`}
-              checked={correction.enabled}
-              disabled={!state.hasImage || !state.calibrated}
-              onCommit={async (enabled) => {
-                setSwitching(tab);
-                if (!enabled)
-                  setInactiveParameters((previous) => ({
-                    ...previous,
-                    [tab]: correction.parameters,
-                  }));
-                try {
-                  await edit(tab, {
-                    enabled,
-                    parameters: enabled ? inactiveParameters[tab] : undefined,
-                  });
-                } finally {
-                  setSwitching(null);
-                }
-              }}
-            />
+            <div className="correction-apply-row">
+              <ProcessingToggle
+                key={tab}
+                label={`Apply ${name}`}
+                displayLabel="Apply"
+                checked={correction.enabled}
+                disabled={!state.hasImage || !state.calibrated}
+                onCommit={async (enabled) => {
+                  setSwitching(tab);
+                  if (!enabled)
+                    setInactiveParameters((previous) => ({
+                      ...previous,
+                      [tab]: correction.parameters,
+                    }));
+                  try {
+                    await edit(tab, {
+                      enabled,
+                      parameters: enabled ? inactiveParameters[tab] : undefined,
+                    });
+                  } finally {
+                    setSwitching(null);
+                  }
+                }}
+              />
+              {plotButton}
+            </div>
             {!correction.enabled && state.calibrated && (
               <p className="integration-note">
                 Enable to apply these parameters.
@@ -314,6 +332,12 @@ export function IntegrationCorrectionControls({
                 disabled={!state.hasImage || switching === tab}
                 onCommit={(material) => edit(tab, { material })}
               />
+            )}
+            {tab === "oiadac" && (
+              <p className="integration-note">
+                Detector orientation and pixel incidence follow the calibration.
+                Thickness and absorption length describe the detector sensor.
+              </p>
             )}
             {(tab === "plate" || tab === "slab") && (
               <p className="integration-note">

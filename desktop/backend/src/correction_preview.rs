@@ -1,11 +1,6 @@
 //! Stateless display adapter. No preview enters processing, history or projects.
 use crate::{
-    control::Control,
-    display::{self, Raster},
-    geometry::Geometry,
-    image::Image,
-    processing::Processing,
-    protocol::Reply,
+    control::Control, geometry::Geometry, image::Image, processing::Processing, protocol::Reply,
 };
 use serde_json::{Value, json};
 
@@ -43,20 +38,7 @@ pub(crate) fn preview(
     }
     // Correction maps have no detector gap sentinel. Do not filter map values.
     let values = processing.preview_map(kind, image, geometry, control)?;
-    control.check()?;
-    if values.iter().any(|v| !v.is_finite() || *v <= 0.) {
-        return Err("Correction preview is not finite and positive across this detector.".into());
-    }
-    let mut raster = Raster::image(&values, image.shape);
-    raster.metadata["limits"] = json!(display::levels(
-        &values,
-        image.shape,
-        mode,
-        percentile,
-        false
-    ));
-    raster.metadata["autoLevels"] =
-        json!({"mode":mode,"percentile":percentile,"filter_gaps":false});
+    let raster = processing.preview_raster(kind, image, values, mode, percentile, control)?;
     Ok(Reply {
         result: json!({"ok":true,"correctionPreview":{
             "kind":kind,"label":label,"units":units,"convention":"divisor","raster":raster.metadata

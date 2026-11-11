@@ -9,10 +9,69 @@ pub struct Raster {
     pub metadata: Value,
     pub buffer: Buffer,
     statistics: Option<Arc<ImageStatistics>>,
+    correction_distribution: Option<Arc<Distribution>>,
     masked_pixels: Option<usize>,
 }
 impl Raster {
     pub fn image(values: &[f64], shape: [usize; 2]) -> Self {
+        Self::with_levels(values, shape, "percentile", 2.5, true)
+    }
+    pub(crate) fn correction(
+        values: &[f64],
+        shape: [usize; 2],
+        mode: &str,
+        percentile: f64,
+    ) -> Self {
+        let mut trace =
+            crate::frame_trace::FrameTrace::new("correction-raster", values.len() as u64);
+        let buffer = Buffer::new(display_bytes(values));
+        trace.mark("display conversion and fingerprint");
+        let distribution = Arc::new(distribution(values));
+        trace.mark("full pixel histogram");
+        let limits = if mode == "mean3std" {
+            levels(values, shape, mode, percentile, false)
+        } else {
+            distribution.levels(values, mode, percentile)
+        };
+        trace.mark("exact source-precision levels");
+        let mut metadata = base(shape, "f32le", &buffer);
+        metadata["limits"] = json!(limits);
+        metadata["autoLevels"] = json!({"mode":mode,"percentile":percentile,"filter_gaps":false});
+        metadata["histogram"] = distribution.metadata();
+        Self {
+            metadata,
+            buffer,
+            statistics: None,
+            correction_distribution: Some(distribution),
+            masked_pixels: None,
+        }
+    }
+    pub(crate) fn relevel_correction(
+        mut self,
+        values: &[f64],
+        shape: [usize; 2],
+        mode: &str,
+        percentile: f64,
+    ) -> Self {
+        self.metadata["limits"] = json!(if mode == "mean3std" {
+            levels(values, shape, mode, percentile, false)
+        } else {
+            self.correction_distribution
+                .as_ref()
+                .unwrap()
+                .levels(values, mode, percentile)
+        });
+        self.metadata["autoLevels"] =
+            json!({"mode":mode,"percentile":percentile,"filter_gaps":false});
+        self
+    }
+    fn with_levels(
+        values: &[f64],
+        shape: [usize; 2],
+        mode: &str,
+        percentile: f64,
+        filter_gaps: bool,
+    ) -> Self {
         let mut trace = crate::frame_trace::FrameTrace::new("raster", values.len() as u64);
         let bytes = display_bytes(values);
         trace.mark("f32 conversion");
@@ -27,12 +86,13 @@ impl Raster {
         metadata["limits"] = json!(
             statistics
                 .as_ref()
-                .and_then(|s| s.levels("percentile", 2.5, true))
-                .or_else(|| levels(values, shape, "percentile", 2.5, true))
+                .and_then(|s| s.levels(mode, percentile, filter_gaps))
+                .or_else(|| levels(values, shape, mode, percentile, filter_gaps))
                 .unwrap_or([0.0, 1.0])
         );
         trace.mark("exact auto levels");
-        metadata["autoLevels"] = json!({"mode":"percentile","percentile":2.5,"filter_gaps":true});
+        metadata["autoLevels"] =
+            json!({"mode":mode,"percentile":percentile,"filter_gaps":filter_gaps});
         metadata["histogram"] = statistics
             .as_ref()
             .map_or_else(|| histogram(values), |s| s.histogram());
@@ -41,6 +101,7 @@ impl Raster {
             metadata,
             buffer,
             statistics,
+            correction_distribution: None,
             masked_pixels: None,
         }
     }
@@ -51,6 +112,7 @@ impl Raster {
             metadata: base(shape, "u8", &buffer),
             buffer,
             statistics: None,
+            correction_distribution: None,
             masked_pixels,
         }
     }
@@ -423,6 +485,85 @@ fn padded_levels(low: f64, high: f64) -> [f64; 2] {
     ]
 }
 fn histogram(values: &[f64]) -> Value {
+    distribution(values).metadata()
+}
+struct Distribution {
+    low: f64,
+    high: f64,
+    min: f64,
+    max: f64,
+    counts: Vec<u64>,
+    count: u64,
+}
+impl Distribution {
+    fn metadata(&self) -> Value {
+        histogram_metadata(self.low, self.high, self.counts.clone(), self.count)
+    }
+    fn levels(&self, values: &[f64], mode: &str, clipping: f64) -> Option<[f64; 2]> {
+        if self.count == 0 {
+            return None;
+        }
+        if mode == "minmax" || self.min == self.max {
+            return Some(padded_levels(self.min, self.max));
+        }
+        let quantile = |p: f64| {
+            let rank = (self.count - 1) as f64 * p / 100.;
+            let index = rank.floor() as u64;
+            let next = (index + 1).min(self.count - 1);
+            let mut cumulative = 0;
+            let mut first = None;
+            let mut last = 0;
+            let mut below = 0;
+            for (i, &n) in self.counts.iter().enumerate() {
+                if first.is_none() && cumulative + n > index {
+                    first = Some(i);
+                    below = cumulative;
+                }
+                cumulative += n;
+                if cumulative > next {
+                    last = i;
+                    break;
+                }
+            }
+            let first = first.unwrap();
+            // Use neighboring edges only as a conservative fast filter. Exact
+            // membership uses the original histogram expression, so boundary
+            // rounding cannot change the selected source samples or ranks.
+            let low = if first == 0 {
+                f64::NEG_INFINITY
+            } else {
+                (self.low + (first - 1) as f64 / 256. * (self.high - self.low)).sinh()
+            };
+            let high = if last == 255 {
+                f64::INFINITY
+            } else {
+                (self.low + (last + 2) as f64 / 256. * (self.high - self.low)).sinh()
+            };
+            let mut candidates: Vec<_> = values
+                .iter()
+                .copied()
+                .filter(|v| v.is_finite() && *v >= low && *v <= high)
+                .filter(|v| {
+                    let bucket = (((v.asinh() - self.low) / (self.high - self.low) * 256.)
+                        as usize)
+                        .min(255);
+                    bucket >= first && bucket <= last
+                })
+                .collect();
+            let local = (index - below) as usize;
+            let (_, value, right) = candidates.select_nth_unstable_by(local, f64::total_cmp);
+            let next = right
+                .iter()
+                .min_by(|a, b| a.total_cmp(b))
+                .copied()
+                .unwrap_or(*value);
+            let fraction = rank - index as f64;
+            *value * (1. - fraction) + next * fraction
+        };
+        Some(padded_levels(quantile(clipping), quantile(100. - clipping)))
+    }
+}
+fn distribution(values: &[f64]) -> Distribution {
     let mut low = f64::INFINITY;
     let mut high = f64::NEG_INFINITY;
     let mut count = 0u64;
@@ -431,6 +572,7 @@ fn histogram(values: &[f64]) -> Value {
         high = high.max(*value);
         count += 1;
     }
+    let (min, max) = (low, high);
     let (low, high) = histogram_range(low, high, count);
     let buckets = |values: &[f64]| {
         let mut counts = vec![0_u64; 256];
@@ -458,7 +600,14 @@ fn histogram(values: &[f64]) -> Value {
     } else {
         buckets(values)
     };
-    histogram_metadata(low, high, counts, count)
+    Distribution {
+        low,
+        high,
+        min,
+        max,
+        counts,
+        count,
+    }
 }
 fn histogram_range(low: f64, high: f64, count: u64) -> (f64, f64) {
     // asinh is monotone: transform the two extrema, not all pixels twice.
@@ -484,6 +633,37 @@ fn histogram_metadata(low: f64, high: f64, counts: Vec<u64>, count: u64) -> Valu
 #[cfg(test)]
 mod statistics_tests {
     use super::*;
+    #[test]
+    fn correction_percentiles_match_full_selection_at_source_precision() {
+        let sets = [
+            (0..17013)
+                .map(|i| 1. + ((i * 15427) % 25013) as f64 / 17.)
+                .collect::<Vec<_>>(),
+            (0..14017)
+                .map(|i| 1. + ((i * 97) % 4093) as f64 * 1e-12)
+                .collect(),
+            (0..24017).map(|i| ((i * 71) % 101) as f64).collect(),
+            (0..12503)
+                .map(|i| if i % 19 == 0 { 1e100 } else { 1e-100 })
+                .collect(),
+            vec![1.; 10001],
+            vec![1., 2., 3., f64::NAN, f64::INFINITY],
+        ];
+        for values in sets {
+            let d = distribution(&values);
+            for percentile in [0., 0.001, 2.5, 12., 25., 49.999] {
+                assert_eq!(
+                    d.levels(&values, "percentile", percentile),
+                    levels(&values, [1, values.len()], "percentile", percentile, false),
+                    "{percentile}"
+                );
+            }
+            assert_eq!(
+                d.levels(&values, "minmax", 2.5),
+                levels(&values, [1, values.len()], "minmax", 2.5, false)
+            );
+        }
+    }
     #[test]
     fn parallel_display_conversion_preserves_scalar_bytes_including_nonfinite_samples() {
         let mut values: Vec<_> = (0..1_000_013)

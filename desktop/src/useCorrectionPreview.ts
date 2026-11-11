@@ -32,6 +32,53 @@ export function useCorrectionPreview(
     setSelected(null);
   }, []);
   useEffect(close, [context, close]);
+  const canPrepare =
+    !!state?.hasImage &&
+    (!!state.integration.flatField.filename ||
+      (!!state.integration.transfer?.original &&
+        !!state.integration.transfer?.response) ||
+      Object.values(state.integration.corrections).some(
+        (correction) => correction.enabled,
+      ));
+  useEffect(() => {
+    if (!visible || !state?.supportsBackgroundCorrectionPreviews || !canPrepare)
+      return;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const preload = async () => {
+      try {
+        const response = await bridge.current?.(
+          "integration_correction_preload",
+          {
+            revision: state.revision,
+            configuration: state.configurationContext,
+          },
+        );
+        if (
+          !stopped &&
+          current.current === context &&
+          response?.ok &&
+          response.correctionPreviewPending
+        )
+          timer = setTimeout(preload, 25);
+      } catch {
+        /* Plot retains the native on-demand path if preloading fails. */
+      }
+    };
+    timer = setTimeout(preload, 0);
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
+  }, [
+    bridge,
+    context,
+    visible,
+    canPrepare,
+    state?.supportsBackgroundCorrectionPreviews,
+    state?.revision,
+    state?.configurationContext,
+  ]);
   const map = visible && selected?.context === context ? selected.map : null;
   const load = async (kind: string, settings?: AutoLevels) => {
     const epoch = ++generation.current;

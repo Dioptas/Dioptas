@@ -91,6 +91,114 @@ fn unchanged(before: &Reply, after: &Reply) {
         assert_eq!(before.result[key], after.result[key], "{key}");
     }
 }
+fn preload(s: &mut Session) -> Reply {
+    let start = std::time::Instant::now();
+    loop {
+        let reply = call(s, "integration_correction_preload", json!({}));
+        if reply.result["correctionPreviewPending"] != true {
+            return reply;
+        }
+        assert!(
+            start.elapsed() < std::time::Duration::from_secs(5),
+            "Background preview did not finish"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+}
+#[test]
+fn legacy_detector_angles_are_discarded_and_recalculation_is_explained() {
+    use hdf5::types::VarLenUnicode;
+    use std::str::FromStr;
+    let d = tempfile::tempdir().unwrap();
+    let source = d.path().join("raw.npy");
+    let calibration = d.path().join("geometry.poni");
+    let project = d.path().join("legacy.dio");
+    image(&source, 0.);
+    poni(&calibration);
+    let mut s = prepared(&source, &calibration, "2th_deg");
+    let corrected = call(
+        &mut s,
+        "integration_correction",
+        json!({
+            "kind":"oiadac", "enabled":true,
+            "parameters":{"tilt":23.,"rotation":71.,"detector_thickness":44.,"absorption_length":120.}
+        }),
+    );
+    let correction = &corrected.result["state"]["integration"]["corrections"]["oiadac"];
+    assert_eq!(correction["fields"].as_object().unwrap().len(), 2);
+    assert!(correction["parameters"].get("tilt").is_none());
+    call(&mut s, "save_project", json!({"path":project}));
+    {
+        let file = hdf5::File::open_rw(&project).unwrap();
+        let dataset = file.dataset("state").unwrap();
+        let mut doc: Value =
+            serde_json::from_str(dataset.read_scalar::<VarLenUnicode>().unwrap().as_str()).unwrap();
+        for config in doc["configurations"].as_array_mut().unwrap() {
+            config["native_desktop"]
+                .as_object_mut()
+                .unwrap()
+                .remove("detector_absorption");
+            config["img"]["corrections"]["oiadac"]["tilt"] = json!(23.);
+            config["img"]["corrections"]["oiadac"]["rotation"] = json!(71.);
+            config["native_desktop"]["correction_drafts"]["oiadac"]["parameters"]["tilt"] =
+                json!(23.);
+            config["native_desktop"]["correction_drafts"]["oiadac"]["parameters"]["rotation"] =
+                json!(71.);
+        }
+        dataset
+            .write_scalar(&VarLenUnicode::from_str(&doc.to_string()).unwrap())
+            .unwrap();
+    }
+    let mut reopened = Session::new(root());
+    let restored = call(&mut reopened, "open_project", json!({"path":project}));
+    assert!(
+        restored.result["correctionNotice"]
+            .as_str()
+            .unwrap()
+            .contains("calibrated geometry")
+    );
+    assert_eq!(restored.result["pattern"], corrected.result["pattern"]);
+    call(&mut reopened, "save_project", json!({"path":project}));
+    let current = call(&mut reopened, "open_project", json!({"path":project}));
+    assert!(current.result.get("correctionNotice").is_none());
+}
+#[cfg(debug_assertions)]
+#[test]
+fn worker_handoff_resumes_background_preparation_for_the_frontend() {
+    let d = tempfile::tempdir().unwrap();
+    let source = d.path().join("raw.npy");
+    let calibration = d.path().join("geometry.poni");
+    let checkpoint = d.path().join("worker.dio");
+    image(&source, 0.);
+    poni(&calibration);
+    let mut s = prepared(&source, &calibration, "2th_deg");
+    call(
+        &mut s,
+        "integration_correction",
+        json!({"kind":"oiadac","enabled":true}),
+    );
+    call(&mut s, "development_checkpoint", json!({"path":checkpoint}));
+    let mut next = Session::new(root());
+    let restored = call(&mut next, "development_restore", json!({"path":checkpoint}));
+    assert!(restored.result.get("preparedCorrections").is_none());
+    let refreshed = preload(&mut next);
+    let plotted = call(
+        &mut next,
+        "integration_correction_preview",
+        json!({"kind":"oiadac"}),
+    );
+    let id = plotted.result["correctionPreview"]["raster"]["bufferId"]
+        .as_str()
+        .unwrap();
+    assert!(
+        refreshed.result["preparedCorrections"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|r| r["bufferId"] == id)
+    );
+    assert!(refreshed.buffers.iter().any(|b| b.id == id));
+}
 #[test]
 fn correction_previews_are_native_divisors_and_never_change_science_or_ownership() {
     let d = tempfile::tempdir().unwrap();
@@ -119,6 +227,11 @@ fn correction_previews_are_native_divisors_and_never_change_science_or_ownership
             "integration_correction",
             json!({"kind":kind,"enabled":true}),
         );
+        assert!(
+            corrected.result.get("preparedCorrections").is_none(),
+            "Apply must not wait for or transfer preview pixels"
+        );
+        let preloaded = preload(&mut s);
         let before = call(&mut s, "state", json!({}));
         let preview = call(
             &mut s,
@@ -128,6 +241,30 @@ fn correction_previews_are_native_divisors_and_never_change_science_or_ownership
         assert!(preview.result.get("state").is_none());
         assert!(preview.result.get("image").is_none());
         let map = &preview.result["correctionPreview"];
+        let buffer_id = map["raster"]["bufferId"].as_str().unwrap();
+        let prepared_buffer = preloaded
+            .buffers
+            .iter()
+            .find(|b| b.id == buffer_id)
+            .unwrap_or_else(|| panic!("{kind} did not preload its plot buffer during calculation"));
+        let plotted_buffer = preview.buffers.iter().find(|b| b.id == buffer_id).unwrap();
+        assert!(
+            std::sync::Arc::ptr_eq(&prepared_buffer.bytes, &plotted_buffer.bytes),
+            "{kind} rebuilt its plot buffer"
+        );
+        let known = preloaded
+            .buffers
+            .iter()
+            .map(|b| b.id.clone())
+            .collect::<Vec<_>>();
+        let packet = preview.encode(99, &known).unwrap();
+        let length = u32::from_le_bytes(packet[..4].try_into().unwrap()) as usize;
+        let header: Value = serde_json::from_slice(&packet[4..4 + length]).unwrap();
+        assert_eq!(
+            header["buffers"],
+            json!([]),
+            "{kind} transferred pixels on its first Plot"
+        );
         assert_eq!(map["convention"], "divisor");
         assert_eq!(
             map["units"],

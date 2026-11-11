@@ -239,3 +239,35 @@ test("a small view cannot hide an over-budget backing packet", async () => {
   await transfer.call("open_image");
   assert.deepEqual(known, [[], []]);
 });
+
+test("calculation preloads a correction even when its source packet exceeds the cache budget", async () => {
+  const pixels = new Float32Array(1024).fill(1.25).buffer;
+  const raster = image("correction", 1024);
+  const transfer = new RasterTransfer(async (action, payload, known) => {
+    if (action === "calculate") {
+      return frame(
+        {
+          ok: true,
+          image: image("source", 1024),
+          rawImage: image("raw", 1024),
+          preparedCorrections: [raster],
+        },
+        { source: pixels, raw: pixels, correction: pixels },
+        true,
+      );
+    }
+    assert(
+      known.includes("correction"),
+      "First Plot must advertise the preloaded buffer",
+    );
+    return frame({ ok: true, correctionPreview: { kind: "oiadac", raster } });
+  }, 4096);
+  const applied = await transfer.call("calculate");
+  assert.equal(applied.preparedCorrections[0].data.byteLength, 4096);
+  const plotted = await transfer.call("plot");
+  assert.equal(
+    applied.preparedCorrections[0].data,
+    plotted.correctionPreview.raster.data,
+  );
+  assert.equal(decodeRaster(plotted.correctionPreview.raster)[1023], 1.25);
+});

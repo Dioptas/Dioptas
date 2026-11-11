@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 from pyFAI.geometry import Geometry
 from dioptas.model.util.ImgCorrection import (
-    CbnCorrection, ObliqueAngleDetectorAbsorptionCorrection,
+    CbnCorrection,
     PlateAbsorptionCorrection, SlabAbsorptionCorrection,
 )
 
@@ -53,14 +53,20 @@ def main():
         # independently of its agreement on corrected intensity alone.
         for kind, cls, params, degrees in [
             ("cbn", CbnCorrection, dict(tilt=7, tilt_rotation=31), True),
-            ("oiadac", ObliqueAngleDetectorAbsorptionCorrection, dict(tilt=3, rotation=16), False),
+            ("oiadac", None, dict(detector_thickness=40, absorption_length=150), False),
             ("plate", PlateAbsorptionCorrection, dict(thickness=0.3, absorption_coefficient=0.8, plate_tilt=12, plate_rotation=27), True),
             ("slab", SlabAbsorptionCorrection, dict(thickness=0.15, absorption_coefficient=1.2, slab_tilt=8, slab_rotation=-32), True),
         ]:
-            ref = cls(tth_array=np.rad2deg(tth) if degrees else tth,
-                      azi_array=np.rad2deg(azi) if degrees else azi, **params)
-            ref.update()
-            transmission = ref.get_data()
+            if kind == "oiadac":
+                depth = params["detector_thickness"] / params["absorption_length"]
+                cosine = g.cos_incidence(rows.astype(np.float64), cols.astype(np.float64), path="numpy")
+                transmission = -np.expm1(-depth / cosine) / -np.expm1(-depth)
+                np.testing.assert_allclose(transmission, g.calc_transmission(np.exp(-depth), shape), rtol=2e-8)
+            else:
+                ref = cls(tth_array=np.rad2deg(tth) if degrees else tth,
+                          azi_array=np.rad2deg(azi) if degrees else azi, **params)
+                ref.update()
+                transmission = ref.get_data()
             if kind == "slab":
                 # Independent quadrature avoids cancellation in the original
                 # Python difference-of-exponentials near equal path lengths.

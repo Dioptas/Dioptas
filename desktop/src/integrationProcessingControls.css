@@ -187,3 +187,31 @@
   overflow-y: auto;
   min-height: 0;
 }
+
+.correction-apply-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+.correction-apply-row > div {
+  min-width: 0;
+}
+.integration-controls .correction-plot-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: 5px;
+  width: auto;
+  min-width: 0;
+  min-height: 28px;
+  padding: 4px 7px;
+  font-size: var(--text-small);
+  line-height: 1.2;
+}
+.correction-plot-button svg {
+  width: 15px;
+  height: 15px;
+}

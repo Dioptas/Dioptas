@@ -44,6 +44,7 @@ export function correctionPreviewContext(
 export function retainsCorrectionPreview(command: string) {
   return [
     "integration_correction_preview",
+    "integration_correction_preload",
     "state",
     "pixel",
     "image_levels",

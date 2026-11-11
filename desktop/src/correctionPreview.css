@@ -28,8 +28,3 @@
   min-width: 0;
   flex: 1;
 }
-.correction-preview-action {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 8px;
-}

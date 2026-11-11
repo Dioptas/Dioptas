@@ -152,11 +152,13 @@ export function ProcessingType({
 /** Show an immediate toggle response while keeping the applied state authoritative. */
 export function ProcessingToggle({
   label,
+  displayLabel,
   checked,
   disabled,
   onCommit,
 }: {
   label: string;
+  displayLabel?: string;
   checked: boolean;
   disabled?: boolean;
   onCommit: (checked: boolean) => Promise<void>;
@@ -166,6 +168,7 @@ export function ProcessingToggle({
     <div aria-busy={pending !== null}>
       <Check
         label={label}
+        displayLabel={displayLabel}
         checked={pending ?? checked}
         disabled={disabled || pending !== null}
         onChange={(next) => {

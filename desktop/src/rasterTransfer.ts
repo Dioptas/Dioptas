@@ -107,6 +107,16 @@ export class RasterTransfer {
       typeof header.result !== "object"
     )
       throw Error("Invalid binary image header.");
+    if (
+      header.result.preparedCorrections !== undefined &&
+      !Array.isArray(header.result.preparedCorrections)
+    )
+      throw Error("Invalid prepared correction buffers.");
+    const preparedIds = new Set<string>(
+      (header.result.preparedCorrections ?? [])
+        .map((r: { bufferId?: string }) => r.bufferId)
+        .filter((id: unknown): id is string => typeof id === "string"),
+    );
     for (const { id, length: size } of header.buffers) {
       if (typeof id !== "string" || incoming.has(id))
         throw Error("Invalid binary buffer id.");
@@ -119,9 +129,10 @@ export class RasterTransfer {
       const data =
         known.get(id) ??
         this.buffers.get(id) ??
-        // Keep large images as views. Copy small companions (usually a mask)
-        // so they cannot pin an otherwise unused full detector packet.
-        (size <= frame.byteLength / 4
+        // Preloaded corrections need standalone storage to remain cacheable
+        // even when the surrounding source packet exceeds the byte budget.
+        // Keep other large images as views; copy small companions (usually masks).
+        (preparedIds.has(id) || size <= frame.byteLength / 4
           ? frame.slice(offset, offset + size)
           : new Uint8Array(frame, offset, size));
       incoming.set(id, data);

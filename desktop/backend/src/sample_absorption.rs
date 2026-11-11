@@ -1,10 +1,10 @@
 //! Uniform-scatterer transmission averages over illuminated sample volumes.
 //! Rays are unit 3D directions: their intersection parameter is already a 3D
 //! path length. A capillary ray crosses one wall on entry and one on exit.
-use crate::{control::Control, geometry::Geometry};
+use crate::control::Control;
 use rayon::prelude::*;
 use serde_json::{Value, json};
-use std::{f64::consts::PI, sync::Arc};
+use std::f64::consts::PI;
 
 const QUADRATURE_TOL: f64 = 2e-5;
 const INTERPOLATION_TOL: f64 = 2e-5;
@@ -12,65 +12,6 @@ const INTERPOLATION_TOL: f64 = 2e-5;
 pub(crate) fn provenance() -> Value {
     json!({"model":"uniform-footprint-rays-v1","quadrature_relative_tolerance":QUADRATURE_TOL,"interpolation_relative_tolerance":INTERPOLATION_TOL,
         "cylinder_beam":"uniform strip","sphere_beam":"uniform circular footprint","container_wall":"one crossing per incident/outgoing ray"})
-}
-
-#[derive(Clone)]
-struct CachedMap {
-    kind: String,
-    parameters: Value,
-    geometry: Geometry,
-    shape: [usize; 2],
-    values: Arc<Vec<f64>>,
-}
-#[derive(Clone, Default)]
-pub(crate) struct Maps {
-    entries: Vec<CachedMap>,
-    builds: usize,
-    hits: usize,
-}
-impl Maps {
-    pub fn bytes(&self) -> usize {
-        self.entries.iter().map(|e| e.values.len() * 8).sum()
-    }
-    pub fn diagnostics(&self) -> Value {
-        json!({"sampleCorrectionBuilds":self.builds,"sampleCorrectionHits":self.hits})
-    }
-    pub fn lookup(
-        &mut self,
-        kind: &str,
-        parameters: &Value,
-        geometry: &Geometry,
-        shape: [usize; 2],
-    ) -> Option<Arc<Vec<f64>>> {
-        let e = self.entries.iter().find(|e| {
-            e.kind == kind
-                && e.parameters == *parameters
-                && e.geometry == *geometry
-                && e.shape == shape
-        })?;
-        self.hits += 1;
-        Some(e.values.clone())
-    }
-    pub fn store(
-        &mut self,
-        kind: &str,
-        parameters: Value,
-        geometry: Geometry,
-        shape: [usize; 2],
-        values: Vec<f64>,
-    ) -> Arc<Vec<f64>> {
-        let values = Arc::new(values);
-        self.entries.retain(|e| e.kind != kind);
-        self.entries.push(CachedMap {
-            kind: kind.into(),
-            parameters,
-            geometry,
-            shape,
-            values: values.clone(),
-        });
-        self.builds += 1;
-        values
-    }
 }
 
 #[derive(Clone, Copy)]

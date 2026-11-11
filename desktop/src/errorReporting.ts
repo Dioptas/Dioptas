@@ -22,6 +22,7 @@ const quiet = new Set([
   "map_snapshot",
   "batch_snapshot",
   "integration_phase_state",
+  "integration_correction_preload",
   "integration_phase_guides",
   "validation_position",
   "integration_autoprocess_poll",

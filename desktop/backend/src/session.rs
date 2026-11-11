@@ -333,6 +333,7 @@ impl Session {
                 | "pixel"
                 | "image_levels"
                 | "integration_correction_preview"
+                | "integration_correction_preload"
                 | "__host__"
                 | "integration_diagnostics"
                 | "integration_phase_guides"
@@ -441,6 +442,9 @@ impl Session {
                 reply
             }
             Err(error) => {
+                // Disposable work from a rejected edit must not be announced
+                // by a later, unrelated successful response.
+                self.processing.cancel_preview_preparation();
                 self.project = project_checkpoint;
                 if let Some(checkpoint) = checkpoint {
                     self.restore_checkpoint(checkpoint);
@@ -475,6 +479,39 @@ impl Session {
         }
     }
     fn dispatch(&mut self, action: &str, args: &Value) -> Result<Reply, String> {
+        if action == "integration_correction_preload" {
+            check_keys(args, &["revision", "configuration"])?;
+            if args["revision"]
+                .as_u64()
+                .is_some_and(|r| r != self.revision)
+                || args["configuration"]
+                    .as_u64()
+                    .is_some_and(|c| c != self.project.active_id)
+            {
+                return Ok(Reply::metadata(
+                    json!({"ok":true,"correctionPreviewPending":false,"discarded":true}),
+                ));
+            }
+            #[cfg(feature = "dioptrin")]
+            {
+                let (rasters, pending) = self
+                    .image
+                    .as_ref()
+                    .map(|image| {
+                        self.processing
+                            .prepared_previews(image, &self.settings.geometry)
+                    })
+                    .unwrap_or_default();
+                return Ok(Reply {
+                    result: json!({"ok":true,"preparedCorrections":rasters.iter().map(|r|&r.metadata).collect::<Vec<_>>(),"correctionPreviewPending":pending,"revision":self.revision,"configuration":self.project.active_id}),
+                    buffers: rasters.into_iter().map(|r| r.buffer).collect(),
+                });
+            }
+            #[cfg(not(feature = "dioptrin"))]
+            return Ok(Reply::metadata(
+                json!({"ok":true,"correctionPreviewPending":false}),
+            ));
+        }
         if action == "integration_correction_preview" {
             check_keys(
                 args,
@@ -1079,6 +1116,19 @@ impl Session {
                     }
                 }
                 self.calculate(defer)?;
+                #[cfg(feature = "dioptrin")]
+                if ["integration_flat_field", "integration_transfer"].contains(&action) {
+                    self.processing.prepare_reference_preview(
+                        if action == "integration_flat_field" {
+                            "flat"
+                        } else {
+                            "transfer"
+                        },
+                        self.image.as_ref().unwrap(),
+                        &self.settings.geometry,
+                        &self.control,
+                    )?;
+                }
             }
             "integration_background" => {
                 check_keys(
@@ -2122,6 +2172,7 @@ impl Session {
             .map(|p| p.to_string_lossy().into_owned())
             .unwrap_or_default();
         let mut result = json!({"ok": true, "backend": {"runtime": "rust", "experimental": true}, "state": {
+            "supportsBackgroundCorrectionPreviews": cfg!(feature="dioptrin"),
             "supportsRequestedProducts": true,
             "supportsBinaryPhaseGuides": true,
             "revision": self.revision, "hasImage": self.image.is_some(), "imageName": name, "imagePath": image_path, "shape": shape,

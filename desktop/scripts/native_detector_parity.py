@@ -40,6 +40,11 @@ def main():
                             y=(r+dr)*95e-6;x=(c+dc)*80e-6+(15e-6 if c>=6 else 0)
                             corners[r,c,k]=[-x*x/.1 if kind=="curved" else 0,y,x]
                 d.set_pixel_corners(corners);d.IS_FLAT=kind!="curved";d.mask=np.zeros((8,12),np.int8);d.mask[1,4]=1;d.save(str(definition))
+            # Calibrated physical incidence, including distortion and mapped
+            # surface normals. pyFAI supplies the orientation-3 reference;
+            # detector orientation must permute both centers and normals.
+            kwargs={k:v for k,v in PARAMS.items() if k not in ("pixel1","pixel2","polarization_factor")}
+            base_absorption=Geometry(detector=d,**kwargs).calc_transmission(np.exp(-40/150), (8,12)).copy()
             for orientation in (1,2,3,4):
                 d._orientation=orientation
                 kwargs={k:v for k,v in PARAMS.items() if k not in ("pixel1","pixel2","polarization_factor")}
@@ -62,6 +67,15 @@ def main():
                     intensities=np.array(result["pattern"]["y"]);intensities=intensities[intensities!=0]
                     assert intensities.size
                     np.testing.assert_allclose(intensities,120,rtol=3e-6,atol=1e-5,err_msg=f"{kind} orientation {orientation}")
+                    corrected=n.call("integration_correction",kind="oiadac",enabled=True)
+                    preview=n.call("integration_correction_preview",kind="oiadac")["correctionPreview"]
+                    expected_absorption=base_absorption
+                    if orientation in (1,2): expected_absorption=expected_absorption[::-1,:]
+                    if orientation in (1,4): expected_absorption=expected_absorption[:,::-1]
+                    actual_absorption=n.raster(preview,"raster")
+                    np.testing.assert_allclose(actual_absorption,expected_absorption,rtol=2e-7,atol=1e-8)
+                    np.testing.assert_allclose(n.raster(corrected,"image"),n.raster(result,"image")/expected_absorption,rtol=2e-7)
+                    n.call("integration_correction",kind="oiadac",enabled=False)
                     before=n.call("integration_diagnostics")["integrationDiagnostics"]
                     n.call("integrate");diagnostics=n.call("integration_diagnostics")["integrationDiagnostics"]
                     assert diagnostics["patternPlanBuilds"]==before["patternPlanBuilds"]

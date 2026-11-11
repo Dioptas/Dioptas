@@ -921,6 +921,14 @@ pub(super) fn save(
     for kind in ["cbn", "oiadac", "plate", "slab", "cylinder", "sphere"] {
         if processing["corrections"][kind]["enabled"] == true {
             let mut parameters = processing["corrections"][kind]["parameters"].clone();
+            if kind == "oiadac" {
+                // The Qt format requires these keys. Export calibration-derived
+                // values for its older approximate model; native readers use
+                // physical geometry and never restore them as overrides.
+                let fit2d = dioptrin::fit2d::Fit2d::from_poni(&g.native_poni());
+                parameters["tilt"] = json!(fit2d.tilt);
+                parameters["rotation"] = json!(fit2d.tilt_plane_rotation);
+            }
             if kind == "cbn"
                 && let Some(value) = parameters.as_object_mut().unwrap().remove("cbn_abs_length")
             {
@@ -952,6 +960,7 @@ pub(super) fn save(
     #[cfg(feature = "dioptrin")]
     {
         native["sample_absorption"] = crate::sample_absorption::provenance();
+        native["detector_absorption"] = json!({"model":"calibrated-pixel-incidence-v1"});
     }
     native["attenuation_data"] = serde_json::from_str(include_str!("../data/attenuation.json"))
         .map_err(|e| e.to_string())?;

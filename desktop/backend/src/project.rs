@@ -183,7 +183,22 @@ impl Session {
                         })
                     });
                 let mut reply = self.configuration_reply();
-                if legacy {
+                let legacy_detector = self.project.document["configurations"]
+                    .as_array()
+                    .is_some_and(|docs| {
+                        docs.iter().any(|doc| {
+                            doc["native_desktop"]["detector_absorption"]["model"]
+                                != "calibrated-pixel-incidence-v1"
+                                && doc["img"]["corrections"].get("oiadac").is_some()
+                        })
+                    });
+                if legacy_detector {
+                    reply.result["correctionNotice"] = json!(if legacy {
+                        "Recalculated legacy sample and detector absorption using calibrated geometry"
+                    } else {
+                        "Recalculated detector absorption using calibrated geometry; legacy detector tilt/rotation overrides were discarded"
+                    });
+                } else if legacy {
                     reply.result["correctionNotice"] =
                         json!("Recalculated legacy sample absorption using corrected geometry");
                 }
