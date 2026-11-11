@@ -302,8 +302,8 @@ dependencies = [
 
 [[package]]
 name = "dioptrin-io"
-version = "0.1.0"
-source = "git+https://github.com/CPrescher/dioptrin-io?rev=9a0a2de5c46b2a0ceb5ad00a23a104cb203efb42#9a0a2de5c46b2a0ceb5ad00a23a104cb203efb42"
+version = "0.3.0"
+source = "git+https://github.com/CPrescher/dioptrin-io?tag=v0.3.0#dc6e30394e4374350020f8e1335f805f19e8364e"
 dependencies = [
  "bytemuck",
  "bzip2",
@@ -371,7 +371,7 @@ checksum = "da7c62ceae207dd37ea5b845da6a0696c799f85e97da1ab5b7910be3c1c80223"
 [[package]]
 name = "fax"
 version = "0.2.7"
-source = "git+https://github.com/CPrescher/dioptrin-io?rev=9a0a2de5c46b2a0ceb5ad00a23a104cb203efb42#9a0a2de5c46b2a0ceb5ad00a23a104cb203efb42"
+source = "git+https://github.com/CPrescher/dioptrin-io?tag=v0.3.0#dc6e30394e4374350020f8e1335f805f19e8364e"
 
 [[package]]
 name = "fdeflate"
@@ -481,7 +481,7 @@ checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
 [[package]]
 name = "hdf5-bitshuffle"
 version = "1.0.0"
-source = "git+https://github.com/CPrescher/dioptrin-io?rev=9a0a2de5c46b2a0ceb5ad00a23a104cb203efb42#9a0a2de5c46b2a0ceb5ad00a23a104cb203efb42"
+source = "git+https://github.com/CPrescher/dioptrin-io?tag=v0.3.0#dc6e30394e4374350020f8e1335f805f19e8364e"
 dependencies = [
  "cc",
  "hdf5-metno-src",
@@ -1403,7 +1403,7 @@ dependencies = [
 [[package]]
 name = "tiff"
 version = "0.11.3"
-source = "git+https://github.com/CPrescher/dioptrin-io?rev=9a0a2de5c46b2a0ceb5ad00a23a104cb203efb42#9a0a2de5c46b2a0ceb5ad00a23a104cb203efb42"
+source = "git+https://github.com/CPrescher/dioptrin-io?tag=v0.3.0#dc6e30394e4374350020f8e1335f805f19e8364e"
 dependencies = [
  "fax",
  "flate2",

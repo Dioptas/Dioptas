@@ -1,8 +1,10 @@
 # HDF5 master files and explicit source contracts
 
-The HDF5 implementation lives in **dioptrin-io**, pinned at
-`9a0a2de5c46b2a0ceb5ad00a23a104cb203efb42` (branch
-`codex/hdf5-source-contracts`). Its source-contract resolver shares the typed
+The HDF5 implementation lives in **dioptrin-io 0.3.0**, consumed through the
+released `v0.3.0` tag at `dc6e30394e4374350020f8e1335f805f19e8364e`.
+The [Rust source release](https://github.com/CPrescher/dioptrin-io/releases/tag/v0.3.0)
+includes the source-contract APIs; Dioptas needs no private library branch or
+local dependency override. Its source-contract resolver shares the typed
 reader's actual dataset/convention selection and native link resolver. The
 library also owns image-candidate enumeration and wrapped VDS/raw storage APIs.
 Dioptas supplies user choices, session ownership, persistence and controls; it
@@ -143,3 +145,17 @@ alignment checks use the actual Image container width, including the existing
 ≤540 px compact toolbar rule in a multi-column task panel.
 Evidence is under `artifacts/hdf5-primary-integration/`; unrelated local changes
 and user previews/processes were retained.
+
+
+## Versioned library release
+
+The source-contract code was incorporated into dioptrin-io 0.3.0 on its default
+branch and published as the immutable `v0.3.0` Git/source release. The desktop
+manifest now selects that tag and its lockfile resolves the release commit.
+The numerical Dioptrin engine stays on its existing 0.12.0 revision.
+
+Release qualification passes the five-platform Rust/inventory/consumer matrix,
+including Windows x64/ARM64 SIMD benchmarks, plus the six Python compatibility
+jobs. The Python distribution remains independently versioned at 0.2.0. The
+Windows-specific source-path assertion was corrected for native path semantics;
+production reader code is identical to the initially qualified implementation.
