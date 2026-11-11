@@ -482,6 +482,127 @@ for (const [name, browserType] of [
       y: positions.at(-1).y,
     });
 
+    // The detached cake shares the same selection, including when its radial
+    // labels display Q while its immutable scientific grid remains in 2theta.
+    await child.getByRole("button", { name: "Cake", exact: true }).click();
+    const cakeCanvas = child.getByTestId("cake-canvas");
+    await cakeCanvas.waitFor();
+    await ready();
+    const sharedCakeClick = async () => {
+      const fields = await page
+        .getByTestId("click-readout")
+        .locator("[data-field]")
+        .allTextContents();
+      assert.ok(fields.length > 0);
+      await child.waitForFunction(
+        (expected) =>
+          JSON.stringify(
+            [
+              ...document.querySelectorAll(
+                '[data-testid="detector-click-readout"] [data-field]',
+              ),
+            ].map((el) => el.textContent),
+          ) === JSON.stringify(expected),
+        fields,
+      );
+      return fields;
+    };
+    for (const unit of ["2th_deg", "q_A^-1"]) {
+      if (unit === "q_A^-1") {
+        await page
+          .getByRole("button", { name: "Pattern unit Q", exact: true })
+          .click();
+        await ready();
+      }
+      await cakeCanvas.waitFor();
+      await child.waitForFunction(
+        (unit) =>
+          document.querySelector('[data-testid="cake-canvas"]').dataset
+            .radialDisplayUnit === unit,
+        unit,
+      );
+      const beforeCake = (await native.invoke("state")).linked;
+      const cakePoint = await cakeCanvas.evaluate((el) => ({
+        x: Number(el.dataset.plotLeft) + Number(el.dataset.plotWidth) * 0.38,
+        y: Number(el.dataset.plotTop) + Number(el.dataset.plotHeight) * 0.35,
+      }));
+      await cakeCanvas.click({ position: cakePoint });
+      await ready();
+      const cakeState = await native.invoke("state"),
+        cakeSelection = cakeState.linked;
+      assert.equal(cakeState.state.unit, unit);
+      assert.equal(positions.at(-1).source, "cake");
+      assert.equal(positions.at(-1).unit, "2th_deg");
+      assert.ok(Math.abs(cakeSelection.twoTheta - positions.at(-1).x) < 1e-8);
+      assert.ok(
+        Math.abs(cakeSelection.azimuth - positions.at(-1).azimuth) < 1e-8,
+      );
+      assert.ok(
+        Math.abs(cakeSelection.twoTheta - beforeCake.twoTheta) > 1e-3 ||
+          Math.abs(cakeSelection.azimuth - beforeCake.azimuth) > 1e-3,
+      );
+      await page.waitForFunction(
+        (radial) =>
+          Math.abs(
+            Number(
+              document.querySelector('[data-testid="pattern-canvas"]').dataset
+                .linkedPosition,
+            ) - radial,
+          ) < 1e-8,
+        cakeSelection.radial,
+      );
+      const cakeFields = await sharedCakeClick();
+      const nextPatternPoint = await patternCanvas.evaluate((el) => ({
+        x: Number(el.dataset.plotLeft) + Number(el.dataset.plotWidth) * 0.57,
+        y: Number(el.dataset.plotTop) + Number(el.dataset.plotHeight) * 0.5,
+      }));
+      await patternCanvas.click({ position: nextPatternPoint });
+      await ready();
+      const fromPattern = await native.invoke("state"),
+        selectedCake = fromPattern.cake,
+        linkedCake = fromPattern.linked;
+      assert.equal(positions.at(-1).source, "pattern");
+      assert.ok(Math.abs(linkedCake.radial - positions.at(-1).x) < 1e-8);
+      assert.ok(Math.abs(linkedCake.radial - cakeSelection.radial) > 1e-3);
+      assert.ok(
+        Math.abs(linkedCake.azimuth - cakeSelection.azimuth) < 1e-8,
+        "Pattern click lost the selected cake azimuth",
+      );
+      assert.equal(selectedCake.unit, "2th_deg");
+      const expectedCakePoint = {
+        x:
+          0.5 +
+          ((linkedCake.twoTheta - selectedCake.radialRange[0]) /
+            (selectedCake.radialRange[1] - selectedCake.radialRange[0])) *
+            (selectedCake.fullWidth - 1),
+        y:
+          ((linkedCake.azimuth - selectedCake.azimuthRange[0]) /
+            (selectedCake.azimuthRange[1] - selectedCake.azimuthRange[0])) *
+          selectedCake.fullHeight,
+        radial: linkedCake.twoTheta,
+      };
+      await child.waitForFunction((point) => {
+        const d = document.querySelector('[data-testid="cake-canvas"]').dataset;
+        return (
+          Math.abs(Number(d.clickX) - point.x) < 1e-8 &&
+          Math.abs(Number(d.clickY) - point.y) < 1e-8 &&
+          Math.abs(Number(d.linkedPosition) - point.radial) < 1e-8
+        );
+      }, expectedCakePoint);
+      assert.notDeepEqual(
+        await sharedCakeClick(),
+        cakeFields,
+        "Pattern click left the cake's click readout unchanged",
+      );
+    }
+    await page
+      .getByRole("button", { name: "Pattern unit 2θ", exact: true })
+      .click();
+    await ready();
+    await child.getByRole("button", { name: "Image", exact: true }).click();
+    await child.getByTestId("detector-canvas").waitFor();
+    await ready();
+
     // Main task controls still mutate the very same session and appear remotely.
     await child
       .getByRole("button", { name: "Image region of interest", exact: true })
@@ -817,6 +938,9 @@ for (const [name, browserType] of [
       linkedInspection: true,
       patternToDetachedImageClick: true,
       detachedImageToPatternClick: true,
+      detachedCakeToPatternClick: true,
+      patternToDetachedCakeClick: true,
+      detachedCakeClickUnits: ["2th_deg", "q_A^-1"],
       roi: true,
       maskAndUndo: true,
       polygonKeyboard: true,

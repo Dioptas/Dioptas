@@ -181,3 +181,10 @@ companion open. Each gesture must change the shared Rust selection, update the
 other plot's linked marker (including the projected detector point and contour),
 and produce matching click fields in both footers. Chromium and WebKit pass
 this round trip against Rust; no application correction was needed.
+
+The same round-trip check now covers detached cake → pattern → detached cake
+in both 2θ and Q display modes. Cake clicks update the pattern's linked marker;
+pattern clicks update the cake's radial marker and click point while retaining
+the selected azimuth. Both footer readouts must match after every click. The
+source grid remains in 2θ while Q labels are displayed. Chromium and WebKit pass
+against Rust with no application change needed.

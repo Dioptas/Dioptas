@@ -327,3 +327,9 @@ clicks, matching footer fields, the main pattern marker and the projected image
 point/contour against the shared Rust selection. Both Chromium and WebKit pass;
 application behavior already supported both directions, so only regression
 coverage and evidence were added.
+
+Extended the Rust-backed detached detector workflow to verify cake ↔ pattern
+clicks in 2θ and Q display modes. It checks matching click fields in both
+windows, both linked markers, the cake click-point projection and preserved
+azimuth after pattern clicks. Headless Chromium and WebKit pass; only regression
+coverage and evidence changed.
