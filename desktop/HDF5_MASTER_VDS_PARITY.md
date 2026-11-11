@@ -107,9 +107,42 @@ The acquired `/Users/clemens/Programming/Dioptrin/test_data/eiger_0000.h5` has
 at frames 1, 313 and 625 match independent h5py/HDF5-plugin SHA-256 signatures.
 `hdf5_counts_probe` and `scripts/hdf5_master_acquired_reference.py` reproduce
 that explicit oracle; the receipt is `artifacts/hdf5-master-vds/acquired-eiger.json`.
-The acquired Lambda inputs referenced by the pinned library's older ledger were
-unavailable at their recorded local paths, so that older decoder proof is not
-claimed as a new desktop acquired-master test.
+The acquired Lambda inputs were subsequently downloaded again and tested in
+the native desktop as described below.
+
+## Native acquired-master verification, November 11, 2026
+
+An isolated macOS Tauri/WebKit build of desktop commit `4228a2c1`, consuming
+dioptrin-io `v0.3.0`, opened FabIO's original
+`l1_test02_00002_master.nxs` through the normal **Open detector image** OS
+dialog. The original master and its three module files came from
+`https://www.silx.org/pub/fabio/testimages/`; their SHA-256 hashes match the
+library's earlier Lambda qualification. No HDF5 file or stored link was edited.
+
+The normal HDF5 source dialog requested the three unavailable `/gpfs/...`
+acquisition paths. Local module copies were supplied through the native chooser
+and editable path fields. Opening then reported five 1813 × 1555 frames and
+stored dtype `I16`. Native UI actions verified next-frame navigation through all
+five frames, backward navigation, direct frame entry, and disabled previous/next
+controls at the first/last boundaries.
+
+Each frame was exported through **Save image** as numerical TIFF data. A separate
+Python reference used h5py to read the three physical module datasets directly,
+assembled them using the master's original VDS hyperslabs, and preserved the
+declared zero fill in its 413,623 unmapped pixels per frame. All 14,096,075 pixels
+across the five native UI exports matched exactly, including row order and the
+gaps. The TIFF writer uses signed 32-bit integers; every original signed 16-bit
+count was retained exactly. Additional TIFFs after backward navigation (5 → 4)
+and direct entry (4 → 1) also matched the reference, ruling out stale displayed
+frame data for those navigation paths.
+
+Evidence and the independent reference script are in
+`artifacts/acquired-master-native/`, especially `counts-verification.json` and
+`verify_counts.py`. Per-frame sums are 1,318; 243,711; 4,354; 558,514; and 247,219.
+An early repeated native save dialog stalled; restarting only the isolated test
+application restored saving, after which all exports and revisit checks passed.
+This test required no scientific/application code changes. The isolated test
+application and processor were closed afterward; other work was preserved.
 
 ## Limits
 
