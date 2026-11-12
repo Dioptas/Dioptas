@@ -1,9 +1,15 @@
 // Native gates are used locally and by CI; frozen independent reference data
 // is exercised by Rust tests without a Python environment.
 import { spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import {
+  markdownSummary,
+  seconds,
+  textSummary,
+  timingReport,
+} from "./native_gate_timings.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const desktop = path.join(root, "desktop");
@@ -14,8 +20,35 @@ if (flags.some((f) => !allowed.includes(f)))
 const selected = new Set(flags.length ? flags : ["--processor", "--ui"]);
 const artifacts = path.join(desktop, "artifacts/ci-native");
 mkdirSync(artifacts, { recursive: true });
+// Every step's wall time goes to the console, timings.json (latest run),
+// timings-<flags>.json (kept when one CI job runs several gates) and, in
+// GitHub Actions, the job summary. A failed run reports the steps so far.
+const started = performance.now();
+const steps = [];
+let reported = false;
+function report(status) {
+  if (reported) return;
+  reported = true;
+  const timings = timingReport({
+    steps,
+    status,
+    flags: [...selected],
+    totalSeconds: (performance.now() - started) / 1000,
+  });
+  const json = `${JSON.stringify(timings, null, 2)}\n`;
+  writeFileSync(path.join(artifacts, "timings.json"), json);
+  const label = [...selected].map((f) => f.slice(2)).join("-");
+  writeFileSync(path.join(artifacts, `timings-${label}.json`), json);
+  console.log(`\n${textSummary(timings)}`);
+  if (process.env.GITHUB_STEP_SUMMARY)
+    appendFileSync(process.env.GITHUB_STEP_SUMMARY, markdownSummary(timings));
+}
+// Errors outside a step (for example a missing reference interpreter).
+process.on("exit", (code) => report(code === 0 ? "passed" : "failed"));
 function run(name, command, args, cwd = desktop) {
-  console.log(`\n[${name}] ${command} ${args.join(" ")}`);
+  const commandLine = `${command} ${args.join(" ")}`;
+  console.log(`\n[${name}] ${commandLine}`);
+  const start = performance.now();
   const r = spawnSync(command, args, {
     cwd,
     env: process.env,
@@ -23,15 +56,27 @@ function run(name, command, args, cwd = desktop) {
     timeout: 20 * 60 * 1000,
     maxBuffer: 128 * 1024 * 1024,
   });
+  const elapsed = (performance.now() - start) / 1000;
+  const failed = r.status !== 0 || r.error;
+  steps.push({
+    name,
+    command: commandLine,
+    cwd: path.relative(root, cwd) || ".",
+    seconds: elapsed,
+    status: failed ? "failed" : "passed",
+    exitCode: r.status,
+    signal: r.signal,
+  });
   const output = `${r.stdout ?? ""}${r.stderr ?? ""}${r.error ? `\n${r.error.stack}` : ""}`;
   writeFileSync(path.join(artifacts, `${name}.log`), output);
-  if (r.status !== 0 || r.error) {
+  if (failed) {
     process.stderr.write(output.slice(-16000));
+    report("failed");
     throw Error(
-      `${name} failed (${r.status ?? r.signal}); see desktop/artifacts/ci-native/${name}.log`,
+      `${name} failed (${r.status ?? r.signal}) after ${seconds(elapsed)} s; see desktop/artifacts/ci-native/${name}.log`,
     );
   }
-  console.log(`${name}: passed`);
+  console.log(`${name}: passed in ${seconds(elapsed)} s`);
 }
 const node = (name, script, ...args) =>
   run(name, process.execPath, ["scripts/" + script, ...args]);
@@ -175,3 +220,4 @@ if (selected.has("--host")) {
     "src-tauri/Cargo.toml",
   ]);
 }
+report("passed");
