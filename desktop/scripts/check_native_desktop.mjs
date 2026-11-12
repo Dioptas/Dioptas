@@ -5,6 +5,7 @@ import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import {
+  coverageRequested,
   markdownSummary,
   seconds,
   textSummary,
@@ -19,6 +20,13 @@ if (flags.some((f) => !allowed.includes(f)))
   throw Error(`Use ${allowed.join(", ")}`);
 const selected = new Set(flags.length ? flags : ["--processor", "--ui"]);
 const artifacts = path.join(desktop, "artifacts/ci-native");
+// DIOPTAS_GATE_COVERAGE=1 (set by CI on Linux only) runs the all-features
+// tests once under cargo-llvm-cov, writing desktop/artifacts/coverage, instead
+// of an uninstrumented run followed by a second instrumented build and run.
+// Those tests then only run instrumented. Local runs stay uninstrumented.
+const coverage =
+  coverageRequested(process.env.DIOPTAS_GATE_COVERAGE) &&
+  selected.has("--processor");
 mkdirSync(artifacts, { recursive: true });
 // Every step's wall time goes to the console, timings.json (latest run),
 // timings-<flags>.json (kept when one CI job runs several gates) and, in
@@ -33,6 +41,7 @@ function report(status) {
     steps,
     status,
     flags: [...selected],
+    coverage,
     totalSeconds: (performance.now() - started) / 1000,
   });
   const json = `${JSON.stringify(timings, null, 2)}\n`;
@@ -124,13 +133,44 @@ if (selected.has("--processor")) {
     "-D",
     "warnings",
   ]);
-  run("rust-tests", "cargo", [
-    "test",
-    "--locked",
-    "--manifest-path",
-    "backend/Cargo.toml",
-    "--all-features",
-  ]);
+  if (coverage) {
+    // cargo-llvm-cov builds into target/llvm-cov-target, so the normal
+    // processor staged by rust-build below stays uninstrumented.
+    const backend = path.join(desktop, "backend");
+    mkdirSync(path.join(desktop, "artifacts/coverage"), { recursive: true });
+    run(
+      "rust-tests",
+      "cargo",
+      [
+        "llvm-cov",
+        "--locked",
+        "--all-features",
+        "--lcov",
+        "--output-path",
+        "../artifacts/coverage/lcov.info",
+      ],
+      backend,
+    );
+    run(
+      "rust-coverage-html",
+      "cargo",
+      [
+        "llvm-cov",
+        "report",
+        "--html",
+        "--output-dir",
+        "../artifacts/coverage/html",
+      ],
+      backend,
+    );
+  } else
+    run("rust-tests", "cargo", [
+      "test",
+      "--locked",
+      "--manifest-path",
+      "backend/Cargo.toml",
+      "--all-features",
+    ]);
   // Tests can build diagnostic executables; stage the normal processor last.
   run("rust-build", "cargo", [
     "build",

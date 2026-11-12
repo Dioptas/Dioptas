@@ -134,6 +134,8 @@ function scratchGate() {
       rmSync(log, { force: true });
       const summary = path.join(root, "step-summary.md");
       rmSync(summary, { force: true });
+      const artifacts = path.join(root, "desktop/artifacts");
+      rmSync(artifacts, { recursive: true, force: true });
       const r = spawnSync(
         process.execPath,
         [path.join(own, "check_native_desktop.mjs"), ...flags],
@@ -152,7 +154,7 @@ function scratchGate() {
       );
       const read = (file) =>
         existsSync(file) ? readFileSync(file, "utf8") : "";
-      const artifacts = path.join(root, "desktop/artifacts/ci-native");
+      const timings = read(path.join(artifacts, "ci-native/timings.json"));
       return {
         ...r,
         calls: read(log)
@@ -163,8 +165,8 @@ function scratchGate() {
             return `${path.relative(root, cwd)}: ${command}`;
           }),
         summary: read(summary),
-        timings: JSON.parse(read(path.join(artifacts, "timings.json"))),
-        artifacts,
+        timings: timings && JSON.parse(timings),
+        artifacts: path.join(artifacts, "ci-native"),
       };
     },
   };
@@ -247,6 +249,45 @@ describe(
       assert.match(r.stderr, /rust-core-clippy failed \(3\) after \d+\.\d s/);
       assert.equal(r.summary.match(/### Native gate timings/g).length, 1);
       assert.match(r.summary, /\| rust-core-clippy \| .* \| failed \|/);
+    });
+
+    it("swaps only the all-features test step under the coverage opt-in", () => {
+      const r = gate.run(["--processor"], { DIOPTAS_GATE_COVERAGE: "1" });
+      assert.equal(r.status, 0, r.stderr);
+      const tests = processorCalls.indexOf(
+        "desktop: cargo test --locked --manifest-path backend/Cargo.toml --all-features",
+      );
+      assert.deepEqual(r.calls, [
+        ...processorCalls.slice(0, tests),
+        "desktop/backend: cargo llvm-cov --locked --all-features --lcov --output-path ../artifacts/coverage/lcov.info",
+        "desktop/backend: cargo llvm-cov report --html --output-dir ../artifacts/coverage/html",
+        ...processorCalls.slice(tests + 1),
+      ]);
+      assert.equal(r.timings.coverage, true);
+      assert.deepEqual(
+        r.timings.steps.map((s) => s.name),
+        [
+          ...processorSteps.slice(0, -1),
+          "rust-coverage-html",
+          processorSteps.at(-1),
+        ],
+      );
+      assert.ok(existsSync(path.join(gate.root, "desktop/artifacts/coverage")));
+    });
+
+    it("ignores the coverage opt-in without --processor", () => {
+      const r = gate.run(["--host"], { DIOPTAS_GATE_COVERAGE: "1" });
+      assert.equal(r.status, 0, r.stderr);
+      assert.equal(r.timings.coverage, false);
+      assert.ok(!r.calls.some((c) => c.includes("llvm-cov")));
+    });
+
+    it("rejects an unclear coverage opt-in before running anything", () => {
+      const r = gate.run(["--processor"], { DIOPTAS_GATE_COVERAGE: "true" });
+      assert.notEqual(r.status, 0);
+      assert.match(r.stderr, /DIOPTAS_GATE_COVERAGE must be 0 or 1/);
+      assert.deepEqual(r.calls, []);
+      assert.equal(r.timings, "");
     });
 
     it("reports a failure outside any step", () => {
