@@ -64,6 +64,15 @@ path = "src/main.rs"
 hdf5-metno = { path = "../vendor/hdf5-metno" }
 hdf5-metno-sys = { path = "../vendor/hdf5-metno-sys" }
 
+# Full debuginfo made each statically linked test executable ~0.5 GB. Keep
+# file/line backtraces for this crate, and only symbol names for dependencies.
+# Applies to dev and test (test inherits dev), so `cargo build` and
+# `cargo test` still share dependency artifacts. Release is unaffected.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
 
 # Keep the real-image native algorithms practical in the development preview.
 # This changes optimization only, not float arithmetic policy or CPU target.
