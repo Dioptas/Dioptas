@@ -7,6 +7,7 @@
   ],
   "permissions": [
     "allow-desktop-invoke",
+    "allow-session-recovery",
     "allow-prepare-color-picker",
     "allow-show-calibration-tooltip",
     "allow-hide-calibration-tooltip",

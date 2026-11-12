@@ -40,6 +40,7 @@ import { IntegrationLeftPane } from "./IntegrationLeftPane";
 import { ImageSourceControl } from "./ImageSourceControl";
 import { processingProgressText } from "./processingProgress";
 import { useBackendReload } from "./useBackendReload";
+import { useSessionRecovery } from "./SessionRecovery";
 import {
   requestedDisplayProducts,
   withRequestedProducts,
@@ -946,6 +947,99 @@ export default function App() {
     error,
     run,
   ]);
+  const recovery = useSessionRecovery({
+    ui: {
+      // Single-crystal recipes have separate persistence from powder projects.
+      mode: mode === "scxrd" ? "calibration" : mode,
+      calibrationStep,
+      validationConvention,
+      integrationDisplay,
+      showConfigurationControls,
+      showRings,
+      showNumbers,
+      pickingEnabled,
+      ring,
+      logImage,
+      palette,
+      limits,
+      detectorAuto: detectorAutoActive.current,
+      cakeLog,
+      cakePalette,
+      cakeLimits,
+      cakeAuto: cakeAutoActive.current,
+      detectorPreferences,
+      multiDetectorPreferences,
+      cakePreferences,
+      sqrtPattern,
+      correctedImage,
+      cakeShift,
+    },
+    refresh: async () => {
+      let displayed = false;
+      await run(
+        "state",
+        {},
+        "Restoring workspace…",
+        (result: Response) => {
+          if (!result.state) return;
+          resetIntegrationDraft(result.state);
+          resetGeometryDraft(result.state.calibration);
+          resetFitDraft(result.state.calibration);
+          displayed = true;
+        },
+        undefined,
+        true,
+        true,
+      );
+      if (!displayed)
+        throw new Error("The restored workspace could not be displayed.");
+    },
+    openStartup: async (action, path) => {
+      if (action === "open_project")
+        await run("open_project", { path }, "Opening requested project…");
+      else if (action === "open_calibration")
+        await run(
+          "open_calibration",
+          { path },
+          "Opening requested calibration…",
+        );
+      else if (action === "open_image")
+        await run("open_image", { path }, "Opening requested image…");
+    },
+    restoreUi: (ui) => {
+      if (ui.mode !== undefined) setMode(ui.mode);
+      if (ui.calibrationStep !== undefined)
+        setCalibrationStep(ui.calibrationStep);
+      if (ui.validationConvention !== undefined)
+        setValidationConvention(ui.validationConvention);
+      if (ui.integrationDisplay !== undefined)
+        setIntegrationDisplay(ui.integrationDisplay);
+      if (ui.showConfigurationControls !== undefined)
+        setShowConfigurationControls(ui.showConfigurationControls);
+      if (ui.showRings !== undefined) setShowRings(ui.showRings);
+      if (ui.showNumbers !== undefined) setShowNumbers(ui.showNumbers);
+      if (ui.pickingEnabled !== undefined) setPickingEnabled(ui.pickingEnabled);
+      if (ui.ring !== undefined) setRing(ui.ring);
+      if (ui.logImage !== undefined) setLogImage(ui.logImage);
+      if (ui.palette !== undefined) setPalette(ui.palette);
+      if (ui.limits !== undefined) setLimits(ui.limits);
+      if (ui.detectorAuto !== undefined)
+        detectorAutoActive.current = ui.detectorAuto;
+      if (ui.cakeLog !== undefined) setCakeLog(ui.cakeLog);
+      if (ui.cakePalette !== undefined) setCakePalette(ui.cakePalette);
+      if (ui.cakeLimits !== undefined) setCakeLimits(ui.cakeLimits);
+      if (ui.cakeAuto !== undefined) cakeAutoActive.current = ui.cakeAuto;
+      if (ui.detectorPreferences !== undefined)
+        setDetectorPreferences(ui.detectorPreferences);
+      if (ui.multiDetectorPreferences !== undefined)
+        setMultiDetectorPreferences(ui.multiDetectorPreferences);
+      if (ui.cakePreferences !== undefined)
+        setCakePreferences(ui.cakePreferences);
+      if (ui.sqrtPattern !== undefined) setSqrtPattern(ui.sqrtPattern);
+      if (ui.correctedImage !== undefined) setCorrectedImage(ui.correctedImage);
+      if (ui.cakeShift !== undefined) setCakeShift(ui.cakeShift);
+    },
+  });
   useEffect(() => {
     let mounted = true;
     connect()
@@ -962,6 +1056,7 @@ export default function App() {
             ? forwardInvoke(displayInvoke, call)
             : forwardInvoke(invoke, call);
         await run("state", {}, "Opening workspace…");
+        if (mounted) await recovery.start();
       })
       .catch((e) => {
         if (mounted) {
@@ -975,7 +1070,7 @@ export default function App() {
       hoverLatest.current = null;
       if (hoverTimer.current) clearTimeout(hoverTimer.current);
     };
-  }, [run]);
+  }, [run, recovery.start]);
   useEffect(() => {
     if (!busy && !quietBackgroundProcessing) {
       setProgress(undefined);
@@ -3600,6 +3695,7 @@ export default function App() {
   return (
     <DetectorWindowProvider value={detectorWindow}>
       {workspace}
+      {recovery.dialog}
     </DetectorWindowProvider>
   );
 }

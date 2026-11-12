@@ -113,7 +113,8 @@
     "test:scxrd-measured": "node scripts/scxrd_measured.mjs",
     "test:scxrd-measured-gui": "node scripts/scxrd_measured_gui.mjs",
     "test:scxrd-protocol": "node scripts/scxrd_matched_profiles.mjs",
-    "test:scxrd-protocol-gui": "node scripts/scxrd_protocol_gui.mjs"
+    "test:scxrd-protocol-gui": "node scripts/scxrd_protocol_gui.mjs",
+    "test:session-recovery": "node scripts/session_recovery_smoke.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",

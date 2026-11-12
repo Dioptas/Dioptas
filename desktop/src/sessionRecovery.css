@@ -1,0 +1,27 @@
+.session-recovery-dialog {
+  width: min(520px, calc(100vw - 40px));
+  padding: 24px;
+}
+.session-recovery-dialog h2 {
+  margin: 0 0 14px;
+  font-size: 20px;
+}
+.session-recovery-dialog p {
+  line-height: 1.5;
+}
+.session-recovery-path {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  max-height: 35vh;
+  overflow: auto;
+  font-size: 13px;
+}
+.session-recovery-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+.session-recovery-dialog [role="alert"] {
+  color: #ffb29c;
+}

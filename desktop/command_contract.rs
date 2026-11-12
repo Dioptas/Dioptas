@@ -84,6 +84,8 @@ pub fn execution(action: &str) -> CommandExecution {
         | "process_image_batch"
         | "open_project"
         | "save_project"
+        | "recovery_checkpoint"
+        | "recovery_restore"
         | "configuration"
         | "configuration_select"
         | "configuration_navigation"
