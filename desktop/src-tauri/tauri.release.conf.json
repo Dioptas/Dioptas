@@ -37,7 +37,7 @@
       "endpoints": [
         "https://github.com/Dioptas/Dioptas/releases/latest/download/latest.json"
       ],
-      "pubkey": "",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDcyMzdEMTIzNkMwMUU4QzMKUldURDZBRnNJOUUzY255UFNsNSthZU1JaHk2TzBzMVpUdXFZeUFnelc4SU9JS01jMkNWc25PYkIK",
       "requireSignedVersion": true
     }
   }
