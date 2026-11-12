@@ -56,7 +56,7 @@ pub(crate) struct Series {
     // Rollback checkpoints share source metadata; writers copy only their local edits.
     pub paths: Arc<Vec<String>>,
     pub file_counts: Arc<Vec<usize>>,
-    pub reader_options: std::collections::BTreeMap<String, Value>,
+    pub reader_options: Arc<std::collections::BTreeMap<String, Value>>,
     pub total: usize,
     pub selected: usize,
     pub normalization: [usize; 2],
@@ -153,16 +153,19 @@ impl Series {
             }
         }
         s.reader_options = self.reader_options.clone();
-        for (path, options) in &other.reader_options {
-            if s.reader_options
-                .get(path)
-                .is_some_and(|previous| previous != options)
-            {
-                return Err(
-                    "A scan append cannot replace the source contract for an existing file.".into(),
-                );
+        for (path, options) in other.reader_options.iter() {
+            match s.reader_options.get(path) {
+                Some(previous) if previous != options => {
+                    return Err(
+                        "A scan append cannot replace the source contract for an existing file."
+                            .into(),
+                    );
+                }
+                Some(_) => {}
+                None => {
+                    Arc::make_mut(&mut s.reader_options).insert(path.clone(), options.clone());
+                }
             }
-            s.reader_options.insert(path.clone(), options.clone());
         }
         if serde_json::to_vec(&s.reader_options)
             .map_err(|e| e.to_string())?
@@ -922,15 +925,33 @@ mod file_index_tests {
             &["missing/b", "missing/a"],
         );
         a.file_counts = Arc::new(vec![7, 20]);
+        Arc::make_mut(&mut a.reader_options).insert(
+            "missing/a".into(),
+            json!({"dataset":"/raw", "frame_shape":[2,3]}),
+        );
         let mut b = fixture(
             &[("missing/c", 3), ("missing/a", 8)],
             &["missing/a", "missing/c"],
         );
         b.file_counts = Arc::new(vec![40, 10]);
+        Arc::make_mut(&mut b.reader_options)
+            .insert("missing/a".into(), a.reader_options["missing/a"].clone());
+        Arc::make_mut(&mut b.reader_options).insert(
+            "missing/c".into(),
+            json!({"dataset":"/frames", "raw":{"dtype":"u16"}}),
+        );
         let a_checkpoint = a.clone();
         let b_checkpoint = b.clone();
         let s = a.append(&b).unwrap();
         assert!(Arc::ptr_eq(&a.paths, &a_checkpoint.paths));
+        assert!(Arc::ptr_eq(&a.reader_options, &a_checkpoint.reader_options));
+        assert!(Arc::ptr_eq(&b.reader_options, &b_checkpoint.reader_options));
+        assert!(!Arc::ptr_eq(&s.reader_options, &a.reader_options));
+        assert_eq!(a.reader_options.len(), 1);
+        assert_eq!(b.reader_options.len(), 2);
+        assert_eq!(s.reader_options.len(), 2);
+        assert_eq!(s.reader_options["missing/a"], a.reader_options["missing/a"]);
+        assert_eq!(s.reader_options["missing/c"], b.reader_options["missing/c"]);
         assert!(Arc::ptr_eq(&a.file_counts, &a_checkpoint.file_counts));
         assert!(Arc::ptr_eq(&b.paths, &b_checkpoint.paths));
         assert!(Arc::ptr_eq(&b.file_counts, &b_checkpoint.file_counts));
@@ -949,10 +970,17 @@ mod file_index_tests {
         assert!(Arc::ptr_eq(&s.file_index, &cloned.file_index));
         assert!(Arc::ptr_eq(&s.paths, &cloned.paths));
         assert!(Arc::ptr_eq(&s.file_counts, &cloned.file_counts));
+        assert!(Arc::ptr_eq(&s.reader_options, &cloned.reader_options));
         let dir = tempfile::tempdir().unwrap();
         let p = dir.path().join("stored.h5");
         s.save(&p).unwrap();
         let restored = Series::load(&p).unwrap();
+        assert_eq!(restored.reader_options, s.reader_options);
+        assert_eq!(
+            serde_json::to_value(&restored.reader_options).unwrap(),
+            json!({"missing/a":{"dataset":"/raw", "frame_shape":[2,3]},
+                   "missing/c":{"dataset":"/frames", "raw":{"dtype":"u16"}}})
+        );
         assert_eq!(
             restored.metadata("q_A^-1", Value::Null)["files"],
             metadata["files"]
@@ -985,5 +1013,42 @@ mod file_index_tests {
         // The existing save fallback records stored rows for an unlisted source.
         assert_eq!(*restored.file_counts, [1, 1]);
         assert_eq!(restored.data, series.data);
+    }
+    #[test]
+    fn append_shared_reader_contracts_rejects_conflicts_without_mutating_inputs() {
+        let mut original = fixture(&[("missing/a", 0)], &["missing/a"]);
+        Arc::make_mut(&mut original.reader_options)
+            .insert("missing/a".into(), json!({"dataset":"/raw"}));
+        let checkpoint = original.clone();
+        let mut other = original.clone();
+        // Reusing the identical contract needs no map copy even when rows append.
+        let appended = original.append(&other).unwrap();
+        assert!(Arc::ptr_eq(
+            &appended.reader_options,
+            &original.reader_options
+        ));
+        Arc::make_mut(&mut other.reader_options)
+            .insert("missing/a".into(), json!({"dataset":"/different"}));
+        assert!(!Arc::ptr_eq(
+            &other.reader_options,
+            &original.reader_options
+        ));
+        let error = original.append(&other).err().unwrap();
+        assert_eq!(
+            error,
+            "A scan append cannot replace the source contract for an existing file."
+        );
+        assert!(Arc::ptr_eq(
+            &original.reader_options,
+            &checkpoint.reader_options
+        ));
+        assert_eq!(
+            original.reader_options["missing/a"],
+            json!({"dataset":"/raw"})
+        );
+        assert_eq!(
+            other.reader_options["missing/a"],
+            json!({"dataset":"/different"})
+        );
     }
 }
