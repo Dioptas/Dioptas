@@ -185,6 +185,7 @@ impl Session {
                         .ok_or("Load scan files first.")?
                         .series
                         .paths
+                        .as_ref()
                         .clone()
                 } else {
                     batch_workflow::source_paths(args)?
@@ -439,7 +440,7 @@ impl Session {
                             }
                             _ => unreachable!(),
                         }
-                        s.slots = slots;
+                        s.slots = Arc::new(slots);
                     }
                     "gaps" => {
                         let mut numbers = vec![];
@@ -472,7 +473,7 @@ impl Session {
                             slots[slot] = Some(i);
                         }
                         s.dimension[0] = slots.len().div_ceil(s.dimension[1]);
-                        s.slots = slots;
+                        s.slots = Arc::new(slots);
                     }
                     _ => return Err("Unknown arrangement action.".into()),
                 }
@@ -751,7 +752,7 @@ impl Session {
         let previous = s.selected;
         s.series = appended;
         let append: Vec<_> = (old..s.series.count()).map(Some).collect();
-        s.slots.extend(append);
+        Arc::make_mut(&mut s.slots).extend(append);
         s.dimension[0] = s.slots.len().max(s.series.count()).div_ceil(s.dimension[1]);
         s.rebuild(true, &self.patterns)?;
         let index = if args
@@ -780,4 +781,81 @@ fn filename_number(path: &Path) -> Option<u64> {
         .rposition(|c| !c.is_ascii_digit())
         .map_or(0, |i| i + 1);
     (start < end).then(|| stem[start..].parse().ok()).flatten()
+}
+
+#[cfg(test)]
+mod checkpoint_sharing_tests {
+    use super::*;
+    use crate::series::Entry;
+
+    #[test]
+    fn series_and_scan_metadata_share_checkpoints_and_restore_after_local_edits() {
+        let mut session = Session::new(PathBuf::new());
+        let series = Series::new(
+            vec![1., 2.],
+            vec![10., 20., 30., 40.],
+            "q_A^-1".into(),
+            None,
+            vec![
+                Entry {
+                    path: "a".into(),
+                    frame: 0,
+                },
+                Entry {
+                    path: "b".into(),
+                    frame: 0,
+                },
+            ],
+            vec!["a".into(), "b".into()],
+            2,
+        )
+        .unwrap();
+        session.batch = Some(series.clone());
+        session.scan = Some(Scan::new(series, &session.patterns).unwrap());
+        let before = session.scan.as_ref().unwrap().metadata();
+        let checkpoint = session.checkpoint();
+        let original = checkpoint.scan.as_ref().unwrap();
+        let original_batch = checkpoint.batch.as_ref().unwrap();
+        assert!(Arc::ptr_eq(
+            &session.batch.as_ref().unwrap().paths,
+            &original_batch.paths
+        ));
+        assert!(Arc::ptr_eq(
+            &session.batch.as_ref().unwrap().file_counts,
+            &original_batch.file_counts
+        ));
+        assert!(Arc::ptr_eq(
+            &session.scan.as_ref().unwrap().slots,
+            &original.slots
+        ));
+        assert!(Arc::ptr_eq(&original.series.paths, &original_batch.paths));
+        assert!(Arc::ptr_eq(
+            &original.series.file_counts,
+            &original_batch.file_counts
+        ));
+        // The live append path mutates slots through COW. A retained rollback
+        // checkpoint must keep both the old arrangement and source metadata.
+        let scan = session.scan.as_mut().unwrap();
+        Arc::make_mut(&mut scan.slots).push(None);
+        Arc::make_mut(&mut scan.series.paths).push("c".into());
+        Arc::make_mut(&mut scan.series.file_counts).push(1);
+        assert!(!Arc::ptr_eq(&scan.slots, &original.slots));
+        assert!(!Arc::ptr_eq(&scan.series.paths, &original.series.paths));
+        assert!(!Arc::ptr_eq(
+            &scan.series.file_counts,
+            &original.series.file_counts
+        ));
+        assert_eq!(*original.slots, [Some(0), Some(1)]);
+        assert_eq!(*original.series.paths, ["a", "b"]);
+        assert_eq!(*original.series.file_counts, [1, 1]);
+        let shared_slots = original.slots.clone();
+        let shared_paths = original_batch.paths.clone();
+        let shared_counts = original_batch.file_counts.clone();
+        session.restore_checkpoint(checkpoint);
+        let restored = session.scan.as_ref().unwrap();
+        assert!(Arc::ptr_eq(&restored.slots, &shared_slots));
+        assert!(Arc::ptr_eq(&restored.series.paths, &shared_paths));
+        assert!(Arc::ptr_eq(&restored.series.file_counts, &shared_counts));
+        assert_eq!(restored.metadata(), before);
+    }
 }

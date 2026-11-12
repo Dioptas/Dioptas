@@ -647,7 +647,8 @@ impl Session {
                         .collect(),
                     total,
                 )?;
-                series.file_counts = images.iter().map(|(_, frames, _, _, _)| *frames).collect();
+                series.file_counts =
+                    Arc::new(images.iter().map(|(_, frames, _, _, _)| *frames).collect());
                 series.reader_options = images
                     .iter()
                     .map(|(path, _, _, _, options)| {
@@ -798,6 +799,7 @@ impl Session {
                         .as_ref()
                         .ok_or("Load raw images first.")?
                         .paths
+                        .as_ref()
                         .clone()
                 } else {
                     source_paths(args)?
