@@ -108,16 +108,13 @@ runtime checks open no windows on the user's desktop and use a virtual X11
 display with software rendering. They do not establish Wayland, physical GPU,
 ARM64, older glibc, RPM, Flatpak or every-distribution compatibility.
 
-The Xvfb tests explicitly set `LIBGL_ALWAYS_SOFTWARE=1`,
-`WEBKIT_DISABLE_DMABUF_RENDERER=1` and `WEBKIT_DISABLE_COMPOSITING_MODE=1`.
-Without the last setting, the bundled WebKit on Ubuntu 24.04's virtual/software
-graphics stack failed to create a shared EGL context. The native `.deb` passed
-there using the distribution's own WebKit. The compositor override is scoped
-to tests, recorded in the receipts, and is not forced on ordinary app startup.
-For an affected AppImage installation, try
-`WEBKIT_DISABLE_COMPOSITING_MODE=1 ./Dioptas\ Desktop_0.1.0_amd64.AppImage`;
-this sacrifices accelerated compositing. Physical/default-compositor AppImage
-qualification remains a separate pre-publication check. See
+The Xvfb tests explicitly request software rendering and the GLES GDK path.
+These are test-environment settings, recorded in the receipts, and are not
+forced on ordinary app startup. Ubuntu 24.04 AppImage graphics qualification
+is pending: the initial virtual/software path failed to create a shared EGL
+context, and disabling compositing alone did not resolve it. The native `.deb`
+passed using the distribution's own WebKit. Physical/default-compositor
+AppImage qualification remains separate. See
 [Tauri's Linux graphics guidance](https://v2.tauri.app/develop/debug/linux-graphics/).
 
 Outputs are in `artifacts/native-linux/<version>-x64-<run>/`: candidates,
