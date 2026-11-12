@@ -470,10 +470,38 @@ impl Session {
         write_text_attr(&file, "react_desktop", &metadata.to_string())?;
         series::save_active_extensions(self, &file)?;
         file.flush().native()?;
-        drop(file);
+        // HDF5 keeps its OS file handle alive while any group is still open.
+        // Windows cannot publish the temporary archive until those handles close.
+        drop(groups);
+        drop(cache);
+        drop(payloads);
+        file.close().native()?;
         temp.as_file().sync_all().map_err(|e| e.to_string())?;
         self.control.check()?;
         temp.persist(path).map_err(|e| e.to_string())?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn project_save_closes_hdf5_handles_before_publishing_and_overwriting() {
+        let temporary = tempfile::tempdir().unwrap();
+        let path = temporary.path().join("Portable project ü.dio");
+        let mut session = Session::new(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../.."));
+        session.settings.bins = 128;
+        session.settings.automatic_binning = false;
+        session.save_native_project(&path).unwrap();
+        session.open_native_project(&path).unwrap();
+        session.settings.bins = 256;
+        session.save_native_project(&path).unwrap();
+        session.open_native_project(&path).unwrap();
+        assert_eq!(session.settings.bins, 256);
+        // A saved/opened project owns a snapshot, leaving the destination free
+        // for rename and replacement even on Windows.
+        std::fs::rename(&path, temporary.path().join("renamed.dio")).unwrap();
     }
 }
