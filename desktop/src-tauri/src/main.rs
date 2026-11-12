@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod app_update;
 mod batch_export;
 mod calibration_tooltip;
 mod color_picker;
@@ -441,6 +442,15 @@ fn native_smoke_report(
     Ok(())
 }
 
+/// Persist window placement and stop the processor before the process ends.
+fn release_host(handle: &tauri::AppHandle) {
+    handle.state::<Host>().closing.store(true, Ordering::SeqCst);
+    map_window::save(handle);
+    if let Ok(processor) = &handle.state::<Host>().processor {
+        processor.shutdown();
+    }
+}
+
 fn main() {
     let args: Vec<_> = std::env::args().collect();
     let pattern_benchmark = args.iter().any(|a| a == "--pattern-benchmark");
@@ -464,8 +474,15 @@ fn main() {
             window.create = false;
         }
     }
-    let app = tauri::Builder::default()
-        .plugin(tauri_plugin_dialog::init())
+    // Installed releases with a verification key update themselves. Previews,
+    // local builds and isolated test windows never contact the release server.
+    let updates = app_update::enabled(context.config(), smoke);
+    let mut builder = tauri::Builder::default().plugin(tauri_plugin_dialog::init());
+    if updates {
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    }
+    let app = builder
+        .manage(app_update::UpdateState::new(updates))
         .manage(TooltipState::default())
         .manage(map_window::MapWindowState::default())
         .manage(map_window::BatchWindowState::default())
@@ -486,6 +503,10 @@ fn main() {
             detector_window::publish_detector_snapshot,
             detector_window::detector_snapshot,
             native_smoke_report,
+            app_update::update_check,
+            app_update::update_download,
+            app_update::update_apply,
+            app_update::open_update_page,
             show_calibration_tooltip,
             hide_calibration_tooltip,
             calibration_tooltip_ready,
@@ -726,11 +747,7 @@ fn main() {
             event,
             tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit
         ) {
-            handle.state::<Host>().closing.store(true, Ordering::SeqCst);
-            map_window::save(handle);
-            if let Ok(processor) = &handle.state::<Host>().processor {
-                processor.shutdown();
-            }
+            release_host(handle);
         }
     });
 }

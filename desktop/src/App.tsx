@@ -103,6 +103,8 @@ import {
 import { connect, updateWindowTitle } from "./bridge";
 import { recordAction } from "./errorReporting";
 import { SettingsWorkspace } from "./SettingsWorkspace";
+import { AppUpdateNotice } from "./AppUpdateNotice";
+import { useAppUpdate } from "./useAppUpdate";
 import { useProcessingWorkerPreference } from "./ProcessingWorkerSettings";
 import { useCustomCommands } from "./customCommands";
 import { CustomCommandButtons } from "./CustomCommandButtons";
@@ -334,6 +336,7 @@ export default function App() {
     clear: clearPlot,
   } = usePlotReadout();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const appUpdate = useAppUpdate();
   const [imageFileStep, setImageFileStep] = useState(1);
   const [settingsSection, setSettingsSection] = useState(0);
   const [customActionsOpen, setCustomActionsOpen] = useState(false);
@@ -2292,6 +2295,7 @@ export default function App() {
                 <Save size={20} />
               </Button>
             </div>
+            <AppUpdateNotice controller={appUpdate} ready={ready} />
             <Button
               className={`workspace-nav navigation-settings ${settingsOpen ? "workspace-active" : ""}`}
               onClick={toggleSettings}
@@ -3565,6 +3569,7 @@ export default function App() {
               onSectionChange={setSettingsSection}
               integrationDraft={integrationDraft}
               onCustomActionsActiveChange={setCustomActionsOpen}
+              appUpdate={appUpdate}
               customCommands={customCommands}
               state={state}
               ready={ready}

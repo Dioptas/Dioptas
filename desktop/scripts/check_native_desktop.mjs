@@ -110,6 +110,7 @@ if (selected.has("--ui")) {
   for (const script of [
     "hook_refresh_smoke",
     "ui_components",
+    "app_update_smoke",
     "native_backend_smoke",
     "native_custom_actions_smoke",
     "native_calibration_smoke",

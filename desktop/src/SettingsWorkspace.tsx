@@ -25,6 +25,8 @@ import { ConfigurationBrowsingSettings } from "./ConfigurationBrowsingSettings";
 import { ProcessingWorkerSettings } from "./ProcessingWorkerSettings";
 import { DacThermalPressureControls } from "./DacThermalPressureControls";
 import type { CustomCommandController } from "./customCommands";
+import { AppUpdateSettings } from "./AppUpdateSettings";
+import type { AppUpdateController } from "./useAppUpdate";
 
 const categories = [
   {
@@ -78,6 +80,7 @@ export function SettingsWorkspace({
   returnLabel,
   customCommands,
   onCustomActionsActiveChange,
+  appUpdate,
 }: {
   integrationDraft: IntegrationSettingsDraft;
   open?: boolean;
@@ -94,6 +97,7 @@ export function SettingsWorkspace({
   returnLabel: string;
   customCommands: CustomCommandController;
   onCustomActionsActiveChange: (active: boolean) => void;
+  appUpdate: AppUpdateController;
 }) {
   useLayoutEffect(() => {
     onCustomActionsActiveChange(open && section === 4);
@@ -215,6 +219,7 @@ export function SettingsWorkspace({
               </div>
             </section>
             <ProcessingWorkerSettings state={state} ready={ready} run={run} />
+            <AppUpdateSettings controller={appUpdate} />
             <p className="settings-save-note">
               <Check size={14} /> General preferences take effect immediately.
             </p>

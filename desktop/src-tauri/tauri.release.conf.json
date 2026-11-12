@@ -31,5 +31,14 @@
       "hardenedRuntime": true,
       "bundleVersion": "0.14.0"
     }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/Dioptas/Dioptas/releases/latest/download/latest.json"
+      ],
+      "pubkey": "",
+      "requireSignedVersion": true
+    }
   }
 }
