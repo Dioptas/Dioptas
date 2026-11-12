@@ -15,6 +15,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import time
 
 
 REQUIRED_SECRETS = (
@@ -28,13 +29,27 @@ PROFILE = "dioptas-notarization"
 
 
 def run(*args, capture=False):
-    result = subprocess.run(args, text=True, capture_output=capture, check=False)
-    if result.returncode:
+    ticket_check = args[:2] == ("xcrun", "stapler")
+    for attempt in range(5 if ticket_check else 1):
+        result = subprocess.run(args, text=True, capture_output=capture or ticket_check, check=False)
+        if ticket_check and not capture:
+            print(result.stdout or "", end="")
+            print(result.stderr or "", end="", file=sys.stderr)
+        if not result.returncode:
+            return result.stdout if capture else ""
+        output = (result.stdout or "") + (result.stderr or "")
+        if ticket_check and attempt < 4 and re.search(
+            r"NSURLErrorDomain Code=-(?:1001|1005|1009)|The network connection was lost|The request timed out",
+            output, re.I,
+        ):
+            seconds = 2 * 2 ** attempt
+            print(f"Apple ticket network error; retrying stapler in {seconds}s ({attempt + 2}/5).", flush=True)
+            time.sleep(seconds)
+            continue
         if capture and result.stderr:
             print(result.stderr, file=sys.stderr)
         # CalledProcessError includes the entire command, potentially passwords.
         raise RuntimeError(f"{args[0]} {args[1]} failed (exit {result.returncode})")
-    return result.stdout if capture else ""
 
 
 def signing_dir():

@@ -96,6 +96,24 @@ class SigningTests(unittest.TestCase):
                             capture=True)
         self.assertNotIn("private-password", str(raised.exception))
 
+    def test_stapler_retries_only_transient_network_errors(self):
+        lost = subprocess.CompletedProcess([], 68, "NSURLErrorDomain Code=-1005", "")
+        success = subprocess.CompletedProcess([], 0, "validated", "")
+        with patch.object(signing.subprocess, "run", side_effect=[lost, success]) as tool, patch.object(signing.time, "sleep") as wait:
+            signing.run("xcrun", "stapler", "validate", "candidate.dmg")
+        self.assertEqual(tool.call_count, 2)
+        self.assertEqual(tool.call_args_list[0].args[0], tool.call_args_list[1].args[0])
+        wait.assert_called_once_with(2)
+
+    def test_permanent_stapler_errors_stop_and_network_retries_are_bounded(self):
+        for message, calls in [("The staple is invalid", 1), ("NSURLErrorDomain Code=-1005", 5)]:
+            result = subprocess.CompletedProcess([], 68, message, "")
+            with self.subTest(message=message), patch.object(signing.subprocess, "run", return_value=result) as tool, patch.object(signing.time, "sleep") as wait:
+                with self.assertRaisesRegex(RuntimeError, "stapler failed"):
+                    signing.run("xcrun", "stapler", "validate", "candidate.dmg")
+                self.assertEqual(tool.call_count, calls)
+                self.assertTrue(all(call.args[0] <= 16 for call in wait.call_args_list))
+
     def test_invalid_signatures_are_rejected(self):
         for details in (DETAILS.replace("runtime", "adhoc"),
                         DETAILS.replace(TEAM, "WRONG12345"),

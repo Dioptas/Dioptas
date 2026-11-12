@@ -7,6 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { inspectStandalone, inspectSignature } from "./inspect_standalone.mjs";
 import { desktop, releaseConfig, version } from "./release_config.mjs";
+import { stapler } from "./stapler.mjs";
 
 const execute = (command, args) =>
   execFileSync(command, args, {
@@ -47,7 +48,7 @@ export async function verifyMacosDmg(
       );
     }
     if (notarized) {
-      execute("xcrun", ["stapler", "validate", dmg]);
+      await stapler(["validate", dmg]);
       execute("spctl", [
         "--assess",
         "--type",
@@ -87,7 +88,7 @@ export async function verifyMacosDmg(
       );
     const inspection = await inspectStandalone(installed, { teamIdentifier });
     if (notarized) {
-      execute("xcrun", ["stapler", "validate", installed]);
+      await stapler(["validate", installed]);
       execute("spctl", ["--assess", "--type", "execute", installed]);
     }
     execute(process.execPath, [

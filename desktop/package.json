@@ -64,7 +64,7 @@
     "release:macos": "node scripts/release_macos.mjs",
     "release:windows": "node scripts/release_windows.mjs",
     "test:windows-release-config": "node --test scripts/windows_release_config.test.mjs",
-    "test:release-config": "node --test scripts/release_version.test.mjs scripts/release_config.test.mjs scripts/hdiutil.test.mjs scripts/resume_macos_dmg.test.mjs",
+    "test:release-config": "node --test scripts/stapler.test.mjs scripts/release_version.test.mjs scripts/release_config.test.mjs scripts/hdiutil.test.mjs scripts/resume_macos_dmg.test.mjs",
     "test:macos-dmg": "node scripts/verify_macos_dmg.mjs",
     "test:standalone-artifact": "node scripts/inspect_standalone.mjs",
     "test:standalone-native": "node scripts/standalone_smoke.mjs",
