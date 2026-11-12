@@ -567,3 +567,171 @@ fn a_soft_extension_alias_to_a_pool_preserves_its_member_view() {
         );
     }
 }
+
+#[test]
+fn unreadable_fixed_string_extension_preserves_pools_and_remains_saveable() {
+    unsafe extern "C" {
+        fn H5Dcreate2(
+            location: i64,
+            name: *const std::ffi::c_char,
+            dtype: i64,
+            space: i64,
+            link_properties: i64,
+            create_properties: i64,
+            access_properties: i64,
+        ) -> i64;
+        fn H5Dwrite_chunk(
+            dataset: i64,
+            properties: i64,
+            filters: u32,
+            offset: *const u64,
+            bytes: usize,
+            data: *const std::ffi::c_void,
+        ) -> i32;
+    }
+    let temp = tempfile::tempdir().unwrap();
+    let project = temp.path().join("filtered-extension.dio");
+    let mut session = Session::new(root());
+    session.save_native_project(&project).unwrap();
+    let key;
+    {
+        let file = hdf5::File::open_rw(&project).unwrap();
+        key = put(&file.group("cache").unwrap(), &[2], &[31., 32.])
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let filter = hdf5::filters::Filter::user(40501, &[]);
+        assert!(!filter.is_available(), "Test filter must be unavailable");
+        let dtype = hdf5::Datatype::from_type::<hdf5::types::FixedAscii<64>>().unwrap();
+        let space = hdf5::Dataspace::try_new([1]).unwrap();
+        let properties = hdf5::plist::DatasetCreate::build()
+            .chunk([1])
+            .set_filters(&[filter])
+            .finish()
+            .unwrap();
+        hdf5::sync::sync(|| unsafe {
+            let id = H5Dcreate2(
+                file.id(),
+                c"extension_strings".as_ptr(),
+                dtype.id(),
+                space.id(),
+                0,
+                properties.id(),
+                0,
+            );
+            assert!(id >= 0);
+            let dataset: hdf5::Dataset = hdf5::from_id(id).unwrap();
+            // A declared unavailable encoder owns these opaque chunk bytes.
+            // Writing directly avoids needing that plugin in the test runtime.
+            assert_eq!(
+                H5Dwrite_chunk(
+                    dataset.id(),
+                    0,
+                    0,
+                    [0_u64].as_ptr(),
+                    key.len(),
+                    key.as_ptr().cast()
+                ),
+                0
+            );
+            assert!(dataset.read_raw::<hdf5::types::FixedAscii<64>>().is_err());
+        });
+    }
+    session.open_native_project(&project).unwrap();
+    call(
+        &mut session,
+        "configuration",
+        json!({"operation":"rename","name":"Filtered extension retained"}),
+    );
+    session.save_native_project(&project).unwrap();
+    session.open_native_project(&project).unwrap();
+    assert_eq!(session.project.active_label, "Filtered extension retained");
+    let file = hdf5::File::open(&project).unwrap();
+    assert_eq!(
+        file.dataset(&format!("cache/{key}"))
+            .unwrap()
+            .read_raw::<f64>()
+            .unwrap(),
+        vec![31., 32.]
+    );
+    let dataset = file.dataset("extension_strings").unwrap();
+    assert_eq!(dataset.filters()[0].id(), 40501);
+    assert!(dataset.read_raw::<hdf5::types::FixedAscii<64>>().is_err());
+    let chunk = dataset.chunk_info(0).unwrap();
+    assert_eq!(chunk.filter_mask, 0);
+    assert_eq!(chunk.size, 64);
+    let mut bytes = [0_u8; 64];
+    let mut raw_file = std::fs::File::open(&project).unwrap();
+    std::io::Seek::seek(&mut raw_file, std::io::SeekFrom::Start(chunk.addr)).unwrap();
+    std::io::Read::read_exact(&mut raw_file, &mut bytes).unwrap();
+    assert_eq!(bytes.as_slice(), key.as_bytes());
+}
+
+#[test]
+fn a_large_latest_format_root_attribute_survives_save_and_pruning() {
+    let temp = tempfile::tempdir().unwrap();
+    let baseline = temp.path().join("baseline.dio");
+    let project = temp.path().join("latest.dio");
+    let mut session = Session::new(root());
+    session.save_native_project(&baseline).unwrap();
+    let orphan;
+    let large_attribute = vec![37_u8; 70_000];
+    {
+        let source = hdf5::File::open(&baseline).unwrap();
+        let file = hdf5::File::with_options()
+            .with_fapl(|p| p.libver_latest())
+            .create(&project)
+            .unwrap();
+        for name in source.member_names().unwrap() {
+            match source.loc_type_by_name(&name).unwrap() {
+                hdf5::LocationType::Group => {
+                    source.group(&name).unwrap().copy_to(&file, &name).unwrap()
+                }
+                hdf5::LocationType::Dataset => source
+                    .dataset(&name)
+                    .unwrap()
+                    .copy_to(&file, &name)
+                    .unwrap(),
+                _ => panic!("Unexpected fixture object"),
+            }
+        }
+        write_scalar_attr(&file, "format_version", 2_u32).unwrap();
+        write_text_attr(&file, "__version__", env!("CARGO_PKG_VERSION")).unwrap();
+        write_text_attr(
+            &file,
+            "react_desktop",
+            &read_text_attr(&source, "react_desktop").unwrap().unwrap(),
+        )
+        .unwrap();
+        file.new_attr::<u8>()
+            .shape([70_000])
+            .create("large_extension_attribute")
+            .unwrap()
+            .write_raw(&large_attribute)
+            .unwrap();
+        orphan = put(&file.group("cache").unwrap(), &[2], &[41., 42.])
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_owned();
+    }
+    session.open_native_project(&project).unwrap();
+    call(
+        &mut session,
+        "configuration",
+        json!({"operation":"rename","name":"Latest attribute retained"}),
+    );
+    session.save_native_project(&project).unwrap();
+    session.open_native_project(&project).unwrap();
+    assert_eq!(session.project.active_label, "Latest attribute retained");
+    let file = hdf5::File::open(&project).unwrap();
+    assert_eq!(
+        file.attr("large_extension_attribute")
+            .unwrap()
+            .read_raw::<u8>()
+            .unwrap(),
+        large_attribute
+    );
+    assert!(!file.link_exists(&format!("cache/{orphan}")));
+}

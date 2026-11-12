@@ -50,10 +50,10 @@ fn objects(file: &hdf5::File, control: &Control) -> Result<(Vec<Node>, bool, Vec
         path: "/".into(),
         object: root,
     }];
-    let mut groups = vec![file.group("/").native()?];
+    let mut groups = vec![(String::from("/"), file.group("/").native()?)];
     let mut root_cycle = false;
     let mut soft_targets = vec![];
-    while let Some(group) = groups.pop() {
+    while let Some((parent_path, group)) = groups.pop() {
         control.check()?;
         for (name, link) in group
             .links(hdf5::IndexType::Name, hdf5::IterationOrder::Increasing)
@@ -73,10 +73,12 @@ fn objects(file: &hdf5::File, control: &Control) -> Result<(Vec<Node>, bool, Vec
             if !seen.insert(key) {
                 continue;
             }
-            let path = format!("{}/{}", group.name().trim_end_matches('/'), name);
+            // Token-opened objects have no cached path. H5Iget_name would
+            // search the whole file; retain the path discovered by this walk.
+            let path = format!("{}/{}", parent_path.trim_end_matches('/'), name);
             let object = file.open_by_token(info.token).native()?;
             if info.loc_type == hdf5::LocationType::Group {
-                groups.push(object.as_group().native()?);
+                groups.push((path.clone(), object.as_group().native()?));
             }
             nodes.push(Node { path, object });
         }
@@ -237,7 +239,9 @@ fn text_hashes(
             }
         });
         if read < 0 {
-            return Err("Cannot inspect a fixed-string extension safely.".into());
+            // An unknown filter or damaged extension chunk need not prevent a
+            // native save. Its unreadable text may refer to any pool member.
+            return Ok(true);
         }
         collect_hashes(&buffer[..bytes], candidates, references);
         return Ok(false);
@@ -397,4 +401,33 @@ pub(super) fn write_fresh(
     output.flush().native()?;
     control.check()?;
     Ok(())
+}
+
+#[cfg(test)]
+mod traversal_tests {
+    use super::*;
+    #[test]
+    fn token_opened_aliases_keep_discovered_parent_paths_and_visit_cycles_once() {
+        let temp = tempfile::tempdir().unwrap();
+        let file = hdf5::File::create(temp.path().join("aliases.h5")).unwrap();
+        let original = file.create_group("z_original").unwrap();
+        original
+            .new_dataset::<u32>()
+            .shape(())
+            .create("value")
+            .unwrap()
+            .write_scalar(&17)
+            .unwrap();
+        original.link_hard("/z_original", "self").unwrap();
+        file.link_hard("/z_original", "a_alias").unwrap();
+        let (nodes, root_cycle, _) = objects(&file, &Control::default()).unwrap();
+        assert!(!root_cycle);
+        assert_eq!(
+            nodes
+                .into_iter()
+                .map(|node| node.path)
+                .collect::<BTreeSet<_>>(),
+            BTreeSet::from(["/".into(), "/a_alias".into(), "/a_alias/value".into()])
+        );
+    }
 }
