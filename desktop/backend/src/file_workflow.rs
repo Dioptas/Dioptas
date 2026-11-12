@@ -353,6 +353,7 @@ impl Files {
             },
         );
     }
+    #[cfg(feature = "dioptrin")]
     fn output_written(&mut self, path: &Path) {
         // Only acquisition-compatible names can be rediscovered by this scanner.
         if !image_file(path) {

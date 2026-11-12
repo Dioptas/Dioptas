@@ -18,6 +18,7 @@ pub struct Control {
 impl Control {
     /// Frame workers share cancellation but leave operation progress to the
     /// ordered collector; plugin-local progress must not replace series totals.
+    #[cfg(any(feature = "dioptrin", test))]
     pub(crate) fn silent_child(&self) -> Self {
         Self {
             cancelled: self.cancelled.clone(),
@@ -37,6 +38,7 @@ impl Control {
         self.skip_calibration_rings
             .store(!requested, Ordering::Release);
     }
+    #[cfg(feature = "dioptrin")]
     pub(crate) fn calibration_rings_requested(&self) -> bool {
         !self.skip_calibration_rings.load(Ordering::Acquire)
     }

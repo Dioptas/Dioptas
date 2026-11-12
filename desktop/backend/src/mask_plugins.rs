@@ -66,6 +66,7 @@ impl Default for Plugins {
 impl Plugins {
     /// Retain only settings and the immutable geometry bins across workers.
     /// Per-frame plugin masks/caches are always private and initially empty.
+    #[cfg(feature = "dioptrin")]
     pub(crate) fn series_snapshot(
         &self,
         geometry: &Geometry,
@@ -109,6 +110,7 @@ impl Plugins {
 
     /// Account for retained masks, compact row workspaces and the largest
     /// bin's median/MAD scratch; geometry/user bin membership is shared.
+    #[cfg(feature = "dioptrin")]
     pub(crate) fn series_scratch_bytes(&self, shape: [usize; 2]) -> usize {
         let pixels = shape[0].saturating_mul(shape[1]);
         let mut bytes = pixels.saturating_mul(8);

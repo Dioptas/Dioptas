@@ -116,8 +116,11 @@ impl Session {
         self.integration_history = Default::default();
         self.patterns.extracted = None;
         self.inspection = None;
-        *self.inspection_contour.borrow_mut() = None;
-        *self.inspection_field.borrow_mut() = None;
+        #[cfg(feature = "dioptrin")]
+        {
+            *self.inspection_contour.borrow_mut() = None;
+            *self.inspection_field.borrow_mut() = None;
+        }
         *self.detector_mask.borrow_mut() = None;
         #[cfg(feature = "dioptrin")]
         {
@@ -172,8 +175,11 @@ impl Session {
         self.cake = None;
         self.cake_values = None;
         self.inspection = None;
-        *self.inspection_contour.borrow_mut() = None;
-        *self.inspection_field.borrow_mut() = None;
+        #[cfg(feature = "dioptrin")]
+        {
+            *self.inspection_contour.borrow_mut() = None;
+            *self.inspection_field.borrow_mut() = None;
+        }
         *self.detector_mask.borrow_mut() = None;
         self.files.stop_autoprocess();
         #[cfg(feature = "dioptrin")]

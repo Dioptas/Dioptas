@@ -326,9 +326,10 @@ struct GuideBuffer {
 impl Session {
     pub(super) fn phase_guides(&self, args: &Value) -> Result<Reply, String> {
         let mut trace = crate::frame_trace::FrameTrace::new("phase-guides", self.revision);
-        #[allow(unused_mut)] // Geometry guides are populated only with the optional engine.
+        #[cfg_attr(not(feature = "dioptrin"), allow(unused_mut))] // Native geometry only.
         let mut guides: Vec<Value> = vec![];
         let binary = args["binary"].as_bool().unwrap_or(false);
+        #[cfg_attr(not(feature = "dioptrin"), allow(unused_mut))] // Native geometry only.
         let mut buffers = vec![];
         #[cfg(feature = "dioptrin")]
         if let Some(image) = &self.image

@@ -1,7 +1,9 @@
 /// One geometry's field, with conservative bounds for short row strips.
 /// Skipping strips cannot change a crossing or its interpolation.
 pub(crate) struct IndexedField {
+    #[cfg(any(feature = "dioptrin", test))]
     angles: Vec<f64>,
+    #[cfg(any(feature = "dioptrin", test))]
     shape: [usize; 2],
     bounds: Vec<[f64; 2]>,
     limits: [f64; 2],
@@ -9,11 +11,14 @@ pub(crate) struct IndexedField {
     strip: usize,
     coordinate_step: usize,
 }
+#[cfg(any(feature = "dioptrin", test))]
 const BLOCK: usize = 64;
+#[cfg(any(feature = "dioptrin", test))]
 #[derive(Default)]
 struct ContourGraph {
     vertices: std::collections::HashMap<usize, ContourVertex>,
 }
+#[cfg(any(feature = "dioptrin", test))]
 #[derive(Clone, Copy, Default)]
 struct ContourVertex {
     point: [f64; 2],
@@ -21,6 +26,7 @@ struct ContourVertex {
     degree: usize,
     visited: bool,
 }
+#[cfg(any(feature = "dioptrin", test))]
 impl ContourGraph {
     fn cell(
         &mut self,
@@ -122,6 +128,7 @@ impl ContourGraph {
         serde_json::Value::Array(paths)
     }
 }
+#[cfg(any(feature = "dioptrin", test))]
 impl IndexedField {
     pub fn new(angles: Vec<f64>, shape: [usize; 2]) -> Self {
         Self::sampled(angles, shape, 1)
