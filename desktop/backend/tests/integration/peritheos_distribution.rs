@@ -4,7 +4,7 @@ use serde_json::Value;
 #[test]
 fn eos_only_catalog_retains_valid_refit_provenance_without_data() {
     let catalog: Vec<Value> =
-        serde_json::from_str(include_str!("../resources/peritheos/materials.json")).unwrap();
+        serde_json::from_str(include_str!("../../resources/peritheos/materials.json")).unwrap();
     assert_eq!(catalog.len(), 234);
     let mut records = 0;
     let mut provenance = 0;

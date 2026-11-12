@@ -9,7 +9,7 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
-#[path = "common/hdf5_master_fixtures.rs"]
+#[path = "../common/hdf5_master_fixtures.rs"]
 mod fixtures;
 fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")

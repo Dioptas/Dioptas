@@ -40,7 +40,7 @@ fn near(actual: f64, expected: f64) {
 #[test]
 fn integrated_background_normalization_and_cut_export_full_f64_data_without_state_changes() {
     let references: Value =
-        serde_json::from_str(include_str!("fixtures/batch_background_qt.json")).unwrap();
+        serde_json::from_str(include_str!("../fixtures/batch_background_qt.json")).unwrap();
     for (case, refit_normalized) in [(0, false), (0, true), (2, false), (2, true)] {
         let reference = &references["cases"][case];
         let unit = reference["unit"].as_str().unwrap();

@@ -781,7 +781,7 @@ fn editor_optional_defaults_and_unavailable_model() {
 #[test]
 fn audited_revision_is_the_linked_dependency() {
     assert!(
-        include_str!("../Cargo.toml").contains("3c79b1aedf28c348a49cc22d9f24d92895546283"),
+        include_str!("../../Cargo.toml").contains("3c79b1aedf28c348a49cc22d9f24d92895546283"),
         "Re-audit the displayed equations and unavailable-model metadata when updating PeriTheos"
     );
 }

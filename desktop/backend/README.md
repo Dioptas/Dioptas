@@ -283,6 +283,11 @@ npm run test:native-mask
 npm run test:native-mask-transport
 ```
 
+All integration tests build into one test binary, `tests/integration/main.rs`,
+with one module per test file, so the dependency tree is linked once. Run one
+file's tests with a module filter, for example
+`cargo test --locked --manifest-path desktop/backend/Cargo.toml --test integration calibration::`.
+
 The native tests exercise original counts and orientation, TIFF/HDF5 source
 input, frame navigation and shape changes, unchanged-state failures, scientific
 precision, masks/history, PONI round trips, buffer replay, and a real stdio

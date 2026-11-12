@@ -24,7 +24,7 @@ fn session() -> Session {
 }
 fn fixture(path: &Path, case: usize) -> Value {
     let references: Value =
-        serde_json::from_str(include_str!("fixtures/batch_background_qt.json")).unwrap();
+        serde_json::from_str(include_str!("../fixtures/batch_background_qt.json")).unwrap();
     let case = &references["cases"][case];
     let x: Vec<f64> = serde_json::from_value(case["x"].clone()).unwrap();
     let data: Vec<f64> = serde_json::from_value(case["data"].clone()).unwrap();
