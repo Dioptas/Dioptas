@@ -1,4 +1,4 @@
-//! Frozen independent Python reference outputs, replayed entirely in Rust.
+// Frozen independent Python reference outputs, replayed entirely in Rust.
 use dioptas_backend::{
     Session,
     protocol::{Reply, Request},
@@ -46,7 +46,7 @@ fn independent_numerical_outputs_match_frozen_references() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let directory = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/reference-data");
     let reference: Value =
-        serde_json::from_str(include_str!("fixtures/reference-data/numerical.json")).unwrap();
+        serde_json::from_str(include_str!("../fixtures/reference-data/numerical.json")).unwrap();
     assert_eq!(reference["schemaVersion"], 1);
     for (name, expected) in reference["provenance"]["inputs"].as_object().unwrap() {
         let bytes = std::fs::read(directory.join(name)).unwrap();

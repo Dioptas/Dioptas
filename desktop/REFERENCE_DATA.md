@@ -33,7 +33,7 @@ their removed Python commands are archival reproduction instructions.
   frozen coverage identifiers, not executable Python. The coverage gate still
   validates every mapped native/headless test and explicitly scoped boundary.
 
-`backend/tests/frozen_references.rs` checks independent expected outputs in
+`backend/tests/integration/frozen_references.rs` checks independent expected outputs in
 Rust. Tests never regenerate expected results from the implementation under
 test. Fixture updates require an explicit reference-version/settings/provenance
 review; a changed result is not accepted just by replacing the expected data.

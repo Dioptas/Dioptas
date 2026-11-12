@@ -1043,7 +1043,7 @@ are headless. Use isolated native windows only for OS-specific behavior.
 
 Independent scientific outputs are frozen under
 `backend/tests/fixtures/reference-data/`, with inputs, settings, tolerances,
-source hashes and package versions. `backend/tests/frozen_references.rs`
+source hashes and package versions. `backend/tests/integration/frozen_references.rs`
 compares the native results with these data. Existing DAC and Batch reference
 fixtures and the native scientific/unit/transport suites remain active.
 There is no Python test or numerical-reference CI job.

@@ -124,7 +124,7 @@ Start fresh without a failed restore saves the fresh workspace on normal close.
 
 ## Verification
 
-- `backend/tests/recovery.rs`: restart with missing originals, embedded pixels,
+- `backend/tests/integration/recovery.rs`: restart with missing originals, embedded pixels,
   multiple configurations/settings, user-project identity and unchanged project
   bytes, unsaved identity, ordinary-save metadata removal, corrupt/non-recovery
   input rollback, and failed/cancelled writes retaining the previous file.
