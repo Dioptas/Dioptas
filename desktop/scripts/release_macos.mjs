@@ -206,13 +206,19 @@ const verification = await verifyMacosDmg(dmg, {
   nativeSmoke: !!values["native-smoke"],
 });
 const archive = path.join(output, `${basename}.app.tar.gz`);
-await run("tar", [
-  "-czf",
-  archive,
-  "-C",
-  path.dirname(application),
-  path.basename(application),
-]);
+// This archive is also the update package. Extended attributes would add
+// AppleDouble "._" entries beside the bundle, which the updater cannot unpack.
+await run(
+  "tar",
+  [
+    "-czf",
+    archive,
+    "-C",
+    path.dirname(application),
+    path.basename(application),
+  ],
+  { env: { ...process.env, COPYFILE_DISABLE: "1" } },
+);
 const checksums = [];
 for (const file of [dmg, archive])
   checksums.push(

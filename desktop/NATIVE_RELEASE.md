@@ -3,6 +3,9 @@
 Native installers are the primary distribution route. A pip distribution is
 deferred. This pipeline builds candidates only: it has no tag creation, GitHub
 Release, PyPI upload, updater publication or release write permission.
+Publishing verified candidates, including the signed update manifest for
+installed applications, is a separate manual workflow; see
+[application updates](APP_UPDATES.md).
 
 ## Shared configuration
 
