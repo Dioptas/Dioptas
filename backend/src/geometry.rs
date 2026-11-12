@@ -690,8 +690,8 @@ mod tests {
     use super::*;
     #[test]
     fn appended_poni_records_use_the_last_field_like_pyfai() {
-        let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../tests/data/LaB6_40keV_MarCCD.poni");
+        let fixture =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/data/LaB6_40keV_MarCCD.poni");
         let text = std::fs::read_to_string(&fixture).unwrap();
         assert_eq!(text.matches("Distance:").count(), 2);
         let geometry = Geometry::load(&fixture).unwrap();
@@ -754,8 +754,8 @@ mod tests {
         assert_eq!(loaded.detector.as_ref().unwrap().orientation, 3);
         let mut d = Detector::custom(50e-6, 50e-6);
         d.max_shape = Some([3, 5]);
-        let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../tests/data/distortion/f4mnew.spline");
+        let fixture =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/data/distortion/f4mnew.spline");
         d.spline = Some(Arc::new(
             Spline::parse(&std::fs::read_to_string(fixture).unwrap()).unwrap(),
         ));
