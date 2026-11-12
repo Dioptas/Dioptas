@@ -82,6 +82,7 @@ if (selected.has("--ui")) {
     "hook_refresh_smoke",
     "ui_components",
     "native_backend_smoke",
+    "native_custom_actions_smoke",
     "native_calibration_smoke",
     "native_mask_smoke",
     "native_integration_workflow_smoke",

@@ -39,6 +39,7 @@
     "test:overlay-responsive": "node scripts/overlay_responsive_sweep.mjs",
     "test:integration-processing": "node scripts/integration_processing_smoke.mjs",
     "test:custom-commands": "node scripts/custom_commands_smoke.mjs",
+    "test:native-custom-actions": "node scripts/native_custom_actions_smoke.mjs",
     "benchmark:pattern": "node scripts/pattern_benchmark.mjs",
     "benchmark:pattern:native": "node scripts/pattern_native_benchmark.mjs",
     "test:pattern-quality": "node scripts/pattern_quality.mjs",
