@@ -124,7 +124,7 @@ newer glibc. The old Ubuntu-22-built AppImage is not a qualified candidate.
 Physical/default-compositor AppImage qualification remains separate. See
 [Tauri's Linux graphics guidance](https://v2.tauri.app/develop/debug/linux-graphics/).
 
-Outputs are in `artifacts/native-linux/<version>-x64-<run>/`: candidates,
+Outputs are in `artifacts/native-linux/<version>-<format>-x64-<run>/`: candidates,
 `SHA256SUMS` and `build.json` with clean/dirty source identity, build OS,
 toolchain, hashes and explicit signing/publication state. The three installation
 reports identify their runtime OS and tested format. A candidate is qualified
@@ -134,3 +134,32 @@ See the [Tauri AppImage](https://v2.tauri.app/distribute/appimage/) and
 [Debian packaging guides](https://v2.tauri.app/distribute/debian/) for the build
 baseline, and [AppImage's FUSE guidance](https://docs.appimage.org/user-guide/troubleshooting/fuse.html)
 for portable launch prerequisites.
+
+## Verified EOS-only candidates (12 November 2026)
+
+[Installer run 43200531512](https://github.com/Dioptas/Dioptas/actions/runs/43200531512)
+passed both build jobs and all three installation jobs at source
+`de3f081a7076abd6307fd194a330016ef7797db5`. Each Linux baseline passed 350
+release-profile Rust tests; two external Eiger fixture tests remain explicitly
+ignored. The local release suite also passed 350 tests, and the JavaScript suite
+passed 178 tests.
+
+| Candidate | Bytes | SHA256 |
+| --- | ---: | --- |
+| `.deb` 0.1.0 | 17,368,762 | `6cf389068a25a144e6238a62cf6345f5394f7ca19c06d8b0b699d849fce41462` |
+| AppImage 0.1.0 | 95,603,192 | `b69e49d47f29788e972bba3498cc096c08d73efd1792a680a352da631ef890c5` |
+
+The `.deb` 0.1.1 file is solely the disposable upgrade fixture. Both Debian
+payloads were additionally inspected locally without running their binaries:
+their projected catalog hash matches `peritheos/SOURCE.json`, all 685 EOS
+records remain, and there are zero experimental rows and zero dataset-file
+resources. Installed inspection validates the same policy inside AppImage.
+Empty dataset citation/column descriptors remain for valid refit provenance;
+no numerical dataset package or experimental file is distributed.
+
+Candidate ZIP digests and each installer checksum were verified after download.
+The candidates, manifests, three installation reports and native logs are retained
+locally under `artifacts/native-linux/verified-2026-11-12-43200531512/`, alongside
+`qualification.json`. These files are ignored by Git. They are unsigned test
+artifacts; nothing was tagged, released or published. Earlier candidates with
+the unprojected catalog are marked superseded.
