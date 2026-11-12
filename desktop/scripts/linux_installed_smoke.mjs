@@ -98,6 +98,8 @@ export async function linuxInstalledSmoke({
     WEBKIT_DISABLE_DMABUF_RENDERER: "1",
     GDK_BACKEND: "x11",
     NO_AT_BRIDGE: "1",
+    LIBGL_DEBUG: "verbose",
+    EGL_LOG_LEVEL: "debug",
   });
   const logs = [];
   const child = spawn(
@@ -154,6 +156,9 @@ export async function linuxInstalledSmoke({
       processorReaped: reaped,
       inspection,
     };
+  } catch (error) {
+    error.inspection = inspection;
+    throw error;
   } finally {
     clearTimeout(timer);
     kill("SIGTERM");

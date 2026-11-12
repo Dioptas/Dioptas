@@ -202,6 +202,9 @@ export async function inspectLinuxInstall(prefix, appimage = false) {
     binaries: inspected,
     desktopFile,
     bundledElfFiles: nativeFiles.length,
+    bundledElfPaths: appimage
+      ? nativeFiles.map((file) => path.relative(prefix, file))
+      : [],
     systemNoticeCount,
     runtimeLibraries,
     resourcesDirectory: resources,

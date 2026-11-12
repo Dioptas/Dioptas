@@ -241,6 +241,7 @@ try {
         verificationRevision,
         format,
         error: error.stack ?? String(error),
+        inspection: error.inspection,
       },
       null,
       2,
