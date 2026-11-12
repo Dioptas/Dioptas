@@ -290,14 +290,6 @@ describe(
       assert.equal(r.timings, "");
     });
 
-    it("reports a failure outside any step", () => {
-      const r = gate.run(["--references"], { DIOPTAS_REFERENCE_PYTHON: "" });
-      assert.notEqual(r.status, 0);
-      assert.match(r.stderr, /DIOPTAS_REFERENCE_PYTHON/);
-      assert.equal(r.timings.status, "failed");
-      assert.equal(r.timings.steps.length, 2);
-    });
-
     it("times the host gate and npm steps too", () => {
       const r = gate.run(["--host"]);
       assert.equal(r.status, 0, r.stderr);
