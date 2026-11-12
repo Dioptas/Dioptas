@@ -1,7 +1,8 @@
 import { Button } from "./ui";
-import { Crosshair } from "lucide-react";
+import { Crosshair, ScanLine } from "lucide-react";
 import { IntegrationModeIcon, MapModeIcon, MaskModeIcon } from "./ModeIcons";
-export type WorkspaceMode = "calibration" | "mask" | "integration" | "map";
+export type WorkspaceMode =
+  "calibration" | "mask" | "integration" | "map" | "scxrd";
 const modes = [
   {
     value: "calibration",
@@ -17,6 +18,12 @@ const modes = [
     icon: <IntegrationModeIcon />,
   },
   { value: "map", name: "Map", label: "Map", icon: <MapModeIcon /> },
+  {
+    value: "scxrd",
+    name: "Single Crystal XRD",
+    label: "SCXRD",
+    icon: <ScanLine size={20} />,
+  },
 ] as const;
 
 /** Mode buttons keep one visual, naming and selection contract. */

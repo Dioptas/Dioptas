@@ -62,6 +62,55 @@ type Spec<Payload, Success> = { payload: Payload; success: Success };
 /** The complete frontend scientific command surface. Host window-management
  * commands continue to use their purpose-specific Tauri API. */
 export interface CommandContracts {
+  scxrd_table: Spec<
+    { kind: "tracks" | "reflections"; offset: number },
+    { scxrd: import("./singleCrystalDomain").CrystalData }
+  >;
+  scxrd_levels: Spec<
+    AutoLevels,
+    { scxrd: import("./singleCrystalDomain").CrystalData }
+  >;
+  scxrd_pixel: Spec<
+    { x: number; y: number },
+    {
+      scxrdPixel: {
+        x: number;
+        y: number;
+        value: number | null;
+        twoTheta: number | null;
+      };
+    }
+  >;
+  scxrd_snapshot: Spec<
+    P.EmptyPayload,
+    { scxrd: import("./singleCrystalDomain").CrystalData }
+  >;
+  scxrd_load: Spec<
+    { path?: string; paths?: string[] },
+    { scxrd: import("./singleCrystalDomain").CrystalData }
+  >;
+  scxrd_settings: Spec<
+    { config: import("./singleCrystalDomain").CrystalConfig },
+    { scxrd: import("./singleCrystalDomain").CrystalData }
+  >;
+  scxrd_run: Spec<
+    { stage: number; automatic?: boolean },
+    { scxrd: import("./singleCrystalDomain").CrystalData }
+  >;
+  scxrd_frame: Spec<
+    { frame: number; kind?: import("./singleCrystalDomain").CrystalImageKind },
+    { scxrd: import("./singleCrystalDomain").CrystalData }
+  >;
+  scxrd_edit: Spec<
+    import("./singleCrystalDomain").CrystalEdit,
+    { scxrd: import("./singleCrystalDomain").CrystalData }
+  >;
+  scxrd_file: Spec<
+    P.FilePayload & {
+      operation: import("./singleCrystalDomain").CrystalFileOperation;
+    },
+    { scxrd: import("./singleCrystalDomain").CrystalData; savedPath?: string }
+  >;
   state: Spec<P.EmptyPayload, ProjectDelta & { state: State }>;
   progress: Spec<
     P.EmptyPayload,

@@ -20,7 +20,12 @@ pub enum CommandExecution {
 pub fn execution(action: &str) -> CommandExecution {
     match action {
         "progress" | "cancel_refinement" => CommandExecution::OutOfBand,
-        "calibrate"
+        "scxrd_load"
+        | "scxrd_run"
+        | "scxrd_edit"
+        | "scxrd_settings"
+        | "scxrd_file"
+        | "calibrate"
         | "pick_peak"
         | "calibration_setup"
         | "image_transform"

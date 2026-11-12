@@ -20,6 +20,7 @@ export interface ResponseSnapshot {
   pattern: Pattern | null;
   batch: BatchData | null;
   map: MapData | null;
+  scxrd: import("./singleCrystalDomain").CrystalData | null;
   rings: RingOverlay[];
   linked: Response["linked"];
   batchWarning: string | null;
@@ -37,6 +38,7 @@ export function initialResponseSnapshot(): ResponseSnapshot {
     pattern: null,
     batch: null,
     map: null,
+    scxrd: null,
     rings: [],
     linked: undefined,
     batchWarning: null,
@@ -96,6 +98,7 @@ export function reduceResponseSnapshot(
       position: result.batchPosition ?? next.batch.position,
     };
   if ("batchWarning" in result) next.batchWarning = result.batchWarning ?? null;
+  if (result.scxrd) next.scxrd = result.scxrd;
   if ("map" in result) next.map = result.map ?? null;
   if ("mapWarning" in result) next.mapWarning = result.mapWarning ?? null;
   if (result.state) {

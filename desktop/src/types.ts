@@ -238,6 +238,7 @@ export interface Hdf5SourceRequest {
   }>;
 }
 export interface Response {
+  scxrd?: import("./singleCrystalDomain").CrystalData;
   hdf5SourceRequest?: Hdf5SourceRequest;
   chosenPath?: string;
   imageUnavailable?: boolean;

@@ -49,7 +49,9 @@ export function commandPolicy({
       "integration_transfer",
     ].includes(action);
   const frame =
-    ["map_select", "batch_select", "next_image"].includes(action) ||
+    ["scxrd_frame", "map_select", "batch_select", "next_image"].includes(
+      action,
+    ) ||
     (action === "integration_navigation" &&
       (args.frame !== undefined || args.direction !== undefined));
   const phaseConditions =

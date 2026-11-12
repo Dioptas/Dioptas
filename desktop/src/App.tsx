@@ -54,6 +54,8 @@ import { Button, Select, Input } from "./ui";
 import { useDraftReplacement } from "./useDraftReplacement";
 import { useCalibrationFitDraft } from "./useCalibrationFitDraft";
 import { IntegrationModeIcon } from "./ModeIcons";
+import { SingleCrystalHistory } from "./SingleCrystalHistory";
+import { SingleCrystalWorkspace } from "./SingleCrystalWorkspace";
 import { WorkspaceModeButtons } from "./WorkspaceModeButtons";
 import { HistoryControls } from "./HistoryControls";
 import { useGeometryDraft } from "./geometryDraft";
@@ -193,6 +195,7 @@ export default function App() {
     pattern,
     batch,
     map,
+    scxrd,
     rings,
     linked,
     batchWarning,
@@ -305,8 +308,9 @@ export default function App() {
   const [cakeZoom, setCakeZoom] = usePlotZoomPreference("cake");
   const [setupDirty, setSetupDirty] = useState(false);
   const [setupValid, setSetupValid] = useState(true);
+  const [scxrdDraftDirty, setScxrdDraftDirty] = useState(false);
   const [mode, setMode] = useState<
-    "calibration" | "integration" | "mask" | "map"
+    "calibration" | "integration" | "mask" | "map" | "scxrd"
   >(() =>
     readLayoutFlag(layoutKeys.batchOpen) ? "integration" : "calibration",
   );
@@ -1019,6 +1023,28 @@ export default function App() {
       if (event.defaultPrevented) return;
       const key = event.key.toLowerCase(),
         mod = event.metaKey || event.ctrlKey;
+      if (mode === "scxrd" && mod && ["s", "o", "z", "y"].includes(key)) {
+        event.preventDefault();
+        if (key === "s" || key === "o")
+          void run(
+            "scxrd_file",
+            { operation: key === "s" ? "save" : "open" },
+            key === "s"
+              ? "Saving single-crystal recipe…"
+              : "Opening single-crystal recipe…",
+          );
+        else if (!scxrdDraftDirty)
+          void run(
+            "scxrd_edit",
+            { operation: key === "y" || event.shiftKey ? "redo" : "undo" },
+            "Restoring single-crystal decision…",
+          );
+        else
+          setNotice(
+            "Apply or reset the single-crystal settings draft before Undo/Redo.",
+          );
+        return;
+      }
       if (!mod && !event.altKey && event.shiftKey && key === "c") {
         event.preventDefault();
         if (!event.repeat)
@@ -1124,7 +1150,12 @@ export default function App() {
         event.preventDefault();
         void run("remove_picks", { indices: selectedPicks });
         setSelectedPicks([]);
-      } else if (event.key === "Enter" && state?.hasImage && state.calibrated)
+      } else if (
+        (mode === "integration" || mode === "calibration") &&
+        event.key === "Enter" &&
+        state?.hasImage &&
+        state.calibrated
+      )
         void run("integrate", {}, "Integrating image and cake…");
     }
     window.addEventListener("keydown", keyboard);
@@ -1142,6 +1173,7 @@ export default function App() {
     settingsOpen,
     changeConfigurationControls,
     showConfigurationControls,
+    scxrdDraftDirty,
     imageFileStep,
   ]);
   const onPatternHover = useCallback(
@@ -1440,6 +1472,7 @@ export default function App() {
     ]),
   );
   const mainPlotReading =
+    mode !== "scxrd" &&
     detectorWindow.detached &&
     plotReading &&
     ["detector", "cake", "profile"].includes(plotReading.source)
@@ -1753,7 +1786,7 @@ export default function App() {
           : fitPoints < Math.max(1, freeFitParameters)
             ? `Select at least ${Math.max(1, freeFitParameters)} peaks for the current free parameters.`
             : "Processing…";
-  const statusMessage =
+  const powderStatusMessage =
     error ||
     (progress?.running
       ? processingProgressText(
@@ -1804,6 +1837,23 @@ export default function App() {
               : canIntegrate
                 ? "Ready"
                 : "Load a calibration to integrate this image."));
+  const statusMessage =
+    mode === "scxrd"
+      ? error ||
+        (progress?.running
+          ? processingProgressText(progress, "Single-crystal processing")
+          : busy) ||
+        notice ||
+        scxrd?.error ||
+        (scxrd?.notice ? `Last action: ${scxrd.notice}` : "") ||
+        (!scxrd?.frames
+          ? "Load a rotation scan to begin."
+          : !scxrd.config.confirmed
+            ? "Confirm acquisition settings in Frames."
+            : !scxrd.geometry
+              ? "Load a PONI calibration in Frames."
+              : "Inspect stages or run to the next decision.")
+      : powderStatusMessage;
   const batchWindow = useBatchWindow({
     batch,
     run,
@@ -2044,14 +2094,22 @@ export default function App() {
               ready={ready}
               onError={setError}
             />
-            <HistoryControls
-              state={state}
-              mode={mode}
-              ready={ready}
-              customActive={customHistoryActive}
-              custom={customCommands}
-              run={run}
-            />
+            {mode === "scxrd" ? (
+              <SingleCrystalHistory
+                data={scxrd}
+                ready={ready && !scxrdDraftDirty}
+                run={run}
+              />
+            ) : (
+              <HistoryControls
+                state={state}
+                mode={mode}
+                ready={ready}
+                customActive={customHistoryActive}
+                custom={customCommands}
+                run={run}
+              />
+            )}
             <div className="navigation-group" role="group" aria-label="Project">
               {state?.projectName && (
                 <div className="navigation-project" title={state.projectName}>
@@ -2060,30 +2118,64 @@ export default function App() {
               )}
               <Button
                 className="workspace-nav project-action"
-                aria-label="Open project"
-                title="Open project"
+                aria-label={
+                  mode === "scxrd"
+                    ? "Open single-crystal recipe"
+                    : "Open project"
+                }
+                title={
+                  mode === "scxrd"
+                    ? "Open single-crystal recipe · ⌘/Ctrl+O"
+                    : "Open project"
+                }
                 disabled={!ready}
-                onClick={() => run("open_project", {}, "Opening project…")}
+                onClick={() =>
+                  mode === "scxrd"
+                    ? run(
+                        "scxrd_file",
+                        { operation: "open" },
+                        "Opening single-crystal recipe…",
+                      )
+                    : run("open_project", {}, "Opening project…")
+                }
               >
                 <FolderOpen size={20} />
               </Button>
               <Button
                 className="workspace-nav project-action"
-                aria-label="Save project"
+                aria-label={
+                  mode === "scxrd"
+                    ? "Save single-crystal recipe"
+                    : "Save project"
+                }
                 disabled={
                   !ready ||
-                  (!state?.configurationLabels &&
-                    !state?.hasImage &&
-                    !map &&
-                    !batch)
+                  (mode === "scxrd"
+                    ? !scxrd?.frames
+                    : !state?.configurationLabels &&
+                      !state?.hasImage &&
+                      !map &&
+                      !batch)
                 }
-                onClick={() => run("save_project", {}, "Saving project…")}
+                onClick={() =>
+                  mode === "scxrd"
+                    ? run(
+                        "scxrd_file",
+                        { operation: "save" },
+                        "Saving single-crystal recipe…",
+                      )
+                    : run("save_project", {}, "Saving project…")
+                }
                 aria-description={
                   geometryDirty || fitEditor.dirty || integrationDraft.dirty
                     ? "Projects save applied options. Unapplied option drafts remain in this session."
                     : undefined
                 }
-                title={`${state?.projectName ? `Save ${state.projectName}` : "Save project"} · ⌘/Ctrl+S${geometryDirty || fitEditor.dirty || integrationDraft.dirty ? " · Saves applied options; unapplied drafts stay in this session" : ""}`}
+                title={
+                  mode === "scxrd"
+                    ? "Save single-crystal recipe · ⌘/Ctrl+S"
+                    : `${state?.projectName ? `Save ${state.projectName}` : "Save project"} · ⌘/Ctrl+S${geometryDirty || fitEditor.dirty || integrationDraft.dirty ? " · Saves applied options; unapplied drafts stay in this session" : ""}`
+                }
               >
                 <Save size={20} />
               </Button>
@@ -2103,9 +2195,9 @@ export default function App() {
         </nav>
 
         <div
-          className={`workspace-stage ${configurationControlsVisible ? "has-configurations" : ""}`}
+          className={`workspace-stage ${configurationControlsVisible && mode !== "scxrd" ? "has-configurations" : ""}`}
         >
-          {configurationControlsVisible && state && (
+          {configurationControlsVisible && mode !== "scxrd" && state && (
             <div className="configuration-toolbar">
               <ConfigurationControls
                 state={state}
@@ -2139,7 +2231,19 @@ export default function App() {
                 correctionPreview.map ? "image" : integrationDisplay
               }
             >
-              {mode === "map" ? (
+              <SingleCrystalWorkspace
+                active={mode === "scxrd" && !settingsOpen}
+                data={scxrd}
+                run={run}
+                ready={ready}
+                busy={!!busy}
+                progress={progress}
+                calibrated={!!state?.calibrated}
+                invoke={bridge.current}
+                reportPlot={reportPlot}
+                onDraftDirty={setScxrdDraftDirty}
+              />
+              {mode === "scxrd" ? null : mode === "map" ? (
                 <MapView
                   map={map}
                   progressPreview={progress?.mapPreview}
@@ -2799,7 +2903,7 @@ export default function App() {
                 </>
               )}
             </main>
-            {mode !== "map" && (
+            {mode !== "map" && mode !== "scxrd" && (
               <aside
                 className={`sidebar ${mode === "calibration" ? "calibration-task-panel" : ""}`}
                 data-calibration-section={
@@ -3363,6 +3467,7 @@ export default function App() {
                   mask: "Mask",
                   integration: "Integration",
                   map: "Map",
+                  scxrd: "Single Crystal XRD",
                 }[mode]
               }
             />
@@ -3389,6 +3494,8 @@ export default function App() {
               >
                 {mainPlotReading ? (
                   <ReadingFields reading={mainPlotReading} />
+                ) : mode === "scxrd" ? (
+                  (scxrd?.filename ?? "No rotation scan loaded")
                 ) : (
                   (state?.imageName ?? "No image loaded")
                 )}
@@ -3457,13 +3564,15 @@ export default function App() {
                   void bridge.current?.("cancel_refinement");
                 }}
               >
-                {mode === "map"
-                  ? "Cancel map integration"
-                  : mode === "integration"
-                    ? "Cancel processing"
-                    : mode === "mask"
-                      ? "Cancel mask processing"
-                      : "Cancel refinement"}
+                {mode === "scxrd"
+                  ? "Stop processing"
+                  : mode === "map"
+                    ? "Cancel map integration"
+                    : mode === "integration"
+                      ? "Cancel processing"
+                      : mode === "mask"
+                        ? "Cancel mask processing"
+                        : "Cancel refinement"}
               </Button>
             )}
           </div>

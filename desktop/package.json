@@ -27,7 +27,7 @@
     "test:batch-surface": "node scripts/batch_surface_smoke.mjs",
     "test:batch-surface-axes": "node scripts/batch_surface_axes_smoke.mjs",
     "test:cake-q-axis": "node scripts/cake_q_axis_smoke.mjs",
-    "test": "node scripts/check_glib_backport.mjs && node scripts/generate_native_contracts.mjs --check && node scripts/check_command_contracts.mjs && node --test scripts/cake_radial_axis.test.mjs scripts/overlay_color_scales.test.mjs scripts/plot_ticks.test.mjs scripts/raster_transfer.test.mjs scripts/phase_line_scaling.test.mjs scripts/readout_numbers.test.mjs scripts/radial_readout.test.mjs scripts/pattern_samples.test.mjs scripts/phase_command_queue.test.mjs scripts/phase_author_search.test.mjs scripts/prepare_detector_image.test.mjs scripts/map_pattern.test.mjs scripts/linked_position.test.mjs scripts/plot_viewport.test.mjs scripts/batch_display.test.mjs scripts/batch_export_naming.test.mjs scripts/batch_surface.test.mjs scripts/batch_surface_axes.test.mjs scripts/error_reporting.test.mjs scripts/ui_components.test.mjs scripts/history_labels.test.mjs scripts/display_products.test.mjs scripts/detector_snapshot.test.mjs scripts/pattern_figure_legend.test.mjs scripts/command_coordinator.test.mjs scripts/response_snapshot.test.mjs scripts/command_response.test.mjs scripts/workspace_response.test.mjs scripts/window_command_rpc.test.mjs scripts/workspace_commands.test.mjs scripts/glib_backport.test.mjs scripts/standalone_licenses.test.mjs scripts/command_contract_watching.test.mjs",
+    "test": "node scripts/check_glib_backport.mjs && node scripts/generate_native_contracts.mjs --check && node scripts/check_command_contracts.mjs && node --test scripts/cake_radial_axis.test.mjs scripts/overlay_color_scales.test.mjs scripts/plot_ticks.test.mjs scripts/raster_transfer.test.mjs scripts/phase_line_scaling.test.mjs scripts/readout_numbers.test.mjs scripts/radial_readout.test.mjs scripts/pattern_samples.test.mjs scripts/phase_command_queue.test.mjs scripts/phase_author_search.test.mjs scripts/prepare_detector_image.test.mjs scripts/map_pattern.test.mjs scripts/linked_position.test.mjs scripts/plot_viewport.test.mjs scripts/batch_display.test.mjs scripts/batch_export_naming.test.mjs scripts/batch_surface.test.mjs scripts/batch_surface_axes.test.mjs scripts/error_reporting.test.mjs scripts/ui_components.test.mjs scripts/history_labels.test.mjs scripts/display_products.test.mjs scripts/detector_snapshot.test.mjs scripts/pattern_figure_legend.test.mjs scripts/command_coordinator.test.mjs scripts/response_snapshot.test.mjs scripts/command_response.test.mjs scripts/workspace_response.test.mjs scripts/window_command_rpc.test.mjs scripts/workspace_commands.test.mjs scripts/glib_backport.test.mjs scripts/standalone_licenses.test.mjs scripts/command_contract_watching.test.mjs scripts/single_crystal.test.mjs",
     "test:detector-redraw": "node scripts/detector_redraw_smoke.mjs",
     "test:hook-refresh": "node scripts/hook_refresh_smoke.mjs",
     "test:plot-legend": "node scripts/plot_legend_smoke.mjs",
@@ -101,7 +101,10 @@
     "test:overlay-ordering": "node scripts/overlay_command_order_smoke.mjs",
     "generate:command-contracts": "node scripts/generate_native_contracts.mjs",
     "test:command-contracts": "node scripts/generate_native_contracts.mjs --check && node scripts/check_command_contracts.mjs",
-    "test:glib-backport": "node scripts/check_glib_backport.mjs --advisories && cargo test --release --locked --manifest-path security/glib-regression/Cargo.toml"
+    "test:glib-backport": "node scripts/check_glib_backport.mjs --advisories && cargo test --release --locked --manifest-path security/glib-regression/Cargo.toml",
+    "test:scxrd": "node scripts/scxrd_native_smoke.mjs && node scripts/scxrd_flux_check.mjs && node scripts/scxrd_smoke.mjs",
+    "test:scxrd-measured": "node scripts/scxrd_measured.mjs",
+    "test:scxrd-measured-gui": "node scripts/scxrd_measured_gui.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",

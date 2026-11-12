@@ -66,7 +66,7 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
     if matches!(action, "integration_phase_files" | "integration_phase") && payload.get("paths").is_some_and(|v| !v.is_null()) {
         return None;
     }
-    if matches!(action, "map_load" | "batch_load" | "batch_load_data" | "open_image")
+    if matches!(action, "scxrd_load" | "map_load" | "batch_load" | "batch_load_data" | "open_image")
         && (payload.get("paths").is_some_and(|v| !v.is_null()) || payload["reintegrate"] == true)
     {
         return None;
@@ -95,6 +95,19 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
     if ["integration_flat_field", "integration_transfer"].contains(&action) && !payload["enabled"].is_null() {
         return None;
     }
+    if action == "scxrd_file" {
+        let (label, extensions, name, save): (_, &[&str], _, _) = match payload["operation"].as_str()? {
+            "use_calibration" => return None,
+            "calibration" => ("PONI calibration", &["poni"], "", false),
+            "open" | "preset" => ("Single-crystal recipe", &["json"], "", false),
+            "save" => ("Single-crystal recipe", &["json"], "single-crystal.scxrd.json", true),
+            "reflections" => ("Unmerged reflection table", &["txt"], "reflections.txt", true),
+            "hkl" => ("HKLF4 intensities", &["hkl"], "reflections.hkl", true),
+            "cif" => ("Structure candidate", &["cif"], "candidate.cif", true),
+            _ => return None,
+        };
+        return Some(FileChoice { label, extensions, name, save });
+    }
     let (label, extensions, name, save): (_, &[&str], _, _) = match action {
         "open_image" => (
             "Detector images",
@@ -102,7 +115,7 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
             "",
             false,
         ),
-        "map_load" | "batch_load" | "batch_load_data" => (
+        "scxrd_load" | "map_load" | "batch_load" | "batch_load_data" => (
             "Detector images",
             &["tif", "tiff", "edf", "cbf", "h5", "hdf5", "nxs", "mar3450"],
             "",
@@ -305,7 +318,7 @@ async fn desktop_invoke(
             if let Some(directory) = payload["directory"].as_str() {
                 dialog = dialog.set_directory(directory);
             }
-            if matches!(action.as_str(), "map_load" | "batch_load" | "batch_load_data" | "integration_overlay" | "integration_phase_files") || (action == "open_image" && payload["multiple"] == true) {
+            if matches!(action.as_str(), "scxrd_load" | "map_load" | "batch_load" | "batch_load_data" | "integration_overlay" | "integration_phase_files") || (action == "open_image" && payload["multiple"] == true) {
                 let Some(selected) = dialog.blocking_pick_files() else {
                     return Ok(Packet::cancelled());
                 };
@@ -625,6 +638,17 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn scxrd_choosers_keep_sources_and_exports_explicit() {
+        assert!(file_choice("scxrd_load", &json!({})).is_some());
+        assert!(file_choice("scxrd_load", &json!({"paths":["frame.tif"]})).is_none());
+        assert!(file_choice("scxrd_file", &json!({"operation":"use_calibration"})).is_none());
+        assert!(!file_choice("scxrd_file", &json!({"operation":"calibration"})).unwrap().save);
+        for op in ["save","reflections","hkl","cif"] {
+            assert!(file_choice("scxrd_file", &json!({"operation":op})).unwrap().save);
+        }
+    }
+
     #[test]
     fn pattern_save_chooser_separates_data_and_editor_figures() {
         let choice = file_choice("integration_save_pattern", &json!({"png_data":"png", "svg_data":"svg"})).unwrap();
