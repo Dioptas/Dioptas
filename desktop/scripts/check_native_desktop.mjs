@@ -37,6 +37,7 @@ const node = (name, script, ...args) =>
   run(name, process.execPath, ["scripts/" + script, ...args]);
 // Every gate checks the shared boundary, including processor-only CI jobs that
 // do not install frontend dependencies.
+node("glib-security-backport", "check_glib_backport.mjs");
 node("native-contract-generation", "generate_native_contracts.mjs", "--check");
 if (selected.has("--processor")) {
   run("rust-format", "cargo", [
@@ -100,6 +101,7 @@ if (selected.has("--ui")) {
     "processing_workers_smoke",
     "native_corrections_smoke",
     "correction_previews_smoke",
+    "processing_drafts_smoke",
     "native_project_smoke",
     "dac_thermal_pressure_smoke",
     "native_geometry_mask_smoke",

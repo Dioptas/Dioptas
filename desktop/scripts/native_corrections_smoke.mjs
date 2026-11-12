@@ -40,7 +40,13 @@ try {
     try {
       const project = path.join(temp, name + ".dio");
       const errors = [],
-        commands = [];
+        commands = [],
+        results = [];
+      let releasePlateAck,
+        heldPlateAcks = 0;
+      const plateAckGate = new Promise((resolve) => {
+        releasePlateAck = resolve;
+      });
       const invoke = async (action, payload = {}) => {
         commands.push([action, payload]);
         if (
@@ -62,7 +68,24 @@ try {
         if (["save_project", "open_project"].includes(action))
           payload = { ...payload, path: project };
         const r = await native.invoke(action, payload);
+        results.push({
+          action,
+          payload,
+          ok: r.ok,
+          error: r.error,
+          cancelled: r.cancelled,
+          revision: r.state?.revision,
+        });
         assert.equal(r.ok, true, `${action}: ${r.error}`);
+        if (
+          action === "integration_correction" &&
+          payload.kind === "plate" &&
+          payload.enabled &&
+          heldPlateAcks === 0
+        ) {
+          heldPlateAcks++;
+          await plateAckGate;
+        }
         return r;
       };
       await invoke("open_image", { path: files.raw });
@@ -122,15 +145,53 @@ try {
         page
           .getByRole("navigation", { name: "Correction type" })
           .getByRole("button", { name: label, exact: true });
+      const selectedType = (label) =>
+        page
+          .getByRole("navigation", { name: "Correction type" })
+          .getByRole("button", { name: label, exact: true, pressed: true });
+      const selectType = async (label, clicked) => {
+        await type(label).click();
+        clicked?.();
+        await selectedType(label).waitFor();
+      };
       const state = async () => (await native.invoke("state")).state;
       const wait = async (predicate) => {
+        let last;
         for (let i = 0; i < 100; i++) {
-          if (predicate(await state())) return;
+          last = await state();
+          if (predicate(last)) return;
           await page.waitForTimeout(50);
         }
-        throw Error("Native state did not reach expected correction settings");
+        const diagnostic = {
+          browser: name,
+          expected: String(predicate),
+          corrections: last.integration.corrections,
+          recentCommands: commands.slice(-20),
+          recentResults: results.slice(-20),
+          heldPlateAcks,
+          fields: await page
+            .locator(".integration-tab-corrections input")
+            .evaluateAll((fields) =>
+              fields.map((field) => ({
+                label: field.getAttribute("aria-label"),
+                value: field.value,
+                checked: field.checked,
+                disabled: field.disabled,
+                focused: field === document.activeElement,
+              })),
+            ),
+          status: await page.locator(".workflow-status").allTextContents(),
+          errors,
+        };
+        await writeFile(
+          path.join(out, `${name}-failure.json`),
+          JSON.stringify(diagnostic, null, 2),
+        );
+        throw Error(
+          `Native state did not reach expected correction settings: ${JSON.stringify(diagnostic)}`,
+        );
       };
-      await type("Transfer").click();
+      await selectType("Transfer");
       assert.equal(
         await page
           .getByRole("checkbox", { name: "Apply transfer correction" })
@@ -154,18 +215,67 @@ try {
         ["plate", "Plate"],
         ["slab", "Slab"],
       ]) {
-        await type(label).click();
+        if (kind === "slab") {
+          // Deliver this tab click only after proving the preceding pane still
+          // exposes the same Thickness label. A click alone is not a pane commit.
+          await page.evaluate(() => {
+            const hold = (event) => {
+              const button = event.target.closest?.(
+                'button[aria-label="Slab"]',
+              );
+              if (!button?.closest('[aria-label="Correction type"]')) return;
+              event.preventDefault();
+              event.stopImmediatePropagation();
+              window.__heldCorrectionNavigation = true;
+              window.__releaseCorrectionNavigation = () => {
+                window.removeEventListener("click", hold, true);
+                button.click();
+              };
+            };
+            window.addEventListener("click", hold, true);
+          });
+          let reportClick,
+            navigationCompleted = false;
+          const clickCompleted = new Promise((resolve) => {
+            reportClick = resolve;
+          });
+          const navigation = selectType(label, reportClick).then(() => {
+            navigationCompleted = true;
+          });
+          await clickCompleted;
+          // This round trip follows the completed click, so a click-only helper
+          // has also settled its promise before the held-navigation assertion.
+          await page.waitForFunction(() => window.__heldCorrectionNavigation);
+          assert.equal(
+            navigationCompleted,
+            false,
+            "Tab selection must remain pending until the requested pane commits",
+          );
+          assert.equal(await selectedType(label).count(), 0);
+          assert.equal(await selectedType("Plate").count(), 1);
+          assert.equal(
+            await page.getByLabel("Thickness (mm)", { exact: true }).count(),
+            1,
+          );
+          await page.evaluate(() => window.__releaseCorrectionNavigation());
+          await navigation;
+        } else await selectType(label);
+        const apply = page.getByRole("checkbox", {
+          name:
+            kind === "plate"
+              ? "Apply plate absorption"
+              : "Apply slab self-absorption",
+          exact: true,
+        });
+        await apply.waitFor();
         const thickness = page.getByLabel("Thickness (mm)", { exact: true });
         await thickness.fill("0.3");
         await thickness.press("Enter");
-        await page
-          .getByRole("checkbox", {
-            name:
-              kind === "plate"
-                ? "Apply plate absorption"
-                : "Apply slab self-absorption",
-          })
-          .check();
+        if (kind === "slab") {
+          assert.equal(heldPlateAcks, 1);
+          releasePlateAck();
+        }
+        await apply.check();
         await wait(
           (s) =>
             s.integration.corrections[kind].enabled &&
@@ -193,7 +303,7 @@ try {
         ["cylinder", "Cylinder"],
         ["sphere", "Sphere"],
       ]) {
-        await type(label).click();
+        await selectType(label);
         for (const [name, value] of [
           ["Radius (mm)", "0.2"],
           ["Beam width (mm)", "0.12"],
@@ -256,7 +366,7 @@ try {
           ?.textContent?.endsWith(".dio"),
       );
       const before = (await invoke("state")).pattern;
-      await type("Transfer").click();
+      await selectType("Transfer");
       await page
         .getByRole("checkbox", { name: "Apply transfer correction" })
         .uncheck();
@@ -275,7 +385,7 @@ try {
           "Cylinder",
           "Sphere",
         ]) {
-          await type(label).click();
+          await selectType(label);
           assert.equal(
             await page
               .locator(".integration-tab-corrections")
@@ -311,6 +421,8 @@ try {
         browser: name,
         layouts: [1440, 1100],
         corrections: ["transfer", "plate", "slab", "cylinder", "sphere"],
+        delayedPlateAcknowledgement: true,
+        delayedSlabNavigation: true,
         projectRoundtrip: true,
       });
     } finally {

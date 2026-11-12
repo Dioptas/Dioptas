@@ -46,6 +46,9 @@ try {
         releasePreload,
         heldPreloads = 0,
         discardedPreloads = 0;
+      let applyAckGate = null,
+        releaseApplyAck,
+        heldApplyAcks = 0;
       const call = async (a, p = {}) => {
         const r = await native.invoke(a, p);
         assert.equal(r.ok, true, `${a}: ${r.error}`);
@@ -131,6 +134,10 @@ try {
         )
           preparedRevision = rawResult.revision;
         const result = native.browserResult(rawResult);
+        if (a === "integration_correction" && applyAckGate) {
+          heldApplyAcks++;
+          await applyAckGate;
+        }
         if (a === "integration_correction_preview" && delayPreview) {
           delayPreview = false;
           await new Promise((resolve) => setTimeout(resolve, 450));
@@ -138,6 +145,7 @@ try {
         return result;
       });
       await page.exposeFunction("__heldPreloads", () => heldPreloads);
+      await page.exposeFunction("__heldApplyAcks", () => heldApplyAcks);
       await page.exposeFunction(
         "__latestCorrectionRevision",
         () => latestRevision,
@@ -163,6 +171,10 @@ try {
           .getByRole("navigation", { name: "Correction type" })
           .getByRole("button", { name: label, exact: true });
       const plot = () => button("Plot correction");
+      const applyIsFinished = () => {
+        const action = document.querySelector(".correction-plot-button");
+        return action instanceof HTMLButtonElement && !action.disabled;
+      };
       const preloadReady = () =>
         page.waitForFunction(
           async () => await window.__correctionPreloadReady(),
@@ -273,16 +285,39 @@ try {
       preloadGate = new Promise((resolve) => {
         releasePreload = resolve;
       });
+      applyAckGate = new Promise((resolve) => {
+        releaseApplyAck = resolve;
+      });
       await page
         .getByRole("checkbox", {
           name: "Apply detector absorption",
           exact: true,
         })
         .check();
-      await ready();
       await page.waitForFunction(
-        async () => (await window.__heldPreloads()) > 0,
+        async () => (await window.__heldApplyAcks()) > 0,
       );
+      // A quiet queued edit has no workflow spinner. Prove that the old idle
+      // check can pass before its acknowledgement and local switching cleanup.
+      await ready();
+      assert.equal(await plot().isEnabled(), false);
+      assert.equal(
+        await page.evaluate(applyIsFinished),
+        false,
+        "Completion must remain pending while the Apply acknowledgement is held",
+      );
+      const applyFinished = page.waitForFunction(applyIsFinished, null, {
+        timeout: 10000,
+      });
+      applyAckGate = null;
+      releaseApplyAck();
+      // Leave background loading held: if Apply waits on it, this bounded
+      // observable completion check must fail instead of releasing that gate.
+      await Promise.all([
+        page.waitForFunction(async () => (await window.__heldPreloads()) > 0),
+        applyFinished,
+      ]);
+      assert.notEqual(preloadGate, null);
       assert.equal(
         await plot().isEnabled(),
         true,
@@ -589,6 +624,7 @@ try {
           "disabled/partial references",
           "native map readouts and units",
           "background prepares/preloads pixels; ready Plot transfers metadata only",
+          "delayed Apply acknowledgement rejects the old idle signal; completion does not await held preload",
           "Apply and edits stay usable during delayed preload; stale responses discarded",
           "independent histogram and zoom",
           "unchanged raw/processed/pattern/cake",

@@ -24,6 +24,7 @@ export function ProcessingNumberField({
   const { name, unit } = splitNumericLabel(displayLabel);
   const [text, setText] = useState(String(value));
   const input = useRef<HTMLInputElement>(null);
+  const draftGeneration = useRef(0);
   const latest = useRef(value);
   latest.current = value;
   useEffect(() => {
@@ -32,6 +33,7 @@ export function ProcessingNumberField({
   const commit = async () => {
     const element = input.current;
     if (!element) return;
+    const generation = draftGeneration.current;
     const next = element.valueAsNumber;
     if (
       !element.value.trim() ||
@@ -42,7 +44,14 @@ export function ProcessingNumberField({
       return;
     }
     if (next !== latest.current) await onCommit(next);
-    setText(String(latest.current));
+    // An earlier acknowledgement must not replace a later edit or disturb an
+    // input the user has focused again while the command was in flight.
+    if (
+      generation === draftGeneration.current &&
+      input.current === element &&
+      document.activeElement !== element
+    )
+      setText(String(latest.current));
   };
   return (
     <label
@@ -58,12 +67,16 @@ export function ProcessingNumberField({
         max={max}
         disabled={disabled}
         value={text}
-        onChange={(event) => setText(event.currentTarget.value)}
+        onChange={(event) => {
+          draftGeneration.current++;
+          setText(event.currentTarget.value);
+        }}
         onBlur={() => void commit()}
         onKeyDown={(event) => {
           if (event.key === "Enter") event.currentTarget.blur();
           if (event.key === "Escape") {
             event.preventDefault();
+            draftGeneration.current++;
             event.currentTarget.value = String(latest.current);
             setText(String(latest.current));
             event.currentTarget.blur();

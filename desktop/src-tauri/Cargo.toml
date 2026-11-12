@@ -30,3 +30,8 @@ objc2-foundation = { version = "0.3.2", features = ["block2"] }
 # Large response headers are routed by the host even in a live preview.
 [profile.dev.package.serde_json]
 opt-level = 2
+
+# Tauri's GTK 0.18 graph cannot select glib >=0.20 yet. This preserves the
+# published crate with the exact upstream RUSTSEC-2024-0429 fix; CI verifies it.
+[patch.crates-io]
+glib = { path = "../vendor/glib" }
