@@ -313,11 +313,11 @@ impl Files {
         // blocking later acquisitions. Opaque corrupt sources still require a
         // changed source fingerprint before readmission.
         for (path, retry) in self.retry.iter() {
-            if !self.queue.contains(path) {
-                if let Some(stamp) = self.stamp(path) {
-                    Arc::make_mut(&mut self.pending).insert(path.clone(), stamp);
-                    ready.push((retry.stamp.unwrap_or(stamp).1, path.clone()));
-                }
+            if !self.queue.contains(path)
+                && let Some(stamp) = self.stamp(path)
+            {
+                Arc::make_mut(&mut self.pending).insert(path.clone(), stamp);
+                ready.push((retry.stamp.unwrap_or(stamp).1, path.clone()));
             }
         }
         ready.sort();
@@ -358,10 +358,10 @@ impl Files {
         if !image_file(path) {
             return;
         }
-        if let Ok(path) = path.canonicalize() {
-            if let Ok(identity) = crate::image::FileIdentity::read(&path) {
-                Arc::make_mut(&mut self.generated).insert(path, identity);
-            }
+        if let Ok(path) = path.canonicalize()
+            && let Ok(identity) = crate::image::FileIdentity::read(&path)
+        {
+            Arc::make_mut(&mut self.generated).insert(path, identity);
         }
     }
 }
