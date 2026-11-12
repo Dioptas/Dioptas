@@ -88,6 +88,7 @@ export interface CustomCommand {
 }
 export interface CustomCommandRun {
   running: boolean;
+  outputPending?: boolean;
   exitCode: number | null;
   output: string;
   name: string;
@@ -319,9 +320,11 @@ export function useCustomCommands(invoke: Invoke, session: unknown) {
   useEffect(() => {
     if (session) void request();
   }, [session, request]);
-  const running = Object.values(runs).some((run) => run.running);
+  const polling = Object.values(runs).some(
+    (run) => run.running || run.outputPending,
+  );
   useEffect(() => {
-    if (!running) return;
+    if (!polling) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
     const poll = async () => {
@@ -333,7 +336,7 @@ export function useCustomCommands(invoke: Invoke, session: unknown) {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [running, request]);
+  }, [polling, request]);
   const reorderCommand = (
     identifier: string,
     target: string,

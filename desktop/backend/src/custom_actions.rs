@@ -2,7 +2,6 @@
 use serde_json::{Value, json};
 use std::{
     collections::BTreeMap,
-    io::Read,
     path::PathBuf,
     process::{Command, Stdio},
     sync::{Arc, Mutex},
@@ -20,7 +19,7 @@ const FIELDS: [&str; 9] = [
 ];
 #[derive(Default)]
 pub(crate) struct Actions {
-    runs: Arc<Mutex<BTreeMap<String, Value>>>,
+    runs: Arc<Mutex<BTreeMap<String, crate::custom_action_output::Run>>>,
 }
 fn home_path(path: &str) -> Result<PathBuf, String> {
     if path == "~" || path.starts_with("~/") {
@@ -184,7 +183,7 @@ impl Actions {
                         .lock()
                         .unwrap()
                         .get(id)
-                        .is_some_and(|r| r["running"] == true)
+                        .is_some_and(|r| r.lock().unwrap()["running"] == true)
                     {
                         return Err("Wait for this action to finish before deleting it.".into());
                     }
@@ -208,7 +207,10 @@ impl Actions {
                     .find(|c| c["id"] == id && c["enabled"] == true)
                     .ok_or("Choose an enabled custom action.")?;
                 let mut runs = self.runs.lock().unwrap();
-                if runs.get(id).is_some_and(|r| r["running"] == true) {
+                if runs
+                    .get(id)
+                    .is_some_and(|r| r.lock().unwrap()["running"] == true)
+                {
                     return Err("This action is already running.".into());
                 }
                 let program = home_path(command["program"].as_str().unwrap())?;
@@ -218,6 +220,7 @@ impl Actions {
                     .iter()
                     .map(|a| expand(a.as_str().unwrap(), Some(&context)))
                     .collect::<Result<Vec<_>, _>>()?;
+                let reservation = crate::custom_action_output::reserve()?;
                 let mut cmd = Command::new(&program);
                 cmd.args(&arguments)
                     .stdin(Stdio::null())
@@ -233,55 +236,20 @@ impl Actions {
                     use std::os::windows::process::CommandExt;
                     cmd.creation_flags(0x08000000);
                 }
-                let mut child = cmd.spawn().map_err(|e| e.to_string())?;
-                let stdout = child.stdout.take().unwrap();
-                let stderr = child.stderr.take().unwrap();
+                let child = cmd.spawn().map_err(|e| e.to_string())?;
                 let args = std::iter::once(program.to_string_lossy().into_owned())
                     .chain(arguments)
                     .collect::<Vec<_>>();
-                runs.insert(id.into(),json!({"running":true,"exitCode":null,"output":"","name":command["name"],"arguments":args}));
-                drop(runs);
-                let id = id.to_string();
-                let state = self.runs.clone();
-                std::thread::spawn(move || {
-                    let output = Arc::new(Mutex::new(Vec::<u8>::new()));
-                    let drain = |mut stream: Box<dyn Read + Send>| {
-                        let output = output.clone();
-                        let state = state.clone();
-                        let id = id.clone();
-                        std::thread::spawn(move || {
-                            let mut buffer = [0; 4096];
-                            loop {
-                                let size = match stream.read(&mut buffer) {
-                                    Ok(0) | Err(_) => break,
-                                    Ok(n) => n,
-                                };
-                                let mut out = output.lock().unwrap();
-                                out.extend_from_slice(&buffer[..size]);
-                                if out.len() > 16384 {
-                                    let length = out.len() - 16384;
-                                    out.drain(..length);
-                                }
-                                state.lock().unwrap().get_mut(&id).unwrap()["output"] =
-                                    json!(String::from_utf8_lossy(&out));
-                            }
-                        })
-                    };
-                    let a = drain(Box::new(stdout));
-                    let b = drain(Box::new(stderr));
-                    let status = child.wait();
-                    let _ = a.join();
-                    let _ = b.join();
-                    if let Some(run) = state.lock().unwrap().get_mut(&id) {
-                        run["running"] = json!(false);
-                        run["exitCode"] = json!(status.ok().and_then(|s| s.code()));
-                    }
-                });
+                let run = Arc::new(Mutex::new(
+                    json!({"running":true,"exitCode":null,"outputPending":true,"output":"","name":command["name"],"arguments":args}),
+                ));
+                crate::custom_action_output::monitor(child, run.clone(), reservation)?;
+                runs.insert(id.into(), run);
             }
             _ => return Err("Unknown custom-action operation.".into()),
         }
         Ok(
-            json!({"ok":true,"customCommands":commands,"customCommandRuns":self.runs.lock().unwrap().clone(),"customCommandContext":context}),
+            json!({"ok":true,"customCommands":commands,"customCommandRuns":self.runs.lock().unwrap().iter().map(|(id, run)| (id.clone(), run.lock().unwrap().clone())).collect::<BTreeMap<_,_>>(),"customCommandContext":context}),
         )
     }
 }

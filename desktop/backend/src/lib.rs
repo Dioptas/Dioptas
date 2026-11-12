@@ -13,6 +13,7 @@ pub mod control;
 mod correction_maps;
 #[cfg(feature = "dioptrin")]
 mod correction_preview;
+mod custom_action_output;
 mod custom_actions;
 #[cfg(feature = "dioptrin")]
 mod detector_absorption;
