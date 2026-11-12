@@ -322,7 +322,15 @@ async fn desktop_invoke(
                 if !choose_batch_image_output(&app, &action, &mut payload)? {
                     return Ok(Packet::cancelled());
                 }
-                return finish_packet(processor.request_packet_with_products(&action, payload, cached, cached_products), &action);
+                return finish_packet(
+                    processor.request_packet_with_products(
+                        &action,
+                        payload,
+                        cached,
+                        cached_products,
+                    ),
+                    &action,
+                );
             }
             let selected = if choice.save {
                 let name = if action == "integration_save_batch" {
@@ -345,7 +353,10 @@ async fn desktop_invoke(
         if !choose_batch_image_output(&app, &action, &mut payload)? {
             return Ok(Packet::cancelled());
         }
-        finish_packet(processor.request_packet_with_products(&action, payload, cached, cached_products), &action)
+        finish_packet(
+            processor.request_packet_with_products(&action, payload, cached, cached_products),
+            &action,
+        )
     })
     .await
     .map_err(|e| e.to_string())?

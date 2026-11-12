@@ -879,3 +879,24 @@ fn acquisition_availability_inspection_caps_vds_mapping_count_before_reading_met
     drop(file);
     assert!(sources::unavailable(&path, &json!({})).is_empty());
 }
+
+#[test]
+fn acquisition_soft_alias_keeps_literal_hdf5_dotdot_group_names() {
+    let temp = tempfile::tempdir().unwrap();
+    let master = temp.path().join("literal-components.h5");
+    let missing = temp.path().join("missing.h5");
+    let file = hdf5::File::create(&master).unwrap();
+    let group = file.create_group("a/..").unwrap();
+    group
+        .link_external(missing.to_str().unwrap(), "/images", "external")
+        .unwrap();
+    file.link_soft("/a/../external", "selected").unwrap();
+    drop(group);
+    drop(file);
+    assert_eq!(
+        sources::unavailable(&master, &json!({"dataset":"/selected"}))
+            .keys()
+            .collect::<Vec<_>>(),
+        vec![&missing],
+    );
+}

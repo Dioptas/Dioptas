@@ -107,13 +107,11 @@ fn target_path(parent: &str, target: &str, suffix: &str) -> String {
     } else {
         format!("{}/{target}{suffix}", parent.trim_end_matches('/'))
     };
+    // HDF5 treats ".." as a literal component, unlike filesystem paths.
     let mut parts = vec![];
     for part in path.split('/') {
         match part {
             "" | "." => {}
-            ".." => {
-                parts.pop();
-            }
             part => parts.push(part),
         }
     }

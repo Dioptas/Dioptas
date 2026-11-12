@@ -47,16 +47,15 @@ if (selected.has("--processor")) {
     "--",
     "--check",
   ]);
-  // Keep the portable core healthy as native-only helpers evolve. Library-only
-  // checks cannot replace the normal processor executable used by later gates.
+  // Keep the portable core healthy as native-only helpers evolve. Clippy and
+  // library tests cannot replace the processor executable used by later gates.
   run("rust-core-clippy", "cargo", [
     "clippy",
     "--locked",
     "--manifest-path",
     "backend/Cargo.toml",
     "--no-default-features",
-    "--lib",
-    "--tests",
+    "--all-targets",
     "--",
     "-D",
     "warnings",
