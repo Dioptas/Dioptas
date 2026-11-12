@@ -309,6 +309,11 @@ NSIS candidate with offline WebView2, bundled Visual C++ runtime, and automated
 install/upgrade/uninstall and native WebView2 checks. Windows candidates are
 explicitly unsigned until a Windows signing provider is configured.
 
+The [native Linux pipeline](NATIVE_LINUX_RELEASE.md) builds x64 `.deb` and
+AppImage candidates on Ubuntu 22.04 and tests each format independently on
+Ubuntu 22.04 and 24.04. It checks installed GTK/WebKit operation under a virtual
+display, source-free processing and package lifecycle without publishing.
+
 Development still supports `DIOPTAS_SOURCE_ROOT` for the Python comparison
 backend and `DIOPTAS_NATIVE_PROCESSOR` for an explicit Rust executable.
 Release Rust startup uses installed resources and a sibling processor, with

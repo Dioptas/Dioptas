@@ -2,14 +2,15 @@ name: Native Linux artifacts (no publishing)
 
 on:
   workflow_dispatch:
-  # Register this new branch workflow once; remove the bootstrap push trigger
-  # after qualification. Ordinary release candidate builds are manual-only.
-  push:
-    branches: [codex/native-installers]
-    paths: [.github/workflows/native_linux_artifacts.yml]
+    inputs:
+      candidate_run_id:
+        description: Re-test unchanged candidates from a previous Linux build run (blank builds anew)
+        required: false
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: native-linux-artifacts-${{ github.ref }}
@@ -17,6 +18,7 @@ concurrency:
 
 jobs:
   build:
+    if: ${{ inputs.candidate_run_id == '' }}
     name: Build Linux x64 candidates (Ubuntu 22.04)
     runs-on: ubuntu-22.04
     timeout-minutes: 120
@@ -83,6 +85,7 @@ jobs:
   verify:
     name: Installed ${{ matrix.format }} (${{ matrix.os }})
     needs: build
+    if: ${{ !cancelled() && (needs.build.result == 'success' || inputs.candidate_run_id != '') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
@@ -107,6 +110,8 @@ jobs:
         with:
           name: Dioptas-native-linux-x64-test
           path: ${{ runner.temp }}/linux-candidates
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ inputs.candidate_run_id || github.run_id }}
       - name: Test installed native application and lifecycle
         shell: bash
         run: |

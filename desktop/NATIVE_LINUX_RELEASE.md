@@ -34,6 +34,18 @@ The workflow `.github/workflows/native_linux_artifacts.yml` builds on
 24.04 runners for each format. AppImage runners never install the `.deb` first.
 The workflow token has read-only repository permissions.
 
+The registered workflow is manual-only:
+
+```sh
+gh workflow run native_linux_artifacts.yml --ref BRANCH
+```
+
+Set its optional `candidate_run_id` input to repeat installation tests against
+the unchanged artifacts from a previous Linux build run. This skips rebuilding;
+reports retain the original binary source revision and the current verification
+script revision separately. Never substitute the verifier revision for the
+source recorded in `build.json`.
+
 ## Installing candidates
 
 On Debian/Ubuntu, use APT to install the local candidate and resolve its runtime

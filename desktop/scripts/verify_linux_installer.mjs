@@ -37,6 +37,10 @@ assert(["all", "deb", "appimage"].includes(format));
 const metadata = JSON.parse(
   await readFile(path.join(candidateDirectory, "build.json"), "utf8"),
 );
+const verificationRevision = execFileSync("git", ["rev-parse", "HEAD"], {
+  cwd: root,
+  encoding: "utf8",
+}).trim();
 assert.equal(metadata.signing, "unsigned-test");
 assert.equal(metadata.published, false);
 for (const b of metadata.builds) {
@@ -146,7 +150,10 @@ try {
     for (const file of [
       "/usr/bin/dioptas-desktop",
       "/usr/bin/dioptas-processor",
-      "/usr/lib/dioptas-desktop/dioptas/RESOURCE_MANIFEST.json",
+      path.join(
+        receipts[0].runtime.inspection.resourcesDirectory,
+        "RESOURCE_MANIFEST.json",
+      ),
       receipts[0].runtime.inspection.desktopFile,
     ]) {
       await assert.rejects(readFile(file), { code: "ENOENT" });
@@ -160,6 +167,7 @@ try {
       "/usr/bin/dioptas-desktop",
       "/usr/bin/dioptas-processor",
       "/usr/lib/dioptas-desktop/dioptas/RESOURCE_MANIFEST.json",
+      `/usr/lib/${metadata.productName}/dioptas/RESOURCE_MANIFEST.json`,
     ]) {
       await assert.rejects(readFile(file), { code: "ENOENT" });
     }
@@ -206,6 +214,7 @@ try {
       {
         ok: true,
         sourceRevision: metadata.sourceRevision,
+        verificationRevision,
         signing: metadata.signing,
         published: false,
         system: await readFile("/etc/os-release", "utf8"),

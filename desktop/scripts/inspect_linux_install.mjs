@@ -12,7 +12,25 @@ import {
 const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
 export async function inspectLinuxInstall(prefix, appimage = false) {
   assert.equal(process.platform, "linux");
-  const resources = path.join(prefix, "usr/lib/dioptas-desktop/dioptas");
+  // Tauri uses the configured product name for its Linux resource directory.
+  // Discover the one manifest instead of deriving a directory from the deb name.
+  const locations = [];
+  for (const entry of await readdir(path.join(prefix, "usr/lib"), {
+    withFileTypes: true,
+  })) {
+    if (!entry.isDirectory()) continue;
+    const candidate = path.join(prefix, "usr/lib", entry.name, "dioptas");
+    try {
+      if (
+        (await lstat(path.join(candidate, "RESOURCE_MANIFEST.json"))).isFile()
+      )
+        locations.push(candidate);
+    } catch (error) {
+      if (error.code !== "ENOENT" && error.code !== "ENOTDIR") throw error;
+    }
+  }
+  assert.equal(locations.length, 1, "Expected one installed resource manifest");
+  const resources = locations[0];
   const manifest = JSON.parse(
     await readFile(path.join(resources, "RESOURCE_MANIFEST.json"), "utf8"),
   );
