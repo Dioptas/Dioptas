@@ -52,16 +52,12 @@ and CALIBRATION_PARITY.md before changing its command or plot boundaries.
   stdio. The Python application and its tests live on `legacy/qt`; no Python backend
   or active Python test suite belongs on `develop`.
 
-## Working branch and checkouts
+## Branches and checkouts
 
-The cohesive development checkout is `worktrees/rust-desktop`, branch
-`develop`, reached through the workspace's `Dioptas` symlink. The former
-`codex/rust-desktop` branch is retained for compatibility; new work targets
-`develop`. Qt maintenance belongs on `legacy/qt`.
-Continue new desktop work here. The Qt checkout, earlier view worktrees and
-experimental `codex/desktop-scxrd` checkout are preserved separately.
-Create separate worktrees from the actual application repository when needed;
-do not create another application repository in the workspace wrapper.
+New desktop work targets `develop`; Qt maintenance belongs on `legacy/qt`.
+Check Git and worktree status before editing, and create additional worktrees
+from this application repository when needed. Machine-specific checkout notes,
+if any, live in an untracked `AGENTS.local.md` at the repository root.
 
 Use the Rust processor in `backend/` for new scientific commands. Port an
 existing Python feature to Rust before exposing it in the default application;
