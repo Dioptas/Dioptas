@@ -206,7 +206,7 @@ impl Recovery {
                 state.saved_ui = state.ui.clone();
                 state.ui_initialized = true;
                 Ok(
-                    json!({"ok":true,"ui":result["recoveryUi"],"missingSources":result["missingSources"]}),
+                    json!({"ok":true,"ui":result["recoveryUi"],"missingSources":result["missingSources"],"notice":result["recoveryNotice"]}),
                 )
             }
             _ => Err("Unknown recovery operation.".into()),

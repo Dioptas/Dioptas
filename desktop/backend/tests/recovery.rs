@@ -162,3 +162,165 @@ fn unsaved_identity_and_failed_cancelled_writes_or_loads_preserve_last_good_snap
         state
     );
 }
+
+#[test]
+fn recovery_retains_mask_and_interleaved_scientific_undo_redo_in_every_configuration() {
+    let dir = tempfile::tempdir().unwrap();
+    let source = dir.path().join("raw.tif");
+    image(&source);
+    let checkpoint = dir.path().join("automatic.dio");
+    let mut old = Session::new(root());
+    call(&mut old, "open_image", json!({"path":source}));
+    call(&mut old, "integration_settings", json!({"bins":75}));
+    call(
+        &mut old,
+        "pick_peak",
+        json!({"x":2,"y":2,"ring":1,"automatic":false,"search_size":1}),
+    );
+    call(&mut old, "integration_settings", json!({"bins":96}));
+    assert_eq!(
+        call(&mut old, "undo_calibration", json!({})).result["state"]["bins"],
+        75
+    );
+    call(
+        &mut old,
+        "mask_stroke",
+        json!({"points":[[1,1]],"radius":1}),
+    );
+    call(
+        &mut old,
+        "mask_stroke",
+        json!({"points":[[5,5]],"radius":1}),
+    );
+    assert_eq!(
+        call(&mut old, "undo_mask", json!({})).result["state"]["maskedPixels"],
+        5
+    );
+    call(&mut old, "configuration", json!({"operation":"duplicate"}));
+    call(&mut old, "integration_settings", json!({"bins":111}));
+    call(&mut old, "undo_calibration", json!({}));
+    call(&mut old, "recovery_checkpoint", json!({"path":checkpoint}));
+    drop(old);
+    std::fs::remove_file(source).unwrap();
+    let mut restored = Session::new(root());
+    let r = call(
+        &mut restored,
+        "recovery_restore",
+        json!({"path":checkpoint}),
+    );
+    assert_eq!(r.result["state"]["configurationIndex"], 1);
+    assert_eq!(r.result["state"]["canUndoMask"], true);
+    assert_eq!(r.result["state"]["canRedoMask"], true);
+    assert_eq!(r.result["state"]["calibration"]["canUndo"], true);
+    assert_eq!(r.result["state"]["calibration"]["canRedo"], true);
+    assert_eq!(
+        call(&mut restored, "redo_calibration", json!({})).result["state"]["bins"],
+        111
+    );
+    assert_eq!(
+        call(&mut restored, "undo_calibration", json!({})).result["state"]["bins"],
+        75
+    );
+    assert_eq!(
+        call(&mut restored, "undo_calibration", json!({})).result["state"]["calibration"]["picks"],
+        json!([])
+    );
+    let picked = call(&mut restored, "redo_calibration", json!({}));
+    assert_eq!(
+        picked.result["state"]["calibration"]["picks"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    // New work must have a later sequence than restored edits.
+    call(&mut restored, "integration_settings", json!({"bins":99}));
+    assert_eq!(
+        call(&mut restored, "undo_calibration", json!({})).result["state"]["bins"],
+        75
+    );
+    assert_eq!(
+        call(&mut restored, "undo_calibration", json!({})).result["state"]["calibration"]["picks"],
+        json!([])
+    );
+    call(
+        &mut restored,
+        "configuration",
+        json!({"operation":"select","index":0}),
+    );
+    assert_eq!(
+        call(&mut restored, "redo_calibration", json!({})).result["state"]["bins"],
+        96
+    );
+    assert_eq!(
+        call(&mut restored, "redo_mask", json!({})).result["state"]["maskedPixels"],
+        10
+    );
+    assert_eq!(
+        call(&mut restored, "undo_mask", json!({})).result["state"]["maskedPixels"],
+        5
+    );
+    assert_eq!(
+        call(&mut restored, "undo_mask", json!({})).result["state"]["maskedPixels"],
+        0
+    );
+    assert_eq!(
+        call(&mut restored, "redo_mask", json!({})).result["state"]["maskedPixels"],
+        5
+    );
+    let project = dir.path().join("ordinary.dio");
+    call(&mut restored, "save_project", json!({"path":project}));
+    let file = hdf5::File::open(&project).unwrap();
+    assert!(!file.link_exists("native_recovery"));
+    assert!(!file.link_exists("recovery_history"));
+    drop(file);
+    let mut ordinary = Session::new(root());
+    let r = call(&mut ordinary, "open_project", json!({"path":project}));
+    assert_eq!(r.result["state"]["canUndoMask"], false);
+    assert_eq!(r.result["state"]["calibration"]["canUndo"], false);
+}
+
+#[test]
+fn recovered_geometry_and_background_history_recalculates_offline() {
+    let dir = tempfile::tempdir().unwrap();
+    let source = dir.path().join("raw.tif");
+    image(&source);
+    let checkpoint = dir.path().join("automatic.dio");
+    let mut old = Session::new(root());
+    call(&mut old, "open_image", json!({"path":source}));
+    call(
+        &mut old,
+        "integration_image_background",
+        json!({"path":source,"scale":0.1}),
+    );
+    let geometry = |distance| json!({"convention":"pyfai","values":{"dist":distance,"poni1":0.0004,"poni2":0.0006,"rot1":0,"rot2":0,"rot3":0,"pixel1":0.0001,"pixel2":0.0001,"wavelength":1e-10,"polarization_factor":0.0}});
+    let first = call(&mut old, "manual_geometry", geometry(0.2));
+    let second = call(&mut old, "manual_geometry", geometry(0.3));
+    call(&mut old, "undo_calibration", json!({}));
+    call(&mut old, "recovery_checkpoint", json!({"path":checkpoint}));
+    drop(old);
+    std::fs::remove_file(source).unwrap();
+    let mut restored = Session::new(root());
+    call(
+        &mut restored,
+        "recovery_restore",
+        json!({"path":checkpoint}),
+    );
+    let redone = call(&mut restored, "redo_calibration", json!({}));
+    assert_eq!(redone.result["state"]["geometry"]["dist"], 0.3);
+    assert_eq!(redone.result["pattern"]["y"], second.result["pattern"]["y"]);
+    let undone = call(&mut restored, "undo_calibration", json!({}));
+    assert_eq!(undone.result["state"]["geometry"]["dist"], 0.2);
+    assert_eq!(undone.result["pattern"]["y"], first.result["pattern"]["y"]);
+    assert_eq!(
+        call(&mut restored, "undo_calibration", json!({})).result["state"]["calibrated"],
+        false
+    );
+    call(&mut restored, "undo_calibration", json!({})); // Background removal.
+    call(&mut restored, "redo_calibration", json!({})); // Embedded background restoration.
+    let recalculated = call(&mut restored, "redo_calibration", json!({}));
+    assert_eq!(
+        recalculated.result["pattern"]["y"],
+        first.result["pattern"]["y"]
+    );
+}

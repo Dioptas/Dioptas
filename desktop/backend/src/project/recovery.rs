@@ -8,9 +8,27 @@ impl Session {
         if !ui.is_object() || ui.to_string().len() > 256 * 1024 {
             return Err("Recovery display settings must be an object smaller than 256 KiB.".into());
         }
-        let metadata = json!({"version":1,"project_path":self.project.path,"ui":ui});
-        // Metadata and science publish together through the same atomic writer.
-        self.save_native_project_with_recovery(path(args)?, Some(&metadata))?;
+        let checkpoint = path(args)?;
+        let previous = recovery_history::previous_companion(checkpoint);
+        let (mut history, record) =
+            recovery_history::save(self, checkpoint, recovery_history::MAX_BYTES)?;
+        let metadata =
+            json!({"version":2,"project_path":self.project.path,"ui":ui,"history":record});
+        // Publish a new history generation first, then atomically point the core
+        // checkpoint at it. A failed core save deletes only that new generation.
+        self.save_native_project_with_recovery(checkpoint, Some(&metadata))?;
+        if let Some(history) = history.as_mut() {
+            history.disable_cleanup(true);
+        }
+        if let Some(previous) =
+            previous.filter(|old| history.as_ref().is_none_or(|new| old.as_path() != &**new))
+            && let Err(error) = std::fs::remove_file(&previous)
+        {
+            eprintln!(
+                "Could not remove obsolete recovery history {}: {error}",
+                previous.display()
+            );
+        }
         Ok(Reply::metadata(json!({"ok":true,"revision":self.revision})))
     }
 
@@ -24,7 +42,7 @@ impl Session {
         candidate.open_native_project(path(args)?)?;
         let file = &candidate.project.archive.as_ref().unwrap().file;
         let metadata = read_json_dataset(file, "native_recovery")?;
-        if metadata["version"] != 1
+        if ![json!(1), json!(2)].contains(&metadata["version"])
             || !metadata["ui"].is_object()
             || metadata["ui"].to_string().len() > 256 * 1024
         {
@@ -45,6 +63,7 @@ impl Session {
             }
         }
         candidate.project.path = project_path;
+        let history_notice = recovery_history::restore(&mut candidate, path(args)?, &metadata)?;
         // The normal project loader leaves file watchers and automatic exports
         // disarmed. Restoring a checkpoint must not replay old acquisitions.
         self.control.check()?;
@@ -55,6 +74,7 @@ impl Session {
         let mut reply = self.configuration_reply();
         reply.result["recoveryUi"] = metadata["ui"].clone();
         reply.result["missingSources"] = json!(missing);
+        reply.result["recoveryNotice"] = json!(history_notice);
         Ok(reply)
     }
 }

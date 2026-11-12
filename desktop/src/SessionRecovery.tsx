@@ -36,6 +36,7 @@ interface RecoveryResult {
   path?: string;
   ui?: unknown;
   missingSources?: string[];
+  notice?: string | null;
   startup?: { action: string; path: string }[];
 }
 export async function sessionRecovery(
@@ -174,10 +175,13 @@ export function useSessionRecovery(input: {
       latest.current.restoreUi(checkedRecoveryUi(result.ui));
       setPending(null);
       setReady(true);
+      const notices = [result.notice];
       if (result.missingSources?.length)
-        setNotice(
+        notices.push(
           `Restored embedded data. Original image files are unavailable; browsing or reloading them requires reconnecting their location.\n${result.missingSources.join("\n")}`,
         );
+      if (notices.some(Boolean))
+        setNotice(notices.filter(Boolean).join("\n\n"));
     } catch (e) {
       if (loaded) {
         setPending(null);

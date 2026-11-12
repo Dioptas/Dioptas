@@ -384,10 +384,12 @@ impl Session {
             });
         match dispatched {
             Ok(mut reply) => {
-                if request.action != "development_restore"
-                    && (self.phases != shared_before.0
-                        || self.patterns.overlays != shared_before.1
-                        || self.patterns.separation != shared_before.2)
+                if !matches!(
+                    request.action.as_str(),
+                    "development_restore" | "recovery_restore"
+                ) && (self.phases != shared_before.0
+                    || self.patterns.overlays != shared_before.1
+                    || self.patterns.separation != shared_before.2)
                 {
                     self.forget_other_shared_history();
                 }
@@ -420,6 +422,7 @@ impl Session {
                     "undo_calibration"
                         | "redo_calibration"
                         | "development_restore"
+                        | "recovery_restore"
                         | "configuration"
                 ) && self.calibration_history.undo.last().is_some_and(|entry| {
                     calibration_head

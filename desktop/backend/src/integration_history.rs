@@ -63,6 +63,53 @@ pub(super) fn is_edit(action: &str) -> bool {
     )
 }
 impl IntegrationHistory {
+    pub(super) fn recovery_count(&self) -> usize {
+        self.undo.len() + self.redo.len()
+    }
+    pub(super) fn disarm_recovery(&mut self, revision: u64) -> Result<(), String> {
+        if self.recovery_count() > 256
+            || self
+                .undo
+                .iter()
+                .chain(&self.redo)
+                .any(|e| e.sequence > revision)
+        {
+            return Err("Invalid recovered integration history sequence.".into());
+        }
+        for entry in self.undo.iter_mut().chain(&mut self.redo) {
+            let entry = Arc::make_mut(entry);
+            entry.before.settings.auto_save = false;
+            entry.after.settings.auto_save = false;
+        }
+        self.break_group();
+        Ok(())
+    }
+    pub(super) fn trim_recovery(&mut self, calibration: &mut History) {
+        // Preserve contiguous nearest Undo/Redo operations in the common
+        // calibration/integration timeline rather than leaving sequence gaps.
+        for _ in 0..(self.undo.len() + calibration.undo.len()).div_ceil(2) {
+            if self
+                .undo
+                .first()
+                .is_some_and(|e| calibration.undo.first().is_none_or(|c| e.sequence <= c.3))
+            {
+                self.undo.remove(0);
+            } else {
+                calibration.undo.remove(0);
+            }
+        }
+        for _ in 0..(self.redo.len() + calibration.redo.len()).div_ceil(2) {
+            if self
+                .redo
+                .first()
+                .is_some_and(|e| calibration.redo.first().is_none_or(|c| e.sequence >= c.3))
+            {
+                self.redo.remove(0);
+            } else {
+                calibration.redo.remove(0);
+            }
+        }
+    }
     pub fn forget_shared_edits(&mut self) {
         self.undo
             .retain(|e| !e.phases_changed && !e.overlays_changed);

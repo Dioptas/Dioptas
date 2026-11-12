@@ -20,6 +20,8 @@ mod persistence_tests;
 mod phase;
 #[path = "project/recovery.rs"]
 mod recovery;
+#[path = "project/recovery_history.rs"]
+mod recovery_history;
 #[path = "project_series.rs"]
 mod series;
 #[path = "project/series_arrays.rs"]

@@ -23,8 +23,10 @@ native recovery. This implementation never probes, overwrites, migrates or
 consumes Qt's `~/.Dioptas/config.dio` or `working_directories.json`.
 
 The checkpoint uses the existing owned-data native format-2 project writer.
-Its `native_recovery` record stores version 1, the explicit user-project path
-(or null for unsaved work), and bounded renderer display settings. Science and
+Its `native_recovery` record stores version 2, the explicit user-project path
+(or null for unsaved work), bounded renderer display settings, and a generation
+reference for the separate undo/redo companion. Version-1 checkpoints remain
+readable and restore without history. Science and
 metadata publish together: a private sibling file is written and flushed,
 file handles are closed, the staged file is synced, and it atomically replaces
 the destination. Errors or cancellation before publication retain the previous
@@ -35,6 +37,38 @@ that project's bytes. Restoring reinstates its original identity. Ordinary
 explicit project saves remove the private recovery record, including after a
 recovery restore. A normal project or Qt recovery file is not implicitly
 accepted as a native recovery checkpoint.
+
+## Undo/redo recovery
+
+Automatic recovery also saves mask Undo/Redo and the interleaved calibration/
+integration Undo/Redo timeline for **every configuration**, including inactive
+ones. These steps live in a hidden sibling
+`.dioptas-recovery-history-<unique>.h5` file. **Ordinary user-saved `.dio` projects
+still contain no undo history**, even when saved after restoring a session.
+
+The existing development handoff's shared-object serializer now works in release
+builds too. It stores shared planes, curves and history entries once, preserving
+floating-point bits and reconstructed object identity. Recovery retains the
+current model heads along with the history, preserving comparisons and the
+chronological order of subsequent edits. Restored steps cannot turn automatic
+exports or acquisition watchers back on.
+
+History has a **128 MiB serialized-data budget**, plus at most 16 MiB of file
+overhead. Object count, nesting and read allocations are also bounded. If the
+budget is exceeded, recovery progressively removes the farthest Undo/Redo steps
+while retaining a continuous nearest timeline. If even the smallest history is
+too large, applied work still saves with history omitted. Restore reports how
+many steps were retained/omitted. The in-memory history of the running session
+is not trimmed by saving recovery.
+
+The new history generation is fully staged and synced before the core checkpoint
+atomically references it. Failed/cancelled core publication removes the new
+generation and retains the previous checkpoint/history pair. Successful saves
+remove the superseded companion. A crash between publishing the companion and
+publishing the core can leave an unreferenced companion; it cannot invalidate
+the previous pair. A missing, corrupt or mismatched referenced companion causes
+a clear restore error and leaves the live session and existing files untouched.
+Keep both files together when manually copying recovery data.
 
 ## Preserved state and startup behavior
 
@@ -55,8 +89,8 @@ accepted as a native recovery checkpoint.
   If scientific restore succeeds but displaying it fails, the UI reports that
   distinction and asks for a restart instead of offering a misleading fresh
   workspace while restored data remain in the processor.
-- Acquisition watchers and automatic exports remain off on restore, as on normal
-  project open. Undo/redo histories, unapplied numeric drafts, transient plot
+- Acquisition watchers and automatic exports remain off on restore and through
+  recovered Undo/Redo, as on normal project open. Unapplied numeric drafts, transient plot
   zoom/hover/click state, detached-window contents and inactive configurations'
   renderer-only contrast memories are not checkpointed. Existing persistent app
   preferences and companion-window placement retain their own storage.
@@ -90,6 +124,13 @@ Start fresh without a failed restore saves the fresh workspace on normal close.
   multiple configurations/settings, user-project identity and unchanged project
   bytes, unsaved identity, ordinary-save metadata removal, corrupt/non-recovery
   input rollback, and failed/cancelled writes retaining the previous file.
+  Also checks mask and interleaved scientific Undo/Redo across configurations,
+  new-edit chronology after restart, and history-free ordinary projects.
+- `project/recovery_history.rs` and `history_transfer.rs` unit tests cover size
+  trimming, retained nearest steps, complete history omission, shared identity
+  and nonfinite float bits, cancellation/read bounds, version-1 compatibility,
+  missing/corrupt companions, failed publication cleanup and automation remaining
+  disarmed through recovered Undo/Redo.
 - Host `recovery::tests`: native child restart/restore, clean close checkpoint,
   idle-backup suppression, decline/fresh close, failed-recovery protection,
   explicit startup priority, and draining admitted work before shutdown.
@@ -99,6 +140,8 @@ Start fresh without a failed restore saves the fresh workspace on normal close.
   scientific/project identity, another checkpoint/restart and unchanged source
   recovery bytes. Screenshots and receipts go to ignored
   `desktop/artifacts/session-recovery/`.
+  The Restore scenario exercises the actual Undo/Redo buttons in Integration
+  and Mask after a real worker restart with the original image removed.
 
 Tests use temporary HOME/app-data or explicit temporary recovery directories.
 No installed app, real user recovery file or visible native window is used.
@@ -112,3 +155,11 @@ browser scenarios, existing native project UI regressions in Chromium/WebKit,
 and Clippy with warnings denied for the recovery model target. Backend build/test
 commands used `MACOSX_DEPLOYMENT_TARGET=14.0` and `CARGO_INCREMENTAL=0` in the
 isolated checkout.
+
+The history follow-up also passes the four recovery integration tests in both
+debug and optimized release builds, four history lifecycle/limit tests, two
+shared-serializer tests, the existing five project model tests, five host tests,
+and all ten headless recovery scenarios with real Undo/Redo interactions.
+The production UI build, 178 frontend tests and all-target native Clippy with
+warnings denied pass. Verification continues to use only temporary recovery
+directories and headless windows.

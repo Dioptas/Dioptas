@@ -53,6 +53,11 @@ try {
       use_mask: false,
     });
     await call(previous, "save_project", { path: project });
+    await call(previous, "integration_settings", { bins: 211 });
+    await call(previous, "undo_calibration");
+    await call(previous, "mask_stroke", { points: [[1, 1]], radius: 1 });
+    await call(previous, "mask_stroke", { points: [[5, 5]], radius: 1 });
+    await call(previous, "undo_mask");
     await call(previous, "recovery_checkpoint", { path: checkpoint, ui });
   } finally {
     await previous.close();
@@ -120,6 +125,7 @@ try {
             return {
               ui: result.recoveryUi,
               missingSources: result.missingSources,
+              notice: result.recoveryNotice,
             };
           }
           throw Error(`Unexpected recovery operation: ${operation}`);
@@ -237,6 +243,47 @@ try {
                 assert.equal(restored.state.projectName, "experiment.dio");
                 assert.equal(restored.state.bins, 137);
                 assert.equal(restored.state.hasImage, true);
+                const history = page.getByRole("group", {
+                  name: "Edit history",
+                });
+                const undo = history.getByRole("button", {
+                  name: "Undo",
+                  exact: true,
+                });
+                const redo = history.getByRole("button", {
+                  name: "Redo",
+                  exact: true,
+                });
+                const waitForState = async (field, value) =>
+                  page.waitForFunction(
+                    async ([field, value]) => {
+                      const result = await window.__nativeInvoke("state", {});
+                      return result.state[field] === value;
+                    },
+                    [field, value],
+                  );
+                await redo.click();
+                await waitForState("bins", 211);
+                await undo.click();
+                await waitForState("bins", 137);
+                await undo.click();
+                await waitForState("bins", 1000);
+                await redo.click();
+                await waitForState("bins", 137);
+                await page
+                  .getByRole("button", { name: "Mask", exact: true })
+                  .click();
+                await redo.click();
+                await waitForState("maskedPixels", 10);
+                await undo.click();
+                await waitForState("maskedPixels", 5);
+                await undo.click();
+                await waitForState("maskedPixels", 0);
+                await redo.click();
+                await waitForState("maskedPixels", 5);
+                await page
+                  .getByRole("button", { name: "Integration", exact: true })
+                  .click();
                 await page.screenshot({
                   path: path.join(artifacts, `${name}-restored.png`),
                 });
