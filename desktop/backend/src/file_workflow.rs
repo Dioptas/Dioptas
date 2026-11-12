@@ -374,7 +374,6 @@ pub(crate) fn atomic_render(
 ) -> Result<(), String> {
     let mut temporary = crate::output::StagedOutput::new(path)?;
     write(temporary.as_file_mut())?;
-    temporary.as_file().sync_all().map_err(|e| e.to_string())?;
     temporary.commit(path)
 }
 impl Session {

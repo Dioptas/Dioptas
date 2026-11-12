@@ -55,14 +55,13 @@ impl StagedOutput {
     pub(crate) fn commit(self, target: &Path) -> Result<(), String> {
         match std::fs::metadata(target) {
             Ok(metadata) => self
-                .file
                 .as_file()
                 .set_permissions(metadata.permissions())
                 .map_err(|e| e.to_string())?,
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
             Err(error) => return Err(error.to_string()),
         }
-        self.file.as_file().sync_all().map_err(|e| e.to_string())?;
+        self.as_file().sync_all().map_err(|e| e.to_string())?;
         self.file.persist(target).map_err(|e| e.to_string())?;
         Ok(())
     }
