@@ -63,6 +63,7 @@ type CachedProduct = {
   bytes: number;
   value: unknown;
   buffers: Map<string, RasterBytes>;
+  cost: number;
 };
 /** Charge retained packet owners as well as conservative JSON object storage. */
 function productStorage(value: unknown, bytes: number) {
@@ -172,7 +173,7 @@ export class RasterTransfer {
     )
       throw Error("Invalid binary image header.");
     const productDescriptors = new Map<string, { id: string; bytes: number }>();
-    const retainedProducts = new Map<string, unknown>();
+    const retainedProducts = new Map<string, CachedProduct>();
     if (header.products !== undefined) {
       if (
         !header.products ||
@@ -197,7 +198,7 @@ export class RasterTransfer {
           const cached = knownProducts.get(field);
           if (!cached || cached.id !== entry.id || cached.bytes !== entry.bytes)
             throw Error("Missing or invalid cached metadata product.");
-          retainedProducts.set(field, cached.value);
+          retainedProducts.set(field, cached);
         }
       }
     }
@@ -288,14 +289,21 @@ export class RasterTransfer {
       return result ?? obj;
     };
     const result = hydrate(header.result) as Response;
-    for (const [field, value] of retainedProducts)
-      (result as unknown as Record<string, unknown>)[field] = value;
+    for (const [field, product] of retainedProducts)
+      (result as unknown as Record<string, unknown>)[field] = product.value;
     for (const [field, descriptor] of productDescriptors) {
+      const retained = retainedProducts.get(field);
+      if (retained) {
+        // Warm references reuse their already charged owners in constant time;
+        // do not walk thousands of unchanged entries to recount their storage.
+        this.products.set(field, retained, retained.cost);
+        continue;
+      }
       const value = (result as unknown as Record<string, unknown>)[field];
       const storage = productStorage(value, descriptor.bytes);
       this.products.set(
         field,
-        { ...descriptor, value, buffers: storage.buffers },
+        { ...descriptor, value, buffers: storage.buffers, cost: storage.cost },
         storage.cost,
       );
     }

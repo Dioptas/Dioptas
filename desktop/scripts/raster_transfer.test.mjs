@@ -122,6 +122,27 @@ test("metadata reuse is per client, preserves identity, and publishes changed/nu
   const t = new RasterTransfer(server);
   const first = await t.call("state");
   assert.equal((await t.call("state")).batch, first.batch);
+  const values = first.batch.values;
+  let visits = 0;
+  Object.defineProperty(first.batch, "values", {
+    configurable: true,
+    enumerable: true,
+    get: () => {
+      visits++;
+      return values;
+    },
+  });
+  assert.equal((await t.call("state")).batch, first.batch);
+  assert.equal(
+    visits,
+    0,
+    "A warm product must not traverse the unchanged metadata tree",
+  );
+  Object.defineProperty(first.batch, "values", {
+    configurable: true,
+    enumerable: true,
+    value: values,
+  });
   assert.deepEqual(seen[1], { batch: "batch-1", map: "empty-map" });
   const other = await new RasterTransfer(server).call("state");
   assert.deepEqual(other.batch, first.batch);
