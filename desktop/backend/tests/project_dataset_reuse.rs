@@ -309,3 +309,187 @@ fn legacy_react_normalization_recomputes_stale_current_data_before_reuse() {
         expected
     );
 }
+
+#[test]
+fn converted_native_input_is_published_as_canonical_f64() {
+    let dir = tempfile::tempdir().unwrap();
+    let input = dir.path().join("input.h5");
+    let project = dir.path().join("converted.dio");
+    let raw = fixture(&input, 0.);
+    let mut s = Session::new(root());
+    call(&mut s, "batch_open", json!({"path":input}));
+    call(&mut s, "save_project", json!({"path":project}));
+    let converted: Vec<_> = raw.iter().map(|v| *v as f32).collect();
+    {
+        let f = hdf5::File::open_rw(&project).unwrap();
+        let group = f.group("configurations/0/native_batch/result").unwrap();
+        group.unlink("data").unwrap();
+        group
+            .new_dataset::<f32>()
+            .shape([4, 64])
+            .create("data")
+            .unwrap()
+            .write_raw(&converted)
+            .unwrap();
+    }
+    call(&mut s, "open_project", json!({"path":project}));
+    call(&mut s, "save_project", json!({"path":project}));
+    let f = hdf5::File::open(&project).unwrap();
+    let dataset = f
+        .dataset("configurations/0/native_batch/result/data")
+        .unwrap();
+    assert!(dataset.dtype().unwrap().is::<f64>());
+    assert_eq!(
+        bits(&f, "configurations/0/native_batch/result/data"),
+        converted
+            .iter()
+            .map(|v| (*v as f64).to_bits())
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn external_native_arrays_are_frozen_from_loaded_values_and_saved_as_owned_storage() {
+    use std::io::{Seek, SeekFrom, Write};
+    for storage in ["raw", "virtual", "foreign-link"] {
+        let dir = tempfile::tempdir().unwrap();
+        let input = dir.path().join("input.h5");
+        let project = dir.path().join("external.dio");
+        let companion = dir.path().join("companion");
+        let raw = fixture(&input, 0.);
+        let raw_bytes: Vec<_> = raw.iter().flat_map(|v| v.to_le_bytes()).collect();
+        let mut s = Session::new(root());
+        call(&mut s, "batch_open", json!({"path":input}));
+        call(&mut s, "save_project", json!({"path":project}));
+        let offset = if storage == "raw" {
+            std::fs::write(&companion, &raw_bytes).unwrap();
+            0
+        } else {
+            let f = hdf5::File::create(&companion).unwrap();
+            let d = f
+                .new_dataset::<f64>()
+                .shape([4, 64])
+                .create("counts")
+                .unwrap();
+            d.write_raw(&raw).unwrap();
+            d.offset().unwrap()
+        };
+        {
+            let f = hdf5::File::open_rw(&project).unwrap();
+            let group = f.group("configurations/0/native_batch/result").unwrap();
+            group.unlink("data").unwrap();
+            match storage {
+                "raw" => {
+                    group
+                        .new_dataset::<f64>()
+                        .shape([4, 64])
+                        .external(companion.to_str().unwrap(), 0, raw_bytes.len())
+                        .create("data")
+                        .unwrap();
+                }
+                "virtual" => {
+                    group
+                        .new_dataset::<f64>()
+                        .shape([4, 64])
+                        .virtual_map(
+                            companion.to_str().unwrap(),
+                            "/counts",
+                            (4, 64),
+                            (.., ..),
+                            (4, 64),
+                            (.., ..),
+                        )
+                        .create("data")
+                        .unwrap();
+                }
+                _ => group
+                    .link_external(companion.to_str().unwrap(), "/counts", "data")
+                    .unwrap(),
+            }
+        }
+        call(&mut s, "open_project", json!({"path":project}));
+        // External storage may change after the session has read its owned Vec.
+        // Write the contiguous payload directly without altering HDF metadata.
+        {
+            let mut f = std::fs::OpenOptions::new()
+                .write(true)
+                .open(&companion)
+                .unwrap();
+            f.seek(SeekFrom::Start(offset)).unwrap();
+            for value in &raw {
+                f.write_all(&(value + 1000.).to_le_bytes()).unwrap();
+            }
+            f.sync_all().unwrap();
+        }
+        call(&mut s, "save_project", json!({"path":project}));
+        {
+            let f = hdf5::File::open(&project).unwrap();
+            let data = f
+                .dataset("configurations/0/native_batch/result/data")
+                .unwrap();
+            assert_ne!(data.layout(), hdf5::dataset::Layout::Virtual, "{storage}");
+            assert!(
+                data.dcpl().unwrap().get_external().unwrap().is_empty(),
+                "{storage}"
+            );
+            assert_eq!(
+                Path::new(&data.filename()).canonicalize().unwrap(),
+                project.canonicalize().unwrap(),
+                "{storage}"
+            );
+            assert_eq!(
+                bits(&f, "configurations/0/native_batch/result/data"),
+                raw.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
+                "{storage}"
+            );
+        }
+        std::fs::remove_file(&companion).unwrap();
+        call(&mut s, "open_project", json!({"path":project}));
+        call(&mut s, "save_project", json!({"path":project}));
+        let f = hdf5::File::open(&project).unwrap();
+        assert_eq!(
+            bits(&f, "configurations/0/native_batch/result/data"),
+            raw.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
+            "{storage}"
+        );
+    }
+}
+
+#[test]
+fn staging_name_collisions_preserve_existing_extension_objects() {
+    let dir = tempfile::tempdir().unwrap();
+    let input = dir.path().join("input.h5");
+    let project = dir.path().join("extension-names.dio");
+    fixture(&input, 0.);
+    let mut s = Session::new(root());
+    normalized(&mut s, &input, false);
+    call(&mut s, "save_project", json!({"path":project}));
+    {
+        let file = hdf5::File::open_rw(&project).unwrap();
+        let extension = file.create_group("__native_series_arrays").unwrap();
+        extension
+            .new_dataset::<u32>()
+            .shape(())
+            .create("keep")
+            .unwrap()
+            .write_scalar(&97)
+            .unwrap();
+        file.link_hard("/__native_series_arrays", "extension_alias")
+            .unwrap();
+        file.link_soft("/unavailable_extension", "__native_series_arrays_1")
+            .unwrap();
+    }
+    call(&mut s, "open_project", json!({"path":project}));
+    call(&mut s, "save_project", json!({"path":project}));
+    let file = hdf5::File::open(&project).unwrap();
+    assert_eq!(
+        file.dataset("extension_alias/keep")
+            .unwrap()
+            .read_scalar::<u32>()
+            .unwrap(),
+        97
+    );
+    assert!(file.link_exists("__native_series_arrays_1"));
+    assert!(!file.link_exists("__native_series_arrays_2"));
+    shared_batch(&file, 0);
+}
