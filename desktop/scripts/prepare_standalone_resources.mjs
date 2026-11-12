@@ -5,6 +5,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { verifyHdf5WindowsAbi } from "./check_hdf5_windows_abi.mjs";
 
+import { verifyPeritheosResources } from "./peritheos_distribution.mjs";
+
 const desktop = fileURLToPath(new URL("../", import.meta.url));
 const repository = path.dirname(desktop.slice(0, -1));
 const digest = (data) => createHash("sha256").update(data).digest("hex");
@@ -69,7 +71,10 @@ export async function prepareStandaloneResources(target) {
   const copies = [
     ["LICENSE.txt", "licenses/Dioptas-MIT.txt"],
     ["desktop/licenses", "licenses/interface"],
-    ["desktop/vendor/HDF5_WINDOWS_ABI.json", "licenses/hdf5/HDF5_WINDOWS_ABI.json"],
+    [
+      "desktop/vendor/HDF5_WINDOWS_ABI.json",
+      "licenses/hdf5/HDF5_WINDOWS_ABI.json",
+    ],
     ["desktop/vendor/HDF5_WINDOWS_ABI.md", "licenses/hdf5/HDF5_WINDOWS_ABI.md"],
     ["desktop/standalone/README.html", "README.html"],
     ["desktop/backend/resources", "scientific-data"],
@@ -84,6 +89,9 @@ export async function prepareStandaloneResources(target) {
       recursive: true,
     });
   }
+  const peritheos = await verifyPeritheosResources(
+    path.join(output, "scientific-data/peritheos"),
+  );
   const packages = new Map();
   for (const manifest of ["backend/Cargo.toml", "src-tauri/Cargo.toml"]) {
     const metadata = JSON.parse(
@@ -131,17 +139,23 @@ export async function prepareStandaloneResources(target) {
       await writeFile(path.join(output, relative), data);
       texts.push({ path: relative, sha256 });
     }
-    const patch = item.source === null && hdf5Abi.packages.find(
-      (pkg) => pkg.crate === item.name && pkg.version === item.version,
-    );
+    const patch =
+      item.source === null &&
+      hdf5Abi.packages.find(
+        (pkg) => pkg.crate === item.name && pkg.version === item.version,
+      );
     cargo.push({
       name: item.name,
       version: item.version,
-      source: item.source || (patch ? `vendored:${patch.registryUrl}` : "application"),
+      source:
+        item.source ||
+        (patch ? `vendored:${patch.registryUrl}` : "application"),
       repository: item.repository,
-      sourceArchive: patch ? patch.registryUrl : item.source?.startsWith("registry+")
-        ? `https://crates.io/api/v1/crates/${item.name}/${item.version}/download`
-        : item.source,
+      sourceArchive: patch
+        ? patch.registryUrl
+        : item.source?.startsWith("registry+")
+          ? `https://crates.io/api/v1/crates/${item.name}/${item.version}/download`
+          : item.source,
       license: item.license,
       upstreamNotices: override,
       ...(patch ? { localPatch: "licenses/hdf5/HDF5_WINDOWS_ABI.json" } : {}),
@@ -224,7 +238,8 @@ export async function prepareStandaloneResources(target) {
         fontPolicy:
           "System UI fonts only; no external font service or font download.",
         scientificData:
-          "Calibrants, phase/material core metadata, symmetry/scattering tables and detector definitions are also embedded in native binaries. Peritheos source qualifications and notices are retained; no optional numerical dataset package is included.",
+          "Calibrants, phase/material core metadata, symmetry/scattering tables and detector definitions are also embedded in native binaries. Peritheos source qualifications and notices are retained; only EOS definitions/parameters, structure, references and qualifications are included, with no experimental datasets or embedded observation/audit row tables.",
+        peritheos,
         example:
           "Raw CeO2 TIFF starts uncalibrated. The adjacent PONI is a separate reference, not an automatic fit or accuracy certificate.",
         files,

@@ -147,3 +147,22 @@ The verified local candidates and reports are in ignored
 `artifacts/native-release/verified-2026-11-11/`. No public release or release tag
 was created. macOS 14 remains the declared build minimum, not a runtime tested
 here; Windows/Linux and universal macOS remain outside this qualification.
+
+## Peritheos distribution scope
+
+All native formats distribute an EOS-only Peritheos catalog: 234 materials and
+685 EOS records, retaining model parameters, thermal definitions, uncertainties,
+structure, citations and source qualifications. The resource generator excludes
+dataset descriptors and embedded observation/audit row tables. The Rust processor
+embeds this same projected catalog; removing only resource files is insufficient.
+User-loaded EOS documents are not filtered.
+
+`SOURCE.json` retains the original upstream document hashes and separately records
+the projected catalog hash and counts. The shared build hook checks the catalog
+before compilation, staging checks the resource directory against an explicit
+four-file inventory, and each platform's installed-artifact inspector repeats the
+check. Experimental CSVs and the optional Peritheos dataset package are excluded.
+
+Installer candidates built before this policy (including the earlier macOS and
+Windows qualification artifacts) are superseded for distribution: they contain
+the previous catalog and must be rebuilt and rechecked before publication.

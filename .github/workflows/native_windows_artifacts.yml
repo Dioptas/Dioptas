@@ -56,7 +56,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm run test:windows-release-config
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --test scripts/standalone_licenses.test.mjs
+          node --test scripts/standalone_licenses.test.mjs scripts/peritheos_distribution.test.mjs
         working-directory: desktop
       - name: Test release-mode native Windows processor
         run: cargo test --release --locked --manifest-path desktop/backend/Cargo.toml --all-features --no-fail-fast

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { verifyPeritheosResources } from "./peritheos_distribution.mjs";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { lstat, readFile, readdir, realpath, access } from "node:fs/promises";
@@ -11,6 +12,12 @@ export async function inspectWindowsInstall(directory) {
   const resources = path.join(root, "dioptas");
   const manifest = JSON.parse(
     await readFile(path.join(resources, "RESOURCE_MANIFEST.json"), "utf8"),
+  );
+  assert.deepEqual(
+    manifest.peritheos,
+    await verifyPeritheosResources(
+      path.join(resources, "scientific-data/peritheos"),
+    ),
   );
   assert.equal(manifest.target, "x86_64-pc-windows-msvc");
   for (const file of manifest.files) {

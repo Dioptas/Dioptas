@@ -1,8 +1,9 @@
 """Reproduce native metadata from pinned authored sources; never a runtime dependency.
 
 Run from the Dioptas root with its test environment. Default compares semantic
-JSON; --write refreshes resources. Optional numerical dataset packages are not
-read. Keep the Peritheos source revision in sync with backend/Cargo.toml.
+JSON; --write refreshes resources. Only the EOS distribution projection is
+retained; experimental dataset descriptors and observation/audit tables are omitted.
+Optional numerical dataset packages are not read. Keep the Peritheos source revision in sync with backend/Cargo.toml.
 """
 
 import argparse
@@ -12,6 +13,8 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+
+from peritheos_eos_only import POLICY, eos_only
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -40,7 +43,7 @@ def main():
     for path in sorted(source.glob("*.eosmat")):
         raw = path.read_bytes()
         hashes[path.name] = hashlib.sha256(raw).hexdigest()
-        docs.append(json.loads(raw))
+        docs.append(eos_only(json.loads(raw)))
         material = eos.load_material_file(str(path))
         for record in material.eos_records:
             reference = record.get("reference")
@@ -124,10 +127,19 @@ def main():
             for name in helpers
         },
     )
+    distribution = dict(
+        policy=POLICY["id"],
+        catalog_sha256=hashlib.sha256((resources / "peritheos/materials.json").read_bytes()).hexdigest(),
+        materials=len(docs),
+        eos_records=sum(len(doc["eos_records"]) for doc in docs),
+    )
     if args.write:
+        provenance["scope"] = "EOS-only distribution projection: models, parameters, structure, citations and qualifications; no dataset descriptors, experimental data files or embedded observation/audit row tables. Document hashes identify unmodified upstream sources, not the projected catalog."
+        provenance["distribution"] = distribution
         provenance["derived_metadata"] = derived
         provenance_path.write_text(json.dumps(provenance, indent=2) + "\n")
     else:
+        assert provenance["distribution"] == distribution
         assert (
             provenance["derived_metadata"]["helper_sha256"] == derived["helper_sha256"]
         )

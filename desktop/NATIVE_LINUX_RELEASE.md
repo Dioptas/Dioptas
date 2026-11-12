@@ -24,7 +24,8 @@ npm run release:linux -- --format appimage
 Both Cargo lockfiles are enforced. The processor and host are ELF64 x86-64
 binaries. The `.deb` declares the GTK/WebKitGTK runtime dependencies and glibc
 2.35 minimum. AppImage has a glibc 2.39 minimum; Python, Node and Rust are build/test tools, not application runtime
-requirements. Examples, scientific data, the offline guide, application icons and
+requirements. Examples, the EOS-only Peritheos catalog (no experimental data
+files or embedded observation/audit tables), crystallographic resources, the offline guide, application icons and
 third-party notices are included.
 
 AppImage includes a versioned superset of installed build-image package

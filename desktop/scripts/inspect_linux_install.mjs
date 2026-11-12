@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { verifyPeritheosResources } from "./peritheos_distribution.mjs";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { lstat, open, readFile, readdir, realpath } from "node:fs/promises";
@@ -37,6 +38,12 @@ export async function inspectLinuxInstall(
   const resources = locations[0];
   const manifest = JSON.parse(
     await readFile(path.join(resources, "RESOURCE_MANIFEST.json"), "utf8"),
+  );
+  assert.deepEqual(
+    manifest.peritheos,
+    await verifyPeritheosResources(
+      path.join(resources, "scientific-data/peritheos"),
+    ),
   );
   assert.equal(manifest.target, "x86_64-unknown-linux-gnu");
   for (const record of manifest.files) {

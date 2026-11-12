@@ -54,7 +54,7 @@ jobs:
       - run: npm ci
         working-directory: desktop
       - name: Check shared release configuration
-        run: npm run test:release-config
+        run: npm run test:release-config && node --test scripts/peritheos_distribution.test.mjs
         working-directory: desktop
       - name: Prepare Developer ID and notarization credentials
         run: python3 installer/macos/signing.py setup

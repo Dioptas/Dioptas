@@ -1,0 +1,18 @@
+{
+  "id": "eos-only-v1",
+  "omitFields": ["datasets", "source_equation"],
+  "omitCollections": [
+    "data",
+    "rows",
+    "observations",
+    "observation_rows",
+    "experimental_observations",
+    "source_tokens",
+    "checkpoints",
+    "source_checkpoints",
+    "states",
+    "source_phase_markers",
+    "independent_density_benchmarks",
+    "excluded"
+  ]
+}

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { verifyPeritheosResources } from "./peritheos_distribution.mjs";
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
@@ -29,6 +30,12 @@ export async function inspectStandalone(application, options = {}) {
   const resources = path.join(app, "Contents/Resources/dioptas");
   const manifest = JSON.parse(
     await readFile(path.join(resources, "RESOURCE_MANIFEST.json"), "utf8"),
+  );
+  assert.deepEqual(
+    manifest.peritheos,
+    await verifyPeritheosResources(
+      path.join(resources, "scientific-data/peritheos"),
+    ),
   );
   const minimum = execFileSync(
     "/usr/bin/plutil",

@@ -65,7 +65,7 @@ jobs:
           node scripts/check_hdf5_windows_abi.mjs
           npm run test:release-config
           npm run test:linux-release-config
-          node --test scripts/standalone_licenses.test.mjs
+          node --test scripts/standalone_licenses.test.mjs scripts/peritheos_distribution.test.mjs
       - name: Test the release-profile Linux processor
         run: cargo test --release --locked --manifest-path desktop/backend/Cargo.toml --all-features --no-fail-fast
       - name: Build installer candidates

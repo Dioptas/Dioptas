@@ -7,6 +7,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { prepareStandaloneResources } from "./prepare_standalone_resources.mjs";
 
+import { verifyPeritheosResources } from "./peritheos_distribution.mjs";
+
 const desktop = fileURLToPath(new URL("../", import.meta.url));
 const args = process.argv.slice(2);
 if (
@@ -42,6 +44,9 @@ const buildArgs = [
 ];
 console.log(
   `Building Dioptas Rust processor (${target}, ${release ? "release" : "debug"}).`,
+);
+await verifyPeritheosResources(
+  path.join(desktop, "backend/resources/peritheos"),
 );
 const child = spawn(command, buildArgs, {
   cwd: desktop,
