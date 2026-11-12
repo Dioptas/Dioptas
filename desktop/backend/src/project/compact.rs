@@ -291,6 +291,14 @@ pub(super) fn prune_pools(
     let mut references = BTreeSet::new();
     json_hashes(document, &candidates, &mut references);
     let (nodes, _, soft_targets) = objects(file, control)?;
+    // A soft alias to a pool (or its root ancestor) exposes the same complete
+    // member view as a hard alias. Its group token is not a dataset token.
+    for name in ["/", "/cache", "/payloads"] {
+        let group = file.group(name).native()?;
+        if soft_targets.contains(&token(&group)?) {
+            return Ok(());
+        }
+    }
     for node in nodes {
         control.check()?;
         for name in node.object.attr_names().native()? {

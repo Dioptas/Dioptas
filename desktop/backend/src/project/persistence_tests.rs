@@ -483,3 +483,87 @@ fn publication_bound_and_late_cancellation_preserve_existing_destination_bytes()
     assert!(finish_project(staged, &target, &control, 64).is_err());
     assert_eq!(std::fs::read(&target).unwrap(), b"existing project");
 }
+
+#[test]
+fn literal_extension_json_keys_retain_pool_arrays_without_retaining_orphans() {
+    let temp = tempfile::tempdir().unwrap();
+    let project = temp.path().join("resource-index.dio");
+    let mut session = Session::new(root());
+    session.save_native_project(&project).unwrap();
+    let (referenced, orphan);
+    {
+        let file = hdf5::File::open_rw(&project).unwrap();
+        let cache = file.group("cache").unwrap();
+        referenced = put(&cache, &[2], &[13., 14.])
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_owned();
+        orphan = put(&cache, &[2], &[15., 16.])
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let mut document = read_json_dataset(&file, "state").unwrap();
+        document["beamline_resource_index"] = json!({});
+        document["beamline_resource_index"][referenced.as_str()] =
+            json!({"kind":"calibration metadata"});
+        write_json_dataset(&file, "state", &document).unwrap();
+    }
+    session.open_native_project(&project).unwrap();
+    session.save_native_project(&project).unwrap();
+    let file = hdf5::File::open(&project).unwrap();
+    assert_eq!(
+        file.dataset(&format!("cache/{referenced}"))
+            .unwrap()
+            .read_raw::<f64>()
+            .unwrap(),
+        vec![13., 14.]
+    );
+    assert!(!file.link_exists(&format!("cache/{orphan}")));
+    assert_eq!(
+        read_json_dataset(&file, "state").unwrap()["beamline_resource_index"][&referenced]["kind"],
+        "calibration metadata"
+    );
+}
+
+#[test]
+fn a_soft_extension_alias_to_a_pool_preserves_its_member_view() {
+    let temp = tempfile::tempdir().unwrap();
+    for (i, target) in ["/cache", "/payloads", "/"].into_iter().enumerate() {
+        let project = temp.path().join(format!("pool-view-{i}.dio"));
+        let pool = if target == "/" {
+            "cache"
+        } else {
+            target.trim_start_matches('/')
+        };
+        let mut session = Session::new(root());
+        session.save_native_project(&project).unwrap();
+        let key;
+        {
+            let file = hdf5::File::open_rw(&project).unwrap();
+            key = put(&file.group(pool).unwrap(), &[2], &[21., 22.])
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .to_owned();
+            file.link_soft(target, "/beamline_pool_view").unwrap();
+        }
+        session.open_native_project(&project).unwrap();
+        session.save_native_project(&project).unwrap();
+        let file = hdf5::File::open(&project).unwrap();
+        let view = if target == "/" {
+            "beamline_pool_view/cache"
+        } else {
+            "beamline_pool_view"
+        };
+        assert_eq!(pool_names(&file, view), BTreeSet::from([key.clone()]));
+        assert_eq!(
+            file.dataset(&format!("{view}/{key}"))
+                .unwrap()
+                .read_raw::<f64>()
+                .unwrap(),
+            vec![21., 22.]
+        );
+    }
+}
