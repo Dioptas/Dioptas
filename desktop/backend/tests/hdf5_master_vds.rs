@@ -129,6 +129,7 @@ fn source_requirements_are_read_only_and_choices_round_trip_offline() {
     assert_eq!(pixel(&mut s), 7.);
     let project = temp.path().join("sources.dio");
     call(&mut s, "save_project", json!({"path":project}));
+    drop(s); // Close acquisition readers before moving the companion directory.
     std::fs::rename(temp.path().join("parts"), temp.path().join("offline-parts")).unwrap();
     let mut restored = Session::new(root());
     call(&mut restored, "open_project", json!({"path":project}));

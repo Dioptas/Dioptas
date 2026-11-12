@@ -298,6 +298,22 @@ with no publication/notarization step. Windows/Linux and universal macOS
 packaging remain unqualified. The local native artifact and relocation checks
 are documented in that ledger.
 
+For signed installer candidates, see [native release packaging](NATIVE_RELEASE.md).
+`npm run release:macos` uses the shared release configuration and Developer ID
+credentials; the artifact-only workflow also notarizes and tests Apple Silicon
+and Intel DMGs. It does not publish a release. The application version comes
+from `package.json`; the current `0.1.0` remains a packaging test version.
+
+The [native Windows installer pipeline](NATIVE_WINDOWS_RELEASE.md) adds an x64
+NSIS candidate with offline WebView2, bundled Visual C++ runtime, and automated
+install/upgrade/uninstall and native WebView2 checks. Windows candidates are
+explicitly unsigned until a Windows signing provider is configured.
+
+The [native Linux pipeline](NATIVE_LINUX_RELEASE.md) builds x64 `.deb` and
+AppImage candidates using Ubuntu 22.04 and 24.04 build baselines respectively.
+The `.deb` is tested on Ubuntu 22.04/24.04; AppImage is tested on Ubuntu 24.04. It checks installed GTK/WebKit operation under a virtual
+display, source-free processing and package lifecycle without publishing.
+
 Development still supports `DIOPTAS_SOURCE_ROOT` for the Python comparison
 backend and `DIOPTAS_NATIVE_PROCESSOR` for an explicit Rust executable.
 Release Rust startup uses installed resources and a sibling processor, with

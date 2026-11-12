@@ -1,7 +1,7 @@
 {
   "repository": "https://github.com/CPrescher/peritheos",
   "revision": "3c79b1aedf28c348a49cc22d9f24d92895546283",
-  "scope": "Core material documents only. No optional numerical dataset package. Source attributions and qualifications remain in each document.",
+  "scope": "EOS-only distribution projection: models, parameters, structure, citations and qualifications; empty dataset provenance metadata only; no experimental data files or embedded observation/audit row tables. Document hashes identify unmodified upstream sources, not the projected catalog.",
   "documents": {
     "akimotoite.eosmat": "23757b5ebe1ce85c7cdf562e80007ddb7e5ae48544837635d48bb8c2ae65b8b5",
     "al2o3_perovskite.eosmat": "8fdd24e38736fe8d8464d790a14f7b5ba9f9e3e83427f2fbdac493676acaeab2",
@@ -249,5 +249,12 @@
       "dioptas/desktop/phase_sites.py": "4fb48cd22380b260c976bebb33331299beafd657e5e184faabcb1acc37cb84a4",
       "dioptas/desktop/custom_commands.py": "17707f2321709f500776e0a21c99f7e98eaec4d4e374b757a6b53add5c055483"
     }
+  },
+  "distribution": {
+    "policy": "eos-only-v1",
+    "catalog_sha256": "ef6d16cd0b73e8dfb4168741c93f9ecd21c6e1aa145f116a3d48541e3e7cd8aa",
+    "materials": 234,
+    "eos_records": 685,
+    "provenance_only_datasets": 456
   }
 }

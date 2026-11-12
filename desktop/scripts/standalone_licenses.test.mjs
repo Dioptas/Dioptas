@@ -91,6 +91,30 @@ test("all three omitted Linux license archives use exact-version upstream texts 
     );
   }));
 
+test("Windows WebView2 wrappers retain exact-version upstream MIT notices", async () =>
+  fixture(async ({ item }) => {
+    for (const [name, version] of [
+      ["webview2-com", "0.39.1"],
+      ["webview2-com-sys", "0.39.1"],
+      ["webview2-com-macros", "0.8.1"],
+    ]) {
+      const result = await cargoLicenseFiles(
+        { ...item, name, version },
+        overridesDirectory,
+        overrides,
+      );
+      assert.equal(result.files.length, 1);
+      assert.match(
+        await readFile(result.files[0], "utf8"),
+        /Copyright \(c\) 2021 Bill Avery/,
+      );
+      assert.match(
+        result.override[0].url,
+        /webview2-rs\/[a-f0-9]{40}\/LICENSE$/,
+      );
+    }
+  }));
+
 test("a modified pinned upstream text fails even when a crate-local license exists", async () =>
   fixture(async ({ root, directory, item }) => {
     const copiedOverrides = path.join(root, "overrides");

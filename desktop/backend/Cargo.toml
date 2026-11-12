@@ -47,11 +47,19 @@ sha2 = { version = "0.10", features = ["asm"] }
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+
 [[bin]]
 name = "dioptas-processor"
 path = "src/main.rs"
 
 [workspace]
+
+# Match the external-file offset ABI of bundled HDF5 2.x on Windows.
+[patch.crates-io]
+hdf5-metno = { path = "../vendor/hdf5-metno" }
+hdf5-metno-sys = { path = "../vendor/hdf5-metno-sys" }
 
 
 # Keep the real-image native algorithms practical in the development preview.

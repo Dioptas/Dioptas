@@ -132,6 +132,7 @@ fn eiger_gap_margins_follow_source_flags_and_survive_projects_and_series() {
     assert!(selected.result["cake"].is_null());
     let project = temp.path().join("gaps.dio");
     call(&mut session, "save_project", json!({"path":project}));
+    drop(session); // Windows locks acquisition files while their readers are open.
     for source in sources {
         std::fs::remove_file(source).unwrap();
     }

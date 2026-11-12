@@ -395,6 +395,7 @@ fn independent_configurations_and_owned_project_sources_round_trip() {
     call(&mut s, "select_image_source", json!({"dataset":"/b"}));
     let expected = call(&mut s, "state", json!({})).result;
     call(&mut s, "save_project", json!({"path":project}));
+    drop(s); // Close the acquisition reader before moving its source on Windows.
     let moved = temp.path().join("moved.h5");
     std::fs::rename(&path, &moved).unwrap();
     let mut restored = Session::new(root());

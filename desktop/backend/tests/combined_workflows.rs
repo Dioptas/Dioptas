@@ -199,6 +199,9 @@ fn mask_integration_batch_map_and_multiple_configurations_share_project_state() 
     let before = call(&mut session, "state", json!({}));
     let project = temp.path().join("combined.dio");
     call(&mut session, "save_project", json!({"path":project}));
+    // Simulate reopening on a machine without the acquisition files. Close
+    // the original session's live HDF5 reader before removing them on Windows.
+    drop(session);
     fs::remove_file(&source).unwrap();
     fs::remove_file(&second_source).unwrap();
     fs::remove_file(&mask).unwrap();

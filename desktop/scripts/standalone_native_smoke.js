@@ -46,7 +46,7 @@
     );
     const image = initial.state.imagePath;
     check(
-      image.includes("/examples/"),
+      image.replaceAll("\\", "/").includes("/examples/"),
       "Example was not loaded from packaged resources",
     );
     await invoke("integration_settings", { bins: 128, cake_bins: 36 });
@@ -72,7 +72,7 @@
     await invoke("integration_autocreate", { enabled: false });
     await invoke("integration_phase", {
       operation: "load",
-      path: image.replace(/[^/]+$/, "mo.jcpds"),
+      path: image.replace(/[^/\\]+$/, "mo.jcpds"),
     });
     const catalog = await invoke("integration_phase_catalog", {
       query: "gold",

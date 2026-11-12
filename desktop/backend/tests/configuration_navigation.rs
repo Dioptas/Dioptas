@@ -192,6 +192,7 @@ fn grouped_folders_and_mec_keep_each_detector_directory() {
             r.result["state"]["imagePath"]
                 .as_str()
                 .unwrap()
+                .replace('\\', "/")
                 .contains("detB/run002")
         );
         assert_eq!(r.result["state"]["imageName"], second);
@@ -199,6 +200,7 @@ fn grouped_folders_and_mec_keep_each_detector_directory() {
             select(&mut s, 0).result["state"]["imagePath"]
                 .as_str()
                 .unwrap()
+                .replace('\\', "/")
                 .contains("detA/run002")
         );
         let r = call(
@@ -211,6 +213,7 @@ fn grouped_folders_and_mec_keep_each_detector_directory() {
             r.result["state"]["imagePath"]
                 .as_str()
                 .unwrap()
+                .replace('\\', "/")
                 .contains("detA/run001")
         );
     }
@@ -329,6 +332,7 @@ fn generic_folder_rules_select_number_and_independent_filename_step() {
             r.result["state"]["imagePath"]
                 .as_str()
                 .unwrap()
+                .replace('\\', "/")
                 .contains(expected)
         );
     }

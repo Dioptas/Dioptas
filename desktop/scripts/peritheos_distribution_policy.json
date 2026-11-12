@@ -1,0 +1,42 @@
+{
+  "id": "eos-only-v1",
+  "omitFields": [
+    "datasets",
+    "source_equation"
+  ],
+  "omitCollections": [
+    "data",
+    "rows",
+    "observations",
+    "observation_rows",
+    "experimental_observations",
+    "source_tokens",
+    "checkpoints",
+    "source_checkpoints",
+    "states",
+    "source_phase_markers",
+    "independent_density_benchmarks",
+    "excluded",
+    "pressure_residuals_gpa",
+    "residual_gpa",
+    "residuals_km_s",
+    "residuals_gpa_in_source_order",
+    "metric_minus_printed_volume_a3",
+    "nonliquid_volume_ratio_temperature_k"
+  ],
+  "datasetMetadataFields": [
+    "identifier",
+    "kind",
+    "source_location",
+    "reference",
+    "columns",
+    "used_by_eos_records"
+  ],
+  "columnMetadataFields": [
+    "name",
+    "quantity",
+    "unit",
+    "role",
+    "of"
+  ]
+}

@@ -445,9 +445,13 @@ mod tests {
         s.normalize(true, [8, 60], 1).unwrap();
         s.configure_batch_background(&json!({"subtract":true,"range":[2.0,8.0],"cut":true}))
             .unwrap();
-        let file = tempfile::NamedTempFile::new().unwrap();
-        s.save(file.path()).unwrap();
-        let mut restored = Series::load(file.path()).unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        let file = directory.path().join("background.h5");
+        s.save(&file).unwrap();
+        // Exercise replacing an existing file, without a test-owned handle
+        // preventing atomic replacement on Windows.
+        s.save(&file).unwrap();
+        let mut restored = Series::load(&file).unwrap();
         assert_eq!(restored.background_metadata(), s.background_metadata());
         assert_eq!(restored.background_data(), s.background_data());
         assert_eq!(restored.data, s.data);

@@ -527,16 +527,40 @@ impl Session {
             compact::prune_pools(&file, &document, &self.control)?;
         }
         file.flush().native()?;
+        // Release HDF5 objects before copying/publishing files on Windows.
         drop(payloads);
         drop(cache);
         drop(groups);
         if compact {
             compact::write_fresh(&file, temp.path(), &self.control)?;
-            drop(file);
+            file.close().native()?;
         } else {
-            drop(file);
+            file.close().native()?;
             copy_file(working.path(), temp.path(), &self.control)?;
         }
         finish_project(temp, path, &self.control, MAX_PROJECT_BYTES)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn project_save_closes_hdf5_handles_before_publishing_and_overwriting() {
+        let temporary = tempfile::tempdir().unwrap();
+        let path = temporary.path().join("Portable project ü.dio");
+        let mut session = Session::new(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../.."));
+        session.settings.bins = 128;
+        session.settings.automatic_binning = false;
+        session.save_native_project(&path).unwrap();
+        session.open_native_project(&path).unwrap();
+        session.settings.bins = 256;
+        session.save_native_project(&path).unwrap();
+        session.open_native_project(&path).unwrap();
+        assert_eq!(session.settings.bins, 256);
+        // A saved/opened project owns a snapshot, leaving the destination free
+        // for rename and replacement even on Windows.
+        std::fs::rename(&path, temporary.path().join("renamed.dio")).unwrap();
     }
 }

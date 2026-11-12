@@ -871,19 +871,75 @@ impl FileIdentity {
     }
 
     pub fn read(path: &Path) -> Result<Self, String> {
+        #[cfg(not(windows))]
         let m = std::fs::metadata(path).map_err(|e| e.to_string())?;
+        #[cfg(windows)]
+        let handle = std::fs::File::open(path).map_err(|e| e.to_string())?;
+        #[cfg(windows)]
+        let m = handle.metadata().map_err(|e| e.to_string())?;
         #[cfg(unix)]
         let object = {
             use std::os::unix::fs::MetadataExt;
             (m.dev(), m.ino())
         };
-        #[cfg(not(unix))]
+        #[cfg(windows)]
+        let object = {
+            use std::os::windows::io::AsRawHandle;
+            use windows_sys::Win32::Storage::FileSystem::{
+                BY_HANDLE_FILE_INFORMATION, GetFileInformationByHandle,
+            };
+            let mut information = std::mem::MaybeUninit::<BY_HANDLE_FILE_INFORMATION>::uninit();
+            // SAFETY: the owned file keeps its handle valid, and the output
+            // pointer provides enough aligned storage for the Windows struct.
+            if unsafe {
+                GetFileInformationByHandle(handle.as_raw_handle(), information.as_mut_ptr())
+            } == 0
+            {
+                return Err(std::io::Error::last_os_error().to_string());
+            }
+            // SAFETY: the successful call initialized the complete struct.
+            let information = unsafe { information.assume_init() };
+            (
+                u64::from(information.dwVolumeSerialNumber),
+                (u64::from(information.nFileIndexHigh) << 32)
+                    | u64::from(information.nFileIndexLow),
+            )
+        };
+        #[cfg(not(any(unix, windows)))]
         let object = (0, 0);
         Ok(Self {
             length: m.len(),
             modified: m.modified().map_err(|e| e.to_string())?,
             object,
         })
+    }
+}
+
+#[cfg(test)]
+mod file_identity_tests {
+    use super::*;
+
+    #[test]
+    fn replacing_a_file_with_matching_size_and_mtime_changes_its_identity() {
+        let directory = tempfile::tempdir().unwrap();
+        let source = directory.path().join("source.bin");
+        let replacement = directory.path().join("replacement.bin");
+        std::fs::write(&source, [1, 2, 3, 4]).unwrap();
+        std::fs::write(&replacement, [5, 6, 7, 8]).unwrap();
+        let original = FileIdentity::read(&source).unwrap();
+        std::fs::File::options()
+            .write(true)
+            .open(&replacement)
+            .unwrap()
+            .set_times(std::fs::FileTimes::new().set_modified(original.modified))
+            .unwrap();
+        std::fs::rename(&source, directory.path().join("old.bin")).unwrap();
+        std::fs::rename(&replacement, &source).unwrap();
+        let changed = FileIdentity::read(&source).unwrap();
+        assert_eq!(original.length, changed.length);
+        assert_eq!(original.modified, changed.modified);
+        assert_ne!(original.object, changed.object);
+        assert_ne!(original, changed);
     }
 }
 

@@ -285,6 +285,7 @@ dependencies = [
  "tempfile",
  "tiff 0.8.1",
  "time",
+ "windows-sys",
  "xraydb",
 ]
 
@@ -491,8 +492,6 @@ dependencies = [
 [[package]]
 name = "hdf5-metno"
 version = "0.15.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7aff3a4833f1adfd8644b045749c6f5b0fd789673f289ff835fe7196e5800bd2"
 dependencies = [
  "bitflags",
  "cfg-if",
@@ -531,8 +530,6 @@ dependencies = [
 [[package]]
 name = "hdf5-metno-sys"
 version = "0.12.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c25498a6b2db388939b973be69d09516ab5f198944dbe8487bfaf37def8c371"
 dependencies = [
  "hdf5-metno-src",
  "libc",

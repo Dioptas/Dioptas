@@ -273,6 +273,9 @@ fn nexus_geometry_masks_transforms_projects_and_portable_poni_keep_owned_resourc
     call(&mut s, "open_calibration", json!({"path":rotated}));
     let project = temp.path().join("owned.dio");
     call(&mut s, "save_project", json!({"path":project}));
+    // Both sessions own live readers; close them before removing the sources.
+    drop(s);
+    drop(loaded);
     std::fs::remove_file(&source).unwrap();
     std::fs::remove_file(&definition).unwrap();
     let mut restored = Session::new(root());

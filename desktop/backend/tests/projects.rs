@@ -221,7 +221,9 @@ fn project_caches_retain_nonfinite_detector_samples_and_display_identity() {
     );
     let path = temp.path().join("pixels.dio");
     call(&mut s, "save_project", json!({"path":path}));
+    drop(s); // An independent reopen must not reuse the original HDF5 reader.
     std::fs::remove_file(source).unwrap();
+    let mut s = Session::new(root());
     let after = call(&mut s, "open_project", json!({"path":path}));
     assert_eq!(
         before.result["rawImage"]["bufferId"],

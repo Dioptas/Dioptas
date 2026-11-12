@@ -1,6 +1,7 @@
 //! Generated qualification inputs, not acquired beamline data.
 use std::path::Path;
 pub fn generate(directory: &Path) {
+    eprintln!("HDF5 fixture start: {}", directory.display());
     std::fs::create_dir_all(directory.join("parts")).unwrap();
     for (name, base) in [("a.h5", 10u16), ("b.h5", 30)] {
         let f = hdf5::File::create(directory.join("parts").join(name)).unwrap();
@@ -21,6 +22,7 @@ pub fn generate(directory: &Path) {
             .unwrap();
     }
     let eiger = hdf5::File::create(directory.join("eiger-master.h5")).unwrap();
+    eprintln!("HDF5 fixture external links: {}", directory.display());
     eiger.create_group("entry/data").unwrap();
     for (number, name) in [(1, "a.h5"), (2, "b.h5")] {
         eiger
@@ -39,6 +41,7 @@ pub fn generate(directory: &Path) {
         ("relocated.h5", true),
         ("overlap.h5", false),
     ] {
+        eprintln!("HDF5 fixture VDS {file}: {}", directory.display());
         let f = hdf5::File::create(directory.join(file)).unwrap();
         let a = if absolute {
             "/missing/acquisition/a.h5"
@@ -73,6 +76,7 @@ pub fn generate(directory: &Path) {
             .unwrap();
     }
     let nested = hdf5::File::create(directory.join("nested.h5")).unwrap();
+    eprintln!("HDF5 fixture nested VDS: {}", directory.display());
     nested
         .new_dataset::<u16>()
         .shape((4, 24, 32))
@@ -135,6 +139,7 @@ pub fn generate(directory: &Path) {
         .create("data")
         .unwrap();
     let raw = hdf5::File::create(directory.join("raw.h5")).unwrap();
+    eprintln!("HDF5 fixture raw external storage: {}", directory.display());
     let values: Vec<u8> = (0..2u16)
         .flat_map(|f| std::iter::repeat_n(50 + f, 24 * 32))
         .flat_map(|v| v.to_le_bytes())
@@ -156,6 +161,7 @@ pub fn generate(directory: &Path) {
         .external("counts-b.bin", 2, values.len() - split)
         .create("data")
         .unwrap();
+    eprintln!("HDF5 fixture complete: {}", directory.display());
 }
 pub fn compressed(source: &Path, destination: &Path) {
     use std::io::Write;
