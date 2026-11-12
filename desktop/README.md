@@ -310,8 +310,8 @@ install/upgrade/uninstall and native WebView2 checks. Windows candidates are
 explicitly unsigned until a Windows signing provider is configured.
 
 The [native Linux pipeline](NATIVE_LINUX_RELEASE.md) builds x64 `.deb` and
-AppImage candidates on Ubuntu 22.04 and tests each format independently on
-Ubuntu 22.04 and 24.04. It checks installed GTK/WebKit operation under a virtual
+AppImage candidates using Ubuntu 22.04 and 24.04 build baselines respectively.
+The `.deb` is tested on Ubuntu 22.04/24.04; AppImage is tested on Ubuntu 24.04. It checks installed GTK/WebKit operation under a virtual
 display, source-free processing and package lifecycle without publishing.
 
 Development still supports `DIOPTAS_SOURCE_ROOT` for the Python comparison

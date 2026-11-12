@@ -96,7 +96,6 @@ export async function linuxInstalledSmoke({
     LIBGL_ALWAYS_SOFTWARE: "1",
     GALLIUM_DRIVER: "llvmpipe",
     WEBKIT_DISABLE_DMABUF_RENDERER: "1",
-    GDK_GL: "gles",
     GDK_BACKEND: "x11",
     NO_AT_BRIDGE: "1",
     LIBGL_DEBUG: "verbose",
@@ -160,7 +159,6 @@ export async function linuxInstalledSmoke({
         backend: "x11",
         softwareRendering: true,
         dmabufDisabled: true,
-        gdkGl: "gles",
       },
     };
   } catch (error) {

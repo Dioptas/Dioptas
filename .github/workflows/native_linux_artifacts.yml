@@ -19,8 +19,16 @@ concurrency:
 jobs:
   build:
     if: ${{ inputs.candidate_run_id == '' }}
-    name: Build Linux x64 candidates (Ubuntu 22.04)
-    runs-on: ubuntu-22.04
+    name: Build Linux x64 ${{ matrix.format }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            format: deb
+          - os: ubuntu-24.04
+            format: appimage
     timeout-minutes: 120
     env:
       CARGO_BUILD_JOBS: '2'
@@ -37,7 +45,8 @@ jobs:
       - name: Install Linux build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake curl wget file pkg-config patchelf libssl-dev libgtk-3-dev libglib2.0-dev libwebkit2gtk-4.1-dev libxdo-dev libayatana-appindicator3-dev librsvg2-dev libfuse2
+          if [ '${{ matrix.os }}' = 'ubuntu-24.04' ]; then fuse_package=libfuse2t64; else fuse_package=libfuse2; fi
+          sudo apt-get install -y build-essential cmake curl wget file pkg-config patchelf libssl-dev libgtk-3-dev libglib2.0-dev libwebkit2gtk-4.1-dev libxdo-dev libayatana-appindicator3-dev librsvg2-dev "$fuse_package"
       - name: Install Rust
         run: rustup update stable
       - uses: Swatinem/rust-cache@v2
@@ -45,7 +54,7 @@ jobs:
           workspaces: |
             desktop/backend -> target
             desktop/src-tauri -> target
-          key: native-linux-ubuntu22-x64
+          key: native-linux-${{ matrix.os }}-x64
           cache-on-failure: true
       - run: npm ci
         working-directory: desktop
@@ -59,13 +68,13 @@ jobs:
           node --test scripts/standalone_licenses.test.mjs
       - name: Test the release-profile Linux processor
         run: cargo test --release --locked --manifest-path desktop/backend/Cargo.toml --all-features --no-fail-fast
-      - name: Build deb, AppImage and deb upgrade fixture
+      - name: Build installer candidates
         working-directory: desktop
-        run: npm run release:linux -- --test-upgrade
+        run: npm run release:linux -- --format '${{ matrix.format }}' ${{ matrix.format == 'deb' && '--test-upgrade' || '' }}
       - name: Retain installer candidates
         uses: actions/upload-artifact@v7
         with:
-          name: Dioptas-native-linux-x64-test
+          name: Dioptas-native-linux-x64-${{ matrix.format }}-test
           path: |
             desktop/artifacts/native-linux/**/*.deb
             desktop/artifacts/native-linux/**/*.AppImage
@@ -77,7 +86,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: Dioptas-native-linux-build-diagnostics
+          name: Dioptas-native-linux-${{ matrix.format }}-build-diagnostics
           path: desktop/artifacts/native-linux/
           if-no-files-found: ignore
           retention-days: 14
@@ -91,8 +100,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-24.04]
-        format: [deb, appimage]
+        include:
+          - os: ubuntu-22.04
+            format: deb
+          - os: ubuntu-24.04
+            format: deb
+          - os: ubuntu-24.04
+            format: appimage
     env:
       DIOPTAS_INSTALLER_TEST_ISOLATED: '1'
       HDF5_PLUGIN_PRELOAD: '::'
@@ -108,7 +122,7 @@ jobs:
           sudo apt-get install -y xvfb xauth dbus-x11 desktop-file-utils binutils libgl1 libegl1 libgl1-mesa-dri fonts-dejavu-core "$fuse_package"
       - uses: actions/download-artifact@v8
         with:
-          name: Dioptas-native-linux-x64-test
+          name: Dioptas-native-linux-x64-${{ matrix.format }}-test
           path: ${{ runner.temp }}/linux-candidates
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ inputs.candidate_run_id || github.run_id }}

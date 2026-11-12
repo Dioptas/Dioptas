@@ -10,7 +10,11 @@ import {
 } from "./linux_release_config.mjs";
 
 const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
-export async function inspectLinuxInstall(prefix, appimage = false) {
+export async function inspectLinuxInstall(
+  prefix,
+  appimage = false,
+  ceiling = [2, 35],
+) {
   assert.equal(process.platform, "linux");
   // Tauri uses the configured product name for its Linux resource directory.
   // Discover the one manifest instead of deriving a directory from the deb name.
@@ -109,7 +113,7 @@ export async function inspectLinuxInstall(prefix, appimage = false) {
     inspected.push({
       file: path.relative(prefix, file),
       sha256: digest(bytes),
-      requiredGlibc: requiredGlibc(versions),
+      requiredGlibc: requiredGlibc(versions, ceiling),
       dependencies: resolvedDependencies(dependencies),
     });
   }
@@ -183,6 +187,7 @@ export async function inspectLinuxInstall(prefix, appimage = false) {
             encoding: "utf8",
           }),
         ),
+        ceiling,
         searchPaths,
       });
       assert(

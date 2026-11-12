@@ -18,8 +18,20 @@ import { systemNotices } from "./linux_system_notices.mjs";
 
 assert.equal(process.platform, "linux", "Build Linux candidates on Linux");
 const { values } = parseArgs({
-  options: { "test-upgrade": { type: "boolean" } },
+  options: {
+    "test-upgrade": { type: "boolean" },
+    format: { type: "string", default: "deb" },
+  },
 });
+const format = values.format;
+assert(
+  ["deb", "appimage"].includes(format),
+  "Use --format deb or --format appimage",
+);
+assert(
+  format === "deb" || !values["test-upgrade"],
+  "Upgrade fixtures apply to deb packages",
+);
 const capture = (command, args) =>
   execFileSync(command, args, { cwd: desktop, encoding: "utf8" }).trim();
 const rustc = capture("rustc", ["-vV"]);
@@ -31,14 +43,15 @@ assert.equal(
 );
 const osRelease = await readFile("/etc/os-release", "utf8");
 assert.match(osRelease, /^ID=ubuntu$/m);
-assert.match(
-  osRelease,
-  /^VERSION_ID="22\.04"$/m,
-  "Build on the declared Ubuntu 22.04 baseline",
+const baseline = format === "deb" ? "22.04" : "24.04";
+const glibcBaseline = format === "deb" ? "2.35" : "2.39";
+assert(
+  osRelease.includes(`VERSION_ID="${baseline}"`),
+  `Build ${format} on its declared Ubuntu ${baseline} baseline`,
 );
 const root = path.join(desktop, "artifacts/native-linux");
 await mkdir(root, { recursive: true });
-const output = await mkdtemp(path.join(root, `${version}-x64-`));
+const output = await mkdtemp(path.join(root, `${version}-${format}-x64-`));
 const sourceRevision = capture("git", ["rev-parse", "HEAD"]);
 const sourceDirty = !!capture("git", ["status", "--porcelain"]);
 const notices = await systemNotices();
@@ -62,7 +75,7 @@ if (values["test-upgrade"]) {
 }
 const builds = [];
 for (const candidateVersion of versions) {
-  const kinds = candidateVersion === version ? ["deb", "appimage"] : ["deb"];
+  const kinds = [format];
   await new Promise((resolve, reject) => {
     const child = spawn(
       process.execPath,
@@ -128,13 +141,14 @@ const report = {
   identifier: releaseConfig.identifier,
   productName: releaseConfig.productName,
   target,
+  format,
   sourceRevision,
   sourceDirty,
   signing: "unsigned-test",
   published: false,
   rustc,
   buildSystem: osRelease,
-  glibcBaseline: "2.35",
+  glibcBaseline,
   systemNotices: notices,
   builds,
 };

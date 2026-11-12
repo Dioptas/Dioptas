@@ -32,8 +32,8 @@ assert(
 );
 const candidateDirectory = path.resolve(process.argv[2]);
 const reportPath = path.resolve(process.argv[3]);
-const format = process.argv[4] ?? "all";
-assert(["all", "deb", "appimage"].includes(format));
+const format = process.argv[4] ?? "deb";
+assert(["deb", "appimage"].includes(format));
 const metadata = JSON.parse(
   await readFile(path.join(candidateDirectory, "build.json"), "utf8"),
 );
@@ -43,6 +43,8 @@ const verificationRevision = execFileSync("git", ["rev-parse", "HEAD"], {
 }).trim();
 assert.equal(metadata.signing, "unsigned-test");
 assert.equal(metadata.published, false);
+assert.equal(metadata.format, format);
+const ceiling = metadata.glibcBaseline.split(".").map(Number);
 for (const b of metadata.builds) {
   assert.equal(path.basename(b.file), b.file);
   assert.equal(
@@ -55,12 +57,15 @@ for (const b of metadata.builds) {
 const run = (command, args, options = {}) =>
   execFileSync(command, args, { encoding: "utf8", ...options });
 const debs = metadata.builds.filter((b) => b.kind === "deb");
-assert(debs.length);
-const packageName = run("dpkg-deb", [
-  "--field",
-  path.join(candidateDirectory, debs[0].file),
-  "Package",
-]).trim();
+if (format === "deb") assert(debs.length);
+const packageName =
+  format === "deb"
+    ? run("dpkg-deb", [
+        "--field",
+        path.join(candidateDirectory, debs[0].file),
+        "Package",
+      ]).trim()
+    : "dioptas-desktop";
 assert.equal(packageName, "dioptas-desktop");
 try {
   assert.notEqual(
@@ -127,7 +132,7 @@ try {
         run("dpkg-query", ["-W", "-f=${Version}", packageName]).trim(),
         b.version,
       );
-      const inspection = await inspectLinuxInstall("/");
+      const inspection = await inspectLinuxInstall("/", false, ceiling);
       const runtime = await linuxInstalledSmoke({
         inspection,
         executable: "/usr/bin/dioptas-desktop",
@@ -186,6 +191,7 @@ try {
     const inspection = await inspectLinuxInstall(
       path.join(portableDirectory, "squashfs-root"),
       true,
+      ceiling,
     );
     for (const mode of ["fuse", "extract-and-run"]) {
       const runtime = await linuxInstalledSmoke({

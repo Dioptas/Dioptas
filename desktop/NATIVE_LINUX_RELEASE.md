@@ -8,19 +8,22 @@ fixture built from the same sources.
 
 ## Building
 
-Use a native x64 Ubuntu 22.04 build machine with the Tauri Linux prerequisites,
-Rust, Node, CMake and `patchelf`. The script enforces this build baseline so a
+Use a native x64 Ubuntu 22.04 machine for `.deb`, or Ubuntu 24.04 for AppImage,
+with the Tauri Linux prerequisites,
+Rust, Node, CMake and `patchelf`. The script enforces each format baseline so a
 newer host cannot silently raise the glibc requirement. From `desktop/`:
 
 ```sh
 npm ci
 npm run test:linux-release-config
-npm run release:linux -- --test-upgrade
+npm run release:linux -- --format deb --test-upgrade  # Ubuntu 22.04
+# On an Ubuntu 24.04 build machine:
+npm run release:linux -- --format appimage
 ```
 
 Both Cargo lockfiles are enforced. The processor and host are ELF64 x86-64
 binaries. The `.deb` declares the GTK/WebKitGTK runtime dependencies and glibc
-2.35 minimum; Python, Node and Rust are build/test tools, not application runtime
+2.35 minimum. AppImage has a glibc 2.39 minimum; Python, Node and Rust are build/test tools, not application runtime
 requirements. Examples, scientific data, the offline guide, application icons and
 third-party notices are included.
 
@@ -37,9 +40,10 @@ packaged hash because linuxdeploy can rewrite ELF search paths/layout. It
 checks the relocated library's architecture, SONAME and glibc requirement;
 the complete AppImage remains covered by its candidate checksum.
 
-The workflow `.github/workflows/native_linux_artifacts.yml` builds on
-`ubuntu-22.04`. Its verification matrix uses separate fresh Ubuntu 22.04 and
-24.04 runners for each format. AppImage runners never install the `.deb` first.
+The workflow `.github/workflows/native_linux_artifacts.yml` builds `.deb` on
+`ubuntu-22.04` and AppImage on `ubuntu-24.04`. Verification uses fresh Ubuntu
+22.04/24.04 runners for `.deb` and Ubuntu 24.04 for AppImage. AppImage runners
+never install the `.deb` first.
 The workflow token has read-only repository permissions.
 
 The registered workflow is manual-only:
@@ -74,8 +78,8 @@ chmod +x './Dioptas Desktop_0.1.0_amd64.AppImage'
 ```
 
 Use the actual artifact filename from `build.json`; Tauri's architecture suffix
-can differ between formats. AppImage normally needs FUSE 2 (`libfuse2` on Ubuntu
-22.04, `libfuse2t64` on 24.04). Its built-in `--appimage-extract-and-run` mode
+can differ between formats. This AppImage requires glibc 2.39 or newer and FUSE 2 (`libfuse2t64` on Ubuntu
+24.04). Its built-in `--appimage-extract-and-run` mode
 is also tested as a fallback. Removing the AppImage does not delete user settings.
 These candidates are unsigned. Public package-repository/signature integration
 is a separate step.
@@ -108,20 +112,22 @@ runtime checks open no windows on the user's desktop and use a virtual X11
 display with software rendering. They do not establish Wayland, physical GPU,
 ARM64, older glibc, RPM, Flatpak or every-distribution compatibility.
 
-The Xvfb tests explicitly request software rendering and the GLES GDK path.
-These are test-environment settings, recorded in the receipts, and are not
-forced on ordinary app startup. Ubuntu 24.04 AppImage graphics qualification
-is pending: the initial virtual/software path failed to create a shared EGL
-context, and disabling compositing alone did not resolve it. The native `.deb`
-passed using the distribution's own WebKit. Physical/default-compositor
-AppImage qualification remains separate. See
+The Xvfb tests explicitly request software rendering and disable the DMABUF
+renderer. These are test-environment settings, recorded in the receipts, and
+are not forced on ordinary app startup. An initial Ubuntu 22.04 AppImage's
+bundled GTK stack failed with Ubuntu 24.04's newer software EGL stack; neither
+disabling compositing nor selecting GLES resolved that. The supported format
+baselines are therefore separate: `.deb` retains Ubuntu 22.04 compatibility
+using the distribution's WebKit, while AppImage is built for Ubuntu 24.04 and
+newer glibc. The old Ubuntu-22-built AppImage is not a qualified candidate.
+Physical/default-compositor AppImage qualification remains separate. See
 [Tauri's Linux graphics guidance](https://v2.tauri.app/develop/debug/linux-graphics/).
 
 Outputs are in `artifacts/native-linux/<version>-x64-<run>/`: candidates,
 `SHA256SUMS` and `build.json` with clean/dirty source identity, build OS,
-toolchain, hashes and explicit signing/publication state. The four installation
+toolchain, hashes and explicit signing/publication state. The three installation
 reports identify their runtime OS and tested format. A candidate is qualified
-only after the build and all four installation jobs pass.
+only after the build and all three installation jobs pass.
 
 See the [Tauri AppImage](https://v2.tauri.app/distribute/appimage/) and
 [Debian packaging guides](https://v2.tauri.app/distribute/debian/) for the build
