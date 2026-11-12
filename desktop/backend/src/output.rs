@@ -4,14 +4,16 @@
 use std::{fs::File, io::Write, path::Path};
 
 fn builder() -> tempfile::Builder<'static, 'static> {
-    let mut builder = tempfile::Builder::new();
+    let builder = tempfile::Builder::new();
     #[cfg(unix)]
-    {
+    let builder = {
         use std::os::unix::fs::PermissionsExt;
+        let mut builder = builder;
         // The kernel applies umask at creation. Never inspect/change the
         // process-global mask in a multithreaded application.
         builder.permissions(std::fs::Permissions::from_mode(0o666));
-    }
+        builder
+    };
     builder
 }
 
