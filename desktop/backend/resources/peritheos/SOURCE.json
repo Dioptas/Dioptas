@@ -252,7 +252,7 @@
   },
   "distribution": {
     "policy": "eos-only-v1",
-    "catalog_sha256": "14d7b536451c757ae9bbebcd165d81a1c5a6e94c1a0db5c9726a9f803f265b71",
+    "catalog_sha256": "21dbeb254bb4c6312606cb234472ab44c44b21b1489120dc8e3b6b801d0244a8",
     "materials": 234,
     "eos_records": 685
   }

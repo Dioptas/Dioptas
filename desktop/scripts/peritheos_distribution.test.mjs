@@ -25,6 +25,7 @@ test("experimental tables are rejected at any depth, including empty dataset des
     { rows: [{ pressure: 12, volume: 4 }] },
     { source_equation: {} },
     { observations: [1, 2] },
+    { pressure_residuals_gpa: [0.1, -0.2] },
   ]) {
     assert.throws(
       () => assertEosOnly({ eos_records: [{ evidence: payload }] }),
@@ -34,6 +35,7 @@ test("experimental tables are rejected at any depth, including empty dataset des
   assert.doesNotThrow(() =>
     assertEosOnly({
       parameters: { K0: 160 },
+      thermal: { configuration: { electronic_temperature_k: [300, 1000], electronic_pressure_gpa: [0, 4] } },
       reference: "Source",
       observations: 12,
       validity: { pressure_gpa: [0, 100] },
