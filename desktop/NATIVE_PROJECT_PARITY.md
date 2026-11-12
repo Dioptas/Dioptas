@@ -54,6 +54,21 @@ native session and preceding output remain intact on that explicit error.
 Both compact and compatibility saves reject a result above the same 16 GiB
 physical-file bound used by the reader, before atomic publication.
 
+Native Batch/Map numeric datasets are written once per save and shared by hard
+links at the existing native and compatibility paths. Loaded immutable arrays
+reuse their archive datasets when allocation identity, shape, canonical f64 dtype,
+axis unit, retained file ownership and internal storage are proven. Mutation
+invalidates that proof; external/virtual storage and transformed legacy arrays
+are serialized from owned values instead. Dataset attributes survive valid reuse.
+Standalone processed exports retain their existing schema and storage policy.
+
+The saved source archive is not advanced in place. New or recomputed arrays share
+within a save; they acquire cross-save archive provenance after reopening. Saving
+still uses a private working copy and final compaction/atomic publication. Memory
+bounds count arrays actually materialized by readers, including separate
+configuration owners, even when physical HDF5 datasets are shared. See the
+[large-project timing and integrity benchmark](NATIVE_PROJECT_PERSISTENCE_PERFORMANCE.md).
+
 Cached detector images, image backgrounds and flat responses are owned by the
 project and load without their original source files. Raw caches preserve the
 bottom-up scientific convention, including nonfinite detector values. Scientific
