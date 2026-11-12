@@ -2,6 +2,8 @@
 //! thread per descendant. Admission bounds active children and retained streams;
 //! each invocation owns its output independently of a reusable command ID.
 use serde_json::{Value, json};
+#[cfg(any(not(unix), test))]
+use std::time::Duration;
 use std::{
     io::{self, Read},
     process::Child,
@@ -11,7 +13,6 @@ use std::{
         mpsc,
     },
     thread::{self, JoinHandle},
-    time::Duration,
 };
 pub(super) type Run = Arc<Mutex<Value>>;
 const MAX_CAPTURED_RUNS: usize = 64;
@@ -19,6 +20,8 @@ const MAX_CAPTURED_RUNS: usize = 64;
 trait OutputPipe: Read + Send {
     fn prepare(&self) -> io::Result<()>;
     fn read_available(&mut self, bytes: &mut [u8]) -> io::Result<usize>;
+    #[cfg(unix)]
+    fn descriptor(&self) -> std::os::fd::RawFd;
 }
 #[cfg(unix)]
 impl<T: Read + Send + std::os::fd::AsRawFd> OutputPipe for T {
@@ -35,6 +38,9 @@ impl<T: Read + Send + std::os::fd::AsRawFd> OutputPipe for T {
     }
     fn read_available(&mut self, bytes: &mut [u8]) -> io::Result<usize> {
         self.read(bytes)
+    }
+    fn descriptor(&self) -> std::os::fd::RawFd {
+        self.as_raw_fd()
     }
 }
 #[cfg(windows)]
@@ -118,7 +124,7 @@ struct Capture {
     _reservation: Reservation,
 }
 impl Capture {
-    fn poll(&mut self) {
+    fn poll(&mut self) -> bool {
         let mut changed = false;
         self.pipes.retain_mut(|pipe| {
             let mut buffer = [0; 4096];
@@ -145,7 +151,43 @@ impl Capture {
             run["output"] = json!(String::from_utf8_lossy(&self.output));
         }
         run["outputPending"] = json!(!self.pipes.is_empty());
+        changed
     }
+}
+#[cfg(unix)]
+fn wait_for_output(captures: &[Arc<Mutex<Capture>>], _progressed: bool) -> bool {
+    let mut descriptors = Vec::new();
+    for capture in captures {
+        let capture = capture.lock().unwrap();
+        descriptors.extend(capture.pipes.iter().map(|pipe| libc::pollfd {
+            fd: pipe.descriptor(),
+            events: libc::POLLIN,
+            revents: 0,
+        }));
+    }
+    // Wait for readiness rather than imposing a fixed byte/time rate. A noisy
+    // pipe makes poll return immediately, while every sweep still visits all
+    // captures with the same bounded per-pipe read budget. The short timeout
+    // also admits queued captures while existing descendants remain silent.
+    // SAFETY: poll only inspects these descriptor numbers. A concurrent parent
+    // completion may close one after collection; POLLNVAL merely wakes us and
+    // the next sweep checks actual owned pipes under their capture locks.
+    unsafe {
+        libc::poll(
+            descriptors.as_mut_ptr(),
+            descriptors.len() as libc::nfds_t,
+            10,
+        ) > 0
+    }
+}
+#[cfg(not(unix))]
+fn wait_for_output(_captures: &[Arc<Mutex<Capture>>], progressed: bool) -> bool {
+    if progressed {
+        thread::yield_now();
+    } else {
+        thread::sleep(Duration::from_millis(1));
+    }
+    progressed
 }
 struct OutputService {
     sender: mpsc::SyncSender<Arc<Mutex<Capture>>>,
@@ -165,12 +207,13 @@ fn service() -> &'static OutputService {
                     }
                 }
                 captures.extend(receiver.try_iter());
+                let mut progressed = false;
                 for capture in &mut captures {
-                    capture.lock().unwrap().poll();
+                    progressed |= capture.lock().unwrap().poll();
                 }
                 captures.retain(|capture| !capture.lock().unwrap().pipes.is_empty());
                 if !captures.is_empty() {
-                    thread::sleep(Duration::from_millis(10));
+                    wait_for_output(&captures, progressed);
                 }
             }
         });
@@ -301,6 +344,76 @@ mod tests {
         assert_eq!(run["exitCode"], 0);
         assert_eq!(run["output"], "result");
         assert_eq!(run["outputPending"], false);
+    }
+    #[test]
+    fn chatty_child_does_not_acquire_a_fixed_drain_rate_or_starve_another_action() {
+        let run = state();
+        let started = Instant::now();
+        // The old 64 KiB/10 ms throttle requires at least ten seconds for this
+        // real pipe transfer. No large data is retained or written to disk.
+        let chatty = launch(
+            "/bin/dd if=/dev/zero bs=65536 count=1024 2>/dev/null && printf chatty-tail",
+            &[],
+            run.clone(),
+        );
+        until(|| !run.lock().unwrap()["output"].as_str().unwrap().is_empty());
+        let quiet = state();
+        launch("printf quiet; exit 0", &[], quiet.clone())
+            .join()
+            .unwrap();
+        assert_eq!(quiet.lock().unwrap()["output"], "quiet");
+        assert!(
+            started.elapsed() < Duration::from_secs(8),
+            "chatty output starved another action"
+        );
+        chatty.join().unwrap();
+        until(|| run.lock().unwrap()["outputPending"] == false);
+        let elapsed = started.elapsed();
+        let run = run.lock().unwrap();
+        assert_eq!(run["exitCode"], 0);
+        let output = run["output"].as_str().unwrap();
+        assert!(output.ends_with("chatty-tail"));
+        assert_eq!(output.len(), 16384);
+        assert!(
+            elapsed < Duration::from_secs(8),
+            "64 MiB output was throttled: {elapsed:?}"
+        );
+    }
+    #[test]
+    fn readiness_wait_observes_live_data_and_eof_without_a_byte_rate_timer() {
+        use std::{io::Write, os::unix::net::UnixStream};
+        let (reader, mut writer) = UnixStream::pair().unwrap();
+        reader.prepare().unwrap();
+        let run = state();
+        let capture = Arc::new(Mutex::new(Capture {
+            pipes: vec![Box::new(reader)],
+            run: run.clone(),
+            output: Vec::new(),
+            _reservation: take_slot(&Arc::new(AtomicUsize::new(0))).unwrap(),
+        }));
+        let captures = [capture];
+        assert!(
+            !wait_for_output(&captures, false),
+            "silent live pipe must idle"
+        );
+        writer.write_all(b"ready").unwrap();
+        assert!(
+            wait_for_output(&captures, true),
+            "readable pipe must be ready without a per-chunk sleep"
+        );
+        assert!(captures[0].lock().unwrap().poll());
+        assert_eq!(run.lock().unwrap()["output"], "ready");
+        assert_eq!(run.lock().unwrap()["outputPending"], true);
+        // Explicitly end this socket's write direction: another parallel
+        // fixture may be between fork and exec with a temporary fd duplicate.
+        writer.shutdown(std::net::Shutdown::Write).unwrap();
+        drop(writer);
+        assert!(
+            wait_for_output(&captures, false),
+            "EOF must wake the reader too"
+        );
+        captures[0].lock().unwrap().poll();
+        assert_eq!(run.lock().unwrap()["outputPending"], false);
     }
     #[test]
     fn admission_is_bounded_until_both_process_and_capture_release() {
