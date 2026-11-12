@@ -212,6 +212,35 @@ test("metadata owners pin binary rasters independently of the ordinary LRU", asy
   assert(Number.isNaN(decodeRaster(next.batch.raster)[1]));
 });
 
+test("live product owners retain priority within the 64 advertised buffer bound", async () => {
+  const bytes = new Float32Array([1, 2]).buffer;
+  const batch = { raster: image("product"), selected: 0 };
+  const table = { batch: product("batch", batch) };
+  const transfer = new RasterTransfer(
+    async (action, payload, known, products) => {
+      assert(known.length <= 64);
+      if (action === "state") {
+        if (products.batch) {
+          assert(known.includes("product"));
+          return frame({ ok: true }, {}, false, table);
+        }
+        return frame({ ok: true, batch }, { product: bytes }, false, table);
+      }
+      return frame(
+        { ok: true, image: image(payload.name) },
+        { [payload.name]: bytes },
+      );
+    },
+    8192,
+    64,
+    8192,
+  );
+  const first = await transfer.call("state");
+  for (let i = 0; i < 80; i++)
+    await transfer.call("open_image", { path: `image-${i}` });
+  assert.equal((await transfer.call("state")).batch, first.batch);
+});
+
 test("metadata budgets and malformed/unadvertised references fail safely", async () => {
   const batch = { entries: ["large"] };
   const table = { batch: product("large", batch) };

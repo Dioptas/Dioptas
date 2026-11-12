@@ -140,13 +140,15 @@ export class RasterTransfer {
     // Product owners keep their raster bytes live even after LRU eviction.
     // Pin them along with the ordinary per-request advertised buffers.
     for (const product of knownProducts.values())
-      for (const [id, bytes] of product.buffers)
-        if (!known.has(id)) known.set(id, bytes);
+      for (const [id, bytes] of product.buffers) {
+        known.delete(id);
+        known.set(id, bytes);
+      }
     navigationTrace("ipc-start", { action });
     const frame = await this.invoke(
       action,
       payload,
-      [...known.keys()].slice(0, 64),
+      [...known.keys()].slice(-64),
       Object.fromEntries(
         [...knownProducts].map(([field, product]) => [field, product.id]),
       ),
