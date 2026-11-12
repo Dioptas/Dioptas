@@ -2,7 +2,7 @@
 
 Run from the Dioptas root with its test environment. Default compares semantic
 JSON; --write refreshes resources. Only the EOS distribution projection is
-retained; experimental dataset descriptors and observation/audit tables are omitted.
+retained; experimental data files and observation/audit tables are omitted.
 Optional numerical dataset packages are not read. Keep the Peritheos source revision in sync with backend/Cargo.toml.
 """
 
@@ -131,10 +131,11 @@ def main():
         policy=POLICY["id"],
         catalog_sha256=hashlib.sha256((resources / "peritheos/materials.json").read_bytes()).hexdigest(),
         materials=len(docs),
+        provenance_only_datasets=sum(len(doc.get("datasets", [])) for doc in docs),
         eos_records=sum(len(doc["eos_records"]) for doc in docs),
     )
     if args.write:
-        provenance["scope"] = "EOS-only distribution projection: models, parameters, structure, citations and qualifications; no dataset descriptors, experimental data files or embedded observation/audit row tables. Document hashes identify unmodified upstream sources, not the projected catalog."
+        provenance["scope"] = "EOS-only distribution projection: models, parameters, structure, citations and qualifications; empty dataset provenance metadata only; no experimental data files or embedded observation/audit row tables. Document hashes identify unmodified upstream sources, not the projected catalog."
         provenance["distribution"] = distribution
         provenance["derived_metadata"] = derived
         provenance_path.write_text(json.dumps(provenance, indent=2) + "\n")

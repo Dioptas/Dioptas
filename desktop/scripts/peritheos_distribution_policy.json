@@ -23,5 +23,20 @@
     "residuals_gpa_in_source_order",
     "metric_minus_printed_volume_a3",
     "nonliquid_volume_ratio_temperature_k"
+  ],
+  "datasetMetadataFields": [
+    "identifier",
+    "kind",
+    "source_location",
+    "reference",
+    "columns",
+    "used_by_eos_records"
+  ],
+  "columnMetadataFields": [
+    "name",
+    "quantity",
+    "unit",
+    "role",
+    "of"
   ]
 }

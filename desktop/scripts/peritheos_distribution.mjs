@@ -17,6 +17,40 @@ export function assertEosOnly(value, location = "catalog") {
     );
   } else if (value && typeof value === "object") {
     for (const [key, item] of Object.entries(value)) {
+      if (key === "datasets") {
+        assert(
+          Array.isArray(item),
+          `Invalid Peritheos provenance at ${location}`,
+        );
+        for (const dataset of item) {
+          assert.deepEqual(
+            Object.keys(dataset).sort(),
+            [...policy.datasetMetadataFields, "rows"].sort(),
+            `Unexpected Peritheos dataset payload at ${location}`,
+          );
+          assert.deepEqual(
+            dataset.rows,
+            [],
+            `Experimental Peritheos rows at ${location}`,
+          );
+          assert(Array.isArray(dataset.columns));
+          for (const column of dataset.columns) {
+            assert(
+              Object.keys(column).every((field) =>
+                policy.columnMetadataFields.includes(field),
+              ),
+              `Unexpected Peritheos column payload at ${location}`,
+            );
+            assert(
+              Object.values(column).every((entry) => typeof entry === "string"),
+            );
+          }
+          const { rows, ...metadata } = dataset;
+          assertEosOnly(metadata, `${location}.datasetMetadata`);
+        }
+        continue;
+      }
+
       assert(
         !policy.omitFields.includes(key),
         `Excluded Peritheos field: ${location}.${key}`,
@@ -56,6 +90,10 @@ export async function verifyPeritheosResources(directory) {
     policy: policy.id,
     catalog_sha256: createHash("sha256").update(bytes).digest("hex"),
     materials: materials.length,
+    provenance_only_datasets: materials.reduce(
+      (count, material) => count + (material.datasets?.length || 0),
+      0,
+    ),
     eos_records: materials.reduce(
       (count, material) => count + material.eos_records.length,
       0,

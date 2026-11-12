@@ -153,7 +153,10 @@ here; Windows/Linux and universal macOS remain outside this qualification.
 All native formats distribute an EOS-only Peritheos catalog: 234 materials and
 685 EOS records, retaining model parameters, thermal definitions, uncertainties,
 structure, citations and source qualifications. The resource generator excludes
-dataset descriptors and embedded observation/audit row tables. The Rust processor
+experimental dataset files and embedded observation/audit row tables.
+Empty dataset descriptors (identifier, citation and column schema) remain solely
+to keep refit provenance valid; all observation arrays are empty and all dataset
+file resources are removed. The Rust processor
 embeds this same projected catalog; removing only resource files is insufficient.
 User-loaded EOS documents are not filtered.
 

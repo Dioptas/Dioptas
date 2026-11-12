@@ -1,7 +1,8 @@
 """Distribution projection, never applied to user-loaded EOS documents.
 
 Keep models, parameters, uncertainty, structure, citations and qualifications.
-Drop dataset descriptors/files and embedded observation or audit row tables.
+Keep only empty dataset metadata needed by refit provenance; drop data files
+and embedded observation or audit row tables.
 The pinned upstream documents remain identified by their original SHA256s.
 """
 import json
@@ -12,12 +13,27 @@ POLICY = json.loads(Path(__file__).with_name("peritheos_distribution_policy.json
 
 def eos_only(value):
     if isinstance(value, dict):
-        return {
-            key: eos_only(item)
-            for key, item in value.items()
-            if key not in POLICY["omitFields"]
-            and not (key in POLICY["omitCollections"] and isinstance(item, (list, dict)))
-        }
+        projected = {}
+        for key, item in value.items():
+            if key == "datasets":
+                # The schema requires these citation/column descriptors for refit
+                # provenance. They contain no rows and no file resources.
+                projected[key] = [
+                    {
+                        **{field: dataset[field] for field in POLICY["datasetMetadataFields"] if field != "columns"},
+                        "columns": [
+                            {field: column[field] for field in POLICY["columnMetadataFields"] if field in column}
+                            for column in dataset["columns"]
+                        ],
+                        "rows": [],
+                    }
+                    for dataset in item
+                ]
+            elif key not in POLICY["omitFields"] and not (
+                key in POLICY["omitCollections"] and isinstance(item, (list, dict))
+            ):
+                projected[key] = eos_only(item)
+        return projected
     if isinstance(value, list):
         return [eos_only(item) for item in value]
     return value
