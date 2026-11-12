@@ -166,3 +166,14 @@ check. Experimental CSVs and the optional Peritheos dataset package are excluded
 Installer candidates built before this policy (including the earlier macOS and
 Windows qualification artifacts) are superseded for distribution: they contain
 the previous catalog and must be rebuilt and rechecked before publication.
+
+To verify the catalog against a checkout at the pinned Peritheos revision without
+installing any Python scientific packages, run from the repository root:
+
+```sh
+python3 desktop/scripts/peritheos_eos_only.py --peritheos /path/to/peritheos
+```
+
+The full metadata generator still requires its independent Python reference
+setup; its source annotations are derived from the original upstream documents
+before the distribution projection is applied.
