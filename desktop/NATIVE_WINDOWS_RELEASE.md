@@ -81,7 +81,7 @@ Outputs are in `artifacts/native-windows/<version>-x64-<run>/`: setup executable
 `SHA256SUMS`, `build.json` and `verification.json`. The report identifies the
 source revision and signing state explicitly.
 
-## Verified candidate, November 12, 2026
+## Pre-policy candidate, November 12, 2026 (superseded)
 
 The [Windows qualification run](https://github.com/Dioptas/Dioptas/actions/runs/43166683224)
 passed at clean source `6e2f39a4ad52999c906f4c05a3a739a5ea7ae862`.
@@ -119,6 +119,46 @@ offset-above-4-GiB regression. Windows source snapshots now include the volume
 and file identity, so replacing a source with matching size and timestamp is
 detected. Scientific navigation/offline tests retain their assertions while
 closing original acquisition sessions before removing source files on Windows.
+
+## Verified EOS-only rebuild, November 12, 2026
+
+[Qualification run 43207183077](https://github.com/Dioptas/Dioptas/actions/runs/43207183077)
+passed at clean source `514050e86c325992bcbea8ea4d61c2d3b95e40f3` on the native
+Windows Server 2022 x64 runner. All 330 release-profile Rust tests passed, with
+the two existing external Eiger fixture tests ignored. All 19 release/dependency/license
+and EOS-only policy tests passed before packaging.
+
+Both installed versions passed real native WebView2 and Rust/Dioptrin checks
+with the build checkout unavailable, no developer PATH, and an installation path
+containing spaces and `ü`. Upgrade, downgrade protection, uninstall, settings
+preservation and processor cleanup passed. Installed inspection checked 739
+resources, 353 Cargo notices, five JavaScript notices, x64 binaries, app-local
+Visual C++ dependencies and the EOS-only Peritheos catalog. All 685 EOS records
+remain with zero experimental rows or dataset-file resources; empty citation and
+column descriptors preserve valid refit provenance. The embedded 214,990,032-byte
+offline WebView2 installer had a valid Microsoft signature.
+
+| Candidate | Purpose | Bytes | SHA256 |
+| --- | --- | ---: | --- |
+| `Dioptas Desktop_0.1.0_x64-setup.exe` | Unsigned test candidate | 230,859,103 | `cf2da8e861f6cdfb964690ccd99ebb71e3f5879f8338bc307ff8d2649d58ad69` |
+| `Dioptas Desktop_0.1.1_x64-setup.exe` | Disposable upgrade fixture | 230,861,495 | `abe8bb166acd9dd91b8f578e473ce5eef4fcda65e5ecc560ad58fab7da799daa` |
+
+The downloaded Actions ZIP digest and both installer checksums were verified.
+Original `build.json`, `verification.json` and `SHA256SUMS`, the installers and a
+`qualification.json` receipt are retained in ignored
+`artifacts/native-windows/verified-eos-only-2026-11-12-43207183077/`. These
+supersede the earlier pre-policy Windows artifacts. Nothing was released or tagged.
+
+The first rebuild gate exposed five portability assumptions in newer tests:
+timestamp fixtures opened read-only handles, one HDF5 fixture removed an active
+acquisition file, and an error-category assertion assumed Unix mappings. The
+fixtures now request write access for timestamp changes, drop the original
+acquisition owner before testing offline recovery, and compare actual platform
+error categories. Every scientific assertion is retained; the corrections are
+confined to test code. All five cases passed in the final Windows run, and all
+165 local release library tests also passed (two external fixtures ignored).
+The macOS rebuild source is `37f498ae`; the difference to this Windows source is
+those test-only corrections, with identical application code and catalog.
 
 ## Signing boundary
 

@@ -120,7 +120,7 @@ Set `DIOPTAS_APPLE_TEAM_ID` to require Developer ID signing; add `--notarized`
 to require stapled tickets and Gatekeeper acceptance, and `--native-smoke` only
 when testing the native WebKit boundary.
 
-## Verification on November 11, 2026
+## Pre-policy verification on November 11, 2026 (superseded)
 
 - Apple Silicon: the [clean native macOS 15 job](https://github.com/Dioptas/Dioptas/actions/runs/43102048555/job/130795732247)
   built and signed the current app, obtained Apple acceptance for the app and
@@ -148,6 +148,40 @@ The verified local candidates and reports are in ignored
 was created. macOS 14 remains the declared build minimum, not a runtime tested
 here; Windows/Linux and universal macOS remain outside this qualification.
 
+## Verified EOS-only macOS rebuild, November 12, 2026
+
+[Candidate run 43205302215](https://github.com/Dioptas/Dioptas/actions/runs/43205302215)
+rebuilt both native architectures at clean source
+`37f498ae6ee3983f2d014501fceb1e38a134605b`. Both jobs passed. Each app and DMG
+was Developer ID signed, accepted by Apple, stapled and assessed by Gatekeeper.
+Copied-installation, packaged Rust processor and native WebKit checks passed on
+the corresponding native macOS 15 runners. These are fresh builds, without app
+recovery from an earlier candidate.
+
+| DMG | Bytes | SHA256 |
+| --- | ---: | --- |
+| Apple Silicon | 20,401,345 | `94662e3c16156e8645f0abcad794c97fd523df336a4e9fe1166a8add7a2d4b47` |
+| Intel | 21,437,864 | `58673c8ed099d32cc777dd98af508d8b189bccd3b0f1457deef522ad01e76834` |
+
+Downloaded Actions ZIP digests and both DMG/app-archive checksums were verified.
+Both archived application payloads contain the same EOS-only catalog hash as
+`peritheos/SOURCE.json`: all 685 EOS records, zero experimental rows and zero
+dataset-file resources. Only the four explicitly allowed Peritheos resource
+files are present; empty dataset citation/column descriptors retain refit
+provenance. Installed-artifact inspection repeats this check on both runners.
+
+The Apple Silicon DMG also passed local headless copied-installation and
+packaged-processor checks, signatures, notarization tickets and Gatekeeper.
+The Intel DMG passed local read-only/copy, architecture, resource, signature,
+notarization-ticket and Gatekeeper inspection; Intel execution was tested on its
+native CI runner. No local native UI window was opened. macOS 14 remains the
+declared build minimum rather than a runtime-tested OS in this qualification.
+
+Candidates, original build/checksum reports and local checks are retained in
+`artifacts/native-release/verified-eos-only-2026-11-12-43205302215/` with a
+`qualification.json` receipt. They supersede the pre-policy November 11
+candidates. No application release or tag was published.
+
 ## Peritheos distribution scope
 
 All native formats distribute an EOS-only Peritheos catalog: 234 materials and
@@ -166,9 +200,9 @@ before compilation, staging checks the resource directory against an explicit
 four-file inventory, and each platform's installed-artifact inspector repeats the
 check. Experimental CSVs and the optional Peritheos dataset package are excluded.
 
-Installer candidates built before this policy (including the earlier macOS and
-Windows qualification artifacts) are superseded for distribution: they contain
-the previous catalog and must be rebuilt and rechecked before publication.
+Installer candidates built before this policy are superseded for distribution.
+Use the EOS-only qualification records above and in the Windows/Linux guides;
+the older artifacts retain their original verification evidence only.
 
 To verify the catalog against a checkout at the pinned Peritheos revision without
 installing any Python scientific packages, run from the repository root:
