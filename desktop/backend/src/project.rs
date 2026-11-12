@@ -18,6 +18,8 @@ mod navigation;
 mod persistence_tests;
 #[path = "project_phases.rs"]
 mod phase;
+#[path = "project/recovery.rs"]
+mod recovery;
 #[path = "project_series.rs"]
 mod series;
 #[path = "project/series_arrays.rs"]
@@ -159,6 +161,14 @@ impl Session {
         args: &Value,
     ) -> Result<Option<Reply>, String> {
         match action {
+            "recovery_status" => {
+                check_keys(args, &[])?;
+                Ok(Some(Reply::metadata(
+                    json!({"ok":true,"revision":self.revision}),
+                )))
+            }
+            "recovery_checkpoint" => self.save_recovery_checkpoint(args).map(Some),
+            "recovery_restore" => self.restore_recovery_checkpoint(args).map(Some),
             #[cfg(debug_assertions)]
             "development_checkpoint" => self.save_development_checkpoint(args).map(Some),
             #[cfg(debug_assertions)]
@@ -426,6 +436,13 @@ impl Session {
         Ok(())
     }
     fn save_native_project(&self, path: &Path) -> Result<(), String> {
+        self.save_native_project_with_recovery(path, None)
+    }
+    fn save_native_project_with_recovery(
+        &self,
+        path: &Path,
+        recovery: Option<&Value>,
+    ) -> Result<(), String> {
         let temp = crate::output::StagedOutput::new(path)?;
         let working = tempfile::NamedTempFile::new().map_err(|e| e.to_string())?;
         if let Some(source) = &self.project.archive {
@@ -518,6 +535,12 @@ impl Session {
         phase::save(self, &mut document)?;
         validate_sample_budget(&file, &document)?;
         write_json_dataset(&file, "state", &document)?;
+        // Recovery metadata belongs to the automatic checkpoint only. A user
+        // project saved after recovery must never retain its private identity.
+        replace(&file, "native_recovery")?;
+        if let Some(recovery) = recovery {
+            write_json_dataset(&file, "native_recovery", recovery)?;
+        }
         let mut metadata = read_json_attr(&file, "react_desktop")?.unwrap_or(json!({}));
         merge(&mut metadata, &config::desktop_metadata(self));
         write_text_attr(&file, "react_desktop", &metadata.to_string())?;

@@ -11,6 +11,7 @@ mod map_window;
 mod detector_window;
 mod smoke_storage;
 mod smoke_dialog;
+mod recovery;
 
 use calibration_tooltip::{
     calibration_tooltip_ready, hide_calibration_tooltip, present_calibration_tooltip,
@@ -28,6 +29,36 @@ struct Host {
     processor: Result<Arc<ProcessorHost>, String>,
     smoke: bool,
     closing: AtomicBool,
+    exit_ready: AtomicBool,
+    recovery: Arc<recovery::Recovery>,
+    active_commands: Arc<recovery::ActiveCommands>,
+}
+
+fn begin_close(app: &tauri::AppHandle) {
+    let host = app.state::<Host>();
+    if host.closing.swap(true, Ordering::SeqCst) { return; }
+    host.active_commands.stop();
+    let commands = host.active_commands.clone();
+    let recovery = host.recovery.clone();
+    let processor = host.processor.clone();
+    let app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        commands.wait();
+        if let Ok(processor) = processor {
+            use tauri::Emitter;
+            let _ = app.emit_to("main", "dioptas-recovery-saving", json!(true));
+            while let Err(error) = recovery.checkpoint(&processor, true) {
+                let retry = app.dialog().message(format!("The previous recovery file was preserved.\n\n{error}"))
+                    .title("Could not save previous work")
+                    .buttons(tauri_plugin_dialog::MessageDialogButtons::OkCancelCustom("Retry".into(), "Close without saving".into()))
+                    .blocking_show();
+                if !retry { break; }
+            }
+        }
+        map_window::save(&app);
+        app.state::<Host>().exit_ready.store(true, Ordering::SeqCst);
+        app.exit(0);
+    });
 }
 
 struct FileChoice {
@@ -256,6 +287,12 @@ async fn desktop_invoke(
     if !window_action_allowed(window.label(), &action) {
         return Err("This command is not available to this desktop window.".into());
     }
+    if host.closing.load(Ordering::SeqCst) && action != "cancel_refinement" && action != "progress" {
+        return Err("Saving the session before closing…".into());
+    }
+    let _admitted = if matches!(action.as_str(), "cancel_refinement" | "progress") {
+        None
+    } else { Some(host.active_commands.enter()?) };
     let processor = host.processor.clone()?;
     let cached = cached_buffers.unwrap_or_default();
     if let Some(products) = &cached_products {
@@ -412,6 +449,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             color_picker::prepare_color_picker,
             desktop_invoke,
+            recovery::session_recovery,
             peritheos_manual::open_peritheos_manual,
             phase_editor::open_phase_editor,
             map_window::open_map_window,
@@ -430,12 +468,36 @@ fn main() {
         ])
         .setup(move |app| {
             let resources = app.path().resource_dir()?.join("dioptas");
+            let backend = Backend::requested(&args, std::env::var("DIOPTAS_BACKEND").ok().as_deref());
+            let recovery_directory = if smoke || example || backend != Ok(Backend::Rust) { None } else {
+                Some(std::env::var_os("DIOPTAS_RECOVERY_DIRECTORY").map(std::path::PathBuf::from)
+                    .unwrap_or(app.path().app_data_dir()?.join("recovery")))
+            };
             app.manage(Host {
-                processor: Backend::requested(&args, std::env::var("DIOPTAS_BACKEND").ok().as_deref())
+                processor: backend
                     .and_then(|backend| ProcessorHost::start(example, backend, Some(&resources))),
                 smoke,
                 closing: AtomicBool::new(false),
+                exit_ready: AtomicBool::new(false),
+                recovery: Arc::new(recovery::Recovery::new(recovery_directory, recovery::startup_files(&args))),
+                active_commands: Arc::new(recovery::ActiveCommands::default()),
             });
+            // The timer never writes an idle session. Disk I/O and
+            // serialization stay off the UI thread.
+            if !smoke {
+                let handle = app.handle().clone();
+                std::thread::spawn(move || loop {
+                    std::thread::sleep(std::time::Duration::from_secs(600));
+                    let host = handle.state::<Host>();
+                    if host.closing.load(Ordering::SeqCst) { break; }
+                    if let Ok(processor) = &host.processor {
+                        if let Err(error) = host.recovery.checkpoint(processor, false) {
+                            use tauri::Emitter;
+                            let _ = handle.emit_to("main", "dioptas-recovery-error", error);
+                        }
+                    }
+                });
+            }
             #[cfg(debug_assertions)]
             if tauri::is_dev() && !smoke && Backend::requested(&args, std::env::var("DIOPTAS_BACKEND").ok().as_deref()) == Ok(Backend::Rust) {
                 if let Ok(processor) = &app.state::<Host>().processor {
@@ -565,6 +627,16 @@ fn main() {
             }
         })
         .on_window_event(|window, event| {
+            if window.label() == "main" {
+                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                    let host = window.app_handle().state::<Host>();
+                    if !host.smoke && !host.exit_ready.load(Ordering::SeqCst) {
+                        api.prevent_close();
+                        begin_close(window.app_handle());
+                        return;
+                    }
+                }
+            }
             if window.label() == "main" && matches!(event, tauri::WindowEvent::CloseRequested { .. } | tauri::WindowEvent::Destroyed) {
                 window.app_handle().state::<Host>().closing.store(true, Ordering::SeqCst);
             }
@@ -609,6 +681,24 @@ fn main() {
         .build(context)
         .expect("Could not build the Dioptas native window");
     app.run(|handle, event| {
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
+        if let tauri::RunEvent::Opened { urls } = &event {
+            let files: Vec<_> = urls.iter().filter_map(|url| url.to_file_path().ok())
+                .map(|path| path.to_string_lossy().into_owned()).collect();
+            if !files.is_empty() {
+                use tauri::Emitter;
+                handle.state::<Host>().recovery.opened_files(files);
+                let _ = handle.emit_to("main", "dioptas-startup-files", ());
+            }
+        }
+        if let tauri::RunEvent::ExitRequested { api, .. } = &event {
+            let host = handle.state::<Host>();
+            if !host.smoke && !host.exit_ready.load(Ordering::SeqCst) {
+                api.prevent_exit();
+                begin_close(handle);
+                return;
+            }
+        }
         if matches!(
             event,
             tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit

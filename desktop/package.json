@@ -108,7 +108,8 @@
     "test:command-contracts": "node scripts/generate_native_contracts.mjs --check && node scripts/check_command_contracts.mjs",
     "test:glib-backport": "node scripts/check_glib_backport.mjs --advisories && cargo test --release --locked --manifest-path security/glib-regression/Cargo.toml",
     "release:linux": "node scripts/release_linux.mjs",
-    "test:linux-release-config": "node --test scripts/linux_release_config.test.mjs"
+    "test:linux-release-config": "node --test scripts/linux_release_config.test.mjs",
+    "test:session-recovery": "node scripts/session_recovery_smoke.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",

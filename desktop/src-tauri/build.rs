@@ -2,6 +2,7 @@ fn main() {
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(
         tauri_build::AppManifest::new().commands(&[
             "desktop_invoke",
+            "session_recovery",
             "open_phase_editor",
             "open_peritheos_manual",
             "open_map_window",
