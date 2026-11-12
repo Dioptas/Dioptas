@@ -36,6 +36,24 @@ archive; configuration groups are reindexed with their preserved contents when
 configurations are duplicated or removed. Known scientific state is rewritten
 from the current session.
 
+Ordinary format-2 saves rebuild a compact HDF5 file rather than accumulating
+free blocks from older saves. Unreferenced f64 hash entries in the owned cache
+and payload pools are removed. Reachability includes unknown JSON fields,
+string metadata and symbolic links; metadata whose references cannot be safely
+classified conservatively retains the pools. Unknown objects, attributes and
+hard-link aliases are preserved. Original cached float64 bits, including
+nonfinite values and signed zero, are retained.
+
+Archives containing HDF5 object/region references, hard links to the root,
+user blocks or external/virtual dataset storage use a conservative byte-copy
+compatibility path. It retains object addresses and replaced reference targets,
+rather than attempting a general HDF5 reference rewrite. These opaque archives
+are not compacted; a duplicated configuration cannot be published from such an
+archive because copying it could change extension reference addresses. The
+native session and preceding output remain intact on that explicit error.
+Both compact and compatibility saves reject a result above the same 16 GiB
+physical-file bound used by the reader, before atomic publication.
+
 Cached detector images, image backgrounds and flat responses are owned by the
 project and load without their original source files. Raw caches preserve the
 bottom-up scientific convention, including nonfinite detector values. Scientific
@@ -63,7 +81,9 @@ qualification for every historical `.dio` file.
 Opening builds candidate configurations before replacing the live session.
 Saving writes, flushes and syncs a temporary sibling before atomic publication.
 Failures and cancellation retain both the preceding session and an existing
-save target. Loads use an immutable copy and reject a source project changed
+save target. The archive keeps both an open OS file descriptor and a read-only
+HDF5 handle, so temporary-path cleanup cannot prevent a later Save As.
+Loads use an immutable copy and reject a source project changed
 during restoration. Cancellation is checked between copy chunks and restore/save
 stages; an individual HDF5/library call is not interrupted internally.
 

@@ -120,13 +120,7 @@ impl Session {
         // Keep history out of the .dio archive: normal user project saves must
         // not copy hidden undo planes or accumulate discarded-history blocks.
         let destination = history_path(path(args)?);
-        let pending = tempfile::NamedTempFile::new_in(
-            destination
-                .parent()
-                .filter(|p| !p.as_os_str().is_empty())
-                .unwrap_or(Path::new(".")),
-        )
-        .map_err(|e| e.to_string())?;
+        let pending = crate::output::StagedOutput::new(&destination)?;
         let history = hdf5::File::create(pending.path()).native()?;
         static GENERATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
         let generation = format!(
@@ -138,8 +132,7 @@ impl Session {
         crate::history_transfer::save(&history, &configurations)?;
         history.flush().native()?;
         drop(history);
-        pending.as_file().sync_all().map_err(|e| e.to_string())?;
-        pending.persist(destination).map_err(|e| e.to_string())?;
+        pending.commit_checked(&destination, || self.control.check())?;
         self.save_native_project(path(args)?)?;
         let file = hdf5::File::open_rw(path(args)?).native()?;
         write_json_dataset(
@@ -287,13 +280,9 @@ impl Session {
             std::sync::atomic::Ordering::Relaxed,
         );
         self.project.path = handoff.project_path;
-        // The internal handoff is not an extension to subsequent user saves.
-        if let Some(archive) = &self.project.archive {
-            hdf5::File::open_rw(archive.path())
-                .native()?
-                .unlink("development_session")
-                .native()?;
-        }
+        // Keep the retained archive read-only (and valid after path cleanup).
+        // The writer omits this owned handoff record from future user saves.
+        self.project.omit_development_session = true;
         // A new worker has new kernels/plans; preserve settings, not stale results.
         #[cfg(feature = "dioptrin")]
         {

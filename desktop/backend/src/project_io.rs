@@ -2,7 +2,7 @@
 use super::*;
 use sha2::{Digest, Sha256};
 use std::{
-    io::{Read, Write},
+    io::{Read, Seek, SeekFrom, Write},
     str::FromStr,
     sync::OnceLock,
 };
@@ -275,9 +275,21 @@ pub(super) fn write_strings(
         .native()?;
     Ok(())
 }
+pub(super) const MAX_PROJECT_BYTES: u64 = 16 * 1024 * 1024 * 1024;
 pub(super) fn copy_file(source: &Path, target: &Path, control: &Control) -> Result<(), String> {
-    let mut input = std::fs::File::open(source).map_err(|e| e.to_string())?;
-    if input.metadata().map_err(|e| e.to_string())?.len() > 16 * 1024 * 1024 * 1024 {
+    let input = std::fs::File::open(source).map_err(|e| e.to_string())?;
+    copy_handle(&input, target, control)
+}
+pub(super) fn copy_handle(
+    source: &std::fs::File,
+    target: &Path,
+    control: &Control,
+) -> Result<(), String> {
+    // The retained descriptor remains valid if temporary-file cleanup removes
+    // its pathname. Session commands own serialization of this archive.
+    let mut input = source.try_clone().map_err(|e| e.to_string())?;
+    input.seek(SeekFrom::Start(0)).map_err(|e| e.to_string())?;
+    if input.metadata().map_err(|e| e.to_string())?.len() > MAX_PROJECT_BYTES {
         return Err("Project exceeds the 16 GiB file bound.".into());
     }
     let mut output = std::fs::File::create(target).map_err(|e| e.to_string())?;
@@ -290,7 +302,7 @@ pub(super) fn copy_file(source: &Path, target: &Path, control: &Control) -> Resu
             break;
         }
         copied += n as u64;
-        if copied > 16 * 1024 * 1024 * 1024 {
+        if copied > MAX_PROJECT_BYTES {
             return Err("Project exceeds the 16 GiB file bound.".into());
         }
         output.write_all(&buffer[..n]).map_err(|e| e.to_string())?;
@@ -298,17 +310,25 @@ pub(super) fn copy_file(source: &Path, target: &Path, control: &Control) -> Resu
     output.flush().map_err(|e| e.to_string())?;
     Ok(())
 }
-pub(super) fn snapshot_file(
-    path: &Path,
-    control: &Control,
-) -> Result<tempfile::NamedTempFile, String> {
+pub(super) struct Archive {
+    // Close HDF5 before NamedTempFile attempts removal (including on Windows).
+    pub(super) file: hdf5::File,
+    pub(super) snapshot: tempfile::NamedTempFile,
+}
+pub(super) fn snapshot_file(path: &Path, control: &Control) -> Result<Archive, String> {
     let before = crate::image::FileIdentity::read(path)?;
     let temp = tempfile::NamedTempFile::new().map_err(|e| e.to_string())?;
     copy_file(path, temp.path(), control)?;
     if before != crate::image::FileIdentity::read(path)? {
         return Err("Project changed while being loaded.".into());
     }
-    Ok(temp)
+    // Retain an HDF5 handle too: unknown extensions must remain accessible even
+    // after the owned snapshot's directory entry is unlinked.
+    let file = hdf5::File::open(temp.path()).native()?;
+    Ok(Archive {
+        snapshot: temp,
+        file,
+    })
 }
 /// Preflight the total arrays that will be materialized, before loading any
 /// configuration. Save uses the same gate so it cannot publish an unreadable file.
@@ -404,4 +424,20 @@ pub(super) fn validate_sample_budget(file: &hdf5::File, doc: &Value) -> Result<(
         add("react_map_normalization/original".into(), false)?;
     }
     Ok(())
+}
+
+/// Enforce the same physical bound on publication as on opening. Opaque legacy
+/// extensions retain their bytes, but cannot publish a project we cannot reopen.
+pub(super) fn finish_project(
+    temp: crate::output::StagedOutput,
+    target: &Path,
+    control: &Control,
+    maximum_bytes: u64,
+) -> Result<(), String> {
+    if temp.as_file().metadata().map_err(|e| e.to_string())?.len() > maximum_bytes {
+        return Err(
+            "Project exceeds the 16 GiB file bound; the previous file was preserved.".into(),
+        );
+    }
+    temp.commit_checked(target, || control.check())
 }
