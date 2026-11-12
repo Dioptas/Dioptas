@@ -266,3 +266,43 @@ Downloads include `BUILD_INFO.json` with source identity, qualification runs,
 original Actions artifact digests and the hashes of the published installers.
 The signed macOS DMGs, unsigned Windows x64 setup, Ubuntu .deb and AppImage
 retain the platform limits documented above and in the release notes.
+
+## rc.1 testing feedback for the next candidate
+
+The user is continuing to test the installed rc.1. Collect these changes for
+the next candidate; do not replace the running installation or rewrite rc.1
+release assets.
+
+- [ ] Name the application **Dioptas**, rather than **Dioptas Desktop**, in
+  application menus, bundles, launchers and installer display names. Preserve
+  stable application identifiers and existing native preferences. Account for
+  platform installer/launcher names when preparing the next candidate.
+- [ ] Always include the actual application version in the window title,
+  starting with **Dioptas <version>**. Keep it when an image or project is
+  opened, and retain useful filenames/context afterward. Read the version from
+  the build/runtime metadata; Vite's current build description still hardcodes
+  0.1.0 and must use the application version too.
+- [ ] Keep Map's detector image embedded, with no detach option. Its placement
+  and visibility must be independent of Integration's detachable detector
+  window: opening/closing/detaching the Integration image must not remove or
+  relocate the detector image in Map. This concerns view/window ownership;
+  preserve the established scientific data and linked-navigation behavior.
+
+Session restoration has its own implementation chat,
+`01a1d096-30c4-7153-b11c-a1565f14a6a8`: save the previous working state and ask
+on startup whether to restore it, following the Qt behavior. Qt's actual
+default recovery path is **~/.Dioptas/config.dio** (capital D). Keep native
+recovery and the legacy Qt files separate unless migration is explicitly handled.
+
+### Map throughput observation
+
+The user initially observed approximately 130 images/s on repeated Map
+integration of eiger_0000.h5, then approximately 300 without a software change.
+An isolated check of the installed rc.1 processor on the same Mac, using all
+625 frames, eight workers, 2,000 bins, polygon splitting, polarization 0.965
+and Poisson errors, measured 165.08 images/s on its first Map pass and
+236.06/233.54 images/s on the following passes. Each pass used one frame-parallel
+pipeline, eight worker starts, all 625 frames and no pattern-plan rebuild.
+This does not establish the cause of the user's earlier rate; no fixed
+130-images/s limit was reproduced. Record transient CPU/I/O/cache variation
+as a possibility, not a diagnosed regression.
