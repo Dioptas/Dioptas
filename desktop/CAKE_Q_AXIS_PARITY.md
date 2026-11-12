@@ -61,7 +61,7 @@ converted range endpoints. The physical conversion is
 physical positions, nonlinear inverse tick locations, zoom bounds, 0.2/0.4/1.54 Å,
 Q source cakes, missing/changed wavelength, unchanged buffers and Qt's d behavior.
 
-`cargo test --locked --manifest-path backend/Cargo.toml --test cake_axis` checks
+`cargo test --locked --manifest-path backend/Cargo.toml --test integration -- cake_axis::` checks
 immutable raster-buffer reuse, native cake-integration counters, unchanged CSV,
 Undo/Redo, scientific-setting invalidation, angular/Q combined sources, linked
 inspection, eager/lazy project reopen/resave and changed frames. Consolidation

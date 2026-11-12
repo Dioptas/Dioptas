@@ -112,7 +112,7 @@ individual cake-bin uncertainty maps are not exposed by the desktop interface.
 
 All checks run through the existing native CI gate:
 
-- `backend/tests/functional_flows.rs`: numerical gain/background laws across
+- `backend/tests/integration/functional_flows.rs`: numerical gain/background laws across
   2θ/Q/d, sectors, ROI and supersampling; transfer/plate/slab with a rotated
   detector, export, Undo and owned offline projects; active/disabled/partial
   transfer pairs; invalid references and absorption rollback; corrected

@@ -106,7 +106,7 @@ ledgers.
 Run from desktop with `npm run build`, `npm test`, `npm run test:spottiness`,
 `npm run test:spottiness-reference` (explicit independent Python environment),
 and from the repository root with `cargo test --locked --manifest-path
- desktop/backend/Cargo.toml --test spottiness --test zero_trimming`.
+ desktop/backend/Cargo.toml --test integration -- spottiness:: zero_trimming::`.
 No visible/native application window was opened for these Spottiness checks.
 No release or publishing work is included.
 

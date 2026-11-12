@@ -128,7 +128,7 @@ save-panel behavior are not newly qualified by this macOS/headless run.
 
 The integrated background implementation (`744a7da1`, followed by the source-bin
 alignment fixes) is exercised through actual Rust commands, not manually
-attached background arrays. `backend/tests/batch_export_background.rs` fits the
+attached background arrays. `backend/tests/integration/batch_export_background.rs` fits the
 independent Qt-reference 2θ and descending-d datasets, normalizes them, and
 enables subtraction and cutting. It tests both normalizing an existing fit and
 extracting again while normalized; Qt fits on the current intensity scale and

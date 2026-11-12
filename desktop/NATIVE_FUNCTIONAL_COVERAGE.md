@@ -21,7 +21,7 @@ and writes a compact receipt under `artifacts/functional-coverage`.
 
 ## Added native flows
 
-`backend/tests/functional_flows.rs` contains 30 tests, including:
+`backend/tests/integration/functional_flows.rs` contains 30 tests, including:
 
 - Raw image → PONI → asymmetric mask → scaled/offset image background → flat
   field → ROI → supersampling → integration with propagated errors, separately
@@ -73,7 +73,7 @@ Batch/Map std storage and offline data-flow qualification. The
 sphere and optional capillary absorption, corrected legacy geometry, explicit
 convergence checks, project migration and independent volume/ray integration.
 
-Additional detector-switch flows in `backend/tests/detector_switch.rs` cover
+Additional detector-switch flows in `backend/tests/integration/detector_switch.rs` cover
 both loading orders, calibration-only offline projects, uncalibrated coordinate
 resets, compatible-calibration reuse/binning, image averages and rollback. The
 headless image-change check exercises the corresponding GUI in both browsers.

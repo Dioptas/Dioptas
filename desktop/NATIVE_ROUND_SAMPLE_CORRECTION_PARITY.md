@@ -123,7 +123,7 @@ The existing `CI_rust_desktop.yml` native gates include:
 - Rust closed-form tests: sphere forward/backscatter pencil limits, full sphere
   forward volume integral, tilted cylinder forward transmission and exactly two
   capillary wall crossings, cancellation and undefined infinite-axis geometry.
-- `backend/tests/functional_flows.rs`: both shapes in 2θ/Q/d through background,
+- `backend/tests/integration/functional_flows.rs`: both shapes in 2θ/Q/d through background,
   flat field, mask, ROI, supersampling, rotation, same-shape frame changes,
   exported XYE std, Undo, active/disabled projects, retained disabled-wall μ,
   source deletion and fresh-owner reintegration. Additional cases cover invalid

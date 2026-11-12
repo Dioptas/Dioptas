@@ -88,7 +88,8 @@ Save the old executable before rebuilding the processor, then run from
 ```sh
 cargo build --locked --manifest-path backend/Cargo.toml
 DIOPTAS_MASSIF_BASELINE=/absolute/path/to/old/dioptas-processor node scripts/massif_performance.mjs
-cargo test --locked --manifest-path backend/Cargo.toml --lib --test calibration --test geometry_masks --test development_reload
+cargo test --locked --manifest-path backend/Cargo.toml --lib
+cargo test --locked --manifest-path backend/Cargo.toml --test integration -- calibration:: geometry_masks:: development_reload::
 node scripts/native_calibration_smoke.mjs
 node --test scripts/native_calibration_transport.test.mjs
 PYTHONPATH=.. ../.venv/bin/python scripts/native_calibration_parity.py

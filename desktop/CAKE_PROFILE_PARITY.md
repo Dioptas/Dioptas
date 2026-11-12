@@ -122,7 +122,7 @@ From `desktop/`:
 ```sh
 npm run backend:prepare -- --debug
 cargo test --locked --manifest-path backend/Cargo.toml --all-features --lib
-cargo test --locked --manifest-path backend/Cargo.toml --all-features --test requested_products
+cargo test --locked --manifest-path backend/Cargo.toml --all-features --test integration -- requested_products::
 cargo clippy --locked --manifest-path backend/Cargo.toml --all-features -- -D warnings
 cargo test --locked --manifest-path src-tauri/Cargo.toml --bin dioptas-desktop
 npm run build

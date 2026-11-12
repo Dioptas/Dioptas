@@ -266,7 +266,7 @@ fully migrated/distributable application.
 
 ## Detector-switch loading order (2026-11-10)
 
-`backend/tests/detector_switch.rs` qualifies calibration-first and image-first
+`backend/tests/integration/detector_switch.rs` qualifies calibration-first and image-first
 integration, calibration-only offline projects, uncalibrated coordinate resets,
 retained experiment/correction drafts, obsolete predefined detectors, image
 averages, explicit legacy-calibration reuse, named-detector binning and atomic

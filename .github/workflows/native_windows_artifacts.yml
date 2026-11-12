@@ -62,7 +62,7 @@ jobs:
         run: cargo test --release --locked --manifest-path desktop/backend/Cargo.toml --all-features --no-fail-fast
       - name: Diagnose a failed native HDF5 master test
         if: failure()
-        run: cargo test --release --locked --manifest-path desktop/backend/Cargo.toml --test hdf5_master_vds -- --test-threads=1 --nocapture
+        run: cargo test --release --locked --manifest-path desktop/backend/Cargo.toml --test integration -- hdf5_master_vds --test-threads=1 --nocapture
       - name: Build unsigned offline installer and upgrade fixture
         run: npm run release:windows -- --unsigned --test-upgrade
         working-directory: desktop

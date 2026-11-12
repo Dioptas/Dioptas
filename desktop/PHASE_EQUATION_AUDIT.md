@@ -89,7 +89,7 @@ confinement when enabled. This audit does not change those application rules.
 
 ## Verification
 
-`backend/tests/phase_equation_audit.rs` evaluates independently transcribed
+`backend/tests/integration/phase_equation_audit.rs` evaluates independently transcribed
 versions of the reviewed equations against the exact linked library:
 
 - all 11 isothermal pressures at four volumes, K = -V dP/dV, reference K0,
@@ -121,7 +121,7 @@ source review; the test does not symbolically execute the LaTeX.
 Validation commands:
 
 ```sh
-MACOSX_DEPLOYMENT_TARGET=14.0 cargo test --locked --manifest-path backend/Cargo.toml --test phase_equation_audit
+MACOSX_DEPLOYMENT_TARGET=14.0 cargo test --locked --manifest-path backend/Cargo.toml --test integration -- phase_equation_audit::
 npm run test:phase-model-help
 npm run build
 npm test

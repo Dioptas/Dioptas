@@ -58,7 +58,7 @@ workflow; the native library's Reject default remains unchanged.
 
 ## Verification
 
-`cargo test --locked --manifest-path backend/Cargo.toml --test hdf5_sources`
+`cargo test --locked --manifest-path backend/Cargo.toml --test integration -- hdf5_sources::`
 uses Rust-generated real HDF5 files to cover:
 
 - Multiple datasets with four/two/three frames, different detector shapes,

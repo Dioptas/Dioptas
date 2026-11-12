@@ -110,7 +110,7 @@ npm test
 npm run test:combination
 ```
 
-`backend/tests/desktop_consolidation.rs` checks the Rust/Dioptrin identity,
+`backend/tests/integration/desktop_consolidation.rs` checks the Rust/Dioptrin identity,
 raw-contribution factor ratios, independent masking, combined data/export,
 project round trips, unequal image shapes, physical geometry preservation and
 Q/d coordinates. It verifies both combined-save routes against the displayed
@@ -148,7 +148,7 @@ included in this checkpoint's test results. No preview was closed or restarted.
 
 ## Configuration toolbar and grouped browsing — 2026-11-08
 
-`backend/tests/configuration_navigation.rs` covers grouped files, filename
+`backend/tests/integration/configuration_navigation.rs` covers grouped files, filename
 position, numbered folders, MEC, custom folder/filename steps, active-only scope,
 retained detector state, combined-result updates, project persistence, missing
 matches, invalid rules, and atomic rollback on bad data or changed dimensions.

@@ -74,7 +74,7 @@ their existing ownership. There is no separate correction-map data export.
 
 ## Verification
 
-- `backend/tests/correction_previews.rs`: all analytical maps match the actual
+- `backend/tests/integration/correction_previews.rs`: all analytical maps match the actual
   per-pixel pipeline divisor while other processing is active; native metadata,
   raw/processed/mask/cake buffer identities, complete patterns and source/history
   state remain unchanged. Disabled/reference/partial/removal/invalid request

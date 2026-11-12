@@ -45,7 +45,7 @@ bytes in the same way as Qt's hex adapter.
   0, 0.25, 0.4 and 0.75; on/off, multiple P/T conditions, cell dimensions and
   reflection spacings, source-document immutability, invalid/nonfinite values.
   Observed maximum relative difference: 5.53 × 10⁻¹³.
-- `cargo test --locked --manifest-path backend/Cargo.toml --test dac_thermal_pressure`:
+- `cargo test --locked --manifest-path backend/Cargo.toml --test integration -- dac_thermal_pressure::`:
   exact format-2 phase round trips; shared configuration state; linked and
   individual P/T; selected references; newly added phases; on/off retention;
   invalid and unsupported global rollback; development history transfer.

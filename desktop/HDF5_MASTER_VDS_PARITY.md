@@ -87,8 +87,8 @@ Generated fixtures are explicitly separate from acquired data:
   calculated independently from fixture scale factors, project persistence and
   reintegration. Compressed-master reopen and Batch tests check transport ownership.
 
-`cargo test --locked --manifest-path backend/Cargo.toml --test hdf5_master_vds
---test hdf5_sources` runs those desktop regressions. The library's six focused
+`cargo test --locked --manifest-path backend/Cargo.toml --test integration --
+hdf5_master_vds:: hdf5_sources::` runs those desktop regressions. The library's six focused
 contract tests additionally compare original finite/nested/printf words against
 independent existing CC0 manifests, test stream origins/wrong-input contracts and
 exercise separate raw bindings. Its full all-feature suite has 420 passing tests;
