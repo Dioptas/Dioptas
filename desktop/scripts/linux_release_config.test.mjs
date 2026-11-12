@@ -12,6 +12,10 @@ test("Linux candidates use deb/AppImage, explicit glibc baseline and no multimed
   assert(linuxConfig.bundle.linux.deb.depends.includes("libc6 (>= 2.35)"));
   assert.equal(linuxConfig.bundle.linux.deb.section, "science");
   assert.equal(linuxConfig.bundle.linux.appimage.bundleMediaFramework, false);
+  assert(
+    linuxConfig.bundle.linux.appimage.files["/usr/lib/libGLESv2.so.2"],
+    "Bundle WebKit's dynamically loaded GLES client",
+  );
 });
 test("ELF inspection rejects wrong formats, byte order and truncated files", () => {
   const b = Buffer.alloc(64);

@@ -11,6 +11,7 @@
       "appimage": {
         "bundleMediaFramework": false,
         "files": {
+          "/usr/lib/libGLESv2.so.2": "../artifacts/linux-runtime/libGLESv2.so.2",
           "/usr/share/doc/dioptas-native-runtime": "../artifacts/linux-system-notices"
         }
       }

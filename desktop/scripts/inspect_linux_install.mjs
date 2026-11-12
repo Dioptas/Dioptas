@@ -143,6 +143,25 @@ export async function inspectLinuxInstall(prefix, appimage = false) {
     }
     systemNoticeCount = inventory.packages.length;
     assert(systemNoticeCount > 0);
+    const extraLibraries = JSON.parse(
+      await readFile(path.join(directory, "EXTRA_LIBRARIES.json"), "utf8"),
+    );
+    assert(extraLibraries.some((library) => library.name === "libGLESv2.so.2"));
+    for (const library of extraLibraries) {
+      assert.equal(path.basename(library.name), library.name);
+      assert.equal(
+        digest(await readFile(path.join(prefix, "usr/lib", library.name))),
+        library.sha256,
+      );
+      assert(
+        inventory.packages.some(
+          (pkg) =>
+            pkg.name === library.package &&
+            pkg.version === library.version &&
+            pkg.file === library.copyright,
+        ),
+      );
+    }
   }
   return {
     resources: manifest.files.length,

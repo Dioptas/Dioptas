@@ -28,6 +28,10 @@ AppImage includes a versioned superset of installed build-image package
 copyright texts for redistributed native libraries. `SYSTEM_NOTICES.json`
 explicitly distinguishes this notice collection from an actual dependency list.
 Cargo/JavaScript notices and the pinned HDF5 ABI patch provenance remain separate.
+The portable payload also explicitly includes WebKit's dynamically loaded
+`libGLESv2.so.2` client, with package/version/hash/copyright provenance. Host
+OpenGL/EGL dispatch and graphics drivers remain system prerequisites; the
+AppImage does not replace drivers with copies from the build machine.
 
 The workflow `.github/workflows/native_linux_artifacts.yml` builds on
 `ubuntu-22.04`. Its verification matrix uses separate fresh Ubuntu 22.04 and
