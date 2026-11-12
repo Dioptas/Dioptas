@@ -7,6 +7,12 @@
 Welcome to Dioptas's documentation!
 ===================================
 
+Start with :doc:`installation` for the recommended native Rust desktop installers
+and the separate legacy Qt/Python package. Native installers are tested
+candidates awaiting a public release. The remaining chapters describe the
+legacy Qt edition, including its screenshots, Python scripting API and plugins;
+they do not establish feature availability in the Rust desktop.
+
 .. toctree::
    :maxdepth: 2
 

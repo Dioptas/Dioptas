@@ -1,100 +1,175 @@
 Installation and Upgrading
 ==========================
 
-Standalone applications
------------------------
+Native Rust desktop (recommended)
+---------------------------------
 
-Download the application for your platform from the
-`GitHub releases <https://github.com/Dioptas/Dioptas/releases>`_. These packages
-include Python, the integration libraries, and the offline Peritheos material
-catalog; no separate Python installation is needed.
+Use the native installer for your operating system. The Rust desktop includes
+its Rust/Dioptrin processing engine, examples, offline guide and scientific
+resources. No separate Python installation is needed. The bundled Peritheos
+catalog contains EOS definitions and provenance, without experimental datafiles
+or embedded observation/audit tables.
 
-- **Windows (64-bit x86):** use the installer, or unpack the ZIP and run
-  ``Dioptas.exe``. Keep the executable with its accompanying folders.
-- **macOS (Apple silicon):** open the DMG and drag the application to
-  Applications, or unpack the application archive. Intel Mac users can use the
-  Python package below. Signed and notarized releases use macOS's normal
-  first-launch confirmation. Older releases and ordinary branch builds may
-  require removing the quarantine attribute in Terminal, adjusting the path
-  to the application you installed::
+.. note::
 
-      xattr -dr com.apple.quarantine /Applications/Dioptas_*.app
+   Native installers are currently tested candidates; no public native release
+   has been published yet. Existing downloads on the
+   `GitHub releases page <https://github.com/Dioptas/Dioptas/releases>`_ are
+   legacy Qt releases. For candidate access, build instructions and verification
+   reports, see the
+   `native installer guide <https://github.com/Dioptas/Dioptas/blob/develop/desktop/NATIVE_RELEASE.md>`_.
+   Candidate downloads are retained temporarily as GitHub Actions artifacts.
+   The candidate version ``0.1.0`` is a packaging test version, and ``0.1.1`` is
+   an upgrade-test fixture; neither is an announced public release.
 
-- **Linux (64-bit x86):** make the AppImage executable and open it::
+macOS
+~~~~~
 
-      chmod +x Dioptas_Linux.AppImage
-      ./Dioptas_Linux.AppImage
+Choose the DMG matching your Mac: **Apple Silicon (arm64)** or **Intel (x86_64)**.
+Both require macOS **14 or newer**. Open the DMG, drag **Dioptas Desktop** to
+**Applications**, then open the installed application. Eject the disk image
+after copying.
 
-  Alternatively, unpack the Linux archive and run ``Dioptas`` inside its folder.
-  Keep all files in the archive together. If FUSE is unavailable, the AppImage
-  can extract itself temporarily and run with::
+Both architecture candidates are Developer ID signed and notarized. Use
+macOS's normal first-launch confirmation. The declared minimum is macOS 14;
+the native installation checks ran on macOS 15.
 
-      APPIMAGE_EXTRACT_AND_RUN=1 ./Dioptas_Linux.AppImage
+Windows
+~~~~~~~
 
-Python package
---------------
+On **64-bit x86 Windows**, run the ``*-setup.exe`` installer and follow the
+installation prompts. Launch **Dioptas Desktop** from the Start menu.
+The installer includes the offline Microsoft WebView2 runtime installer and
+the application's Visual C++ runtime libraries.
 
-Use Python **3.11–3.15** in a virtual environment. For example::
+The current test candidate is **unsigned**. Installation, upgrade and uninstall
+checks passed on Windows Server 2022 x64; Windows 10/11 and ARM64 have not been
+separately qualified. See the
+`Windows installer guide <https://github.com/Dioptas/Dioptas/blob/develop/desktop/NATIVE_WINDOWS_RELEASE.md>`_
+for the tested scope and signing status.
 
-    python3.13 -m venv dioptas-env
+Linux
+~~~~~
 
-Activate it with ``source dioptas-env/bin/activate`` on macOS/Linux, or
-``dioptas-env\Scripts\activate`` in Windows Command Prompt. Then install and run::
+Both formats target **64-bit x86 Linux**. Use the actual downloaded filename in
+place of ``VERSION`` in the examples below.
+
+**Debian package:** on Ubuntu 22.04 or 24.04, install the local ``.deb`` through
+APT so its GTK/WebKitGTK dependencies are resolved::
+
+    sudo apt install './Dioptas Desktop_VERSION_amd64.deb'
+
+Launch **Dioptas Desktop** from the applications menu or run
+``dioptas-desktop`` in a terminal. Remove it with
+``sudo apt remove dioptas-desktop``. The package requires glibc **2.35 or newer**;
+other Debian-based distributions have not been separately qualified.
+
+**AppImage:** use Ubuntu 24.04 or a compatible system with glibc **2.39 or newer**.
+Make the downloaded file executable and launch it::
+
+    chmod +x './Dioptas Desktop_VERSION_amd64.AppImage'
+    './Dioptas Desktop_VERSION_amd64.AppImage'
+
+The AppImage requires FUSE 2 (``libfuse2t64`` on Ubuntu 24.04). If FUSE is
+unavailable, use the tested extraction mode::
+
+    './Dioptas Desktop_VERSION_amd64.AppImage' --appimage-extract-and-run
+
+Linux candidates are unsigned. Installation checks use Ubuntu runners with a
+virtual X11 display and software rendering; other distributions, Wayland and
+physical GPU configurations have not been qualified. See the
+`Linux installer guide <https://github.com/Dioptas/Dioptas/blob/develop/desktop/NATIVE_LINUX_RELEASE.md>`_
+for prerequisites and verification details.
+
+Upgrading and existing projects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Install the newer native package for the same platform and architecture. On
+macOS, replace the application in Applications; on Windows, run the newer setup
+executable; on Linux, install the newer ``.deb`` or replace the AppImage.
+
+Keep original project files and save your first session in a new edition under
+a new name. The Rust desktop reads current format-2 ``.dio`` projects. Older
+formats require their compatible legacy application and explicit data export.
+Saving a native project through an older Qt writer can discard native-specific
+metadata. See the
+`native project compatibility guide <https://github.com/Dioptas/Dioptas/blob/develop/desktop/NATIVE_PROJECT_PARITY.md>`_
+before moving projects between editions. The editions use separate application
+identities; do not assume preferences are migrated automatically.
+
+Python package (legacy Qt edition)
+----------------------------------
+
+``pip install dioptas`` installs the **legacy Qt/Python application**, not the
+Rust desktop. Existing PyPI versions remain available for legacy workflows,
+Python scripting and reproducibility. A pip package for the Rust desktop is
+deferred. The remaining chapters of this manual describe the legacy Qt edition.
+
+Use a separate virtual environment for the legacy edition. Python **3.13** is
+the recommended starting point; check the selected release's requirements
+before choosing another Python version::
+
+    python3.13 -m venv dioptas-qt-env
+
+Activate it with ``source dioptas-qt-env/bin/activate`` on macOS/Linux, or
+``dioptas-qt-env\Scripts\activate`` in Windows Command Prompt. Then install and
+run the legacy application::
 
     python -m pip install dioptas
     dioptas
 
-Python 3.15 is currently a prerelease. Several dependencies do not yet provide
-3.15 wheels, so installation requires source builds and native build tools,
-including HDF5 development libraries. Use Python 3.13 for the simplest
-installation. Free-threaded Python builds are not covered by this support range.
-
-To upgrade an existing Python installation::
+To upgrade within the legacy Qt edition::
 
     python -m pip install --upgrade dioptas
 
-Dioptas 0.11 requires Peritheos 0.17.x and PhaseSmith 0.7. Pip installs
-these dependencies automatically. Catalog contents follow the installed
-Peritheos version; standalone applications contain the version selected when
-that application was built. The lock file selects the tested Peritheos 0.17.0
-release. Source and standalone startup checks report the installed version
-and exercise native EOSMAT conversion, thermal calculations, packaged source
-data and scientific assessments.
+For a reproducible legacy environment, select an exact published package version
+and retain its dependency versions. Updating the Python package does not upgrade
+an installed Rust desktop application.
+
+Pip installs the legacy edition's Python dependencies, including its Peritheos
+and PhaseSmith versions. Its catalog follows the installed Peritheos package;
+the Rust desktop ships its separately verified EOS-only catalog. Legacy package
+installation can require native build tools where dependency wheels are
+unavailable. Consult the
+`legacy Qt guide <https://github.com/Dioptas/Dioptas/blob/legacy/qt/README.md>`_
+for that edition's requirements. Conda-forge packages are maintained separately;
+check their selected version and edition before installing.
 
 The BM2Reference equation retains its explicit reference pressure: its V0 and
-K0 describe the state at P0, which can be nonzero. Use ``.eosmat`` or a Dioptas
-project to preserve that reference state; legacy JCPDS files cannot store it.
-
-On macOS older than 26, xypattern 1.2.4 has no compatible Apple-silicon wheel;
-Intel Macs also require its source build. Install Apple's Command Line Tools
-with ``xcode-select --install`` before installing the Python package, or use
-the standalone Apple-silicon application, which bundles a source-built
-xypattern and does not require a compiler on your computer.
-
-Conda-forge packages are maintained separately and may become available later
-than GitHub and PyPI. Check the version selected by conda before relying on a
-feature from a new release.
-
-Existing projects
------------------
-
-Keep original project files when upgrading and save your first updated session
-under a new name. Dioptas 0.11 reads the project format introduced in 0.9;
-0.8.7 and earlier projects require their matching older application.
-See :doc:`configurations_and_projects` for persistence and recovery details.
+K0 describe the state at P0, which can be nonzero. Use ``.eosmat`` or a compatible
+Dioptas project to preserve that reference state; legacy JCPDS files cannot
+store it.
 
 Running from source
 -------------------
 
-Clone the repository and install the dependencies using uv::
+Native Rust desktop
+~~~~~~~~~~~~~~~~~~~
 
-    git clone https://github.com/Dioptas/Dioptas.git
-    cd Dioptas
+Development of the Rust desktop takes place on ``develop``. Install Node/npm,
+Rust, a C/C++ compiler, CMake, Git and the platform prerequisites for Tauri, then
+run::
+
+    git clone --branch develop https://github.com/Dioptas/Dioptas.git
+    cd Dioptas/desktop
+    npm ci
+    npm run tauri:dev
+
+See the
+`desktop development guide <https://github.com/Dioptas/Dioptas/blob/develop/desktop/README.md>`_
+for platform setup and checks. Python is not required to run the Rust desktop.
+
+Legacy Qt edition
+~~~~~~~~~~~~~~~~~
+
+Use the separate ``legacy/qt`` branch for Qt maintenance, or check out the tag
+matching a published legacy release before installing its dependencies::
+
+    git clone --branch legacy/qt https://github.com/Dioptas/Dioptas.git Dioptas-qt
+    cd Dioptas-qt
     python -m pip install uv
-    uv sync
+    uv sync --python 3.13
     uv run dioptas
 
-The default branch is ``develop``. For a specific published release, check out
-its tag before running ``uv sync``, for example ``git checkout 0.11.0`` once that
-release is published. A source checkout builds Dioptas's small native extension
-and may require a C compiler; ordinary wheel installations do not.
+A legacy source checkout builds a small native extension and may require a C
+compiler. These Python commands run the legacy edition, not the Rust desktop.

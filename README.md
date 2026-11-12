@@ -8,6 +8,24 @@ Development on `develop` uses **Rust, React and Tauri**. Scientific processing
 runs in Rust/Dioptrin over a Tauri-owned stdio connection; the default desktop
 runtime needs no Python installation.
 
+## Installation
+
+**Native installers are the recommended installation route for the Rust
+desktop.** Choose the macOS DMG for Apple Silicon or Intel, the Windows x64
+setup executable, or a Linux x64 Debian package or AppImage. See the
+[installation guide](docs/source/installation.rst) for requirements and steps.
+
+The native installers are currently tested candidates; no public native release
+has been published yet. Existing assets on the
+[GitHub releases page](https://github.com/Dioptas/Dioptas/releases) are legacy Qt
+releases. Candidate access and verification are documented in the
+[native installer guide](desktop/NATIVE_RELEASE.md).
+
+**`pip install dioptas` installs the legacy Qt/Python edition.** It does not
+install the Rust desktop. Existing Python package versions remain available for
+legacy workflows and reproducibility; pip distribution of the Rust desktop is
+deferred.
+
 ## Run the development application
 
 Install Node/npm, Rust, a C/C++ compiler, CMake, Git and the platform prerequisites
@@ -53,7 +71,7 @@ independent numerical references. New scientific desktop commands belong in
 The Rust desktop workflow owns native processor, Tauri host, headless UI and
 independent reference checks. Qt CI and branch packages target `legacy/qt` and
 `main`. The inherited Qt release workflow rejects tags outside the legacy Qt
-line; Rust release packaging remains a separate release task.
+line; native installer workflows build and test candidates without publishing.
 
 ## Maintainer
 
