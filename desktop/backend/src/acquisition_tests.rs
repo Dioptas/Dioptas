@@ -335,7 +335,9 @@ fn acquisition_admission_orders_by_time_then_name_and_drain_preserves_every_expo
     for i in (0..12).rev() {
         let p = d.join(format!("scan_{i:02}.npy"));
         image(&p, 200. + i as f64);
-        fs::File::open(&p)
+        fs::File::options()
+            .write(true)
+            .open(&p)
             .unwrap()
             .set_times(
                 fs::FileTimes::new()
@@ -470,7 +472,9 @@ fn acquisition_replaced_output_is_not_hidden_when_size_and_mtime_are_preserved()
     assert!(files.scan().unwrap().is_empty());
     let replacement = d.join("new-source");
     fs::write(&replacement, b"new image").unwrap();
-    fs::File::open(&replacement)
+    fs::File::options()
+        .write(true)
+        .open(&replacement)
         .unwrap()
         .set_times(fs::FileTimes::new().set_modified(stamp.1))
         .unwrap();
@@ -502,7 +506,9 @@ fn acquisition_combined_products_keep_completed_prefix_when_a_later_frame_is_can
     for i in 1..=3 {
         let source = d.join(format!("scan_{i}.npy"));
         image(&source, 100. + i as f64 * 100.);
-        fs::File::open(source)
+        fs::File::options()
+            .write(true)
+            .open(source)
             .unwrap()
             .set_times(
                 fs::FileTimes::new().set_modified(SystemTime::UNIX_EPOCH + Duration::from_secs(i)),
@@ -647,7 +653,9 @@ fn acquisition_generated_identity_work_is_bounded_deleted_names_pruned_and_inpla
         .inode();
     let old_stamp = files.stamp(&replacement).unwrap();
     fs::write(&replacement, b"new image").unwrap();
-    fs::File::open(&replacement)
+    fs::File::options()
+        .write(true)
+        .open(&replacement)
         .unwrap()
         .set_times(fs::FileTimes::new().set_modified(old_stamp.1 + Duration::from_secs(1)))
         .unwrap();

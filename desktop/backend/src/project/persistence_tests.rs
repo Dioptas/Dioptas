@@ -130,7 +130,11 @@ fn compacted_detector_cache_retains_exact_nonfinite_and_signed_zero_bits() {
         .map(|x| x.to_bits())
         .collect();
     session.save_native_project(&target).unwrap();
+    // Windows retains the acquisition handle until its session is dropped.
+    // A fresh owner also proves that the saved detector cache is self-contained.
+    drop(session);
     std::fs::remove_file(source).unwrap();
+    let mut session = Session::new(root());
     session.open_native_project(&target).unwrap();
     let actual: Vec<_> = session
         .image

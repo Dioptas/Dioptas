@@ -114,19 +114,28 @@ pub(crate) fn resource_path(
 mod tests {
     use super::*;
     #[test]
-    fn staging_failures_report_stable_target_and_changed_error_category() {
+    fn staging_failures_report_stable_target_and_platform_error_category() {
         let root = tempfile::tempdir().unwrap();
         let blocked = root.path().join("blocked");
         std::fs::write(&blocked, b"not a directory").unwrap();
         let target = blocked.join("pattern.dat");
+        let blocked_kind = std::fs::create_dir(blocked.join("probe"))
+            .unwrap_err()
+            .kind();
         let first = StagedOutput::new(&target).err().unwrap();
         let second = StagedOutput::new(&target).err().unwrap();
         assert_eq!(first, second);
         assert!(first.contains(target.to_str().unwrap()));
         assert!(!first.contains(".dioptas-output-"));
         std::fs::remove_file(&blocked).unwrap();
+        let missing_kind = std::fs::create_dir(blocked.join("probe"))
+            .unwrap_err()
+            .kind();
         let missing = StagedOutput::new(&target).err().unwrap();
-        assert_ne!(missing, first);
+        assert_eq!(missing, StagedOutput::new(&target).err().unwrap());
+        // Windows maps both a file parent and a missing parent to NotFound;
+        // Unix distinguishes NotADirectory. Preserve the actual OS categories.
+        assert_eq!(missing == first, missing_kind == blocked_kind);
         std::fs::create_dir(&blocked).unwrap();
         assert!(StagedOutput::new(&target).is_ok());
     }
