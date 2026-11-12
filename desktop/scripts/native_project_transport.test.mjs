@@ -1,10 +1,10 @@
+import { testFixture } from "./test_fixtures.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { mkdtemp, readFile, rm, utimes } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { nativeClient, root } from "./native_backend_client.mjs";
+import { nativeClient } from "./native_backend_client.mjs";
 test(
   "project progress/cancel and source mutation preserve the session and existing file",
   { timeout: 120000 },
@@ -14,15 +14,7 @@ test(
     );
     const image = path.join(directory, "counts.npy"),
       project = path.join(directory, "session.dio");
-    execFileSync(
-      process.env.DIOPTAS_REFERENCE_PYTHON ??
-        path.join(root, ".venv/bin/python"),
-      [
-        "-c",
-        "import sys,numpy as np; y,x=np.indices((1024,1024)); np.save(sys.argv[1],(100+x*2+y*3).astype('uint16'))",
-        image,
-      ],
-    );
+    testFixture("project", image);
     const native = nativeClient();
     const invoke = async (a, p = {}) => {
       const r = await native.invoke(a, p);

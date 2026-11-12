@@ -37,7 +37,7 @@ fn phase_order_preserves_identity_history_and_saved_order() {
         call(
             &mut s,
             "integration_phase",
-            json!({"operation":"load", "path":root().join("dioptas/tests/data/jcpds").join(name)}),
+            json!({"operation":"load", "path":root().join("desktop/tests/data/jcpds").join(name)}),
         );
     }
     let original = phases(&mut s);

@@ -1,5 +1,10 @@
 # Eiger gap margins and Map selection qualification
 
+> Historical evidence: Python-era commands and source paths in this ledger refer to
+> pre-cleanup revision `a39717a41458129ba9370c849a4121ecdbc6a444` (resolve the full revision in `REFERENCE_DATA.md`).
+> The active application and test suite are Rust/headless UI only. See
+> [reference data policy](REFERENCE_DATA.md) for retained fixtures and current checks.
+
 Validated locally on 2026-11-08 in `codex/native-backend`. These results apply
 to the tested fixtures and workflows, not complete Qt parity or release qualification.
 

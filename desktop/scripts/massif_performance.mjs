@@ -23,7 +23,7 @@ const fixtures = [
       [1129.4, 1179.6, 1],
       [1119.8, 1268.5, 2],
     ],
-    path: path.join(root, "dioptas/tests/data/LaB6_40keV_MarCCD.tif"),
+    path: path.join(root, "desktop/tests/data/LaB6_40keV_MarCCD.tif"),
     setup: {
       calibrant: "LaB6",
       wavelength: 0.31,

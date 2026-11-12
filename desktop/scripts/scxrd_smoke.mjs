@@ -61,7 +61,7 @@ for (const [engine, type] of Object.entries({ chromium, webkit })) {
       };
     });
     await page.goto(
-      pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+      pathToFileURL(path.join(root, "desktop/dist/index.html")).href,
     );
     await page
       .getByRole("button", { name: "Single Crystal XRD", exact: true })

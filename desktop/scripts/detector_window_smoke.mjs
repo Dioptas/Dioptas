@@ -19,10 +19,10 @@ for (const [name, browserType] of [
   try {
     assert.equal((await native.invoke("__host__")).runtime, "rust");
     await native.invoke("open_image", {
-      path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
+      path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.tif"),
     });
     await native.invoke("open_calibration", {
-      path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+      path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
     });
     browser = await browserType.launch({ headless: true });
     const context = await browser.newContext({
@@ -68,7 +68,7 @@ for (const [name, browserType] of [
     const page = await context.newPage();
     page.setDefaultTimeout(20000);
     await page.goto(
-      pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+      pathToFileURL(path.join(root, "desktop/dist/index.html")).href,
     );
     const ready = async () => {
       await page.waitForTimeout(150);

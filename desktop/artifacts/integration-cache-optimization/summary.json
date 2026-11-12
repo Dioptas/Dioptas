@@ -157,8 +157,8 @@
     "nativeCommandsBitwiseEqual": 68
   },
   "input": {
-    "image": "/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/dioptas/tests/data/CeO2_Pilatus1M.tif",
-    "poni": "/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/dioptas/tests/data/CeO2_Pilatus1M.poni",
+    "image": "/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/tests/data/CeO2_Pilatus1M.tif",
+    "poni": "/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/tests/data/CeO2_Pilatus1M.poni",
     "shape": [
       1043,
       981

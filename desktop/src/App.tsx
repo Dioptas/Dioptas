@@ -1557,8 +1557,9 @@ export default function App() {
         ["detector", "cake", "profile"].includes(plotReading.source)
           ? plotReading
           : null,
-      clicked:
-        mode === "map" || correctionPreview.map ? null : clickPositionReading,
+      // The detached detector shares the inspection bookmark even when the
+      // main window switches to Map after docking its companion.
+      clicked: correctionPreview.map ? null : clickPositionReading,
       message: progress?.running
         ? processingProgressText(progress)
         : busy || "",

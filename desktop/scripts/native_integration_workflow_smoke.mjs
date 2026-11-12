@@ -12,7 +12,7 @@ const temp = await mkdtemp(path.join(tmpdir(), "dioptas-native-integration-"));
 const paths = await Promise.all(
   [1, 2, 3].map(async (i) => {
     const p = path.join(temp, `scan_${i}.tif`);
-    await copyFile(path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"), p);
+    await copyFile(path.join(root, "desktop/tests/data/CeO2_Pilatus1M.tif"), p);
     return p;
   }),
 );
@@ -40,7 +40,7 @@ try {
         return r;
       };
       await invoke("open_calibration", {
-        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+        path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
       });
       await invoke("integration_settings", {
         bins: 128,
@@ -54,7 +54,7 @@ try {
       });
       await invoke("integration_phase", {
         operation: "load",
-        path: path.join(root, "dioptas/tests/data/jcpds/mo.jcpds"),
+        path: path.join(root, "desktop/tests/data/jcpds/mo.jcpds"),
       });
       await invoke("batch_load", { paths });
       const batch = path.join(temp, `${name}.h5`);
@@ -74,7 +74,7 @@ try {
         };
       });
       await page.goto(
-        pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+        pathToFileURL(path.join(root, "desktop/dist/index.html")).href,
       );
       await page
         .getByRole("button", { name: "Integration", exact: true })

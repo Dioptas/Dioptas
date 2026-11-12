@@ -61,7 +61,7 @@ try {
       await call("open_image", { path: paths[0] });
       await call("integration_phase", {
         operation: "load",
-        path: path.join(root, "dioptas/tests/data/jcpds/mo.jcpds"),
+        path: path.join(root, "desktop/tests/data/jcpds/mo.jcpds"),
       });
       await call("integration_phase", {
         operation: "load_database",

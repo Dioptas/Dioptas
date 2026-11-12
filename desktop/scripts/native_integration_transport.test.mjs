@@ -1,15 +1,20 @@
+import { testFixture } from "./test_fixtures.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { mkdtemp, rm, utimes } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { nativeClient, root } from "./native_backend_client.mjs";
+import { nativeClient } from "./native_backend_client.mjs";
 for (const [compression, scenario] of [
-  ["gzip", "raw"], ["bitshuffle-lz4", "raw"],
-  ["bitshuffle-lz4", "corrected"], ["bitshuffle-lz4", "dynamic"], ["bitshuffle-lz4", "combined"],
-  ["bitshuffle-lz4", "spot"], ["bitshuffle-lz4", "cosmic"],
-  ["bitshuffle-lz4", "pyfai"], ["bitshuffle-lz4", "pyfai-spread"],
+  ["gzip", "raw"],
+  ["bitshuffle-lz4", "raw"],
+  ["bitshuffle-lz4", "corrected"],
+  ["bitshuffle-lz4", "dynamic"],
+  ["bitshuffle-lz4", "combined"],
+  ["bitshuffle-lz4", "spot"],
+  ["bitshuffle-lz4", "cosmic"],
+  ["bitshuffle-lz4", "pyfai"],
+  ["bitshuffle-lz4", "pyfai-spread"],
 ])
   test(
     `${compression}/${scenario}: bulk cancellation and changed sources preserve the preceding complete series`,
@@ -19,30 +24,7 @@ for (const [compression, scenario] of [
         path.join(tmpdir(), "dioptas-rust-jobs-"),
       );
       const source = path.join(directory, "frames.h5");
-      execFileSync(
-        process.env.DIOPTAS_REFERENCE_PYTHON ??
-          path.join(root, ".venv/bin/python"),
-        [
-          "-c",
-          `import sys,os
-os.environ['HDF5_PLUGIN_PRELOAD']='::'
-import numpy as np,h5py,bitshuffle,struct
-y,x=np.indices((384,448));frame=(100+x*2+y*3).astype('uint16')
-with h5py.File(sys.argv[1],'w') as f:
- if sys.argv[2]=='gzip':
-  d=f.create_dataset('frames',shape=(512,384,448),dtype='uint16',chunks=(1,384,448),compression='gzip',compression_opts=1)
-  for i in range(512):d[i]=frame+i
- else:
-  d=f.create_dataset('frames',shape=(512,384,448),dtype='uint16',chunks=(1,384,448),compression=32008,compression_opts=(0,4,2,2048,2),allow_unknown_filter=True)
-  data=struct.pack('>QI',frame.nbytes,4096)+bitshuffle.compress_lz4(frame,block_size=2048).tobytes()
-  for i in range(512):d.id.write_direct_chunk((i,0,0),data)
-np.save(sys.argv[1]+'.background.npy',np.full((384,448),7.))
-np.save(sys.argv[1]+'.flat.npy',np.broadcast_to(np.linspace(0.8,1.2,448),(384,448)))
-`,
-          source,
-          compression,
-        ],
-      );
+      testFixture("series", source, compression);
       const native = nativeClient();
       const invoke = async (a, p = {}) => {
         const r = await native.invoke(a, p);
@@ -68,17 +50,29 @@ np.save(sys.argv[1]+'.flat.npy',np.broadcast_to(np.linspace(0.8,1.2,448),(384,44
         await invoke("integration_settings", { bins: 128, cake_bins: 24 });
         await invoke("open_image", { path: source, dataset: "frames" });
         if (scenario.startsWith("pyfai")) {
-          await invoke("integration_settings", { method: "pyfai_full", poisson_errors: true,
-            azimuthal_std: scenario === "pyfai-spread" });
+          await invoke("integration_settings", {
+            method: "pyfai_full",
+            poisson_errors: true,
+            azimuthal_std: scenario === "pyfai-spread",
+          });
         }
         if (["corrected", "combined"].includes(scenario)) {
           await invoke("integration_settings", { poisson_errors: true });
-          await invoke("integration_image_background", { path: source + ".background.npy", scale: 0.7, poisson: true });
-          await invoke("integration_flat_field", { path: source + ".flat.npy" });
+          await invoke("integration_image_background", {
+            path: source + ".background.npy",
+            scale: 0.7,
+            poisson: true,
+          });
+          await invoke("integration_flat_field", {
+            path: source + ".flat.npy",
+          });
         }
         if (["dynamic", "combined"].includes(scenario)) {
-          await invoke("mask_plugin", { name: "Threshold Mask", enabled: true,
-            settings: { above_enabled: true, above_value: 900 } });
+          await invoke("mask_plugin", {
+            name: "Threshold Mask",
+            enabled: true,
+            settings: { above_enabled: true, above_value: 900 },
+          });
         }
         if (["spot", "cosmic"].includes(scenario)) {
           await invoke("mask_plugin", {
@@ -90,7 +84,11 @@ np.save(sys.argv[1]+'.flat.npy',np.broadcast_to(np.linspace(0.8,1.2,448),(384,44
         if (compression === "bitshuffle-lz4") {
           const diagnostics = await invoke("integration_diagnostics");
           assert.equal(
-            diagnostics.integrationDiagnostics[scenario === "raw" ? "patternOnlyDecodes" : "processedFrameIntegrations"],
+            diagnostics.integrationDiagnostics[
+              scenario === "raw"
+                ? "patternOnlyDecodes"
+                : "processedFrameIntegrations"
+            ],
             2,
           );
         }

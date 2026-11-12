@@ -1,5 +1,10 @@
 # Native projects and configurations
 
+> Historical evidence: Python-era commands and source paths in this ledger refer to
+> pre-cleanup revision `a39717a41458129ba9370c849a4121ecdbc6a444` (resolve the full revision in `REFERENCE_DATA.md`).
+> The active application and test suite are Rust/headless UI only. See
+> [reference data policy](REFERENCE_DATA.md) for retained fixtures and current checks.
+
 The default Rust processor now opens and saves current format-2 `.dio` projects
 through the existing React/Tauri Open project and Save project actions. A
 configuration toolbar supplies Select, Add, Duplicate, Rename and Remove in

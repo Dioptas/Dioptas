@@ -74,7 +74,6 @@ fn write_navigation_trace(value: Value) {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Backend {
-    Python,
     Rust,
 }
 
@@ -85,13 +84,12 @@ impl Backend {
             .filter_map(|arg| arg.strip_prefix("--backend="))
             .collect();
         if choices.len() > 1 || args.iter().any(|arg| arg == "--backend") {
-            return Err("Specify the processor once as --backend=rust or --backend=python.".into());
+            return Err("Specify the processor once as --backend=rust.".into());
         }
         match choices.first().copied().or(environment).unwrap_or("rust") {
-            "python" => Ok(Self::Python),
             "rust" => Ok(Self::Rust),
             _ => Err(
-                "Choose --backend=rust or --backend=python. No fallback processor was started."
+                "Only the Rust processor is supported. Use --backend=rust; the Python application is preserved on legacy/qt."
                     .into(),
             ),
         }
@@ -225,27 +223,6 @@ impl Processor {
         binary: Option<&Path>,
     ) -> Result<Self, String> {
         let mut command = match backend {
-            Backend::Python => {
-                let root = Self::source_root();
-                let python = std::env::var_os("DIOPTAS_PYTHON")
-                    .map(PathBuf::from)
-                    .unwrap_or_else(|| {
-                        root.join(if cfg!(windows) {
-                            ".venv/Scripts/python.exe"
-                        } else {
-                            ".venv/bin/python"
-                        })
-                    });
-                if !python.is_file() {
-                    return Err(format!("The local Python environment is missing at {}. Run uv sync --python 3.13 in the Dioptas checkout, then restart.", python.display()));
-                }
-                let mut command = Command::new(python);
-                command
-                    .args(["-u", "-m", "dioptas.desktop.stdio"])
-                    .current_dir(root)
-                    .env("PYTHONUNBUFFERED", "1");
-                command
-            }
             Backend::Rust => {
                 let filename = if cfg!(windows) {
                     "dioptas-processor.exe"
@@ -351,14 +328,21 @@ impl Processor {
         self.request_packet_with_products(action, payload, cached, None)
     }
 
-    pub fn request_packet_with_products(&self, action: &str, payload: Value, cached: Vec<String>, products: Option<Value>) -> Reply {
+    pub fn request_packet_with_products(
+        &self,
+        action: &str,
+        payload: Value,
+        cached: Vec<String>,
+        products: Option<Value>,
+    ) -> Reply {
         if self.closed.load(Ordering::SeqCst) {
             return Err("The desktop session is closed.".into());
         }
         wire_contract::validate_payload(action, &payload)?;
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         let started = std::time::Instant::now();
-        let mut request = json!({"id": id, "action": action, "payload": payload, "cachedBuffers": cached});
+        let mut request =
+            json!({"id": id, "action": action, "payload": payload, "cachedBuffers": cached});
         if let Some(products) = products {
             wire_contract::validate_cached_products(&products)?;
             request["cachedProducts"] = products;
@@ -442,14 +426,8 @@ mod tests {
             Backend::requested(&["--backend=rust".into()], Some("python")).unwrap(),
             Backend::Rust
         );
-        assert_eq!(
-            Backend::requested(&[], Some("python")).unwrap(),
-            Backend::Python
-        );
-        assert_eq!(
-            Backend::requested(&["--backend=python".into()], Some("rust")).unwrap(),
-            Backend::Python
-        );
+        assert!(Backend::requested(&[], Some("python")).is_err());
+        assert!(Backend::requested(&["--backend=python".into()], Some("rust")).is_err());
         assert!(Backend::requested(&[], Some("unknown")).is_err());
         assert!(Backend::requested(&["--backend=unknown".into()], None).is_err());
         assert!(Backend::requested(&["--backend".into(), "rust".into()], None).is_err());
@@ -619,7 +597,7 @@ mod tests {
     #[test]
     fn raw_buffers_roundtrip_and_cached_images_are_not_resent() {
         let processor = Processor::start(false).unwrap();
-        let path = Processor::source_root().join("dioptas/tests/data/image_001.tif");
+        let path = Processor::source_root().join("desktop/tests/data/image_001.tif");
         let first = processor
             .request_packet("open_image", json!({"path": path}), vec![])
             .unwrap();
@@ -745,7 +723,7 @@ mod tests {
         for (action, payload) in [
             (
                 "open_image",
-                json!({"path":Processor::source_root().join("dioptas/tests/data/image_001.tif"),"requested_products":requested}),
+                json!({"path":Processor::source_root().join("desktop/tests/data/image_001.tif"),"requested_products":requested}),
             ),
             (
                 "manual_geometry",

@@ -160,7 +160,7 @@
       if (fixture === "CeO2") await call("example");
       else {
         await call("open_image", {
-          path: config.root + "/dioptas/tests/data/LaB6_40keV_MarCCD.tif",
+          path: config.root + "/desktop/tests/data/LaB6_40keV_MarCCD.tif",
           reset_calibration: true,
         });
         await call("calibration_setup", {

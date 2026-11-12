@@ -65,9 +65,10 @@ versions. For Qt installation, development and maintenance, use the
 git clone --branch legacy/qt https://github.com/Dioptas/Dioptas.git Dioptas-qt
 ```
 
-Python sources in this branch remain available for explicit compatibility and
-independent numerical references. New scientific desktop commands belong in
-`desktop/backend`; they must not silently fall back to Python.
+The Qt/Python application, packaging and Python test suite live on `legacy/qt`.
+`develop` retains frozen independent reference data, exercised by Rust and
+headless UI tests. See [reference data and cleanup](desktop/REFERENCE_DATA.md).
+New scientific desktop commands belong in `desktop/backend`.
 
 The Rust desktop workflow owns native processor, Tauri host, headless UI and
 independent reference checks. Qt CI and branch packages target `legacy/qt` and

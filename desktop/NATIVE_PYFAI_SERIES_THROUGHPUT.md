@@ -1,5 +1,10 @@
 # pyFAI-compatible throughput: direct decoder input
 
+> Historical evidence: Python-era commands and source paths in this ledger refer to
+> pre-cleanup revision `a39717a41458129ba9370c849a4121ecdbc6a444` (resolve the full revision in `REFERENCE_DATA.md`).
+> The active application and test suite are Rust/headless UI only. See
+> [reference data policy](REFERENCE_DATA.md) for retained fixtures and current checks.
+
 November 10, 2026. Raw, fixed-mask pyFAI-compatible Batch and Map integration
 now uses Dioptrin's `FixedCsr1dInputPlan`, pinned at public revision `a10f3d6`.
 It retains the previous compatibility weights and strict arithmetic while

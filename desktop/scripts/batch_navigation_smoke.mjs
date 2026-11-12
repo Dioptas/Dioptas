@@ -24,7 +24,7 @@ try {
       // Resolve the file chooser only in this test adapter.
       if (action === "batch_load_data")
         payload = {
-          paths: [path.join(root, "dioptas/tests/data/image_001.tif")],
+          paths: [path.join(root, "desktop/tests/data/image_001.tif")],
         };
       const result = await native.invoke(action, {
         ...payload,
@@ -35,11 +35,11 @@ try {
     };
     try {
       await call("open_calibration", {
-        path: path.join(root, "dioptas/tests/data/LaB6_40keV_MarCCD.poni"),
+        path: path.join(root, "desktop/tests/data/LaB6_40keV_MarCCD.poni"),
       });
       await call("batch_load", {
         paths: ["001", "002"].map((i) =>
-          path.join(root, `dioptas/tests/data/image_${i}.tif`),
+          path.join(root, `desktop/tests/data/image_${i}.tif`),
         ),
       });
       const context = await browser.newContext({

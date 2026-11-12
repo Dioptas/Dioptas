@@ -60,7 +60,7 @@ try {
         );
     for (const i of ["001", "002"])
       await copyFile(
-        path.join(root, `dioptas/tests/data/image_${i}.tif`),
+        path.join(root, `desktop/tests/data/image_${i}.tif`),
         path.join(dir, `image_${i}.tif`),
       );
   }
@@ -159,7 +159,7 @@ try {
           await call("open_calibration", {
             path: scenario.eiger
               ? eiger.replace(/\.h5$/, ".poni")
-              : path.join(root, "dioptas/tests/data/LaB6_40keV_MarCCD.poni"),
+              : path.join(root, "desktop/tests/data/LaB6_40keV_MarCCD.poni"),
           });
         if (scenario.mode)
           await call("integration_navigation", { mode: scenario.mode });

@@ -1,5 +1,10 @@
 # Native cylinder and sphere absorption qualification
 
+> Historical evidence: Python-era commands and source paths in this ledger refer to
+> pre-cleanup revision `a39717a41458129ba9370c849a4121ecdbc6a444` (resolve the full revision in `REFERENCE_DATA.md`).
+> The active application and test suite are Rust/headless UI only. See
+> [reference data policy](REFERENCE_DATA.md) for retained fixtures and current checks.
+
 Cylinder and sphere corrections run in Dioptas's Rust processor, with no Python
 runtime or fallback. Dioptrin integrates the corrected counts and independent
 pixel variances; sample shape, attenuation lookup, GUI and project ownership

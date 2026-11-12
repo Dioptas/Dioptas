@@ -31,10 +31,10 @@ try {
         return r;
       };
       await call("open_image", {
-        path: root + "/dioptas/tests/data/CeO2_Pilatus1M.tif",
+        path: root + "/desktop/tests/data/CeO2_Pilatus1M.tif",
       });
       await call("open_calibration", {
-        path: root + "/dioptas/tests/data/CeO2_Pilatus1M.poni",
+        path: root + "/desktop/tests/data/CeO2_Pilatus1M.poni",
       });
       await call("integration_settings", { bins: 128, cake_bins: 24 });
       await call("integration_phase", {

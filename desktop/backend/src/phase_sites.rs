@@ -56,10 +56,8 @@ pub(crate) fn labels(doc: &Value) -> Value {
     };
     static TABLE: OnceLock<Value> = OnceLock::new();
     let settings = &TABLE.get_or_init(|| {
-        serde_json::from_str(include_str!(
-            "../../../dioptas/resources/data/wyckoff/positions.json"
-        ))
-        .expect("checked Moyo Wyckoff snapshot")
+        serde_json::from_str(include_str!("../../resources/data/wyckoff/positions.json"))
+            .expect("checked Moyo Wyckoff snapshot")
     })["settings"];
     let candidates: Vec<_> = settings
         .as_array()

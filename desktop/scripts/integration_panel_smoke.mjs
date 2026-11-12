@@ -27,7 +27,7 @@ try {
         ["example", {}],
         [
           "open_calibration",
-          { path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni") },
+          { path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni") },
         ],
         ["integration_settings", { bins: 256, cake_bins: 36 }],
       ]) {

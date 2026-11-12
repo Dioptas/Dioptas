@@ -9,8 +9,8 @@ const root = fileURLToPath(new URL("../../", import.meta.url));
 const artifacts = path.join(root, "desktop/artifacts");
 await mkdir(artifacts, { recursive: true });
 const host = spawn(
-  path.join(root, ".venv/bin/python"),
-  ["-u", "desktop/scripts/bridge_host.py"],
+  process.execPath,
+  ["desktop/scripts/bridge_host.mjs"],
   { cwd: root, stdio: ["pipe", "pipe", "pipe"] },
 );
 let identifier = 0;
@@ -112,12 +112,12 @@ try {
   assert.equal(
     (
       await invoke("open_calibration", {
-        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+        path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
       })
     ).ok,
     true,
   );
-  await page.goto("file://" + path.join(root, "dioptas/desktop/ui/index.html"));
+  await page.goto("file://" + path.join(root, "desktop/dist/index.html"));
   await ready();
   await click("Map");
   await page
@@ -343,7 +343,7 @@ try {
           );
         });
       }
-      nextOpenPath = path.join(root, "dioptas/tests/data/map", filename);
+      nextOpenPath = path.join(root, "desktop/tests/data/map", filename);
       await measure(mode, async () => {
         await page.evaluate(() => document.activeElement?.blur());
         await page.keyboard.press("Control+o");
@@ -353,12 +353,12 @@ try {
   assert.equal(
     (
       await invoke("integration_image_background", {
-        path: path.join(root, "dioptas/tests/data/map", files[0]),
+        path: path.join(root, "desktop/tests/data/map", files[0]),
       })
     ).ok,
     true,
   );
-  nextOpenPath = path.join(root, "dioptas/tests/data/map", files[0]);
+  nextOpenPath = path.join(root, "desktop/tests/data/map", files[0]);
   await page.evaluate(() => document.activeElement?.blur());
   await page.keyboard.press("Control+o");
   await ready();
@@ -366,7 +366,7 @@ try {
     .getByRole("button", { name: "Show corrected image", exact: true })
     .click();
   await ready();
-  nextOpenPath = path.join(root, "dioptas/tests/data/map", files[1]);
+  nextOpenPath = path.join(root, "desktop/tests/data/map", files[1]);
   await measure(
     "Integration raw",
     async () => {

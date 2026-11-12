@@ -1,5 +1,10 @@
 # Corrected images and dynamic masks in native series
 
+> Historical evidence: Python-era commands and source paths in this ledger refer to
+> pre-cleanup revision `a39717a41458129ba9370c849a4121ecdbc6a444` (resolve the full revision in `REFERENCE_DATA.md`).
+> The active application and test suite are Rust/headless UI only. See
+> [reference data policy](REFERENCE_DATA.md) for retained fixtures and current checks.
+
 Batch and Map use Dioptrin's **`Dynamic1dPlan` and `Dynamic1dWorker`** for
 corrected images and per-frame masks. The default polygon/subpixel path calls
 `Integrator::prepare_dynamic1d` with dynamic masking and CSC execution. The

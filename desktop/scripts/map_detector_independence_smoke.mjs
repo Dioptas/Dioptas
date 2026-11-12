@@ -18,15 +18,15 @@ for (const [name, type] of [
     for (const [action, payload] of [
       [
         "open_image",
-        { path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif") },
+        { path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.tif") },
       ],
       [
         "open_calibration",
-        { path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni") },
+        { path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni") },
       ],
       [
         "map_load",
-        { paths: [path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif")] },
+        { paths: [path.join(root, "desktop/tests/data/CeO2_Pilatus1M.tif")] },
       ],
     ]) {
       const r = await native.invoke(action, payload);
@@ -53,7 +53,7 @@ for (const [name, type] of [
     const page = await context.newPage();
     page.setDefaultTimeout(20000);
     await page.goto(
-      pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+      pathToFileURL(path.join(root, "desktop/dist/index.html")).href,
     );
     const ready = async () => {
       await page.waitForFunction(() => !document.querySelector(".spin"));

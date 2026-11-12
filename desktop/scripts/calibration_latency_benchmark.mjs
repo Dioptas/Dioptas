@@ -67,7 +67,7 @@ for (const [browserName, type] of [
         if (fixture === "CeO2") await call("example");
         else {
           await call("open_image", {
-            path: path.join(root, "dioptas/tests/data/LaB6_40keV_MarCCD.tif"),
+            path: path.join(root, "desktop/tests/data/LaB6_40keV_MarCCD.tif"),
           });
           await call("calibration_setup", {
             calibrant: "LaB6",

@@ -50,10 +50,10 @@ try {
       assert.equal(host.engine, "dioptrin");
       assert.equal(host.qtApplication, false);
       await invoke("open_image", {
-        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
+        path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.tif"),
       });
       await invoke("open_calibration", {
-        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+        path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
       });
       await invoke("integration_settings", { bins: 128, cake_bins: 36 });
       const page = await browser.newPage({
@@ -70,7 +70,7 @@ try {
         };
       });
       await page.goto(
-        pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+        pathToFileURL(path.join(root, "desktop/dist/index.html")).href,
       );
       const group = page.getByRole("group", { name: "Project configurations" });
       const settings = page.getByRole("button", {

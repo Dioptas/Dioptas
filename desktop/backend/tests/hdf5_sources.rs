@@ -536,7 +536,7 @@ fn link_opt_in_does_not_change_non_hdf5_loading() {
     let loaded = call(
         &mut s,
         "open_image",
-        json!({"path":root().join("dioptas/tests/data/CeO2_Pilatus1M.tif"),"follow_external_links":true}),
+        json!({"path":root().join("desktop/tests/data/CeO2_Pilatus1M.tif"),"follow_external_links":true}),
     );
     assert_eq!(loaded.result["state"]["shape"], json!([1043, 981]));
     assert_eq!(loaded.result["state"]["imageSources"], json!([]));

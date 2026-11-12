@@ -21,7 +21,7 @@ for (const [name, type] of [
     assert.equal(
       (
         await native.invoke("open_calibration", {
-          path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+          path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
         })
       ).ok,
       true,
@@ -57,7 +57,7 @@ for (const [name, type] of [
       };
     });
     await page.goto(
-      pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+      pathToFileURL(path.join(root, "desktop/dist/index.html")).href,
     );
     const ready = async () => {
       await page.waitForFunction(

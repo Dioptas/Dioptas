@@ -131,7 +131,7 @@ try {
             !window.__pending,
         );
       await page.goto(
-        pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+        pathToFileURL(path.join(root, "desktop/dist/index.html")).href,
       );
       await ready();
       await page

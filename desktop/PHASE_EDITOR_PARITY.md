@@ -1,5 +1,10 @@
 # React/Tauri phase editor
 
+> Historical evidence: Python-era commands and source paths in this ledger refer to
+> pre-cleanup revision `a39717a41458129ba9370c849a4121ecdbc6a444` (resolve the full revision in `REFERENCE_DATA.md`).
+> The active application and test suite are Rust/headless UI only. See
+> [reference data policy](REFERENCE_DATA.md) for retained fixtures and current checks.
+
 The current Rust publication-metadata workflow is documented and qualified in
 [Native EoS publication record editing](PHASE_RECORD_METADATA.md). It supersedes
 the historical metadata/range limitations below.
@@ -91,7 +96,7 @@ repair for explicitly edited record sets; remaining cross-record dependencies
 and other schema errors are still validated.
 
 Wyckoff annotations use the pinned Moyo v0.15.0 reference table (MIT license;
-attribution and generation inputs are in `dioptas/resources/data/wyckoff/`).
+attribution and generation inputs are in `desktop/resources/data/wyckoff/`).
 Classification does not infer a different symmetry or overwrite source labels.
 Unknown settings or unmatched coordinates report an unavailable derived label.
 

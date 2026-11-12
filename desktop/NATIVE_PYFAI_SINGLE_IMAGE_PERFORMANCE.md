@@ -1,5 +1,10 @@
 # Single-image pyFAI-compatible integration
 
+> Historical evidence: Python-era commands and source paths in this ledger refer to
+> pre-cleanup revision `a39717a41458129ba9370c849a4121ecdbc6a444` (resolve the full revision in `REFERENCE_DATA.md`).
+> The active application and test suite are Rust/headless UI only. See
+> [reference data policy](REFERENCE_DATA.md) for retained fixtures and current checks.
+
 November 10, 2026. This change is in the Rust/React/Tauri desktop. Qt Dioptas
 and the Python bindings are unchanged.
 

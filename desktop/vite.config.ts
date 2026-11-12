@@ -36,9 +36,7 @@ export default defineConfig({
       closeBundle() {
         cpSync(
           fileURLToPath(new URL("./licenses", import.meta.url)),
-          fileURLToPath(
-            new URL("../dioptas/desktop/ui/licenses", import.meta.url),
-          ),
+          fileURLToPath(new URL("./dist/licenses", import.meta.url)),
           { recursive: true },
         );
       },
@@ -56,5 +54,5 @@ export default defineConfig({
       ],
     },
   },
-  build: { outDir: "../dioptas/desktop/ui", emptyOutDir: true },
+  build: { outDir: "./dist", emptyOutDir: true },
 });

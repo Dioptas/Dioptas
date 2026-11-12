@@ -8,7 +8,7 @@ window.__dioptasBinaryNativeSmoke = async ({
   root,
 }) => {
   const first = await call("open_image", {
-    path: root + "/dioptas/tests/data/image_001.tif",
+    path: root + "/desktop/tests/data/image_001.tif",
   });
   // Preserve this exact geometry, mask and integration state for the Qt
   // comparison, without changing any scientific inputs for the benchmark.

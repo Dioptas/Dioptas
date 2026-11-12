@@ -253,7 +253,7 @@
       "Native image picking lost peak groups",
     );
     const peakPath =
-      initial.state.imagePath.split("/dioptas/tests/data/")[0] +
+      initial.state.imagePath.split("/desktop/tests/data/")[0] +
       "/desktop/artifacts/native-calibration-peaks.json";
     const savedPeaks = await call("save_peaks", { path: peakPath });
     check(savedPeaks.ok, savedPeaks.error || "Native peaks save failed");
@@ -502,7 +502,7 @@
       (await call("state")).state.integration.overlays.length === 1,
       "Selected overlay deletion failed",
     );
-    const sourceRoot = initial.state.imagePath.split("/dioptas/tests/data/")[0];
+    const sourceRoot = initial.state.imagePath.split("/desktop/tests/data/")[0];
     // Native IPC is immutable. Check the toolbar control, then verify image
     // writing through the real native/Python path using explicit test filenames.
     // The browser smoke exercises the button's 2048-pixel export renderer.
@@ -555,7 +555,7 @@
     check(savedPattern.ok, savedPattern.error);
     const phase = await call("integration_phase", {
       operation: "load",
-      path: sourceRoot + "/dioptas/tests/data/jcpds/au_version3.jcpds",
+      path: sourceRoot + "/desktop/tests/data/jcpds/au_version3.jcpds",
     });
     check(
       phase.ok && phase.pattern.phaseLines.length > 0,
@@ -604,7 +604,7 @@
       check,
       root: initial.state.imagePath.slice(
         0,
-        initial.state.imagePath.lastIndexOf("/dioptas/tests/data/"),
+        initial.state.imagePath.lastIndexOf("/desktop/tests/data/"),
       ),
     });
     let hotReloadVerified = false;

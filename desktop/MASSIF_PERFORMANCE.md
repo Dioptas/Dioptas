@@ -1,5 +1,10 @@
 # Massif peak-picking performance
 
+> Historical evidence: Python-era commands and source paths in this ledger refer to
+> pre-cleanup revision `a39717a41458129ba9370c849a4121ecdbc6a444` (resolve the full revision in `REFERENCE_DATA.md`).
+> The active application and test suite are Rust/headless UI only. See
+> [reference data policy](REFERENCE_DATA.md) for retained fixtures and current checks.
+
 Measured November 9, 2026, on the development Mac. This is the native Rust
 processor, with Python unavailable to the child process. Timings cover the
 stdio command and returned snapshot; they exclude final GUI presentation.

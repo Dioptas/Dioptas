@@ -31,7 +31,7 @@ fn original_observables_survive_background_units_masks_and_project_configuration
     call(
         &mut s,
         "open_calibration",
-        json!({"path":root.join("dioptas/tests/data/CeO2_Pilatus1M.poni")}),
+        json!({"path":root.join("desktop/tests/data/CeO2_Pilatus1M.poni")}),
     );
     call(
         &mut s,
@@ -41,7 +41,7 @@ fn original_observables_survive_background_units_masks_and_project_configuration
     call(
         &mut s,
         "open_image",
-        json!({"path":root.join("dioptas/tests/data/CeO2_Pilatus1M.tif")}),
+        json!({"path":root.join("desktop/tests/data/CeO2_Pilatus1M.tif")}),
     );
     let temp = tempfile::tempdir().unwrap();
     let file = temp.path().join("single.csv");
@@ -240,7 +240,7 @@ fn diagnostic_preferences_preserve_owned_cake_and_azimuthal_profile() {
     call(
         &mut s,
         "open_calibration",
-        json!({"path":root.join("dioptas/tests/data/CeO2_Pilatus1M.poni")}),
+        json!({"path":root.join("desktop/tests/data/CeO2_Pilatus1M.poni")}),
     );
     call(
         &mut s,
@@ -250,7 +250,7 @@ fn diagnostic_preferences_preserve_owned_cake_and_azimuthal_profile() {
     call(
         &mut s,
         "open_image",
-        json!({"path":root.join("dioptas/tests/data/CeO2_Pilatus1M.tif")}),
+        json!({"path":root.join("desktop/tests/data/CeO2_Pilatus1M.tif")}),
     );
     let profile = call(
         &mut s,

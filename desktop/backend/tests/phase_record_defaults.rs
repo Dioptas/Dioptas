@@ -22,7 +22,7 @@ fn clearing_or_deleting_all_records_can_start_a_valid_new_eos() {
         call(
             &mut session,
             "integration_phase",
-            json!({"operation":"load","path":Path::new(env!("CARGO_MANIFEST_DIR")).join("../../dioptas/tests/data/jcpds/mo.jcpds")}),
+            json!({"operation":"load","path":Path::new(env!("CARGO_MANIFEST_DIR")).join("../../desktop/tests/data/jcpds/mo.jcpds")}),
         );
         call(
             &mut session,
@@ -66,7 +66,7 @@ fn adding_to_an_existing_eos_preserves_its_measured_modulus() {
     call(
         &mut session,
         "integration_phase",
-        json!({"operation":"load","path":Path::new(env!("CARGO_MANIFEST_DIR")).join("../../dioptas/tests/data/jcpds/mo.jcpds")}),
+        json!({"operation":"load","path":Path::new(env!("CARGO_MANIFEST_DIR")).join("../../desktop/tests/data/jcpds/mo.jcpds")}),
     );
     call(
         &mut session,

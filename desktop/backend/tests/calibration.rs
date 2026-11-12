@@ -63,7 +63,7 @@ fn fixture() -> Fixture {
     let temp = tempfile::tempdir().unwrap();
     let image = temp.path().join("rings.npy");
     let peaks = temp.path().join("peaks.json");
-    let text = fs::read_to_string(root().join("dioptas/resources/calibrants/CeO2.D")).unwrap();
+    let text = fs::read_to_string(root().join("desktop/resources/calibrants/CeO2.D")).unwrap();
     let spacings: Vec<f64> = text
         .lines()
         .filter_map(|l| l.split('#').next().unwrap().split_whitespace().next())

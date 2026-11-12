@@ -58,7 +58,7 @@ fn image_002_trims_default_pattern_and_export_without_changing_cake() {
     call(
         &mut s,
         "open_calibration",
-        json!({"path":root().join("dioptas/tests/data/LaB6_40keV_MarCCD.poni")}),
+        json!({"path":root().join("desktop/tests/data/LaB6_40keV_MarCCD.poni")}),
     );
     call(
         &mut s,
@@ -68,7 +68,7 @@ fn image_002_trims_default_pattern_and_export_without_changing_cake() {
     call(
         &mut s,
         "open_image",
-        json!({"path":root().join("dioptas/tests/data/image_002.tif")}),
+        json!({"path":root().join("desktop/tests/data/image_002.tif")}),
     );
     for unit in ["2th_deg", "q_A^-1", "d_A"] {
         let full = call(

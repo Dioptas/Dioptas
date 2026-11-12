@@ -13,9 +13,9 @@
     });
     const call = window.__dioptasNativeCall;
     const initial = await call("state");
-    const root = initial.state.imagePath.split("/dioptas/tests/data/")[0];
+    const root = initial.state.imagePath.split("/desktop/tests/data/")[0];
     const opened = await call("open_calibration", {
-      path: root + "/dioptas/tests/data/CeO2_Pilatus1M.poni",
+      path: root + "/desktop/tests/data/CeO2_Pilatus1M.poni",
     });
     if (!opened.ok) throw Error(opened.error);
     const real = await call("settings", { bins: 2000 });

@@ -987,7 +987,7 @@ fn phases_overlays_background_and_corrections_survive_a_fresh_project_owner() {
     call(
         &mut s,
         "integration_phase",
-        json!({"operation":"load","path":root().join("dioptas/tests/data/jcpds/mo.jcpds")}),
+        json!({"operation":"load","path":root().join("desktop/tests/data/jcpds/mo.jcpds")}),
     );
     call(
         &mut s,
@@ -1009,7 +1009,7 @@ fn phases_overlays_background_and_corrections_survive_a_fresh_project_owner() {
     call(
         &mut s,
         "integration_phase",
-        json!({"operation":"load","path":root().join("dioptas/tests/data/jcpds/au_version3.jcpds")}),
+        json!({"operation":"load","path":root().join("desktop/tests/data/jcpds/au_version3.jcpds")}),
     );
     call(
         &mut s,
@@ -1050,7 +1050,7 @@ fn phase_lattice_pressure_and_name_edits_reach_pattern_and_export() {
     call(
         &mut s,
         "integration_phase",
-        json!({"operation":"load","path":root().join("dioptas/tests/data/jcpds/mo.jcpds")}),
+        json!({"operation":"load","path":root().join("desktop/tests/data/jcpds/mo.jcpds")}),
     );
     let before =
         call(&mut s, "integration_phase_editor", json!({"index":0})).result["phaseEditor"].clone();
@@ -1122,7 +1122,7 @@ fn reflection_editing_add_remove_and_export_preserve_actual_peak_values() {
     call(
         &mut s,
         "integration_phase",
-        json!({"operation":"load","path":root().join("dioptas/tests/data/jcpds/mo.jcpds")}),
+        json!({"operation":"load","path":root().join("desktop/tests/data/jcpds/mo.jcpds")}),
     );
     call(
         &mut s,

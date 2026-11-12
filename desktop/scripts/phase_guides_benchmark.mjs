@@ -59,10 +59,10 @@ try {
     });
   } else {
     await call("open_calibration", {
-      path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+      path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
     });
     await call("open_image", {
-      path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
+      path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.tif"),
     });
   }
   const phaseFiles = process.argv.includes("--single")
@@ -80,7 +80,7 @@ try {
   for (const [index, name] of phaseFiles.entries()) {
     await call("integration_phase", {
       operation: "load",
-      path: path.join(root, "dioptas/tests/data/jcpds", name),
+      path: path.join(root, "desktop/tests/data/jcpds", name),
     });
     if (process.argv.some((a) => a.startsWith("--phases="))) {
       await call("integration_phase", {

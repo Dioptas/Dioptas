@@ -51,10 +51,10 @@ async function allData(scxrd) {
 try {
   assert.equal((await invoke("__host__")).runtime, "rust");
   await invoke("open_image", {
-    path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
+    path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.tif"),
   });
   await invoke("open_calibration", {
-    path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+    path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
   });
   await invoke("integration_settings", { bins: 128, cake_bins: 36 });
   const powderBefore = await invoke("state");

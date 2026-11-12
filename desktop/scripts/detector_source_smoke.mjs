@@ -115,7 +115,7 @@ try {
       const page = await context.newPage();
       page.setDefaultTimeout(20000);
       await page.goto(
-        pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+        pathToFileURL(path.join(root, "desktop/dist/index.html")).href,
       );
       const ready = async () => {
         await page.waitForFunction(() => !document.querySelector(".spin"));

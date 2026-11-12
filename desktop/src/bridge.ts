@@ -41,21 +41,10 @@ async function rawConnect(): Promise<Invoke> {
     );
     return transfer.call.bind(transfer);
   }
+  // Historical adapter name retained for headless tests that inject a native
+  // processor client. Production processing is available only through Tauri.
   if (window.pywebview?.api.invoke) return window.pywebview.api.invoke;
-  return new Promise((resolve, reject) => {
-    const ready = () => {
-      clearTimeout(timeout);
-      if (window.pywebview?.api.invoke) resolve(window.pywebview.api.invoke);
-      else reject(new Error("The desktop bridge is unavailable."));
-    };
-    const timeout = setTimeout(() => {
-      window.removeEventListener("pywebviewready", ready);
-      reject(
-        new Error(
-          "Open this interface with desktop/launch.command (Tauri), or python -m dioptas.desktop (legacy preview). A plain browser needs the development test bridge.",
-        ),
-      );
-    }, 8000);
-    window.addEventListener("pywebviewready", ready, { once: true });
-  });
+  throw new Error(
+    "Open this interface with desktop/launch.command (Tauri). Headless browser checks require the injected native test bridge.",
+  );
 }

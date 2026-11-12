@@ -38,15 +38,15 @@ try {
       const editState = async () =>
         (await invoke("integration_phase_editor", { index: 0 })).phaseEditor;
       await invoke("open_image", {
-        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
+        path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.tif"),
       });
       await invoke("open_calibration", {
-        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+        path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
       });
       await invoke("integration_settings", { bins: 64, cake_bins: 12 });
       await invoke("integration_phase", {
         operation: "load",
-        path: path.join(root, "dioptas/tests/data/jcpds/mo.jcpds"),
+        path: path.join(root, "desktop/tests/data/jcpds/mo.jcpds"),
       });
       await invoke("integration_phase", {
         operation: "editor_record",
@@ -109,7 +109,7 @@ try {
         };
       });
       await page.goto(
-        pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+        pathToFileURL(path.join(root, "desktop/dist/index.html")).href,
       );
       const ready = async () =>
         page.waitForFunction(

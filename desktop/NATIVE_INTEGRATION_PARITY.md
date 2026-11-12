@@ -1,5 +1,10 @@
 # Native integration qualification — 2026-11-07
 
+> Historical evidence: Python-era commands and source paths in this ledger refer to
+> pre-cleanup revision `a39717a41458129ba9370c849a4121ecdbc6a444` (resolve the full revision in `REFERENCE_DATA.md`).
+> The active application and test suite are Rust/headless UI only. See
+> [reference data policy](REFERENCE_DATA.md) for retained fixtures and current checks.
+
 This ledger covers the default Rust processing executable on `codex/native-backend`.
 The Rust child does not import or execute
 Python; independent comparison programs use Python only to calculate references.

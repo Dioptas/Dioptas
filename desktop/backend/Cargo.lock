@@ -288,6 +288,7 @@ dependencies = [
  "flate2",
  "half",
  "hdf5-metno",
+ "hdf5-metno-sys",
  "libc",
  "nalgebra",
  "peritheos",

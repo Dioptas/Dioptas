@@ -7,7 +7,7 @@
     "beforeDevCommand": "npm run backend:prepare -- --debug && npm run dev -- --port 1420 --strictPort",
     "beforeBuildCommand": "npm run backend:prepare -- --tauri && npm run build",
     "devUrl": "http://127.0.0.1:1420",
-    "frontendDist": "../../dioptas/desktop/ui"
+    "frontendDist": "../dist"
   },
   "app": {
     "windows": [

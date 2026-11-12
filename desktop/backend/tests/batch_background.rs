@@ -420,7 +420,7 @@ fn new_raw_batch_inherits_active_pattern_background_and_enables_subtraction() {
     call(
         &mut s,
         "open_calibration",
-        json!({"path":root.join("dioptas/tests/data/LaB6_40keV_MarCCD.poni")}),
+        json!({"path":root.join("desktop/tests/data/LaB6_40keV_MarCCD.poni")}),
     );
     call(
         &mut s,
@@ -429,7 +429,7 @@ fn new_raw_batch_inherits_active_pattern_background_and_enables_subtraction() {
     );
     let paths: Vec<_> = ["001", "002"]
         .iter()
-        .map(|i| root.join(format!("dioptas/tests/data/image_{i}.tif")))
+        .map(|i| root.join(format!("desktop/tests/data/image_{i}.tif")))
         .collect();
     call(&mut s, "open_image", json!({"path":paths[0]}));
     call(

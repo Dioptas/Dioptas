@@ -111,7 +111,7 @@ exit 0
         };
       });
       await page.goto(
-        pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+        pathToFileURL(path.join(root, "desktop/dist/index.html")).href,
       );
       const button = (label) =>
         page.getByRole("button", { name: label, exact: true });

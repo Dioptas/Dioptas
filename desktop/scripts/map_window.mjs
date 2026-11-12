@@ -20,7 +20,7 @@ const runtimeName = "rust";
 const evidence = path.join(artifacts, "map-window", runtimeName, engineName);
 await mkdir(evidence, { recursive: true });
 const native = nativeClient();
-const scanFolder = path.join(root, "dioptas/tests/data/map");
+const scanFolder = path.join(root, "desktop/tests/data/map");
 const scanPaths = (await readdir(scanFolder))
   .filter((name) => name.endsWith(".tif"))
   .sort()
@@ -113,12 +113,12 @@ try {
   assert.equal(
     (
       await invoke("open_calibration", {
-        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+        path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
       })
     ).ok,
     true,
   );
-  await page.goto("file://" + path.join(root, "dioptas/desktop/ui/index.html"));
+  await page.goto("file://" + path.join(root, "desktop/dist/index.html"));
   await ready();
   await click("Map");
   await page

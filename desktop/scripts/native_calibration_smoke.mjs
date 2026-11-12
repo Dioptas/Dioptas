@@ -68,7 +68,7 @@ for (const [name, type] of [
       };
     });
     await page.goto(
-      pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+      pathToFileURL(path.join(root, "desktop/dist/index.html")).href,
     );
     const ready = async () => {
       await page.waitForFunction(() => window.__pending === 0);

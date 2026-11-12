@@ -1,5 +1,10 @@
 # Pattern WebGL rendering and benchmark
 
+> Historical evidence: Python-era commands and source paths in this ledger refer to
+> pre-cleanup revision `a39717a41458129ba9370c849a4121ecdbc6a444` (resolve the full revision in `REFERENCE_DATA.md`).
+> The active application and test suite are Rust/headless UI only. See
+> [reference data policy](REFERENCE_DATA.md) for retained fixtures and current checks.
+
 WebGL is the default pattern renderer, with automatic Canvas fallback for
 unavailable/lost contexts, upload failures, and the existing antialias-off pixel
 mode. `VITE_DIOPTAS_PATTERN_RENDERER=canvas2d` forces Canvas for diagnostics.

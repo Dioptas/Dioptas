@@ -113,7 +113,7 @@ fn packaged_resources_support_example_integration_and_project_without_a_checkout
     fs::create_dir_all(resources.join("examples")).unwrap();
     for name in ["CeO2_Pilatus1M.tif", "CeO2_Pilatus1M.poni"] {
         fs::copy(
-            root().join("dioptas/tests/data").join(name),
+            root().join("desktop/tests/data").join(name),
             resources.join("examples").join(name),
         )
         .unwrap();
@@ -197,7 +197,7 @@ fn detached_phase_refresh_preserves_detector_buffers_and_revision() {
         &mut session,
         "integration_phase",
         json!({
-            "operation":"load", "path":root().join("dioptas/tests/data/jcpds/mo.jcpds")
+            "operation":"load", "path":root().join("desktop/tests/data/jcpds/mo.jcpds")
         }),
     );
     call(
@@ -489,7 +489,7 @@ fn unsupported_geometry_and_options_fail_without_publishing_partial_changes() {
     let temp = tempfile::tempdir().unwrap();
     let mut session = Session::new(root());
     let initial = call(&mut session, "state", json!({}));
-    let poni = fs::read_to_string(root().join("dioptas/tests/data/CeO2_Pilatus1M.poni")).unwrap();
+    let poni = fs::read_to_string(root().join("desktop/tests/data/CeO2_Pilatus1M.poni")).unwrap();
     for contents in [
         poni.replace("SplineFile: None", "SplineFile: correction.spline"),
         format!("{poni}\nDetector: UnavailableModel\n"),
@@ -538,7 +538,7 @@ fn loaded_poni_roundtrips_without_a_python_runtime() {
     let first = call(
         &mut session,
         "open_calibration",
-        json!({"path":root().join("dioptas/tests/data/CeO2_Pilatus1M.poni")}),
+        json!({"path":root().join("desktop/tests/data/CeO2_Pilatus1M.poni")}),
     );
     let path = temp.path().join("calibration.poni");
     call(&mut session, "save_calibration", json!({"path":path}));
@@ -651,7 +651,7 @@ fn no_engine_build_reads_images_and_never_substitutes_a_python_integrator() {
     call(
         &mut session,
         "open_calibration",
-        json!({"path":root().join("dioptas/tests/data/CeO2_Pilatus1M.poni")}),
+        json!({"path":root().join("desktop/tests/data/CeO2_Pilatus1M.poni")}),
     );
     let reply = session.invoke(&request("integrate", json!({})));
     assert_eq!(reply.result["ok"], false);

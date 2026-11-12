@@ -81,7 +81,7 @@ export async function nativeEditorEvents(browser, native, uid) {
     };
   });
   await page.goto(
-    pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href +
+    pathToFileURL(path.join(root, "desktop/dist/index.html")).href +
       `?phase_uid=${encodeURIComponent(uid)}`,
   );
   await page

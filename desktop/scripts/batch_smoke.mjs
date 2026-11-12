@@ -28,7 +28,7 @@ execFileSync(
     "--example",
     "batch_window_fixture",
     "--",
-    path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
+    path.join(root, "desktop/tests/data/CeO2_Pilatus1M.tif"),
     temporary,
   ],
   { cwd: root, stdio: "inherit" },
@@ -59,12 +59,12 @@ async function invoke(action, payload = {}) {
   )
     payload = {
       ...payload,
-      path: path.join(root, "dioptas/tests/data/jcpds/au_version3.jcpds"),
+      path: path.join(root, "desktop/tests/data/jcpds/au_version3.jcpds"),
     };
   if (action === "integration_phase_files" && !payload.paths)
     payload = {
       ...payload,
-      paths: [path.join(root, "dioptas/tests/data/jcpds/au_version3.jcpds")],
+      paths: [path.join(root, "desktop/tests/data/jcpds/au_version3.jcpds")],
     };
   requests.push(action);
   const reply = await native.invoke(action, payload);
@@ -217,12 +217,12 @@ try {
   assert.equal(
     (
       await invoke("open_calibration", {
-        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+        path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
       })
     ).ok,
     true,
   );
-  await page.goto("file://" + path.join(root, "dioptas/desktop/ui/index.html"));
+  await page.goto("file://" + path.join(root, "desktop/dist/index.html"));
   await ready();
   assert.equal(
     await page.getByRole("button", { name: "Batch", exact: true }).count(),
@@ -492,7 +492,7 @@ try {
     (
       await invoke("integration_phase", {
         operation: "load",
-        path: path.join(root, "dioptas/tests/data/jcpds/au_version3.jcpds"),
+        path: path.join(root, "desktop/tests/data/jcpds/au_version3.jcpds"),
       })
     ).ok,
     true,

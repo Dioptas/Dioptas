@@ -1,5 +1,5 @@
+import { testFixture } from "./test_fixtures.mjs";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -12,23 +12,7 @@ const temp = await mkdtemp(path.join(os.tmpdir(), "dioptas-map-progress-"));
 const source = path.join(temp, "scan.h5");
 // Keep real native work long enough for progress polling in fast kernels.
 const frameCount = 8192;
-execFileSync(
-  process.env.DIOPTAS_REFERENCE_PYTHON ?? path.join(root, ".venv/bin/python"),
-  [
-    "-c",
-    `import sys,os,struct
-os.environ['HDF5_PLUGIN_PRELOAD']='::'
-import numpy as np,h5py,bitshuffle
-y,x=np.indices((384,448));frame=(100+x*2+y*3).astype('uint16')
-with h5py.File(sys.argv[1],'w') as f:
- d=f.create_dataset('frames',shape=(int(sys.argv[2]),384,448),dtype='uint16',chunks=(1,384,448),compression=32008,compression_opts=(0,4,2,2048,2),allow_unknown_filter=True)
- data=struct.pack('>QI',frame.nbytes,4096)+bitshuffle.compress_lz4(frame,block_size=2048).tobytes()
- for i in range(int(sys.argv[2])):d.id.write_direct_chunk((i,0,0),data)
-`,
-    source,
-    String(frameCount),
-  ],
-);
+testFixture("series", source, "bitshuffle-lz4", frameCount);
 const receipts = [];
 try {
   for (const [name, type] of [
@@ -121,7 +105,7 @@ try {
         };
       });
       await page.goto(
-        pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+        pathToFileURL(path.join(root, "desktop/dist/index.html")).href,
       );
       await page.getByTestId("detector-canvas").waitFor();
       const ready = () =>

@@ -61,7 +61,7 @@ window.__dioptasMaskNativeSmoke = async ({
     "Native mask redo failed",
   );
   const fixture = current.state.imagePath;
-  const root = fixture.slice(0, fixture.lastIndexOf("/dioptas/tests/data/"));
+  const root = fixture.slice(0, fixture.lastIndexOf("/desktop/tests/data/"));
   const path = root + "/desktop/artifacts/native-mask.npy";
   const saved = await call("mask_file", { path, save: true, flipud: true });
   check(saved.ok, "Native pipe could not save mask");

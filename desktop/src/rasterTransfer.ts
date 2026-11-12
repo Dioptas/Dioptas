@@ -328,7 +328,7 @@ const decoded = new WeakMap<
 export function decodeRaster(raster: Raster): Float32Array | Uint8Array {
   let data: RasterBytes;
   if (typeof raster.data === "string") {
-    // Compatibility for the earlier pywebview host and browser test bridge.
+    // Base64 is used only by the headless browser test adapter.
     const raw = atob(raster.data);
     const bytes = new Uint8Array(raw.length);
     for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
@@ -344,8 +344,8 @@ export function decodeRaster(raster: Raster): Float32Array | Uint8Array {
   if (raster.dtype === "u8")
     values = new Uint8Array(buffer, offset, data.byteLength);
   else if (littleEndian) {
-    // Native headers align the first payload. Older/Python packets and odd
-    // byte masks can still produce an unaligned float payload: copy it once.
+    // Native headers align the first payload. Test packets and odd byte masks
+    // can still produce an unaligned float payload: copy it once.
     const aligned =
       offset % 4 === 0
         ? data

@@ -124,7 +124,7 @@ export interface CommandContracts {
   __host__: Spec<
     P.EmptyPayload,
     {
-      runtime: "rust" | "python";
+      runtime: "rust";
       protocol: number;
       transport: string;
       pid: number;

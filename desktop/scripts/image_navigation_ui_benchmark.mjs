@@ -80,10 +80,10 @@ for (const [browserName, browserType] of [
       };
       try {
         await call("open_image", {
-          path: path.join(root, "dioptas/tests/data/image_001.tif"),
+          path: path.join(root, "desktop/tests/data/image_001.tif"),
         });
         await call("open_calibration", {
-          path: path.join(root, "dioptas/tests/data/LaB6_40keV_MarCCD.poni"),
+          path: path.join(root, "desktop/tests/data/LaB6_40keV_MarCCD.poni"),
         });
         await page.exposeFunction("__nativeInvoke", async (action, payload) => {
           const response = await call(action, payload);
@@ -147,7 +147,7 @@ for (const [browserName, browserType] of [
         });
         await page.goto(
           pathToFileURL(
-            html ?? path.join(root, "dioptas/desktop/ui/index.html"),
+            html ?? path.join(root, "desktop/dist/index.html"),
           ).href,
         );
         await page.getByTestId("detector-canvas").waitFor();

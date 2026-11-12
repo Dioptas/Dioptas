@@ -17,7 +17,7 @@ test(
     try {
       await call("example");
       await call("open_calibration", {
-        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+        path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
       });
       const before = await call("state");
       const pending = native.invoke("mask_plugin", {

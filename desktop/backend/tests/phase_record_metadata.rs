@@ -27,7 +27,7 @@ fn prepared(s: &mut Session, file: &Path) {
     call(
         s,
         "integration_phase",
-        json!({"operation":"load","path":root().join("dioptas/tests/data/jcpds/mo.jcpds")}),
+        json!({"operation":"load","path":root().join("desktop/tests/data/jcpds/mo.jcpds")}),
     );
     call(
         s,
@@ -69,12 +69,12 @@ fn metadata_roundtrips_without_changing_science_and_preserves_independent_record
     call(
         &mut s,
         "open_image",
-        json!({"path":root().join("dioptas/tests/data/CeO2_Pilatus1M.tif")}),
+        json!({"path":root().join("desktop/tests/data/CeO2_Pilatus1M.tif")}),
     );
     call(
         &mut s,
         "open_calibration",
-        json!({"path":root().join("dioptas/tests/data/CeO2_Pilatus1M.poni")}),
+        json!({"path":root().join("desktop/tests/data/CeO2_Pilatus1M.poni")}),
     );
     call(
         &mut s,

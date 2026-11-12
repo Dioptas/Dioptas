@@ -1,5 +1,10 @@
 # Native LA Cosmic operation
 
+> Historical evidence: Python-era commands and source paths in this ledger refer to
+> pre-cleanup revision `a39717a41458129ba9370c849a4121ecdbc6a444` (resolve the full revision in `REFERENCE_DATA.md`).
+> The active application and test suite are Rust/headless UI only. See
+> [reference data policy](REFERENCE_DATA.md) for retained fixtures and current checks.
+
 The default Rust processor implements `mask_edit {operation: "cosmic"}`.
 React's Mask panel exposes the Qt **Cosmic Removal** action below the morphology
 controls. The existing Python desktop command also accepts this button's payload.

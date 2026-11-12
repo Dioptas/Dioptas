@@ -217,7 +217,7 @@ impl Session {
             packaged
         } else {
             // Explicit source-root clients and reference tests retain their fixture layout.
-            self.root.join("dioptas/tests/data/CeO2_Pilatus1M.tif")
+            self.root.join("desktop/tests/data/CeO2_Pilatus1M.tif")
         }
     }
     pub fn new(root: PathBuf) -> Self {

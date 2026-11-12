@@ -297,8 +297,8 @@
     };
     if (!config.series && !config.eigerOnly) {
       await configure(
-        `${config.root}/dioptas/tests/data/image_001.tif`,
-        `${config.root}/dioptas/tests/data/LaB6_40keV_MarCCD.poni`,
+        `${config.root}/desktop/tests/data/image_001.tif`,
+        `${config.root}/desktop/tests/data/LaB6_40keV_MarCCD.poni`,
       );
       await step("tiff-first-next", 1);
       await step("tiff-first-previous", -1);

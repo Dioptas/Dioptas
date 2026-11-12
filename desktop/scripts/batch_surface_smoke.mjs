@@ -322,16 +322,16 @@ try {
           return result;
         };
         await call("open_calibration", {
-          path: path.join(root, "dioptas/tests/data/LaB6_40keV_MarCCD.poni"),
+          path: path.join(root, "desktop/tests/data/LaB6_40keV_MarCCD.poni"),
         });
         await call("batch_load", {
           paths: ["001", "002", "001", "002"].map((i) =>
-            path.join(root, `dioptas/tests/data/image_${i}.tif`),
+            path.join(root, `desktop/tests/data/image_${i}.tif`),
           ),
         });
         await call("integration_phase", {
           operation: "load",
-          path: path.join(root, "dioptas/tests/data/jcpds/au_version3.jcpds"),
+          path: path.join(root, "desktop/tests/data/jcpds/au_version3.jcpds"),
         });
         const original = await call("batch_snapshot");
         const binaryBefore = JSON.stringify(

@@ -25,7 +25,7 @@ try {
         return result;
       };
       await call("open_calibration", {
-        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+        path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
       });
       await call("integration_settings", {
         bins: 256,
@@ -33,7 +33,7 @@ try {
         poisson_errors: true,
       });
       await call("open_image", {
-        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
+        path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.tif"),
       });
       await call("integration_overlay", { operation: "capture" });
       const page = await browser.newPage({
@@ -87,7 +87,7 @@ try {
         };
       });
       await page.goto(
-        pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+        pathToFileURL(path.join(root, "desktop/dist/index.html")).href,
       );
       const ready = () =>
         page.waitForFunction(

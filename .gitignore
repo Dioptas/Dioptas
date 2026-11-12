@@ -198,7 +198,7 @@ __pycache__/
 
 # React desktop build and local verification artifacts
 desktop/node_modules/
-dioptas/desktop/ui/
+desktop/dist/
 desktop/artifacts/
 desktop/src-tauri/target/
 desktop/backend/target/
@@ -211,3 +211,6 @@ desktop/src/__dioptas_live_check_*.css
 
 # Generated Canvas reference for isolated pattern renderer benchmarks.
 desktop/src/__CanvasBaseline.tsx
+
+# Preserve generated assets belonging to already-running pre-cleanup previews.
+dioptas/desktop/ui/

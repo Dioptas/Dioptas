@@ -32,8 +32,8 @@ image → peak picking/fitting or loaded/manual geometry → integration workflo
 `dioptrin-io` and Dioptrin. `npm run tauri:dev`, `desktop/launch.command` and
 embedded Tauri builds select Rust without a Python environment. Build hooks
 compile and stage the matching native processor automatically.
-See the [Python-removal audit](PYTHON_REMOVAL_AUDIT.md) for remaining compatibility
-and distribution work. `npm run tauri:native-dev` retains its isolated port 1428.
+See [reference data and cleanup](REFERENCE_DATA.md) for the Python-free test
+policy and retained fixtures. `npm run tauri:native-dev` retains its isolated port 1428.
 The native calibration stage retains the existing controls, automatic ring
 refinement, live progress/cancellation and grouped edit/fit Undo/Redo for the
 [qualified detector geometry](NATIVE_DETECTOR_PARITY.md).
@@ -206,7 +206,7 @@ pixels square; F/right double-click still restore the fitted image view.
 The Rust desktop gate and the case-by-case inventory of all 82 legacy functional
 definitions are documented in [Native functional coverage](NATIVE_FUNCTIONAL_COVERAGE.md).
 Run `npm run test:ci-native` for processor and headless UI checks; independent
-Python reference calculations are an explicitly separate gate.
+Independent numerical reference results are frozen data checked by Rust tests.
 
 ## Shared UI controls
 
@@ -261,8 +261,8 @@ disable the watcher. Generated build/staging files are excluded from UI and host
 watchers, so a scientific rebuild does not reload the window.
 
 This applies to the native **live development preview**. Host Rust changes still
-restart the host/window; bundled snapshot apps do not watch source files. Python
-is only needed for the explicit compatibility backend and independent references.
+restart the host/window; bundled snapshot apps do not watch source files.
+Neither application processing nor its active test suite requires Python.
 
 For phase-editor work in its assigned checkout, use `npm run tauri:phase-dev`.
 This opens the raw-image example with live React/CSS updates on its dedicated
@@ -282,25 +282,22 @@ worker without accessing native objects. Pipe responses carry request IDs so a
 long fit does not block progress/cancel responses. Window closure drops the pipe,
 cancels pending refinement and reaps the child, with a bounded kill fallback.
 
-Native image transfer uses binary buffers through both the Python pipe and
+Native image transfer uses binary buffers through
 Tauri IPC. Commands and metadata remain JSON. Detector, mask, cake and map
 pixels never become base64 strings on this path. A response contains a
 little-endian uint32 header length, the UTF-8 JSON header, then the raw buffers
 listed in that header. Buffer IDs identify immutable content; the window
 advertises the IDs it still retains so unchanged pixels need not be resent.
 
-The compatibility Python display cache retains up to 128 MiB of pixel buffers and associated
-statistics, keyed by the complete source content, shape, dtype and display
-options. This detects in-place image/mask changes while retaining statistics
-from the original scientific precision. The window retains up to 128 MiB of
+The window retains up to 128 MiB of
 binary buffers. Detector and cake views normally render with WebGL 2; the
 Canvas fallback and PNG export share a 96 MiB colour-image cache. Both caches evict older
 entries. Render keys include mask content, palette, linear/log scaling and
 intensity limits. Pending requests keep their advertised buffers alive even if
 another response evicts them. Ring contours are reused only while the angular
 array and calibrant angles agree; integrations continue to use the current
-scientific models. The legacy pywebview host and browser-test bridge keep their
-compatible JSON/base64 path.
+scientific models. Headless browser drivers use a Node adapter for the native
+processor, with JSON/base64 only at the browser-test boundary.
 
 A [standalone macOS Rust application](NATIVE_STANDALONE_PARITY.md) is now available.
 `npm run tauri:bundle` builds the complete `.app` with processor, resources,
@@ -327,15 +324,11 @@ AppImage candidates using Ubuntu 22.04 and 24.04 build baselines respectively.
 The `.deb` is tested on Ubuntu 22.04/24.04; AppImage is tested on Ubuntu 24.04. It checks installed GTK/WebKit operation under a virtual
 display, source-free processing and package lifecycle without publishing.
 
-Development still supports `DIOPTAS_SOURCE_ROOT` for the Python comparison
-backend and `DIOPTAS_NATIVE_PROCESSOR` for an explicit Rust executable.
-Release Rust startup uses installed resources and a sibling processor, with
-no checkout fallback. A missing processor/resource manifest fails explicitly.
-
-For explicit compatibility comparison, use `--backend=python` or
-`DIOPTAS_BACKEND=python`; the command-line argument takes precedence. Set up that
-backend with `uv sync --python 3.13` first. `DIOPTAS_PYTHON` overrides its interpreter.
-No existing preview process is restarted when this source default changes.
+Development supports `DIOPTAS_SOURCE_ROOT` for native source resources and
+`DIOPTAS_NATIVE_PROCESSOR` for an explicit Rust executable. Release startup
+uses installed resources and a sibling processor, with no checkout fallback.
+A missing processor/resource manifest fails explicitly. Python backend requests
+are rejected; the former application lives on `legacy/qt`.
 
 To build a local executable with embedded UI (no development server):
 
@@ -344,11 +337,6 @@ cd desktop
 npm run tauri:build -- --debug
 src-tauri/target/debug/dioptas-desktop --example
 ```
-
-The earlier pywebview host remains available for comparison:
-`uv sync --python 3.13 --extra desktop`, `cd desktop && npm run build`, then
-`.venv/bin/python -m dioptas.desktop --example` from the checkout root.
-Its `--dev` option still supports live frontend updates independently of Tauri.
 
 ## Calibrate first
 
@@ -448,7 +436,7 @@ incompatible current image is refused. Legacy/custom PONIs without dimensions
 cannot establish the expected image size, so their first image establishes it.
 Equal dimensions alone cannot establish that a calibration belongs to a detector.
 
-`desktop/tests/test_image_change.py` covers both scientific engines. Run
+The native and headless image-change checks cover this workflow. Run
 `node scripts/image_change_smoke.mjs` from `desktop/` for the real-model headless
 workflow, or add `--webkit`. It checks confirmation, cancellation/Escape and
 focus restoration, reset/reload, ordinary same-size switching and compact layout
@@ -531,14 +519,10 @@ External programs may continue running after Dioptas closes.
 Settings are stored automatically in
 `~/.Dioptas/desktop-custom-commands.json`, separately from scientific projects
 and Qt's startup action configuration. `DIOPTAS_CUSTOM_COMMANDS_FILE` overrides
-this location for isolated testing. An already-running preview with an older
-Python worker retains icon choices in local interface preferences until the
-action is saved with an updated worker. No processing-session restart is
-needed to change the icon. **Save action** applies the icon and the remaining
-form edits.
-`npm run build && npm run test:custom-commands`
-runs the headless workflow against the real Python bridge using temporary
-settings and a disposable script; it does not touch user actions.
+this location for isolated testing. **Save action** applies the icon and the
+remaining form edits. `npm run test:native-custom-actions` exercises the
+headless workflow against Rust using temporary settings and a disposable
+script; it does not touch user actions.
 
 ## Map workspace
 
@@ -831,8 +815,8 @@ Percentile clipping defaults to 2.5% per tail. Each image view saves its auto
 mode, clipping percentage and gap-filter setting across app restarts, and applies
 them when an image loads. Numeric clipping and intensity-limit edits apply on
 Enter or when leaving the field, allowing complete numbers to be typed first.
-Lookup tables are generated at build time; see `scripts/export_colormaps.py`
-and `licenses/colormaps/` for source attribution.
+Color lookup tables are frozen assets; see `licenses/colormaps/` for source
+attribution. Their historical generator is available in Git history.
 Histogram counts include every finite source pixel, including zero and negative
 values; its intensity axis is logarithmic away from zero. Display adjustments do
 not modify source arrays. Calibrant guides on the detector and cake use thin,
@@ -866,9 +850,8 @@ pattern clicks retain the last selected azimuth. Selections survive
 display refreshes and radial-unit changes, and clear when the image or geometry
 changes. Calibration and Mask show only the live mouse readout.
 
-`node scripts/position_readout.mjs` (optionally `--webkit`) checks footer alignment,
-pointer coordinates, persistent click readings, painted linked crosses,
-shifted-cake inspection and radial-unit changes against real Python models.
+Native headless backend and calibration checks cover footer alignment,
+pointer coordinates, persistent click readings and linked plot inspection.
 
 All current plots (detector, cake, integrated pattern) share these controls:
 
@@ -1028,257 +1011,42 @@ actual pointer hit targets above the table.
 
 ## Processing engine
 
-The default Rust processor uses Dioptrin directly. It does not import pyFAI or
-call Python bindings. Detector/spline support is described in the
-[detector ledger](NATIVE_DETECTOR_PARITY.md). The manual form's “pyFAI” label
-names the PONI parameter convention; it does not select a Python runtime.
-
-The explicit Python compatibility backend retains its old engine selector and
-optional Dioptrin bindings (`uv sync --python 3.13 --extra dioptrin`). Its
-fallback rules and support boundary belong to that backend only.
-
-Dioptrin uses full pixel splitting; the usual pyFAI `csr` path uses bounding-box
-splitting. Their bin grids and peak heights can therefore differ. The measured
-CeO2 fixture is checked against pyFAI `full_csr`, including Poisson std and mask
-edits, with relative-L2 regression limits of 0.3% for patterns, 0.6% for Poisson
-std and 0.5% for cakes. These are scoped fixture checks, not universal accuracy
-claims or bitwise parity. Unsupported integration options (including disabled
-solid-angle correction and 1D azimuth sectors) use pyFAI. Spline, nonuniform and
-curved detectors also retain pyFAI integration.
-
-For separate cold/repeated-image timings with no, static and changing masks:
-
-```sh
-.venv/bin/python desktop/scripts/dioptrin_benchmark.py
-```
-
-The report is written to `desktop/artifacts/dioptrin-benchmark.json`. It covers
-model calls with each desktop engine's own splitting method, excluding file
-IO, IPC and rendering. Native objects are created, used and explicitly released
-on the processing thread, including when logs retain an old model.
-
-Dioptrin uses full pixel splitting; the usual pyFAI `csr` path uses bounding-box
-splitting. Their bin grids and peak heights can therefore differ. The measured
-CeO2 fixture is checked against pyFAI `full_csr`, including Poisson std and mask
-edits, with relative-L2 regression limits of 0.3% for patterns, 0.6% for Poisson
-std and 0.5% for cakes. These are scoped fixture checks, not universal accuracy
-claims or bitwise parity. Unsupported integration options (including disabled
-solid-angle correction and 1D azimuth sectors) use pyFAI. Spline, nonuniform and
-curved detectors also retain pyFAI integration.
-
-For separate cold/repeated-image timings with no, static and changing masks:
-
-```sh
-.venv/bin/python desktop/scripts/dioptrin_benchmark.py
-```
-
-The report is written to `desktop/artifacts/dioptrin-benchmark.json`. It covers
-model calls with each desktop engine's own splitting method, excluding file
-IO, IPC and rendering. Native objects are created, used and explicitly released
-on the processing thread, including when logs retain an old model.
+Scientific commands run only in the native Rust/Dioptrin processor. The pyFAI
+geometry labels name a coordinate convention, and do not select Python.
+The legacy app and its test suite are preserved on `legacy/qt`. The former
+React/Python compatibility adapter and reference generators are available in
+Git history at the source revision recorded in [REFERENCE_DATA.md](REFERENCE_DATA.md).
 
 ## Development and verification
 
-For the current default, use `npm run backend:test`, `npm run build`, `npm test`,
-`npm run backend:prepare`, and `cargo test --manifest-path src-tauri/Cargo.toml`
-from `desktop/`. `npm run test:backend-commands` audits the legacy command routes;
-`npm run test:native-integration`, `test:native-calibration`, `test:native-project`
-and the other native scripts use headless Chromium/WebKit. See the audit for
-scope and the no-Python host-test invocation. Native window smokes below are
-explicit checks for behavior that needs an actual window.
-
-`npm run test:map-window` checks the detached Map workflow with the native Rust
-processor in headless Chromium and WebKit. `test:map-window-native` is an alias
-for that command. These Map window checks have no Python runner or reference mode.
-
-`npm run test:detector-window` and `npm run test:batch-window` likewise use only
-the Rust processor, including fixture generation. Both run headless Chromium and
-WebKit. Batch's full scaled-detector TIFF fixtures are generated by a Rust Cargo
-example. These companion checks do not require Python.
-
-For independent Python references and the legacy comparison bridge:
+From `desktop/`:
 
 ```sh
-uv sync --python 3.13 --extra desktop --extra test
-.venv/bin/python -m pytest -n 0 desktop/tests \
-  dioptas/tests/unit_tests/test_pipeline.py \
-  dioptas/tests/controller_tests/test_MainController.py \
-  dioptas/tests/controller_tests/test_CalibrationController.py
-cd desktop
+npm test
 npm run build
-npx playwright install chromium
-npm run smoke
-npm run tauri:smoke
-npm run tauri:smoke -- --live
-cargo test --manifest-path src-tauri/Cargo.toml
-node scripts/calibration_tooltip_native_smoke.mjs
-cd ..
-.venv/bin/python -m dioptas.desktop --example --smoke
+npm run backend:test
+npm run test:functional-coverage
+npm run test:fixtures
+npm run test:native-backend
+npm run test:native-calibration
+npm run test:native-integration
+npm run test:native-project
+npm run test:native-map-progress
 ```
 
-Native-engine tests run when Dioptrin is separately installed, otherwise they
-skip. With that extra installed, `npm run smoke -- --dioptrin` also exercises
-engine selection and the native calibration workflow through the interface.
-The browser smoke test uses a test-only JSON-lines process to connect
-Playwright to real Dioptas models. It exercises measured-image clicks, fitting,
-PONI save, integration units/bins, mask painting and undo, export, and project
-save/reopen. This browser-test process is distinct from Tauri's production stdio
-transport. Screenshots
-and reports are written to ignored `desktop/artifacts/`.
+`npm run test:ci-native` runs the Rust and headless UI gates. Host checks use
+`node scripts/check_native_desktop.mjs --host` without opening an app window.
+Native bulk transport/progress tests use the Rust `test_fixtures` example to
+create long test series; no Python environment or plugin installation is needed.
+`npm run test:map-window` exercises Chromium and WebKit. All routine GUI checks
+are headless. Use isolated native windows only for OS-specific behavior.
 
-`npm run tauri:dev` provides frontend hot reload in the Tauri window. A plain browser
-has no native bridge: it displays an explanatory error rather than
-inventing a dataset or simulated processing. `npm run format` formats the
-frontend source. The Live preview launcher updates without rebuilding;
-rebuild only when using the bundled mode. In the legacy Python host, `--debug`
-enables webview developer tools.
-
-`npm run tauri:smoke` builds a debug executable with embedded assets, opens its
-own native test window, picks measured CeO2 peaks, calibrates, verifies both
-validation images and wheel capture, then closes only that window. The `--live`
-variant runs through the Tauri/Vite development launcher and changes a disposable
-CSS module to check hot reload without a document reload. Both verify that the
-processing child has exited. Reports go to `artifacts/tauri-*-smoke.json`.
-Rust host tests exercise the default Rust pipe, full-resolution payloads,
-concurrent progress, unexpected child termination, and cleanup. The Python
-transport tests verify cancellation bypass even when every request worker is busy.
-
-## Boundaries of this milestone
-
-- Native Tauri macOS startup and the real-data calibration workflow are
-  exercised; Windows/Linux packaging and behavior are not qualified yet.
-  Linux requires Tauri's system WebKit/build dependencies. The legacy
-  pywebview host also needs a supported renderer if used there.
-- The frontend offers seeded calibration plus staged automatic ring refinement,
-  not Dioptrin's full automatic calibration/ring-identification workflow.
-- Full uncertainty diagnostics and explicit HDF5 dataset selection do not yet
-  have frontend controls. The Python preview also lacks configuration controls.
-  The native Rust preview has a configuration toolbar; its scope is described in
-  [NATIVE_PROJECT_PARITY.md](NATIVE_PROJECT_PARITY.md). Integration's
-  Image tab now offers editable filenames/directories, a native folder chooser
-  and Autoprocess for incoming stable images while Integration is open.
-  Acquisition now drains bounded ordered work and recovers after output repairs
-  or delayed HDF5 companions. Project compaction, output permissions, metadata
-  reuse and their regression scope are recorded in [Opus review fixes](OPUS_REVIEW_FIXES.md).
-  Integration also exposes backgrounds, selected corrections, phases/overlays
-  and pattern saving/autocreate; its remaining Qt scope is
-  listed in [INTEGRATION_PARITY.md](INTEGRATION_PARITY.md).
-  The Python preview retains existing `.dio` configurations and displays the
-  selected configuration.
-- Native format-2 project saves retain standard `.dio` state alongside owned
-  native resources and workflow metadata. See [project compatibility](NATIVE_PROJECT_PARITY.md);
-  legacy formats 0/1 are not admitted, and Qt writers can discard native extensions.
-- The cake retains its actual 2θ coordinate even when the 1D pattern uses Q or d,
-  matching the existing synchronous Dioptas configuration API.
-- The source example is a regression/interaction fixture. Agreement on it does
-  not establish calibration quality for other detectors or experimental data.
-- The React/Tauri default is Rust. The original Qt application and explicit
-  Python compatibility backend remain in the repository for comparison.
-  WASM/browser-only execution is not implemented.
-
-The [Python-removal audit](PYTHON_REMOVAL_AUDIT.md) is the current remaining-work
-list. Verification sections below record earlier Python-era checkpoints.
-
-## Verification on 2026-11-01
-
-Combined-view verification: the main checkout includes the finished Mask,
-Integration and Map branches. The combined desktop suite passed 90 tests with
-four optional-engine skips. An additional cross-view test passes: masked
-Integration results agree with stored Map patterns, and a project round trip
-retains mask, map and integration settings. The three Rust tests pass.
-Calibration/Integration, Mask and Map browser workflows pass. Both bundled
-Tauri smoke checks pass, covering calibration, Mask/Integration controls and
-Map loading/linked inspection/project persistence; both processing children
-are reaped. The earlier Map-branch calibration-smoke timeout remains a
-historical result in [Map parity](MAP_PARITY.md); it did not reproduce in
-the combined native check.
-
-On macOS with CPython 3.13.5, checks cover the real CeO2 image workflow,
-individual fixed/free constraints, wavelength refinement, peak editing/history,
-orientation, manual geometry and PONI output, custom calibrant ownership/project
-reopening, detector/distortion files, linked coordinate conversions, automatic
-ring searches and transactional cancellation. Earlier optional-engine checks
-also covered fixed distance/rotation and free wavelength. Exact results are recorded in
-[the calibration comparison](CALIBRATION_PARITY.md).
-
-The browser checks use the real Python models and have exercised both engines,
-peak clicks/edits, constraint controls, save/reopen/export, mask/undo, plot gestures,
-linked validation, orange accents and both text sizes, and compact layout. Native startup
-reports WKWebView, a working bridge, no Qt application and zero TCP listeners.
-
-These are scoped regression and interaction checks, not full application or
-cross-platform qualification. Generated evidence is in `desktop/artifacts/`.
-
-The Tauri migration adds three Rust tests and two Python transport tests.
-The Python desktop suite reports 34 passed / 4 skipped (optional Dioptrin absent).
-The current real-model browser and Tauri checks use pyFAI. Tauri's embedded-asset and live native
-smoke checks both pick five measured groups, fit geometry and display detector
-and cake at full resolution. The live check confirms CSS HMR without losing the
-document. Closing either test window reaps its processing child. Native open
-dialog cancellation and opening the CeO2 TIFF were also checked interactively
-in the locally built `.app`. The processing runtime is still checkout-local.
-
-## Binary transfer verification (2026-11-01)
-
-Started from UI checkpoint `3fda11a7`. Styles and layout components are unchanged;
-the raw calibration browser screenshot is pixel-identical to that checkpoint.
-Python coverage includes every full-resolution detector pixel, mask undo/redo,
-in-place mutation, full-precision statistics, eviction and binary progress/cancel.
-Frontend coverage includes malformed frames and concurrent eviction. Native
-checks exercise calibration, masks, Integration, Map and project persistence.
-
-In the local macOS debug build, calibrated switching between the 2048 × 2048
-`image_001.tif` and `image_002.tif` fixtures took 140–160 ms after warming the
-caches (click through two animation frames after display). Scientific-command
-round trips were 92–97 ms. The first measured response was 21,604,769 bytes;
-a warm response was 416,976 bytes of metadata with zero pixel bytes. Warm UI
-switches performed no detector recolouring. These are local measurements,
-not latency guarantees for other files, settings or machines.
-
-Run `npm test` for frontend cache/framing tests and the normal Python/browser
-suites above. The native smoke adds a `binaryTransfer` record with timings,
-transferred pixel bytes and rendered-cache checks. Filename/title assertions
-still require the existing window-title capability override when building the
-native test window; the binary transport adds no permissions.
-
-### Matched Qt/Python comparison
-
-The native smoke now saves `artifacts/qt-comparison.dio` for the Qt timing
-script. The measured comparison used the Qt checkout in
-`/Users/clemens/Programming/Dioptas`, the same two source images, exact saved
-geometry/mask/corrections, pyFAI, 600 radial bins and 90 cake azimuth bins.
-Both clients were 1440 × 908 logical pixels at device pixel ratio 1. Eight
-alternating switches were measured after warming each path. The final
-image_001 integrated patterns agreed exactly.
-
-| Complete switch, including repaint settling | Median |
-| ------------------------------------------- | -----: |
-| Tauri, binary transfer and display caches   | 160 ms |
-| Qt/Python, normal asynchronous processing   | 166 ms |
-| Qt/Python, synchronous processing           | 172 ms |
-
-Qt's asynchronous detector plot finished painting at a median 73 ms, while
-integration completed at 130 ms. The settled endpoint adds two 16-ms Qt waits;
-Tauri uses two animation-frame callbacks after its state becomes ready.
-These are approximate application comparisons with different event loops,
-so the small differences above should not be read as a renderer ranking or
-an isolated IPC measurement.
-
-Run the Qt side from the repository root without reading or writing user
-settings (only its own benchmark window is closed):
-
-```sh
-.venv/bin/python desktop/scripts/qt_image_benchmark.py \
-  --project desktop/artifacts/qt-comparison.dio \
-  --output desktop/artifacts/qt-image-benchmark-async.json
-```
-
-Add `--synchronous` for the synchronous Qt path, or `--qt-source PATH` to
-measure another Qt checkout using the same Python environment. The script
-uses the native report's client dimensions when
-`artifacts/qt-comparison-native.json` is available (`--native-report` overrides
-its path). Reports distinguish slot return, image-item paint, complete
-viewport paint, integration completion and settling time.
+Independent scientific outputs are frozen under
+`backend/tests/fixtures/reference-data/`, with inputs, settings, tolerances,
+source hashes and package versions. `backend/tests/frozen_references.rs`
+compares the native results with these data. Existing DAC and Batch reference
+fixtures and the native scientific/unit/transport suites remain active.
+There is no Python test or numerical-reference CI job.
 
 ## Shared interface and design audit
 
@@ -1295,22 +1063,11 @@ The model's shared history action determines Undo/Redo routing and labels.
 Manual geometry keeps full-precision drafts, allows convention comparisons and
 requires applying/resetting a pending draft before editing the other convention.
 
-From `desktop`, run `npm run test:ui-audit` for the real-model Chromium review,
-or `node scripts/ui_audit.mjs --stage=webkit --webkit` for WebKit. The audit loads
-CeO2, performs an independent peak-seeded fit, loads the reference PONI separately,
-and exercises the measured map fixtures and a six-frame series derived from
-CeO2. It captures modes, settings, editors, dialogs and compact/large-text layouts,
-checks keyboard and error/draft behavior, canvas text scaling and anchored popup
-bounds, and records axe violations separately
-from checks requiring manual review. Results go to `artifacts/ui-audit`.
-`npm run test:ui-audit:baseline` builds the historical frontend at `b418d66b`
-without resetting this checkout; `-- --ref=REV` selects another baseline.
-These are headless browser checks, not OS-dialog or formal accessibility certification.
-
-`npm run report:ui-audit` assembles the dated rubric, raw reviews and matched
-screenshots into `artifacts/ui-audit/index.html`. The audit alone opts into a
-fixed peak-search random seed, so its measured-point fits match across the
-before/after and browser comparisons.
+The historical UI audit and before/after reports remain as evidence in Git
+history. Their former Python bridge runners have been retired. Current checks
+use `npm run test:ui-components`, the native headless workflow checks, and the
+Rust scientific tests. Existing dated ratings below describe their original
+review, not a fresh certification of this cleanup.
 
 The fixed 25-category definitions and equal weights are in `UI_DESIGN_RUBRIC.json`.
 `UI_DESIGN_REVIEW.json` records separate Codex and Claude ratings, evidence,
@@ -1389,7 +1146,7 @@ in [Native verification](NATIVE_VERIFICATION.md). Native screenshots are actual
 window captures, distinct from the browser screenshots. Native tests use private
 WebKit stores and disposable preference files; restart stages intentionally share
 their own store. Screen readers, colour-panel interaction, Windows/Linux packaging,
-portable Python distribution and native display-latency measurement remain outside
+native display-latency measurement remains outside
 this qualification.
 
 Retina WebGL results in `artifacts/ui-audit/performance/` retain both WebKit's

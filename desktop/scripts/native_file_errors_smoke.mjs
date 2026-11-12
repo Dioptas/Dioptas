@@ -1,6 +1,7 @@
 // Real Rust failures through React file controls. Only the OS chooser is
 // replaced by a selected path for this headless browser check.
 import assert from "node:assert/strict";
+import { version } from "./release_config.mjs";
 import {
   mkdtemp,
   mkdir,
@@ -76,7 +77,7 @@ try {
         };
       });
       await page.goto(
-        pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+        pathToFileURL(path.join(root, "desktop/dist/index.html")).href,
       );
       await page.getByTestId("detector-canvas").waitFor();
       const ready = async () => {
@@ -148,9 +149,9 @@ try {
       assert.match(fileReport, /Recent steps/);
       assert.match(fileReport, /open_calibration.*failed/);
       assert.match(fileReport, /missing\.poni/);
-      assert.match(fileReport, /Build: 0.1.0/);
+      assert.ok(fileReport.includes(`Build: ${version} `));
       await dialog.getByRole("button", { name: "OK", exact: true }).click();
-      selected = path.join(root, "dioptas/tests/data/LaB6_40keV_MarCCD.poni");
+      selected = path.join(root, "desktop/tests/data/LaB6_40keV_MarCCD.poni");
       await load.click();
       await ready();
       assert.equal(await dialog.count(), 0);
@@ -172,7 +173,7 @@ try {
         name: "Integration previous image",
         exact: true,
       });
-      const fixture = path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif");
+      const fixture = path.join(root, "desktop/tests/data/CeO2_Pilatus1M.tif");
       for (const mode of ["Name", "Time"]) {
         const directory = path.join(temp, `${name}-${mode}`);
         await mkdir(directory);

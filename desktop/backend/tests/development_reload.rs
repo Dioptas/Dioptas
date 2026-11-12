@@ -347,7 +347,7 @@ fn history_owns_removed_correction_planes_and_restores_shared_overlay_and_phase_
     call(
         &mut original,
         "integration_phase",
-        json!({"operation":"load","path":root().join("dioptas/tests/data/jcpds/mo.jcpds")}),
+        json!({"operation":"load","path":root().join("desktop/tests/data/jcpds/mo.jcpds")}),
     );
     call(
         &mut original,

@@ -45,8 +45,8 @@
     },
     {
       "id": "pilatus1m",
-      "image": "/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/dioptas/tests/data/CeO2_Pilatus1M.tif",
-      "poni": "/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/dioptas/tests/data/CeO2_Pilatus1M.poni",
+      "image": "/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/tests/data/CeO2_Pilatus1M.tif",
+      "poni": "/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/tests/data/CeO2_Pilatus1M.poni",
       "shape": [
         1043,
         981
@@ -75,8 +75,8 @@
     },
     {
       "id": "marccd4m",
-      "image": "/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/dioptas/tests/data/LaB6_40keV_MarCCD.tif",
-      "poni": "/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/dioptas/tests/data/LaB6_40keV_MarCCD.poni",
+      "image": "/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/tests/data/LaB6_40keV_MarCCD.tif",
+      "poni": "/Users/clemens/ChatGPT/Dioptas Rust Desktop/worktrees/rust-desktop/desktop/tests/data/LaB6_40keV_MarCCD.poni",
       "shape": [
         2048,
         2048

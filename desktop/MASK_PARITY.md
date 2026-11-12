@@ -1,5 +1,10 @@
 # Mask mode: Qt parity and verification
 
+> Historical evidence: Python-era commands and source paths in this ledger refer to
+> pre-cleanup revision `a39717a41458129ba9370c849a4121ecdbc6a444` (resolve the full revision in `REFERENCE_DATA.md`).
+> The active application and test suite are Rust/headless UI only. See
+> [reference data policy](REFERENCE_DATA.md) for retained fixtures and current checks.
+
 Implemented on branch `codex/desktop-mask`, using the Qt sources in
 `/Users/clemens/Programming/Dioptas` as read-only reference (2026-11-01):
 `MaskWidget.py`, `MaskController.py`, `MaskModel.py`, `MaskPluginWidget.py`,

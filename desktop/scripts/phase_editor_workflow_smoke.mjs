@@ -66,10 +66,10 @@ try {
     try {
       page.on("pageerror", (e) => errors.push(e.message));
       await invoke("open_image", {
-        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
+        path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.tif"),
       });
       await invoke("open_calibration", {
-        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+        path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
       });
       await invoke("integration_settings", { bins: 64, cake_bins: 12 });
       const catalog = (
@@ -107,7 +107,7 @@ try {
         };
       });
       await page.goto(
-        pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+        pathToFileURL(path.join(root, "desktop/dist/index.html")).href,
       );
       const ready = () =>
         page.waitForFunction(
@@ -725,10 +725,10 @@ try {
           native = nativeClient();
           phaseIndex = 0;
           await invoke("open_image", {
-            path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
+            path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.tif"),
           });
           await invoke("open_calibration", {
-            path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+            path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
           });
           await invoke("integration_settings", { bins: 64, cake_bins: 12 });
           await invoke("integration_phase", {

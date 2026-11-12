@@ -26,7 +26,7 @@ const sources = [];
 for (let i = 0; i < 3; i++) {
   const file = path.join(temp, `scan_${i}.tif`);
   await copyFile(
-    path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
+    path.join(root, "desktop/tests/data/CeO2_Pilatus1M.tif"),
     file,
   );
   sources.push(file);
@@ -85,7 +85,7 @@ try {
         });
       } else {
         await call("open_calibration", {
-          path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+          path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
         });
         await call("integration_settings", {
           bins: 64,
@@ -149,7 +149,7 @@ try {
         };
       });
       await page.goto(
-        pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+        pathToFileURL(path.join(root, "desktop/dist/index.html")).href,
       );
       const ready = async () => {
         await page.waitForFunction(

@@ -2,9 +2,9 @@ name: Rust desktop
 
 on:
   push:
-    paths: ['desktop/**', 'README.md', 'dioptas/**', 'pyproject.toml', 'uv.lock', '.github/workflows/CI_rust_desktop.yml']
+    paths: ['desktop/**', 'README.md', '.github/workflows/CI_rust_desktop.yml']
   pull_request:
-    paths: ['desktop/**', 'README.md', 'dioptas/**', 'pyproject.toml', 'uv.lock', '.github/workflows/CI_rust_desktop.yml']
+    paths: ['desktop/**', 'README.md', '.github/workflows/CI_rust_desktop.yml']
   workflow_dispatch:
 
 permissions:
@@ -16,7 +16,6 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
-  QT_QPA_PLATFORM: offscreen
   HDF5_PLUGIN_PRELOAD: '::'
 
 jobs:
@@ -130,45 +129,3 @@ jobs:
         run: cargo test --release --locked --manifest-path desktop/security/glib-regression/Cargo.toml --jobs 2
       - name: Check live advisories for the original registry GLib version
         run: node desktop/scripts/check_glib_backport.mjs --advisories
-
-  references:
-    name: Independent numerical references
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    env:
-      PYTHONPATH: .
-      DIOPTAS_REFERENCE_PYTHON: ${{ github.workspace }}/.venv/bin/python
-      DIOPTAS_REQUIRE_C_EXT: '1'
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '26'
-          cache: npm
-          cache-dependency-path: desktop/package-lock.json
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.13'
-      - name: Install reference-only dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libegl1 libopengl0 libxkbcommon-x11-0 libxcb-cursor0
-          python -m pip install uv
-          uv sync --frozen --python 3.13 --extra test
-      - name: Install Rust
-        run: rustup update stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: desktop/backend -> target
-          key: reference-linux
-      - name: Build Rust processor
-        run: cargo build --locked --manifest-path desktop/backend/Cargo.toml --all-features
-      - run: npm ci && npm run build && npx playwright install --with-deps chromium webkit
-        working-directory: desktop
-      - name: Compare native results with independent references
-        run: node desktop/scripts/check_native_desktop.mjs --references
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: native-numerical-references
-          path: desktop/artifacts/

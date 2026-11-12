@@ -11,11 +11,10 @@ const root = fileURLToPath(new URL("../../", import.meta.url)).replace(
 const engine = process.argv.includes("--webkit") ? "webkit" : "chromium";
 const out = root + "/desktop/artifacts/integration-processing-" + engine;
 await mkdir(out, { recursive: true });
-const host = spawn(
-  root + "/.venv/bin/python",
-  ["-u", "desktop/scripts/bridge_host.py"],
-  { cwd: root, stdio: ["pipe", "pipe", "pipe"] },
-);
+const host = spawn(process.execPath, ["desktop/scripts/bridge_host.mjs"], {
+  cwd: root,
+  stdio: ["pipe", "pipe", "pipe"],
+});
 let id = 0;
 const pending = new Map(),
   report = { layouts: [], commands: [], errors: [] };
@@ -162,13 +161,13 @@ try {
     ["example", {}],
     [
       "open_calibration",
-      { path: root + "/dioptas/tests/data/CeO2_Pilatus1M.poni" },
+      { path: root + "/desktop/tests/data/CeO2_Pilatus1M.poni" },
     ],
   ]) {
     const r = await invoke(a, p);
     if (!r.ok) throw Error(r.error);
   }
-  await page.goto("file://" + root + "/dioptas/desktop/ui/index.html");
+  await page.goto("file://" + root + "/desktop/dist/index.html");
   await ready();
   await page.getByRole("button", { name: "Integration", exact: true }).click();
   await ready();
@@ -258,6 +257,10 @@ try {
       t.includes("Small seat radius"),
     ),
   );
+  await page
+    .locator(".operation-error-dialog")
+    .getByRole("button", { name: "OK", exact: true })
+    .click();
   await type("Correction", "Detector absorption").click();
   await field("Apply detector absorption").check();
   await ready();

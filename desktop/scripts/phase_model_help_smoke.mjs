@@ -28,7 +28,7 @@ try {
       };
       await invoke("integration_phase", {
         operation: "load",
-        path: root + "/dioptas/tests/data/jcpds/mo.jcpds",
+        path: root + "/desktop/tests/data/jcpds/mo.jcpds",
       });
       await invoke("integration_phase", {
         operation: "editor_record",

@@ -8,7 +8,7 @@ import { nativeClient, root } from "./native_backend_client.mjs";
 
 const artifacts = path.join(root, "desktop/artifacts/companion-windows");
 await mkdir(artifacts, { recursive: true });
-const folder = path.join(root, "dioptas/tests/data/map");
+const folder = path.join(root, "desktop/tests/data/map");
 const paths = (await readdir(folder))
   .filter((file) => file.endsWith(".tif"))
   .sort()
@@ -36,7 +36,7 @@ for (const [name, engine] of [
   try {
     assert.equal((await native.invoke("__host__")).runtime, "rust");
     await call("open_calibration", {
-      path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+      path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
     });
     await call("integration_settings", { bins: 256, cake_bins: 72 });
     await call("batch_load", { paths });
@@ -74,7 +74,7 @@ for (const [name, engine] of [
       localStorage.setItem("dioptas-batch:docked", "false"),
     );
     await main.goto(
-      pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+      pathToFileURL(path.join(root, "desktop/dist/index.html")).href,
     );
     const ready = async () => {
       await main.evaluate(
@@ -248,33 +248,39 @@ for (const [name, engine] of [
             .selectedCell === cell,
         state.map.selectedCell.join(","),
       );
-      // Map owns an image surface; Integration restores its Image/Cake choice.
+      // Map's detector stays embedded; docking Map must not redirect its
+      // image into the Integration companion. All readouts above stay linked.
+      const activeImagePage = map === main ? main : image;
       const activeImageKind = map === main ? "image" : imageKind;
-      await image
-        .getByTestId(
-          `${activeImageKind === "image" ? "detector" : "cake"}-canvas`,
-        )
-        .waitFor();
+      const activeImageSelector =
+        map === main
+          ? '.map-detector-panel [data-testid="detector-canvas"]'
+          : `[data-testid="${activeImageKind === "image" ? "detector" : "cake"}-canvas"]`;
+      const activeCanvas = activeImagePage.locator(activeImageSelector);
+      if (map === main && !(await activeCanvas.isVisible()))
+        await main.getByRole("tab", { name: "Image", exact: true }).click();
+      await activeCanvas.waitFor();
       if (activeImageKind === "image") {
         assert.ok(
           state.linked.imagePoint,
           `${step}: no projected detector point`,
         );
-        await image.waitForFunction((point) => {
-          const d = document.querySelector(
-            '[data-testid="detector-canvas"]',
-          ).dataset;
-          return (
-            Math.abs(Number(d.clickX) - point.x) < 1e-7 &&
-            Math.abs(Number(d.clickY) - point.y) < 1e-7 &&
-            Number(d.ringCount) > 0
-          );
-        }, state.linked.imagePoint);
+        await activeImagePage.waitForFunction(
+          ({ point, selector }) => {
+            const d = document.querySelector(selector).dataset;
+            return (
+              Math.abs(Number(d.clickX) - point.x) < 1e-7 &&
+              Math.abs(Number(d.clickY) - point.y) < 1e-7 &&
+              Number(d.ringCount) > 0
+            );
+          },
+          { point: state.linked.imagePoint, selector: activeImageSelector },
+        );
       } else {
         assert.equal(state.cake.unit, "2th_deg");
         const cake = state.cake,
           p = state.linked;
-        await image.waitForFunction(
+        await activeImagePage.waitForFunction(
           (point) => {
             const d = document.querySelector(
               '[data-testid="cake-canvas"]',

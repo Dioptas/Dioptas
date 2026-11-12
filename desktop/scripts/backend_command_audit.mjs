@@ -5,25 +5,14 @@ import { readFile, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { nativeClient, root } from "./native_backend_client.mjs";
 
-const commands = new Set(["progress", "cancel_refinement"]);
-for (const [file, marker] of [
-  ["session.py", "        handlers = {"],
-  ["integration.py", "    def _integration_handlers(self):"],
-  ["batch.py", "    def _batch_commands(self):"],
-  ["map.py", "    def _map_commands(self):"],
-]) {
-  const source = await readFile(
-    path.join(root, "dioptas/desktop", file),
+const archived = JSON.parse(
+  await readFile(
+    path.join(root, "desktop/legacy_command_inventory.json"),
     "utf8",
-  );
-  const start = source.indexOf(marker);
-  assert(start >= 0, `Missing command registry in ${file}`);
-  const end = source.indexOf("\n        }", start);
-  assert(end > start, `Missing registry end in ${file}`);
-  const keys = [...source.slice(start, end).matchAll(/^\s+"([a-z_]+)":/gm)];
-  assert(keys.length > 10, `Unexpected command registry in ${file}`);
-  for (const [, key] of keys) commands.add(key);
-}
+  ),
+);
+assert.match(archived.sourceRevision, /^[a-f0-9]{40}$/);
+const commands = new Set(archived.commands);
 const native = nativeClient();
 const routed = [];
 try {

@@ -1,30 +1,20 @@
 // Prevent legacy functional cases and native evidence from silently falling out
 // of the inventory. This checks traceability, not scientific equivalence itself.
 import assert from "node:assert/strict";
-import { readFile, readdir, mkdir, writeFile } from "node:fs/promises";
+import { readFile, mkdir, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
-const directory = "dioptas/tests/functional_tests";
-const inventory = new Set();
-for (const file of (await readdir(path.join(root, directory))).filter((f) =>
-  /^test_.*\.py$/.test(f),
-)) {
-  const classes = [];
-  for (const line of (
-    await readFile(path.join(root, directory, file), "utf8")
-  ).split("\n")) {
-    if (!line.trim() || line.trimStart().startsWith("#")) continue;
-    const indent = line.length - line.trimStart().length;
-    while (classes.length && indent <= classes.at(-1).indent) classes.pop();
-    const cls = line.match(/^\s*class (\w+)/);
-    if (cls) classes.push({ name: cls[1], indent });
-    const test = line.match(/^\s*def (test_\w+)\(/);
-    if (test)
-      inventory.add([file, ...classes.map((c) => c.name), test[1]].join("::"));
-  }
-}
+// Frozen inventory from the archived source; the executable Qt suite lives on legacy/qt.
+const archived = JSON.parse(
+  await readFile(
+    path.join(root, "desktop/legacy_functional_inventory.json"),
+    "utf8",
+  ),
+);
+assert.match(archived.sourceRevision, /^[a-f0-9]{40}$/);
+const inventory = new Set(archived.cases);
 const mapping = JSON.parse(
   await readFile(path.join(root, "desktop/functional_coverage.json"), "utf8"),
 );

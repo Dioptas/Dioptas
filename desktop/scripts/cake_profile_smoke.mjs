@@ -116,7 +116,7 @@ try {
         }
       });
       await page.goto(
-        pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+        pathToFileURL(path.join(root, "desktop/dist/index.html")).href,
       );
       const button = (name) => page.getByRole("button", { name, exact: true });
       const idle = async () => {

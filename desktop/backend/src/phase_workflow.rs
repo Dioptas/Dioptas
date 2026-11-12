@@ -1777,19 +1777,19 @@ mod guide_tests {
         call(
             &mut s,
             "open_calibration",
-            json!({"path":root.join("dioptas/tests/data/CeO2_Pilatus1M.poni")}),
+            json!({"path":root.join("desktop/tests/data/CeO2_Pilatus1M.poni")}),
         );
         call(
             &mut s,
             "open_image",
-            json!({"path":root.join("dioptas/tests/data/CeO2_Pilatus1M.tif")}),
+            json!({"path":root.join("desktop/tests/data/CeO2_Pilatus1M.tif")}),
         );
         for index in 0..10 {
             let name = ["mo.jcpds", "au_version3.jcpds", "pt.jcpds"][index % 3];
             call(
                 &mut s,
                 "integration_phase",
-                json!({"operation":"load","path":root.join("dioptas/tests/data/jcpds").join(name)}),
+                json!({"operation":"load","path":root.join("desktop/tests/data/jcpds").join(name)}),
             );
             let a0 = crystal::cell(&s.phases.items[index].document)
                 .unwrap()
@@ -1882,17 +1882,17 @@ mod guide_tests {
         call(
             &mut s,
             "open_calibration",
-            json!({"path":root.join("dioptas/tests/data/CeO2_Pilatus1M.poni")}),
+            json!({"path":root.join("desktop/tests/data/CeO2_Pilatus1M.poni")}),
         );
         call(
             &mut s,
             "open_image",
-            json!({"path":root.join("dioptas/tests/data/CeO2_Pilatus1M.tif")}),
+            json!({"path":root.join("desktop/tests/data/CeO2_Pilatus1M.tif")}),
         );
         call(
             &mut s,
             "integration_phase",
-            json!({"operation":"load","path":root.join("dioptas/tests/data/jcpds/mo.jcpds")}),
+            json!({"operation":"load","path":root.join("desktop/tests/data/jcpds/mo.jcpds")}),
         );
         let original = check(&s);
         assert!(!original.as_array().unwrap().is_empty());

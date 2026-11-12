@@ -37,7 +37,7 @@ for (const [name, engine] of Object.entries({ chromium, webkit })) {
   let browser;
   try {
     const opened = await native.invoke("open_image", {
-      path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
+      path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.tif"),
     });
     assert.equal(opened.ok, true, opened.error);
     await server.listen();

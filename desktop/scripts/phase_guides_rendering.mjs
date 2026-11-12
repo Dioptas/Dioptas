@@ -41,17 +41,17 @@ try {
     enabled: false,
   });
   await call("open_calibration", {
-    path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+    path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
   });
   await call("open_image", {
-    path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
+    path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.tif"),
   });
   for (let index = 0; index < 20; index++) {
     await call("integration_phase", {
       operation: "load",
       path: path.join(
         root,
-        "dioptas/tests/data/jcpds",
+        "desktop/tests/data/jcpds",
         ["mo.jcpds", "au_version3.jcpds", "pt.jcpds"][index % 3],
       ),
     });

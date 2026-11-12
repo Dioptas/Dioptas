@@ -1,5 +1,10 @@
 # Parallel pyFAI-compatible Batch and Map integration
 
+> Historical evidence: Python-era commands and source paths in this ledger refer to
+> pre-cleanup revision `a39717a41458129ba9370c849a4121ecdbc6a444` (resolve the full revision in `REFERENCE_DATA.md`).
+> The active application and test suite are Rust/headless UI only. See
+> [reference data policy](REFERENCE_DATA.md) for retained fixtures and current checks.
+
 This document records the initial frame-parallel implementation. The subsequent
 [direct decoder-input optimization](NATIVE_PYFAI_SERIES_THROUGHPUT.md) removes its
 float64 expansion and extra worker handoff, while retaining identical result bits.

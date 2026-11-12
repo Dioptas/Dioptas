@@ -24,7 +24,7 @@ try {
         return r;
       };
       await invoke("open_calibration", {
-        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+        path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
       });
       await invoke("integration_settings", {
         bins: 128,
@@ -32,12 +32,12 @@ try {
         poisson_errors: true,
       });
       await invoke("open_image", {
-        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
+        path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.tif"),
       });
       await invoke("integration_correction", { kind: "oiadac", enabled: true });
       await invoke("integration_phase", {
         operation: "load",
-        path: path.join(root, "dioptas/tests/data/jcpds/mo.jcpds"),
+        path: path.join(root, "desktop/tests/data/jcpds/mo.jcpds"),
       });
       const page = await browser.newPage({
         viewport: { width: 1000, height: 668 },
@@ -65,7 +65,7 @@ try {
         };
       });
       await page.goto(
-        pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+        pathToFileURL(path.join(root, "desktop/dist/index.html")).href,
       );
       await page
         .getByRole("button", { name: "Integration", exact: true })

@@ -1,5 +1,10 @@
 # Native image orientation and geometric masks
 
+> Historical evidence: Python-era commands and source paths in this ledger refer to
+> pre-cleanup revision `a39717a41458129ba9370c849a4121ecdbc6a444` (resolve the full revision in `REFERENCE_DATA.md`).
+> The active application and test suite are Rust/headless UI only. See
+> [reference data policy](REFERENCE_DATA.md) for retained fixtures and current checks.
+
 The default Rust backend handles the existing React `image_transform` and
 `mask_edit` commands. There is no scientific server or Python fallback. The
 processor now uses Dioptrin by default; the Python launcher requires explicit selection.

@@ -42,12 +42,12 @@ for (const [name, type] of [
         if (action === "open_image" && !payload.path)
           payload.path = path.join(
             root,
-            "dioptas/tests/data/CeO2_Pilatus1M.tif",
+            "desktop/tests/data/CeO2_Pilatus1M.tif",
           );
         if (action === "open_calibration" && !payload.path)
           payload.path = path.join(
             root,
-            "dioptas/tests/data/CeO2_Pilatus1M.poni",
+            "desktop/tests/data/CeO2_Pilatus1M.poni",
           );
         const reply = await native.invoke(action, payload);
         if (!reply.ok) commandErrors.push({ action, error: reply.error });
@@ -62,7 +62,7 @@ for (const [name, type] of [
       };
     });
     await page.goto(
-      pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+      pathToFileURL(path.join(root, "desktop/dist/index.html")).href,
     );
     await page.getByRole("button", { name: "Open image", exact: true }).click();
     await page.waitForFunction(

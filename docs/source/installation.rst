@@ -103,7 +103,7 @@ Python package (legacy Qt edition)
 ``pip install dioptas`` installs the **legacy Qt/Python application**, not the
 Rust desktop. Existing PyPI versions remain available for legacy workflows,
 Python scripting and reproducibility. A pip package for the Rust desktop is
-deferred. The remaining chapters of this manual describe the legacy Qt edition.
+deferred. The legacy Qt manual is maintained on the ``legacy/qt`` branch.
 
 Use a separate virtual environment for the legacy edition. Python **3.13** is
 the recommended starting point; check the selected release's requirements

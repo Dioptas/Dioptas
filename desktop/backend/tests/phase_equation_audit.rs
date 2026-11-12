@@ -732,7 +732,7 @@ fn editor_optional_defaults_and_unavailable_model() {
     call(
         &mut session,
         "load",
-        json!({"path":root.join("dioptas/tests/data/jcpds/mo.jcpds")}),
+        json!({"path":root.join("desktop/tests/data/jcpds/mo.jcpds")}),
     );
     call(&mut session, "editor_record", json!({"action":"add"}));
     let data = editor(&mut session);
@@ -793,7 +793,7 @@ fn legacy_adapter_inverts_selected_eos_and_keeps_its_special_branches() {
     call(
         &mut session,
         "load",
-        json!({"path":root.join("dioptas/tests/data/jcpds/mo.jcpds")}),
+        json!({"path":root.join("desktop/tests/data/jcpds/mo.jcpds")}),
     );
     call(&mut session, "editor_record", json!({"action":"add"}));
     call(&mut session, "editor_eos_type", json!({"value":"Vinet"}));

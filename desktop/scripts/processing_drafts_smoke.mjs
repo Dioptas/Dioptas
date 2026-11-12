@@ -24,10 +24,10 @@ for (const [name, engine] of [
       return result;
     };
     await call("open_image", {
-      path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
+      path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.tif"),
     });
     await call("open_calibration", {
-      path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+      path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
     });
     await call("integration_settings", { bins: 32, cake_bins: 8 });
     page = await browser.newPage({
@@ -138,7 +138,7 @@ for (const [name, engine] of [
       };
     };
     await page.goto(
-      pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html")).href,
+      pathToFileURL(path.join(root, "desktop/dist/index.html")).href,
     );
     await ready();
     await page

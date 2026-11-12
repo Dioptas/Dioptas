@@ -165,7 +165,7 @@
       "Native map wheel escaped",
     );
     const source = state.state.imagePath,
-      root = source.slice(0, source.indexOf("/dioptas/tests/data/"));
+      root = source.slice(0, source.indexOf("/desktop/tests/data/"));
     check(root, "Native fixture root missing");
     const exported = await call("map_export", {
       path: root + "/desktop/artifacts/native-map.txt",

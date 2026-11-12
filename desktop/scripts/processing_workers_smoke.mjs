@@ -47,7 +47,7 @@ for (const [name, type] of [
     const page = await context.newPage();
     page.on("pageerror", (e) => errors.push(e.message));
     const url = pathToFileURL(
-      path.join(root, "dioptas/desktop/ui/index.html"),
+      path.join(root, "desktop/dist/index.html"),
     ).href;
     const ready = () =>
       page.waitForFunction(

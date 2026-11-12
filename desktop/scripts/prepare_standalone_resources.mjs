@@ -78,11 +78,11 @@ export async function prepareStandaloneResources(target) {
     ["desktop/vendor/HDF5_WINDOWS_ABI.md", "licenses/hdf5/HDF5_WINDOWS_ABI.md"],
     ["desktop/standalone/README.html", "README.html"],
     ["desktop/backend/resources", "scientific-data"],
-    ["dioptas/resources/calibrants", "calibrants"],
-    ["dioptas/resources/data", "reference-data"],
-    ["dioptas/tests/data/CeO2_Pilatus1M.tif", "examples/CeO2_Pilatus1M.tif"],
-    ["dioptas/tests/data/CeO2_Pilatus1M.poni", "examples/CeO2_Pilatus1M.poni"],
-    ["dioptas/tests/data/jcpds/mo.jcpds", "examples/mo.jcpds"],
+    ["desktop/resources/calibrants", "calibrants"],
+    ["desktop/resources/data", "reference-data"],
+    ["desktop/tests/data/CeO2_Pilatus1M.tif", "examples/CeO2_Pilatus1M.tif"],
+    ["desktop/tests/data/CeO2_Pilatus1M.poni", "examples/CeO2_Pilatus1M.poni"],
+    ["desktop/tests/data/jcpds/mo.jcpds", "examples/mo.jcpds"],
   ];
   for (const [source, destination] of copies) {
     await cp(path.join(repository, source), path.join(output, destination), {

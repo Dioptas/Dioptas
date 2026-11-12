@@ -1,7 +1,7 @@
 use std::{env, fs, path::Path};
 fn main() {
     let root = env::var("CARGO_MANIFEST_DIR").unwrap();
-    let directory = Path::new(&root).join("../../dioptas/resources/calibrants");
+    let directory = Path::new(&root).join("../resources/calibrants");
     println!("cargo:rerun-if-changed={}", directory.display());
     let mut files: Vec<_> = fs::read_dir(directory)
         .unwrap()

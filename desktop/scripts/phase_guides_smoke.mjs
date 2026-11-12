@@ -38,15 +38,15 @@ try {
       };
       await invoke("integration_settings", { bins: 128, cake_bins: 36 });
       await invoke("open_calibration", {
-        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+        path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
       });
       await invoke("open_image", {
-        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif"),
+        path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.tif"),
       });
       for (let index = 0; index < phaseCount; index++) {
         await invoke("integration_phase", {
           operation: "load",
-          path: path.join(root, "dioptas/tests/data/jcpds/mo.jcpds"),
+          path: path.join(root, "desktop/tests/data/jcpds/mo.jcpds"),
         });
         if (phaseCount > 1)
           await invoke("integration_phase", {

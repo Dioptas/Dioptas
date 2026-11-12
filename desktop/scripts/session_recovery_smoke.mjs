@@ -146,7 +146,7 @@ try {
         );
         try {
           await page.goto(
-            pathToFileURL(path.join(root, "dioptas/desktop/ui/index.html"))
+            pathToFileURL(path.join(root, "desktop/dist/index.html"))
               .href,
           );
           const prompt = page.getByRole("dialog", {

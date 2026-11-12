@@ -1,5 +1,5 @@
+import { testFixture } from "./test_fixtures.mjs";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import path from "node:path";
 
 export async function verifyPeerFindings({
@@ -206,11 +206,7 @@ export async function verifyPeerFindings({
   );
   // A real three-frame HDF5 exercises the model's one-based frame navigation.
   const fixture = path.join(output, "frame-navigation.h5");
-  execFileSync(path.join(root, ".venv/bin/python"), [
-    "-c",
-    `import numpy as np, h5py, sys\nwith h5py.File(sys.argv[1],'w') as f: f.create_dataset('entry/data/data',data=np.arange(3*64*64,dtype=np.uint16).reshape(3,64,64))`,
-    fixture,
-  ]);
+  testFixture("navigation", fixture);
   assert.equal((await invoke("open_image", { path: fixture })).ok, true);
   await page.reload();
   await ready();
@@ -252,7 +248,7 @@ export async function verifyPeerFindings({
   assert.equal(
     (
       await invoke("open_calibration", {
-        path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+        path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
       })
     ).ok,
     true,

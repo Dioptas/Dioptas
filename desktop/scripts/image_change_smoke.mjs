@@ -16,10 +16,10 @@ await mkdir(artifacts, { recursive: true });
 const temporary = await mkdtemp(path.join(tmpdir(), "dioptas-image-change-"));
 const small = path.join(temporary, "small.edf");
 const same = path.join(temporary, "same.edf");
-const largeImage = path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif");
+const largeImage = path.join(root, "desktop/tests/data/CeO2_Pilatus1M.tif");
 const legacyCalibration = path.join(
   root,
-  "dioptas/tests/data/CeO2_Pilatus1M.poni",
+  "desktop/tests/data/CeO2_Pilatus1M.poni",
 );
 const largeCalibration = path.join(temporary, "large.poni");
 await writeFile(
@@ -112,7 +112,7 @@ try {
   assert.equal((await call("__host__")).runtime, "rust");
   await call("example");
   await call("open_calibration", {
-    path: path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.poni"),
+    path: path.join(root, "desktop/tests/data/CeO2_Pilatus1M.poni"),
   });
   await call("integration_settings", { bins: 100, cake_bins: 20 });
   await call("mask_stroke", { points: [[20, 30]], radius: 3 });
@@ -328,7 +328,7 @@ try {
     }
     selectedImage =
       mode === "Integration" || mode === "Mask"
-        ? path.join(root, "dioptas/tests/data/CeO2_Pilatus1M.tif")
+        ? path.join(root, "desktop/tests/data/CeO2_Pilatus1M.tif")
         : small;
     const beforeSizeChange = (await call("state")).state;
     await page.keyboard.press("ControlOrMeta+o");

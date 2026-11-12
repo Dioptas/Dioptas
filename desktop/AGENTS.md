@@ -1,6 +1,6 @@
 # Desktop interface work
 
-This React/Tauri preview reuses local Dioptas scientific models. Read README.md
+This React/Tauri application uses native Rust/Dioptrin scientific processing. Read README.md
 and CALIBRATION_PARITY.md before changing its command or plot boundaries.
 
 ## User requirements
@@ -49,7 +49,8 @@ and CALIBRATION_PARITY.md before changing its command or plot boundaries.
   integration controls.
 - No scientific HTTP server or Qt application in the new host. Following the
   user-authorized migration, processing defaults to Rust/Dioptrin over Tauri-owned
-  stdio. Python is an explicitly selected comparison backend; this is not WASM.
+  stdio. The Python application and its tests live on `legacy/qt`; no Python backend
+  or active Python test suite belongs on `develop`.
 
 ## Working branch and checkouts
 
@@ -64,8 +65,8 @@ do not create another application repository in the workspace wrapper.
 
 Use the Rust processor in `backend/` for new scientific commands. Port an
 existing Python feature to Rust before exposing it in the default application;
-never silently fall back to Python. Compatibility/reference Python source stays
-available for independent qualification. See `RUST_DESKTOP_CONSOLIDATION.md`.
+never silently fall back to Python. Keep independent reference results as data with settings, tolerances and
+provenance; exercise them with native tests. See `REFERENCE_DATA.md`.
 
 The development server uses port 1420. Never kill or reuse another preview's
 server/window. Use headless tests on an ephemeral port or the embedded frontend.
@@ -95,11 +96,11 @@ visible native smoke tests after every small UI change. When a visible check
 is necessary, explain briefly why, use an isolated test window, and close only
 that test's windows and processes. Preserve the user's previews and work.
 
-The default Rust app and standalone build require no Python. For independent
-Python references only, use standard CPython 3.13: `uv sync --python 3.13 --extra test`
-in your checkout. Use `npm ci` in desktop. Never share an editable .venv or mutate another
-checkout's dependencies. Build with `npm run build`; exercise real models and
-meaningful Qt parity/interaction checks, then existing calibration/browser
-regressions as appropriate. When required by the criteria above, native smoke:
-`npm run tauri:smoke` (uses embedded assets, no Vite port). Record remaining gaps
-honestly; do not add dead buttons or fabricated scientific results.
+The Rust application and all scientific/headless tests require no Python.
+Use `npm ci` in desktop. Use `npm run build`, `npm test` and the relevant
+native checks. `npm run test:fixtures` builds the Rust-only input generator
+needed by bulk transport/progress checks. Run `npm run backend:test` for the
+native suite, including frozen independent numerical reference data. Never
+mutate another checkout's dependencies. When native/OS behavior requires a
+window, use `npm run tauri:smoke` with an isolated test profile and record
+remaining gaps honestly. Do not add dead buttons or fabricated results.

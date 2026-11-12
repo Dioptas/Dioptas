@@ -48231,7 +48231,7 @@
     },
     {
       "id": "legacy-au",
-      "path": "dioptas/tests/data/jcpds/au_version3.jcpds",
+      "path": "desktop/tests/data/jcpds/au_version3.jcpds",
       "samples": [
         {
           "pressure": 0.0,

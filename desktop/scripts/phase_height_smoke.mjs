@@ -43,7 +43,7 @@ try {
           const result = await native.invoke("integration_phase", {
             operation: "load",
             paths: Array(count).fill(
-              path.join(root, "dioptas/tests/data/jcpds/au_version3.jcpds"),
+              path.join(root, "desktop/tests/data/jcpds/au_version3.jcpds"),
             ),
           });
           assert.ok(result.ok, result.error);
