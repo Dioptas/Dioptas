@@ -33,6 +33,8 @@ test("glibc requirements compare numerically and fail above the baseline", () =>
   assert.equal(requiredGlibc("GLIBC_2.9 GLIBC_2.34 GLIBC_2.2.5"), "2.34.0");
   assert.equal(requiredGlibc("GLIBCXX_3.4.30"), null);
   assert.throws(() => requiredGlibc("GLIBC_2.36"), /above/);
+  assert.equal(requiredGlibc("GLIBC_2.39", [2, 39]), "2.39.0");
+  assert.throws(() => requiredGlibc("GLIBC_2.40", [2, 39]), /above/);
 });
 test("ELF dependency inspection rejects missing and build-path dependencies", () => {
   assert.deepEqual(

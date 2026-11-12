@@ -186,8 +186,8 @@ export async function inspectLinuxInstall(
           execFileSync("readelf", ["--version-info", file], {
             encoding: "utf8",
           }),
+          ceiling,
         ),
-        ceiling,
         searchPaths,
       });
       assert(
