@@ -47,6 +47,27 @@ if (selected.has("--processor")) {
     "--",
     "--check",
   ]);
+  // Keep the portable core healthy as native-only helpers evolve. Clippy and
+  // library tests cannot replace the processor executable used by later gates.
+  run("rust-core-clippy", "cargo", [
+    "clippy",
+    "--locked",
+    "--manifest-path",
+    "backend/Cargo.toml",
+    "--no-default-features",
+    "--all-targets",
+    "--",
+    "-D",
+    "warnings",
+  ]);
+  run("rust-core-tests", "cargo", [
+    "test",
+    "--locked",
+    "--manifest-path",
+    "backend/Cargo.toml",
+    "--no-default-features",
+    "--lib",
+  ]);
   run("rust-clippy", "cargo", [
     "clippy",
     "--locked",
@@ -82,6 +103,7 @@ if (selected.has("--ui")) {
     "hook_refresh_smoke",
     "ui_components",
     "native_backend_smoke",
+    "native_custom_actions_smoke",
     "native_calibration_smoke",
     "native_mask_smoke",
     "native_integration_workflow_smoke",
@@ -102,6 +124,7 @@ if (selected.has("--ui")) {
     "native_corrections_smoke",
     "correction_previews_smoke",
     "processing_drafts_smoke",
+    "metadata_products_smoke",
     "native_project_smoke",
     "dac_thermal_pressure_smoke",
     "native_geometry_mask_smoke",

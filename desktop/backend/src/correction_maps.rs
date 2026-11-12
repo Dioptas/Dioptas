@@ -1,14 +1,20 @@
 //! Bounded, disposable maps shared by frame processing, snapshots and Plot.
-use crate::{control::Control, display::Raster, geometry::Geometry, transform::Transform};
+#[cfg(feature = "dioptrin")]
+use crate::geometry::Geometry;
+use crate::{control::Control, display::Raster, transform::Transform};
+#[cfg(feature = "dioptrin")]
 use serde_json::{Value, json};
 use std::{
     collections::HashMap,
     sync::{Arc, Condvar, Mutex, OnceLock},
-    time::Duration,
 };
+
+#[cfg(any(feature = "dioptrin", test))]
+use std::time::Duration;
 
 #[derive(Clone)]
 pub(crate) enum Key {
+    #[cfg(feature = "dioptrin")]
     Analytical(Value, Box<Geometry>, [usize; 2]),
     References(
         Arc<Vec<f64>>,
@@ -20,6 +26,7 @@ pub(crate) enum Key {
 impl PartialEq for Key {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
+            #[cfg(feature = "dioptrin")]
             (Self::Analytical(p, g, s), Self::Analytical(q, h, t)) => p == q && g == h && s == t,
             (Self::References(a, b, s, x), Self::References(c, d, t, y)) => {
                 Arc::ptr_eq(a, c)
@@ -31,6 +38,7 @@ impl PartialEq for Key {
                     && s == t
                     && x == y
             }
+            #[cfg(feature = "dioptrin")]
             _ => false,
         }
     }
@@ -40,25 +48,34 @@ struct Entry {
     key: Key,
     values: Arc<Vec<f64>>,
 }
+#[cfg(feature = "dioptrin")]
 type AngularArrays = (Arc<Vec<f64>>, Arc<Vec<f64>>);
 struct Angles {
+    #[cfg(feature = "dioptrin")]
     geometry: Geometry,
+    #[cfg(feature = "dioptrin")]
     shape: [usize; 2],
     tth: Arc<Vec<f64>>,
     azi: Arc<Vec<f64>>,
 }
 struct Preview {
     kind: String,
+    #[cfg(any(feature = "dioptrin", test))]
     key: Option<Key>,
     values: Arc<Vec<f64>>,
+    #[cfg(any(feature = "dioptrin", test))]
     shape: [usize; 2],
+    #[cfg(any(feature = "dioptrin", test))]
     mode: String,
+    #[cfg(any(feature = "dioptrin", test))]
     percentile: f64,
     raster: Raster,
 }
 #[derive(Clone)]
 struct Job {
     kind: String,
+    // Read by native Plot/preview requests and the pure queue regressions.
+    #[cfg_attr(not(any(feature = "dioptrin", test)), allow(dead_code))]
     key: Key,
     values: Arc<Vec<f64>>,
     shape: [usize; 2],
@@ -134,6 +151,7 @@ impl Maps {
                 .map(|p| p.raster.buffer.bytes.len())
                 .sum::<usize>()
     }
+    #[cfg(feature = "dioptrin")]
     pub fn diagnostics(&self) -> Value {
         let s = self.0.state.lock().unwrap();
         json!({"sampleCorrectionBuilds":s.sample_builds,"sampleCorrectionHits":s.sample_hits})
@@ -177,6 +195,7 @@ impl Maps {
                         .any(|p| p.kind == preview_kind && Arc::ptr_eq(&p.values, &values));
                 let key = e.key.clone();
                 let shape = match &key {
+                    #[cfg(feature = "dioptrin")]
                     Key::Analytical(_, _, shape) => *shape,
                     Key::References(_, _, shape, transforms) => {
                         crate::transform::shape(*shape, transforms)
@@ -196,6 +215,7 @@ impl Maps {
         let values = build()?;
         control.check()?;
         let shape = match &key {
+            #[cfg(feature = "dioptrin")]
             Key::Analytical(_, _, shape) => *shape,
             Key::References(_, _, shape, transforms) => crate::transform::shape(*shape, transforms),
         };
@@ -359,10 +379,14 @@ impl Maps {
                     &mut s,
                     Preview {
                         kind: job.kind.clone(),
+                        #[cfg(any(feature = "dioptrin", test))]
                         key: Some(job.key),
                         values: job.values,
+                        #[cfg(any(feature = "dioptrin", test))]
                         shape: job.shape,
+                        #[cfg(any(feature = "dioptrin", test))]
                         mode: "percentile".into(),
+                        #[cfg(any(feature = "dioptrin", test))]
                         percentile: 2.5,
                         raster,
                     },
@@ -384,6 +408,7 @@ impl Maps {
         s.failures.clear();
         self.0.changed.notify_all();
     }
+    #[cfg(any(feature = "dioptrin", test))]
     pub fn prepared(&self, specs: &[(String, Key)]) -> (Vec<Raster>, bool) {
         let s = self.0.state.lock().unwrap();
         let rasters = specs
@@ -404,6 +429,7 @@ impl Maps {
         let pending = s.queued.iter().any(matches) || s.running.as_ref().is_some_and(matches);
         (rasters, pending)
     }
+    #[cfg(any(feature = "dioptrin", test))]
     pub fn preview(
         &self,
         kind: &str,

@@ -24,7 +24,8 @@ pub(crate) struct Scan {
     pub transpose: bool,
     pub flip_horizontal: bool,
     pub flip_vertical: bool,
-    pub slots: Vec<Option<usize>>,
+    // Arrangement is shared until a command changes the local scan.
+    pub slots: Arc<Vec<Option<usize>>>,
     pub excluded: BTreeSet<usize>,
     pub rois: Vec<Roi>,
     pub expressions: Vec<(String, String)>,
@@ -142,7 +143,7 @@ impl Scan {
             previous,
         )?;
         let mut s = Self {
-            slots: (0..series.count()).map(Some).collect(),
+            slots: Arc::new((0..series.count()).map(Some).collect()),
             dimension,
             snake: false,
             transpose: false,

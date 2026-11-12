@@ -24,6 +24,7 @@ export function nativeClient(options = {}) {
       stdio: ["pipe", "pipe", "pipe"],
       env: {
         ...process.env,
+        ...options.env,
         DIOPTAS_PYTHON: "/nonexistent/python",
         PATH: "/nonexistent",
       },
@@ -129,7 +130,13 @@ export function nativeClient(options = {}) {
       fail(error);
     }
   });
-  const request = (action, payload = {}, cachedBuffers, packet = false) =>
+  const request = (
+    action,
+    payload = {},
+    cachedBuffers,
+    packet = false,
+    cachedProducts,
+  ) =>
     new Promise((resolve, reject) => {
       const id = ++nextId;
       const timer = setTimeout(() => {
@@ -143,6 +150,7 @@ export function nativeClient(options = {}) {
           action,
           payload,
           cachedBuffers: cachedBuffers ?? [...buffers.keys()].slice(-64),
+          cachedProducts,
         }) + "\n",
       );
     });
@@ -164,8 +172,8 @@ export function nativeClient(options = {}) {
   return {
     child,
     invoke: (action, payload = {}) => request(action, payload),
-    invokePacket: (action, payload = {}, cachedBuffers = []) =>
-      request(action, payload, cachedBuffers, true),
+    invokePacket: (action, payload = {}, cachedBuffers = [], cachedProducts) =>
+      request(action, payload, cachedBuffers, true, cachedProducts),
     get lastPacketBytes() {
       return lastPacketBytes;
     },

@@ -20,6 +20,31 @@ Cancellation remains cooperative: individual native library calls finish before
 the next cancellation check. The registry does not add rollback to commands that
 do not already provide it.
 
+## Optional metadata product reuse
+
+The wire envelope accepts an optional `cachedProducts` object containing the
+client's `batch` and/or `map` content tokens. It is separate from scientific
+command arguments. Omission retains legacy full responses; an empty object
+opts into product descriptors without advertising any cached state.
+
+Opted-in response headers include `products`, mapping each included product to
+its content token and full JSON byte length. A product whose exact JSON matches
+the advertised token is omitted from the wire result. Changed products and
+explicit nulls receive new tokens and are sent in full. Other result fields and
+the binary raster framing retain their existing meanings.
+
+Each RasterTransfer owns a bounded metadata cache and pins advertised product
+objects and their raster bytes per request, including during concurrent cache
+replacement. It restores referenced products before returning the ordinary
+typed result, so callers see the same complete fields and immutable buffer
+identities. Unknown or unadvertised references fail explicitly. Cache charging
+includes retained binary packet owners; oversized products keep full transfer.
+
+Tokens hash all metadata fields without an encoded temporary copy. This removes
+repeated transfer and frontend reconstruction of unchanged products. Native
+snapshot construction and content hashing still visit their metadata; this is
+not a claim that those remaining costs are constant in series size.
+
 The 16 MiB frame limit includes UTF-8 encoding, JSON escaping, metadata and the
 terminating newline. The host checks the encoded frame before registering a
 pending reply or writing any bytes, so a large figure/export is a recoverable

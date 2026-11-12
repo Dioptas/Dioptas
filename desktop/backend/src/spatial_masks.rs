@@ -24,6 +24,7 @@ pub(super) struct Groups {
     pub user: String,
     offsets: Vec<usize>,
     pixels: Vec<u32>,
+    #[cfg(feature = "dioptrin")]
     pub largest: usize,
 }
 impl Groups {
@@ -40,6 +41,7 @@ impl Groups {
                 offsets[b + 1] += 1;
             }
         }
+        #[cfg(feature = "dioptrin")]
         let largest = offsets.iter().copied().max().unwrap_or(0);
         for b in 0..bins {
             offsets[b + 1] += offsets[b];
@@ -56,6 +58,7 @@ impl Groups {
             user: id,
             offsets,
             pixels,
+            #[cfg(feature = "dioptrin")]
             largest,
         })
     }

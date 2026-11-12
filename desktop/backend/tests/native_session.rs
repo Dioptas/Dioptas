@@ -666,14 +666,14 @@ fn no_engine_build_reads_images_and_never_substitutes_a_python_integrator() {
 #[test]
 fn real_stdio_processor_runs_with_python_and_path_unavailable() {
     use std::process::{Command, Stdio};
-    let mut child = Command::new(env!("CARGO_BIN_EXE_dioptas-processor"))
+    let mut command = Command::new(env!("CARGO_BIN_EXE_dioptas-processor"));
+    command
         .env("DIOPTAS_PYTHON", "/missing/python")
         .env("PATH", "/missing")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .unwrap();
+        .stderr(Stdio::piped());
+    let mut child = dioptas_backend::child_process::spawn(command).unwrap();
     {
         let mut input = child.stdin.take().unwrap();
         writeln!(input, "{}", json!({"id":11,"action":"__host__"})).unwrap();

@@ -34,8 +34,18 @@ pub fn open_system_browser(url: &str) -> Result<(), String> {
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .spawn()
-        .map(|_| ())
+        .map(|child| {
+            drop(reap_child(child));
+        })
         .map_err(|error| format!("The system browser could not open the documentation: {error}"))
+}
+
+fn reap_child(
+    mut child: std::process::Child,
+) -> std::thread::JoinHandle<std::io::Result<std::process::ExitStatus>> {
+    // The launcher is asynchronous, but its Child remains owned until wait()
+    // reaps it. Dropping this JoinHandle detaches only the waiting thread.
+    std::thread::spawn(move || child.wait())
 }
 
 #[cfg(test)]
@@ -55,5 +65,30 @@ mod tests {
         ] {
             assert!(!valid_manual_url(url), "{url}");
         }
+    }
+
+    #[test]
+    fn owned_launcher_is_reaped_without_opening_a_browser() {
+        #[cfg(unix)]
+        let mut command = {
+            let mut command = std::process::Command::new("/bin/sh");
+            command.args(["-c", "exit 7"]);
+            command
+        };
+        #[cfg(windows)]
+        let mut command = {
+            use std::os::windows::process::CommandExt;
+            let mut command = std::process::Command::new("cmd");
+            command.args(["/C", "exit 7"]).creation_flags(0x08000000);
+            command
+        };
+        let child = command
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .unwrap();
+        let status = super::reap_child(child).join().unwrap().unwrap();
+        assert_eq!(status.code(), Some(7));
     }
 }

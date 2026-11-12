@@ -647,13 +647,16 @@ impl Session {
                         .collect(),
                     total,
                 )?;
-                series.file_counts = images.iter().map(|(_, frames, _, _, _)| *frames).collect();
-                series.reader_options = images
-                    .iter()
-                    .map(|(path, _, _, _, options)| {
-                        (path.to_string_lossy().into_owned(), options.clone())
-                    })
-                    .collect();
+                series.file_counts =
+                    Arc::new(images.iter().map(|(_, frames, _, _, _)| *frames).collect());
+                series.reader_options = Arc::new(
+                    images
+                        .iter()
+                        .map(|(path, _, _, _, options)| {
+                            (path.to_string_lossy().into_owned(), options.clone())
+                        })
+                        .collect(),
+                );
                 series.sigma = rows.sigma.map(Arc::new);
                 series.raw_sigma = series.sigma.clone();
                 series.spread = rows.spread.map(Arc::new);
@@ -798,6 +801,7 @@ impl Session {
                         .as_ref()
                         .ok_or("Load raw images first.")?
                         .paths
+                        .as_ref()
                         .clone()
                 } else {
                     source_paths(args)?

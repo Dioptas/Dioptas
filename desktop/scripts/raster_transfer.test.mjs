@@ -60,11 +60,12 @@ test("phase coordinate slices retain float64 bits and reuse advertised phase buf
     await assert.rejects(broken.call("guides"), /phase-line/);
   }
 });
-function frame(result, buffers = {}, align = false) {
+function frame(result, buffers = {}, align = false, products = undefined) {
   const entries = Object.entries(buffers);
   let header = new TextEncoder().encode(
     JSON.stringify({
       result,
+      ...(products === undefined ? {} : { products }),
       buffers: entries.map(([id, b]) => ({ id, length: b.byteLength })),
     }),
   );
@@ -85,6 +86,204 @@ function frame(result, buffers = {}, align = false) {
   }
   return data.buffer;
 }
+
+const product = (id, value) => ({
+  id,
+  bytes: new TextEncoder().encode(JSON.stringify(value)).length,
+});
+test("metadata reuse is per client, preserves identity, and publishes changed/null products", async () => {
+  let batch = {
+    selected: 0,
+    entries: ["α", "β"],
+    values: [
+      [1, null],
+      [-0, 3],
+    ],
+  };
+  let id = "batch-1";
+  const seen = [];
+  const server = async (_, __, ___, known) => {
+    seen.push(known);
+    const products = {
+      batch: product(id, batch),
+      map: product("empty-map", null),
+    };
+    return frame(
+      {
+        ok: true,
+        ...(known.batch === id ? {} : { batch }),
+        ...(known.map === "empty-map" ? {} : { map: null }),
+      },
+      {},
+      false,
+      products,
+    );
+  };
+  const t = new RasterTransfer(server);
+  const first = await t.call("state");
+  assert.equal((await t.call("state")).batch, first.batch);
+  const values = first.batch.values;
+  let visits = 0;
+  Object.defineProperty(first.batch, "values", {
+    configurable: true,
+    enumerable: true,
+    get: () => {
+      visits++;
+      return values;
+    },
+  });
+  assert.equal((await t.call("state")).batch, first.batch);
+  assert.equal(
+    visits,
+    0,
+    "A warm product must not traverse the unchanged metadata tree",
+  );
+  Object.defineProperty(first.batch, "values", {
+    configurable: true,
+    enumerable: true,
+    value: values,
+  });
+  assert.deepEqual(seen[1], { batch: "batch-1", map: "empty-map" });
+  const other = await new RasterTransfer(server).call("state");
+  assert.deepEqual(other.batch, first.batch);
+  assert.notEqual(other.batch, first.batch);
+  assert.deepEqual(seen.at(-1), {});
+  batch = { ...batch, selected: 1 };
+  id = "batch-2";
+  const updated = await t.call("state");
+  assert.equal(updated.batch.selected, 1);
+  assert.notEqual(updated.batch, first.batch);
+  batch = null;
+  id = "empty-batch";
+  assert.equal((await t.call("state")).batch, null);
+  assert.equal((await t.call("state")).batch, null);
+});
+
+test("in-flight metadata pins survive concurrent replacement and cache eviction", async () => {
+  const original = { selected: 0, entries: ["A"] };
+  let finish;
+  const t = new RasterTransfer(
+    async (action, _, __, known) => {
+      if (action === "settings")
+        return new Promise((resolve) => {
+          assert.equal(known.batch, "A");
+          finish = () =>
+            resolve(
+              frame({ ok: true }, {}, false, { batch: product("A", original) }),
+            );
+        });
+      const batch =
+        action === "state" ? original : { selected: 1, entries: ["B"] };
+      return frame({ ok: true, batch }, {}, false, {
+        batch: product(action === "state" ? "A" : "B", batch),
+      });
+    },
+    128,
+    1,
+    1024,
+  );
+  const first = await t.call("state");
+  const pending = t.call("settings");
+  await t.call("example");
+  finish();
+  assert.equal((await pending).batch, first.batch);
+});
+
+test("metadata owners pin binary rasters independently of the ordinary LRU", async () => {
+  const bytes = new Float32Array([1.25, NaN]).buffer;
+  const batch = { raster: image("pixels"), selected: 0 };
+  const descriptor = { batch: product("batch", batch) };
+  const t = new RasterTransfer(
+    async (_, __, known, products) => {
+      if (products.batch === "batch") {
+        assert(known.includes("pixels"));
+        return frame({ ok: true }, {}, false, descriptor);
+      }
+      return frame({ ok: true, batch }, { pixels: bytes }, false, descriptor);
+    },
+    0,
+    1,
+    1024,
+  );
+  const first = await t.call("state");
+  const next = await t.call("state");
+  assert.equal(first.batch, next.batch);
+  assert.equal(first.batch.raster.data, next.batch.raster.data);
+  assert(Number.isNaN(decodeRaster(next.batch.raster)[1]));
+});
+
+test("live product owners retain priority within the 64 advertised buffer bound", async () => {
+  const bytes = new Float32Array([1, 2]).buffer;
+  const batch = { raster: image("product"), selected: 0 };
+  const table = { batch: product("batch", batch) };
+  const transfer = new RasterTransfer(
+    async (action, payload, known, products) => {
+      assert(known.length <= 64);
+      if (action === "state") {
+        if (products.batch) {
+          assert.equal(known.length, 64);
+          assert(known.includes("product"));
+          assert(known.includes("image-79"));
+          assert(!known.includes("image-0"));
+          return frame({ ok: true }, {}, false, table);
+        }
+        return frame({ ok: true, batch }, { product: bytes }, false, table);
+      }
+      return frame(
+        { ok: true, image: image(payload.path) },
+        { [payload.path]: bytes },
+      );
+    },
+    8192,
+    64,
+    8192,
+  );
+  const first = await transfer.call("state");
+  for (let i = 0; i < 80; i++)
+    await transfer.call("open_image", { path: `image-${i}` });
+  assert.equal((await transfer.call("state")).batch, first.batch);
+});
+
+test("metadata budgets and malformed/unadvertised references fail safely", async () => {
+  const batch = { entries: ["large"] };
+  const table = { batch: product("large", batch) };
+  const t = new RasterTransfer(
+    async (_, __, ___, known) => {
+      assert.deepEqual(known, {});
+      return frame({ ok: true, batch }, {}, false, table);
+    },
+    128,
+    1,
+    0,
+  );
+  await t.call("state");
+  await t.call("state");
+  for (const products of [
+    null,
+    [],
+    { other: product("x", batch) },
+    { batch: { id: "x", bytes: -1 } },
+    { batch: product("unseen", batch) },
+  ]) {
+    const bad = new RasterTransfer(async () =>
+      frame({ ok: true }, {}, false, products),
+    );
+    await assert.rejects(bad.call("state"), /metadata product/);
+  }
+});
+
+test("mixed arrays hydrate every descendant without primitive-array guessing", async () => {
+  const bytes = new Float32Array([2, 4]).buffer;
+  const t = new RasterTransfer(async () =>
+    frame(
+      { ok: true, mixed: [1, { nested: image("mixed") }, [3, 4]] },
+      { mixed: bytes },
+    ),
+  );
+  const response = await t.call("state");
+  assert.deepEqual([...decodeRaster(response.mixed[1].nested)], [2, 4]);
+  assert.deepEqual(response.mixed[2], [3, 4]);
+});
 
 test("binary arrays retain exact pixels and the same buffer identity on A/B/A", async () => {
   const a = new Float32Array([-3.5, NaN]).buffer,

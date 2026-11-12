@@ -160,7 +160,9 @@ pub struct Session {
     files: file_workflow::Files,
     integration_history: integration_history::IntegrationHistory,
     inspection: Option<linked::Inspection>,
+    #[cfg(feature = "dioptrin")]
     inspection_contour: std::cell::RefCell<Option<linked::ContourCache>>,
+    #[cfg(feature = "dioptrin")]
     inspection_field: std::cell::RefCell<Option<linked::FieldCache>>,
     #[cfg(feature = "dioptrin")]
     phase_guide_field: std::cell::RefCell<Option<phase_workflow::GuideFieldCache>>,
@@ -238,7 +240,9 @@ impl Session {
             files: Default::default(),
             integration_history: Default::default(),
             inspection: None,
+            #[cfg(feature = "dioptrin")]
             inspection_contour: Default::default(),
+            #[cfg(feature = "dioptrin")]
             inspection_field: Default::default(),
             #[cfg(feature = "dioptrin")]
             phase_guide_field: Default::default(),
@@ -1946,7 +1950,10 @@ impl Session {
         Err("Cake calculation requires the native Dioptrin engine.".into())
     }
     fn calculate_products(&mut self, defer: bool, include_cake: bool) -> Result<(), String> {
+        #[cfg(feature = "dioptrin")]
         let include_cake = include_cake && self.control.cake_requested();
+        #[cfg(not(feature = "dioptrin"))]
+        let _ = include_cake;
         self.control.check()?;
         if let Some(image) = &self.image {
             self.settings.geometry.sync_shape(image.shape)?;
@@ -2115,6 +2122,7 @@ impl Session {
             .or_else(|| self.image.as_ref().map(|i| i.values.clone()))
             .unwrap_or_else(|| Arc::new(vec![]))
     }
+    #[cfg(feature = "dioptrin")]
     fn scientific_variance(&self) -> Option<Arc<Vec<f64>>> {
         self.settings
             .errors
@@ -2368,17 +2376,9 @@ fn integer(value: &Value, label: &str, low: usize, high: usize) -> Result<usize,
 }
 pub(crate) fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), String> {
     use std::io::Write;
-    let mut temp = tempfile::NamedTempFile::new_in(
-        path.parent()
-            .filter(|p| !p.as_os_str().is_empty())
-            .unwrap_or(Path::new(".")),
-    )
-    .map_err(|e| e.to_string())?;
-    temp.write_all(bytes)
-        .and_then(|_| temp.as_file().sync_all())
-        .map_err(|e| e.to_string())?;
-    temp.persist(path).map_err(|e| e.to_string())?;
-    Ok(())
+    let mut temp = crate::output::StagedOutput::new(path)?;
+    temp.write_all(bytes).map_err(|e| e.to_string())?;
+    temp.commit(path)
 }
 
 #[cfg(test)]

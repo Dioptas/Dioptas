@@ -7,6 +7,7 @@ pub(super) struct Inspection {
     generation: u64,
     value: Arc<Value>,
 }
+#[cfg(feature = "dioptrin")]
 #[derive(Clone)]
 pub(super) struct ContourCache {
     geometry: Geometry,
@@ -15,6 +16,7 @@ pub(super) struct ContourCache {
     value: Value,
     projection: Option<(f64, Value)>,
 }
+#[cfg(feature = "dioptrin")]
 pub(super) struct FieldCache {
     geometry: Geometry,
     shape: [usize; 2],

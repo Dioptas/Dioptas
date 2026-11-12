@@ -1139,6 +1139,9 @@ transport tests verify cancellation bypass even when every request worker is bus
   [NATIVE_PROJECT_PARITY.md](NATIVE_PROJECT_PARITY.md). Integration's
   Image tab now offers editable filenames/directories, a native folder chooser
   and Autoprocess for incoming stable images while Integration is open.
+  Acquisition now drains bounded ordered work and recovers after output repairs
+  or delayed HDF5 companions. Project compaction, output permissions, metadata
+  reuse and their regression scope are recorded in [Opus review fixes](OPUS_REVIEW_FIXES.md).
   Integration also exposes backgrounds, selected corrections, phases/overlays
   and pattern saving/autocreate; its remaining Qt scope is
   listed in [INTEGRATION_PARITY.md](INTEGRATION_PARITY.md).

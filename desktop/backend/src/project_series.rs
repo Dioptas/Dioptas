@@ -208,7 +208,8 @@ fn read_map(
                     integer(v, "Map point", 0, scan.series.count() - 1).map(Some)
                 }
             })
-            .collect::<Result<_, _>>()?;
+            .collect::<Result<Vec<_>, _>>()?
+            .into();
     }
     for (key, target) in [
         ("snake", &mut scan.snake),
@@ -397,7 +398,7 @@ fn load_react_batch(g: &hdf5::Group) -> Result<Series, String> {
         {
             return Err("Invalid stored Batch file map.".into());
         }
-        s.file_counts = counts.windows(2).map(|w| (w[1] - w[0]) as usize).collect();
+        s.file_counts = Arc::new(counts.windows(2).map(|w| (w[1] - w[0]) as usize).collect());
     }
     if g.link_exists("bkg") {
         let bg = g.dataset("bkg").native()?;
@@ -507,7 +508,7 @@ pub(super) fn save_active_extensions(s: &Session, file: &hdf5::File) -> Result<(
         if let Some(spread) = &b.spread {
             write_array(&g, "azimuthal_std", &[b.count(), b.x.len()], spread)?;
         }
-        let mut paths = b.paths.clone();
+        let mut paths = b.paths.as_ref().clone();
         for e in b.entries.iter() {
             if !paths.contains(&e.path) {
                 paths.push(e.path.clone());

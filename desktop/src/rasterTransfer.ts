@@ -58,25 +58,63 @@ export class ByteCache<K, V> {
 }
 
 type RasterBytes = ArrayBuffer | Uint8Array<ArrayBuffer>;
+type CachedProduct = {
+  id: string;
+  bytes: number;
+  value: unknown;
+  buffers: Map<string, RasterBytes>;
+  cost: number;
+};
+/** Charge retained packet owners as well as conservative JSON object storage. */
+function productStorage(value: unknown, bytes: number) {
+  const buffers = new Map<string, RasterBytes>();
+  const owners = new Set<ArrayBuffer>();
+  const visit = (value: unknown): void => {
+    if (!value || typeof value !== "object") return;
+    const object = value as Record<string, unknown>;
+    if (
+      typeof object.bufferId === "string" &&
+      (object.data instanceof ArrayBuffer || object.data instanceof Uint8Array)
+    ) {
+      const data = object.data as RasterBytes;
+      buffers.set(object.bufferId, data);
+      owners.add(data instanceof ArrayBuffer ? data : data.buffer);
+      return;
+    }
+    if (Array.isArray(value)) value.forEach(visit);
+    else Object.values(object).forEach(visit);
+  };
+  visit(value);
+  return {
+    buffers,
+    cost:
+      bytes * 4 + [...owners].reduce((sum, owner) => sum + owner.byteLength, 0),
+  };
+}
 
 export class RasterTransfer {
   private buffers: ByteCache<string, RasterBytes>;
+  private products: ByteCache<string, CachedProduct>;
   private invoke: (
     action: string,
     payload: object,
     cached: string[],
+    cachedProducts: Record<string, string>,
   ) => Promise<ArrayBuffer>;
   constructor(
     invoke: (
       action: string,
       payload: object,
       cached: string[],
+      cachedProducts: Record<string, string>,
     ) => Promise<ArrayBuffer>,
     maxBytes = 128 * 1024 * 1024,
     maxEntries = 64,
+    maxProductBytes = 64 * 1024 * 1024,
   ) {
     this.invoke = invoke;
     this.buffers = new ByteCache(maxBytes, maxEntries);
+    this.products = new ByteCache(maxProductBytes, 2);
   }
   private remember(id: string, data: RasterBytes) {
     const owner = data instanceof ArrayBuffer ? data : data.buffer;
@@ -98,8 +136,23 @@ export class RasterTransfer {
     // Pin advertised buffers for this request. A concurrent response may evict
     // them from the LRU before this response arrives.
     const known = this.buffers.snapshot();
+    const knownProducts = this.products.snapshot();
+    // Product owners keep their raster bytes live even after LRU eviction.
+    // Pin them along with the ordinary per-request advertised buffers.
+    for (const product of knownProducts.values())
+      for (const [id, bytes] of product.buffers) {
+        known.delete(id);
+        known.set(id, bytes);
+      }
     navigationTrace("ipc-start", { action });
-    const frame = await this.invoke(action, payload, [...known.keys()]);
+    const frame = await this.invoke(
+      action,
+      payload,
+      [...known.keys()].slice(-64),
+      Object.fromEntries(
+        [...knownProducts].map(([field, product]) => [field, product.id]),
+      ),
+    );
     navigationTrace("ipc-received", {
       action,
       bytes: frame instanceof ArrayBuffer ? frame.byteLength : null,
@@ -121,6 +174,36 @@ export class RasterTransfer {
       typeof header.result !== "object"
     )
       throw Error("Invalid binary image header.");
+    const productDescriptors = new Map<string, { id: string; bytes: number }>();
+    const retainedProducts = new Map<string, CachedProduct>();
+    if (header.products !== undefined) {
+      if (
+        !header.products ||
+        typeof header.products !== "object" ||
+        Array.isArray(header.products)
+      )
+        throw Error("Invalid metadata product table.");
+      for (const [field, descriptor] of Object.entries(header.products)) {
+        const entry = descriptor as { id?: unknown; bytes?: unknown } | null;
+        if (
+          !["batch", "map"].includes(field) ||
+          !entry ||
+          typeof entry.id !== "string" ||
+          !/^[A-Za-z0-9:_-]{1,128}$/.test(entry.id) ||
+          !Number.isSafeInteger(entry.bytes) ||
+          Number(entry.bytes) < 0
+        )
+          throw Error("Invalid metadata product descriptor.");
+        const description = { id: entry.id, bytes: Number(entry.bytes) };
+        productDescriptors.set(field, description);
+        if (!Object.hasOwn(header.result, field)) {
+          const cached = knownProducts.get(field);
+          if (!cached || cached.id !== entry.id || cached.bytes !== entry.bytes)
+            throw Error("Missing or invalid cached metadata product.");
+          retainedProducts.set(field, cached);
+        }
+      }
+    }
     if (
       header.result.preparedCorrections !== undefined &&
       !Array.isArray(header.result.preparedCorrections)
@@ -156,7 +239,15 @@ export class RasterTransfer {
     if (offset !== frame.byteLength)
       throw Error("Unexpected binary image data.");
     const hydrate = (value: unknown): unknown => {
-      if (Array.isArray(value)) return value.map(hydrate);
+      if (Array.isArray(value)) {
+        let result: unknown[] | undefined;
+        for (let i = 0; i < value.length; i++) {
+          const child = hydrate(value[i]);
+          if (child !== value[i]) result ??= value.slice();
+          if (result) result[i] = child;
+        }
+        return result ?? value;
+      }
       if (!value || typeof value !== "object") return value;
       const obj = value as Record<string, unknown>;
       if (typeof obj.bufferId === "string" && obj.dtype === "xy-f64le") {
@@ -191,11 +282,33 @@ export class RasterTransfer {
         this.remember(obj.bufferId, data);
         return { ...obj, data };
       }
-      return Object.fromEntries(
-        Object.entries(obj).map(([k, v]) => [k, hydrate(v)]),
-      );
+      let result: Record<string, unknown> | undefined;
+      for (const [key, value] of Object.entries(obj)) {
+        const child = hydrate(value);
+        if (child !== value) result ??= { ...obj };
+        if (result) result[key] = child;
+      }
+      return result ?? obj;
     };
     const result = hydrate(header.result) as Response;
+    for (const [field, product] of retainedProducts)
+      (result as unknown as Record<string, unknown>)[field] = product.value;
+    for (const [field, descriptor] of productDescriptors) {
+      const retained = retainedProducts.get(field);
+      if (retained) {
+        // Warm references reuse their already charged owners in constant time;
+        // do not walk thousands of unchanged entries to recount their storage.
+        this.products.set(field, retained, retained.cost);
+        continue;
+      }
+      const value = (result as unknown as Record<string, unknown>)[field];
+      const storage = productStorage(value, descriptor.bytes);
+      this.products.set(
+        field,
+        { ...descriptor, value, buffers: storage.buffers, cost: storage.cost },
+        storage.cost,
+      );
+    }
     navigationTrace("ipc-hydrated", {
       action,
       requestId: header.id,

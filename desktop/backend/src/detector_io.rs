@@ -54,26 +54,21 @@ impl Geometry {
             "NexusDetector"
         };
         if name == "NexusDetector" {
-            let temp = tempfile::Builder::new()
-                .prefix(&format!("{stem}-detector-"))
-                .suffix(".nxs")
-                .tempfile_in(dir)
-                .map_err(error)?;
-            write_nexus(d, temp.path())?;
-            config = json!({"filename":temp.path().canonicalize().map_err(error)?.to_string_lossy(),"orientation":config["orientation"]});
+            let temp = crate::output::resource_path(dir, &format!("{stem}-detector-"), ".nxs")?;
+            let pending = crate::output::StagedOutput::new(&temp)?;
+            write_nexus(d, pending.path())?;
+            pending.commit(&temp)?;
+            config = json!({"filename":temp.canonicalize().map_err(error)?.to_string_lossy(),"orientation":config["orientation"]});
             resources.push(temp);
         }
         if let Some(s) = &d.spline {
             use std::io::Write;
-            let mut temp = tempfile::Builder::new()
-                .prefix(&format!("{stem}-distortion-"))
-                .suffix(".spline")
-                .tempfile_in(dir)
-                .map_err(error)?;
-            temp.write_all(s.content.as_bytes()).map_err(error)?;
-            temp.as_file().sync_all().map_err(error)?;
-            config["splineFile"] =
-                json!(temp.path().canonicalize().map_err(error)?.to_string_lossy());
+            let temp =
+                crate::output::resource_path(dir, &format!("{stem}-distortion-"), ".spline")?;
+            let mut pending = crate::output::StagedOutput::new(&temp)?;
+            pending.write_all(s.content.as_bytes()).map_err(error)?;
+            pending.commit(&temp)?;
+            config["splineFile"] = json!(temp.canonicalize().map_err(error)?.to_string_lossy());
             resources.push(temp);
         }
         let text = format!(

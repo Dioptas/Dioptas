@@ -435,6 +435,7 @@ impl Processing {
             )
         })
     }
+    #[cfg(feature = "dioptrin")]
     pub fn variance(&self) -> Option<Arc<Vec<f64>>> {
         self.cache.as_ref().map(|c| c.variance.clone())
     }

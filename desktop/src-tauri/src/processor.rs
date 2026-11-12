@@ -348,16 +348,22 @@ impl Processor {
     }
 
     pub fn request_packet(&self, action: &str, payload: Value, cached: Vec<String>) -> Reply {
+        self.request_packet_with_products(action, payload, cached, None)
+    }
+
+    pub fn request_packet_with_products(&self, action: &str, payload: Value, cached: Vec<String>, products: Option<Value>) -> Reply {
         if self.closed.load(Ordering::SeqCst) {
             return Err("The desktop session is closed.".into());
         }
         wire_contract::validate_payload(action, &payload)?;
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         let started = std::time::Instant::now();
-        let encoded =
-            json!({"id": id, "action": action, "payload": payload, "cachedBuffers": cached})
-                .to_string()
-                + "\n";
+        let mut request = json!({"id": id, "action": action, "payload": payload, "cachedBuffers": cached});
+        if let Some(products) = products {
+            wire_contract::validate_cached_products(&products)?;
+            request["cachedProducts"] = products;
+        }
+        let encoded = request.to_string() + "\n";
         // Reject before registering a reply or sending any bytes. The scientific
         // child and unsaved session remain usable after a large export fails.
         if encoded.len() > MAX_REQUEST_BYTES {
@@ -580,6 +586,34 @@ mod tests {
             .unwrap()
             .is_some());
         assert!(processor.request("state", json!({})).is_err());
+    }
+
+    #[test]
+    fn metadata_products_roundtrip_without_changing_legacy_results() {
+        let processor = Processor::start_backend(false, Backend::Rust).unwrap();
+        let path = Processor::source_root().join("desktop/backend/tests/fixtures/batch_background_input.h5");
+        assert_eq!(processor.request("batch_open", json!({"path":path})).unwrap()["ok"], true);
+        let full = processor.request_packet_with_products("batch_snapshot", json!({}), vec![], Some(json!({}))).unwrap();
+        let header = |packet: &Packet| -> Value {
+            let length = u32::from_le_bytes(packet.bytes[..4].try_into().unwrap()) as usize;
+            serde_json::from_slice(&packet.bytes[4..4+length]).unwrap()
+        };
+        let first = header(&full);
+        assert!(first["result"]["batch"].is_object());
+        let known: serde_json::Map<String, Value> = first["products"].as_object().unwrap().iter()
+            .map(|(field, product)| (field.clone(), product["id"].clone())).collect();
+        let buffers = first["buffers"].as_array().unwrap().iter()
+            .map(|buffer| buffer["id"].as_str().unwrap().to_string()).collect();
+        let warm = processor.request_packet_with_products("batch_snapshot", json!({}), buffers, Some(Value::Object(known))).unwrap();
+        let second = header(&warm);
+        assert!(second["result"].get("batch").is_none());
+        assert_eq!(second["products"], first["products"]);
+        assert!(warm.bytes.len() < full.bytes.len());
+        assert!(processor.request_packet_with_products("state", json!({}), vec![], Some(json!({"unknown":"id"}))).is_err());
+        let legacy = processor.request_packet("batch_snapshot", json!({}), vec![]).unwrap();
+        assert_eq!(header(&legacy)["result"], first["result"]);
+        assert!(header(&legacy).get("products").is_none());
+        processor.shutdown();
     }
 
     #[test]

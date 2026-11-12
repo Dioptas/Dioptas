@@ -8,11 +8,13 @@ mod background_workers;
 mod batch_background;
 mod batch_pattern_background;
 mod batch_waterfall;
+pub mod child_process;
 mod contours;
 pub mod control;
 mod correction_maps;
 #[cfg(feature = "dioptrin")]
 mod correction_preview;
+mod custom_action_output;
 mod custom_actions;
 #[cfg(feature = "dioptrin")]
 mod detector_absorption;
@@ -30,6 +32,8 @@ mod lacosmic;
 mod map_math;
 mod map_preview;
 mod mask_plugins;
+mod metadata_products;
+mod output;
 mod pattern;
 #[cfg(feature = "dioptrin")]
 mod peak_search;

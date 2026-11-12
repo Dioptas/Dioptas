@@ -9,6 +9,7 @@ pub struct Raster {
     pub metadata: Value,
     pub buffer: Buffer,
     statistics: Option<Arc<ImageStatistics>>,
+    #[cfg(any(feature = "dioptrin", test))]
     correction_distribution: Option<Arc<Distribution>>,
     masked_pixels: Option<usize>,
 }
@@ -42,10 +43,12 @@ impl Raster {
             metadata,
             buffer,
             statistics: None,
+            #[cfg(any(feature = "dioptrin", test))]
             correction_distribution: Some(distribution),
             masked_pixels: None,
         }
     }
+    #[cfg(any(feature = "dioptrin", test))]
     pub(crate) fn relevel_correction(
         mut self,
         values: &[f64],
@@ -101,6 +104,7 @@ impl Raster {
             metadata,
             buffer,
             statistics,
+            #[cfg(any(feature = "dioptrin", test))]
             correction_distribution: None,
             masked_pixels: None,
         }
@@ -112,6 +116,7 @@ impl Raster {
             metadata: base(shape, "u8", &buffer),
             buffer,
             statistics: None,
+            #[cfg(any(feature = "dioptrin", test))]
             correction_distribution: None,
             masked_pixels,
         }

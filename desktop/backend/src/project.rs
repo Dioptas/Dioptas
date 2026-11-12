@@ -2,6 +2,8 @@
 //! Unknown state/objects stay in an owned archive; saves publish a sibling file.
 use super::*;
 use checkpoint::Checkpoint;
+#[path = "project/compact.rs"]
+mod compact;
 #[path = "project_config.rs"]
 mod config;
 #[cfg(debug_assertions)]
@@ -11,6 +13,9 @@ mod development;
 mod io;
 #[path = "project/navigation.rs"]
 mod navigation;
+#[cfg(test)]
+#[path = "project/persistence_tests.rs"]
+mod persistence_tests;
 #[path = "project_phases.rs"]
 mod phase;
 #[path = "project_series.rs"]
@@ -39,7 +44,9 @@ pub(super) struct Project {
     active_source: Option<usize>,
     active_label: String,
     pub active_id: u64,
-    archive: Option<Arc<tempfile::NamedTempFile>>,
+    archive: Option<Arc<Archive>>,
+    #[cfg(debug_assertions)]
+    omit_development_session: bool,
 }
 impl Default for Project {
     fn default() -> Self {
@@ -53,6 +60,8 @@ impl Default for Project {
             active_label: "Configuration 1".into(),
             active_id: next_id(),
             archive: None,
+            #[cfg(debug_assertions)]
+            omit_development_session: false,
         }
     }
 }
@@ -312,7 +321,7 @@ impl Session {
         let path = path.canonicalize().map_err(|e| e.to_string())?;
         let source_identity = crate::image::FileIdentity::read(&path)?;
         let archive = snapshot_file(&path, &self.control)?;
-        let file = hdf5::File::open(archive.path()).native()?;
+        let file = archive.file.clone();
         let version = file
             .attr("format_version")
             .ok()
@@ -383,6 +392,8 @@ impl Session {
             active_label: active.label.clone(),
             active_id: active.id,
             archive: Some(Arc::new(archive)),
+            #[cfg(debug_assertions)]
+            omit_development_session: false,
         };
         candidate.combination.patterns = desktop["combination"]["patterns"]
             .as_bool()
@@ -405,20 +416,25 @@ impl Session {
         Ok(())
     }
     fn save_native_project(&self, path: &Path) -> Result<(), String> {
-        let parent = path
-            .parent()
-            .filter(|p| !p.as_os_str().is_empty())
-            .unwrap_or(Path::new("."));
-        let temp = tempfile::NamedTempFile::new_in(parent).map_err(|e| e.to_string())?;
+        let temp = crate::output::StagedOutput::new(path)?;
+        let working = tempfile::NamedTempFile::new().map_err(|e| e.to_string())?;
         if let Some(source) = &self.project.archive {
-            copy_file(source.path(), temp.path(), &self.control)?;
+            copy_handle(source.snapshot.as_file(), working.path(), &self.control)?;
         }
         let file = if self.project.archive.is_some() {
-            hdf5::File::open_rw(temp.path())
+            hdf5::File::open_rw(working.path())
         } else {
-            hdf5::File::create(temp.path())
+            hdf5::File::create(working.path())
         }
         .native()?;
+        #[cfg(debug_assertions)]
+        if self.project.omit_development_session {
+            replace(&file, "development_session")?;
+        }
+        let compact = compact::can_compact(&file, &self.control)?;
+        if !compact {
+            compact::retain_opaque_objects(&file, &self.control)?;
+        }
         write_scalar_attr(&file, "format_version", 2_u32)?;
         write_text_attr(&file, "__version__", env!("CARGO_PKG_VERSION"))?;
         let payloads = ensure_group(&file, "payloads")?;
@@ -435,10 +451,24 @@ impl Session {
         if file.link_exists(previous) {
             return Err("Reserved project staging group already exists.".into());
         }
-        if file.link_exists("configurations") {
-            file.relink("configurations", previous).native()?;
+        // Keep the container's own attributes, aliases and unknown children.
+        // Stage only the numeric groups owned by the previous document.
+        let groups = ensure_group(&file, "configurations")?;
+        let staged = file.create_group(previous).native()?;
+        for i in 0..self.project.document["configurations"]
+            .as_array()
+            .map_or(0, Vec::len)
+        {
+            let name = i.to_string();
+            if groups.link_exists(&name) {
+                file.relink(
+                    &format!("configurations/{name}"),
+                    &format!("{previous}/{name}"),
+                )
+                .native()?;
+            }
         }
-        let groups = file.create_group("configurations").native()?;
+        let mut used = std::collections::BTreeSet::new();
         let mut config_documents = vec![];
         for (i, c) in configs.iter().enumerate() {
             self.control.check()?;
@@ -446,19 +476,27 @@ impl Session {
             let mut c = c.as_ref().unwrap().as_ref().clone();
             c.state.patterns.restore_global(&self.patterns);
             let name = i.to_string();
+            if groups.link_exists(&name) {
+                return Err("A configuration would overwrite an unknown project extension.".into());
+            }
             let old = c.source_index.map(|i| format!("{previous}/{i}"));
             if let Some(old) = old.filter(|p| file.link_exists(p)) {
-                file.group(&old)
-                    .native()?
-                    .copy_to(&groups, &name)
-                    .native()?;
+                if used.insert(old.clone()) {
+                    groups.link_hard(&format!("/{old}"), &name).native()?;
+                } else if compact {
+                    file.group(&old)
+                        .native()?
+                        .copy_to(&groups, &name)
+                        .native()?;
+                } else {
+                    return Err("Cannot duplicate a configuration with opaque HDF5 references without rewriting its extension addresses.".into());
+                }
             }
             let group = ensure_group(&groups, &name)?;
             config_documents.push(config::save(&c, &group, &payloads, &cache)?);
         }
-        if file.link_exists(previous) {
-            file.unlink(previous).native()?;
-        }
+        drop(staged);
+        file.unlink(previous).native()?;
         document["configurations"] = json!(config_documents);
         document["selected_configuration"] = json!(self.project.selected);
         config::save_overlays(self, &payloads, &mut document)?;
@@ -469,17 +507,22 @@ impl Session {
         merge(&mut metadata, &config::desktop_metadata(self));
         write_text_attr(&file, "react_desktop", &metadata.to_string())?;
         series::save_active_extensions(self, &file)?;
+        if compact {
+            compact::prune_pools(&file, &document, &self.control)?;
+        }
         file.flush().native()?;
-        // HDF5 keeps its OS file handle alive while any group is still open.
-        // Windows cannot publish the temporary archive until those handles close.
-        drop(groups);
-        drop(cache);
+        // Release HDF5 objects before copying/publishing files on Windows.
         drop(payloads);
-        file.close().native()?;
-        temp.as_file().sync_all().map_err(|e| e.to_string())?;
-        self.control.check()?;
-        temp.persist(path).map_err(|e| e.to_string())?;
-        Ok(())
+        drop(cache);
+        drop(groups);
+        if compact {
+            compact::write_fresh(&file, temp.path(), &self.control)?;
+            file.close().native()?;
+        } else {
+            file.close().native()?;
+            copy_file(working.path(), temp.path(), &self.control)?;
+        }
+        finish_project(temp, path, &self.control, MAX_PROJECT_BYTES)
     }
 }
 

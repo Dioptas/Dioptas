@@ -53,9 +53,10 @@ pub(crate) struct Series {
     pub wavelength: Option<f64>,
     pub entries: Arc<Vec<Entry>>,
     file_index: Arc<HashMap<String, FileSummary>>,
-    pub paths: Vec<String>,
-    pub file_counts: Vec<usize>,
-    pub reader_options: std::collections::BTreeMap<String, Value>,
+    // Rollback checkpoints share source metadata; writers copy only their local edits.
+    pub paths: Arc<Vec<String>>,
+    pub file_counts: Arc<Vec<usize>>,
+    pub reader_options: Arc<std::collections::BTreeMap<String, Value>>,
     pub total: usize,
     pub selected: usize,
     pub normalization: [usize; 2],
@@ -89,9 +90,9 @@ impl Series {
         data.extend(other.data.iter().copied());
         let mut entries = self.entries.as_ref().clone();
         entries.extend(other.entries.iter().cloned());
-        let mut paths = self.paths.clone();
+        let mut paths = self.paths.as_ref().clone();
         let mut known: HashSet<_> = paths.iter().cloned().collect();
-        for p in &other.paths {
+        for p in other.paths.iter() {
             if known.insert(p.clone()) {
                 paths.push(p.clone());
             }
@@ -110,7 +111,7 @@ impl Series {
         }
         let mut counts = HashMap::<&str, usize>::new();
         for series in [self, other] {
-            for (path, &count) in series.paths.iter().zip(&series.file_counts) {
+            for (path, &count) in series.paths.iter().zip(series.file_counts.iter()) {
                 let entry = counts.entry(path.as_str()).or_default();
                 *entry = (*entry).max(count);
             }
@@ -119,7 +120,8 @@ impl Series {
             .paths
             .iter()
             .map(|p| counts.get(p.as_str()).copied().unwrap_or(0))
-            .collect();
+            .collect::<Vec<_>>()
+            .into();
         match (&self.spread, &other.spread) {
             (Some(a), Some(b)) => {
                 let mut spread = a.as_ref().clone();
@@ -151,16 +153,19 @@ impl Series {
             }
         }
         s.reader_options = self.reader_options.clone();
-        for (path, options) in &other.reader_options {
-            if s.reader_options
-                .get(path)
-                .is_some_and(|previous| previous != options)
-            {
-                return Err(
-                    "A scan append cannot replace the source contract for an existing file.".into(),
-                );
+        for (path, options) in other.reader_options.iter() {
+            match s.reader_options.get(path) {
+                Some(previous) if previous != options => {
+                    return Err(
+                        "A scan append cannot replace the source contract for an existing file."
+                            .into(),
+                    );
+                }
+                Some(_) => {}
+                None => {
+                    Arc::make_mut(&mut s.reader_options).insert(path.clone(), options.clone());
+                }
             }
-            s.reader_options.insert(path.clone(), options.clone());
         }
         if serde_json::to_vec(&s.reader_options)
             .map_err(|e| e.to_string())?
@@ -208,8 +213,8 @@ impl Series {
             wavelength,
             entries: Arc::new(entries),
             file_index,
-            paths,
-            file_counts,
+            paths: Arc::new(paths),
+            file_counts: Arc::new(file_counts),
             reader_options: Default::default(),
             total,
             selected: 0,
@@ -374,8 +379,7 @@ impl Series {
         json!({"id":self.background_raster().buffer.id,"exportBaseName":self.export_name,"waterfallKey":crate::batch_waterfall::identity(self),"raster":self.background_raster().metadata,"backgroundState":self.background_metadata(),"sourceBins":self.background_bins(),"x":&curve.x[self.background_bins()[0]..self.background_bins()[1]],"wavelength":self.wavelength,"unit":unit,"sourceUnit":self.unit,"entries":self.entries.iter().map(|e|json!({"path":e.path,"name":if e.path.is_empty(){"Stored pattern".into()}else{Path::new(&e.path).file_name().unwrap_or_default().to_string_lossy()},"frame":e.frame+1})).collect::<Vec<_>>(),"files":files,"pattern":{"x":curve.x,"y":curve.y,"sigma":curve.sigma,"unit":unit},"selected":self.selected,"total":self.total,"canReintegrate":self.paths.iter().any(|p|!p.is_empty()&&Path::new(p).is_file()),"normalized":self.normalized,"normalizationRange":self.normalization,"normalizationReference":self.reference,"normalizationReferenceName":self.entries.get(self.reference).map(|e|if e.path.is_empty(){format!("Stored pattern · frame {}", self.reference+1)}else{Path::new(&e.path).file_name().unwrap_or_default().to_string_lossy().into_owned()}),"normalizationRegion":{"minimum":self.x[self.normalization[0]].min(self.x[self.normalization[1]-1]),"maximum":self.x[self.normalization[0]].max(self.x[self.normalization[1]-1]),"unit":self.unit},"calibration":self.calibration,"mask":self.mask,"phaseLines":phases,"position":null})
     }
     pub fn save(&self, path: &Path) -> Result<(), String> {
-        let mut temp = tempfile::NamedTempFile::new_in(path.parent().unwrap_or(Path::new(".")))
-            .map_err(|e| e.to_string())?;
+        let mut temp = crate::output::StagedOutput::new(path)?;
         if path
             .extension()
             .is_some_and(|s| s.eq_ignore_ascii_case("csv"))
@@ -439,7 +443,7 @@ impl Series {
                     .and_then(|d| d.write_raw(spread.as_slice()))
                     .map_err(|e| e.to_string())?;
             }
-            let mut paths = self.paths.clone();
+            let mut paths = self.paths.as_ref().clone();
             let mut path_indices = HashMap::new();
             for (i, path) in paths.iter().enumerate() {
                 // Preserve the first occurrence if an imported source list
@@ -585,8 +589,7 @@ impl Series {
             }
             f.flush().map_err(|e| e.to_string())?;
         }
-        temp.persist(path).map_err(|e| e.to_string())?;
-        Ok(())
+        temp.commit(path)
     }
     /// Explicit processed-file opening records its user-facing basename. Embedded
     /// project loads retain the recorded name instead of a temporary .h5 filename.
@@ -711,7 +714,7 @@ impl Series {
         )?;
         if let Some(counts) = counts {
             s.total = counts.iter().sum();
-            s.file_counts = counts;
+            s.file_counts = Arc::new(counts);
         }
         s.background = background;
         s.raw_background = s.background.clone();
@@ -921,15 +924,43 @@ mod file_index_tests {
             &[("missing/a", 2), ("missing/b", 0), ("missing/a", 5)],
             &["missing/b", "missing/a"],
         );
-        a.file_counts = vec![7, 20];
+        a.file_counts = Arc::new(vec![7, 20]);
+        Arc::make_mut(&mut a.reader_options).insert(
+            "missing/a".into(),
+            json!({"dataset":"/raw", "frame_shape":[2,3]}),
+        );
         let mut b = fixture(
             &[("missing/c", 3), ("missing/a", 8)],
             &["missing/a", "missing/c"],
         );
-        b.file_counts = vec![40, 10];
+        b.file_counts = Arc::new(vec![40, 10]);
+        Arc::make_mut(&mut b.reader_options)
+            .insert("missing/a".into(), a.reader_options["missing/a"].clone());
+        Arc::make_mut(&mut b.reader_options).insert(
+            "missing/c".into(),
+            json!({"dataset":"/frames", "raw":{"dtype":"u16"}}),
+        );
+        let a_checkpoint = a.clone();
+        let b_checkpoint = b.clone();
         let s = a.append(&b).unwrap();
-        assert_eq!(s.paths, vec!["missing/b", "missing/a", "missing/c"]);
-        assert_eq!(s.file_counts, vec![7, 40, 10]);
+        assert!(Arc::ptr_eq(&a.paths, &a_checkpoint.paths));
+        assert!(Arc::ptr_eq(&a.reader_options, &a_checkpoint.reader_options));
+        assert!(Arc::ptr_eq(&b.reader_options, &b_checkpoint.reader_options));
+        assert!(!Arc::ptr_eq(&s.reader_options, &a.reader_options));
+        assert_eq!(a.reader_options.len(), 1);
+        assert_eq!(b.reader_options.len(), 2);
+        assert_eq!(s.reader_options.len(), 2);
+        assert_eq!(s.reader_options["missing/a"], a.reader_options["missing/a"]);
+        assert_eq!(s.reader_options["missing/c"], b.reader_options["missing/c"]);
+        assert!(Arc::ptr_eq(&a.file_counts, &a_checkpoint.file_counts));
+        assert!(Arc::ptr_eq(&b.paths, &b_checkpoint.paths));
+        assert!(Arc::ptr_eq(&b.file_counts, &b_checkpoint.file_counts));
+        assert_eq!(*a.paths, ["missing/b", "missing/a"]);
+        assert_eq!(*a.file_counts, [7, 20]);
+        assert_eq!(*b.paths, ["missing/a", "missing/c"]);
+        assert_eq!(*b.file_counts, [40, 10]);
+        assert_eq!(*s.paths, vec!["missing/b", "missing/a", "missing/c"]);
+        assert_eq!(*s.file_counts, vec![7, 40, 10]);
         let metadata = s.metadata("q_A^-1", Value::Null);
         assert_eq!(metadata["files"][0]["first"], 1);
         assert_eq!(metadata["files"][1]["first"], 0);
@@ -937,10 +968,19 @@ mod file_index_tests {
         assert_eq!(metadata["files"][1]["frames"], 40);
         let cloned = s.clone();
         assert!(Arc::ptr_eq(&s.file_index, &cloned.file_index));
+        assert!(Arc::ptr_eq(&s.paths, &cloned.paths));
+        assert!(Arc::ptr_eq(&s.file_counts, &cloned.file_counts));
+        assert!(Arc::ptr_eq(&s.reader_options, &cloned.reader_options));
         let dir = tempfile::tempdir().unwrap();
         let p = dir.path().join("stored.h5");
         s.save(&p).unwrap();
         let restored = Series::load(&p).unwrap();
+        assert_eq!(restored.reader_options, s.reader_options);
+        assert_eq!(
+            serde_json::to_value(&restored.reader_options).unwrap(),
+            json!({"missing/a":{"dataset":"/raw", "frame_shape":[2,3]},
+                   "missing/c":{"dataset":"/frames", "raw":{"dtype":"u16"}}})
+        );
         assert_eq!(
             restored.metadata("q_A^-1", Value::Null)["files"],
             metadata["files"]
@@ -955,6 +995,60 @@ mod file_index_tests {
                 .iter()
                 .map(|e| (&e.path, e.frame))
                 .collect::<Vec<_>>()
+        );
+    }
+    #[test]
+    fn saving_missing_source_paths_extends_only_local_serialized_metadata() {
+        let series = fixture(&[("missing/a", 0), ("missing/b", 2)], &["missing/a"]);
+        let checkpoint = series.clone();
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("local-source-list.h5");
+        series.save(&path).unwrap();
+        assert!(Arc::ptr_eq(&series.paths, &checkpoint.paths));
+        assert!(Arc::ptr_eq(&series.file_counts, &checkpoint.file_counts));
+        assert_eq!(*series.paths, ["missing/a"]);
+        assert_eq!(*series.file_counts, [1]);
+        let restored = Series::load(&path).unwrap();
+        assert_eq!(*restored.paths, ["missing/a", "missing/b"]);
+        // The existing save fallback records stored rows for an unlisted source.
+        assert_eq!(*restored.file_counts, [1, 1]);
+        assert_eq!(restored.data, series.data);
+    }
+    #[test]
+    fn append_shared_reader_contracts_rejects_conflicts_without_mutating_inputs() {
+        let mut original = fixture(&[("missing/a", 0)], &["missing/a"]);
+        Arc::make_mut(&mut original.reader_options)
+            .insert("missing/a".into(), json!({"dataset":"/raw"}));
+        let checkpoint = original.clone();
+        let mut other = original.clone();
+        // Reusing the identical contract needs no map copy even when rows append.
+        let appended = original.append(&other).unwrap();
+        assert!(Arc::ptr_eq(
+            &appended.reader_options,
+            &original.reader_options
+        ));
+        Arc::make_mut(&mut other.reader_options)
+            .insert("missing/a".into(), json!({"dataset":"/different"}));
+        assert!(!Arc::ptr_eq(
+            &other.reader_options,
+            &original.reader_options
+        ));
+        let error = original.append(&other).err().unwrap();
+        assert_eq!(
+            error,
+            "A scan append cannot replace the source contract for an existing file."
+        );
+        assert!(Arc::ptr_eq(
+            &original.reader_options,
+            &checkpoint.reader_options
+        ));
+        assert_eq!(
+            original.reader_options["missing/a"],
+            json!({"dataset":"/raw"})
+        );
+        assert_eq!(
+            other.reader_options["missing/a"],
+            json!({"dataset":"/different"})
         );
     }
 }
