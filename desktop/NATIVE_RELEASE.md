@@ -13,9 +13,9 @@ metadata. The preview identity and legacy Qt identity remain separate, including
 their settings/WebKit storage. The current `0.1.0` is a packaging test version,
 not a newly announced public release version.
 
-The release overlay is shared with future Windows/Linux installer jobs. Those
-platforms still need their own build, dependency and installed-application tests.
-Do not infer their qualification from a macOS candidate. Icons are generated
+The release overlay is shared with the [Windows installer pipeline](NATIVE_WINDOWS_RELEASE.md)
+and future Linux installer jobs. Each platform has its own dependency and
+installed-application tests. Do not infer their qualification from a macOS candidate. Icons are generated
 from `src-tauri/icons/icon.svg` with the pinned Tauri CLI; `.icns` and `.ico`
 outputs are checked in alongside the original artwork.
 

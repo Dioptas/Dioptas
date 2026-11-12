@@ -12,10 +12,12 @@ $temporary = Join-Path $env:RUNNER_TEMP ('Dioptas Installer Test ' + [guid]::New
 $installation = Join-Path $temporary 'Installed App ü'
 New-Item -ItemType Directory -Path $temporary | Out-Null
 $originalDirectory = Get-Location
+$originalProcessDirectory = [Environment]::CurrentDirectory
 $receipts = @()
 $installed = $false
 try {
     Set-Location $temporary
+    [Environment]::CurrentDirectory = $temporary
     $installers = @()
     foreach ($build in $metadata.builds) {
         $file = Join-Path $temporary (Split-Path $build.installer -Leaf)
@@ -92,5 +94,6 @@ try {
     }
     Copy-Item (Join-Path $temporary '*.log') $output -ErrorAction SilentlyContinue
     Set-Location $originalDirectory
+    [Environment]::CurrentDirectory = $originalProcessDirectory
     Remove-Item $temporary -Recurse -Force -ErrorAction SilentlyContinue
 }

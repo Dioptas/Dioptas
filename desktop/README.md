@@ -304,6 +304,11 @@ credentials; the artifact-only workflow also notarizes and tests Apple Silicon
 and Intel DMGs. It does not publish a release. The application version comes
 from `package.json`; the current `0.1.0` remains a packaging test version.
 
+The [native Windows installer pipeline](NATIVE_WINDOWS_RELEASE.md) adds an x64
+NSIS candidate with offline WebView2, bundled Visual C++ runtime, and automated
+install/upgrade/uninstall and native WebView2 checks. Windows candidates are
+explicitly unsigned until a Windows signing provider is configured.
+
 Development still supports `DIOPTAS_SOURCE_ROOT` for the Python comparison
 backend and `DIOPTAS_NATIVE_PROCESSOR` for an explicit Rust executable.
 Release Rust startup uses installed resources and a sibling processor, with
