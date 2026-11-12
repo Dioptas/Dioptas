@@ -128,7 +128,17 @@ mod tests {
     #[test]
     fn inheritable_native_descriptor_is_absent_after_exec_and_unchanged_in_parent() {
         let file = tempfile::tempfile().unwrap();
-        let minimum = (descriptor_limit().unwrap() / 2).clamp(3, 4096);
+        let mut limits = libc::rlimit {
+            rlim_cur: 0,
+            rlim_max: 0,
+        };
+        // The production close scan includes the hard ceiling, but creating a
+        // probe descriptor must respect this runner's current soft limit.
+        assert_eq!(
+            unsafe { libc::getrlimit(libc::RLIMIT_NOFILE, &mut limits) },
+            0
+        );
+        let minimum = (limits.rlim_cur / 2).clamp(3, 4096) as libc::c_int;
         // F_DUPFD deliberately produces a non-CLOEXEC descriptor, like sec2.
         let descriptor = unsafe { libc::fcntl(file.as_raw_fd(), libc::F_DUPFD, minimum) };
         assert!(descriptor >= minimum);

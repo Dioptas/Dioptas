@@ -114,10 +114,10 @@ pub(super) fn can_compact(file: &hdf5::File, control: &Control) -> Result<bool, 
                     return Ok(false);
                 }
             }
-            hdf5::LocationType::NamedDatatype => {
-                if has_references(&node.object.as_datatype().native()?)? {
-                    return Ok(false);
-                }
+            hdf5::LocationType::NamedDatatype
+                if has_references(&node.object.as_datatype().native()?)? =>
+            {
+                return Ok(false);
             }
             _ => {}
         }
