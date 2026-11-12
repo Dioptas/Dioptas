@@ -2,9 +2,9 @@ name: Rust desktop
 
 on:
   push:
-    paths: ['desktop/**', 'README.md', '.github/workflows/CI_rust_desktop.yml']
+    paths-ignore: ['docs/source/**', '.readthedocs.yaml']
   pull_request:
-    paths: ['desktop/**', 'README.md', '.github/workflows/CI_rust_desktop.yml']
+    paths-ignore: ['docs/source/**', '.readthedocs.yaml']
   workflow_dispatch:
 
 permissions:
@@ -40,7 +40,7 @@ jobs:
         run: rustup update stable && rustup component add clippy rustfmt ${{ runner.os == 'Linux' && 'llvm-tools-preview' || '' }}
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: desktop/backend -> target
+          workspaces: backend -> target
           key: processor-${{ runner.os }}
           save-if: ${{ github.ref == 'refs/heads/develop' }}
       # A prebuilt, pinned binary instead of compiling the tool on every run.
@@ -51,17 +51,17 @@ jobs:
           tool: cargo-llvm-cov@0.9.1
       - name: Run native processor gate (no Python environment)
         # On Linux the gate runs the all-features tests once, instrumented by
-        # cargo-llvm-cov, and writes desktop/artifacts/coverage (lcov.info and
+        # cargo-llvm-cov, and writes artifacts/coverage (lcov.info and
         # html/) instead of rebuilding and rerunning them for coverage
         # afterwards. They therefore run uninstrumented only on macOS.
         env:
           DIOPTAS_GATE_COVERAGE: ${{ runner.os == 'Linux' && '1' || '0' }}
-        run: node desktop/scripts/check_native_desktop.mjs --processor
+        run: node scripts/check_native_desktop.mjs --processor
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: native-processor-${{ runner.os }}
-          path: desktop/artifacts/
+          path: artifacts/
 
   desktop:
     name: Headless desktop and Tauri host
@@ -75,29 +75,27 @@ jobs:
         with:
           node-version: '26'
           cache: npm
-          cache-dependency-path: desktop/package-lock.json
+          cache-dependency-path: package-lock.json
       - name: Install Rust
         run: rustup update stable
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
-            desktop/backend -> target
-            desktop/src-tauri -> target
+            backend -> target
+            src-tauri -> target
           key: desktop-macos
           save-if: ${{ github.ref == 'refs/heads/develop' }}
       - run: npm ci
-        working-directory: desktop
       - run: npx playwright install chromium webkit
-        working-directory: desktop
       - name: Prepare and test the native host (no application window)
-        run: node desktop/scripts/check_native_desktop.mjs --host
+        run: node scripts/check_native_desktop.mjs --host
       - name: Run headless UI, data flow and stdio checks
-        run: node desktop/scripts/check_native_desktop.mjs --ui
+        run: node scripts/check_native_desktop.mjs --ui
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: native-desktop-headless
-          path: desktop/artifacts/
+          path: artifacts/
 
   linux-security:
     name: Linux Tauri dependencies and GLib security
@@ -111,7 +109,7 @@ jobs:
         with:
           node-version: '26'
           cache: npm
-          cache-dependency-path: desktop/package-lock.json
+          cache-dependency-path: package-lock.json
       - name: Install Linux Tauri and GLib development dependencies
         # https://v2.tauri.app/start/prerequisites/#linux
         run: |
@@ -122,21 +120,19 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
-            desktop/backend -> target
-            desktop/src-tauri -> target
-            desktop/security/glib-regression -> target
+            backend -> target
+            src-tauri -> target
+            security/glib-regression -> target
           key: linux-tauri-glib-security
           save-if: ${{ github.ref == 'refs/heads/develop' }}
       - name: Verify the exact reviewed GLib source backport
-        run: node desktop/scripts/check_glib_backport.mjs
+        run: node scripts/check_glib_backport.mjs
       - run: npm ci
-        working-directory: desktop
       - name: Stage the native processor and build the frontend
-        working-directory: desktop
         run: npm run backend:prepare -- --debug && npm run build
       - name: Check the real Linux Tauri dependency graph
-        run: cargo check --locked --manifest-path desktop/src-tauri/Cargo.toml --jobs 2
+        run: cargo check --locked --manifest-path src-tauri/Cargo.toml --jobs 2
       - name: Exercise the optimized GLib security regression
-        run: cargo test --release --locked --manifest-path desktop/security/glib-regression/Cargo.toml --jobs 2
+        run: cargo test --release --locked --manifest-path security/glib-regression/Cargo.toml --jobs 2
       - name: Check live advisories for the original registry GLib version
-        run: node desktop/scripts/check_glib_backport.mjs --advisories
+        run: node scripts/check_glib_backport.mjs --advisories

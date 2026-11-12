@@ -18,7 +18,7 @@ or embedded observation/audit tables.
    See the
    `candidate release notes <https://github.com/Dioptas/Dioptas/blob/0.14.0-rc.1/desktop/RELEASE_0.14.0-rc.1.md>`_
    and
-   `native installer guide <https://github.com/Dioptas/Dioptas/blob/develop/desktop/NATIVE_RELEASE.md>`_
+   `native installer guide <https://github.com/Dioptas/Dioptas/blob/develop/docs/release/NATIVE_RELEASE.md>`_
    for verification and known limits. The rc.2 installer used in automated
    upgrade tests is a disposable fixture and is not distributed.
 
@@ -45,7 +45,7 @@ the application's Visual C++ runtime libraries.
 The current test candidate is **unsigned**. Installation, upgrade and uninstall
 checks passed on Windows Server 2022 x64; Windows 10/11 and ARM64 have not been
 separately qualified. See the
-`Windows installer guide <https://github.com/Dioptas/Dioptas/blob/develop/desktop/NATIVE_WINDOWS_RELEASE.md>`_
+`Windows installer guide <https://github.com/Dioptas/Dioptas/blob/develop/docs/release/NATIVE_WINDOWS_RELEASE.md>`_
 for the tested scope and signing status.
 
 Linux
@@ -78,7 +78,7 @@ unavailable, use the tested extraction mode::
 Linux candidates are unsigned. Installation checks use Ubuntu runners with a
 virtual X11 display and software rendering; other distributions, Wayland and
 physical GPU configurations have not been qualified. See the
-`Linux installer guide <https://github.com/Dioptas/Dioptas/blob/develop/desktop/NATIVE_LINUX_RELEASE.md>`_
+`Linux installer guide <https://github.com/Dioptas/Dioptas/blob/develop/docs/release/NATIVE_LINUX_RELEASE.md>`_
 for prerequisites and verification details.
 
 Upgrading and existing projects
@@ -93,7 +93,7 @@ a new name. The Rust desktop reads current format-2 ``.dio`` projects. Older
 formats require their compatible legacy application and explicit data export.
 Saving a native project through an older Qt writer can discard native-specific
 metadata. See the
-`native project compatibility guide <https://github.com/Dioptas/Dioptas/blob/develop/desktop/NATIVE_PROJECT_PARITY.md>`_
+`native project compatibility guide <https://github.com/Dioptas/Dioptas/blob/develop/docs/parity/NATIVE_PROJECT_PARITY.md>`_
 before moving projects between editions. The editions use separate application
 identities; do not assume preferences are migrated automatically.
 
@@ -151,12 +151,12 @@ Rust, a C/C++ compiler, CMake, Git and the platform prerequisites for Tauri, the
 run::
 
     git clone --branch develop https://github.com/Dioptas/Dioptas.git
-    cd Dioptas/desktop
+    cd Dioptas
     npm ci
     npm run tauri:dev
 
 See the
-`desktop development guide <https://github.com/Dioptas/Dioptas/blob/develop/desktop/README.md>`_
+`desktop development guide <https://github.com/Dioptas/Dioptas/blob/develop/DEVELOPMENT.md>`_
 for platform setup and checks. Python is not required to run the Rust desktop.
 
 Legacy Qt edition

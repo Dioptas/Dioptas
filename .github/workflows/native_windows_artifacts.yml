@@ -30,7 +30,7 @@ jobs:
         with:
           node-version: '26'
           cache: npm
-          cache-dependency-path: desktop/package-lock.json
+          cache-dependency-path: package-lock.json
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
@@ -39,12 +39,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
-            desktop/backend -> target
-            desktop/src-tauri -> target
+            backend -> target
+            src-tauri -> target
           key: native-windows-x64
           cache-on-failure: true
       - run: npm ci
-        working-directory: desktop
       - name: Test release policy and dependency inspection
         run: |
           $tokens = $null; $errors = $null
@@ -57,26 +56,24 @@ jobs:
           npm run test:windows-release-config
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test scripts/standalone_licenses.test.mjs scripts/peritheos_distribution.test.mjs
-        working-directory: desktop
       - name: Test release-mode native Windows processor
-        run: cargo test --release --locked --manifest-path desktop/backend/Cargo.toml --all-features --no-fail-fast
+        run: cargo test --release --locked --manifest-path backend/Cargo.toml --all-features --no-fail-fast
       - name: Diagnose a failed native HDF5 master test
         if: failure()
-        run: cargo test --release --locked --manifest-path desktop/backend/Cargo.toml --test integration -- hdf5_master_vds --test-threads=1 --nocapture
+        run: cargo test --release --locked --manifest-path backend/Cargo.toml --test integration -- hdf5_master_vds --test-threads=1 --nocapture
       - name: Build unsigned offline installer and upgrade fixture
         run: npm run release:windows -- --unsigned --test-upgrade
-        working-directory: desktop
       - name: Test install, native WebView2, upgrade and uninstall
-        run: ./desktop/scripts/verify_windows_installer.ps1
+        run: ./scripts/verify_windows_installer.ps1
       - name: Retain verified test installers
         uses: actions/upload-artifact@v7
         with:
           name: Dioptas-native-windows-x64-unsigned-test
           path: |
-            desktop/artifacts/native-windows/**/*.exe
-            desktop/artifacts/native-windows/**/SHA256SUMS
-            desktop/artifacts/native-windows/**/build.json
-            desktop/artifacts/native-windows/**/verification.json
+            artifacts/native-windows/**/*.exe
+            artifacts/native-windows/**/SHA256SUMS
+            artifacts/native-windows/**/build.json
+            artifacts/native-windows/**/verification.json
           if-no-files-found: error
           retention-days: 14
       - name: Retain diagnostics
@@ -84,6 +81,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: Dioptas-native-windows-diagnostics
-          path: desktop/artifacts/native-windows/
+          path: artifacts/native-windows/
           if-no-files-found: ignore
           retention-days: 14

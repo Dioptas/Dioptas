@@ -53,11 +53,9 @@ jobs:
         with:
           node-version: '26'
           cache: npm
-          cache-dependency-path: desktop/package-lock.json
+          cache-dependency-path: package-lock.json
       - run: npm ci
-        working-directory: desktop
       - name: Check the release and update configuration
-        working-directory: desktop
         run: npm run test:release-config
       - name: Download the verified candidates
         env:
@@ -77,7 +75,6 @@ jobs:
           download "$LINUX_RUN" Dioptas-native-linux-x64-deb-test
           download "$LINUX_RUN" Dioptas-native-linux-x64-appimage-test
       - name: Sign the update packages and write the manifest
-        working-directory: desktop
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -94,8 +91,8 @@ jobs:
           git merge-base --is-ancestor "$revision" HEAD || {
             echo "::error::The candidates were built from $revision, which is not part of this branch"; exit 1; }
           arguments=(--target "$revision" --title "Dioptas $version")
-          if [ -f "desktop/RELEASE_$version.md" ]; then
-            arguments+=(--notes-file "desktop/RELEASE_$version.md")
+          if [ -f "docs/release/RELEASE_$version.md" ]; then
+            arguments+=(--notes-file "docs/release/RELEASE_$version.md")
           else
             arguments+=(--generate-notes)
           fi

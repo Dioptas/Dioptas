@@ -11,5 +11,5 @@ The Qt application, its Python tests and its manual are preserved on
 
    installation
 
-See the `desktop workflow and user guide <https://github.com/Dioptas/Dioptas/blob/develop/desktop/README.md>`_
-and `native functional coverage <https://github.com/Dioptas/Dioptas/blob/develop/desktop/NATIVE_FUNCTIONAL_COVERAGE.md>`_.
+See the `desktop workflow and user guide <https://github.com/Dioptas/Dioptas/blob/develop/DEVELOPMENT.md>`_
+and `native functional coverage <https://github.com/Dioptas/Dioptas/blob/develop/docs/parity/NATIVE_FUNCTIONAL_COVERAGE.md>`_.

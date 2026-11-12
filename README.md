@@ -19,8 +19,8 @@ The first Rust desktop prerelease is
 [Dioptas 0.14.0-rc.1](https://github.com/Dioptas/Dioptas/releases/tag/0.14.0-rc.1),
 with macOS, Windows and Linux installers for testing. Windows is currently
 unsigned. The latest stable 0.13.x releases remain the legacy Qt edition.
-See the [candidate release notes](desktop/RELEASE_0.14.0-rc.1.md) and
-[native installer guide](desktop/NATIVE_RELEASE.md) for tested scope and limits.
+See the [candidate release notes](docs/release/RELEASE_0.14.0-rc.1.md) and
+[native installer guide](docs/release/NATIVE_RELEASE.md) for tested scope and limits.
 
 **`pip install dioptas` installs the legacy Qt/Python edition.** It does not
 install the Rust desktop. Existing Python package versions remain available for
@@ -34,14 +34,14 @@ for Tauri, then run:
 
 ```sh
 git clone --branch develop https://github.com/Dioptas/Dioptas.git
-cd Dioptas/desktop
+cd Dioptas
 npm ci
 npm run tauri:dev
 ```
 
-See the [desktop development guide](desktop/README.md) for example data,
+See the [development guide](DEVELOPMENT.md) for example data,
 packaging, headless checks and workflow details, and the
-[native qualification inventory](desktop/NATIVE_FUNCTIONAL_COVERAGE.md) for
+[native qualification inventory](docs/parity/NATIVE_FUNCTIONAL_COVERAGE.md) for
 coverage and remaining limitations. Branch promotion does not constitute a new
 binary release or a claim of complete Qt parity.
 
@@ -67,8 +67,8 @@ git clone --branch legacy/qt https://github.com/Dioptas/Dioptas.git Dioptas-qt
 
 The Qt/Python application, packaging and Python test suite live on `legacy/qt`.
 `develop` retains frozen independent reference data, exercised by Rust and
-headless UI tests. See [reference data and cleanup](desktop/REFERENCE_DATA.md).
-New scientific desktop commands belong in `desktop/backend`.
+headless UI tests. See [reference data and cleanup](docs/architecture/REFERENCE_DATA.md).
+New scientific desktop commands belong in `backend`.
 
 The Rust desktop workflow owns native processor, Tauri host, headless UI and
 independent reference checks. Qt CI and branch packages target `legacy/qt` and

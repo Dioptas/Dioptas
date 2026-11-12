@@ -4,16 +4,16 @@
 * text=auto
 
 # Preserve the byte-verified published source and security patch on every OS.
-desktop/vendor/glib/** -text
-desktop/vendor/hdf5-metno/** -text
-desktop/vendor/hdf5-metno-sys/** -text
-desktop/vendor/HDF5_WINDOWS_ABI.json -text
-desktop/licenses/cargo-overrides/** -text
+vendor/glib/** -text
+vendor/hdf5-metno/** -text
+vendor/hdf5-metno-sys/** -text
+vendor/HDF5_WINDOWS_ABI.json -text
+licenses/cargo-overrides/** -text
 
 # Generated contracts/equations are compared byte-for-byte on every OS.
-desktop/src/nativePayloadContracts.generated.ts text eol=lf
-desktop/native_payload_contracts.generated.rs text eol=lf
-desktop/src/phaseEquations.generated.json text eol=lf
+src/nativePayloadContracts.generated.ts text eol=lf
+native_payload_contracts.generated.rs text eol=lf
+src/phaseEquations.generated.json text eol=lf
 
 ###############################################################################
 # Set default behavior for command prompt diff.
