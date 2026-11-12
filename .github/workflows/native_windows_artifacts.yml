@@ -61,8 +61,8 @@ jobs:
         working-directory: desktop
       - name: Test install, native WebView2, upgrade and uninstall
         run: ./desktop/scripts/verify_windows_installer.ps1
-      - name: Test native Windows processor
-        run: cargo test --locked --manifest-path desktop/backend/Cargo.toml --all-features
+      - name: Test release-mode native Windows processor
+        run: cargo test --release --locked --manifest-path desktop/backend/Cargo.toml --all-features
       - name: Retain verified test installers
         uses: actions/upload-artifact@v7
         with:
