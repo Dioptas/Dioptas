@@ -273,16 +273,16 @@ The user is continuing to test the installed rc.1. Collect these changes for
 the next candidate; do not replace the running installation or rewrite rc.1
 release assets.
 
-- [ ] Name the application **Dioptas**, rather than **Dioptas Desktop**, in
+- [x] Name the application **Dioptas**, rather than **Dioptas Desktop**, in
   application menus, bundles, launchers and installer display names. Preserve
   stable application identifiers and existing native preferences. Account for
   platform installer/launcher names when preparing the next candidate.
-- [ ] Always include the actual application version in the window title,
+- [x] Always include the actual application version in the window title,
   starting with **Dioptas <version>**. Keep it when an image or project is
   opened, and retain useful filenames/context afterward. Read the version from
   the build/runtime metadata; Vite's current build description still hardcodes
   0.1.0 and must use the application version too.
-- [ ] Keep Map's detector image embedded, with no detach option. Its placement
+- [x] Keep Map's detector image embedded, with no detach option. Its placement
   and visibility must be independent of Integration's detachable detector
   window: opening/closing/detaching the Integration image must not remove or
   relocate the detector image in Map. This concerns view/window ownership;
@@ -306,3 +306,29 @@ pipeline, eight worker starts, all 625 frames and no pattern-plan rebuild.
 This does not establish the cause of the user's earlier rate; no fixed
 130-images/s limit was reproduced. Record transient CPU/I/O/cache variation
 as a possibility, not a diagnosed regression.
+
+### Branding, titles and Map image independence on develop
+
+The three display/view items above are implemented on develop. The application
+product name is Dioptas; native bundle identifiers and the Debian package
+identity remain unchanged. Installer inspectors and the offline guide use the
+new display name. Published rc.1 assets retain their original names and bytes.
+
+Main and companion window titles start with Dioptas and the actual application
+version. The native host sets the title before creating the main window;
+subsequent file/phase-editor title updates retain that version. Native windows
+read their runtime version, while browser builds and build descriptions derive
+the version from package.json.
+
+Map renders its detector image directly and owns a separate detector viewport
+and reset state. It neither joins the detachable-image provider nor offers
+detach/dock controls. Integration's floating-window controls and readouts no
+longer take over Map's image or footer. Pattern navigation and scientific linked
+inspection retain their existing shared behavior.
+
+Local checks: 179 JavaScript unit tests, the frontend build, 22 release-policy
+tests, the complete detector-window regression in headless Chromium/WebKit,
+and a focused two-browser Map independence test. The latter checks independent
+zoom across mode switches and closing Integration's floating image while Map
+remains visible. File-change checks also verify versioned titles after loading
+new images. No installed application or public release was replaced.

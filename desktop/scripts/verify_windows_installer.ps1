@@ -6,8 +6,8 @@ $sourceRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $smokeScript = Join-Path $PSScriptRoot 'windows_installed_smoke.mjs'
 $node = (Get-Command node).Source
 $sevenZip = (Get-Command 7z).Source
-$registry = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Dioptas Desktop'
-if (Test-Path $registry) { throw 'An existing Dioptas Desktop installation must not be replaced by this test' }
+$registry = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\$($metadata.productName)"
+if ((Test-Path $registry) -or (Test-Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Dioptas Desktop')) { throw 'An existing Dioptas installation must not be replaced by this test' }
 $temporary = Join-Path $env:RUNNER_TEMP ('Dioptas Installer Test ' + [guid]::NewGuid().ToString('N'))
 $installation = Join-Path $temporary 'Installed App ü'
 New-Item -ItemType Directory -Path $temporary | Out-Null
@@ -56,7 +56,7 @@ try {
         if ($entry.DisplayVersion -ne $build.version) { throw 'Installed version registration is incorrect' }
         if ((Get-Item (Join-Path $installation 'dioptas-desktop.exe')).VersionInfo.ProductVersion -ne $build.version) { throw 'Application executable version does not match the installer' }
         if (!(Test-Path $sentinel)) { throw 'Installation or upgrade removed user settings' }
-        $links = @(Get-ChildItem ([Environment]::GetFolderPath('StartMenu')) -Filter '*.lnk' -Recurse | Where-Object { $_.BaseName -eq 'Dioptas Desktop' })
+        $links = @(Get-ChildItem ([Environment]::GetFolderPath('StartMenu')) -Filter '*.lnk' -Recurse | Where-Object { $_.BaseName -eq $metadata.productName })
         if ($links.Count -lt 1) { throw 'Start menu shortcut is missing' }
         foreach ($name in @('dioptas-desktop.exe', 'dioptas-processor.exe')) {
             $signature = Get-AuthenticodeSignature (Join-Path $installation $name)

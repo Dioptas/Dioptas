@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Dioptas Desktop",
+  "productName": "Dioptas",
   "identifier": "org.dioptas.desktop",
   "app": {
     "windows": [

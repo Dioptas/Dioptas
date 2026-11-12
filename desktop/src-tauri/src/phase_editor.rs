@@ -13,7 +13,7 @@ pub fn open_phase_editor(app: tauri::AppHandle, window: tauri::WebviewWindow, ui
         return editor.set_focus().map_err(|e| e.to_string());
     }
     crate::smoke_storage::configure(&app, WebviewWindowBuilder::new(&app, "phase-editor", WebviewUrl::App(format!("index.html?phase_uid={uid}").into())))
-        .title("Phase Editor — Dioptas")
+        .title(crate::application_title(&app, "Phase Editor"))
         .inner_size(1200., 760.).min_inner_size(760., 420.)
         .resizable(true).decorations(true).disable_drag_drop_handler()
         .build().map_err(|e| e.to_string())?;

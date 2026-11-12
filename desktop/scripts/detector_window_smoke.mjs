@@ -883,13 +883,48 @@ for (const [name, browserType] of [
       (await native.invoke("state")).state.calibration.picks.length > pickCount,
       "Detached calibration picking did not reach the original owner",
     );
-    await page.getByRole("button", { name: "Map", exact: true }).click();
-    await ready();
-    await child.getByTestId("detector-canvas").waitFor();
     await page
       .getByRole("button", { name: "Integration", exact: true })
       .click();
     await ready();
+    await child.getByTestId("detector-canvas").waitFor();
+    await page.getByRole("button", { name: "Map", exact: true }).click();
+    await ready();
+    const mapCanvas = page
+      .locator(".map-detector-panel")
+      .getByTestId("detector-canvas");
+    const imageTab = page.getByRole("tab", { name: "Image", exact: true });
+    if (!(await mapCanvas.isVisible()) && (await imageTab.isVisible()))
+      await imageTab.click();
+    await mapCanvas.waitFor({ state: "visible" });
+    assert.equal(
+      await page
+        .locator(".map-detector-panel .detector-detached-placeholder")
+        .count(),
+      0,
+    );
+    assert.equal(
+      await page
+        .locator(".map-detector-panel")
+        .getByRole("button", { name: "Undock detector image", exact: true })
+        .count(),
+      0,
+    );
+    await child.close();
+    await page.waitForTimeout(300);
+    assert.equal(
+      await mapCanvas.isVisible(),
+      true,
+      "Closing Integration's detector window removed Map's image",
+    );
+    await page.screenshot({
+      path: path.join(artifacts, `${name}-map-embedded.png`),
+    });
+    await page
+      .getByRole("button", { name: "Integration", exact: true })
+      .click();
+    await ready();
+    child = await detach();
     const dockBounds = await child
       .getByRole("button", { name: "Dock detector image", exact: true })
       .boundingBox();
@@ -959,7 +994,8 @@ for (const [name, browserType] of [
       processorPid: native.child.pid,
       patternUsesFreedImageSpace: true,
       detachedCakeSwitch: true,
-      sharedMapDetector: true,
+      independentEmbeddedMapDetector: true,
+      mapDetectorCannotDetach: true,
       sourceCalibrated: state.calibrated,
       errors,
       failures,

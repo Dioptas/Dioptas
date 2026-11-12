@@ -126,21 +126,22 @@ for (const candidateVersion of versions) {
     await copyFile(path.join(directory, files[0]), file);
     // Debian sorts a hyphenated prerelease after the stable version. Use
     // Debian's tilde ordering inside the package while keeping SemVer filenames.
-    if (
-      kind === "deb" &&
-      debianVersion(candidateVersion) !== candidateVersion
-    ) {
+    // Retain the existing package identity when the visible product name changes.
+    if (kind === "deb") {
       const unpacked = await mkdtemp(path.join(output, ".deb-version-"));
       execFileSync("dpkg-deb", ["--raw-extract", file, unpacked]);
       const control = path.join(unpacked, "DEBIAN/control");
       const text = await readFile(control, "utf8");
       assert(text.includes(`Version: ${candidateVersion}\n`));
+      assert.match(text, /^Package: (?:dioptas|dioptas-desktop)$/m);
       await writeFile(
         control,
-        text.replace(
-          `Version: ${candidateVersion}\n`,
-          `Version: ${debianVersion(candidateVersion)}\n`,
-        ),
+        text
+          .replace(/^Package: .+$/m, "Package: dioptas-desktop")
+          .replace(
+            `Version: ${candidateVersion}\n`,
+            `Version: ${debianVersion(candidateVersion)}\n`,
+          ),
       );
       execFileSync("dpkg-deb", [
         "--build",

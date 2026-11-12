@@ -72,7 +72,7 @@ if (process.platform === "darwin" && !args.includes("--app")) {
   await cp(
     path.join(
       desktop,
-      "src-tauri/target/debug/bundle/macos/Dioptas Desktop.app",
+      "src-tauri/target/debug/bundle/macos/Dioptas.app",
     ),
     bundle,
     { recursive: true },

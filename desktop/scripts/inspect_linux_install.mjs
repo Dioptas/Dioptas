@@ -134,6 +134,7 @@ export async function inspectLinuxInstall(
   const desktopEntry = await readFile(desktopFile, "utf8");
   assert.match(desktopEntry, /^Exec=.*dioptas-desktop/m);
   assert.match(desktopEntry, /^Type=Application$/m);
+  assert.match(desktopEntry, /^Name=Dioptas$/m);
   const notices = JSON.parse(
     await readFile(path.join(resources, "THIRD_PARTY_NOTICES.json"), "utf8"),
   );

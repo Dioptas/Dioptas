@@ -1,7 +1,6 @@
 import type { CheckedRunInvocation } from "./commandContracts";
 import { forwardRunner, type RunnerInvocation } from "./commandRunner";
 import { DockWindowIcon } from "./WindowIcons";
-import { DetectorSurface, useDetectorDetached } from "./DetectorWindow";
 import { Input, Button } from "./ui";
 import { LayoutDivider } from "./LayoutDivider";
 import {
@@ -44,6 +43,7 @@ export function MapView({
   map,
   progressPreview,
   plotViews,
+  resetKey,
   image,
   mask,
   pattern,
@@ -65,6 +65,7 @@ export function MapView({
   onPatternInspect,
 }: {
   plotViews: SharedPlotViews;
+  resetKey: number;
   linked: Response["linked"];
   localImageClick: { x: number; y: number } | null;
   localPatternClick?: PatternPosition;
@@ -91,7 +92,6 @@ export function MapView({
   patternZoom: ZoomMode;
   onPatternZoom: (mode: ZoomMode) => void;
 }) {
-  const detectorDetached = useDetectorDetached();
   const [reintegrateSelected, setReintegrateSelected] =
     useMapPreference<boolean>("reintegrate-selected", true);
   const reintegrate =
@@ -307,9 +307,10 @@ export function MapView({
   const detectorPanel = (
     <section className="map-detector-panel" aria-label="Map detector image">
       {image && state?.hasImage ? (
-        <DetectorSurface>
+        <div className="detector-surface">
           <RasterView
             raster={image}
+            resetKey={resetKey}
             {...detectorPlotSetup({
               state,
               viewports: plotViews,
@@ -326,7 +327,7 @@ export function MapView({
             rings={linked?.contours}
           />
           {intensity(image, detector, "detector")}
-        </DetectorSurface>
+        </div>
       ) : (
         <div className="empty-view">
           <p>
@@ -468,7 +469,6 @@ export function MapView({
                 reintegrateSelected={reintegrateSelected}
                 onReintegrateSelected={setReintegrateSelected}
                 windowUnit={viewPattern?.unit ?? map?.unit}
-                keepImageMounted={detectorDetached}
                 imageTab={tabbedImage ? detectorPanel : undefined}
               />
             </aside>

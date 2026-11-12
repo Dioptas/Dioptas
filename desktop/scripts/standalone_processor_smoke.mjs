@@ -9,7 +9,7 @@ const application =
   process.argv[2] ??
   path.join(
     root,
-    "desktop/src-tauri/target/release/bundle/macos/Dioptas Desktop.app",
+    "desktop/src-tauri/target/release/bundle/macos/Dioptas.app",
   );
 const inspection = await inspectStandalone(application);
 const directory = await realpath(

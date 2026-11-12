@@ -24,6 +24,11 @@ use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use tauri::{Manager, State};
 use tauri_plugin_dialog::DialogExt;
 
+fn application_title(app: &tauri::AppHandle, context: &str) -> String {
+    let base = format!("Dioptas {}", app.package_info().version);
+    if context.is_empty() { base } else { format!("{base} — {context}") }
+}
+
 struct Host {
     processor: Result<Arc<ProcessorHost>, String>,
     smoke: bool,
@@ -395,6 +400,10 @@ fn main() {
     let map_smoke = args.iter().any(|a| a == "--map-smoke");
     let example = args.iter().any(|a| a == "--example");
     let mut context = tauri::generate_context!();
+    let initial_title = format!("Dioptas {}", context.package_info().version);
+    for window in &mut context.config_mut().app.windows {
+        if window.label == "main" { window.title = initial_title.clone(); }
+    }
     if smoke {
         // Create test windows with private WebKit storage. Production windows
         // retain their normal configuration and storage.
@@ -454,9 +463,7 @@ fn main() {
             } else {
                 app.get_webview_window("main").unwrap()
             };
-            if tauri::is_dev() {
-                window.set_title("Dioptas · Tauri live preview")?;
-            }
+            window.set_title(&application_title(app.handle(), if tauri::is_dev() { "Tauri live preview" } else { "" }))?;
             if navigation_benchmark && std::env::var("DIOPTAS_NAVIGATION_BENCHMARK")
                 .ok().and_then(|config| serde_json::from_str::<Value>(&config).ok())
                 .is_some_and(|config| config["foreground"] == true) {

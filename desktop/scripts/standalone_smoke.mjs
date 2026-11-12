@@ -20,7 +20,7 @@ const application =
   process.argv[2] ||
   path.join(
     desktop,
-    "src-tauri/target/release/bundle/macos/Dioptas Desktop.app",
+    "src-tauri/target/release/bundle/macos/Dioptas.app",
   );
 const preserveSignature = process.argv.includes("--preserve-signature");
 const inspectionOptions = preserveSignature

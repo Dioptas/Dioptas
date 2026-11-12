@@ -25,6 +25,7 @@
     "allow-close-detector-window",
     "allow-publish-detector-snapshot",
     "core:event:allow-emit-to",
-    "allow-open-peritheos-manual"
+    "allow-open-peritheos-manual",
+    "core:app:allow-version"
   ]
 }

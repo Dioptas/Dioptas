@@ -204,6 +204,11 @@ export default function App() {
   } = responseSnapshot;
   const beforePreviewCommand = useRef<(command: string) => void>(() => {});
   const [plotViews] = useState(createPlotViews);
+  const [mapPlotViews] = useState(() => ({
+    ...createPlotViews(),
+    pattern: plotViews.pattern,
+  }));
+  const [mapResetKey, setMapResetKey] = useState(0);
   const cakeWindowViewport =
     useRef<import("./plotViewport").ViewportMemory["current"]>(null);
   const detectorExport = useRef<RasterExport>(null);
@@ -1114,8 +1119,13 @@ export default function App() {
         setMode("calibration");
         setPickingEnabled(true);
       } else if (key === "f") {
-        plotViews.detector.current = null;
-        setResetKey((k) => k + 1);
+        if (mode === "map") {
+          mapPlotViews.detector.current = null;
+          setMapResetKey((k) => k + 1);
+        } else {
+          plotViews.detector.current = null;
+          setResetKey((k) => k + 1);
+        }
       } else if (
         (event.key === "Delete" || event.key === "Backspace") &&
         mode === "calibration" &&
@@ -1415,11 +1425,13 @@ export default function App() {
     {
       largeText,
       reading:
+        mode !== "map" &&
         plotReading &&
         ["detector", "cake", "profile"].includes(plotReading.source)
           ? plotReading
           : null,
-      clicked: correctionPreview.map ? null : clickPositionReading,
+      clicked:
+        mode === "map" || correctionPreview.map ? null : clickPositionReading,
       message: progress?.running
         ? processingProgressText(progress)
         : busy || "",
@@ -1440,6 +1452,7 @@ export default function App() {
     ]),
   );
   const mainPlotReading =
+    mode !== "map" &&
     detectorWindow.detached &&
     plotReading &&
     ["detector", "cake", "profile"].includes(plotReading.source)
@@ -2029,7 +2042,7 @@ export default function App() {
             }}
           />
           <div className="navigation-utilities">
-            {detectorWindow.detached && (
+            {mode !== "map" && detectorWindow.detached && (
               <Button
                 className="workspace-nav"
                 aria-label="Show detector window"
@@ -2141,9 +2154,10 @@ export default function App() {
             >
               {mode === "map" ? (
                 <MapView
+                  resetKey={mapResetKey}
                   map={map}
                   progressPreview={progress?.mapPreview}
-                  plotViews={plotViews}
+                  plotViews={mapPlotViews}
                   mapWindow={mapWindow}
                   linked={linked}
                   localImageClick={localImageClick}

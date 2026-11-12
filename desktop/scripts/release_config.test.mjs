@@ -15,6 +15,8 @@ test("release identity is separate from previews and retains the complete main-w
   );
   assert.notEqual(releaseConfig.identifier, preview.identifier);
   assert.notEqual(releaseConfig.identifier, "com.dioptas.Dioptas");
+  assert.equal(preview.productName, "Dioptas");
+  assert.equal(releaseConfig.productName, "Dioptas");
   assert.equal(preview.version, "../package.json");
   assert.match(version, /^\d+\.\d+\.\d+/);
   assert.deepEqual(

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { emit, listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { connect } from "./bridge";
+import { connect, updateWindowTitle } from "./bridge";
 import { PhaseEditor } from "./PhaseEditor";
 import type { EditorData } from "./phaseEditorTypes";
 import type {
@@ -173,7 +173,11 @@ export function NativePhaseEditor() {
     [refresh],
   );
   useEffect(() => {
-    if (data) void getCurrentWindow().setTitle(`${data.name} — Phase Editor`);
+    void updateWindowTitle(
+      data ? `Phase Editor — ${data.name}` : "Phase Editor",
+    ).catch((error) =>
+      console.warn("Could not update the phase editor title:", error),
+    );
   }, [data?.name]);
   return (
     <div

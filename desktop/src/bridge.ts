@@ -2,12 +2,20 @@ import { withErrorReporting, reportFailure } from "./errorReporting";
 import { RasterTransfer } from "./rasterTransfer";
 import type { Invoke } from "./commandContracts";
 import { isTauri, invoke } from "@tauri-apps/api/core";
+import { getVersion } from "@tauri-apps/api/app";
+import { applicationWindowTitle } from "./windowTitle";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
-export async function updateWindowTitle(imageName: string | null | undefined) {
-  const base = imageName ? `${imageName} — Dioptas` : "Dioptas";
-  const previewLabel = import.meta.env.VITE_DIOPTAS_PREVIEW_LABEL;
-  const title = previewLabel ? `${base} · ${previewLabel}` : base;
+let nativeVersion: Promise<string> | undefined;
+export async function updateWindowTitle(context?: string | null) {
+  const version = isTauri()
+    ? await (nativeVersion ??= getVersion())
+    : import.meta.env.VITE_DIOPTAS_VERSION;
+  const title = applicationWindowTitle(
+    version,
+    context,
+    import.meta.env.VITE_DIOPTAS_PREVIEW_LABEL,
+  );
   document.title = title;
   if (isTauri()) await getCurrentWindow().setTitle(title);
 }

@@ -301,13 +301,13 @@ pub(crate) fn open_window<const K: u8>(
                 &app,
                 WebviewWindowBuilder::new(&app, label::<K>(), WebviewUrl::App("index.html".into())),
             )
-                .title(if K == 0 {
-                    "Map — Dioptas"
+                .title(crate::application_title(&app, if K == 0 {
+                    "Map"
                 } else if K == 1 {
-                    "Batch — Dioptas"
+                    "Batch"
                 } else {
-                    "Detector — Dioptas"
-                })
+                    "Detector"
+                }))
                 .inner_size(
                     if K == 0 { DEFAULT_SIZE[0] } else { 900. },
                     if K == 0 { DEFAULT_SIZE[1] } else { 600. },

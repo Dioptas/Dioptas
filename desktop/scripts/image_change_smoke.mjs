@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
+import { version } from "./release_config.mjs";
 import { nativeClient } from "./native_backend_client.mjs";
 import { setInterfaceTextSize } from "./plot_navigation.mjs";
 
@@ -182,7 +183,12 @@ try {
   );
   await button("Open image").click();
   await button("Open and reset calibration").click();
-  await page.waitForFunction(() => document.title.includes("small.edf"));
+  await page.waitForFunction(
+    (version) =>
+      document.title.startsWith(`Dioptas ${version} — `) &&
+      document.title.includes("small.edf"),
+    version,
+  );
   await ready();
   let result = await call("state");
   assert.deepEqual(result.state.shape, [96, 128]);
@@ -211,7 +217,12 @@ try {
     .click();
   selectedImage = same;
   await button("Open image").click();
-  await page.waitForFunction(() => document.title.includes("same.edf"));
+  await page.waitForFunction(
+    (version) =>
+      document.title.startsWith(`Dioptas ${version} — `) &&
+      document.title.includes("same.edf"),
+    version,
+  );
   await ready();
   assert.equal(await page.getByRole("dialog").count(), 0);
   assert.equal((await call("state")).state.calibrated, true);

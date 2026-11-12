@@ -17,6 +17,7 @@
     "core:window:allow-set-size",
     "core:window:allow-is-decorated",
     "core:window:allow-destroy",
-    "allow-open-peritheos-manual"
+    "allow-open-peritheos-manual",
+    "core:app:allow-version"
   ]
 }

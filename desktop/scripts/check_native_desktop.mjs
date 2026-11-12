@@ -135,6 +135,7 @@ if (selected.has("--ui")) {
     "hdf5_sources_smoke",
     "hdf5_master_vds_smoke",
     "detector_window_smoke",
+    "map_detector_independence_smoke",
     "detector_source_smoke",
     "companion_windows_smoke",
   ])

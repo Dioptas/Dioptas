@@ -1,10 +1,14 @@
 import { execFileSync } from "node:child_process";
-import { cpSync } from "node:fs";
+import { cpSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import { reactHookRefresh } from "./scripts/react_hook_refresh.mjs";
+
+const { version } = JSON.parse(
+  readFileSync(new URL("./package.json", import.meta.url), "utf8"),
+);
 
 let revision = "unknown";
 try {
@@ -17,8 +21,9 @@ try {
 }
 export default defineConfig({
   define: {
+    "import.meta.env.VITE_DIOPTAS_VERSION": JSON.stringify(version),
     "import.meta.env.VITE_DIOPTAS_BUILD": JSON.stringify(
-      `0.1.0 ${revision} built ${new Date().toISOString()}`,
+      `${version} ${revision} built ${new Date().toISOString()}`,
     ),
   },
   plugins: [
