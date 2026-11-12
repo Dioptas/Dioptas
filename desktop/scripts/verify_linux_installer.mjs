@@ -1,3 +1,4 @@
+import { debianVersion } from "./release_version.mjs";
 // Mutates only an explicitly authorized disposable Linux test machine.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -114,7 +115,7 @@ try {
       );
       assert.equal(
         run("dpkg-deb", ["--field", deb, "Version"]).trim(),
-        b.version,
+        debianVersion(b.version),
       );
       const depends = run("dpkg-deb", ["--field", deb, "Depends"]);
       assert(
@@ -130,7 +131,7 @@ try {
       installed = true;
       assert.equal(
         run("dpkg-query", ["-W", "-f=${Version}", packageName]).trim(),
-        b.version,
+        debianVersion(b.version),
       );
       const inspection = await inspectLinuxInstall("/", false, ceiling);
       const runtime = await linuxInstalledSmoke({

@@ -13,6 +13,7 @@ import {
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { desktop, version, releaseConfig } from "./release_config.mjs";
+import { upgradeFixtureVersion } from "./release_version.mjs";
 import { windowsSigning } from "./windows_release_config.mjs";
 
 assert.equal(process.platform, "win32", "Build Windows installers on Windows");
@@ -59,14 +60,7 @@ async function run(args) {
 const builds = [];
 const versions = [version];
 if (values["test-upgrade"]) {
-  assert.match(
-    version,
-    /^\d+\.\d+\.\d+$/,
-    "Upgrade fixture requires a numeric packaging test version",
-  );
-  const parts = version.split(".").map(Number);
-  parts[2]++;
-  versions.push(parts.join("."));
+  versions.push(upgradeFixtureVersion(version));
 }
 for (const candidateVersion of versions) {
   await run([

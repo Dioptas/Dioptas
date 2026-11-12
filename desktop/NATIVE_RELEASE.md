@@ -10,8 +10,8 @@ Release, PyPI upload, updater publication or release write permission.
 that version directly. `src-tauri/tauri.release.conf.json` overlays the stable
 native identity (`org.dioptas.desktop`), window title, platform icons and bundle
 metadata. The preview identity and legacy Qt identity remain separate, including
-their settings/WebKit storage. The current `0.1.0` is a packaging test version,
-not a newly announced public release version.
+their settings/WebKit storage. The current release candidate is `0.14.0-rc.1`. The early `0.1.0`
+artifacts below were packaging tests and are superseded for public distribution.
 
 The release overlay is shared with the [Windows installer pipeline](NATIVE_WINDOWS_RELEASE.md)
 and [Linux installer pipeline](NATIVE_LINUX_RELEASE.md). Each platform has its own dependency and
@@ -228,3 +228,13 @@ python3 desktop/scripts/peritheos_eos_only.py --peritheos /path/to/peritheos
 The full metadata generator still requires its independent Python reference
 setup; its source annotations are derived from the original upstream documents
 before the distribution projection is applied.
+
+## Release candidate 0.14.0-rc.1
+
+The first public Rust desktop candidate continues the Dioptas version sequence
+after Qt 0.13.0. See [release notes](RELEASE_0.14.0-rc.1.md).
+The application and installer filenames retain the complete semantic version.
+The macOS numeric bundle version is 0.14.0. Debian package metadata uses
+0.14.0~rc.1 so APT orders it before 0.14.0; the application still reports
+0.14.0-rc.1. Lifecycle tests create an rc.2 upgrade fixture from the same source;
+that fixture must never be uploaded as a release asset.

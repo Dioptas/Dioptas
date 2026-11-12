@@ -28,7 +28,8 @@
     "createUpdaterArtifacts": false,
     "macOS": {
       "minimumSystemVersion": "14.0",
-      "hardenedRuntime": true
+      "hardenedRuntime": true,
+      "bundleVersion": "0.14.0"
     }
   }
 }

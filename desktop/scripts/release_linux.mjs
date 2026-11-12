@@ -9,11 +9,13 @@ import {
   mkdtemp,
   readFile,
   readdir,
+  rm,
   writeFile,
 } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { desktop, version, releaseConfig } from "./release_config.mjs";
+import { upgradeFixtureVersion, debianVersion } from "./release_version.mjs";
 import { systemNotices } from "./linux_system_notices.mjs";
 
 assert.equal(process.platform, "linux", "Build Linux candidates on Linux");
@@ -68,10 +70,7 @@ const metadata = JSON.parse(
 );
 const versions = [version];
 if (values["test-upgrade"]) {
-  assert.match(version, /^\d+\.\d+\.\d+$/);
-  const parts = version.split(".").map(Number);
-  parts[2]++;
-  versions.push(parts.join("."));
+  versions.push(upgradeFixtureVersion(version));
 }
 const builds = [];
 for (const candidateVersion of versions) {
@@ -125,6 +124,32 @@ for (const candidateVersion of versions) {
     );
     const file = path.join(output, files[0]);
     await copyFile(path.join(directory, files[0]), file);
+    // Debian sorts a hyphenated prerelease after the stable version. Use
+    // Debian's tilde ordering inside the package while keeping SemVer filenames.
+    if (
+      kind === "deb" &&
+      debianVersion(candidateVersion) !== candidateVersion
+    ) {
+      const unpacked = await mkdtemp(path.join(output, ".deb-version-"));
+      execFileSync("dpkg-deb", ["--raw-extract", file, unpacked]);
+      const control = path.join(unpacked, "DEBIAN/control");
+      const text = await readFile(control, "utf8");
+      assert(text.includes(`Version: ${candidateVersion}\n`));
+      await writeFile(
+        control,
+        text.replace(
+          `Version: ${candidateVersion}\n`,
+          `Version: ${debianVersion(candidateVersion)}\n`,
+        ),
+      );
+      execFileSync("dpkg-deb", [
+        "--build",
+        "--root-owner-group",
+        unpacked,
+        file,
+      ]);
+      await rm(unpacked, { recursive: true });
+    }
     if (kind === "appimage") await chmod(file, 0o755);
     builds.push({
       version: candidateVersion,
