@@ -81,6 +81,45 @@ Outputs are in `artifacts/native-windows/<version>-x64-<run>/`: setup executable
 `SHA256SUMS`, `build.json` and `verification.json`. The report identifies the
 source revision and signing state explicitly.
 
+## Verified candidate, November 12, 2026
+
+The [Windows qualification run](https://github.com/Dioptas/Dioptas/actions/runs/43166683224)
+passed at clean source `6e2f39a4ad52999c906f4c05a3a739a5ea7ae862`.
+The [full Rust desktop CI run](https://github.com/Dioptas/Dioptas/actions/runs/43166681837)
+also passed at that source: Linux/macOS processors, independent numerical
+references, Linux Tauri/GLib checks and headless desktop/host workflows.
+The release-profile processor suite passed **282 tests**, with the two existing
+external full-resolution Eiger fixture tests ignored. All 15 release-policy,
+Windows dependency-policy and license tests also passed.
+
+Both installed versions passed the processor and real native WebView2 checks
+with the checkout hidden, the developer PATH removed, and an installation path
+containing spaces and `ü`. The UI used the full 981 × 1043 example and the native
+Rust/Dioptrin processor. Upgrade, downgrade protection, uninstall, settings
+preservation and processor cleanup passed. Installed-payload inspection verified
+739 resources, notices for 353 Cargo and five JavaScript packages, x64 binaries
+and app-local Visual C++ dependencies. The embedded offline WebView2 installer
+was 214,990,032 bytes with a valid Microsoft signature.
+
+| Candidate | Purpose | SHA-256 |
+| --- | --- | --- |
+| `Dioptas Desktop_0.1.0_x64-setup.exe` | Unsigned test candidate | `79ad879246f32539783aa2fd239fad562e22fb32445b7b95bb3ff8c9cb4ff3f6` |
+| `Dioptas Desktop_0.1.1_x64-setup.exe` | Disposable upgrade fixture | `d657756ab0437380c2690e3cc33a0ec0a55faf6baeca7e50e5be6ae166565f11` |
+
+Local copies and the original `build.json`, `verification.json` and `SHA256SUMS`
+are under `artifacts/native-windows/verified-2026-11-12/`. The downloaded Actions
+archive also matched its GitHub SHA-256 digest before extraction.
+
+Windows qualification found and corrected open HDF5 handles blocking atomic
+project/embedded-Batch saves. It also exposed the published HDF5 bindings'
+32-bit external-offset slot against HDF5 2.x's 64-bit Windows `HDoff_t`. The
+[pinned local compatibility patch](vendor/HDF5_WINDOWS_ABI.md) retains complete
+crate inventories, original license texts and checked provenance, and adds an
+offset-above-4-GiB regression. Windows source snapshots now include the volume
+and file identity, so replacing a source with matching size and timestamp is
+detected. Scientific navigation/offline tests retain their assertions while
+closing original acquisition sessions before removing source files on Windows.
+
 ## Signing boundary
 
 The repository currently has no Windows signing credentials. CI deliberately
