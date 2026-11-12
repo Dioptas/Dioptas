@@ -1,0 +1,242 @@
+{
+  "schema": "phasesmith.enstatite-raw-workflow.v1",
+  "dataset_manifest": "validation/enstatite-mgsio3-local-v1.json",
+  "status_at_freeze": "Native coordinator migration. All source selection, supplied priors, masks, supports, profile/scaling controls, search controls and resources remain v25. Small matrix and design orchestration moves from NumPy to Rust nalgebra, retaining equations and traversal. Check bitwise identity first and report every departure; numerical-equivalence limits below were fixed before this migration in v9/v11 and remain unchanged. No tuning by reference/R1. Preserve all failures.",
+  "scope": "exposed, prior-assisted raw-frame-to-PhaseSmith-search regression; no atomic coordinates/counts or archived measurements supplied to numerical worker",
+  "acquisition": {
+    "first_frame": 2,
+    "last_frame_inclusive": 143,
+    "omega_at_original_frame_zero_degrees": -36.0,
+    "step_degrees": 0.5,
+    "exposure_width_degrees": 0.5,
+    "vertical_flip": true,
+    "angle_provenance": "Previously adopted provisional contiguous 0.5 degree exposures; HDF5 has no spindle-angle metadata. Omega-zero is a gauge, sign/step remain declared assumptions.",
+    "axis": [
+      -1,
+      0,
+      0
+    ],
+    "mask_minimum_reserved_uint32": 4294967294,
+    "gain": 1.0,
+    "read_noise": 0.0,
+    "workers": 4
+  },
+  "detection": {},
+  "linking": {},
+  "indexing": {
+    "grid_size": 256,
+    "max_grains": 5,
+    "workers": 4
+  },
+  "selection": {
+    "max_track_observations": 8,
+    "max_q_rms": 0.03,
+    "frame_block_size": 5,
+    "folds": 5,
+    "test_fold": 0,
+    "cell_metric_relative_tolerance": 0.03,
+    "max_cell_angle_deviation_degrees": 1.0,
+    "minimum_indexed_training": 100,
+    "minimum_indexed_validation": 30
+  },
+  "geometry": {
+    "xy_scale": 0.4,
+    "omega_scale": 0.2,
+    "translation_limit_mm": 2.0,
+    "rotation_limit_deg": 2.0,
+    "max_evaluations": 150
+  },
+  "prediction": {
+    "qmax_inverse_angstrom": 2.0,
+    "minimum_abs_zeta": 0.1,
+    "max_competing_domains": 2,
+    "competing_exclusions": "measured track centres only; no full lattice enumeration from provisional competing cells"
+  },
+  "integration": {
+    "pixel_radius": 7,
+    "omega_half_width": 4.5,
+    "background_margin": 6,
+    "background_gap": 3,
+    "background_model": "plane",
+    "min_background": 20
+  },
+  "profiles": {
+    "shape": [
+      31,
+      31,
+      23
+    ],
+    "step": [
+      0.0125,
+      0.0125,
+      0.05
+    ],
+    "regions": [
+      2,
+      2,
+      2
+    ],
+    "min_references": 8,
+    "reference_snr": 20.0,
+    "cutoff": 0.0,
+    "iterations": 100,
+    "minimum_mass": 0.9,
+    "reference_weighting": "equal"
+  },
+  "reduction": {
+    "strong_policy": "strong_full",
+    "strong_snr": 50.0,
+    "polarization_axis": [
+      0,
+      1,
+      0
+    ],
+    "polarization_fraction": 0.98,
+    "response": null,
+    "equivalent_error_floor": true,
+    "empirical_grid": [
+      5,
+      5
+    ],
+    "empirical_strength": 1000.0,
+    "shape_fit_workers": 10,
+    "shape_fit_maximum_iterations": 80,
+    "assumptions": "Declared horizontal polarization and neutral detector efficiency; no diamond absorption, vendor transfer factors or atomic-model correction. Shape/scaling references use complete training families.",
+    "edge_centres": "Retain excluded records; omit only pre-existing EDGE rows outside [0,width-1]x[0,height-1] before profile learning/reduction. Mesh limits and quality gates unchanged."
+  },
+  "search": {
+    "dense_memory_budget_bytes": 134217728,
+    "seed": 0,
+    "trials": 4,
+    "cycles": 800,
+    "native_seconds": 60.0,
+    "hard_seconds": 75.0,
+    "resource_reason": "128 MiB explicitly covers the input-derived volume atom cap for full q<=2 raw predictions, whose observed coverage can exceed the archived HKL subset; no reference count used",
+    "time_reason": "Single predeclared longer-time diagnostic: allow all unchanged 800-cycle starts to finish; seed, trials, data, phase-origin threshold and scientific gates unchanged."
+  },
+  "gates": {
+    "frame_hashes_equal_between_passes": true,
+    "minimum_profile_teachers": 40,
+    "minimum_exported_observations": 1000,
+    "maximum_withheld_xy_rms_pixels": 1.0,
+    "maximum_withheld_omega_rms_degrees": 0.3,
+    "exact_per_element_counts": true,
+    "maximum_coordinate_error_angstrom": 0.05,
+    "rms_coordinate_error_angstrom": 0.025,
+    "strict_secondary_coordinate_error_angstrom": 0.02
+  },
+  "execution_policy": "Fresh output only. Preserve every first-stage outcome and failure. No seed/configuration selection by reference or R1. Commit protocol before reading frames. Reference grading happens after chosen candidate is saved.",
+  "parent_protocol": {
+    "path": "validation/enstatite-raw-workflow-v15.json",
+    "sha256": "1c2f96c9f18aeb791296a64bf9ebca7c1b142d83307beec1ef0b22bb74e80ec9"
+  },
+  "measurement_validity": {
+    "profile_warning_flags": [
+      "MISMATCH"
+    ],
+    "frame_validity": "Shared per-frame illumination mask; native integration/profile quality and finite-support flags remain authoritative.",
+    "criterion": "Centre eligibility additionally queried from same pixel mask; partially blocked rocking profiles remain flagged by masked native sample support. No fixed DAC centre-angle cut.",
+    "provenance": "Unchanged default illumination estimator plus v5 declared aperture geometry, now applied as shared whole-exposure pixel masks. All model/threshold/coordinate gates remain frozen; all earlier outcomes preserved.",
+    "flag_policy": "Retain MISMATCH warning with original values; all other profile/integration flags still exclude. No export significance cut."
+  },
+  "shadow_mask": {
+    "mode": "combined",
+    "illumination": {
+      "threshold": 0.85,
+      "guard_pixels": 32,
+      "block": 16
+    },
+    "policy": "OR the unchanged source-count illumination mask and the explicitly known/assumed DAC cone already used in v5. Entire exposure/16x16 block footprint must be unblocked. Coarse geometric blocks are conservative, explicit and fingerprinted. No centre-only DAC selection or structure-based mask fitting.",
+    "geometric": {
+      "axis_at_omega_zero": [
+        0,
+        0,
+        1
+      ],
+      "half_opening_degrees": 35.0,
+      "pixel_block": 16
+    }
+  },
+  "io": {
+    "backend": "phasesmith-hdf5 bundled native HDF5",
+    "required_filter_id": 32008,
+    "compression": "Bitshuffle+LZ4",
+    "python_hdf5_packages": false,
+    "orientation": "original native array; existing declared vertical flip exactly once in example loader",
+    "scope": "Rust-only file input, numerical workflow coordination and output; optional independent grading follows executable exit."
+  },
+  "geometry_backend": "phasesmith-spots native bounded soft-L1 geometry fitter",
+  "profile_fitting_backend": "phasesmith-spots native bounded L-BFGS-B: ten secant pairs, dense generalized Cauchy/free-subspace quadratic, More-Thuente line search, analytical fused shape partials, fixed outer noise iterations and native joint sigma",
+  "empirical_scaling_backend": "phasesmith-spots native bounded damped least squares and family-mean elimination/Huber IRLS",
+  "numerical_equivalence": {
+    "baseline_output": "enstatite-raw-workflow-20261031-v9",
+    "source_and_position_arrays": "bitwise identical",
+    "exported_hkl_and_use_mask": "identical",
+    "maximum_prediction_xy_difference_pixels": 0.0001,
+    "maximum_prediction_omega_difference_degrees": 1e-06,
+    "intensity_relative_l2_difference": 0.0001,
+    "sigma_relative_l2_difference": 0.0001,
+    "maximum_intensity_difference_in_baseline_sigma": 0.1,
+    "percentile95_intensity_difference_in_baseline_sigma": 0.01,
+    "maximum_amplitude_r1_difference": 0.0001,
+    "maximum_candidate_coordinate_difference_angstrom": 0.001,
+    "counts": "identical",
+    "note": "Unchanged strict equivalence targets inherited from v10/v9. Compare v11 with preserved v9; preserve v10 and every earlier failure. No selection of configurations or solver tolerances by source HKLs, atomic-reference score or R1. The optimizer follows the prior algorithm family to remove the independently diagnosed shape-trajectory drift."
+  },
+  "numerical_worker_import_policy": "Reject scipy, h5py and hdf5plugin imports in both reduction and search workers; optional SciPy reference grading occurs in the parent after candidate save and worker exit.",
+  "profile_execution": {
+    "workers": 4,
+    "geometry_cache_bytes": 268435456
+  },
+  "execution_equivalence": {
+    "baseline_output": "enstatite-raw-workflow-20261031-v11-timing",
+    "all_numerical_arrays": "bitwise identical",
+    "full_candidate_records": "identical",
+    "phasing_histories": "identical",
+    "source_files": "unchanged",
+    "observer": "benchmarks/enstatite_profiled_workflow.py",
+    "policy": "Fresh run and new output. Commit protocol before frames. Preserve all failed results. Each optimization stage has its own benchmark and full measured run; do not tune science controls or tolerances for speed.",
+    "memory_policy": "256 MiB additional geometry-cache cap, selected from measured 169.6 MiB capacity; no source intensities or atomic-reference scores select this resource cap."
+  },
+  "baseline_profile_execution": {
+    "workers": 10,
+    "geometry_cache_bytes": 268435456
+  },
+  "previous_protocol": {
+    "path": "validation/enstatite-raw-workflow-v28.json",
+    "sha256": "8dcd9392c5d62b3d005fa81c16e8e5113803af6703626e4197981e262679af7d"
+  },
+  "frame_preparation_execution": {
+    "workers": 4,
+    "max_in_flight_bytes": 536870912
+  },
+  "archive_output": {
+    "backend": "phasesmith-persistence numeric_archive",
+    "compression_level": 1,
+    "policy": "Exact bytes; standard NPZ; exclusive create. Level 1 retains compression with about 6 percent larger files than NumPy level 6; uncompressed control retained in benchmark record but not selected."
+  },
+  "detection_workers": 8,
+  "frame_input_execution": {
+    "reuse_verified_digest": true,
+    "native_preparation_workers": 2,
+    "batch_frames": 2,
+    "payload_bytes": 268435456,
+    "decoded_cache_bytes": 1073741824
+  },
+  "search_configuration": "validated-v1",
+  "native_coordinator": {
+    "algorithm_profile": "orthorhombic-rotation-v1",
+    "null_rotations": {
+      "path": "validation/grain-null-rotations-v1.json",
+      "sha256": "16bf2035de5aa6691e1f8788a213951366f496be2cdb9f2c1455947b255c569f",
+      "provenance": "Explicit frozen matrices from the existing NumPy default_rng(842025), 64 normalized quaternion samples; generated before any native replay. Native runtime does not require Python or random generator compatibility."
+    },
+    "orchestration_backend": "phasesmith-workflows::single_crystal",
+    "input_backend": "phasesmith-hdf5",
+    "output_backend": "phasesmith-persistence",
+    "matrix_backend": "nalgebra 0.35",
+    "policy": "Retain scientific gates and all numerical differences. A faster run is not evidence of equivalence.",
+    "execution": "Ordered bounded source pipeline: two-frame/two-worker original preparation overlaps mask, detection and integration work; results/observer errors consumed in source order, pending count never exceeds owning stage workers, frames are never read after a source error. The same original-count and coarse DAC mask caches remain. Stage controls and complete 51-control search expansion are literal. All corrected trial-02 numerical arrays, candidate records and histories must match bitwise for this performance change. General native/Python parity still uses unchanged original numerical-equivalence limits, with any failed gate retained explicitly.",
+    "block_expansion_execution": "Replace per-detector-pixel coarse index division with full/partial row-block Boolean fills. Same coarse/provider/fixed-pixel union, no changed thresholds, footprint or angular semantics. A partial-edge/fixed-mask test and bitwise trial-04 replay gate cover this execution change."
+  }
+}

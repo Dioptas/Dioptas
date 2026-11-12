@@ -142,7 +142,7 @@ export function nativeClient(options = {}) {
       const timer = setTimeout(() => {
         pending.delete(id);
         reject(new Error(`Native command timed out: ${action}`));
-      }, 45000);
+      }, options.timeoutMs ?? 45000);
       pending.set(id, { resolve, reject, timer, packet });
       child.stdin.write(
         JSON.stringify({

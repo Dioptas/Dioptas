@@ -26,6 +26,9 @@ phasesmith-core = { git = "https://github.com/CPrescher/PhaseSmith", rev = "e475
 phasesmith-crystallography = { git = "https://github.com/CPrescher/PhaseSmith", rev = "e47507f4adf32ea2a137ddf6b735db88f8a67537" }
 phasesmith-io = { git = "https://github.com/CPrescher/PhaseSmith", rev = "e47507f4adf32ea2a137ddf6b735db88f8a67537" }
 phasesmith-model = { git = "https://github.com/CPrescher/PhaseSmith", rev = "e47507f4adf32ea2a137ddf6b735db88f8a67537" }
+phasesmith-single-crystal = { git = "https://github.com/CPrescher/PhaseSmith", rev = "e47507f4adf32ea2a137ddf6b735db88f8a67537", default-features = false, features = ["spots", "solution"] }
+phasesmith-persistence = { git = "https://github.com/CPrescher/PhaseSmith", rev = "e47507f4adf32ea2a137ddf6b735db88f8a67537" }
+phasesmith-workflows = { git = "https://github.com/CPrescher/PhaseSmith", rev = "e47507f4adf32ea2a137ddf6b735db88f8a67537", features = ["single-crystal"] }
 peritheos = { git = "https://github.com/CPrescher/peritheos", rev = "3c79b1aedf28c348a49cc22d9f24d92895546283" }
 nalgebra = "0.35"
 tiff = "0.8"
@@ -101,3 +104,9 @@ opt-level = 2
 
 [dev-dependencies]
 flate2 = "1"
+
+[profile.dev.package.phasesmith-single-crystal]
+opt-level = 2
+
+[profile.dev.package.phasesmith-workflows]
+opt-level = 2

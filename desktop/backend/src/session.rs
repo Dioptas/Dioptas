@@ -44,6 +44,8 @@ mod mask_io;
 mod phase_workflow;
 #[path = "project.rs"]
 mod project;
+#[path = "single_crystal.rs"]
+mod single_crystal;
 use crate::mask_plugins::{Plugins, State as PluginState};
 use calibration::{Calibration, History, Workflow};
 #[cfg(feature = "dioptrin")]
@@ -137,6 +139,9 @@ impl Default for Settings {
 
 /// A session is constructed and used exclusively on the processing worker.
 pub struct Session {
+    scxrd: single_crystal::Crystal,
+    scxrd_undo: Vec<single_crystal::Crystal>,
+    scxrd_redo: Vec<single_crystal::Crystal>,
     root: PathBuf,
     worker_count: Option<usize>,
     worker_pool: Option<Arc<rayon::ThreadPool>>,
@@ -217,6 +222,9 @@ impl Session {
     }
     pub fn new(root: PathBuf) -> Self {
         Self {
+            scxrd: Default::default(),
+            scxrd_undo: Vec::new(),
+            scxrd_redo: Vec::new(),
             root,
             worker_count: crate::worker_pool::initial(),
             worker_pool: None,
@@ -483,6 +491,12 @@ impl Session {
         }
     }
     fn dispatch(&mut self, action: &str, args: &Value) -> Result<Reply, String> {
+        if action == "development_save" && self.scxrd.has_sources() {
+            return Err("A loaded single-crystal scan cannot be hot-swapped without losing its stage products. Save its SCXRD recipe and reopen it after restarting. The current processor is retained.".into());
+        }
+        if action.starts_with("scxrd_") {
+            return self.scxrd_command(action, args);
+        }
         if action == "integration_correction_preload" {
             check_keys(args, &["revision", "configuration"])?;
             if args["revision"]

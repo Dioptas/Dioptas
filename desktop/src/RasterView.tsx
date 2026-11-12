@@ -53,6 +53,17 @@ export interface RasterExport {
   png: () => string;
 }
 
+export interface RasterMarker {
+  x: number;
+  y: number;
+  kind: "observed" | "predicted" | "rejected" | "selected";
+}
+export interface RasterRegion {
+  bounds: [number, number, number, number];
+  preview?: boolean;
+}
+const EMPTY_REGIONS: RasterRegion[] = [];
+const EMPTY_MARKERS: RasterMarker[] = [];
 const EMPTY_PEAKS: {
   x: number;
   y: number;
@@ -97,6 +108,8 @@ export function RasterView({
   roi,
   onRoiChange,
   onImageDoubleClick,
+  regions = EMPTY_REGIONS,
+  markers = EMPTY_MARKERS,
   peaks = EMPTY_PEAKS,
   rings = EMPTY_RINGS,
   contours = EMPTY_CONTOURS,
@@ -150,6 +163,8 @@ export function RasterView({
   roi?: DetectorRoi | null;
   onRoiChange?: (roi: DetectorRoi) => Promise<void>;
   onImageDoubleClick?: () => void;
+  regions?: RasterRegion[];
+  markers?: RasterMarker[];
   peaks?: { x: number; y: number; ring: number; selected?: boolean }[];
   rings?: RingOverlay[];
   contours?: number[][][];
@@ -611,6 +626,40 @@ export function RasterView({
           });
           context.stroke();
         }
+        for (const region of regions) {
+          const [x0, y0, x1, y1] = region.bounds;
+          context.save();
+          context.strokeStyle = "#ffad57";
+          context.fillStyle = "rgba(255,149,0,.10)";
+          context.lineWidth = 1.25;
+          if (region.preview) context.setLineDash([5, 4]);
+          const x = ox + x0 * sx,
+            y = oy + (raster.fullHeight - y1) * sy;
+          context.fillRect(x, y, (x1 - x0) * sx, (y1 - y0) * sy);
+          context.strokeRect(x, y, (x1 - x0) * sx, (y1 - y0) * sy);
+          context.restore();
+        }
+        for (const marker of markers) {
+          const x = ox + (marker.x + 0.5) * sx,
+            y = oy + (raster.fullHeight - marker.y - 0.5) * sy;
+          context.strokeStyle =
+            marker.kind === "rejected"
+              ? "#a3a8ad"
+              : marker.kind === "predicted"
+                ? "#69baff"
+                : marker.kind === "selected"
+                  ? "#ffffff"
+                  : "#ff9500";
+          context.lineWidth = marker.kind === "selected" ? 2 : 1.25;
+          context.beginPath();
+          if (marker.kind === "predicted") {
+            context.moveTo(x - 5, y);
+            context.lineTo(x + 5, y);
+            context.moveTo(x, y - 5);
+            context.lineTo(x, y + 5);
+          } else context.arc(x, y, 5, 0, Math.PI * 2);
+          context.stroke();
+        }
         // Start with Qt's 7/9 px dots at fit, then grow gently with zoom so
         // picked points remain visible without covering the enlarged peaks.
         // Orange for the current ring, red otherwise, white selection outline.
@@ -980,6 +1029,8 @@ export function RasterView({
       oy,
       zoom,
       peaks,
+      markers,
+      regions,
       rings,
       contours,
       navigation.selection,
