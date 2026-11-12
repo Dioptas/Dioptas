@@ -4,6 +4,11 @@
 use super::*;
 use std::{collections::HashMap, sync::Weak};
 
+// Already linked HDF5 ABI: hid_t is int64_t and the count result is C int.
+unsafe extern "C" {
+    fn H5Pget_external_count(properties: i64) -> i32;
+}
+
 pub(super) struct Origins {
     archive: u64,
     arrays: Vec<Origin>,
@@ -41,7 +46,7 @@ impl Origins {
         let frozen_storage = dataset.dcpl().is_ok_and(|p| {
             p.get_layout()
                 .is_ok_and(|layout| layout != hdf5::dataset::Layout::Virtual)
-                && p.get_external().is_ok_and(|external| external.is_empty())
+                && hdf5::sync::sync(|| unsafe { H5Pget_external_count(p.id()) }) == 0
         });
         if frozen_storage
             && dataset.loc_info().is_ok_and(|i| i.fileno == self.archive)
@@ -64,6 +69,7 @@ struct Pinned {
 }
 pub(super) struct Writer {
     pins: hdf5::Group,
+    path: String,
     arrays: HashMap<Key, Pinned>,
     control: Arc<Control>,
     next: usize,
@@ -75,11 +81,22 @@ impl Writer {
         origins: Option<&Origins>,
         control: &Arc<Control>,
     ) -> Result<Self, String> {
-        if file.link_exists(PINS) {
-            return Err("Reserved project array staging group already exists.".into());
+        // This is an implementation staging name, not a format reservation.
+        // Leave preexisting unknown extensions (even dangling links) untouched.
+        let mut name = PINS.to_owned();
+        let mut suffix = 0_usize;
+        while file.link_exists(&name) {
+            control.check()?;
+            suffix = suffix
+                .checked_add(1)
+                .ok_or("No free project array staging name.")?;
+            name = format!("{PINS}_{suffix}");
         }
+        let pins = file.create_group(&name).native()?;
+        let path = pins.name();
         let mut writer = Self {
-            pins: file.create_group(PINS).native()?,
+            pins,
+            path,
             arrays: HashMap::new(),
             control: control.clone(),
             next: 0,
@@ -114,7 +131,7 @@ impl Writer {
             ),
             Pinned {
                 values: Arc::downgrade(values),
-                path: format!("/{PINS}/{name}"),
+                path: format!("{}/{name}", self.path),
             },
         );
         Ok(())
@@ -147,8 +164,9 @@ impl Writer {
         Ok(dataset)
     }
     pub(super) fn finish(self, file: &hdf5::File) -> Result<(), String> {
+        let path = self.path.clone();
         drop(self);
-        file.unlink(PINS).native()
+        file.unlink(&path).native()
     }
 }
 
@@ -212,6 +230,35 @@ mod tests {
             reused.read_raw::<f64>().unwrap()[0].to_bits(),
             values[0].to_bits()
         );
+    }
+    #[test]
+    fn staging_name_collisions_preserve_extensions_aliases_and_dangling_links() {
+        let (_temp, file, values, origins) = fixture();
+        let extension = file.create_group(PINS).unwrap();
+        let payload =
+            crate::series::write_processed_array(&extension, "payload", &[2, 2], &values, None)
+                .unwrap();
+        file.link_hard(&format!("/{PINS}"), "extension_alias")
+            .unwrap();
+        file.link_soft("/missing_extension_target", &format!("{PINS}_1"))
+            .unwrap();
+        let control = Arc::new(Control::default());
+        let mut writer = Writer::new(&file, Some(&origins), &control).unwrap();
+        let staging = writer.path.clone();
+        assert_eq!(staging, format!("/{PINS}_2"));
+        let reused = writer
+            .write(&file, "reused", &[2, 2], &values, None)
+            .unwrap();
+        assert_eq!(token(&reused), token(&file.dataset("original").unwrap()));
+        writer.finish(&file).unwrap();
+        assert!(!file.link_exists(&staging));
+        assert!(file.link_exists(PINS));
+        assert!(file.link_exists(&format!("{PINS}_1")));
+        assert_eq!(
+            token(&file.dataset("extension_alias/payload").unwrap()),
+            token(&payload)
+        );
+        assert_eq!(payload.read_raw::<f64>().unwrap(), *values);
     }
     #[test]
     fn weak_only_and_shared_mutations_invalidate_origins_and_preserve_f64_bits() {
