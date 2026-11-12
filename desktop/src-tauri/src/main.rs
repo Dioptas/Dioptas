@@ -251,12 +251,16 @@ async fn desktop_invoke(
     action: String,
     payload: Option<Value>,
     cached_buffers: Option<Vec<String>>,
+    cached_products: Option<Value>,
 ) -> Result<tauri::ipc::Response, String> {
     if !window_action_allowed(window.label(), &action) {
         return Err("This command is not available to this desktop window.".into());
     }
     let processor = host.processor.clone()?;
     let cached = cached_buffers.unwrap_or_default();
+    if let Some(products) = &cached_products {
+        wire_contract::validate_cached_products(products)?;
+    }
     let mut payload = payload.unwrap_or_else(|| json!({}));
     if !payload.is_object() {
         return Err("Command arguments must be an object.".into());
@@ -318,7 +322,7 @@ async fn desktop_invoke(
                 if !choose_batch_image_output(&app, &action, &mut payload)? {
                     return Ok(Packet::cancelled());
                 }
-                return finish_packet(processor.request_packet(&action, payload, cached), &action);
+                return finish_packet(processor.request_packet_with_products(&action, payload, cached, cached_products), &action);
             }
             let selected = if choice.save {
                 let name = if action == "integration_save_batch" {
@@ -341,7 +345,7 @@ async fn desktop_invoke(
         if !choose_batch_image_output(&app, &action, &mut payload)? {
             return Ok(Packet::cancelled());
         }
-        finish_packet(processor.request_packet(&action, payload, cached), &action)
+        finish_packet(processor.request_packet_with_products(&action, payload, cached, cached_products), &action)
     })
     .await
     .map_err(|e| e.to_string())?

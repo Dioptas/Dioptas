@@ -22,8 +22,8 @@ export async function connect(): Promise<Invoke> {
 }
 async function rawConnect(): Promise<Invoke> {
   if (isTauri()) {
-    const transfer = new RasterTransfer((action, payload, cachedBuffers) =>
-      invoke<ArrayBuffer>("desktop_invoke", { action, payload, cachedBuffers }),
+    const transfer = new RasterTransfer((action, payload, cachedBuffers, cachedProducts) =>
+      invoke<ArrayBuffer>("desktop_invoke", { action, payload, cachedBuffers, cachedProducts }),
     );
     return transfer.call.bind(transfer);
   }

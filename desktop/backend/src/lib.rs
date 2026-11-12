@@ -30,6 +30,7 @@ mod lacosmic;
 mod map_math;
 mod map_preview;
 mod mask_plugins;
+mod metadata_products;
 mod pattern;
 #[cfg(feature = "dioptrin")]
 mod peak_search;

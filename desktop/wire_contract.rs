@@ -304,3 +304,16 @@ mod tests {
         }
     }
 }
+/// Optional transport cache negotiation; never part of scientific payloads.
+pub fn validate_cached_products(value: &serde_json::Value) -> Result<(), String> {
+    let Some(products) = value.as_object() else {
+        return Err("Invalid cached product table.".into());
+    };
+    if products.len() > 2 || products.iter().any(|(field, id)| {
+        !matches!(field.as_str(), "batch" | "map") || id.as_str().is_none_or(|id|
+            id.is_empty() || id.len() > 128 || !id.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b':' | b'-' | b'_')))
+    }) {
+        return Err("Invalid cached product table.".into());
+    }
+    Ok(())
+}

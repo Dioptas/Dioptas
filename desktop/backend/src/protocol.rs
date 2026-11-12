@@ -19,6 +19,20 @@ pub struct Request {
     pub cached_buffers: Vec<String>,
 }
 
+/// Decode optional wire capabilities without changing the public scientific
+/// Request type or accepting unknown command-envelope fields.
+pub(crate) fn decode_request(bytes: &[u8]) -> Result<(Request, Option<crate::metadata_products::CachedProducts>), String> {
+    let mut value: Value = serde_json::from_slice(bytes).map_err(|e| e.to_string())?;
+    let products = value.as_object_mut().and_then(|v| v.remove("cachedProducts"));
+    let products = products.map(|v| {
+        wire_contract::validate_cached_products(&v)?;
+        serde_json::from_value(v).map_err(|e| e.to_string())
+    }).transpose()?;
+    let request: Request = serde_json::from_value(value).map_err(|e| e.to_string())?;
+    request.validate()?;
+    Ok((request, products))
+}
+
 #[cfg(test)]
 mod packet_write_tests {
     use super::*;
@@ -262,16 +276,26 @@ impl Reply {
         id: u64,
         known: &[String],
     ) -> Result<PacketParts<'_>, String> {
+        self.packet_parts_with_products(id, known, None)
+    }
+    pub(crate) fn packet_parts_with_products(
+        &self,
+        id: u64,
+        known: &[String],
+        cached: Option<&crate::metadata_products::CachedProducts>,
+    ) -> Result<PacketParts<'_>, String> {
         #[derive(Serialize)]
         struct Entry<'a> {
             id: &'a str,
             length: usize,
         }
         #[derive(Serialize)]
-        struct Header<'a> {
+        struct Header<'a, R: Serialize> {
             id: u64,
-            result: &'a Value,
+            result: R,
             buffers: &'a [Entry<'a>],
+            #[serde(skip_serializing_if = "Option::is_none")]
+            products: Option<&'a std::collections::BTreeMap<&'static str, crate::metadata_products::Product>>,
         }
         let mut seen: HashSet<&str> = known.iter().map(String::as_str).collect();
         let buffers: Vec<_> = self.buffers.iter().filter(|b| seen.insert(&b.id)).collect();
@@ -284,12 +308,12 @@ impl Reply {
             .collect();
         // Borrow the result: json! would recursively clone/serialize the complete
         // calibration contour and workflow tree before encoding it a second time.
-        let mut header = serde_json::to_vec(&Header {
-            id,
-            result: &self.result,
-            buffers: &table,
-        })
-        .map_err(|e| e.to_string())?;
+        let mut header = if let Some(cached) = cached {
+            let products = crate::metadata_products::Products::new(&self.result, cached)?;
+            serde_json::to_vec(&Header { id, result: &products, buffers: &table, products: Some(&products.table) })
+        } else {
+            serde_json::to_vec(&Header { id, result: &self.result, buffers: &table, products: None })
+        }.map_err(|e| e.to_string())?;
         // Valid JSON whitespace aligns the first float32 payload without a
         // wire-format change. Existing clients still read exactly these bytes.
         header.resize(header.len().next_multiple_of(4), b' ');

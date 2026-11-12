@@ -5,7 +5,7 @@ use crate::{
     Session,
     control::Control,
     protocol::{
-        MAX_REQUEST_BYTES, Reply, Request,
+        MAX_REQUEST_BYTES, Reply, Request, decode_request,
         command_contract::{CommandExecution, REQUEST_SIZE_ERROR, execution},
     },
 };
@@ -107,9 +107,9 @@ pub fn serve(
     let running = AtomicBool::new(false);
     let closing = AtomicBool::new(false);
     let active: Mutex<Option<Arc<Control>>> = Mutex::new(None);
-    let write = |id, reply: Reply, known: &[String]| -> Result<(), String> {
+    let write = |id, reply: Reply, known: &[String], products: Option<&crate::metadata_products::CachedProducts>| -> Result<(), String> {
         let mut trace = crate::frame_trace::FrameTrace::new("packet", id);
-        let packet = reply.packet_parts(id, known)?;
+        let packet = reply.packet_parts_with_products(id, known, products)?;
         trace.mark("encode response");
         let mut stream = output
             .lock()
@@ -122,7 +122,7 @@ pub fn serve(
         result
     };
     thread::scope(|scope| {
-        let (sender, receiver) = mpsc::sync_channel::<(Request, Arc<Control>)>(16);
+        let (sender, receiver) = mpsc::sync_channel::<(Request, Option<crate::metadata_products::CachedProducts>, Arc<Control>)>(16);
         let (ready_sender, ready_receiver) = mpsc::sync_channel(1);
         let worker_write = &write;
         let worker_running = &running;
@@ -148,7 +148,7 @@ pub fn serve(
                 }
             }
             let _ = ready_sender.send(Ok(()));
-            for (request, control) in receiver {
+            for (request, products, control) in receiver {
                 // Readout/state requests must not appear to restart a completed
                 // calibration while the user moves the mouse over the result.
                 let cancellable = execution(&request.action) == CommandExecution::Cancellable;
@@ -172,7 +172,7 @@ pub fn serve(
                     }
                 }
                 worker_running.store(false, Ordering::Release);
-                worker_write(request.id, reply, &request.cached_buffers)?;
+                worker_write(request.id, reply, &request.cached_buffers, products.as_ref())?;
                 if fatal {
                     return Err("Native processing stopped after an internal error.".into());
                 }
@@ -197,28 +197,28 @@ pub fn serve(
                     if line.last() != Some(&b'\n') {
                         drain_request_line(input).map_err(|e| e.to_string())?;
                     }
-                    write(id, Reply::error(REQUEST_SIZE_ERROR), &[])?;
+                    write(id, Reply::error(REQUEST_SIZE_ERROR), &[], None)?;
                     continue;
                 }
-                let request: Request = match serde_json::from_slice(&line) {
+                let (request, products) = match decode_request(&line) {
                     Ok(request) => request,
                     Err(error) => {
                         let id = serde_json::from_slice::<serde_json::Value>(&line)
                             .ok()
                             .and_then(|v| v["id"].as_u64())
                             .unwrap_or(0);
-                        write(id, Reply::error(error), &[])?;
+                        write(id, Reply::error(error), &[], None)?;
                         continue;
                     }
                 };
                 if let Err(error) = request.validate() {
-                    write(request.id, Reply::error(error), &[])?;
+                    write(request.id, Reply::error(error), &[], None)?;
                     continue;
                 }
                 match request.action.as_str() {
                     "progress" => {
                         let reply = active.lock().unwrap().as_ref().map(|c|c.progress_reply()).unwrap_or_else(||Reply::metadata(json!({"ok":true,"progress":{"running":running.load(Ordering::Acquire),"current":0,"total":1}})));
-                        write(request.id, reply, &[])?;
+                        write(request.id, reply, &[], None)?;
                     }
                     "cancel_refinement" => {
                         let current = active.lock().unwrap().clone();
@@ -232,7 +232,7 @@ pub fn serve(
                         } else {
                             Reply::success()
                         };
-                        write(request.id, reply, &[])?;
+                        write(request.id, reply, &[], None)?;
                     }
                     _ => {
                         let control = Arc::new(Control::default());
@@ -243,9 +243,9 @@ pub fn serve(
                                 *active = Some(control.clone());
                             }
                         }
-                        match sender.try_send((request, control)) {
+                        match sender.try_send((request, products, control)) {
                             Ok(()) => {}
-                            Err(mpsc::TrySendError::Full((request, control))) => {
+                            Err(mpsc::TrySendError::Full((request, _, control))) => {
                                 let mut active = active.lock().unwrap();
                                 if active.as_ref().is_some_and(|c| Arc::ptr_eq(c, &control)) {
                                     *active = None;
@@ -254,7 +254,7 @@ pub fn serve(
                                 write(
                                     request.id,
                                     Reply::error("Native processing queue is full."),
-                                    &[],
+                                    &[], None,
                                 )?;
                             }
                             Err(mpsc::TrySendError::Disconnected(_)) => {

@@ -45,6 +45,15 @@ impl ProcessorHost {
         payload: Value,
         cached: Vec<String>,
     ) -> Result<Packet, String> {
+        self.request_packet_with_products(action, payload, cached, None)
+    }
+    pub fn request_packet_with_products(
+        &self,
+        action: &str,
+        payload: Value,
+        cached: Vec<String>,
+        products: Option<Value>,
+    ) -> Result<Packet, String> {
         // A queued restart must never prevent cancellation of the operation it
         // is waiting for. Do not hold a writer lock until operations are idle.
         let _operation = if execution(action) == CommandExecution::OutOfBand {
@@ -59,7 +68,7 @@ impl ProcessorHost {
             .read()
             .map_err(|e| e.to_string())?
             .processor
-            .request_packet(action, payload, cached)
+            .request_packet_with_products(action, payload, cached, products)
     }
     pub fn shutdown(&self) {
         self.closed.store(true, Ordering::Release);

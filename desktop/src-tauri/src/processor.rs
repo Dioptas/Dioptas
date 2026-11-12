@@ -348,16 +348,22 @@ impl Processor {
     }
 
     pub fn request_packet(&self, action: &str, payload: Value, cached: Vec<String>) -> Reply {
+        self.request_packet_with_products(action, payload, cached, None)
+    }
+
+    pub fn request_packet_with_products(&self, action: &str, payload: Value, cached: Vec<String>, products: Option<Value>) -> Reply {
         if self.closed.load(Ordering::SeqCst) {
             return Err("The desktop session is closed.".into());
         }
         wire_contract::validate_payload(action, &payload)?;
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         let started = std::time::Instant::now();
-        let encoded =
-            json!({"id": id, "action": action, "payload": payload, "cachedBuffers": cached})
-                .to_string()
-                + "\n";
+        let mut request = json!({"id": id, "action": action, "payload": payload, "cachedBuffers": cached});
+        if let Some(products) = products {
+            wire_contract::validate_cached_products(&products)?;
+            request["cachedProducts"] = products;
+        }
+        let encoded = request.to_string() + "\n";
         // Reject before registering a reply or sending any bytes. The scientific
         // child and unsaved session remain usable after a large export fails.
         if encoded.len() > MAX_REQUEST_BYTES {
