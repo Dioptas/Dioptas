@@ -1,7 +1,11 @@
 name: Rust desktop
 
 on:
+  # Pull requests cover feature branches; a push run there would queue every
+  # macOS job a second time.
   push:
+    branches: [develop]
+    tags: ['**']
     paths-ignore: ['docs/source/**', '.readthedocs.yaml']
   pull_request:
     paths-ignore: ['docs/source/**', '.readthedocs.yaml']
