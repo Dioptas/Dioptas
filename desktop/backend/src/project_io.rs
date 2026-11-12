@@ -311,6 +311,7 @@ pub(super) fn copy_handle(
     Ok(())
 }
 pub(super) struct Archive {
+    pub(super) series_origins: super::series_arrays::Origins,
     // Close HDF5 before NamedTempFile attempts removal (including on Windows).
     pub(super) file: hdf5::File,
     pub(super) snapshot: tempfile::NamedTempFile,
@@ -326,6 +327,7 @@ pub(super) fn snapshot_file(path: &Path, control: &Control) -> Result<Archive, S
     // after the owned snapshot's directory entry is unlinked.
     let file = hdf5::File::open(temp.path()).native()?;
     Ok(Archive {
+        series_origins: super::series_arrays::Origins::new(&file)?,
         snapshot: temp,
         file,
     })

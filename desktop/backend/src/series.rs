@@ -413,183 +413,218 @@ impl Series {
         } else {
             let f = hdf5::File::create(temp.path()).map_err(|e| e.to_string())?;
             let entry = f.create_group("processed").map_err(|e| e.to_string())?;
-            let result = entry.create_group("result").map_err(|e| e.to_string())?;
-            let process = entry.create_group("process").map_err(|e| e.to_string())?;
-            result
-                .new_dataset::<f64>()
-                .shape([self.count(), self.x.len()])
-                .create("data")
-                .and_then(|d| d.write_raw(self.data.as_slice()))
-                .map_err(|e| e.to_string())?;
-            let axis = result
-                .new_dataset_builder()
-                .with_data(self.x.as_slice())
-                .create("binning")
-                .map_err(|e| e.to_string())?;
-            string_attr(&axis, "radial_unit", &self.unit)?;
-            if let Some(sigma) = &self.sigma {
-                result
-                    .new_dataset::<f64>()
-                    .shape([self.count(), self.x.len()])
-                    .create("counting_std")
-                    .and_then(|d| d.write_raw(sigma.as_slice()))
-                    .map_err(|e| e.to_string())?;
-            }
-            if let Some(spread) = &self.spread {
-                result
-                    .new_dataset::<f64>()
-                    .shape([self.count(), self.x.len()])
-                    .create("azimuthal_std")
-                    .and_then(|d| d.write_raw(spread.as_slice()))
-                    .map_err(|e| e.to_string())?;
-            }
-            let mut paths = self.paths.as_ref().clone();
-            let mut path_indices = HashMap::new();
-            for (i, path) in paths.iter().enumerate() {
-                // Preserve the first occurrence if an imported source list
-                // contains duplicate paths, matching the original position map.
-                path_indices.entry(path.clone()).or_insert(i);
-            }
-            for e in self.entries.iter() {
-                if let std::collections::hash_map::Entry::Vacant(entry) =
-                    path_indices.entry(e.path.clone())
-                {
-                    entry.insert(paths.len());
-                    paths.push(e.path.clone());
-                }
-            }
-            if paths.is_empty() {
-                paths.push(String::new());
-            }
-            let strings: Vec<_> = paths
-                .iter()
-                .map(|s| hdf5::types::VarLenUnicode::from_str(s).map_err(|e| e.to_string()))
-                .collect::<Result<_, _>>()?;
-            process
-                .new_dataset_builder()
-                .with_data(&strings)
-                .create("files")
-                .map_err(|e| e.to_string())?;
-            let positions: Vec<i64> = self
-                .entries
-                .iter()
-                .flat_map(|e| [path_indices[&e.path] as i64, e.frame as i64])
-                .collect();
-            process
-                .new_dataset::<i64>()
-                .shape([self.count(), 2])
-                .create("pos_map")
-                .and_then(|d| d.write_raw(&positions))
-                .map_err(|e| e.to_string())?;
-            if let Some(background) = &self.background {
-                process
-                    .new_dataset::<f64>()
-                    .shape([self.count(), self.x.len()])
-                    .create("bkg")
-                    .and_then(|d| d.write_raw(background.as_slice()))
-                    .map_err(|e| e.to_string())?;
-            }
-            let mut filemap = vec![0_u64];
-            for (i, p) in paths.iter().enumerate() {
-                filemap.push(
-                    filemap.last().unwrap()
-                        + self
-                            .file_counts
-                            .get(i)
-                            .copied()
-                            .unwrap_or_else(|| self.file_index.get(p).map_or(0, |f| f.entries))
-                            as u64,
-                );
-            }
-            process
-                .new_dataset_builder()
-                .with_data(&filemap)
-                .create("file_map")
-                .map_err(|e| e.to_string())?;
-            let all_positions: Vec<i64> =
-                paths
-                    .iter()
-                    .enumerate()
-                    .flat_map(|(i, _)| {
-                        (0..self.file_counts.get(i).copied().unwrap_or_else(|| {
-                            self.file_index.get(&paths[i]).map_or(0, |f| f.entries)
-                        }))
-                            .flat_map(move |frame| [i as i64, frame as i64])
-                    })
-                    .collect();
-            process
-                .new_dataset::<i64>()
-                .shape([all_positions.len() / 2, 2])
-                .create("pos_map_all")
-                .and_then(|d| d.write_raw(&all_positions))
-                .map_err(|e| e.to_string())?;
-            for (name, value) in [
-                ("cal_file", self.calibration.as_str()),
-                ("mask_file", self.mask.as_str()),
-                ("int_method", "csc"),
-                ("int_unit", self.unit.as_str()),
-            ] {
-                let s = hdf5::types::VarLenUnicode::from_str(value).map_err(|e| e.to_string())?;
-                process
-                    .new_dataset::<hdf5::types::VarLenUnicode>()
-                    .shape(())
-                    .create(name)
-                    .and_then(|d| d.write_scalar(&s))
-                    .map_err(|e| e.to_string())?;
-            }
-            if let Some(w) = self.wavelength {
-                result
-                    .new_attr::<f64>()
-                    .shape(())
-                    .create("desktop_wavelength_m")
-                    .and_then(|a| a.write_scalar(&w))
-                    .map_err(|e| e.to_string())?;
-            }
-            let metadata = json!({"entries":self.entries,"paths":paths,"file_counts":self.file_counts,"total":self.total,"selected":self.selected,"normalization":self.normalization,"reference":self.reference,"normalized":self.normalized,"batch_background":self.batch_background,"export_name":self.export_name,"reader_options":self.reader_options});
-            let meta = serde_json::to_vec(&metadata).map_err(|e| e.to_string())?;
-            if meta.len() > 16 * 1024 * 1024 {
-                return Err("Series source metadata exceeds 16 MiB.".into());
-            }
-            result
-                .new_dataset_builder()
-                .with_data(&meta)
-                .create("desktop_metadata")
-                .map_err(|e| e.to_string())?;
-            if self.normalized {
-                if let Some(background) = &self.raw_background {
-                    result
-                        .new_dataset::<f64>()
-                        .shape([self.count(), self.x.len()])
-                        .create("desktop_original_background")
-                        .and_then(|d| d.write_raw(background.as_slice()))
-                        .map_err(|e| e.to_string())?;
-                }
-                result
-                    .new_dataset::<f64>()
-                    .shape([self.count(), self.x.len()])
-                    .create("desktop_original")
-                    .and_then(|d| d.write_raw(self.raw.as_slice()))
-                    .map_err(|e| e.to_string())?;
-                if let Some(s) = &self.raw_sigma {
-                    result
-                        .new_dataset::<f64>()
-                        .shape([self.count(), self.x.len()])
-                        .create("desktop_original_counting_std")
-                        .and_then(|d| d.write_raw(s.as_slice()))
-                        .map_err(|e| e.to_string())?;
-                }
-                if let Some(s) = &self.raw_spread {
-                    result
-                        .new_dataset::<f64>()
-                        .shape([self.count(), self.x.len()])
-                        .create("desktop_original_spread")
-                        .and_then(|d| d.write_raw(s.as_slice()))
-                        .map_err(|e| e.to_string())?;
-                }
-            }
+            self.write_processed(&entry, &mut write_processed_array)?;
             f.flush().map_err(|e| e.to_string())?;
         }
         temp.commit(path)
+    }
+    /// Write the existing processed-file schema directly into an owned group.
+    /// Projects can supply an immutable-array linker; standalone exports write
+    /// the same uncompressed f64 datasets as before.
+    pub(crate) fn write_processed(
+        &self,
+        entry: &hdf5::Group,
+        write: &mut impl FnMut(
+            &hdf5::Group,
+            &str,
+            &[usize],
+            &Arc<Vec<f64>>,
+            Option<&str>,
+        ) -> Result<hdf5::Dataset, String>,
+    ) -> Result<(), String> {
+        let result = entry.create_group("result").map_err(|e| e.to_string())?;
+        let process = entry.create_group("process").map_err(|e| e.to_string())?;
+        write(
+            &result,
+            "data",
+            &[self.count(), self.x.len()],
+            &self.data,
+            None,
+        )?;
+        let axis = write(
+            &result,
+            "binning",
+            &[self.x.len()],
+            &self.x,
+            Some(&self.unit),
+        )?;
+        if !axis
+            .attr_names()
+            .map_err(|e| e.to_string())?
+            .iter()
+            .any(|name| name == "radial_unit")
+        {
+            string_attr(&axis, "radial_unit", &self.unit)?;
+        }
+        if let Some(sigma) = &self.sigma {
+            write(
+                &result,
+                "counting_std",
+                &[self.count(), self.x.len()],
+                sigma,
+                None,
+            )?;
+        }
+        if let Some(spread) = &self.spread {
+            write(
+                &result,
+                "azimuthal_std",
+                &[self.count(), self.x.len()],
+                spread,
+                None,
+            )?;
+        }
+        let mut paths = self.paths.as_ref().clone();
+        let mut path_indices = HashMap::new();
+        for (i, path) in paths.iter().enumerate() {
+            // Preserve the first occurrence if an imported source list
+            // contains duplicate paths, matching the original position map.
+            path_indices.entry(path.clone()).or_insert(i);
+        }
+        for e in self.entries.iter() {
+            if let std::collections::hash_map::Entry::Vacant(entry) =
+                path_indices.entry(e.path.clone())
+            {
+                entry.insert(paths.len());
+                paths.push(e.path.clone());
+            }
+        }
+        if paths.is_empty() {
+            paths.push(String::new());
+        }
+        let strings: Vec<_> = paths
+            .iter()
+            .map(|s| hdf5::types::VarLenUnicode::from_str(s).map_err(|e| e.to_string()))
+            .collect::<Result<_, _>>()?;
+        process
+            .new_dataset_builder()
+            .with_data(&strings)
+            .create("files")
+            .map_err(|e| e.to_string())?;
+        let positions: Vec<i64> = self
+            .entries
+            .iter()
+            .flat_map(|e| [path_indices[&e.path] as i64, e.frame as i64])
+            .collect();
+        process
+            .new_dataset::<i64>()
+            .shape([self.count(), 2])
+            .create("pos_map")
+            .and_then(|d| d.write_raw(&positions))
+            .map_err(|e| e.to_string())?;
+        if let Some(background) = &self.background {
+            write(
+                &process,
+                "bkg",
+                &[self.count(), self.x.len()],
+                background,
+                None,
+            )?;
+        }
+        let mut filemap = vec![0_u64];
+        for (i, p) in paths.iter().enumerate() {
+            filemap.push(
+                filemap.last().unwrap()
+                    + self
+                        .file_counts
+                        .get(i)
+                        .copied()
+                        .unwrap_or_else(|| self.file_index.get(p).map_or(0, |f| f.entries))
+                        as u64,
+            );
+        }
+        process
+            .new_dataset_builder()
+            .with_data(&filemap)
+            .create("file_map")
+            .map_err(|e| e.to_string())?;
+        let all_positions: Vec<i64> = paths
+            .iter()
+            .enumerate()
+            .flat_map(|(i, _)| {
+                (0..self
+                    .file_counts
+                    .get(i)
+                    .copied()
+                    .unwrap_or_else(|| self.file_index.get(&paths[i]).map_or(0, |f| f.entries)))
+                    .flat_map(move |frame| [i as i64, frame as i64])
+            })
+            .collect();
+        process
+            .new_dataset::<i64>()
+            .shape([all_positions.len() / 2, 2])
+            .create("pos_map_all")
+            .and_then(|d| d.write_raw(&all_positions))
+            .map_err(|e| e.to_string())?;
+        for (name, value) in [
+            ("cal_file", self.calibration.as_str()),
+            ("mask_file", self.mask.as_str()),
+            ("int_method", "csc"),
+            ("int_unit", self.unit.as_str()),
+        ] {
+            let s = hdf5::types::VarLenUnicode::from_str(value).map_err(|e| e.to_string())?;
+            process
+                .new_dataset::<hdf5::types::VarLenUnicode>()
+                .shape(())
+                .create(name)
+                .and_then(|d| d.write_scalar(&s))
+                .map_err(|e| e.to_string())?;
+        }
+        if let Some(w) = self.wavelength {
+            result
+                .new_attr::<f64>()
+                .shape(())
+                .create("desktop_wavelength_m")
+                .and_then(|a| a.write_scalar(&w))
+                .map_err(|e| e.to_string())?;
+        }
+        let metadata = json!({"entries":self.entries,"paths":paths,"file_counts":self.file_counts,"total":self.total,"selected":self.selected,"normalization":self.normalization,"reference":self.reference,"normalized":self.normalized,"batch_background":self.batch_background,"export_name":self.export_name,"reader_options":self.reader_options});
+        let meta = serde_json::to_vec(&metadata).map_err(|e| e.to_string())?;
+        if meta.len() > 16 * 1024 * 1024 {
+            return Err("Series source metadata exceeds 16 MiB.".into());
+        }
+        result
+            .new_dataset_builder()
+            .with_data(&meta)
+            .create("desktop_metadata")
+            .map_err(|e| e.to_string())?;
+        if self.normalized {
+            if let Some(background) = &self.raw_background {
+                write(
+                    &result,
+                    "desktop_original_background",
+                    &[self.count(), self.x.len()],
+                    background,
+                    None,
+                )?;
+            }
+            write(
+                &result,
+                "desktop_original",
+                &[self.count(), self.x.len()],
+                &self.raw,
+                None,
+            )?;
+            if let Some(s) = &self.raw_sigma {
+                write(
+                    &result,
+                    "desktop_original_counting_std",
+                    &[self.count(), self.x.len()],
+                    s,
+                    None,
+                )?;
+            }
+            if let Some(s) = &self.raw_spread {
+                write(
+                    &result,
+                    "desktop_original_spread",
+                    &[self.count(), self.x.len()],
+                    s,
+                    None,
+                )?;
+            }
+        }
+        Ok(())
     }
     /// Explicit processed-file opening records its user-facing basename. Embedded
     /// project loads retain the recorded name instead of a temporary .h5 filename.
@@ -608,6 +643,14 @@ impl Series {
             f.group("/")
         }
         .map_err(|e| e.to_string())?;
+        let process = f.group("processed/process").ok();
+        Self::read_processed(&group, process.as_ref(), &mut |_, _| {})
+    }
+    pub(crate) fn read_processed(
+        group: &hdf5::Group,
+        process: Option<&hdf5::Group>,
+        record: &mut impl FnMut(&hdf5::Dataset, &Arc<Vec<f64>>),
+    ) -> Result<Self, String> {
         let d = group.dataset("data").map_err(|e| e.to_string())?;
         let shape = d.shape();
         if shape.len() != 2
@@ -649,7 +692,7 @@ impl Series {
         let mut mask = String::new();
         let mut counts = None;
         let mut background = None;
-        if let Ok(process) = f.group("processed/process") {
+        if let Some(process) = process {
             if let Ok(files) = process.dataset("files") {
                 paths = read_strings(&files)?;
             }
@@ -672,7 +715,9 @@ impl Series {
                 if bg.shape() != shape {
                     return Err("Batch background matrix has the wrong shape.".into());
                 }
-                background = Some(Arc::new(bg.read_raw::<f64>().map_err(|e| e.to_string())?));
+                let values = Arc::new(bg.read_raw::<f64>().map_err(|e| e.to_string())?);
+                record(&bg, &values);
+                background = Some(values);
             }
             if let Ok(pos) = process.dataset("pos_map") {
                 if pos.shape() != [shape[0], 2] {
@@ -712,6 +757,8 @@ impl Series {
             paths,
             shape[0],
         )?;
+        record(&axis, &s.x);
+        record(&d, &s.data);
         if let Some(counts) = counts {
             s.total = counts.iter().sum();
             s.file_counts = Arc::new(counts);
@@ -725,6 +772,10 @@ impl Series {
                 &group.dataset("counting_std").map_err(|e| e.to_string())?,
                 &shape,
             )?));
+            record(
+                &group.dataset("counting_std").map_err(|e| e.to_string())?,
+                s.sigma.as_ref().unwrap(),
+            );
             s.raw_sigma = s.sigma.clone();
         }
         if let Ok(spread) = group.dataset("azimuthal_std") {
@@ -734,6 +785,7 @@ impl Series {
             s.spread = Some(Arc::new(
                 spread.read_raw::<f64>().map_err(|e| e.to_string())?,
             ));
+            record(&spread, s.spread.as_ref().unwrap());
             s.raw_spread = s.spread.clone();
         }
         if let Ok(meta) = group.dataset("desktop_metadata") {
@@ -789,6 +841,7 @@ impl Series {
                     return Err("Original series matrix has the wrong shape.".into());
                 }
                 s.raw = Arc::new(original.read_raw::<f64>().map_err(|e| e.to_string())?);
+                record(&original, &s.raw);
                 s.normalized = true;
                 s.normalization = serde_json::from_value(v["normalization"].clone())
                     .map_err(|e| e.to_string())?;
@@ -809,6 +862,7 @@ impl Series {
                     s.raw_background = Some(Arc::new(
                         background.read_raw::<f64>().map_err(|e| e.to_string())?,
                     ));
+                    record(&background, s.raw_background.as_ref().unwrap());
                 }
                 if s.sigma.is_some() {
                     s.raw_sigma = Some(Arc::new(read_std(
@@ -818,6 +872,14 @@ impl Series {
                         &shape,
                     )?));
                 }
+                if let Some(values) = &s.raw_sigma {
+                    record(
+                        &group
+                            .dataset("desktop_original_counting_std")
+                            .map_err(|e| e.to_string())?,
+                        values,
+                    );
+                }
                 if let Ok(spread) = group.dataset("desktop_original_spread") {
                     if spread.shape() != shape {
                         return Err("Original spread matrix has the wrong shape.".into());
@@ -825,6 +887,7 @@ impl Series {
                     s.raw_spread = Some(Arc::new(
                         spread.read_raw::<f64>().map_err(|e| e.to_string())?,
                     ));
+                    record(&spread, s.raw_spread.as_ref().unwrap());
                 }
             }
             s.export_name = v["export_name"]
@@ -835,6 +898,23 @@ impl Series {
         }
         Ok(s)
     }
+}
+pub(crate) fn write_processed_array(
+    group: &hdf5::Group,
+    name: &str,
+    shape: &[usize],
+    values: &Arc<Vec<f64>>,
+    _unit: Option<&str>,
+) -> Result<hdf5::Dataset, String> {
+    let dataset = group
+        .new_dataset::<f64>()
+        .shape(shape)
+        .create(name)
+        .map_err(|e| e.to_string())?;
+    dataset
+        .write_raw(values.as_slice())
+        .map_err(|e| e.to_string())?;
+    Ok(dataset)
 }
 fn string_attr(location: &hdf5::Location, name: &str, value: &str) -> Result<(), String> {
     let value = hdf5::types::VarLenUnicode::from_str(value).map_err(|e| e.to_string())?;

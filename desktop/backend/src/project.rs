@@ -20,6 +20,8 @@ mod persistence_tests;
 mod phase;
 #[path = "project_series.rs"]
 mod series;
+#[path = "project/series_arrays.rs"]
+mod series_arrays;
 use io::*;
 use std::rc::Rc;
 static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
@@ -320,7 +322,7 @@ impl Session {
     fn open_native_project(&mut self, path: &Path) -> Result<(), String> {
         let path = path.canonicalize().map_err(|e| e.to_string())?;
         let source_identity = crate::image::FileIdentity::read(&path)?;
-        let archive = snapshot_file(&path, &self.control)?;
+        let mut archive = snapshot_file(&path, &self.control)?;
         let file = archive.file.clone();
         let version = file
             .attr("format_version")
@@ -361,7 +363,15 @@ impl Session {
             owner.control = self.control.clone();
             owner.phases = phases.clone();
             owner.patterns.restore_global(&global_patterns);
-            config::load(&mut owner, &file, doc, &desktop, i, selected)?;
+            config::load(
+                &mut owner,
+                &file,
+                doc,
+                &desktop,
+                i,
+                selected,
+                &mut archive.series_origins,
+            )?;
             let mut c = owner.capture_configuration();
             c.document = Arc::new(doc.clone());
             c.source_index = Some(i);
@@ -435,6 +445,11 @@ impl Session {
         if !compact {
             compact::retain_opaque_objects(&file, &self.control)?;
         }
+        let mut arrays = series_arrays::Writer::new(
+            &file,
+            self.project.archive.as_ref().map(|a| &a.series_origins),
+            &self.control,
+        )?;
         write_scalar_attr(&file, "format_version", 2_u32)?;
         write_text_attr(&file, "__version__", env!("CARGO_PKG_VERSION"))?;
         let payloads = ensure_group(&file, "payloads")?;
@@ -493,7 +508,7 @@ impl Session {
                 }
             }
             let group = ensure_group(&groups, &name)?;
-            config_documents.push(config::save(&c, &group, &payloads, &cache)?);
+            config_documents.push(config::save(&c, &group, &payloads, &cache, &mut arrays)?);
         }
         drop(staged);
         file.unlink(previous).native()?;
@@ -507,6 +522,7 @@ impl Session {
         merge(&mut metadata, &config::desktop_metadata(self));
         write_text_attr(&file, "react_desktop", &metadata.to_string())?;
         series::save_active_extensions(self, &file)?;
+        arrays.finish(&file)?;
         if compact {
             compact::prune_pools(&file, &document, &self.control)?;
         }

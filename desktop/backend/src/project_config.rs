@@ -293,6 +293,7 @@ pub(super) fn load(
     desktop: &Value,
     index: usize,
     selected: usize,
+    origins: &mut super::series_arrays::Origins,
 ) -> Result<(), String> {
     let p = with_defaults("params", &doc["params"]);
     let img = with_defaults("img", &doc["img"]);
@@ -691,7 +692,7 @@ pub(super) fn load(
         s.image_batch_mode = mode.into();
     }
     s.mask_filename = optional_string(&local["mask_filename"]);
-    series::load_configuration(s, file, doc, index, selected)?;
+    series::load_configuration(s, file, doc, index, selected, origins)?;
     if let Some(image) = &s.image {
         s.settings.geometry.sync_shape(image.shape)?;
     }
@@ -830,6 +831,7 @@ pub(super) fn save(
     group: &hdf5::Group,
     payloads: &hdf5::Group,
     cache: &hdf5::Group,
+    arrays: &mut super::series_arrays::Writer,
 ) -> Result<Value, String> {
     let s = &c.state;
     let settings = &s.settings;
@@ -1040,7 +1042,7 @@ pub(super) fn save(
         );
     }
     doc["plugins"] = json!(plugins);
-    series::save_configuration(s, group, &mut doc)?;
+    series::save_configuration(s, group, &mut doc, arrays)?;
     Ok(doc)
 }
 

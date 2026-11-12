@@ -4,21 +4,38 @@ use crate::{
     scan::{Roi, Scan},
     series::{Entry, Series},
 };
-fn save_embedded(s: &Series, group: &hdf5::Group, name: &str) -> Result<(), String> {
-    let temp = tempfile::NamedTempFile::new().map_err(|e| e.to_string())?;
-    s.save(temp.path())?;
-    let f = hdf5::File::open(temp.path()).native()?;
+fn save_embedded(
+    s: &Series,
+    group: &hdf5::Group,
+    name: &str,
+    arrays: &mut super::series_arrays::Writer,
+) -> Result<(), String> {
     replace(group, name)?;
-    f.group("processed").native()?.copy_to(group, name).native()
+    let entry = group.create_group(name).native()?;
+    s.write_processed(&entry, &mut |g, n, shape, values, unit| {
+        arrays.write(g, n, shape, values, unit)
+    })
 }
-fn load_embedded(group: &hdf5::Group) -> Result<Series, String> {
-    let temp = tempfile::NamedTempFile::new().map_err(|e| e.to_string())?;
-    {
-        let f = hdf5::File::create(temp.path()).native()?;
-        group.copy_to(&f, "processed").native()?;
-        f.flush().native()?;
-    }
-    Series::load(temp.path())
+fn load_embedded(
+    group: &hdf5::Group,
+    origins: &mut super::series_arrays::Origins,
+) -> Result<Series, String> {
+    let result = group.group("result").native()?;
+    let process = group.group("process").ok();
+    Series::read_processed(&result, process.as_ref(), &mut |d, values| {
+        origins.record(d, values)
+    })
+}
+fn link_array(
+    group: &hdf5::Group,
+    name: &str,
+    source: &hdf5::Group,
+    path: &str,
+) -> Result<(), String> {
+    replace(group, name)?;
+    group
+        .link_hard(&format!("{}/{path}", source.name()), name)
+        .native()
 }
 fn map_params(s: &Scan, previous: &Value) -> Value {
     let mut p = with_defaults("map", previous);
@@ -35,9 +52,10 @@ pub(super) fn save_configuration(
     s: &Checkpoint,
     group: &hdf5::Group,
     doc: &mut Value,
+    arrays: &mut super::series_arrays::Writer,
 ) -> Result<(), String> {
     if let Some(batch) = &s.batch {
-        save_embedded(batch, group, "native_batch")?;
+        save_embedded(batch, group, "native_batch", arrays)?;
     } else {
         replace(group, "native_batch")?;
     }
@@ -49,13 +67,10 @@ pub(super) fn save_configuration(
         write_scalar_attr(&params, "schema_version", 1_u32)?;
         write_text_attr(&params, "class", "MapParams")?;
         write_text_attr(&params, "data", &p.to_string())?;
-        write_array(&g, "pattern_x", &[scan.series.x.len()], &scan.series.x)?;
-        write_array(
-            &g,
-            "pattern_intensities",
-            &[scan.series.count(), scan.series.x.len()],
-            &scan.series.data,
-        )?;
+        save_embedded(&scan.series, &g, "native_series", arrays)?;
+        let native = g.group("native_series").native()?;
+        link_array(&g, "pattern_x", &native, "result/binning")?;
+        link_array(&g, "pattern_intensities", &native, "result/data")?;
         write_text_attr(&g, "pattern_unit", &scan.series.unit)?;
         let roi = scan
             .rois
@@ -87,7 +102,6 @@ pub(super) fn save_configuration(
                 .map(|e| e.frame as i64)
                 .collect::<Vec<_>>(),
         )?;
-        save_embedded(&scan.series, &g, "native_series")?;
         write_text_attr(&g,"native_selection",&json!({"index":scan.selected,"slot":scan.selected_slot,"normalization_coordinates":scan.normalization_coordinates}).to_string())?;
     } else {
         replace(group, "map")?;
@@ -99,9 +113,10 @@ fn read_map(
     g: &hdf5::Group,
     p: &Value,
     normalization: Option<&hdf5::Group>,
+    origins: &mut super::series_arrays::Origins,
 ) -> Result<Scan, String> {
     let series = if g.link_exists("native_series") {
-        load_embedded(&g.group("native_series").native()?)?
+        load_embedded(&g.group("native_series").native()?, origins)?
     } else {
         let x = g.dataset("pattern_x").native()?;
         let data = g.dataset("pattern_intensities").native()?;
@@ -309,11 +324,13 @@ pub(super) fn load_configuration(
     doc: &Value,
     index: usize,
     selected: usize,
+    origins: &mut super::series_arrays::Origins,
 ) -> Result<(), String> {
     let base = format!("configurations/{index}");
     if file.link_exists(&format!("{base}/native_batch")) {
         s.batch = Some(load_embedded(
             &file.group(&format!("{base}/native_batch")).native()?,
+            origins,
         )?);
     } else if index == selected && file.link_exists("react_desktop_batch") {
         s.batch = Some(load_react_batch(
@@ -327,7 +344,7 @@ pub(super) fn load_configuration(
         } else {
             None
         };
-        s.scan = Some(read_map(s, &g, &doc["map"], norm.as_ref())?);
+        s.scan = Some(read_map(s, &g, &doc["map"], norm.as_ref(), origins)?);
     }
     Ok(())
 }
@@ -493,16 +510,22 @@ pub(super) fn save_active_extensions(s: &Session, file: &hdf5::File) -> Result<(
     if let Some(b) = &s.batch {
         let g = file.create_group("react_desktop_batch").native()?;
         write_scalar_attr(&g, "version", 1_u32)?;
-        write_array(&g, "data", &[b.count(), b.x.len()], &b.data)?;
-        write_array(&g, "binning", &[b.x.len()], &b.x)?;
-        if let Some(bg) = &b.background {
-            write_array(&g, "bkg", &[b.count(), b.x.len()], bg)?;
+        let native = file
+            .group(&format!(
+                "configurations/{}/native_batch",
+                s.project.selected
+            ))
+            .native()?;
+        link_array(&g, "data", &native, "result/data")?;
+        link_array(&g, "binning", &native, "result/binning")?;
+        if b.background.is_some() {
+            link_array(&g, "bkg", &native, "process/bkg")?;
         }
-        if let Some(sigma) = &b.sigma {
-            write_array(&g, "counting_std", &[b.count(), b.x.len()], sigma)?;
+        if b.sigma.is_some() {
+            link_array(&g, "counting_std", &native, "result/counting_std")?;
         }
-        if let Some(spread) = &b.spread {
-            write_array(&g, "azimuthal_std", &[b.count(), b.x.len()], spread)?;
+        if b.spread.is_some() {
+            link_array(&g, "azimuthal_std", &native, "result/azimuthal_std")?;
         }
         let mut paths = b.paths.as_ref().clone();
         for e in b.entries.iter() {
@@ -557,15 +580,25 @@ pub(super) fn save_active_extensions(s: &Session, file: &hdf5::File) -> Result<(
         write_text_attr(&g, "metadata", &meta.to_string())?;
         if b.normalized {
             let source = g.create_group("normalization_source").native()?;
-            write_array(&source, "data", &[b.count(), b.x.len()], &b.raw)?;
-            if let Some(bg) = &b.raw_background {
-                write_array(&source, "background", &[b.count(), b.x.len()], bg)?;
+            link_array(&source, "data", &native, "result/desktop_original")?;
+            if b.raw_background.is_some() {
+                link_array(
+                    &source,
+                    "background",
+                    &native,
+                    "result/desktop_original_background",
+                )?;
             }
-            if let Some(sigma) = &b.raw_sigma {
-                write_array(&source, "counting_std", &[b.count(), b.x.len()], sigma)?;
+            if b.raw_sigma.is_some() {
+                link_array(
+                    &source,
+                    "counting_std",
+                    &native,
+                    "result/desktop_original_counting_std",
+                )?;
             }
-            if let Some(spread) = &b.raw_spread {
-                write_array(&source, "spread", &[b.count(), b.x.len()], spread)?;
+            if b.raw_spread.is_some() {
+                link_array(&source, "spread", &native, "result/desktop_original_spread")?;
             }
             let means = b
                 .raw
@@ -591,7 +624,13 @@ pub(super) fn save_active_extensions(s: &Session, file: &hdf5::File) -> Result<(
     if let Some(map) = s.scan.as_ref().filter(|m| m.series.normalized) {
         let g = file.create_group("react_map_normalization").native()?;
         let b = &map.series;
-        write_array(&g, "original", &[b.count(), b.x.len()], &b.raw)?;
+        let native = file
+            .group(&format!(
+                "configurations/{}/map/native_series",
+                s.project.selected
+            ))
+            .native()?;
+        link_array(&g, "original", &native, "result/desktop_original")?;
         g.new_attr_builder()
             .with_data(&b.normalization.map(|n| n as u64))
             .create("range")
