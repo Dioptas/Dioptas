@@ -1,0 +1,126 @@
+name: Native Linux artifacts (no publishing)
+
+on:
+  workflow_dispatch:
+  # Register this new branch workflow once; remove the bootstrap push trigger
+  # after qualification. Ordinary release candidate builds are manual-only.
+  push:
+    branches: [codex/native-installers]
+    paths: [.github/workflows/native_linux_artifacts.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-linux-artifacts-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build Linux x64 candidates (Ubuntu 22.04)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_TERM_COLOR: always
+      HDF5_PLUGIN_PRELOAD: '::'
+      APPIMAGE_EXTRACT_AND_RUN: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake curl wget file pkg-config patchelf libssl-dev libgtk-3-dev libglib2.0-dev libwebkit2gtk-4.1-dev libxdo-dev libayatana-appindicator3-dev librsvg2-dev libfuse2
+      - name: Install Rust
+        run: rustup update stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            desktop/backend -> target
+            desktop/src-tauri -> target
+          key: native-linux-ubuntu22-x64
+          cache-on-failure: true
+      - run: npm ci
+        working-directory: desktop
+      - name: Check release configuration and pinned dependencies
+        working-directory: desktop
+        run: |
+          node scripts/check_glib_backport.mjs
+          node scripts/check_hdf5_windows_abi.mjs
+          npm run test:release-config
+          npm run test:linux-release-config
+          node --test scripts/standalone_licenses.test.mjs
+      - name: Test the release-profile Linux processor
+        run: cargo test --release --locked --manifest-path desktop/backend/Cargo.toml --all-features --no-fail-fast
+      - name: Build deb, AppImage and deb upgrade fixture
+        working-directory: desktop
+        run: npm run release:linux -- --test-upgrade
+      - name: Retain installer candidates
+        uses: actions/upload-artifact@v7
+        with:
+          name: Dioptas-native-linux-x64-test
+          path: |
+            desktop/artifacts/native-linux/**/*.deb
+            desktop/artifacts/native-linux/**/*.AppImage
+            desktop/artifacts/native-linux/**/SHA256SUMS
+            desktop/artifacts/native-linux/**/build.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Retain build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: Dioptas-native-linux-build-diagnostics
+          path: desktop/artifacts/native-linux/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  verify:
+    name: Installed ${{ matrix.format }} (${{ matrix.os }})
+    needs: build
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+        format: [deb, appimage]
+    env:
+      DIOPTAS_INSTALLER_TEST_ISOLATED: '1'
+      HDF5_PLUGIN_PRELOAD: '::'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+      - name: Install isolated native test support
+        run: |
+          sudo apt-get update
+          if [ '${{ matrix.os }}' = 'ubuntu-24.04' ]; then fuse_package=libfuse2t64; else fuse_package=libfuse2; fi
+          sudo apt-get install -y xvfb xauth dbus-x11 desktop-file-utils binutils libgl1 libegl1 libgl1-mesa-dri fonts-dejavu-core "$fuse_package"
+      - uses: actions/download-artifact@v8
+        with:
+          name: Dioptas-native-linux-x64-test
+          path: ${{ runner.temp }}/linux-candidates
+      - name: Test installed native application and lifecycle
+        shell: bash
+        run: |
+          mapfile -t manifests < <(find "$RUNNER_TEMP/linux-candidates" -name build.json -type f)
+          test "${#manifests[@]}" -eq 1
+          candidate_directory="$(dirname "${manifests[0]}")"
+          script="$GITHUB_WORKSPACE/desktop/scripts/verify_linux_installer.mjs"
+          cd "$RUNNER_TEMP"
+          dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1000x24' node "$script" "$candidate_directory" "$RUNNER_TEMP/linux-verification-${{ matrix.os }}-${{ matrix.format }}.json" '${{ matrix.format }}'
+      - name: Retain installation reports and native logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: Dioptas-linux-verification-${{ matrix.os }}-${{ matrix.format }}
+          path: ${{ runner.temp }}/linux-verification-*
+          if-no-files-found: error
+          retention-days: 14
