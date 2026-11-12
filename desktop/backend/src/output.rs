@@ -53,6 +53,13 @@ impl StagedOutput {
         self.file.as_file_mut()
     }
     pub(crate) fn commit(self, target: &Path) -> Result<(), String> {
+        self.commit_checked(target, || Ok(()))
+    }
+    pub(crate) fn commit_checked(
+        self,
+        target: &Path,
+        check: impl FnOnce() -> Result<(), String>,
+    ) -> Result<(), String> {
         match std::fs::metadata(target) {
             Ok(metadata) => self
                 .as_file()
@@ -62,6 +69,9 @@ impl StagedOutput {
             Err(error) => return Err(error.to_string()),
         }
         self.as_file().sync_all().map_err(|e| e.to_string())?;
+        // Cancellation may arrive while a large scientific output is syncing.
+        // Check at the publication boundary, leaving the old file intact.
+        check()?;
         self.file.persist(target).map_err(|e| e.to_string())?;
         Ok(())
     }
@@ -93,6 +103,23 @@ pub(crate) fn resource_path(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn cancellation_at_publication_keeps_previous_output() {
+        let directory = tempfile::tempdir().unwrap();
+        let target = directory.path().join("project.dio");
+        std::fs::write(&target, b"previous").unwrap();
+        let mut staged = StagedOutput::new(&target).unwrap();
+        staged.write_all(b"complete but cancelled").unwrap();
+        let stage = staged.path().to_owned();
+        assert!(
+            staged
+                .commit_checked(&target, || Err("cancelled".into()))
+                .is_err()
+        );
+        assert_eq!(std::fs::read(&target).unwrap(), b"previous");
+        assert!(!stage.exists());
+        assert_eq!(std::fs::read_dir(directory.path()).unwrap().count(), 1);
+    }
     #[test]
     fn aborted_output_preserves_original_and_removes_stage() {
         let directory = tempfile::tempdir().unwrap();
