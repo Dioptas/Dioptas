@@ -71,7 +71,10 @@ function productStorage(value: unknown, bytes: number) {
   const visit = (value: unknown): void => {
     if (!value || typeof value !== "object") return;
     const object = value as Record<string, unknown>;
-    if (typeof object.bufferId === "string" && (object.data instanceof ArrayBuffer || object.data instanceof Uint8Array)) {
+    if (
+      typeof object.bufferId === "string" &&
+      (object.data instanceof ArrayBuffer || object.data instanceof Uint8Array)
+    ) {
       const data = object.data as RasterBytes;
       buffers.set(object.bufferId, data);
       owners.add(data instanceof ArrayBuffer ? data : data.buffer);
@@ -81,7 +84,11 @@ function productStorage(value: unknown, bytes: number) {
     else Object.values(object).forEach(visit);
   };
   visit(value);
-  return { buffers, cost: bytes * 4 + [...owners].reduce((sum, owner) => sum + owner.byteLength, 0) };
+  return {
+    buffers,
+    cost:
+      bytes * 4 + [...owners].reduce((sum, owner) => sum + owner.byteLength, 0),
+  };
 }
 
 export class RasterTransfer {
@@ -135,8 +142,14 @@ export class RasterTransfer {
       for (const [id, bytes] of product.buffers)
         if (!known.has(id)) known.set(id, bytes);
     navigationTrace("ipc-start", { action });
-    const frame = await this.invoke(action, payload, [...known.keys()].slice(0, 64),
-      Object.fromEntries([...knownProducts].map(([field, product]) => [field, product.id])));
+    const frame = await this.invoke(
+      action,
+      payload,
+      [...known.keys()].slice(0, 64),
+      Object.fromEntries(
+        [...knownProducts].map(([field, product]) => [field, product.id]),
+      ),
+    );
     navigationTrace("ipc-received", {
       action,
       bytes: frame instanceof ArrayBuffer ? frame.byteLength : null,
@@ -161,12 +174,22 @@ export class RasterTransfer {
     const productDescriptors = new Map<string, { id: string; bytes: number }>();
     const retainedProducts = new Map<string, unknown>();
     if (header.products !== undefined) {
-      if (!header.products || typeof header.products !== "object" || Array.isArray(header.products))
+      if (
+        !header.products ||
+        typeof header.products !== "object" ||
+        Array.isArray(header.products)
+      )
         throw Error("Invalid metadata product table.");
       for (const [field, descriptor] of Object.entries(header.products)) {
         const entry = descriptor as { id?: unknown; bytes?: unknown } | null;
-        if (!["batch", "map"].includes(field) || !entry || typeof entry.id !== "string" ||
-          !entry.id.length || entry.id.length > 128 || !Number.isSafeInteger(entry.bytes) || Number(entry.bytes) < 0)
+        if (
+          !["batch", "map"].includes(field) ||
+          !entry ||
+          typeof entry.id !== "string" ||
+          !/^[A-Za-z0-9:_-]{1,128}$/.test(entry.id) ||
+          !Number.isSafeInteger(entry.bytes) ||
+          Number(entry.bytes) < 0
+        )
           throw Error("Invalid metadata product descriptor.");
         const description = { id: entry.id, bytes: Number(entry.bytes) };
         productDescriptors.set(field, description);
@@ -270,7 +293,11 @@ export class RasterTransfer {
     for (const [field, descriptor] of productDescriptors) {
       const value = (result as unknown as Record<string, unknown>)[field];
       const storage = productStorage(value, descriptor.bytes);
-      this.products.set(field, { ...descriptor, value, buffers: storage.buffers }, storage.cost);
+      this.products.set(
+        field,
+        { ...descriptor, value, buffers: storage.buffers },
+        storage.cost,
+      );
     }
     navigationTrace("ipc-hydrated", {
       action,

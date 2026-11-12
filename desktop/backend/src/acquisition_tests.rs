@@ -14,7 +14,7 @@ fn call(s: &mut Session, action: &str, payload: Value) -> Reply {
 }
 fn image(path: &Path, value: f64) {
     let mut header = "{'descr': '<f8', 'fortran_order': False, 'shape': (24, 32), }".to_string();
-    while (10 + header.len() + 1) % 64 != 0 {
+    while !(10 + header.len() + 1).is_multiple_of(64) {
         header.push(' ');
     }
     header.push('\n');

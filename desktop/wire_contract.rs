@@ -157,6 +157,28 @@ pub fn deferred_metadata(kind: DecisionKind, decision: Value) -> Value {
     result
 }
 
+/// Optional transport cache negotiation; never part of scientific payloads.
+pub fn validate_cached_products(value: &serde_json::Value) -> Result<(), String> {
+    let Some(products) = value.as_object() else {
+        return Err("Invalid cached product table.".into());
+    };
+    if products.len() > 2
+        || products.iter().any(|(field, id)| {
+            !matches!(field.as_str(), "batch" | "map")
+                || id.as_str().is_none_or(|id| {
+                    id.is_empty()
+                        || id.len() > 128
+                        || !id
+                            .bytes()
+                            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b':' | b'-' | b'_'))
+                })
+        })
+    {
+        return Err("Invalid cached product table.".into());
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -303,17 +325,4 @@ mod tests {
             assert_eq!(response_metadata(&result).unwrap().decision, Some(kind));
         }
     }
-}
-/// Optional transport cache negotiation; never part of scientific payloads.
-pub fn validate_cached_products(value: &serde_json::Value) -> Result<(), String> {
-    let Some(products) = value.as_object() else {
-        return Err("Invalid cached product table.".into());
-    };
-    if products.len() > 2 || products.iter().any(|(field, id)| {
-        !matches!(field.as_str(), "batch" | "map") || id.as_str().is_none_or(|id|
-            id.is_empty() || id.len() > 128 || !id.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b':' | b'-' | b'_')))
-    }) {
-        return Err("Invalid cached product table.".into());
-    }
-    Ok(())
 }

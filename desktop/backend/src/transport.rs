@@ -5,8 +5,9 @@ use crate::{
     Session,
     control::Control,
     protocol::{
-        MAX_REQUEST_BYTES, Reply, Request, decode_request,
+        MAX_REQUEST_BYTES, Reply, Request,
         command_contract::{CommandExecution, REQUEST_SIZE_ERROR, execution},
+        decode_request,
     },
 };
 use serde_json::json;
@@ -107,7 +108,11 @@ pub fn serve(
     let running = AtomicBool::new(false);
     let closing = AtomicBool::new(false);
     let active: Mutex<Option<Arc<Control>>> = Mutex::new(None);
-    let write = |id, reply: Reply, known: &[String], products: Option<&crate::metadata_products::CachedProducts>| -> Result<(), String> {
+    let write = |id,
+                 reply: Reply,
+                 known: &[String],
+                 products: Option<&crate::metadata_products::CachedProducts>|
+     -> Result<(), String> {
         let mut trace = crate::frame_trace::FrameTrace::new("packet", id);
         let packet = reply.packet_parts_with_products(id, known, products)?;
         trace.mark("encode response");
@@ -122,7 +127,11 @@ pub fn serve(
         result
     };
     thread::scope(|scope| {
-        let (sender, receiver) = mpsc::sync_channel::<(Request, Option<crate::metadata_products::CachedProducts>, Arc<Control>)>(16);
+        let (sender, receiver) = mpsc::sync_channel::<(
+            Request,
+            Option<crate::metadata_products::CachedProducts>,
+            Arc<Control>,
+        )>(16);
         let (ready_sender, ready_receiver) = mpsc::sync_channel(1);
         let worker_write = &write;
         let worker_running = &running;
@@ -172,7 +181,12 @@ pub fn serve(
                     }
                 }
                 worker_running.store(false, Ordering::Release);
-                worker_write(request.id, reply, &request.cached_buffers, products.as_ref())?;
+                worker_write(
+                    request.id,
+                    reply,
+                    &request.cached_buffers,
+                    products.as_ref(),
+                )?;
                 if fatal {
                     return Err("Native processing stopped after an internal error.".into());
                 }
@@ -254,7 +268,8 @@ pub fn serve(
                                 write(
                                     request.id,
                                     Reply::error("Native processing queue is full."),
-                                    &[], None,
+                                    &[],
+                                    None,
                                 )?;
                             }
                             Err(mpsc::TrySendError::Disconnected(_)) => {

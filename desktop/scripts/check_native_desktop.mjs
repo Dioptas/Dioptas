@@ -102,6 +102,7 @@ if (selected.has("--ui")) {
     "native_corrections_smoke",
     "correction_previews_smoke",
     "processing_drafts_smoke",
+    "metadata_products_smoke",
     "native_project_smoke",
     "dac_thermal_pressure_smoke",
     "native_geometry_mask_smoke",

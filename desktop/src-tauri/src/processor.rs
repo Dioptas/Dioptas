@@ -589,6 +589,34 @@ mod tests {
     }
 
     #[test]
+    fn metadata_products_roundtrip_without_changing_legacy_results() {
+        let processor = Processor::start_backend(false, Backend::Rust).unwrap();
+        let path = Processor::source_root().join("desktop/backend/tests/fixtures/batch_background_input.h5");
+        assert_eq!(processor.request("batch_open", json!({"path":path})).unwrap()["ok"], true);
+        let full = processor.request_packet_with_products("batch_snapshot", json!({}), vec![], Some(json!({}))).unwrap();
+        let header = |packet: &Packet| -> Value {
+            let length = u32::from_le_bytes(packet.bytes[..4].try_into().unwrap()) as usize;
+            serde_json::from_slice(&packet.bytes[4..4+length]).unwrap()
+        };
+        let first = header(&full);
+        assert!(first["result"]["batch"].is_object());
+        let known: serde_json::Map<String, Value> = first["products"].as_object().unwrap().iter()
+            .map(|(field, product)| (field.clone(), product["id"].clone())).collect();
+        let buffers = first["buffers"].as_array().unwrap().iter()
+            .map(|buffer| buffer["id"].as_str().unwrap().to_string()).collect();
+        let warm = processor.request_packet_with_products("batch_snapshot", json!({}), buffers, Some(Value::Object(known))).unwrap();
+        let second = header(&warm);
+        assert!(second["result"].get("batch").is_none());
+        assert_eq!(second["products"], first["products"]);
+        assert!(warm.bytes.len() < full.bytes.len());
+        assert!(processor.request_packet_with_products("state", json!({}), vec![], Some(json!({"unknown":"id"}))).is_err());
+        let legacy = processor.request_packet("batch_snapshot", json!({}), vec![]).unwrap();
+        assert_eq!(header(&legacy)["result"], first["result"]);
+        assert!(header(&legacy).get("products").is_none());
+        processor.shutdown();
+    }
+
+    #[test]
     fn raw_buffers_roundtrip_and_cached_images_are_not_resent() {
         let processor = Processor::start(false).unwrap();
         let path = Processor::source_root().join("dioptas/tests/data/image_001.tif");
