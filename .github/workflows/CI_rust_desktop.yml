@@ -33,21 +33,26 @@ jobs:
         with:
           node-version: '26'
       - name: Install Rust tools
-        run: rustup update stable && rustup component add clippy rustfmt llvm-tools-preview
+        # llvm-tools-preview is only used by the Linux coverage run.
+        run: rustup update stable && rustup component add clippy rustfmt ${{ runner.os == 'Linux' && 'llvm-tools-preview' || '' }}
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: desktop/backend -> target
           key: processor-${{ runner.os }}
-      - name: Run native processor gate (no Python environment)
-        run: node desktop/scripts/check_native_desktop.mjs --processor
-      - name: Measure Rust coverage
+      # A prebuilt, pinned binary instead of compiling the tool on every run.
+      - name: Install cargo-llvm-cov
         if: runner.os == 'Linux'
-        working-directory: desktop/backend
-        run: |
-          mkdir -p ../artifacts/coverage
-          cargo install cargo-llvm-cov --locked --version 0.9.1
-          cargo llvm-cov --locked --all-features --lcov --output-path ../artifacts/coverage/lcov.info
-          cargo llvm-cov report --html --output-dir ../artifacts/coverage/html
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov@0.9.1
+      - name: Run native processor gate (no Python environment)
+        # On Linux the gate runs the all-features tests once, instrumented by
+        # cargo-llvm-cov, and writes desktop/artifacts/coverage (lcov.info and
+        # html/) instead of rebuilding and rerunning them for coverage
+        # afterwards. They therefore run uninstrumented only on macOS.
+        env:
+          DIOPTAS_GATE_COVERAGE: ${{ runner.os == 'Linux' && '1' || '0' }}
+        run: node desktop/scripts/check_native_desktop.mjs --processor
       - uses: actions/upload-artifact@v7
         if: always()
         with:
