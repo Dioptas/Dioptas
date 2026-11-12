@@ -1,8 +1,5 @@
 use serde_json::{json, Value};
-#[path = "../../command_contract.rs"]
-pub mod command_contract;
-#[path = "../../wire_contract.rs"]
-pub mod wire_contract;
+pub use dioptas_contract::{command_contract, wire_contract};
 use command_contract::{MAX_REQUEST_BYTES, REQUEST_SIZE_ERROR};
 use std::{
     collections::HashMap,
@@ -236,7 +233,7 @@ impl Processor {
                             .and_then(|p| p.parent().map(|p| p.join(filename)));
                         sibling.filter(|p| p.is_file()).unwrap_or_else(|| {
                             #[cfg(debug_assertions)]
-                            let root = Self::source_root().join("backend/target");
+                            let root = Self::source_root().join("target");
                             #[cfg(not(debug_assertions))]
                             let root = std::env::current_exe()
                                 .unwrap_or_default()

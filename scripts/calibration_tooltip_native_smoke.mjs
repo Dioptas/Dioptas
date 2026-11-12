@@ -63,7 +63,7 @@ const run = (command, args, capture = false) =>
 try {
   await run("npm", ["run", "tauri:build", "--", "--debug", "--config", config]);
   const output = await run(
-    "src-tauri/target/debug/dioptas-desktop",
+    "target/debug/dioptas-desktop",
     ["--example", "--tooltip-smoke"],
     true,
   );

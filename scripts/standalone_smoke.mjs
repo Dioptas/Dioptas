@@ -18,7 +18,7 @@ import { inspectStandalone } from "./inspect_standalone.mjs";
 const desktop = fileURLToPath(new URL("../", import.meta.url));
 const application =
   process.argv[2] ||
-  path.join(desktop, "src-tauri/target/release/bundle/macos/Dioptas.app");
+  path.join(desktop, "target/release/bundle/macos/Dioptas.app");
 const preserveSignature = process.argv.includes("--preserve-signature");
 const inspectionOptions = preserveSignature
   ? { teamIdentifier: process.env.DIOPTAS_APPLE_TEAM_ID }

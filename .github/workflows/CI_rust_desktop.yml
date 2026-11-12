@@ -44,7 +44,7 @@ jobs:
         run: rustup update stable && rustup component add clippy rustfmt ${{ runner.os == 'Linux' && 'llvm-tools-preview' || '' }}
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: backend -> target
+          workspaces: . -> target
           key: processor-${{ runner.os }}
           save-if: ${{ github.ref == 'refs/heads/develop' }}
       # A prebuilt, pinned binary instead of compiling the tool on every run.
@@ -85,8 +85,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
-            backend -> target
-            src-tauri -> target
+            . -> target
           key: desktop-macos
           save-if: ${{ github.ref == 'refs/heads/develop' }}
       - run: npm ci
@@ -124,8 +123,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
-            backend -> target
-            src-tauri -> target
+            . -> target
             security/glib-regression -> target
           key: linux-tauri-glib-security
           save-if: ${{ github.ref == 'refs/heads/develop' }}

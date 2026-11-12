@@ -52,17 +52,11 @@ export async function verifyHdf5WindowsAbi(repository = root) {
       );
     }
   }
-  const manifest = await readFile(
-    path.join(repository, "backend/Cargo.toml"),
-    "utf8",
-  );
-  const lock = await readFile(
-    path.join(repository, "backend/Cargo.lock"),
-    "utf8",
-  );
+  const manifest = await readFile(path.join(repository, "Cargo.toml"), "utf8");
+  const lock = await readFile(path.join(repository, "Cargo.lock"), "utf8");
   for (const pkg of provenance.packages) {
     assert(
-      manifest.includes(`${pkg.crate} = { path = "../vendor/${pkg.crate}" }`),
+      manifest.includes(`${pkg.crate} = { path = "vendor/${pkg.crate}" }`),
     );
     const entries = lock
       .split("[[package]]")

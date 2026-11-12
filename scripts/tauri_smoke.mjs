@@ -51,7 +51,7 @@ const capture = !live
 const captures = [];
 let capturing = Promise.resolve();
 const child = spawn(
-  live ? "npm" : "src-tauri/target/debug/dioptas-desktop",
+  live ? "npm" : "target/debug/dioptas-desktop",
   live
     ? [
         "run",

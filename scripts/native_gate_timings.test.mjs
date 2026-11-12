@@ -174,7 +174,9 @@ function scratchGate() {
 }
 
 const processorCalls = [
-  ".: cargo fmt --manifest-path backend/Cargo.toml -- --check",
+  ".: cargo fmt -p dioptas-backend -p dioptas-contract -- --check",
+  ".: cargo clippy --locked --manifest-path contract/Cargo.toml --all-targets -- -D warnings",
+  ".: cargo test --locked --manifest-path contract/Cargo.toml",
   ".: cargo clippy --locked --manifest-path backend/Cargo.toml --no-default-features --all-targets -- -D warnings",
   ".: cargo test --locked --manifest-path backend/Cargo.toml --no-default-features --lib",
   ".: cargo clippy --locked --manifest-path backend/Cargo.toml --all-features --all-targets -- -D warnings",
@@ -185,6 +187,8 @@ const processorSteps = [
   "glib-security-backport",
   "native-contract-generation",
   "rust-format",
+  "contract-clippy",
+  "contract-tests",
   "rust-core-clippy",
   "rust-core-tests",
   "rust-clippy",
@@ -241,15 +245,15 @@ describe(
           ["glib-security-backport", "passed", 0],
           ["native-contract-generation", "passed", 0],
           ["rust-format", "passed", 0],
-          ["rust-core-clippy", "failed", 3],
+          ["contract-clippy", "failed", 3],
         ],
       );
       // The summary precedes the error that stops the gate.
       const summary = r.stdout.indexOf("Native gate timings");
       assert.ok(summary > 0);
-      assert.match(r.stderr, /rust-core-clippy failed \(3\) after \d+\.\d s/);
+      assert.match(r.stderr, /contract-clippy failed \(3\) after \d+\.\d s/);
       assert.equal(r.summary.match(/### Native gate timings/g).length, 1);
-      assert.match(r.summary, /\| rust-core-clippy \| .* \| failed \|/);
+      assert.match(r.summary, /\| contract-clippy \| .* \| failed \|/);
     });
 
     it("swaps only the all-features test step under the coverage opt-in", () => {

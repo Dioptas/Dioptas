@@ -17,10 +17,7 @@ const html = path.resolve(
   option("--ui", path.join(artifacts, "baseline-ui/index.html")),
 );
 const processor = path.resolve(
-  option(
-    "--processor",
-    path.join(root, "backend/target/debug/dioptas-processor"),
-  ),
+  option("--processor", path.join(root, "target/debug/dioptas-processor")),
 );
 const label = option("--label", "baseline");
 const repetitions = Number(option("--repetitions", "8"));

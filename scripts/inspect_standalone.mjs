@@ -166,7 +166,7 @@ if (
 ) {
   const application =
     process.argv[2] ||
-    path.join(desktop, "src-tauri/target/release/bundle/macos/Dioptas.app");
+    path.join(desktop, "target/release/bundle/macos/Dioptas.app");
   const result = await inspectStandalone(application);
   const artifacts = path.join(desktop, "artifacts/standalone");
   await mkdir(artifacts, { recursive: true });

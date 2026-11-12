@@ -200,8 +200,7 @@ __pycache__/
 /node_modules/
 /dist/
 /artifacts/
-/src-tauri/target/
-/backend/target/
+/target/
 /src-tauri/gen/
 /src-tauri/binaries/dioptas-processor-*
 /src-tauri/resources/

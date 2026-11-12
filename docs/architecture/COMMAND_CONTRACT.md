@@ -1,7 +1,8 @@
 # Native command execution contract
 
-`command_contract.rs` is compiled into the Tauri host and Rust processor. It is
-the source of truth for the request-frame byte limit and execution policy.
+`contract/src/command_contract.rs`, in the `dioptas-contract` crate, is a
+dependency of both the Tauri host and the Rust processor. It is the source of
+truth for the request-frame byte limit and execution policy.
 Scientific payloads/results retain their existing JSON protocol. React invokes
 Tauri's `desktop_invoke`; the host forwards requests over its owned processor
 stdio connection and returns metadata plus binary raster buffers through Tauri.
@@ -93,7 +94,7 @@ binary raster boundary.
 
 `command_payload_schema.json` generates both
 `src/nativePayloadContracts.generated.ts` and
-`native_payload_contracts.generated.rs`. Run
+`contract/src/native_payload_contracts.generated.rs`. Run
 `node scripts/generate_native_contracts.mjs` after changing this schema;
 `--check` verifies committed generation without changing files or requiring a
 compiler. The frontend registry imports these payload types instead of defining

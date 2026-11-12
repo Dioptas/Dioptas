@@ -117,22 +117,16 @@ export async function verifyBackport(repository = root) {
     await readFile(path.join(vendor, ".cargo_vcs_info.json"), "utf8"),
   );
   assert.equal(vcs.git.sha1, expected.registryBaseCommit);
-  const manifest = await readFile(
-    path.join(repository, "src-tauri/Cargo.toml"),
-    "utf8",
-  );
+  const manifest = await readFile(path.join(repository, "Cargo.toml"), "utf8");
   const patches = manifest.match(
     /\[patch\.crates-io\]([\s\S]*?)(?=\n\[|$)/,
   )?.[1];
   assert.match(
     patches ?? "",
-    /^glib\s*=\s*\{\s*path\s*=\s*"\.\.\/vendor\/glib"\s*\}/m,
+    /^glib\s*=\s*\{\s*path\s*=\s*"vendor\/glib"\s*\}/m,
     "Tauri must use the reviewed local GLib source",
   );
-  const lock = await readFile(
-    path.join(repository, "src-tauri/Cargo.lock"),
-    "utf8",
-  );
+  const lock = await readFile(path.join(repository, "Cargo.lock"), "utf8");
   const glib = lock
     .split("[[package]]")
     .filter((entry) => /^\s*name = "glib"$/m.test(entry));

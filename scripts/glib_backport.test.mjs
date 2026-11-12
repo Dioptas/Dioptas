@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { cp, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,13 +18,12 @@ async function fixture(run) {
     await cp(source, path.join(directory, "vendor/glib"), {
       recursive: true,
     });
-    await mkdir(path.join(directory, "src-tauri"), { recursive: true });
     await writeFile(
-      path.join(directory, "src-tauri/Cargo.toml"),
-      '[patch.crates-io]\nglib = { path = "../vendor/glib" }\n',
+      path.join(directory, "Cargo.toml"),
+      '[patch.crates-io]\nglib = { path = "vendor/glib" }\n',
     );
     await writeFile(
-      path.join(directory, "src-tauri/Cargo.lock"),
+      path.join(directory, "Cargo.lock"),
       '[[package]]\nname = "glib"\nversion = "0.18.5"\n',
     );
     await run(directory, path.join(directory, "vendor/glib"));
@@ -113,7 +112,7 @@ test("unrelated edits, extra source, and a rewritten checksum manifest fail", as
 test("a registry-resolved GLib cannot pass the backport guard", async () =>
   fixture(async (directory) => {
     await writeFile(
-      path.join(directory, "src-tauri/Cargo.lock"),
+      path.join(directory, "Cargo.lock"),
       '[[package]]\nname = "glib"\nversion = "0.18.5"\nsource = "registry+https://github.com/rust-lang/crates.io-index"\n',
     );
     await assert.rejects(

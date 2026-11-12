@@ -1,9 +1,10 @@
 # Dioptas development
 
 The application is Rust/React/Tauri: React UI in `src`, Tauri host in
-`src-tauri`, native Rust/Dioptrin processing in `backend`. The legacy Qt/Python
-app and its test suite live on `legacy/qt`. Read `DEVELOPMENT.md` and
-`docs/parity/CALIBRATION_PARITY.md` before changing the command or plot
+`src-tauri`, native Rust/Dioptrin processing in `backend`, and the command
+contract they share in `contract`; the three crates form one Cargo workspace. The
+legacy Qt/Python app and its test suite live on `legacy/qt`. Read
+`DEVELOPMENT.md` and `docs/parity/CALIBRATION_PARITY.md` before changing the command or plot
 boundaries, architecture or workflow.
 
 If an untracked `AGENTS.local.md` exists at the repository root, read it too for

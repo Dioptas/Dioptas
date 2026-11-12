@@ -14,7 +14,7 @@ const folder = value("--data", "/Users/clemens/Programming/Dioptrin/test_data");
 const baseline = value("--baseline", null);
 const current = value(
   "--processor",
-  path.join(root, "backend/target/release/dioptas-processor"),
+  path.join(root, "target/release/dioptas-processor"),
 );
 const receipt = {};
 const science = {};

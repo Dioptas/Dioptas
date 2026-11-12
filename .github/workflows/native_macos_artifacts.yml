@@ -63,8 +63,7 @@ jobs:
         if: inputs.resume_dmg_run_id == ''
         with:
           workspaces: |
-            backend -> target
-            src-tauri -> target
+            . -> target
           key: native-release-${{ matrix.target }}
       - run: npm ci
       - name: Check shared release configuration

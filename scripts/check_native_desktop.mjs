@@ -96,10 +96,30 @@ node("native-contract-generation", "generate_native_contracts.mjs", "--check");
 if (selected.has("--processor")) {
   run("rust-format", "cargo", [
     "fmt",
-    "--manifest-path",
-    "backend/Cargo.toml",
+    "-p",
+    "dioptas-backend",
+    "-p",
+    "dioptas-contract",
     "--",
     "--check",
+  ]);
+  // The contract is compiled into both the processor and the host; its own
+  // lints and tests run once here.
+  run("contract-clippy", "cargo", [
+    "clippy",
+    "--locked",
+    "--manifest-path",
+    "contract/Cargo.toml",
+    "--all-targets",
+    "--",
+    "-D",
+    "warnings",
+  ]);
+  run("contract-tests", "cargo", [
+    "test",
+    "--locked",
+    "--manifest-path",
+    "contract/Cargo.toml",
   ]);
   // Keep the portable core healthy as native-only helpers evolve. Clippy and
   // library tests cannot replace the processor executable used by later gates.

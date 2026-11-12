@@ -44,7 +44,7 @@ fn adapter_identity() -> &'static str {
             include_bytes!("image.rs"),
             include_bytes!("geometry.rs"),
             include_bytes!("transform.rs"),
-            include_bytes!("../Cargo.lock"),
+            include_bytes!("../../Cargo.lock"),
         ];
         for source in sources {
             hash.update(source);

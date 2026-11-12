@@ -22,7 +22,7 @@ const option = (name, fallback) => {
 const baseline = option("--baseline", null);
 const processor = option(
   "--processor",
-  path.join(root, "backend/target/debug/dioptas-processor"),
+  path.join(root, "target/debug/dioptas-processor"),
 );
 const output = option(
   "--output",

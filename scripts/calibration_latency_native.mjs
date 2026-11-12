@@ -13,10 +13,7 @@ const directory = path.join(root, "artifacts/calibration-latency");
 await mkdir(directory, { recursive: true });
 const app = path.resolve(option("--app", path.join(directory, "native-host"))),
   processor = path.resolve(
-    option(
-      "--processor",
-      path.join(root, "backend/target/debug/dioptas-processor"),
-    ),
+    option("--processor", path.join(root, "target/debug/dioptas-processor")),
   ),
   label = option("--label", "optimized");
 const profile = await nativeTestProfile("calibration-latency");

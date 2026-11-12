@@ -15,7 +15,7 @@ documents the corrected profile/scaling reduction and its supported scope. See t
 verification.
 
 The desktop uses Dioptrin **0.12.0** plus the Massif, cached compatibility
-and resident-layout/dynamic-worker/typed-CSR optimizations at revision `0c0d4fc`, locked in `backend/Cargo.lock`. It includes native
+and resident-layout/dynamic-worker/typed-CSR optimizations at revision `0c0d4fc`, locked in `Cargo.lock`. It includes native
 pyFAI-compatible full pixel splitting for both 1D patterns and cakes. Massif
 picking retains full-resolution samples and reuses preprocessing across clicks;
 see [Massif performance and numerical checks](../performance/MASSIF_PERFORMANCE.md) and

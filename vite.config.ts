@@ -45,8 +45,7 @@ export default defineConfig({
   server: {
     watch: {
       ignored: [
-        "**/backend/target/**",
-        "**/src-tauri/target/**",
+        "**/target/**",
         "**/security/glib-regression/target/**",
         "**/src-tauri/binaries/**",
         "**/src-tauri/resources/**",

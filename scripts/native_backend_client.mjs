@@ -11,7 +11,7 @@ export function nativeClient(options = {}) {
     process.env.DIOPTAS_NATIVE_PROCESSOR ??
     path.join(
       root,
-      "backend/target/debug",
+      "target/debug",
       process.platform === "win32"
         ? "dioptas-processor.exe"
         : "dioptas-processor",

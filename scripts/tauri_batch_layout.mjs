@@ -67,7 +67,7 @@ const reports = [];
 for (const stage of ["seed", "floating", "closed", "docked"]) {
   let report;
   const p = spawn(
-    "src-tauri/target/debug/bundle/macos/Dioptas Batch Layout Check.app/Contents/MacOS/dioptas-desktop",
+    "target/debug/bundle/macos/Dioptas Batch Layout Check.app/Contents/MacOS/dioptas-desktop",
     ["--backend=rust", "--smoke", "--batch-smoke"],
     {
       cwd: desktop,

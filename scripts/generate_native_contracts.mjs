@@ -88,7 +88,7 @@ rs +=
   "        _ => return Ok(PayloadCoverage::Legacy),\n    }\n    Ok(PayloadCoverage::TypedFields)\n}\n";
 for (const [relative, output] of [
   ["src/nativePayloadContracts.generated.ts", ts],
-  ["native_payload_contracts.generated.rs", rs],
+  ["contract/src/native_payload_contracts.generated.rs", rs],
 ]) {
   const destination = new URL(relative, desktop);
   if (checking) {

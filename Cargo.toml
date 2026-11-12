@@ -1,0 +1,73 @@
+# One workspace for the processor, the Tauri host and the contract they share:
+# a single lockfile and a single target directory.
+[workspace]
+resolver = "3"
+members = ["backend", "contract", "src-tauri"]
+# Isolated crates with their own lockfiles, and the reviewed vendored sources.
+exclude = ["artifacts", "scripts", "security", "vendor"]
+
+[patch.crates-io]
+# Match the external-file offset ABI of bundled HDF5 2.x on Windows.
+hdf5-metno = { path = "vendor/hdf5-metno" }
+hdf5-metno-sys = { path = "vendor/hdf5-metno-sys" }
+# Tauri's GTK 0.18 graph cannot select glib >=0.20 yet. This preserves the
+# published crate with the exact upstream RUSTSEC-2024-0429 fix; CI verifies it.
+glib = { path = "vendor/glib" }
+
+# Full debuginfo made each statically linked test executable ~0.5 GB. Keep
+# file/line backtraces for the workspace crates, and only symbol names for
+# dependencies.
+# Applies to dev and test (test inherits dev), so `cargo build` and
+# `cargo test` still share dependency artifacts. Release is unaffected.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
+# Keep the real-image native algorithms practical in the development preview.
+# This changes optimization only, not float arithmetic policy or CPU target.
+[profile.dev.package.dioptrin]
+opt-level = 2
+
+[profile.dev.package.dioptas-backend]
+opt-level = 2
+
+[profile.dev.package.dioptrin-io]
+opt-level = 2
+
+# The codec is a separate C dependency: optimizing dioptrin-io alone leaves
+# Bitshuffle/LZ4 (including its NEON/AVX2 kernels) at -O0 in live previews.
+[profile.dev.package.hdf5-bitshuffle]
+opt-level = 2
+
+[profile.dev.package.phasesmith-core]
+opt-level = 2
+
+[profile.dev.package.phasesmith-crystallography]
+opt-level = 2
+
+[profile.dev.package.peritheos]
+opt-level = 2
+
+[profile.dev.package.sha2]
+opt-level = 2
+
+# Display buffer IDs are on every image-navigation path. Keep their library
+# optimized in live previews, like the numerical kernels.
+[profile.dev.package.blake3]
+opt-level = 2
+
+# Float-to-JSON formatting of full calibration contours is also a hot path.
+[profile.dev.package.zmij]
+opt-level = 2
+
+[profile.dev.package.phasesmith-single-crystal]
+opt-level = 2
+
+[profile.dev.package.phasesmith-workflows]
+opt-level = 2
+
+# Large response headers are routed by the host even in a live preview.
+[profile.dev.package.serde_json]
+opt-level = 2

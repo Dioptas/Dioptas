@@ -39,8 +39,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
-            backend -> target
-            src-tauri -> target
+            . -> target
           key: native-windows-x64
           cache-on-failure: true
       - run: npm ci

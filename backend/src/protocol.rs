@@ -2,11 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::{collections::HashSet, sync::Arc};
 
-#[path = "../../command_contract.rs"]
-pub mod command_contract;
 pub use command_contract::MAX_REQUEST_BYTES;
-#[path = "../../wire_contract.rs"]
-pub mod wire_contract;
+pub use dioptas_contract::{command_contract, wire_contract};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]

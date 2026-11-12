@@ -82,7 +82,7 @@ To build a local executable with embedded UI (no development server):
 
 ```sh
 npm run tauri:build -- --debug
-src-tauri/target/debug/dioptas-desktop --example
+target/debug/dioptas-desktop --example
 ```
 
 ## Tests and CI

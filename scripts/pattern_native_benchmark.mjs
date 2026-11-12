@@ -22,7 +22,7 @@ if (!process.argv.includes("--no-build")) {
   }
 }
 const child = spawn(
-  "src-tauri/target/debug/dioptas-desktop",
+  "target/debug/dioptas-desktop",
   ["--example", "--pattern-benchmark"],
   { cwd: desktop, stdio: ["ignore", "pipe", "pipe"] },
 );

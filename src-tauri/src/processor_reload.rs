@@ -246,11 +246,20 @@ impl ProcessorHost {
                 .join("\n");
             return Err(tail);
         }
-        Ok(root.join("target/debug").join(if cfg!(windows) {
+        Ok(target_directory(root).join("debug").join(if cfg!(windows) {
             "dioptas-processor.exe"
         } else {
             "dioptas-processor"
         }))
+    }
+}
+/// A workspace member builds into the workspace's target directory; a
+/// standalone crate builds into its own.
+#[cfg(debug_assertions)]
+fn target_directory(root: &Path) -> PathBuf {
+    match root.parent() {
+        Some(workspace) if workspace.join("Cargo.toml").is_file() => workspace.join("target"),
+        _ => root.join("target"),
     }
 }
 #[cfg(debug_assertions)]
@@ -284,16 +293,16 @@ fn source_stamp(root: &Path) -> u64 {
         "data",
         "resources",
         "Cargo.toml",
-        "Cargo.lock",
         "build.rs",
     ] {
         visit(&root.join(name), &mut hash);
     }
-    // This source is compiled into both crates and lives beside backend/.
+    // The workspace manifest and lockfile, and the contract crate both crates
+    // depend on, live beside backend/.
     for name in [
-        "command_contract.rs",
-        "wire_contract.rs",
-        "native_payload_contracts.generated.rs",
+        "Cargo.toml",
+        "Cargo.lock",
+        "contract",
         "command_payload_schema.json",
         "scripts/generate_native_contracts.mjs",
     ] {
@@ -320,7 +329,7 @@ mod tests {
         result
     }
     fn binary() -> PathBuf {
-        Processor::source_root().join("backend/target/debug/dioptas-processor")
+        Processor::source_root().join("target/debug/dioptas-processor")
     }
     fn phase(rx: &mpsc::Receiver<Value>, wanted: &str) {
         let started = std::time::Instant::now();
@@ -472,9 +481,10 @@ mod tests {
         let before = source_stamp(&root);
         let mut previous = before;
         for name in [
-            "command_contract.rs",
-            "wire_contract.rs",
-            "native_payload_contracts.generated.rs",
+            "contract/src/command_contract.rs",
+            "contract/src/wire_contract.rs",
+            "contract/src/native_payload_contracts.generated.rs",
+            "Cargo.lock",
             "command_payload_schema.json",
             "scripts/generate_native_contracts.mjs",
         ] {

@@ -7,7 +7,7 @@ export function testFixture(kind, file, ...args) {
     process.env.DIOPTAS_TEST_FIXTURES ??
     path.join(
       root,
-      "backend/target/debug/examples",
+      "target/debug/examples",
       process.platform === "win32" ? "test_fixtures.exe" : "test_fixtures",
     );
   execFileSync(binary, [kind, file, ...args.map(String)], { stdio: "pipe" });

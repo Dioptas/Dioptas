@@ -6,8 +6,7 @@ import os from "node:os";
 import { inspectStandalone } from "./inspect_standalone.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
 const application =
-  process.argv[2] ??
-  path.join(root, "src-tauri/target/release/bundle/macos/Dioptas.app");
+  process.argv[2] ?? path.join(root, "target/release/bundle/macos/Dioptas.app");
 const inspection = await inspectStandalone(application);
 const directory = await realpath(
   await mkdtemp(path.join(os.tmpdir(), "dioptas-packaged-processor-")),

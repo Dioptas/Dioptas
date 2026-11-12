@@ -61,7 +61,7 @@ const config = {
   eigerOnly: args.includes("--eiger-only"),
   ...(eiger && (await stat(eiger).catch(() => null)) ? { eiger } : {}),
 };
-let executable = value("--app", "src-tauri/target/debug/dioptas-desktop");
+let executable = value("--app", "target/debug/dioptas-desktop");
 if (process.platform === "darwin" && !args.includes("--app")) {
   // A distinct bundle path prevents Launch Services from reusing a previous
   // benchmark build's registration when this window needs to be raised.
@@ -70,7 +70,7 @@ if (process.platform === "darwin" && !args.includes("--app")) {
     "Dioptas Navigation Benchmark.app",
   );
   await cp(
-    path.join(desktop, "src-tauri/target/debug/bundle/macos/Dioptas.app"),
+    path.join(desktop, "target/debug/bundle/macos/Dioptas.app"),
     bundle,
     { recursive: true },
   );
@@ -84,7 +84,7 @@ const child = spawn(executable, ["--backend=rust", "--navigation-benchmark"], {
     ...profile.env,
     DIOPTAS_NATIVE_PROCESSOR: value(
       "--processor",
-      path.join(desktop, "backend/target/debug/dioptas-processor"),
+      path.join(desktop, "target/debug/dioptas-processor"),
     ),
     DIOPTAS_NAVIGATION_BENCHMARK: JSON.stringify(config),
     DIOPTAS_TRACE_FRAME: "1",

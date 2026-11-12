@@ -16,7 +16,7 @@ const option = (name, fallback) => {
 const baseline = option("--baseline", null);
 const current = option(
   "--processor",
-  path.join(root, "backend/target/debug/dioptas-processor"),
+  path.join(root, "target/debug/dioptas-processor"),
 );
 let oldUi = option("--old-ui", null);
 if (args.includes("--compare-busy-ui")) {
