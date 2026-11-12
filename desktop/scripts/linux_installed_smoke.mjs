@@ -96,6 +96,10 @@ export async function linuxInstalledSmoke({
     LIBGL_ALWAYS_SOFTWARE: "1",
     GALLIUM_DRIVER: "llvmpipe",
     WEBKIT_DISABLE_DMABUF_RENDERER: "1",
+    // Xvfb has no hardware compositor. Mesa on Ubuntu 24.04 can reject the
+    // bundled WebKit's shared EGL contexts; qualify this explicit software
+    // test environment without forcing that policy into production startup.
+    WEBKIT_DISABLE_COMPOSITING_MODE: "1",
     GDK_BACKEND: "x11",
     NO_AT_BRIDGE: "1",
     LIBGL_DEBUG: "verbose",
@@ -155,6 +159,12 @@ export async function linuxInstalledSmoke({
       nativeWebKit: ui,
       processorReaped: reaped,
       inspection,
+      graphics: {
+        backend: "x11",
+        softwareRendering: true,
+        dmabufDisabled: true,
+        acceleratedCompositingDisabled: true,
+      },
     };
   } catch (error) {
     error.inspection = inspection;
