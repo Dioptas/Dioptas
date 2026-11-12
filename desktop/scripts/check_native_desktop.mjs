@@ -47,6 +47,28 @@ if (selected.has("--processor")) {
     "--",
     "--check",
   ]);
+  // Keep the portable core healthy as native-only helpers evolve. Library-only
+  // checks cannot replace the normal processor executable used by later gates.
+  run("rust-core-clippy", "cargo", [
+    "clippy",
+    "--locked",
+    "--manifest-path",
+    "backend/Cargo.toml",
+    "--no-default-features",
+    "--lib",
+    "--tests",
+    "--",
+    "-D",
+    "warnings",
+  ]);
+  run("rust-core-tests", "cargo", [
+    "test",
+    "--locked",
+    "--manifest-path",
+    "backend/Cargo.toml",
+    "--no-default-features",
+    "--lib",
+  ]);
   run("rust-clippy", "cargo", [
     "clippy",
     "--locked",

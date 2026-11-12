@@ -16,7 +16,7 @@ acquisition policy are retained.
 | F7: repeated metadata | Each client optionally advertises content tokens for Batch/Map metadata. Unchanged products reuse pinned metadata and raster owners; legacy clients still receive full results. | Real stdio/TypeScript roundtrip, independent clients, changed/null products, concurrent replacement, cache eviction/budgets, mixed arrays, and Tauri host roundtrip. |
 | F8: inherited output pipes | Launcher exit and output-stream lifetime are separate. One bounded drain service preserves descendant writes; per-run state isolates deletion/rerun. UI polling continues for pending output. | Late descendant output after launcher completion, deletion/reuse isolation, admission release, and real Chromium/WebKit controller polling. |
 | F9: archive pathname loss | Open projects retain both their read-only HDF5 handle and OS file descriptor; saves copy from the retained descriptor. | Save As after unlinking the snapshot and removing the original source. |
-| F10: checkpoint copies | Watcher collections, Series source paths/counts and Map slots share storage; mutation uses explicit copy-on-write. Existing shared scientific arrays remain shared. | Actual checkpoint pointer sharing, isolated mutation, restore identity, append and processed-HDF5 roundtrip. |
+| F10: checkpoint copies | Watcher collections, Series source paths/counts/reader contracts and Map slots share storage; mutation uses explicit copy-on-write. Existing shared scientific arrays remain shared. | Actual checkpoint pointer sharing, isolated mutation, restore identity, append and processed-HDF5 roundtrip. |
 | F11: launcher reaping | Documentation launchers transfer their Child to an asynchronous waiter. | Owned fake child is reaped with its exit status; no browser is opened by the regression. |
 
 ## Persistence compatibility
@@ -57,8 +57,8 @@ hold file locks after the parent closes them.
 
 ## Verification
 
-The native processor gate checks formatting, all-target strict Clippy, all-feature
-tests and a normal processor build. Host checks prepare the real processor,
+The native processor gate checks formatting, strict core-only library checks,
+all-target strict Clippy, all-feature tests and a normal processor build. Host checks prepare the real processor,
 build the frontend and exercise Tauri's stdio ownership. The UI gate uses
 headless Chromium/WebKit, including the new metadata and custom-action cases.
 Independent Python references remain explicit test oracles, and the optimized
