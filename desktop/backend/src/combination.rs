@@ -336,6 +336,7 @@ impl Session {
                     | "integration_phase_guides"
                     | "map_display"
                     | "map_poll"
+                    | "integration_autoprocess_poll"
             )
         {
             #[cfg(feature = "dioptrin")]

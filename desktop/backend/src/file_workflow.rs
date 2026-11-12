@@ -3,9 +3,12 @@ use super::*;
 use crate::pattern::Curve;
 use std::{
     collections::{BTreeMap, BTreeSet, VecDeque},
-    time::SystemTime,
+    time::{Duration, SystemTime},
 };
 type FileStamp = (u64, SystemTime);
+const POLL_MAX_IMAGES: usize = 8;
+// Checked between frames: one decoder/integration call remains cooperative.
+const POLL_TIME_BUDGET: Duration = Duration::from_millis(50);
 
 struct IncomingImage {
     path: PathBuf,
@@ -19,13 +22,34 @@ pub(super) struct Files {
     pub image_mode: String,
     pub auto_process: bool,
     pub auto_error: String,
-    known: BTreeSet<PathBuf>,
-    pending: BTreeMap<PathBuf, FileStamp>,
-    queue: VecDeque<PathBuf>,
+    known: Arc<BTreeSet<PathBuf>>,
+    pending: Arc<BTreeMap<PathBuf, FileStamp>>,
+    queue: Arc<VecDeque<PathBuf>>,
     // A failed acquisition is retried only after its source changes. Older
     // development checkpoints predate this field.
     #[serde(default)]
-    failed: BTreeMap<PathBuf, FileStamp>,
+    failed: Arc<BTreeMap<PathBuf, FileStamp>>,
+    #[serde(default)]
+    retry: Arc<BTreeMap<PathBuf, Retry>>,
+    #[serde(default)]
+    generated: Arc<BTreeMap<PathBuf, crate::image::FileIdentity>>,
+    #[cfg(test)]
+    #[serde(skip)]
+    stamp_reads: std::cell::Cell<usize>,
+    #[cfg(test)]
+    #[serde(skip)]
+    before_combination: Option<fn(&Control, &Path)>,
+}
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+enum RetryReason {
+    WaitingSource,
+    Output,
+}
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+struct Retry {
+    stamp: Option<FileStamp>,
+    reason: RetryReason,
+    message: String,
 }
 impl Default for Files {
     fn default() -> Self {
@@ -35,10 +59,16 @@ impl Default for Files {
             image_mode: "number".into(),
             auto_process: false,
             auto_error: String::new(),
-            known: BTreeSet::new(),
-            pending: BTreeMap::new(),
-            queue: VecDeque::new(),
-            failed: BTreeMap::new(),
+            known: Arc::default(),
+            pending: Arc::default(),
+            queue: Arc::default(),
+            failed: Arc::default(),
+            retry: Arc::default(),
+            generated: Arc::default(),
+            #[cfg(test)]
+            stamp_reads: Default::default(),
+            #[cfg(test)]
+            before_combination: None,
         }
     }
 }
@@ -46,9 +76,10 @@ impl Files {
     pub(super) fn stop_autoprocess(&mut self) {
         self.auto_process = false;
         self.auto_error.clear();
-        self.queue.clear();
-        self.pending.clear();
-        self.failed.clear();
+        self.queue = Arc::default();
+        self.pending = Arc::default();
+        self.failed = Arc::default();
+        self.retry = Arc::default();
     }
 }
 pub(super) fn image_file(path: &Path) -> bool {
@@ -179,12 +210,40 @@ pub(super) fn neighbor(path: &Path, mode: &str, step: i64) -> Result<Option<Path
 }
 
 impl Files {
+    fn stamp(&self, path: &Path) -> Option<FileStamp> {
+        #[cfg(test)]
+        self.stamp_reads.set(self.stamp_reads.get() + 1);
+        let m = std::fs::metadata(path).ok()?;
+        if !m.is_file() {
+            return None;
+        }
+        Some((m.len(), m.modified().ok()?))
+    }
     fn scan(&self) -> Result<BTreeSet<PathBuf>, String> {
         let mut paths = BTreeSet::new();
         for entry in std::fs::read_dir(&self.image_directory).map_err(|e| e.to_string())? {
-            let p = entry.map_err(|e| e.to_string())?.path();
-            if image_file(&p) && p.is_file() {
+            let entry = entry.map_err(|e| e.to_string())?;
+            let p = entry.path();
+            if !image_file(&p) {
+                continue;
+            }
+            if self.generated.get(&p).is_some_and(|identity| {
+                crate::image::FileIdentity::read(&p).ok().as_ref() == Some(identity)
+            }) {
+                continue;
+            }
+            // Known names are already admitted; avoid even file_type(), which
+            // can stat on network filesystems without directory-entry types.
+            if self.known.contains(&p)
+                && !self.failed.contains_key(&p)
+                && !self.retry.contains_key(&p)
+            {
                 paths.insert(p);
+            } else {
+                let kind = entry.file_type().map_err(|e| e.to_string())?;
+                if kind.is_file() || (kind.is_symlink() && self.stamp(&p).is_some()) {
+                    paths.insert(p);
+                }
             }
             if paths.len() > 1_000_000 {
                 return Err("Incoming directory exceeds one million image names.".into());
@@ -193,57 +252,120 @@ impl Files {
         Ok(paths)
     }
     pub fn baseline(&mut self) -> Result<(), String> {
-        self.known = self.scan()?;
-        self.pending.clear();
-        self.queue.clear();
-        self.failed.clear();
+        self.known = Arc::new(self.scan()?);
+        self.pending = Arc::default();
+        self.queue = Arc::default();
+        self.failed = Arc::default();
+        self.retry = Arc::default();
         Ok(())
     }
-    fn poll(&mut self) -> Result<Option<IncomingImage>, String> {
+    fn poll(&mut self) -> Result<(), String> {
         let paths = self.scan()?;
-        self.known.retain(|p| paths.contains(p));
-        self.pending.retain(|p, _| paths.contains(p));
-        self.failed.retain(|p, _| paths.contains(p));
-        let mut changed = Vec::new();
-        for (path, previous) in &self.failed {
-            let m = std::fs::metadata(path).map_err(|e| e.to_string())?;
-            if (m.len(), m.modified().map_err(|e| e.to_string())?) != *previous {
-                changed.push(path.clone());
-            }
+        // A detector may replace a previously generated .dat pathname. Only
+        // the file identity we wrote is excluded, never the extension.
+        let replaced_outputs: Vec<_> = self
+            .generated
+            .keys()
+            .filter(|p| paths.contains(*p))
+            .cloned()
+            .collect();
+        for path in replaced_outputs {
+            Arc::make_mut(&mut self.generated).remove(&path);
+            Arc::make_mut(&mut self.known).remove(&path);
         }
+        // Do not detach a shared checkpoint collection if it has not changed.
+        if self.known.iter().any(|p| !paths.contains(p)) {
+            Arc::make_mut(&mut self.known).retain(|p| paths.contains(p));
+        }
+        if self.pending.keys().any(|p| !paths.contains(p)) {
+            Arc::make_mut(&mut self.pending).retain(|p, _| paths.contains(p));
+        }
+        if self.failed.keys().any(|p| !paths.contains(p)) {
+            Arc::make_mut(&mut self.failed).retain(|p, _| paths.contains(p));
+        }
+        if self.retry.keys().any(|p| !paths.contains(p)) {
+            Arc::make_mut(&mut self.retry).retain(|p, _| paths.contains(p));
+        }
+        let changed: Vec<_> = self
+            .failed
+            .iter()
+            .filter(|(p, previous)| self.stamp(p).as_ref() != Some(previous))
+            .map(|(p, _)| p.clone())
+            .collect();
         for path in changed {
-            self.failed.remove(&path);
-            self.known.remove(&path);
-            self.pending.remove(&path);
+            Arc::make_mut(&mut self.failed).remove(&path);
+            Arc::make_mut(&mut self.known).remove(&path);
+            Arc::make_mut(&mut self.pending).remove(&path);
         }
         let mut ready = Vec::new();
         for path in paths.difference(&self.known) {
-            let m = std::fs::metadata(path).map_err(|e| e.to_string())?;
-            let stamp = (m.len(), m.modified().map_err(|e| e.to_string())?);
+            let Some(stamp) = self.stamp(path) else {
+                continue;
+            };
             if stamp.0 > 0 && self.pending.get(path) == Some(&stamp) {
                 ready.push((stamp.1, path.clone()));
-            } else {
-                self.pending.insert(path.clone(), stamp);
+            } else if self.pending.get(path) != Some(&stamp) {
+                Arc::make_mut(&mut self.pending).insert(path.clone(), stamp);
+            }
+        }
+        // A repaired output or newly available HDF5 companion does not have to
+        // modify the master/source. Retry at most once per bounded poll, without
+        // blocking later acquisitions. Opaque corrupt sources still require a
+        // changed source fingerprint before readmission.
+        for (path, retry) in self.retry.iter() {
+            if !self.queue.contains(path) {
+                if let Some(stamp) = self.stamp(path) {
+                    Arc::make_mut(&mut self.pending).insert(path.clone(), stamp);
+                    ready.push((retry.stamp.unwrap_or(stamp).1, path.clone()));
+                }
             }
         }
         ready.sort();
         for (_, path) in ready {
-            self.known.insert(path.clone());
-            // Keep the admission fingerprint until this queued image is read.
-            // Recording it after a failure could mistake a newly completed
-            // source for the version that failed during decoding.
-            self.queue.push_back(path);
+            Arc::make_mut(&mut self.known).insert(path.clone());
+            Arc::make_mut(&mut self.queue).push_back(path);
         }
-        Ok(self.queue.pop_front().map(|path| {
-            let stamp = self.pending.remove(&path).or_else(|| {
-                // Compatibility with an old development handoff's queue.
-                let m = std::fs::metadata(&path).ok()?;
-                Some((m.len(), m.modified().ok()?))
-            });
-            IncomingImage { path, stamp }
-        }))
+        Ok(())
+    }
+    fn next(&mut self) -> Option<IncomingImage> {
+        let path = Arc::make_mut(&mut self.queue).pop_front()?;
+        let stamp = Arc::make_mut(&mut self.pending)
+            .remove(&path)
+            .or_else(|| self.stamp(&path));
+        Some(IncomingImage { path, stamp })
+    }
+    fn retry(&mut self, incoming: &IncomingImage, reason: RetryReason, error: String) {
+        let message = format!(
+            "{}: {error}",
+            incoming
+                .path
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+        );
+        self.auto_error = message.clone();
+        Arc::make_mut(&mut self.retry).insert(
+            incoming.path.clone(),
+            Retry {
+                stamp: incoming.stamp,
+                reason,
+                message,
+            },
+        );
+    }
+    fn output_written(&mut self, path: &Path) {
+        // Only acquisition-compatible names can be rediscovered by this scanner.
+        if !image_file(path) {
+            return;
+        }
+        if let Ok(path) = path.canonicalize() {
+            if let Ok(identity) = crate::image::FileIdentity::read(&path) {
+                Arc::make_mut(&mut self.generated).insert(path, identity);
+            }
+        }
     }
 }
+
 fn directory(args: &Value) -> Result<String, String> {
     let p = path(args)?.canonicalize().map_err(|e| e.to_string())?;
     if !p.is_dir() {
@@ -377,6 +499,150 @@ pub(crate) fn atomic_render(
     temporary.commit(path)
 }
 impl Session {
+    fn poll_acquisition(&mut self) -> Result<Reply, String> {
+        if !self.files.auto_process {
+            return Ok(Reply::success());
+        }
+        self.files.poll()?;
+        let started = std::time::Instant::now();
+        let mut changed = false;
+        let mut cancelled = false;
+        for attempted in 0..POLL_MAX_IMAGES {
+            if attempted > 0 && started.elapsed() >= POLL_TIME_BUDGET {
+                break;
+            }
+            if self.control.check().is_err() {
+                cancelled = true;
+                break;
+            }
+            let Some(incoming) = self.files.next() else {
+                break;
+            };
+            let checkpoint = self.checkpoint();
+            self.control.publish(json!({"running":true,"current":attempted,"total":(attempted + 1 + self.files.queue.len()).min(POLL_MAX_IMAGES),"label":"Processing incoming images"}));
+            let mut options = self
+                .image
+                .as_ref()
+                .map(|i| i.options.clone())
+                .unwrap_or(json!({}));
+            options["path"] = json!(incoming.path);
+            options["frame"] = json!(0);
+            // Avoid treating output-volume failures as unreadable source data.
+            let auto = self.settings.auto_save;
+            self.settings.auto_save = false;
+            let opened = self.dispatch("open_image", &options).and_then(|mut reply| {
+                #[cfg(test)]
+                if let Some(observer) = self.files.before_combination {
+                    observer(&self.control, &incoming.path);
+                }
+                self.control.check()?;
+                // Finish combined products before this source/output transaction
+                // commits, so cancellation can retain a complete earlier prefix.
+                self.update_combination_reply(&mut reply, "open_image", &options)?;
+                Ok(reply)
+            });
+            self.settings.auto_save = auto;
+            match opened {
+                Ok(reply)
+                    if reply.result["imageChange"].is_object()
+                        || reply.result["calibrationChange"].is_object() =>
+                {
+                    self.restore_checkpoint(checkpoint);
+                    self.files.stop_autoprocess();
+                    self.files.auto_error = format!(
+                        "{}: detector dimensions changed. Autoprocess stopped; open the image manually to reset calibration.",
+                        incoming
+                            .path
+                            .file_name()
+                            .unwrap_or_default()
+                            .to_string_lossy()
+                    );
+                    return Ok(self.snapshot(false));
+                }
+                Ok(reply) if reply.result["hdf5SourceRequest"].is_object() => {
+                    self.restore_checkpoint(checkpoint);
+                    self.files.retry(
+                        &incoming,
+                        RetryReason::WaitingSource,
+                        "Waiting for declared HDF5 companion sources; retrying automatically."
+                            .into(),
+                    );
+                    changed = true;
+                }
+                Ok(_) => {
+                    #[cfg(feature = "dioptrin")]
+                    if let Err(error) = self.auto_save() {
+                        // A previous format may already have been written. Its
+                        // exact output fingerprint must survive source rollback.
+                        let generated = self.files.generated.clone();
+                        self.restore_checkpoint(checkpoint);
+                        self.files.generated = generated;
+                        self.files.retry(
+                            &incoming,
+                            RetryReason::Output,
+                            format!("Automatic output failed; retrying: {error}"),
+                        );
+                        changed = true;
+                        continue;
+                    }
+                    Arc::make_mut(&mut self.files.retry).remove(&incoming.path);
+                    Arc::make_mut(&mut self.files.failed).remove(&incoming.path);
+                    self.files.auto_error = self
+                        .files
+                        .retry
+                        .values()
+                        .next()
+                        .map(|r| r.message.clone())
+                        .unwrap_or_default();
+                    changed = true;
+                }
+                Err(error) => {
+                    self.restore_checkpoint(checkpoint);
+                    if self.control.check().is_err() {
+                        Arc::make_mut(&mut self.files.queue).push_front(incoming.path.clone());
+                        if let Some(stamp) = incoming.stamp {
+                            Arc::make_mut(&mut self.files.pending).insert(incoming.path, stamp);
+                        }
+                        cancelled = true;
+                        break;
+                    }
+                    // A readable HDF5 container can still reference an absent or
+                    // incomplete external file. Its master need never change.
+                    if hdf5::File::open(&incoming.path).is_ok()
+                        && Image::open(&incoming.path, &options).is_err()
+                    {
+                        self.files.retry(
+                            &incoming,
+                            RetryReason::WaitingSource,
+                            format!("Waiting for source data; retrying: {error}"),
+                        );
+                    } else {
+                        if let Some(stamp) = incoming.stamp {
+                            Arc::make_mut(&mut self.files.failed)
+                                .insert(incoming.path.clone(), stamp);
+                        }
+                        self.files.auto_error = format!(
+                            "{}: {error}",
+                            incoming
+                                .path
+                                .file_name()
+                                .unwrap_or_default()
+                                .to_string_lossy()
+                        );
+                    }
+                    changed = true;
+                }
+            }
+        }
+        if !changed && !cancelled {
+            return Ok(Reply::success());
+        }
+        let mut reply = self.snapshot(true);
+        if cancelled {
+            reply.result["cancelled"] = json!(true);
+        }
+        Ok(reply)
+    }
     pub(super) fn file_command(
         &mut self,
         action: &str,
@@ -407,50 +673,7 @@ impl Session {
                 self.files.auto_process = enabled;
                 self.files.auto_error.clear();
             }
-            "integration_autoprocess_poll" => {
-                if !self.files.auto_process {
-                    return Ok(Some(Reply::metadata(json!({"ok":true}))));
-                }
-                let Some(IncomingImage { path, stamp }) = self.files.poll()? else {
-                    return Ok(Some(Reply::metadata(json!({"ok":true}))));
-                };
-                // A corrupt incoming file must not discard the prior session or
-                // stall the queue. Restore all scientific state, retain its error.
-                let checkpoint = self.checkpoint();
-                let mut options = self
-                    .image
-                    .as_ref()
-                    .map(|i| i.options.clone())
-                    .unwrap_or(json!({}));
-                options["path"] = json!(path);
-                options["frame"] = json!(0);
-                match self.dispatch("open_image", &options) {
-                    Ok(reply) if reply.result["imageChange"].is_object() => {
-                        self.restore_checkpoint(checkpoint);
-                        self.files.stop_autoprocess();
-                        self.files.auto_error = format!(
-                            "{}: detector dimensions changed. Autoprocess stopped; open the image manually to reset calibration.",
-                            path.file_name().unwrap_or_default().to_string_lossy()
-                        );
-                        return Ok(Some(self.snapshot(false)));
-                    }
-                    Ok(reply) => {
-                        self.files.auto_error.clear();
-                        return Ok(Some(reply));
-                    }
-                    Err(e) => {
-                        self.restore_checkpoint(checkpoint);
-                        if let Some(stamp) = stamp {
-                            self.files.failed.insert(path.clone(), stamp);
-                        }
-                        self.files.auto_error = format!(
-                            "{}: {e}",
-                            path.file_name().unwrap_or_default().to_string_lossy()
-                        );
-                        return Ok(Some(self.snapshot(true)));
-                    }
-                }
-            }
+            "integration_autoprocess_poll" => return self.poll_acquisition().map(Some),
             "integration_autocreate" => {
                 self.settings.auto_save = boolean(&args["enabled"], "Auto save")?;
                 if let Some(dir) = args.get("directory") {
@@ -728,7 +951,7 @@ impl Session {
         Ok(Some(self.snapshot(false)))
     }
     #[cfg(feature = "dioptrin")]
-    pub(super) fn auto_save(&self) -> Result<(), String> {
+    pub(super) fn auto_save(&mut self) -> Result<(), String> {
         if !self.settings.auto_save || self.patterns.imported {
             return Ok(());
         }
@@ -740,8 +963,9 @@ impl Session {
                 .as_ref()
                 .and_then(|i| i.path.parent())
                 .unwrap_or(Path::new("."))
+                .to_path_buf()
         } else {
-            Path::new(&self.files.output_directory)
+            PathBuf::from(&self.files.output_directory)
         };
         if self.root.join("RESOURCE_MANIFEST.json").is_file()
             && directory
@@ -753,7 +977,15 @@ impl Session {
         }
         for format in &self.settings.formats {
             let file = directory.join(format!("{}{}", self.patterns.name, format));
-            if self.image.as_ref().is_some_and(|i| i.path == file) {
+            let normalized = directory
+                .canonicalize()
+                .map_err(|e| e.to_string())?
+                .join(file.file_name().unwrap());
+            if self.image.as_ref().is_some_and(|i| {
+                i.path == normalized || file.canonicalize().ok().as_ref() == Some(&i.path)
+            }) || (self.files.known.contains(&normalized)
+                && !self.files.generated.contains_key(&normalized))
+            {
                 return Err("Automatic output would replace the detector source; choose another output directory.".into());
             }
             export_curve(
@@ -762,16 +994,19 @@ impl Session {
                 &self.patterns.unit,
                 self.settings.geometry.wavelength,
             )?;
+            self.files.output_written(&file);
             if self.patterns.background.enabled || self.patterns.background_uid.is_some() {
                 let sub = directory.join("bkg_subtracted");
                 std::fs::create_dir_all(&sub).map_err(|e| e.to_string())?;
                 let displayed = Curve::from_json(self.pattern.as_deref().unwrap())?;
+                let sub_file = sub.join(format!("{}{}", self.patterns.name, format));
                 export_curve(
-                    &sub.join(format!("{}{}", self.patterns.name, format)),
+                    &sub_file,
                     &displayed,
                     &self.patterns.unit,
                     self.settings.geometry.wavelength,
                 )?;
+                self.files.output_written(&sub_file);
             }
         }
         Ok(())
@@ -920,3 +1155,7 @@ mod export_unit_tests {
         );
     }
 }
+
+#[cfg(all(test, feature = "dioptrin"))]
+#[path = "acquisition_tests.rs"]
+mod acquisition_tests;
