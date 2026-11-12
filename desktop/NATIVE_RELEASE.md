@@ -94,6 +94,20 @@ re-signing or re-submitting the app. The report keeps the original app revision
 and the current packaging revision separately. Recovering a still-pending or
 rejected app fails its ticket/Gatekeeper checks. The new DMG is submitted once.
 
+For a DMG that was already signed and uploaded to Apple, use
+`resume_dmg_run_id` instead of `recovery_run_id`, selecting only its original
+architecture. This restores the exact original DMG and its saved submission ID,
+waits on that ID, staples the accepted ticket and repeats copied-installation,
+packaged-processor, native WebKit and EOS-only checks. It performs no build,
+re-signing or new Apple upload. The app archive is copied from the verified DMG.
+Original app and recovery-tool revisions are recorded separately; `source.json`
+also preserves the original app revision across later recovery attempts.
+
+```sh
+gh workflow run native_macos_artifacts.yml --ref develop \
+  -f architecture=intel -f resume_dmg_run_id=ORIGINAL_RUN_ID
+```
+
 Disk-image creation uses explicit HFS+ and retries only `Resource busy` errors,
 up to five attempts with 2/4/8/16-second backoff. Other errors fail immediately.
 Retries remove only this candidate's partial DMG; no system disk-image helpers

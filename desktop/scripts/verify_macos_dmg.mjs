@@ -17,7 +17,7 @@ const execute = (command, args) =>
 
 export async function verifyMacosDmg(
   dmg,
-  { teamIdentifier, notarized = false, nativeSmoke = false } = {},
+  { teamIdentifier, notarized = false, nativeSmoke = false, archivePath } = {},
 ) {
   const directory = await mkdtemp(
     path.join(os.tmpdir(), "Dioptas DMG install "),
@@ -100,6 +100,8 @@ export async function verifyMacosDmg(
         installed,
         "--preserve-signature",
       ]);
+    if (archivePath)
+      execute("tar", ["-czf", archivePath, "-C", directory, applications[0]]);
     return {
       headless: !nativeSmoke,
       nativeWebKit: nativeSmoke,

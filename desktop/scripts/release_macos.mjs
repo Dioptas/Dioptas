@@ -102,6 +102,14 @@ assert.match(
   "Record the recovered application's source revision",
 );
 const sourceDirty = capture("git", ["status", "--porcelain"]).length > 0;
+await writeFile(
+  path.join(output, "source.json"),
+  JSON.stringify(
+    { version, target, sourceRevision, packagingRevision },
+    null,
+    2,
+  ) + "\n",
+);
 console.log(`Preparing ${version} (${target}); artifacts: ${output}`);
 if (!recoveredApplication)
   await run(
