@@ -39,6 +39,11 @@ try {
     $webviewSignature = Get-AuthenticodeSignature $webviews[0].FullName
     if ($webviewSignature.Status -ne 'Valid' -or $webviewSignature.SignerCertificate.Subject -notmatch 'Microsoft') { throw 'Embedded WebView2 installer is not trusted Microsoft software' }
 
+    $settings = Join-Path ([Environment]::GetFolderPath('ApplicationData')) $metadata.identifier
+    New-Item -ItemType Directory -Path $settings -Force | Out-Null
+    $sentinel = Join-Path $settings 'installer-test-preserve.txt'
+    Set-Content $sentinel 'preserve user settings'
+
     foreach ($build in $installers) {
         # NSIS requires the unquoted /D= destination to be the last argument.
         $process = Start-Process -FilePath $build.file -ArgumentList "/S /D=$installation" -Wait -PassThru
@@ -47,6 +52,8 @@ try {
         if (!(Test-Path (Join-Path $installation 'dioptas-desktop.exe'))) { throw 'Application was not installed' }
         $entry = Get-ItemProperty $registry
         if ($entry.DisplayVersion -ne $build.version) { throw 'Installed version registration is incorrect' }
+        if ((Get-Item (Join-Path $installation 'dioptas-desktop.exe')).VersionInfo.ProductVersion -ne $build.version) { throw 'Application executable version does not match the installer' }
+        if (!(Test-Path $sentinel)) { throw 'Installation or upgrade removed user settings' }
         $links = @(Get-ChildItem ([Environment]::GetFolderPath('StartMenu')) -Filter '*.lnk' -Recurse | Where-Object { $_.BaseName -eq 'Dioptas Desktop' })
         if ($links.Count -lt 1) { throw 'Start menu shortcut is missing' }
         foreach ($name in @('dioptas-desktop.exe', 'dioptas-processor.exe')) {
@@ -60,10 +67,11 @@ try {
         $receipts += @{ version = $build.version; registration = $true; startMenuShortcut = $true; runtime = (Get-Content $report -Raw | ConvertFrom-Json) }
     }
 
-    $settings = Join-Path ([Environment]::GetFolderPath('ApplicationData')) $metadata.identifier
-    New-Item -ItemType Directory -Path $settings -Force | Out-Null
-    $sentinel = Join-Path $settings 'installer-test-preserve.txt'
-    Set-Content $sentinel 'preserve user settings'
+    if ($installers.Count -gt 1) {
+        $ignored = Start-Process -FilePath $installers[0].file -ArgumentList "/S /D=$installation" -Wait -PassThru
+        if ((Get-ItemProperty $registry).DisplayVersion -ne $installers[-1].version) { throw 'Silent downgrade replaced the newer application' }
+        if ((Get-Item (Join-Path $installation 'dioptas-desktop.exe')).VersionInfo.ProductVersion -ne $installers[-1].version) { throw 'Silent downgrade replaced the newer executable' }
+    }
     $uninstaller = Join-Path $installation 'uninstall.exe'
     $process = Start-Process -FilePath $uninstaller -ArgumentList '/S' -Wait -PassThru
     if ($process.ExitCode -ne 0) { throw 'Uninstaller failed' }
@@ -75,7 +83,7 @@ try {
     foreach ($link in $links) { if (Test-Path $link.FullName) { throw 'Uninstall left a shortcut behind' } }
     if (!(Test-Path $sentinel)) { throw 'Silent uninstall removed user settings' }
     $installed = $false
-    @{ ok = $true; published = $false; signing = $metadata.signing; offlineWebView2Payload = @{ bytes = $webviews[0].Length; signature = 'Microsoft; Valid' }; installedVersions = $receipts; upgrade = ($receipts.Count -gt 1); uninstall = $true; userSettingsPreserved = $true } |
+    @{ ok = $true; published = $false; signing = $metadata.signing; offlineWebView2Payload = @{ bytes = $webviews[0].Length; signature = 'Microsoft; Valid' }; installedVersions = $receipts; upgrade = ($receipts.Count -gt 1); downgradeBlocked = ($receipts.Count -gt 1); uninstall = $true; userSettingsPreserved = $true } |
         ConvertTo-Json -Depth 25 | Set-Content (Join-Path $output 'verification.json') -Encoding utf8
     Remove-Item $sentinel
 } finally {

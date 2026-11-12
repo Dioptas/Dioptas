@@ -198,6 +198,30 @@
       "url": "https://raw.githubusercontent.com/tauri-apps/tauri/59b63ab500da9859f12d8888c3298bc29bba0b92/LICENSE.spdx"
     }
   ],
+  "webview2-com@0.39.1": [
+    {
+      "basis": "Repository-level MIT license at the published crate's exact .cargo_vcs_info.json revision; omitted from the crate archive.",
+      "file": "wravery-webview2-rs-edc2caf88617-LICENSE",
+      "sha256": "0dcf41516e608bbcb6cdc5229feb7b86fe4a643b85e7df251133c93408fdac73",
+      "url": "https://raw.githubusercontent.com/wravery/webview2-rs/edc2caf886175ccaebe86078c9cfe1ae2a187328/LICENSE"
+    }
+  ],
+  "webview2-com-macros@0.8.1": [
+    {
+      "basis": "Repository-level MIT license at the published crate's exact .cargo_vcs_info.json revision; omitted from the crate archive.",
+      "file": "wravery-webview2-rs-dffa41a8a46d-LICENSE",
+      "sha256": "0dcf41516e608bbcb6cdc5229feb7b86fe4a643b85e7df251133c93408fdac73",
+      "url": "https://raw.githubusercontent.com/wravery/webview2-rs/dffa41a8a46d3f5565eefbff2de57d38d399f158/LICENSE"
+    }
+  ],
+  "webview2-com-sys@0.39.1": [
+    {
+      "basis": "Repository-level MIT license at the published crate's exact .cargo_vcs_info.json revision; omitted from the crate archive.",
+      "file": "wravery-webview2-rs-edc2caf88617-LICENSE",
+      "sha256": "0dcf41516e608bbcb6cdc5229feb7b86fe4a643b85e7df251133c93408fdac73",
+      "url": "https://raw.githubusercontent.com/wravery/webview2-rs/edc2caf886175ccaebe86078c9cfe1ae2a187328/LICENSE"
+    }
+  ],
   "xraydb@0.4.1": [
     {
       "file": "ameyanagi-xraydb-rs-c07d4cf0c719-LICENSE-MIT",

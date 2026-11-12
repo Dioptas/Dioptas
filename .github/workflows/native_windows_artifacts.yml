@@ -2,11 +2,6 @@ name: Native Windows artifacts (no publishing)
 
 on:
   workflow_dispatch:
-  # Bootstrap this implementation branch; candidates become manual-only
-  # after the initial Windows qualification run.
-  push:
-    branches: ['codex/native-installers']
-    paths: ['.github/workflows/native_windows_artifacts.yml', 'desktop/scripts/*windows*', 'desktop/src-tauri/tauri.windows-release.conf.json']
 
 permissions:
   contents: read
@@ -50,7 +45,15 @@ jobs:
       - run: npm ci
         working-directory: desktop
       - name: Test release policy and dependency inspection
-        run: npm run test:release-config; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; npm run test:windows-release-config
+        run: |
+          $tokens = $null; $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD 'scripts/verify_windows_installer.ps1'), [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count) { throw ($errors | Out-String) }
+          npm run test:release-config
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:windows-release-config
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test scripts/standalone_licenses.test.mjs
         working-directory: desktop
       - name: Build unsigned offline installer and upgrade fixture
         run: npm run release:windows -- --unsigned --test-upgrade
