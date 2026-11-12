@@ -451,6 +451,8 @@ fn preview_keeps_hdf5_dataset_frame_and_offline_configuration_owner() {
     unchanged(&before, &call(&mut s, "state", json!({})));
     let project = d.path().join("owned.dio");
     call(&mut s, "save_project", json!({"path":project}));
+    // Release the live HDF5 reader before simulating an offline reopen.
+    drop(s);
     std::fs::remove_file(&source).unwrap();
     std::fs::remove_file(&calibration).unwrap();
     let mut fresh = Session::new(root());
