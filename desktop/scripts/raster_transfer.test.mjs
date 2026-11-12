@@ -221,14 +221,17 @@ test("live product owners retain priority within the 64 advertised buffer bound"
       assert(known.length <= 64);
       if (action === "state") {
         if (products.batch) {
+          assert.equal(known.length, 64);
           assert(known.includes("product"));
+          assert(known.includes("image-79"));
+          assert(!known.includes("image-0"));
           return frame({ ok: true }, {}, false, table);
         }
         return frame({ ok: true, batch }, { product: bytes }, false, table);
       }
       return frame(
-        { ok: true, image: image(payload.name) },
-        { [payload.name]: bytes },
+        { ok: true, image: image(payload.path) },
+        { [payload.path]: bytes },
       );
     },
     8192,
