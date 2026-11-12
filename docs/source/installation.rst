@@ -12,15 +12,15 @@ or embedded observation/audit tables.
 
 .. note::
 
-   Native installers are currently tested candidates; no public native release
-   has been published yet. Existing downloads on the
-   `GitHub releases page <https://github.com/Dioptas/Dioptas/releases>`_ are
-   legacy Qt releases. For candidate access, build instructions and verification
-   reports, see the
-   `native installer guide <https://github.com/Dioptas/Dioptas/blob/develop/desktop/NATIVE_RELEASE.md>`_.
-   Candidate downloads are retained temporarily as GitHub Actions artifacts.
-   The candidate version ``0.1.0`` is a packaging test version, and ``0.1.1`` is
-   an upgrade-test fixture; neither is an announced public release.
+   `Dioptas 0.14.0-rc.1 <https://github.com/Dioptas/Dioptas/releases/tag/0.14.0-rc.1>`_
+   is the first Rust desktop prerelease, with macOS, Windows and Linux installers
+   for testing. The latest stable 0.13.x downloads remain the legacy Qt edition.
+   See the
+   `candidate release notes <https://github.com/Dioptas/Dioptas/blob/0.14.0-rc.1/desktop/RELEASE_0.14.0-rc.1.md>`_
+   and
+   `native installer guide <https://github.com/Dioptas/Dioptas/blob/develop/desktop/NATIVE_RELEASE.md>`_
+   for verification and known limits. The rc.2 installer used in automated
+   upgrade tests is a disposable fixture and is not distributed.
 
 macOS
 ~~~~~

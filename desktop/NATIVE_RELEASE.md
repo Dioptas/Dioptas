@@ -238,3 +238,31 @@ The macOS numeric bundle version is 0.14.0. Debian package metadata uses
 0.14.0~rc.1 so APT orders it before 0.14.0; the application still reports
 0.14.0-rc.1. Lifecycle tests create an rc.2 upgrade fixture from the same source;
 that fixture must never be uploaded as a release asset.
+
+### Qualification and public downloads
+
+[Dioptas 0.14.0-rc.1](https://github.com/Dioptas/Dioptas/releases/tag/0.14.0-rc.1)
+is a GitHub prerelease with five installers and combined SHA-256 checksums.
+All application binaries were built at clean source
+`2a04b2609f50fcccf6fa10df8625c0b71fd1cc60`.
+The [complete desktop CI](https://github.com/Dioptas/Dioptas/actions/runs/43231349913)
+passed all five jobs, including headless UI/Tauri checks, native Linux/macOS
+processors, independent numerical references and the Linux security gate.
+
+The [original macOS build](https://github.com/Dioptas/Dioptas/actions/runs/43231368384)
+built and Developer ID signed both architectures. Apple accepted both apps and
+both DMGs. Both jobs then encountered an Apple ticket-service connection loss
+during validation. The [completed recovery](https://github.com/Dioptas/Dioptas/actions/runs/43234889910)
+used those original DMGs and submission IDs, without rebuilding, re-signing or
+new Apple uploads. Both architectures passed signature/ticket/Gatekeeper,
+copied-installation, packaged processor and real native WebKit checks.
+The recovery-tool revision is `3afe93b0`; reports retain it separately from the
+application source. The helpers now retry only recognized transient ticket-service
+network failures, with bounded 2/4/8/16-second waits; invalid tickets still fail.
+
+Windows and Linux qualification are recorded in their platform guides. Only
+rc.1 installers are distributed; generated rc.2 upgrade fixtures are excluded.
+Downloads include `BUILD_INFO.json` with source identity, qualification runs,
+original Actions artifact digests and the hashes of the published installers.
+The signed macOS DMGs, unsigned Windows x64 setup, Ubuntu .deb and AppImage
+retain the platform limits documented above and in the release notes.

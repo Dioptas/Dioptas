@@ -294,15 +294,16 @@ A [standalone macOS Rust application](NATIVE_STANDALONE_PARITY.md) is now availa
 `npm run tauri:bundle` builds the complete `.app` with processor, resources,
 examples, offline guide and dependency notices. Move the entire application;
 it runs without Python or a source checkout. Local bundles are ad-hoc signed,
-with no publication/notarization step. Windows/Linux and universal macOS
-packaging remain unqualified. The local native artifact and relocation checks
-are documented in that ledger.
+with no publication/notarization step. Qualified macOS, Windows and Linux
+installer pipelines are documented below; universal macOS is not provided.
+The local native artifact and relocation checks are documented in that ledger.
 
 For signed installer candidates, see [native release packaging](NATIVE_RELEASE.md).
 `npm run release:macos` uses the shared release configuration and Developer ID
 credentials; the artifact-only workflow also notarizes and tests Apple Silicon
 and Intel DMGs. It does not publish a release. The application version comes
-from `package.json`; the current `0.1.0` remains a packaging test version.
+from `package.json`; the first public candidate is `0.14.0-rc.1`. See the
+[release notes](RELEASE_0.14.0-rc.1.md) for downloads and testing.
 
 The [native Windows installer pipeline](NATIVE_WINDOWS_RELEASE.md) adds an x64
 NSIS candidate with offline WebView2, bundled Visual C++ runtime, and automated

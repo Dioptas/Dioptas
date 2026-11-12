@@ -3,8 +3,9 @@
 The Linux workflow builds x64 `.deb` and AppImage candidates using the shared
 release identity, version, icons and Rust processor. It retains Actions artifacts
 only: no release, tag, package repository or updater publication is performed.
-The current `0.1.0` is a packaging test version; `0.1.1` is only a `.deb` upgrade
-fixture built from the same sources.
+The first public candidate is `0.14.0-rc.1`; its `rc.2` `.deb` upgrade fixture
+is for automated tests only and is not distributed. Earlier `0.1.0`/`0.1.1`
+artifacts below were packaging tests.
 
 ## Building
 
@@ -168,3 +169,17 @@ The broader [Rust desktop run 43200528441](https://github.com/Dioptas/Dioptas/ac
 also passed all five jobs at the same source revision: native Linux/macOS
 processing, independent numerical references, Linux Tauri/GLib security, and
 the complete headless desktop/Tauri suite.
+
+## Public candidate 0.14.0-rc.1
+
+[Qualification run 43231378379](https://github.com/Dioptas/Dioptas/actions/runs/43231378379)
+passed both builds and all three installation jobs at clean source
+`2a04b2609f50fcccf6fa10df8625c0b71fd1cc60`. The .deb passed installation,
+upgrade, uninstall and installed-app checks on Ubuntu 22.04/24.04; AppImage
+passed native installed-app, FUSE and extract-and-run checks on Ubuntu 24.04.
+The .deb control version is `0.14.0~rc.1`, ensuring that Debian orders the
+candidate before stable `0.14.0`; the application version and download filename
+remain `0.14.0-rc.1`. Only rc.1 artifacts are included in the
+[public prerelease](https://github.com/Dioptas/Dioptas/releases/tag/0.14.0-rc.1).
+Download filenames are normalized; their bytes match the qualified installers.
+The glibc, FUSE, display and architecture limits above continue to apply.

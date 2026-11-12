@@ -20,9 +20,9 @@ tag, package-registry upload or updater publication is performed.
 - Shared application identifier `org.dioptas.desktop`, separate from the
   preview and legacy Qt identities.
 
-The application version is still the `0.1.0` packaging test version. The
-`0.1.1` installer is a disposable upgrade fixture built from the same source;
-neither version represents an announced public release.
+The first public candidate is `0.14.0-rc.1`; its `rc.2` upgrade fixture is
+for automated lifecycle testing only and is not distributed. The original
+`0.1.0`/`0.1.1` qualification artifacts below were packaging tests.
 
 ## Build and test
 
@@ -186,3 +186,16 @@ may already have WebView2 installed. A fully disconnected first installation
 with WebView2 initially absent is a separate qualification case. Windows ARM64,
 32-bit Windows, MSIX/MSI and physical Windows 10/11 hardware are outside this
 initial x64 Server 2022 runner qualification.
+
+## Public candidate 0.14.0-rc.1
+
+[Qualification run 43231373228](https://github.com/Dioptas/Dioptas/actions/runs/43231373228)
+passed at clean source `2a04b2609f50fcccf6fa10df8625c0b71fd1cc60`. The real
+installed rc.1 app and disposable rc.2 fixture passed native WebView2 and
+packaged Rust processing checks with source/developer paths unavailable.
+Upgrade, downgrade protection, uninstall and settings preservation passed.
+The [public prerelease](https://github.com/Dioptas/Dioptas/releases/tag/0.14.0-rc.1)
+contains only the unsigned rc.1 setup executable, renamed with a filename safe
+for direct download links. The bytes match the qualified installer; rc.2 is not
+published. Windows 10/11 home-machine testing remains part of this candidate's
+purpose, and the signing/offline qualification boundaries above still apply.
