@@ -18,6 +18,9 @@ env:
   CARGO_TERM_COLOR: always
   HDF5_PLUGIN_PRELOAD: '::'
 
+# Rust caches are saved only from develop. Pull requests and other branches
+# restore develop's caches without saving their own, which keeps the shared
+# cache quota from evicting the develop entries every job falls back to.
 jobs:
   processor:
     name: Native processor (${{ matrix.os }})
@@ -39,6 +42,7 @@ jobs:
         with:
           workspaces: desktop/backend -> target
           key: processor-${{ runner.os }}
+          save-if: ${{ github.ref == 'refs/heads/develop' }}
       # A prebuilt, pinned binary instead of compiling the tool on every run.
       - name: Install cargo-llvm-cov
         if: runner.os == 'Linux'
@@ -80,6 +84,7 @@ jobs:
             desktop/backend -> target
             desktop/src-tauri -> target
           key: desktop-macos
+          save-if: ${{ github.ref == 'refs/heads/develop' }}
       - run: npm ci
         working-directory: desktop
       - run: npx playwright install chromium webkit
@@ -121,6 +126,7 @@ jobs:
             desktop/src-tauri -> target
             desktop/security/glib-regression -> target
           key: linux-tauri-glib-security
+          save-if: ${{ github.ref == 'refs/heads/develop' }}
       - name: Verify the exact reviewed GLib source backport
         run: node desktop/scripts/check_glib_backport.mjs
       - run: npm ci
