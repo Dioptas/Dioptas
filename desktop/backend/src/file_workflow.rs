@@ -5,6 +5,10 @@ use std::{
     collections::{BTreeMap, BTreeSet, VecDeque},
     time::{Duration, SystemTime},
 };
+#[path = "acquisition_sources.rs"]
+mod sources;
+
+const GENERATED_PROBES: usize = 32;
 type FileStamp = (u64, SystemTime);
 const POLL_MAX_IMAGES: usize = 8;
 // Checked between frames: one decoder/integration call remains cooperative.
@@ -33,6 +37,14 @@ pub(super) struct Files {
     retry: Arc<BTreeMap<PathBuf, Retry>>,
     #[serde(default)]
     generated: Arc<BTreeMap<PathBuf, crate::image::FileIdentity>>,
+    #[serde(skip)]
+    generated_probe_after: Option<PathBuf>,
+    #[cfg(test)]
+    #[serde(skip)]
+    identity_reads: std::cell::Cell<usize>,
+    #[cfg(test)]
+    #[serde(skip)]
+    decode_attempts: Arc<std::sync::atomic::AtomicUsize>,
     #[cfg(test)]
     #[serde(skip)]
     stamp_reads: std::cell::Cell<usize>,
@@ -50,6 +62,8 @@ struct Retry {
     stamp: Option<FileStamp>,
     reason: RetryReason,
     message: String,
+    #[serde(default)]
+    dependencies: BTreeMap<PathBuf, Option<crate::image::FileIdentity>>,
 }
 impl Default for Files {
     fn default() -> Self {
@@ -65,6 +79,11 @@ impl Default for Files {
             failed: Arc::default(),
             retry: Arc::default(),
             generated: Arc::default(),
+            generated_probe_after: None,
+            #[cfg(test)]
+            identity_reads: Default::default(),
+            #[cfg(test)]
+            decode_attempts: Default::default(),
             #[cfg(test)]
             stamp_reads: Default::default(),
             #[cfg(test)]
@@ -219,18 +238,60 @@ impl Files {
         }
         Some((m.len(), m.modified().ok()?))
     }
-    fn scan(&self) -> Result<BTreeSet<PathBuf>, String> {
+    fn identity(&self, path: &Path) -> Option<crate::image::FileIdentity> {
+        #[cfg(test)]
+        self.identity_reads.set(self.identity_reads.get() + 1);
+        crate::image::FileIdentity::read(path).ok()
+    }
+    fn scan(&mut self) -> Result<BTreeSet<PathBuf>, String> {
+        use std::ops::Bound::{Excluded, Unbounded};
+        let after = self.generated_probe_after.as_ref();
+        let probes: BTreeSet<_> = self
+            .generated
+            .range::<PathBuf, _>((after.map_or(Unbounded, Excluded), Unbounded))
+            .chain(
+                self.generated
+                    .iter()
+                    .take_while(|(path, _)| after.is_some_and(|after| *path <= after)),
+            )
+            .take(GENERATED_PROBES)
+            .map(|(path, _)| path.clone())
+            .collect();
+        // Advance in iteration order, not the sorted probe set, when wrapping.
+        self.generated_probe_after = self
+            .generated
+            .range::<PathBuf, _>((after.map_or(Unbounded, Excluded), Unbounded))
+            .chain(
+                self.generated
+                    .iter()
+                    .take_while(|(path, _)| after.is_some_and(|after| *path <= after)),
+            )
+            .take(GENERATED_PROBES)
+            .last()
+            .map(|(path, _)| path.clone());
         let mut paths = BTreeSet::new();
+        let mut present_generated = BTreeSet::new();
         for entry in std::fs::read_dir(&self.image_directory).map_err(|e| e.to_string())? {
             let entry = entry.map_err(|e| e.to_string())?;
             let p = entry.path();
             if !image_file(&p) {
                 continue;
             }
-            if self.generated.get(&p).is_some_and(|identity| {
-                crate::image::FileIdentity::read(&p).ok().as_ref() == Some(identity)
-            }) {
-                continue;
+            if let Some(identity) = self.generated.get(&p) {
+                present_generated.insert(p.clone());
+                #[cfg(unix)]
+                let same_object = {
+                    use std::os::unix::fs::DirEntryExt;
+                    let inode = entry.ino();
+                    inode == 0 || inode == identity.inode()
+                };
+                #[cfg(not(unix))]
+                let same_object = true;
+                if same_object
+                    && (!probes.contains(&p) || self.identity(&p).as_ref() == Some(identity))
+                {
+                    continue;
+                }
             }
             // Known names are already admitted; avoid even file_type(), which
             // can stat on network filesystems without directory-entry types.
@@ -248,6 +309,13 @@ impl Files {
             if paths.len() > 1_000_000 {
                 return Err("Incoming directory exceeds one million image names.".into());
             }
+        }
+        if self
+            .generated
+            .keys()
+            .any(|p| !present_generated.contains(p))
+        {
+            Arc::make_mut(&mut self.generated).retain(|p, _| present_generated.contains(p));
         }
         Ok(paths)
     }
@@ -286,6 +354,11 @@ impl Files {
         if self.retry.keys().any(|p| !paths.contains(p)) {
             Arc::make_mut(&mut self.retry).retain(|p, _| paths.contains(p));
         }
+        // Permanent failures take precedence, including older checkpoints that
+        // accidentally retained both entries for the same source.
+        if self.retry.keys().any(|path| self.failed.contains_key(path)) {
+            Arc::make_mut(&mut self.retry).retain(|path, _| !self.failed.contains_key(path));
+        }
         let changed: Vec<_> = self
             .failed
             .iter()
@@ -308,14 +381,26 @@ impl Files {
                 Arc::make_mut(&mut self.pending).insert(path.clone(), stamp);
             }
         }
-        // A repaired output or newly available HDF5 companion does not have to
-        // modify the master/source. Retry at most once per bounded poll, without
-        // blocking later acquisitions. Opaque corrupt sources still require a
-        // changed source fingerprint before readmission.
         for (path, retry) in self.retry.iter() {
-            if !self.queue.contains(path)
-                && let Some(stamp) = self.stamp(path)
-            {
+            if self.failed.contains_key(path) || self.queue.contains(path) {
+                continue;
+            }
+            let Some(stamp) = self.stamp(path) else {
+                continue;
+            };
+            let source_changed = retry.stamp != Some(stamp);
+            let available = match retry.reason {
+                RetryReason::Output => true,
+                RetryReason::WaitingSource => {
+                    source_changed
+                        || retry.dependencies.is_empty()
+                        || retry
+                            .dependencies
+                            .iter()
+                            .any(|(p, previous)| self.identity(p).as_ref() != previous.as_ref())
+                }
+            };
+            if available {
                 Arc::make_mut(&mut self.pending).insert(path.clone(), stamp);
                 ready.push((retry.stamp.unwrap_or(stamp).1, path.clone()));
             }
@@ -334,7 +419,17 @@ impl Files {
             .or_else(|| self.stamp(&path));
         Some(IncomingImage { path, stamp })
     }
-    fn retry(&mut self, incoming: &IncomingImage, reason: RetryReason, error: String) {
+    fn retry(
+        &mut self,
+        incoming: &IncomingImage,
+        reason: RetryReason,
+        error: String,
+        mut dependencies: BTreeMap<PathBuf, Option<crate::image::FileIdentity>>,
+    ) {
+        if matches!(reason, RetryReason::WaitingSource) && !dependencies.is_empty() {
+            // Also notice an atomic master replacement preserving its old stamp.
+            dependencies.insert(incoming.path.clone(), self.identity(&incoming.path));
+        }
         let message = format!(
             "{}: {error}",
             incoming
@@ -350,6 +445,7 @@ impl Files {
                 stamp: incoming.stamp,
                 reason,
                 message,
+                dependencies,
             },
         );
     }
@@ -504,6 +600,7 @@ impl Session {
         if !self.files.auto_process {
             return Ok(Reply::success());
         }
+        let previous_error = self.files.auto_error.clone();
         self.files.poll()?;
         let started = std::time::Instant::now();
         let mut changed = false;
@@ -531,6 +628,10 @@ impl Session {
             // Avoid treating output-volume failures as unreadable source data.
             let auto = self.settings.auto_save;
             self.settings.auto_save = false;
+            #[cfg(test)]
+            self.files
+                .decode_attempts
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             let opened = self.dispatch("open_image", &options).and_then(|mut reply| {
                 #[cfg(test)]
                 if let Some(observer) = self.files.before_combination {
@@ -562,13 +663,25 @@ impl Session {
                 }
                 Ok(reply) if reply.result["hdf5SourceRequest"].is_object() => {
                     self.restore_checkpoint(checkpoint);
-                    self.files.retry(
-                        &incoming,
-                        RetryReason::WaitingSource,
-                        "Waiting for declared HDF5 companion sources; retrying automatically."
-                            .into(),
-                    );
-                    changed = true;
+                    let dependencies = sources::unavailable(&incoming.path, &options);
+                    if dependencies.is_empty() {
+                        Arc::make_mut(&mut self.files.retry).remove(&incoming.path);
+                        if let Some(stamp) = incoming.stamp {
+                            Arc::make_mut(&mut self.files.failed)
+                                .insert(incoming.path.clone(), stamp);
+                        }
+                        self.files.auto_error = format!(
+                            "{}: HDF5 source needs an explicit dataset or storage choice; open it manually.",
+                            incoming
+                                .path
+                                .file_name()
+                                .unwrap_or_default()
+                                .to_string_lossy()
+                        );
+                    } else {
+                        self.files.retry(&incoming, RetryReason::WaitingSource,
+                            "Waiting for declared HDF5 companion sources; retrying when they change.".into(), dependencies);
+                    }
                 }
                 Ok(_) => {
                     #[cfg(feature = "dioptrin")]
@@ -582,8 +695,8 @@ impl Session {
                             &incoming,
                             RetryReason::Output,
                             format!("Automatic output failed; retrying: {error}"),
+                            BTreeMap::new(),
                         );
-                        changed = true;
                         continue;
                     }
                     Arc::make_mut(&mut self.files.retry).remove(&incoming.path);
@@ -607,17 +720,16 @@ impl Session {
                         cancelled = true;
                         break;
                     }
-                    // A readable HDF5 container can still reference an absent or
-                    // incomplete external file. Its master need never change.
-                    if hdf5::File::open(&incoming.path).is_ok()
-                        && Image::open(&incoming.path, &options).is_err()
-                    {
+                    let dependencies = sources::unavailable(&incoming.path, &options);
+                    if !dependencies.is_empty() {
                         self.files.retry(
                             &incoming,
                             RetryReason::WaitingSource,
-                            format!("Waiting for source data; retrying: {error}"),
+                            "Waiting for declared HDF5 companion sources; retrying when they change.".into(),
+                            dependencies,
                         );
                     } else {
+                        Arc::make_mut(&mut self.files.retry).remove(&incoming.path);
                         if let Some(stamp) = incoming.stamp {
                             Arc::make_mut(&mut self.files.failed)
                                 .insert(incoming.path.clone(), stamp);
@@ -631,11 +743,10 @@ impl Session {
                                 .to_string_lossy()
                         );
                     }
-                    changed = true;
                 }
             }
         }
-        if !changed && !cancelled {
+        if !changed && !cancelled && self.files.auto_error == previous_error {
             return Ok(Reply::success());
         }
         let mut reply = self.snapshot(true);
@@ -984,8 +1095,16 @@ impl Session {
                 .join(file.file_name().unwrap());
             if self.image.as_ref().is_some_and(|i| {
                 i.path == normalized || file.canonicalize().ok().as_ref() == Some(&i.path)
-            }) || (self.files.known.contains(&normalized)
-                && !self.files.generated.contains_key(&normalized))
+            }) || self
+                .files
+                .generated
+                .get(&normalized)
+                .is_some_and(|identity| match self.files.identity(&normalized) {
+                    Some(current) => current != *identity,
+                    None => std::fs::symlink_metadata(&normalized).is_ok(),
+                })
+                || (self.files.known.contains(&normalized)
+                    && !self.files.generated.contains_key(&normalized))
             {
                 return Err("Automatic output would replace the detector source; choose another output directory.".into());
             }

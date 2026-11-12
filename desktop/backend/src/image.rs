@@ -865,6 +865,11 @@ pub struct FileIdentity {
     object: (u64, u64),
 }
 impl FileIdentity {
+    #[cfg(unix)]
+    pub(crate) fn inode(&self) -> u64 {
+        self.object.1
+    }
+
     pub fn read(path: &Path) -> Result<Self, String> {
         let m = std::fs::metadata(path).map_err(|e| e.to_string())?;
         #[cfg(unix)]

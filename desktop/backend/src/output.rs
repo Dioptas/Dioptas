@@ -34,10 +34,20 @@ impl StagedOutput {
             use std::os::unix::fs::PermissionsExt;
             directory.permissions(std::fs::Permissions::from_mode(0o700));
         }
-        let directory = directory.tempdir_in(parent).map_err(|e| e.to_string())?;
+        // tempfile's wrapper contains a new random pathname on every failure.
+        // Report the intended target and stable OS category so unchanged output
+        // failures stay quiet, while a different failure category still surfaces.
+        let staging_error = |error: std::io::Error| {
+            format!(
+                "Cannot stage output for {}: {}",
+                target.display(),
+                std::io::Error::from(error.kind())
+            )
+        };
+        let directory = directory.tempdir_in(parent).map_err(staging_error)?;
         let file = builder()
             .tempfile_in(directory.path())
-            .map_err(|e| e.to_string())?;
+            .map_err(staging_error)?;
         Ok(Self {
             file,
             _directory: directory,
@@ -103,6 +113,24 @@ pub(crate) fn resource_path(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn staging_failures_report_stable_target_and_changed_error_category() {
+        let root = tempfile::tempdir().unwrap();
+        let blocked = root.path().join("blocked");
+        std::fs::write(&blocked, b"not a directory").unwrap();
+        let target = blocked.join("pattern.dat");
+        let first = StagedOutput::new(&target).err().unwrap();
+        let second = StagedOutput::new(&target).err().unwrap();
+        assert_eq!(first, second);
+        assert!(first.contains(target.to_str().unwrap()));
+        assert!(!first.contains(".dioptas-output-"));
+        std::fs::remove_file(&blocked).unwrap();
+        let missing = StagedOutput::new(&target).err().unwrap();
+        assert_ne!(missing, first);
+        std::fs::create_dir(&blocked).unwrap();
+        assert!(StagedOutput::new(&target).is_ok());
+    }
+
     #[test]
     fn cancellation_at_publication_keeps_previous_output() {
         let directory = tempfile::tempdir().unwrap();
