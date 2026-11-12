@@ -372,16 +372,10 @@ pub(crate) fn atomic_render(
     path: &Path,
     write: impl FnOnce(&mut std::fs::File) -> Result<(), String>,
 ) -> Result<(), String> {
-    let mut temporary = tempfile::NamedTempFile::new_in(
-        path.parent()
-            .filter(|p| !p.as_os_str().is_empty())
-            .unwrap_or(Path::new(".")),
-    )
-    .map_err(|e| e.to_string())?;
+    let mut temporary = crate::output::StagedOutput::new(path)?;
     write(temporary.as_file_mut())?;
     temporary.as_file().sync_all().map_err(|e| e.to_string())?;
-    temporary.persist(path).map_err(|e| e.to_string())?;
-    Ok(())
+    temporary.commit(path)
 }
 impl Session {
     pub(super) fn file_command(

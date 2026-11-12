@@ -374,8 +374,7 @@ impl Series {
         json!({"id":self.background_raster().buffer.id,"exportBaseName":self.export_name,"waterfallKey":crate::batch_waterfall::identity(self),"raster":self.background_raster().metadata,"backgroundState":self.background_metadata(),"sourceBins":self.background_bins(),"x":&curve.x[self.background_bins()[0]..self.background_bins()[1]],"wavelength":self.wavelength,"unit":unit,"sourceUnit":self.unit,"entries":self.entries.iter().map(|e|json!({"path":e.path,"name":if e.path.is_empty(){"Stored pattern".into()}else{Path::new(&e.path).file_name().unwrap_or_default().to_string_lossy()},"frame":e.frame+1})).collect::<Vec<_>>(),"files":files,"pattern":{"x":curve.x,"y":curve.y,"sigma":curve.sigma,"unit":unit},"selected":self.selected,"total":self.total,"canReintegrate":self.paths.iter().any(|p|!p.is_empty()&&Path::new(p).is_file()),"normalized":self.normalized,"normalizationRange":self.normalization,"normalizationReference":self.reference,"normalizationReferenceName":self.entries.get(self.reference).map(|e|if e.path.is_empty(){format!("Stored pattern · frame {}", self.reference+1)}else{Path::new(&e.path).file_name().unwrap_or_default().to_string_lossy().into_owned()}),"normalizationRegion":{"minimum":self.x[self.normalization[0]].min(self.x[self.normalization[1]-1]),"maximum":self.x[self.normalization[0]].max(self.x[self.normalization[1]-1]),"unit":self.unit},"calibration":self.calibration,"mask":self.mask,"phaseLines":phases,"position":null})
     }
     pub fn save(&self, path: &Path) -> Result<(), String> {
-        let mut temp = tempfile::NamedTempFile::new_in(path.parent().unwrap_or(Path::new(".")))
-            .map_err(|e| e.to_string())?;
+        let mut temp = crate::output::StagedOutput::new(path)?;
         if path
             .extension()
             .is_some_and(|s| s.eq_ignore_ascii_case("csv"))
@@ -585,8 +584,7 @@ impl Series {
             }
             f.flush().map_err(|e| e.to_string())?;
         }
-        temp.persist(path).map_err(|e| e.to_string())?;
-        Ok(())
+        temp.commit(path)
     }
     /// Explicit processed-file opening records its user-facing basename. Embedded
     /// project loads retain the recorded name instead of a temporary .h5 filename.

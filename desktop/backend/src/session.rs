@@ -2368,17 +2368,11 @@ fn integer(value: &Value, label: &str, low: usize, high: usize) -> Result<usize,
 }
 pub(crate) fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), String> {
     use std::io::Write;
-    let mut temp = tempfile::NamedTempFile::new_in(
-        path.parent()
-            .filter(|p| !p.as_os_str().is_empty())
-            .unwrap_or(Path::new(".")),
-    )
-    .map_err(|e| e.to_string())?;
+    let mut temp = crate::output::StagedOutput::new(path)?;
     temp.write_all(bytes)
         .and_then(|_| temp.as_file().sync_all())
         .map_err(|e| e.to_string())?;
-    temp.persist(path).map_err(|e| e.to_string())?;
-    Ok(())
+    temp.commit(path)
 }
 
 #[cfg(test)]
