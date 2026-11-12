@@ -7,6 +7,7 @@ export function CrystalNumberField({
   value,
   onCommit,
   onValidation,
+  disabled,
   ...limits
 }: {
   field: string;
@@ -14,6 +15,7 @@ export function CrystalNumberField({
   value: number;
   onCommit: (v: number) => void;
   onValidation: (field: string, error: string | null) => void;
+  disabled?: boolean;
 } & NumericLimits) {
   const [error, setError] = useState<string | null>(null);
   const id = useId();
@@ -26,14 +28,20 @@ export function CrystalNumberField({
   );
   return (
     <div className="sc-number">
-      <CommitNumberField
-        label={label}
-        value={value}
-        onCommit={onCommit}
-        onValidationChange={validation}
-        validationId={id}
-        {...limits}
-      />
+      <fieldset
+        className="sc-number-fieldset"
+        disabled={disabled}
+        title={disabled ? "Set by the PhaseSmith protocol" : undefined}
+      >
+        <CommitNumberField
+          label={label}
+          value={value}
+          onCommit={onCommit}
+          onValidationChange={validation}
+          validationId={id}
+          {...limits}
+        />
+      </fieldset>
       {error && (
         <span className="ui-field-error" id={id}>
           {error}

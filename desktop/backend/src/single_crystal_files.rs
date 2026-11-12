@@ -45,6 +45,21 @@ impl Session {
         let op = args["operation"]
             .as_str()
             .ok_or("Choose a single-crystal file operation.")?;
+        if op == "protocol_builtin" {
+            let (first, last) = self.scxrd.config.apply_protocol(protocol::builtin())?;
+            self.scxrd.excluded_frames = (0..self.scxrd.sources.len())
+                .filter(|i| *i < first || *i > last)
+                .collect();
+            self.scxrd.invalidate(0);
+            self.scxrd.notice=Some("Bundled PhaseSmith v29 protocol applied. Review acquisition, cell/symmetry/element priors and DAC assumptions, then confirm Frames.".into());
+            if self.scxrd.has_sources() {
+                if self.scxrd.excluded_frames.contains(&self.scxrd.frame) {
+                    self.scxrd.frame = first.min(self.scxrd.sources.len() - 1);
+                }
+                self.scxrd.preview("raw")?;
+            }
+            return Ok(self.scxrd.reply());
+        }
         if op == "use_calibration" {
             if !self.settings.calibrated {
                 return Err(
@@ -65,7 +80,10 @@ impl Session {
                 .as_str()
                 .ok_or("Choose an input or output file.")?,
         );
-        if matches!(op, "save" | "reflections" | "hkl" | "cif") {
+        if matches!(
+            op,
+            "save" | "reflections" | "hkl" | "cif" | "protocol_save" | "audit"
+        ) {
             let canonical = std::fs::canonicalize(&path).ok();
             if self
                 .scxrd
@@ -87,6 +105,48 @@ impl Session {
             }
         }
         match op {
+            "audit" => {
+                let directory =
+                    self.scxrd.profile_audit.as_ref().ok_or(
+                        "Enable Keep stage outputs and rerun the PhaseSmith protocol first.",
+                    )?;
+                atomic(&path, |w| {
+                    let mut source =
+                        File::open(directory.path().join("stages.npz")).map_err(err)?;
+                    std::io::copy(&mut source, w).map_err(err)?;
+                    Ok(())
+                })?;
+            }
+            "protocol" => {
+                let file = File::open(&path).map_err(err)?;
+                if file.metadata().map_err(err)?.len() > 8 * 1024 * 1024 {
+                    return Err("Protocol exceeds 8 MiB.".into());
+                }
+                let p: Value = serde_json::from_reader(file).map_err(err)?;
+                let (first, last) = self.scxrd.config.apply_protocol(p)?;
+                self.scxrd.excluded_frames = (0..self.scxrd.sources.len())
+                    .filter(|i| *i < first || *i > last)
+                    .collect();
+                self.scxrd.invalidate(0);
+                self.scxrd.notice = Some(format!(
+                    "Loaded PhaseSmith protocol {}. Review declared acquisition, supplied cell/symmetry/elements and cell-shadow assumptions; confirm before processing.",
+                    path.file_name().unwrap_or_default().to_string_lossy()
+                ));
+                if self.scxrd.has_sources() {
+                    if self.scxrd.excluded_frames.contains(&self.scxrd.frame) {
+                        self.scxrd.frame = first.min(self.scxrd.sources.len() - 1);
+                    }
+                    self.scxrd.preview("raw")?;
+                }
+            }
+            "protocol_save" => {
+                if self.scxrd.config.integration_method != "profile" {
+                    return Err("Select the PhaseSmith protocol workflow before saving its effective protocol.".into());
+                }
+                let (first, last) = self.scxrd.protocol_range()?;
+                let p = self.scxrd.config.active_protocol(first, last)?;
+                atomic(&path, |w| serde_json::to_writer_pretty(w, &p).map_err(err))?;
+            }
             "calibration" => {
                 let g = crate::geometry::Geometry::load(&path)?;
                 self.scxrd.set_poni(&g)?;
@@ -221,6 +281,11 @@ impl Session {
             }
             "save" => {
                 self.scxrd.sources_check()?;
+                if self.scxrd.config.integration_method == "profile"
+                    && self.scxrd.tracks.iter().any(|t| t.excluded)
+                {
+                    return Err("Clear unsupported manual track exclusions or select summation before saving a profile recipe.".into());
+                }
                 let c = &self.scxrd;
                 let recipe = Recipe {
                     schema: "dioptas.scxrd.rust".into(),
@@ -242,7 +307,11 @@ impl Session {
                         .filter(|(_, t)| t.excluded)
                         .map(|(i, _)| i)
                         .collect(),
-                    selected_cell: c.selected.map(|i| c.cells[i].clone()),
+                    selected_cell: if c.config.integration_method == "profile" {
+                        None
+                    } else {
+                        c.selected.map(|i| c.cells[i].clone())
+                    },
                 };
                 let bytes = serde_json::to_vec_pretty(&recipe).map_err(err)?;
                 if bytes.len() > 8 * 1024 * 1024 {
@@ -255,11 +324,11 @@ impl Session {
                     return Err("Integrate the scan before exporting reflections.".into());
                 }
                 atomic(&path, |w| {
-                    writeln!(w,"# Dioptas SCXRD · {ENGINE}\n# Unmerged measured-track intensities; original-count summation, local background, Lorentz/polarization correction. No absorption correction.\n# h k l I sigma_I omega_deg flags track correction").map_err(err)?;
+                    writeln!(w,"# Dioptas SCXRD · {ENGINE}\n# Integration: {}. Signed observations and original quality flags retained. No absorption correction. Missing identity = -1; eligibility is the usable column, not flags == 0.\n# h k l I sigma_I omega_deg flags detected_track predicted_crossing correction usable",self.scxrd.config.integration_method).map_err(err)?;
                     for r in &self.scxrd.reflections {
                         writeln!(
                             w,
-                            "{} {} {} {:.12e} {:.12e} {:.9} {} {} {:.12e}",
+                            "{} {} {} {:.12e} {:.12e} {:.9} {} {} {} {:.12e} {}",
                             r.hkl[0],
                             r.hkl[1],
                             r.hkl[2],
@@ -267,8 +336,10 @@ impl Session {
                             r.sigma,
                             r.omega,
                             r.flags,
-                            r.track,
-                            r.correction
+                            r.track.map(|id| id as i64).unwrap_or(-1),
+                            r.crossing.map(|id| id as i64).unwrap_or(-1),
+                            r.correction,
+                            u8::from(r.usable())
                         )
                         .map_err(err)?;
                     }
@@ -280,7 +351,7 @@ impl Session {
                     .scxrd
                     .reflections
                     .iter()
-                    .filter(|r| r.flags == 0)
+                    .filter(|r| r.usable())
                     .collect();
                 if usable.is_empty() {
                     return Err("Integrate usable reflections before exporting HKLF4.".into());
@@ -327,13 +398,18 @@ impl Session {
             }
             _ => return Err("Unknown SCXRD file operation.".into()),
         }
-        if matches!(op, "save" | "reflections" | "hkl" | "cif")
-            && !self.scxrd.saved_exports.contains(&path)
+        if matches!(
+            op,
+            "save" | "reflections" | "hkl" | "cif" | "protocol_save" | "audit"
+        ) && !self.scxrd.saved_exports.contains(&path)
         {
             self.scxrd.saved_exports.push(path.clone());
         }
         let mut reply = self.scxrd.reply();
-        if matches!(op, "save" | "reflections" | "hkl" | "cif") {
+        if matches!(
+            op,
+            "save" | "reflections" | "hkl" | "cif" | "protocol_save" | "audit"
+        ) {
             reply.result["savedPath"] = json!(path);
         }
         Ok(reply)
@@ -378,7 +454,7 @@ impl Crystal {
         self.initial_geometry = Some(geometry);
         self.geometry = Some(geometry);
         self.poni = Some(g);
-        self.invalidate(2);
+        self.invalidate(0);
         Ok(())
     }
 }

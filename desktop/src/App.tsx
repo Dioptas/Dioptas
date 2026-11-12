@@ -1843,6 +1843,9 @@ export default function App() {
         (progress?.running
           ? processingProgressText(progress, "Single-crystal processing")
           : busy) ||
+        (scxrdDraftDirty
+          ? "Apply or reset the single-crystal settings draft first."
+          : "") ||
         notice ||
         scxrd?.error ||
         (scxrd?.notice ? `Last action: ${scxrd.notice}` : "") ||

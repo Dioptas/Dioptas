@@ -67,6 +67,7 @@ export function SingleCrystalStages({
   onValidation,
 }: CrystalStageProps) {
   const [filter, setFilter] = useState("all");
+  const [showProtocol, setShowProtocol] = useState(false);
   const [pendingTrack, setPendingTrack] = useState<{
     id: number;
     checked: boolean;
@@ -88,6 +89,12 @@ export function SingleCrystalStages({
       | "refine_geometry"
       | "metric"
       | "scan_scaling"
+      | "keep_stage_audit"
+      | "protocol"
+      | "integration_method"
+      | "dac_enabled"
+      | "dac_axis"
+      | "seat_enabled"
     >,
     label: string,
     units = "",
@@ -99,19 +106,75 @@ export function SingleCrystalStages({
       field={key}
       label={label + (units ? ` / ${units}` : "")}
       value={draft[key]}
+      disabled={
+        draft.integration_method === "profile" &&
+        [
+          "threshold",
+          "min_pixels",
+          "link_radius",
+          "aperture_radius",
+          "omega_radius",
+          "polarization",
+          "gain",
+          "read_noise",
+          "smoothness",
+        ].includes(key)
+      }
       onCommit={(v) => update(key, v)}
       onValidation={onValidation}
       min={min}
       max={max}
-      integer={["group", "min_pixels", "aperture_radius"].includes(key)}
+      integer={[
+        "group",
+        "min_pixels",
+        "aperture_radius",
+        "shadow_block",
+        "seat_guard",
+      ].includes(key)}
       positive={["omega_step", "exposure", "gain"].includes(key)}
     />
   );
 
+  const protocolDocument =
+    draft.protocol ?? data?.effectiveProtocol ?? data?.protocolTemplate;
+  const protocolAcquisition = protocolDocument?.acquisition as
+    Record<string, unknown> | undefined;
+  const changeProtocolFrame = (
+    key: "first_frame" | "last_frame_inclusive",
+    frame: number,
+  ) => {
+    if (protocolDocument && protocolAcquisition)
+      update("protocol", {
+        ...protocolDocument,
+        acquisition: { ...protocolAcquisition, [key]: frame - 1 },
+      });
+  };
+  const chooseWorkflow = (method: "summation" | "profile") => {
+    update("integration_method", method);
+    const profile = method === "profile";
+    update("background", !profile);
+    update("aperture_radius", profile ? 7 : 6);
+    update("omega_radius", profile ? 4.5 : 1.5);
+    update("polarization", profile ? 0.98 : 0.99);
+    update("link_radius", profile ? 5 : 3);
+    update("refine_geometry", profile);
+    update("scan_scaling", false);
+    if (profile) {
+      // Enter the displayed protocol interval explicitly, replacing old manual
+      // omissions instead of leaving two competing frame selections.
+      if (!draft.protocol && protocolDocument)
+        update("protocol", protocolDocument);
+      update("gain", 1);
+      update("read_noise", 0);
+      update("threshold", 5);
+      update("min_pixels", 3);
+    }
+  };
   const pagination = (kind: "tracks" | "reflections") => {
     if (!data) return null;
     const offset = kind === "tracks" ? data.trackOffset : data.reflectionOffset;
-    const total = kind === "tracks" ? data.trackCount : data.reflectionCount;
+    const total =
+      kind === "tracks" ? data.trackCount : data.reflectionFilteredCount;
     return (
       <div className="sc-pagination" role="group" aria-label={`${kind} pages`}>
         <Button
@@ -188,6 +251,153 @@ export function SingleCrystalStages({
             </p>
           </details>
         )}
+        {draft.integration_method === "profile" && (
+          <fieldset disabled={!ready}>
+            <legend>Sample setup · required before processing</legend>
+            <div className="sc-actions">
+              <Button variant="secondary" onClick={() => setStep(4)}>
+                {draft.metric
+                  ? `Cell: ${draft.metric
+                      .slice(0, 3)
+                      .map((v) => fmt(v, 3))
+                      .join(" × ")} Å`
+                  : "Enter sample cell…"}
+              </Button>
+              <Button variant="secondary" onClick={() => setStep(6)}>
+                Space group:{" "}
+                {draft.group === data?.config.group && data?.suppliedGroupSymbol
+                  ? `${data.suppliedGroupSymbol} (#${draft.group})`
+                  : `#${draft.group} (draft)`}
+              </Button>
+              <Button variant="secondary" onClick={() => setStep(7)}>
+                {draft.elements.trim()
+                  ? `Elements: ${draft.elements}`
+                  : "Enter elements…"}
+              </Button>
+            </div>
+            <p className="sc-note">
+              Review these supplied priors before any checkpoint. Each button
+              opens its editor; apply the draft, then confirm acquisition below.
+            </p>
+          </fieldset>
+        )}
+        <fieldset disabled={!ready}>
+          <legend>PhaseSmith analysis protocol</legend>
+          <label className="sc-field">
+            <span>Workflow</span>
+            <Select
+              aria-label="Single-crystal workflow"
+              value={draft.integration_method}
+              onChange={(e) =>
+                chooseWorkflow(e.target.value as "summation" | "profile")
+              }
+            >
+              <option value="profile">PhaseSmith · orthorhombic</option>
+              <option value="summation">
+                Exploratory measured-track summation
+              </option>
+            </Select>
+          </label>
+          <div className="sc-actions">
+            <Button variant="secondary" onClick={() => file("protocol")}>
+              Load protocol…
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => file("protocol_builtin")}
+            >
+              Use bundled v29
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={!data?.frames || draft.integration_method !== "profile"}
+              onClick={() => file("protocol_save")}
+            >
+              Save effective protocol…
+            </Button>
+            <Button
+              variant="quiet"
+              onClick={() => setShowProtocol(!showProtocol)}
+            >
+              {showProtocol ? "Hide protocol" : "Inspect protocol"}
+            </Button>
+          </div>
+          <p className="sc-note">
+            Versioned native workflow for a supplied orthorhombic metric. Review
+            the frame range below.
+          </p>
+          <details className="sc-protocol-details">
+            <summary>Protocol compatibility and reproducibility</summary>
+            <p className="sc-note">
+              Supplied-symmetry orthorhombic protocols use the complete
+              PhaseSmith workflow. Declared acquisition and shadow edits are
+              recorded as protocol overrides. Save a Dioptas recipe for source
+              paths, calibration and sample priors. When entering protocol mode
+              its frame range replaces manual frame exclusions; review the
+              first/last frame.
+            </p>
+          </details>
+          {protocolAcquisition && (
+            <>
+              <p className="sc-note">
+                Frame fields use one-based numbering; protocol JSON uses
+                zero-based indices.
+              </p>
+              <CrystalNumberField
+                field="protocol_first_frame"
+                label="Protocol first frame"
+                value={Number(protocolAcquisition.first_frame) + 1}
+                min={1}
+                max={data?.frames || 10000}
+                integer
+                onCommit={(v) => changeProtocolFrame("first_frame", v)}
+                onValidation={onValidation}
+              />
+              <CrystalNumberField
+                field="protocol_last_frame"
+                label="Protocol last frame"
+                value={Number(protocolAcquisition.last_frame_inclusive) + 1}
+                min={1}
+                max={data?.frames || 10000}
+                integer
+                onCommit={(v) => changeProtocolFrame("last_frame_inclusive", v)}
+                onValidation={onValidation}
+              />
+            </>
+          )}
+          <label className="sc-check">
+            <Input
+              type="checkbox"
+              checked={draft.keep_stage_audit}
+              onChange={(e) => update("keep_stage_audit", e.target.checked)}
+            />
+            Keep lossless intermediate stage outputs
+          </label>
+          {showProtocol && (
+            <>
+              <p className="sc-note" role="status">
+                {data?.effectiveProtocol
+                  ? "Applied effective protocol. Apply any settings draft to refresh this document."
+                  : "Bundled template; load a protocol and apply valid settings to inspect the effective document."}
+                {(!draft.dac_enabled || !draft.seat_enabled) &&
+                  " The combined-mask policy requires both cell-shadow masks enabled before execution."}
+                {data?.protocolInspectionError &&
+                  ` ${data.protocolInspectionError}`}
+              </p>
+              <pre
+                className="sc-protocol-code"
+                tabIndex={0}
+                aria-label="PhaseSmith protocol document"
+              >
+                {JSON.stringify(
+                  data?.effectiveProtocol ?? data?.protocolTemplate,
+                  null,
+                  2,
+                )}
+              </pre>
+            </>
+          )}
+        </fieldset>
         <fieldset disabled={!ready}>
           <legend>Acquisition · user supplied</legend>
           {numberField(
@@ -249,8 +459,9 @@ export function SingleCrystalStages({
             4294967295,
           )}
           <p className="sc-note">
-            Photon counters: gain 1, read noise 0. ADU detectors need a measured
-            gain.
+            {draft.integration_method === "profile"
+              ? "Set by protocol: original photon counts, gain 1 and read noise 0. ADU gain conversion is available in exploratory summation."
+              : "Photon counters: gain 1, read noise 0. ADU detectors need a measured gain."}
           </p>
         </fieldset>
         <label className="sc-check">
@@ -260,19 +471,101 @@ export function SingleCrystalStages({
             onChange={(e) => update("confirmed", e.target.checked)}
             disabled={!ready || !data?.frames}
           />
-          <span>I checked the frame order, angles, axis and count gain.</span>
+          <span>
+            {draft.integration_method === "profile"
+              ? "I checked the frame order, angles, axis, count gain and cell-shadow assumptions."
+              : "I checked the frame order, angles, axis and count gain."}
+          </span>
         </label>
       </>
     );
   if (step === 1)
     return (
       <>
+        <fieldset disabled={!ready}>
+          <legend>Moving cell shadows · original counts</legend>
+          <label className="sc-check">
+            <Input
+              type="checkbox"
+              checked={draft.dac_enabled}
+              onChange={(e) => update("dac_enabled", e.target.checked)}
+            />
+            Mask the diamond-anvil-cell aperture
+          </label>
+          {draft.dac_enabled && (
+            <>
+              {numberField(
+                "dac_half_opening",
+                "DAC half opening",
+                "°",
+                0.01,
+                89.999,
+              )}
+              <p className="sc-note">
+                Declare the sample-fixed cell axis in lab coordinates at omega
+                zero. The whole exposure and detector-block footprint must stay
+                inside the cone; this is exclusion, not absorption correction.
+              </p>
+              {draft.dac_axis.map((v, i) => (
+                <CrystalNumberField
+                  key={i}
+                  field={`dac_axis_${i}`}
+                  label={`DAC axis ${["x", "y", "z"][i]}`}
+                  value={v}
+                  onCommit={(value) => {
+                    const axis: [number, number, number] = [...draft.dac_axis];
+                    axis[i] = value;
+                    update("dac_axis", axis);
+                  }}
+                  onValidation={onValidation}
+                  min={-1e6}
+                  max={1e6}
+                />
+              ))}
+            </>
+          )}
+          <label className="sc-check">
+            <Input
+              type="checkbox"
+              checked={draft.seat_enabled}
+              onChange={(e) => update("seat_enabled", e.target.checked)}
+            />
+            Estimate moving seat / illumination shadows
+          </label>
+          {draft.seat_enabled && (
+            <>
+              {numberField(
+                "seat_threshold",
+                "Illumination threshold",
+                "",
+                0.01,
+                0.999,
+              )}
+              {numberField("seat_guard", "Illumination guard", "px", 0, 4096)}
+            </>
+          )}
+          {(draft.dac_enabled || draft.seat_enabled) &&
+            numberField("shadow_block", "Shadow block side", "px", 1, 1024)}
+          <p className="sc-note">
+            Shadow masks are shared by background, peaks and intensities. They
+            never rescale original counts. Enabling or changing them requires
+            rerunning dependent stages.
+          </p>
+          {data?.shadows && (
+            <p className="sc-note">
+              Prepared exposures {data.shadows.first + 1}–
+              {data.shadows.last + 1}: {data.shadows.illuminationExcluded}{" "}
+              illumination blocks and {data.shadows.dacExcluded} DAC blocks
+              excluded. Recipe and report retain mask fingerprints.
+            </p>
+          )}
+        </fieldset>
         <label className="sc-check">
           <Input
             type="checkbox"
             checked={draft.background}
             onChange={(e) => update("background", e.target.checked)}
-            disabled={!ready}
+            disabled={!ready || draft.integration_method === "profile"}
           />
           <span>Fit omega background (arPLS)</span>
         </label>
@@ -311,11 +604,14 @@ export function SingleCrystalStages({
         <fieldset>
           <legend>Exclude detector regions</legend>
           <p className="sc-note">
-            Mask beamstop, gaps, diamond spots or powder regions. These
-            exclusions also remove counts from integration.
+            {draft.integration_method === "profile"
+              ? "The protocol uses its moving cell-shadow masks above. Manual regions and track exclusions are available in exploratory summation. Select a contiguous protocol frame range in Frames."
+              : "Mask beamstop, gaps, diamond spots or powder regions. These exclusions also remove counts from integration."}
           </p>
           <Button
-            disabled={!ready || !data?.image}
+            disabled={
+              !ready || !data?.image || draft.integration_method === "profile"
+            }
             aria-pressed={maskPicking}
             onClick={() => {
               setMaskPicking(!maskPicking);
@@ -372,7 +668,9 @@ export function SingleCrystalStages({
         </fieldset>
         <Button
           variant="secondary"
-          disabled={!ready || !data?.frames}
+          disabled={
+            !ready || !data?.frames || draft.integration_method === "profile"
+          }
           onClick={() =>
             void run(
               "scxrd_edit",
@@ -390,6 +688,12 @@ export function SingleCrystalStages({
   if (step === 2)
     return (
       <>
+        {draft.integration_method === "profile" && (
+          <p className="sc-note">
+            Detection and linking controls are set by the versioned protocol.
+            Inspect it in Frames.
+          </p>
+        )}
         {numberField("threshold", "Peak threshold", "σ", 1, 100)}
         {numberField("min_pixels", "Minimum area", "px", 1, 1000)}
         {numberField("link_radius", "Link radius", "px", 0.1, 30)}
@@ -401,8 +705,29 @@ export function SingleCrystalStages({
           <div className="sc-peak-chart">
             <svg
               viewBox="0 0 400 72"
-              role="img"
+              role="slider"
+              tabIndex={0}
               aria-label="Peaks per rotation frame"
+              aria-valuemin={1}
+              aria-valuemax={data.frames}
+              aria-valuenow={data.frame + 1}
+              onKeyDown={(e) => {
+                if (!ready) return;
+                const next =
+                  e.key === "Home"
+                    ? 0
+                    : e.key === "End"
+                      ? data.frames - 1
+                      : ["ArrowRight", "ArrowUp"].includes(e.key)
+                        ? data.frame + 1
+                        : ["ArrowLeft", "ArrowDown"].includes(e.key)
+                          ? data.frame - 1
+                          : null;
+                if (next == null) return;
+                e.preventDefault();
+                e.stopPropagation();
+                changeFrame(Math.max(0, Math.min(data.frames - 1, next)));
+              }}
               onClick={(e) => {
                 if (!ready) return;
                 const b = e.currentTarget.getBoundingClientRect();
@@ -435,7 +760,7 @@ export function SingleCrystalStages({
               />
             </svg>
             <span>
-              Peaks per frame · click to inspect · max{" "}
+              Peaks per frame · click or arrow keys to inspect · max{" "}
               {Math.max(...data.peakFrames)}
             </span>
           </div>
@@ -470,10 +795,16 @@ export function SingleCrystalStages({
           <span>Track table</span>
           <Select value={filter} onChange={(e) => setFilter(e.target.value)}>
             <option value="all">All tracks</option>
-            <option value="usable">Usable</option>
+            <option value="usable">Unflagged tracks</option>
             <option value="flagged">Flagged / excluded</option>
           </Select>
         </label>
+        {draft.integration_method === "profile" && (
+          <p className="sc-note">
+            Track diagnostics describe detection and linking. Final reflection
+            eligibility is shown in Intensities.
+          </p>
+        )}
         {!!trackRows.length && (
           <TableScroll
             className="sc-table"
@@ -487,7 +818,7 @@ export function SingleCrystalStages({
                 {filter === "all"
                   ? "all tracks"
                   : filter === "usable"
-                    ? "usable tracks"
+                    ? "unflagged tracks"
                     : "flagged / excluded"}{" "}
                 · page
               </caption>
@@ -523,7 +854,7 @@ export function SingleCrystalStages({
                       {t.first + 1}–{t.last + 1}
                     </td>
                     <td>{fmt(t.observed[2], 2)}</td>
-                    <td>{crystalFlags(t.flags)}</td>
+                    <td>{crystalFlags(t.flags, undefined, t.native)}</td>
                     <td>
                       <Input
                         type="checkbox"
@@ -533,7 +864,12 @@ export function SingleCrystalStages({
                             ? pendingTrack.checked
                             : t.excluded
                         }
-                        disabled={!ready || pendingTrack?.id === t.id}
+                        disabled={
+                          !ready ||
+                          pendingTrack?.id === t.id ||
+                          (draft.integration_method === "profile" &&
+                            !t.excluded)
+                        }
                         onChange={(e) => {
                           setPendingTrack({
                             id: t.id,
@@ -564,9 +900,20 @@ export function SingleCrystalStages({
   if (step === 3)
     return (
       <>
-        {numberField("min_cell", "Shortest vector", "Å", 1.5, 100)}
-        {numberField("max_cell", "Longest vector", "Å", 1.5, 100)}
-        {numberField("tolerance", "Indexing tolerance", "Å⁻¹", 0.001, 0.1)}
+        {draft.integration_method !== "profile" && (
+          <>
+            {numberField("min_cell", "Shortest vector", "Å", 1.5, 100)}
+            {numberField("max_cell", "Longest vector", "Å", 1.5, 100)}
+            {numberField("tolerance", "Indexing tolerance", "Å⁻¹", 0.001, 0.1)}
+          </>
+        )}
+        {draft.integration_method === "profile" && (
+          <p className="sc-note">
+            The protocol indexes and validates the declared metric using its
+            native grain search and whole-family position holdouts. Declare the
+            sample metric in Geometry before running.
+          </p>
+        )}
         {!!data?.cells.length && (
           <div
             className="sc-cell-list"
@@ -638,67 +985,124 @@ export function SingleCrystalStages({
             type="checkbox"
             checked={draft.refine_geometry}
             onChange={(e) => update("refine_geometry", e.target.checked)}
-            disabled={!ready}
+            disabled={!ready || draft.integration_method === "profile"}
           />
           <span>Refine detector pose and crystal orientation</span>
         </label>
         <p className="sc-note">
-          Default: keep the loaded calibration fixed. Optional refinement fits 9
-          parameters; wavelength and cell lengths stay fixed. Changes must pass
-          independent withheld checks.
+          {draft.integration_method === "profile"
+            ? "The protocol refines pose/orientation with whole-family holdouts. Wavelength and the declared metric stay fixed."
+            : "Default: keep the loaded calibration fixed. Optional refinement fits 9 parameters; wavelength and cell lengths stay fixed. Changes must pass independent withheld checks."}
         </p>
-        <label className="sc-check">
-          <Input
-            type="checkbox"
-            checked={draft.metric !== null}
-            disabled={!ready || data?.selected == null}
-            onChange={(e) =>
-              update(
-                "metric",
-                e.target.checked
-                  ? (data!.cells[data!.selected!].parameters.slice() as [
-                      number,
-                      number,
-                      number,
-                      number,
-                      number,
-                      number,
-                    ])
-                  : null,
-              )
-            }
-          />
-          <span>Use a supplied exact metric in the selected row setting</span>
-        </label>
-        {draft.metric && (
-          <div className="sc-metric">
-            {["a / Å", "b / Å", "c / Å", "α / °", "β / °", "γ / °"].map(
-              (label, i) => (
-                <CrystalNumberField
-                  key={label}
-                  field={`metric${i}`}
-                  label={label}
-                  value={draft.metric![i]}
-                  positive
-                  min={i < 3 ? 0.000001 : 0.0001}
-                  max={i < 3 ? 1000 : 179.9999}
-                  onValidation={onValidation}
-                  onCommit={(v) => {
-                    const p = [...draft.metric!] as [
-                      number,
-                      number,
-                      number,
-                      number,
-                      number,
-                      number,
-                    ];
-                    p[i] = v;
-                    update("metric", p);
-                  }}
-                />
-              ),
+        {draft.integration_method === "profile" ? (
+          <fieldset disabled={!ready}>
+            <legend>Supplied orthorhombic cell</legend>
+            {draft.metric &&
+            draft.metric.slice(3).some((a) => Math.abs(a - 90) > 1e-8) ? (
+              <div className="sc-attention">
+                <p>
+                  The previous metric has nonorthogonal angles. Clear it before
+                  declaring an orthorhombic prior; its angles will not be
+                  silently changed.
+                </p>
+                <Button
+                  variant="secondary"
+                  onClick={() => update("metric", null)}
+                >
+                  Clear incompatible metric
+                </Button>
+              </div>
+            ) : (
+              <>
+                <p className="sc-note">
+                  Enter sample lengths before processing. Angles are fixed at
+                  90°. No indexed cell is needed to enter this prior.
+                </p>
+                {["a / Å", "b / Å", "c / Å"].map((label, i) => (
+                  <CrystalNumberField
+                    key={label}
+                    field={`metric${i}`}
+                    label={label}
+                    value={draft.metric?.[i] ?? 0}
+                    min={0.000001}
+                    max={1000}
+                    positive
+                    onValidation={onValidation}
+                    onCommit={(v) => {
+                      const p: [
+                        number,
+                        number,
+                        number,
+                        number,
+                        number,
+                        number,
+                      ] = [...(draft.metric ?? [0, 0, 0, 90, 90, 90])];
+                      p[i] = v;
+                      update("metric", p);
+                    }}
+                  />
+                ))}{" "}
+              </>
             )}
-          </div>
+          </fieldset>
+        ) : (
+          <>
+            <label className="sc-check">
+              <Input
+                type="checkbox"
+                checked={draft.metric !== null}
+                disabled={!ready || data?.selected == null}
+                onChange={(e) =>
+                  update(
+                    "metric",
+                    e.target.checked
+                      ? (data!.cells[data!.selected!].parameters.slice() as [
+                          number,
+                          number,
+                          number,
+                          number,
+                          number,
+                          number,
+                        ])
+                      : null,
+                  )
+                }
+              />
+              <span>
+                Use a supplied exact metric in the selected row setting
+              </span>
+            </label>
+            {draft.metric && (
+              <div className="sc-metric">
+                {["a / Å", "b / Å", "c / Å", "α / °", "β / °", "γ / °"].map(
+                  (label, i) => (
+                    <CrystalNumberField
+                      key={label}
+                      field={`metric${i}`}
+                      label={label}
+                      value={draft.metric![i]}
+                      positive
+                      min={i < 3 ? 0.000001 : 0.0001}
+                      max={i < 3 ? 1000 : 179.9999}
+                      onValidation={onValidation}
+                      onCommit={(v) => {
+                        const p = [...draft.metric!] as [
+                          number,
+                          number,
+                          number,
+                          number,
+                          number,
+                          number,
+                        ];
+                        p[i] = v;
+                        update("metric", p);
+                      }}
+                    />
+                  ),
+                )}
+              </div>
+            )}
+          </>
         )}
 
         {data?.geometryReport && (
@@ -736,30 +1140,105 @@ export function SingleCrystalStages({
   if (step === 5)
     return (
       <>
-        {numberField("aperture_radius", "Aperture half-width", "px", 2, 64)}
-        {numberField("omega_radius", "Rocking half-width", "°", 0.01, 10)}
-        {numberField("polarization", "Polarization fraction", "", 0, 1)}
+        <label className="sc-field">
+          <span>Integration recipe</span>
+          <Select
+            value={draft.integration_method}
+            disabled={!ready}
+            onChange={(e) =>
+              chooseWorkflow(e.target.value as "summation" | "profile")
+            }
+          >
+            <option value="summation">
+              Exploratory measured-track summation
+            </option>
+            <option value="profile">PhaseSmith · orthorhombic</option>
+          </Select>
+        </label>
+        <details
+          className="sc-protocol-details"
+          open={draft.integration_method === "summation"}
+        >
+          <summary>Integration support and corrections</summary>
+          {draft.integration_method === "profile" && (
+            <p className="sc-note">
+              Uses the standalone native workflow: shared seat/DAC masks,
+              predicted crossings, independent learned profiles and robust
+              family scaling. Requires explicit orthorhombic metric, space
+              group, element symbols and configured cell shadows. It refits
+              orientation/geometry from original counts; preview peak controls
+              do not replace its frozen recipe. Custom regions, excluded tracks
+              and interior excluded frames are rejected.
+            </p>
+          )}
+          <fieldset disabled={draft.integration_method === "profile"}>
+            <legend>
+              {draft.integration_method === "profile"
+                ? "Frozen native recipe support"
+                : "Summation support"}
+            </legend>
+            {numberField("aperture_radius", "Aperture half-width", "px", 2, 64)}
+            {numberField("omega_radius", "Rocking half-width", "°", 0.01, 10)}
+            {numberField("polarization", "Polarization fraction", "", 0, 1)}
+          </fieldset>
+          <p className="sc-note">
+            {draft.integration_method === "profile"
+              ? "Frozen profile recipe: 7 px spatial support, up to 4.5° rocking support adapted to zeta, guarded-plane background, polarization 0.98 and native per-frame/detector/ray scaling. Original profile flags remain visible; mismatch warnings do not silently remove bright reflections. No absorption correction."
+              : "3D summation uses the declared spatial aperture and angular width around each measured track, including weak tails beyond detection. Signed counts and sigma use Lorentz/polarization corrections. Partials, masked, saturated and overlapping measurements are flagged. Summation does not perform profile fitting or empirical family scaling."}
+          </p>
+        </details>
         <p className="sc-summary">
-          {data?.usableReflections ?? 0} usable / {data?.reflectionCount ?? 0}{" "}
-          integrated tracks
+          {draft.integration_method === "profile" && !data?.reflectionCount ? (
+            "No current reduction · run this stage to compute observations."
+          ) : (
+            <>
+              {data?.usableReflections ?? 0} usable /{" "}
+              {data?.reflectionCount ?? 0}{" "}
+              {draft.integration_method === "profile"
+                ? "predicted crossings"
+                : "integrated tracks"}
+            </>
+          )}
         </p>
-        <p className="sc-note">
-          3D summation uses the declared spatial aperture and angular width
-          around each measured track, including weak tails beyond detection.
-          Signed counts and σ are corrected for Lorentz and polarization
-          (electric vector along lab fast/y). Partials, masked, saturated and
-          overlapping measurements are flagged. This pass does not perform
-          profile fitting, absorption correction or empirical scan scaling.
-        </p>
+        <label className="sc-field">
+          <span>Observation table</span>
+          <Select
+            aria-label="Observation quality filter"
+            value={data?.reflectionFilter ?? "all"}
+            disabled={!ready || !data?.reflectionCount}
+            onChange={(e) =>
+              void run(
+                "scxrd_table",
+                {
+                  kind: "reflections",
+                  offset: 0,
+                  filter: e.target.value as "all" | "usable" | "excluded",
+                },
+                "",
+              )
+            }
+          >
+            <option value="all">All observations</option>
+            <option value="usable">Usable observations</option>
+            <option value="excluded">Excluded observations</option>
+          </Select>
+        </label>
+        {!!data?.reflectionCount && !data.reflections.length && (
+          <p className="sc-note">No observations match this filter.</p>
+        )}
         {!!data?.reflections.length && (
           <TableScroll
-            className="sc-table"
+            className="sc-table sc-reflections"
             tabIndex={0}
             role="region"
             aria-label="Single-crystal data table"
           >
             <DataTable>
-              <caption>Unmerged observations · displayed page</caption>
+              <caption>
+                {draft.integration_method === "profile"
+                  ? "Unmerged predicted crossings · displayed page"
+                  : "Unmerged measured tracks · displayed page"}
+              </caption>
               <thead>
                 <tr>
                   <th scope="col">h k l</th>
@@ -770,11 +1249,37 @@ export function SingleCrystalStages({
               </thead>
               <tbody>
                 {data.reflections.map((r, i) => (
-                  <tr key={i}>
+                  <tr
+                    key={
+                      r.crossing != null
+                        ? `crossing-${r.crossing}`
+                        : `track-${r.track ?? i}`
+                    }
+                  >
                     <td>{r.hkl.join(" ")}</td>
                     <td>{fmt(r.intensity, 2)}</td>
                     <td>{fmt(r.sigma, 2)}</td>
-                    <td>{crystalFlags(r.flags)}</td>
+                    <td
+                      title={`${crystalFlags(r.flags, r.native_use)}. Raw quality flags: ${r.flags}`}
+                    >
+                      {r.flags ? (
+                        <details className="sc-quality-details">
+                          <summary>
+                            {(() => {
+                              const full = crystalFlags(r.flags, r.native_use);
+                              const [state, reasons] = full.split(" · ");
+                              if (!reasons) return full;
+                              const labels = reasons.split(", ");
+                              return `${state} · ${labels[0]}${labels.length > 1 ? ` (+${labels.length - 1})` : ""}`;
+                            })()}
+                          </summary>
+                          <p>{crystalFlags(r.flags, r.native_use)}</p>
+                          <small>Raw quality flags: {r.flags}</small>
+                        </details>
+                      ) : (
+                        crystalFlags(r.flags, r.native_use)
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -797,7 +1302,7 @@ export function SingleCrystalStages({
           <Input
             type="checkbox"
             checked={draft.scan_scaling}
-            disabled={!ready}
+            disabled={!ready || draft.integration_method === "profile"}
             onChange={(e) => update("scan_scaling", e.target.checked)}
           />
           <span>Fit robust log-linear omega scale</span>
@@ -856,9 +1361,11 @@ export function SingleCrystalStages({
             </dd>
             <dt>Scan scale</dt>
             <dd>
-              {data.scaling.fit.applied
-                ? `Applied · β ${fmt(data.scaling.fit.coefficient ?? 0, 4)}`
-                : "Disabled"}
+              {data.scaling.fit.recipe
+                ? "Native per-frame / detector / ray family scale"
+                : data.scaling.fit.applied
+                  ? `Applied · β ${fmt(data.scaling.fit.coefficient ?? 0, 4)}`
+                  : "Disabled"}
             </dd>
             <dt>Absorption</dt>
             <dd>Not corrected</dd>
@@ -880,7 +1387,14 @@ export function SingleCrystalStages({
             disabled={!ready}
           />
         </label>
-        {numberField("group", "Supplied space-group number", "1–230", 1, 230)}
+        {draft.integration_method === "profile" ? (
+          <p className="sc-note">
+            Supplied space group: #{draft.group}. Edit it in Scaling; it is an
+            explicit prior.
+          </p>
+        ) : (
+          numberField("group", "Supplied space-group number", "1–230", 1, 230)
+        )}
         <p className="sc-note">
           Use the exact setting matching the selected cell. P1 is the default; a
           space group is an explicit prior, not an automatic determination.
@@ -888,20 +1402,28 @@ export function SingleCrystalStages({
         <label className="sc-field">
           <span>ADP model</span>
           <Select
-            value={draft.adp}
+            value={
+              draft.integration_method === "profile" ? "protocol" : draft.adp
+            }
             onChange={(e) =>
               update("adp", e.target.value as CrystalConfig["adp"])
             }
-            disabled={!ready}
+            disabled={!ready || draft.integration_method === "profile"}
           >
+            {draft.integration_method === "profile" && (
+              <option value="protocol">
+                validated-v1 · native staged search
+              </option>
+            )}
             <option value="isotropic">Isotropic</option>
             <option value="anisotropic">Anisotropic · more parameters</option>
           </Select>
         </label>
         {numberField("search_seconds", "Search budget", "s", 1, 600)}
         <p className="sc-note">
-          Seed 0 · 4 phase starts · dual-space search. ADP mode affects R1 and
-          parameter count; compare models using the same observations.
+          {draft.integration_method === "profile"
+            ? "Search seed, starts, cycles and staged ADP policy follow the effective PhaseSmith protocol. The actual retained model and parameter count are reported below."
+            : "Seed 0 · 4 phase starts · dual-space search. ADP mode affects R1 and parameter count; compare models using the same observations."}
         </p>
         {data?.structure && (
           <>
@@ -937,6 +1459,17 @@ export function SingleCrystalStages({
     );
   return (
     <div className="sc-export">
+      <Button
+        variant="secondary"
+        disabled={!ready || !data?.profileReport?.auditAvailable}
+        onClick={() => file("audit")}
+      >
+        Export stage audit…
+      </Button>
+      <p>
+        Lossless arrays for comparing masks, spots, geometry, background,
+        profiles, corrections and eligibility with standalone PhaseSmith.
+      </p>
       <div className="sc-export-recipe">
         <Save size={16} />
         Workflow recipe · save with the action below
@@ -960,8 +1493,9 @@ export function SingleCrystalStages({
         Unmerged observations…
       </Button>
       <p>
-        All rows, signed intensity, counting σ, omega, corrections and quality
-        flags.
+        All rows, signed intensity, reported σ, omega, corrections and quality
+        flags. Profile σ includes the native equivalent-error model; eligibility
+        is explicit.
       </p>
       <Button
         variant="secondary"
@@ -985,7 +1519,9 @@ export function SingleCrystalStages({
         title={
           !data?.structure
             ? "Run the optional Structure search first."
-            : "Export candidate coordinates and Ueq; tensors are omitted."
+            : draft.integration_method === "profile"
+              ? "Export the native P1 candidate and available fitted ADP tensors."
+              : "Export candidate coordinates and Ueq; tensors are omitted."
         }
         disabled={!ready || !data?.structure}
         onClick={() => file("cif")}
@@ -997,8 +1533,10 @@ export function SingleCrystalStages({
         {!data?.structure
           ? "Run the optional Structure stage to enable this export. "
           : ""}
-        P1 full-cell candidate coordinates and Ueq only; anisotropic tensors are
-        not included. Retain the recipe and observation table for provenance.
+        {draft.integration_method === "profile"
+          ? "Native P1 full-cell candidate with available fitted ADP tensors. "
+          : "P1 full-cell coordinates and Ueq only; anisotropic tensors are not included. "}
+        Retain the recipe and observation table for provenance.
       </p>
     </div>
   );

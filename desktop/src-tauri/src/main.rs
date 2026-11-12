@@ -97,7 +97,10 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
     }
     if action == "scxrd_file" {
         let (label, extensions, name, save): (_, &[&str], _, _) = match payload["operation"].as_str()? {
-            "use_calibration" => return None,
+            "use_calibration" | "protocol_builtin" => return None,
+            "protocol" => ("PhaseSmith analysis protocol", &["json"], "", false),
+            "audit" => ("Lossless stage audit", &["npz"], "single-crystal-stages.npz", true),
+            "protocol_save" => ("Effective PhaseSmith protocol", &["json"], "analysis-protocol.json", true),
             "calibration" => ("PONI calibration", &["poni"], "", false),
             "open" | "preset" => ("Single-crystal recipe", &["json"], "", false),
             "save" => ("Single-crystal recipe", &["json"], "single-crystal.scxrd.json", true),

@@ -63,7 +63,11 @@ type Spec<Payload, Success> = { payload: Payload; success: Success };
  * commands continue to use their purpose-specific Tauri API. */
 export interface CommandContracts {
   scxrd_table: Spec<
-    { kind: "tracks" | "reflections"; offset: number },
+    {
+      kind: "tracks" | "reflections";
+      offset: number;
+      filter?: "all" | "usable" | "excluded";
+    },
     { scxrd: import("./singleCrystalDomain").CrystalData }
   >;
   scxrd_levels: Spec<

@@ -45,11 +45,18 @@ try {
     operation: "calibration",
     path: path.join(source, "CeO2_20240620_1849_dioptas.poni"),
   });
-  await call("scxrd_edit", { operation: "frame", index: 0 });
-  await call("scxrd_edit", { operation: "frame", index: 1 });
-  await call("scxrd_settings", {
+  // Historical exploratory control: freeze its original settings explicitly.
+  r = await call("scxrd_settings", {
     config: {
       ...r.scxrd.config,
+      integration_method: "summation",
+      aperture_radius: 6,
+      omega_radius: 1.5,
+      polarization: 0.99,
+      link_radius: 3,
+      refine_geometry: false,
+      dac_enabled: false,
+      seat_enabled: false,
       omega_start: -36,
       omega_step: 0.5,
       exposure: 0.5,
@@ -58,6 +65,8 @@ try {
       confirmed: true,
     },
   });
+  await call("scxrd_edit", { operation: "frame", index: 0 });
+  await call("scxrd_edit", { operation: "frame", index: 1 });
   r = await call("scxrd_run", { stage: 2, automatic: false });
   await fs.writeFile(
     path.join(folder, "cell-stage.json"),

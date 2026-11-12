@@ -186,20 +186,34 @@ export function SingleCrystalWorkspace({
     valid = !configError && !fieldError;
   useEffect(() => onDraftDirty(dirty || !valid), [dirty, valid, onDraftDirty]);
 
+  const protocolSetup =
+    data?.config.integration_method !== "profile"
+      ? null
+      : !data?.geometry
+        ? "Load a PONI calibration in Frames before running the protocol."
+        : !data.config.metric
+          ? "Supply the orthorhombic cell in Geometry before running the protocol."
+          : !data.config.elements.trim()
+            ? "Supply element symbols in Structure and review the space group in Scaling."
+            : !data.config.dac_enabled || !data.config.seat_enabled
+              ? "Review and enable both cell-shadow masks in Background."
+              : null;
   const canProcess =
     ready &&
     !!data?.frames &&
     !dirty &&
     !!data?.config.confirmed &&
     !!data?.geometry &&
-    valid;
+    valid &&
+    !protocolSetup;
   const canRunCurrent =
     ready &&
     !!data?.frames &&
     !dirty &&
     !!data?.config.confirmed &&
     valid &&
-    (step <= 2 || !!data?.geometry);
+    (step <= 2 || !!data?.geometry) &&
+    !protocolSetup;
   const coreComplete =
     !!data?.frames &&
     data.stages.slice(0, 6).every((stage) => stage.status === "complete");
@@ -643,7 +657,21 @@ export function SingleCrystalWorkspace({
           aria-labelledby={`sc-tab-${step}`}
           tabIndex={0}
         >
-          <p className="sc-hint">{hints[step]}</p>
+          <p className="sc-hint">
+            {draft.integration_method === "profile"
+              ? [
+                  "Load a supported PhaseSmith protocol and declare acquisition, calibration, sample metric, symmetry, elements and cell-shadow assumptions before processing.",
+                  "The protocol uses shared original-count seat masks and full-exposure DAC aperture masks. It estimates local background during integration.",
+                  "Detect and link observations with the protocol's native controls and shared masks. This checkpoint uses the same coordinator as standalone.",
+                  "Index the supplied orthorhombic metric and validate sample orientation using native independent position gates. Pose refinement shares this checkpoint.",
+                  "Review native detector-pose/orientation refinement and whole-family holdouts. Wavelength and supplied cell metric remain fixed.",
+                  "Integrate predicted crossings from original counts with guarded local background, learned 3D profiles and native family scaling. Signed intensities and eligibility remain inspectable.",
+                  "Review native frame/detector/ray family scaling, equivalent-error uncertainty and merging statistics for the supplied symmetry. No absorption correction is applied.",
+                  "Review the protocol's staged native structure candidate, actual ADP model and optimizer termination. Candidate assessment is not a final structure refinement.",
+                  "Export the recipe, effective protocol, signed observations, usable HKLF4 intensities, available candidate CIF and retained stage audit.",
+                ][step]
+              : hints[step]}
+          </p>
           {data?.error && (
             <div className="sc-attention" role="alert">
               <strong>
@@ -759,7 +787,18 @@ export function SingleCrystalWorkspace({
                   <progress max={progress.total} value={progress.current} />
                 )}
               {progress?.running && (
-                <span>Completed stages will be kept if you stop.</span>
+                <>
+                  <span>Completed stages will be kept if you stop.</span>
+                  <Button
+                    variant="secondary"
+                    aria-label="Stop single-crystal processing"
+                    onClick={() => {
+                      void invoke?.("cancel_refinement", {});
+                    }}
+                  >
+                    Stop processing
+                  </Button>
+                </>
               )}
             </div>
           ) : (
@@ -815,6 +854,16 @@ export function SingleCrystalWorkspace({
                     ? "Review and export"
                     : "Run to next decision"}
               </Button>
+              {ready &&
+                !dirty &&
+                !!data?.frames &&
+                !data.config.confirmed &&
+                step !== 0 &&
+                step !== 8 && (
+                  <Button variant="secondary" onClick={() => setStep(0)}>
+                    Review acquisition in Frames
+                  </Button>
+                )}
               {!canProcess && step !== 8 && (
                 <p className="sc-note">
                   {dirty
@@ -823,9 +872,11 @@ export function SingleCrystalWorkspace({
                       ? "Load frames to begin."
                       : !data.config.confirmed
                         ? "Confirm acquisition settings in Frames."
-                        : !data.geometry
-                          ? "Background and peaks can run now. Load a PONI calibration for cell finding or automatic processing."
-                          : "Wait for processing to finish."}
+                        : protocolSetup
+                          ? protocolSetup
+                          : !data.geometry
+                            ? "Background and peaks can run now. Load a PONI calibration for cell finding or automatic processing."
+                            : "Wait for processing to finish."}
                 </p>
               )}
             </>

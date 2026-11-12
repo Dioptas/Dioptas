@@ -26,7 +26,7 @@ exercises the optional search/export path; the photon fixture does not encode an
 a correctness metric. The powder image, geometry and pattern were
 unchanged. This does not establish cross-platform bitwise reproducibility.
 
-## Measured MgSiO3 diagnostic
+## Historical summation diagnostic
 
 The optional private-data probe admits the 144-frame Eiger example, 2162×2068
 pixels, with its CeO2 PONI. It explicitly declares omega start -36°, step/exposure
@@ -52,6 +52,23 @@ workflow are **not qualified**. No measured structure-solution claim follows
 from this probe. Historical 4.1% versus 5.14% R1 results used a different reduction
 and ADP model; they are not benchmarks for these new summation intensities.
 
+## Corrected native protocol comparison
+
+The initial summation result above is retained as a negative control. The current
+PhaseSmith protocol path uses the complete native coordinator at every
+checkpoint. With the same v29 protocol, source hashes, mask assumptions, supplied
+metric and symmetry, standalone and Dioptas retain the same 7,277 rows, 4,125
+eligible observations and 660 profile-mismatch warnings. Both give Rint 3.93649%.
+Prepared-frame hashes, HKLs, flags and eligibility match exactly; numerical
+intensity/sigma differences pass the unchanged native equivalence gates.
+With development optimization settings matched, all 54 archived arrays are byte-exact,
+including the profile diagnostics. The fresh raw-frame GUI setup and saved-recipe
+replay both reproduce the reduction and candidate R1 4.11283549% (anisotropic,
+90 parameters; candidate refinement reaches its iteration limit). Reference
+coordinate/count grading is not performed without a reference model.
+See [the full matched comparison](SCXRD_RINT_COMPARISON.md) for every control,
+mask ablation, archive checks and remaining scientific limits.
+
 ## Reproducing the checks
 
 From the worktree root, first build the native processor and frontend, then:
@@ -59,9 +76,12 @@ From the worktree root, first build the native processor and frontend, then:
 ```sh
 CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 cargo run --locked --manifest-path desktop/backend/Cargo.toml --example scxrd_fixture -- desktop/artifacts/scxrd-fixture
 npm --prefix desktop run test:scxrd
-# Optional local measured data; not required for the synthetic suite:
-DIOPTAS_SCXRD_MEASURED_DIR='/path/to/MgSiO3 example' npm --prefix desktop run test:scxrd-measured
-npm --prefix desktop run test:scxrd-measured-gui
+# Optional measured protocol replay, always choose new output directories:
+DIOPTAS_SCXRD_STEPWISE=1 DIOPTAS_SCXRD_MEASURED_DIR='/path/to/MgSiO3 example' npm --prefix desktop run test:scxrd-protocol -- /new/reduction-output
+npm --prefix desktop run test:scxrd-protocol-gui -- /new/reduction-output/matched.scxrd.json /new/replay-gui-output
+# Drive setup from raw frames through the GUI, rather than opening that recipe:
+DIOPTAS_SCXRD_FRESH_SETUP=1 DIOPTAS_SCXRD_MEASURED_DIR='/path/to/MgSiO3 example' npm --prefix desktop run test:scxrd-protocol-gui -- /unused/recipe /new/fresh-gui-output
+# test:scxrd-measured and test:scxrd-measured-gui retain the historical summation control.
 ```
 
 Artifacts under ignored `desktop/artifacts/scxrd-*` retain observations, recipes,
@@ -72,7 +92,12 @@ headless Chromium/WebKit. Nine tabs at 1500×1000, 1050×760 and larger-text
 reachability. They exercise actual number typing, cell decisions, track
 exclusion/Undo, masks/Escape, frame keys, own-image hover, contrast, mode-switch
 drafts, recipe export and WCAG A/AA Axe checks. A separate measured GUI check
-covers real-scan display and cancellation. Headless evidence does not qualify
+covers real-scan display and cancellation. The native protocol probe additionally
+checks fresh raw-frame setup (cell entry before indexing), inspected/exported
+effective settings, protocol undo, 27 native layouts, readable quality reasons,
+nine Axe checks, global usable/excluded view filtering and paging, and stopping
+after a completed native mask checkpoint. Undo after Stop restores the prior
+reduction/candidate; this is Undo of the clear-stage edit, not of processing. Headless evidence does not qualify
 native OS dialogs or every Tauri/WebKit platform.
 
 Rust regressions cover validation/invalidation, source and calibration write
@@ -81,9 +106,12 @@ independent image previews, symmetry scoring, export precision and atomic edits.
 Frontend model/build checks and existing powder/Map workflows guard integration.
 See [review record](SCXRD_REVIEW.md) for reviewer findings and final ratings.
 
-Final automated checks: 383 native backend tests passed (two existing tests
-ignored), 175 frontend tests passed, 47 Tauri-host tests passed, strict TypeScript
-production build and native Clippy with warnings denied passed. Native sidecar
-and resource staging passed. Existing headless Calibration, Integration and Map
-regressions passed in Chromium and WebKit. These checks do not establish native
-OS-dialog behavior or crystallographic validity outside the measurements above.
+The corrected-protocol validation includes the full backend suite, final focused
+SC regressions, 176 frontend tests, 47 Tauri-host tests, strict TypeScript
+production build and native Clippy with warnings denied. Native resource staging
+and the analytical photon-budget/summation smoke pass. Headless synthetic
+Chromium/WebKit checks pass 54 layouts/18 Axe views; measured protocol checks pass
+27 layouts/nine Axe views. All earlier failed trials and build-control differences
+remain in the local evidence, with scope in the [comparison](SCXRD_RINT_COMPARISON.md).
+These checks do not establish native OS-dialog behavior or crystallographic
+validity outside the measurements above.

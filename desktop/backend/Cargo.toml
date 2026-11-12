@@ -27,6 +27,7 @@ phasesmith-crystallography = { git = "https://github.com/CPrescher/PhaseSmith", 
 phasesmith-io = { git = "https://github.com/CPrescher/PhaseSmith", rev = "e47507f4adf32ea2a137ddf6b735db88f8a67537" }
 phasesmith-model = { git = "https://github.com/CPrescher/PhaseSmith", rev = "e47507f4adf32ea2a137ddf6b735db88f8a67537" }
 phasesmith-single-crystal = { git = "https://github.com/CPrescher/PhaseSmith", rev = "e47507f4adf32ea2a137ddf6b735db88f8a67537", default-features = false, features = ["spots", "solution"] }
+phasesmith-persistence = { git = "https://github.com/CPrescher/PhaseSmith", rev = "e47507f4adf32ea2a137ddf6b735db88f8a67537" }
 phasesmith-workflows = { git = "https://github.com/CPrescher/PhaseSmith", rev = "e47507f4adf32ea2a137ddf6b735db88f8a67537", features = ["single-crystal"] }
 peritheos = { git = "https://github.com/CPrescher/peritheos", rev = "3c79b1aedf28c348a49cc22d9f24d92895546283" }
 nalgebra = "0.35"

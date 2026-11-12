@@ -10,7 +10,10 @@ November 11, 2026. The former Qt `develop` is preserved on `legacy/qt`, and
 existing stable releases remain Qt applications. New desktop work targets
 `develop`; the former single-crystal experiment stays separate. The new native
 [SCXRD workflow](SCXRD_WORKFLOW.md) provides guided frame-to-export processing;
-see its [validation and limitations](SCXRD_VALIDATION.md). See the
+see its [validation and limitations](SCXRD_VALIDATION.md). Versioned PhaseSmith
+protocols support inspection, effective-settings export, native checkpoints and
+lossless stage audits; the [matched MgSiO3 comparison](SCXRD_RINT_COMPARISON.md)
+documents the corrected profile/scaling reduction and its supported scope. See the
 [consolidation record](RUST_DESKTOP_CONSOLIDATION.md) for branch history and
 verification.
 

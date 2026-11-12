@@ -68,6 +68,13 @@ try {
   });
   let config = {
     ...r.scxrd.config,
+    integration_method: "summation",
+    background: true,
+    link_radius: 3,
+    aperture_radius: 6,
+    omega_radius: 1.5,
+    polarization: 0.99,
+    refine_geometry: false,
     omega_start: -40,
     omega_step: 0.5,
     exposure: 0.5,

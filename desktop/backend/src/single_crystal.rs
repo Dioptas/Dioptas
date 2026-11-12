@@ -16,15 +16,30 @@ mod files;
 mod processing;
 #[path = "single_crystal_scaling.rs"]
 mod scaling;
+#[path = "single_crystal_shadows.rs"]
+mod shadows;
+use shadows::Shadows;
+#[path = "single_crystal_audit.rs"]
+mod audit;
+#[path = "single_crystal_profiles.rs"]
+mod profiles;
+#[path = "single_crystal_protocol.rs"]
+mod protocol;
 const ENGINE: &str = "PhaseSmith 0.8.1 / e47507f4";
 fn adapter_identity() -> &'static str {
     static ID: std::sync::OnceLock<String> = std::sync::OnceLock::new();
     ID.get_or_init(|| {
         let mut hash = Sha256::new();
-        let sources: [&[u8]; 8] = [
+        let sources: [&[u8]; 14] = [
             include_bytes!("single_crystal.rs"),
             include_bytes!("single_crystal_processing.rs"),
             include_bytes!("single_crystal_scaling.rs"),
+            include_bytes!("single_crystal_shadows.rs"),
+            include_bytes!("single_crystal_profiles.rs"),
+            include_bytes!("single_crystal_protocol.rs"),
+            include_bytes!("single_crystal_audit.rs"),
+            include_bytes!("../data/scxrd-protocol-v29.json"),
+            include_bytes!("../data/scxrd-null-rotations-v1.json"),
             include_bytes!("single_crystal_files.rs"),
             include_bytes!("image.rs"),
             include_bytes!("geometry.rs"),
@@ -80,6 +95,21 @@ pub(super) struct Config {
     pub gain: f64,
     pub read_noise: f64,
     pub refine_geometry: bool,
+    #[serde(default = "legacy_integration_method")]
+    pub integration_method: String,
+    #[serde(default)]
+    pub protocol: Option<Value>,
+    pub keep_stage_audit: bool,
+    pub dac_enabled: bool,
+    pub dac_axis: V3,
+    pub dac_half_opening: f64,
+    pub shadow_block: usize,
+    pub seat_enabled: bool,
+    pub seat_threshold: f64,
+    pub seat_guard: usize,
+}
+fn legacy_integration_method() -> String {
+    "summation".into()
 }
 impl Default for Config {
     fn default() -> Self {
@@ -88,11 +118,11 @@ impl Default for Config {
             omega_step: 0.1,
             exposure: 0.1,
             axis: [1., 0., 0.],
-            background: true,
+            background: false,
             smoothness: 1e4,
             threshold: 5.,
             min_pixels: 3,
-            link_radius: 3.,
+            link_radius: 5.,
             tolerance: 0.015,
             min_cell: 2.,
             max_cell: 30.,
@@ -100,21 +130,59 @@ impl Default for Config {
             elements: String::new(),
             adp: "isotropic".into(),
             search_seconds: 60.,
-            aperture_radius: 6,
-            omega_radius: 1.5,
+            aperture_radius: 7,
+            omega_radius: 4.5,
             saturation: 4294967294.,
             metric: None,
             scan_scaling: false,
-            polarization: 0.99,
+            polarization: 0.98,
             confirmed: false,
             gain: 1.,
             read_noise: 0.,
-            refine_geometry: false,
+            refine_geometry: true,
+            integration_method: "profile".into(),
+            protocol: None,
+            keep_stage_audit: false,
+            dac_enabled: false,
+            dac_axis: [0., 0., 1.],
+            dac_half_opening: 35.,
+            shadow_block: 16,
+            seat_enabled: false,
+            seat_threshold: 0.85,
+            seat_guard: 32,
         }
     }
 }
 impl Config {
     fn check(&self) -> Result<(), String> {
+        if let Some(p) = &self.protocol {
+            protocol::validate(p)?;
+        }
+        if self.integration_method == "profile" {
+            let hard = self
+                .protocol
+                .as_ref()
+                .and_then(|p| p["search"]["hard_seconds"].as_f64())
+                .unwrap_or(75.);
+            if self.search_seconds > hard {
+                return Err("Search budget exceeds protocol hard_seconds. Reduce it or load a protocol with a larger declared hard budget.".into());
+            }
+        }
+        if !["summation", "profile"].contains(&self.integration_method.as_str()) {
+            return Err("Unknown integration method.".into());
+        }
+        if !self.dac_half_opening.is_finite()
+            || !(0.01..90.).contains(&self.dac_half_opening)
+            || self.dac_axis.iter().any(|x| !x.is_finite())
+            || fft::dot(self.dac_axis, self.dac_axis) < 1e-12
+            || !(1..=1024).contains(&self.shadow_block)
+            || !self.seat_threshold.is_finite()
+            || !(0.01..1.).contains(&self.seat_threshold)
+            || self.seat_guard > 4096
+        {
+            return Err("Invalid cell-shadow axis, opening, block, threshold or guard.".into());
+        }
+
         if [
             self.omega_start,
             self.omega_step,
@@ -149,6 +217,10 @@ impl Config {
                 gamma_deg: p[5],
             };
             c.geometry().map_err(err)?;
+            if self.integration_method == "profile" && p[3..].iter().any(|a| (a - 90.).abs() > 1e-8)
+            {
+                return Err("PhaseSmith protocol v1 requires an orthorhombic metric (all angles 90 degrees). Use exploratory summation for other metrics.".into());
+            }
         }
         if self.omega_step <= 0.
             || self.omega_step > 10.
@@ -187,12 +259,25 @@ impl Config {
         Ok(())
     }
     fn first_changed(&self, n: &Self) -> usize {
-        if self.omega_start != n.omega_start
+        if match (&self.protocol, &n.protocol) {
+            (Some(a), Some(b)) => !protocol::same_json(a, b),
+            (None, None) => false,
+            _ => true,
+        } || self.dac_enabled != n.dac_enabled
+            || self.dac_axis != n.dac_axis
+            || self.dac_half_opening != n.dac_half_opening
+            || self.shadow_block != n.shadow_block
+            || self.seat_enabled != n.seat_enabled
+            || self.seat_threshold != n.seat_threshold
+            || self.seat_guard != n.seat_guard
+            || self.axis != n.axis
+            || self.omega_start != n.omega_start
             || self.omega_step != n.omega_step
             || self.exposure != n.exposure
             || self.saturation != n.saturation
             || self.background != n.background
             || self.smoothness != n.smoothness
+            || self.integration_method != n.integration_method
         {
             0
         } else if self.gain != n.gain
@@ -202,7 +287,9 @@ impl Config {
             || self.link_radius != n.link_radius
         {
             1
-        } else if self.axis != n.axis
+        } else if ((self.integration_method == "profile" || n.integration_method == "profile")
+            && (self.group != n.group || self.metric != n.metric))
+            || self.axis != n.axis
             || self.min_cell != n.min_cell
             || self.max_cell != n.max_cell
             || self.tolerance != n.tolerance
@@ -210,7 +297,8 @@ impl Config {
             2
         } else if self.metric != n.metric || self.refine_geometry != n.refine_geometry {
             3
-        } else if self.aperture_radius != n.aperture_radius
+        } else if self.keep_stage_audit != n.keep_stage_audit
+            || self.aperture_radius != n.aperture_radius
             || self.omega_radius != n.omega_radius
             || self.polarization != n.polarization
         {
@@ -259,6 +347,8 @@ struct Peak {
 }
 #[derive(Clone, Serialize, Deserialize)]
 struct Track {
+    #[serde(default)]
+    native: bool,
     observed: V3,
     first: usize,
     last: usize,
@@ -282,9 +372,19 @@ struct Reflection {
     intensity: f64,
     sigma: f64,
     flags: u32,
-    track: usize,
+    track: Option<usize>,
+    #[serde(default)]
+    crossing: Option<usize>,
     correction: f64,
+    #[serde(default)]
+    native_use: Option<bool>,
 }
+impl Reflection {
+    fn usable(&self) -> bool {
+        self.native_use.unwrap_or(self.flags == 0)
+    }
+}
+
 #[derive(Clone, Copy, Serialize, Deserialize)]
 struct Geometry {
     origin: V3,
@@ -331,6 +431,7 @@ pub(super) struct Crystal {
     poni: Option<crate::geometry::Geometry>,
     calibration_source: Option<PathBuf>,
     background: Option<Arc<tempfile::NamedTempFile>>,
+    shadows: Option<Arc<Shadows>>,
     peaks: Vec<Peak>,
     tracks: Vec<Track>,
     cells: Vec<Cell>,
@@ -340,6 +441,9 @@ pub(super) struct Crystal {
     reflections: Vec<Reflection>,
     unscaled_reflections: Vec<Reflection>,
     scaling: Value,
+    profile_report: Value,
+    profile_audit: Option<Arc<tempfile::TempDir>>,
+    profile_options: Option<Arc<phasesmith_workflows::single_crystal::Options>>,
     structure: Value,
     cif: Option<String>,
     mask: Vec<[usize; 4]>,
@@ -354,6 +458,7 @@ pub(super) struct Crystal {
     revision: u64,
     track_offset: usize,
     reflection_offset: usize,
+    reflection_filter: String,
 }
 impl Crystal {
     pub(super) fn has_sources(&self) -> bool {
@@ -364,6 +469,7 @@ impl Crystal {
             *s = Stage::default();
         }
         if from == 0 {
+            self.shadows = None;
             self.background = None;
         }
         if from <= 1 {
@@ -381,6 +487,9 @@ impl Crystal {
             self.geometry_report = Value::Null;
         }
         if from <= 4 {
+            self.profile_report = Value::Null;
+            self.profile_audit = None;
+            self.profile_options = None;
             self.reflections.clear();
             self.unscaled_reflections.clear();
             self.reflection_offset = 0;
@@ -424,7 +533,7 @@ impl Crystal {
         }
         Ok(data.clone())
     }
-    fn mask_for(&self, data: &[f64], frame: usize) -> Vec<bool> {
+    fn base_mask(&self, data: &[f64], frame: usize) -> Vec<bool> {
         let [h, w] = self.shape;
         let mut mask: Vec<_> = data
             .iter()
@@ -436,6 +545,15 @@ impl Crystal {
         for &[x0, y0, x1, y1] in &self.mask {
             for y in y0..y1.min(h) {
                 mask[y * w + x0..y * w + x1.min(w)].fill(true);
+            }
+        }
+        mask
+    }
+    fn mask_for(&self, data: &[f64], frame: usize) -> Vec<bool> {
+        let mut mask = self.base_mask(data, frame);
+        if let Some(shadows) = &self.shadows {
+            for (i, m) in mask.iter_mut().enumerate() {
+                *m |= shadows.excluded(frame, i, self.shape[1]);
             }
         }
         mask
@@ -532,10 +650,30 @@ impl Crystal {
             .map(|(p, source)| json!({"x":p.values[0],"y":p.values[1],"track":source.track}))
             .collect()
     }
+    fn table_reflections(&self) -> impl Iterator<Item = &Reflection> {
+        self.reflections
+            .iter()
+            .filter(|r| match self.reflection_filter.as_str() {
+                "usable" => r.usable(),
+                "excluded" => !r.usable(),
+                _ => true,
+            })
+    }
     fn reply(&self) -> Reply {
         let shown:Vec<_>=self.peaks.iter().filter(|p|p.frame==self.frame).take(10000).map(|p|json!({"x":p.xy[0],"y":p.xy[1],"track":p.track,"flags":p.flags,"excluded":self.tracks.get(p.track).is_some_and(|t|t.excluded)})).collect();
-        let tracks:Vec<_>=self.tracks.iter().enumerate().skip(self.track_offset).take(200).map(|(id,t)|json!({"id":id,"observed":t.observed,"first":t.first,"last":t.last,"flags":t.flags,"excluded":t.excluded})).collect();
-        let state = json!({"engine":ENGINE,"adapter":adapter_identity(),"exported":!self.saved_exports.is_empty(),"revision":self.revision,"config":self.config,"frames":self.sources.len(),"frame":self.frame,"firstSource":self.sources.first().map(|s|s.path.to_string_lossy()),"lastSource":self.sources.last().map(|s|s.path.to_string_lossy()),"filename":self.sources.get(self.frame).map(|s|s.path.file_name().unwrap_or_default().to_string_lossy()),"shape":self.shape,"stages":self.stages,"geometry":self.geometry,"geometryReport":self.geometry_report,"peaks":shown,"predictions":self.predicted_markers(),"peakCount":self.peaks.len(),"peakFrames":self.peak_frames(),"tracks":tracks,"trackOffset":self.track_offset,"reflectionOffset":self.reflection_offset,"trackCount":self.tracks.len(),"cells":self.cells,"selected":self.selected,"reflections":self.reflections.iter().skip(self.reflection_offset).take(200).collect::<Vec<_>>(),"reflectionCount":self.reflections.len(),"usableReflections":self.reflections.iter().filter(|r|r.flags==0).count(),"scaling":self.scaling,"structure":self.structure,"mask":self.mask,"excludedFrames":self.excluded_frames,"error":self.error,"notice":self.notice,"previewKind":if self.preview_kind.is_empty(){"raw"}else{&self.preview_kind},"image":self.preview.as_ref().map(|r|&r.metadata)});
+        let tracks:Vec<_>=self.tracks.iter().enumerate().skip(self.track_offset).take(200).map(|(id,t)|json!({"id":id,"observed":t.observed,"first":t.first,"last":t.last,"flags":t.flags,"excluded":t.excluded,"native":t.native})).collect();
+        let effective = self
+            .protocol_range()
+            .and_then(|(first, last)| self.config.active_protocol(first, last));
+        let (effective_protocol, protocol_error) = if self.config.integration_method == "profile" {
+            match effective {
+                Ok(p) => (Some(p), None),
+                Err(e) => (None, Some(e)),
+            }
+        } else {
+            (None, None)
+        };
+        let state = json!({"engine":ENGINE,"adapter":adapter_identity(),"exported":!self.saved_exports.is_empty(),"revision":self.revision,"config":self.config,"protocolTemplate":protocol::builtin(),"effectiveProtocol":effective_protocol,"protocolInspectionError":protocol_error,"frames":self.sources.len(),"frame":self.frame,"firstSource":self.sources.first().map(|s|s.path.to_string_lossy()),"lastSource":self.sources.last().map(|s|s.path.to_string_lossy()),"filename":self.sources.get(self.frame).map(|s|s.path.file_name().unwrap_or_default().to_string_lossy()),"shape":self.shape,"stages":self.stages,"geometry":self.geometry,"geometryReport":self.geometry_report,"peaks":shown,"predictions":self.predicted_markers(),"peakCount":self.peaks.len(),"peakFrames":self.peak_frames(),"tracks":tracks,"trackOffset":self.track_offset,"reflectionOffset":self.reflection_offset,"trackCount":self.tracks.len(),"cells":self.cells,"selected":self.selected,"reflections":self.table_reflections().skip(self.reflection_offset).take(200).collect::<Vec<_>>(),"reflectionFilteredCount":self.table_reflections().count(),"reflectionFilter":if self.reflection_filter.is_empty(){"all"}else{&self.reflection_filter},"suppliedGroupSymbol":phasesmith_io::space_group_by_number(i32::from(self.config.group)).ok().map(|g|g.hm_symbol),"reflectionCount":self.reflections.len(),"usableReflections":self.reflections.iter().filter(|r|r.usable()).count(),"shadows":self.shadows.as_ref().map(|s|&s.report),"profileReport":self.profile_report,"scaling":self.scaling,"structure":self.structure,"mask":self.mask,"excludedFrames":self.excluded_frames,"error":self.error,"notice":self.notice,"previewKind":if self.preview_kind.is_empty(){"raw"}else{&self.preview_kind},"image":self.preview.as_ref().map(|r|&r.metadata)});
         Reply {
             result: json!({"ok":true,"scxrd":state}),
             buffers: self.preview.iter().map(|r| r.buffer.clone()).collect(),
@@ -558,7 +696,13 @@ impl Session {
             || (action == "scxrd_file"
                 && matches!(
                     args["operation"].as_str(),
-                    Some("calibration" | "use_calibration" | "preset")
+                    Some(
+                        "calibration"
+                            | "use_calibration"
+                            | "preset"
+                            | "protocol"
+                            | "protocol_builtin"
+                    )
                 )))
             && !matches!(args["operation"].as_str(), Some("undo" | "redo"));
         if action == "scxrd_run" {
@@ -566,15 +710,37 @@ impl Session {
         }
         let before = history.then(|| {
             let mut snapshot = self.scxrd.clone();
-            snapshot.history_label = if args["operation"] == "preset" {
-                "recipe settings".into()
-            } else if action == "scxrd_settings" {
+            snapshot.history_label = if action == "scxrd_settings" {
                 "processing settings".into()
             } else {
-                args["operation"]
-                    .as_str()
-                    .unwrap_or(action)
-                    .replace('_', " ")
+                match args["operation"].as_str().unwrap_or("") {
+                    "preset" => "apply recipe settings".into(),
+                    "protocol_builtin" => "use bundled PhaseSmith v29".into(),
+                    "protocol" => "load PhaseSmith protocol".into(),
+                    "calibration" | "use_calibration" => "load detector calibration".into(),
+                    "rerun" => {
+                        let labels = [
+                            "background",
+                            "peaks",
+                            "cell",
+                            "geometry",
+                            "intensities",
+                            "scaling",
+                            "structure",
+                        ];
+                        let label = args["index"]
+                            .as_u64()
+                            .and_then(|i| labels.get(i as usize))
+                            .copied()
+                            .unwrap_or("stage");
+                        format!("clear {label} and later results")
+                    }
+                    "mask" | "remove_mask" | "clear_mask" => "change detector exclusions".into(),
+                    "track" => "change track exclusion".into(),
+                    "frame" => "change selected frames".into(),
+                    "cell" => "select sample cell".into(),
+                    _ => "single-crystal decision".into(),
+                }
             };
             snapshot
         });
@@ -658,7 +824,7 @@ impl Session {
             "scxrd_frame" => &["frame", "kind"],
             "scxrd_run" => &["stage", "automatic"],
             "scxrd_edit" => &["operation", "index", "bounds"],
-            "scxrd_table" => &["kind", "offset"],
+            "scxrd_table" => &["kind", "offset", "filter"],
             "scxrd_levels" => &["mode", "percentile", "filter_gaps"],
             "scxrd_pixel" => &["x", "y"],
             "scxrd_file" => &["operation", "path", "directory", "suggested_name"],
@@ -679,9 +845,33 @@ impl Session {
                         self.scxrd.track_offset = offset;
                     }
                     Some("reflections") => {
-                        if offset >= self.scxrd.reflections.len() && offset != 0 {
+                        let filter = args
+                            .get("filter")
+                            .map(|v| v.as_str().ok_or("Observation filter must be text."))
+                            .transpose()?
+                            .unwrap_or(if self.scxrd.reflection_filter.is_empty() {
+                                "all"
+                            } else {
+                                &self.scxrd.reflection_filter
+                            })
+                            .to_owned();
+                        if !["all", "usable", "excluded"].contains(&filter.as_str()) {
+                            return Err("Unknown observation filter.".into());
+                        }
+                        let count = self
+                            .scxrd
+                            .reflections
+                            .iter()
+                            .filter(|r| match filter.as_str() {
+                                "usable" => r.usable(),
+                                "excluded" => !r.usable(),
+                                _ => true,
+                            })
+                            .count();
+                        if offset >= count && offset != 0 {
                             return Err("Reflection page is out of range.".into());
                         }
+                        self.scxrd.reflection_filter = filter;
                         self.scxrd.reflection_offset = offset;
                     }
                     _ => return Err("Unknown SCXRD table.".into()),
@@ -741,6 +931,37 @@ impl Session {
                 c.check()?;
                 if c != self.scxrd.config {
                     let at = self.scxrd.config.first_changed(&c);
+                    let old_range = self
+                        .scxrd
+                        .config
+                        .protocol
+                        .as_ref()
+                        .map(|p| p["acquisition"].clone());
+                    let range_changed = c
+                        .protocol
+                        .as_ref()
+                        .map(|p| p["acquisition"]["first_frame"].clone())
+                        != old_range.as_ref().map(|a| a["first_frame"].clone())
+                        || c.protocol
+                            .as_ref()
+                            .map(|p| p["acquisition"]["last_frame_inclusive"].clone())
+                            != old_range
+                                .as_ref()
+                                .map(|a| a["last_frame_inclusive"].clone());
+                    let entering_profile = c.integration_method == "profile"
+                        && self.scxrd.config.integration_method != "profile";
+                    if (range_changed || entering_profile)
+                        && let Some(p) = &c.protocol
+                    {
+                        let first = protocol::integer(p, "acquisition", "first_frame")?;
+                        let last = protocol::integer(p, "acquisition", "last_frame_inclusive")?;
+                        if first > last {
+                            return Err("Protocol first frame must precede its last frame.".into());
+                        }
+                        self.scxrd.excluded_frames = (0..self.scxrd.sources.len())
+                            .filter(|i| *i < first || *i > last)
+                            .collect();
+                    }
                     self.scxrd.config = c;
                     self.scxrd.invalidate(at);
                     if at == 0 && !self.scxrd.sources.is_empty() {
@@ -771,12 +992,27 @@ impl Session {
                 let automatic = args["automatic"].as_bool().unwrap_or(false);
                 self.scxrd.sources_check()?;
                 self.scxrd.config.check()?;
+                if self.scxrd.config.integration_method == "profile"
+                    && let Some(p) = &self.scxrd.config.protocol
+                {
+                    let first = protocol::integer(p, "acquisition", "first_frame")?;
+                    let last = protocol::integer(p, "acquisition", "last_frame_inclusive")?;
+                    if first > last || last >= self.scxrd.sources.len() {
+                        return Err("Protocol frame interval lies outside this measurement. Edit its first/last frame in Frames before processing.".into());
+                    }
+                }
                 if !self.scxrd.config.confirmed {
                     return Err("Confirm acquisition angles, spindle axis and count gain in Frames before processing.".into());
                 }
                 self.scxrd.error = None;
                 self.scxrd.notice = None;
                 for (stage, title) in TITLES.iter().enumerate().take(target + 1) {
+                    // This versioned recipe owns these prerequisites itself and
+                    // commits their actual native products atomically at reduction.
+                    let checkpoint = if target < 4 { target } else { 4 };
+                    if self.scxrd.config.integration_method == "profile" && stage < checkpoint {
+                        continue;
+                    }
                     if self.scxrd.stages[stage].status == "complete" {
                         continue;
                     }
@@ -930,6 +1166,13 @@ impl Session {
         }
         if let Some(path) = &next.calibration_source {
             next.protected_sources.push(path.clone());
+        }
+        if let Some(p) = &next.config.protocol {
+            let first = protocol::integer(p, "acquisition", "first_frame")?;
+            let last = protocol::integer(p, "acquisition", "last_frame_inclusive")?;
+            next.excluded_frames = (0..next.sources.len())
+                .filter(|i| *i < first || *i > last)
+                .collect();
         }
         next.config.confirmed = false;
         next.notice = Some(

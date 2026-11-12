@@ -570,3 +570,63 @@
   border-color: #4f5962;
   opacity: 1;
 }
+.sc-protocol-code {
+  max-height: 280px;
+  overflow: auto;
+  font-size: 12px;
+  line-height: 1.5;
+  border: 1px solid #48525b;
+  padding: 10px;
+  background: #191e22;
+  color: #d7dde2;
+}
+.sc-protocol-code:focus-visible {
+  outline: 2px solid #ffad5c;
+}
+.sc-content fieldset.sc-number-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+/* Keep each Miller-index triplet intact beside longer diagnostic reasons. */
+.sc-reflections td:nth-child(-n + 3) {
+  white-space: nowrap;
+}
+.sc-reflections td:first-child {
+  min-width: 72px;
+}
+.sc-reflections td:last-child {
+  min-width: 170px;
+}
+
+.sc-protocol-details {
+  border: 1px solid #444e56;
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin: 12px 0;
+}
+.sc-protocol-details > summary,
+.sc-quality-details > summary {
+  cursor: pointer;
+  color: #d2dae0;
+}
+.sc-quality-details > p {
+  margin: 6px 0;
+  line-height: 1.4;
+}
+.sc-quality-details > small {
+  color: #bdc7ce;
+}
+.sc-quality-details > summary:focus-visible,
+.sc-protocol-details > summary:focus-visible {
+  outline: 2px solid #ffad5c;
+  outline-offset: 2px;
+}
+.sc-draft .ui-button:disabled {
+  background: #30363b;
+  color: #c2c9cd;
+  border-color: #5a636d;
+  opacity: 1;
+}

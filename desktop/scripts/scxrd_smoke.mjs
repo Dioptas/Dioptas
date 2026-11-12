@@ -79,6 +79,9 @@ for (const [engine, type] of Object.entries({ chromium, webkit })) {
       .getByRole("button", { name: "Load frames…", exact: true })
       .click();
     await page.getByLabel("Rotation frame", { exact: true }).waitFor();
+    await page
+      .getByLabel("Single-crystal workflow", { exact: true })
+      .selectOption("summation");
     await page.getByLabel("First exposure start").fill("");
     await page.getByLabel("First exposure start").pressSequentially("-40");
     assert.equal(

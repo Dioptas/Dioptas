@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   crystalDefaults,
   crystalConfigError,
+  crystalFlags,
 } from "../src/singleCrystalDomain.ts";
 import { crystalPixelReading } from "../src/singleCrystalReadout.ts";
 test("SC readout preserves top-down detector rows and uses its own wavelength", () => {
@@ -41,4 +42,21 @@ test("SC drafts report all bounded kernel inputs and degenerate metrics", () => 
     { metric: [1, 1, 1, 1, 1, 179] },
   ])
     assert.notEqual(crystalConfigError({ ...crystalDefaults, ...patch }), null);
+});
+
+test("native tracks preserve partial/duplicate warnings and native reflection eligibility", () => {
+  assert.match(crystalFlags(256, undefined, true), /partial/);
+  assert.match(crystalFlags(128, undefined, true), /multiple/);
+  assert.match(crystalFlags(131072, true), /usable.*mismatch/);
+  assert.match(crystalFlags(0, false), /excluded/);
+  const excluded = crystalFlags(41234, false);
+  assert.match(
+    excluded,
+    /masked.*background.*partial.*incomplete profile.*no usable profile/,
+  );
+  assert.doesNotMatch(excluded, /flags 41234/);
+  assert.match(crystalFlags(1024, false), /no data/);
+  assert.match(crystalFlags(2048, false), /aperture boundary/);
+  assert.match(crystalFlags(16384, false), /profile fit failed/);
+  assert.notEqual(crystalFlags(1 << 20), "usable");
 });

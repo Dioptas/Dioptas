@@ -104,7 +104,9 @@
     "test:glib-backport": "node scripts/check_glib_backport.mjs --advisories && cargo test --release --locked --manifest-path security/glib-regression/Cargo.toml",
     "test:scxrd": "node scripts/scxrd_native_smoke.mjs && node scripts/scxrd_flux_check.mjs && node scripts/scxrd_smoke.mjs",
     "test:scxrd-measured": "node scripts/scxrd_measured.mjs",
-    "test:scxrd-measured-gui": "node scripts/scxrd_measured_gui.mjs"
+    "test:scxrd-measured-gui": "node scripts/scxrd_measured_gui.mjs",
+    "test:scxrd-protocol": "node scripts/scxrd_matched_profiles.mjs",
+    "test:scxrd-protocol-gui": "node scripts/scxrd_protocol_gui.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",

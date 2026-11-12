@@ -18,7 +18,7 @@ impl Crystal {
         let raw: Vec<_> = self
             .reflections
             .iter()
-            .filter(|r| r.flags == 0)
+            .filter(|r| r.usable())
             .map(|r| solution::Observation {
                 hkl: r.hkl.map(|x| x as i32),
                 intensity: r.intensity,
@@ -33,7 +33,7 @@ impl Crystal {
             .reflections
             .iter()
             .enumerate()
-            .filter(|(_, r)| r.flags == 0)
+            .filter(|(_, r)| r.usable())
         {
             let key = group
                 .reflection_orbit(row.hkl.map(|x| x as i32), true)
@@ -43,8 +43,19 @@ impl Crystal {
             ids.push(i);
         }
         let mut rows: Vec<_> = ids.iter().map(|&i| self.reflections[i].clone()).collect();
-        let mut fit_summary = json!({"applied":false,"model":"none"});
-        if self.config.scan_scaling {
+        let native_profile = self.config.integration_method == "profile";
+        if native_profile && self.config.scan_scaling {
+            return Err("The native profile recipe already applies family scaling; disable the separate log-linear scan scale.".into());
+        }
+        if native_profile && self.profile_report.is_null() {
+            return Err("Rerun Intensities to prepare the native profile reduction.".into());
+        }
+        let mut fit_summary = if native_profile {
+            json!({"applied":true,"model":"PhaseSmith native per-frame/detector/ray family scaling","recipe":"orthorhombic-v1","errorFloor":self.profile_report["errorFloor"]})
+        } else {
+            json!({"applied":false,"model":"none"})
+        };
+        if self.config.scan_scaling && !native_profile {
             let intensity: Vec<_> = rows.iter().map(|r| r.intensity).collect();
             let sigma: Vec<_> = rows.iter().map(|r| r.sigma).collect();
             let omega: Vec<_> = rows.iter().map(|r| r.omega).collect();
@@ -155,7 +166,9 @@ impl Crystal {
             merged.family_count,
             info.hm_symbol,
             merged.absent_observations,
-            if self.config.scan_scaling {
+            if native_profile {
+                "Native per-frame/detector/ray family scaling applied."
+            } else if self.config.scan_scaling {
                 "Robust scan scale applied."
             } else {
                 "Scan scale disabled."

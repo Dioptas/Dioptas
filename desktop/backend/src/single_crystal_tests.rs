@@ -23,7 +23,10 @@ fn fixture() -> (tempfile::TempDir, Vec<String>) {
 }
 #[test]
 fn settings_invalidate_the_first_affected_scientific_product() {
-    let a = Config::default();
+    let a = Config {
+        integration_method: "summation".into(),
+        ..Default::default()
+    };
     let mut b = a.clone();
     b.gain = 2.;
     assert_eq!(a.first_changed(&b), 1);
@@ -150,8 +153,10 @@ fn hkfl4_fixed_columns_survive_large_signed_intensities() {
             intensity: -1e12,
             sigma: 4e10,
             flags: 0,
-            track: 0,
+            track: Some(0),
+            crossing: None,
             correction: 1.,
+            native_use: None,
         },
         Reflection {
             hkl: [-9, 8, -7],
@@ -159,8 +164,10 @@ fn hkfl4_fixed_columns_survive_large_signed_intensities() {
             intensity: 2e13,
             sigma: 1e12,
             flags: 0,
-            track: 1,
+            track: Some(1),
+            crossing: None,
             correction: 1.,
+            native_use: None,
         },
     ];
     assert_eq!(
@@ -198,6 +205,7 @@ fn track_table_can_reach_later_observations() {
     let mut s = Session::new(PathBuf::new());
     s.scxrd.tracks = (0..1205)
         .map(|i| Track {
+            native: false,
             observed: [i as f64, 0., 0.],
             first: 0,
             last: 2,
@@ -259,8 +267,10 @@ fn hkfl4_refuses_zero_uncertainty_precision_loss() {
             intensity: 1e12,
             sigma: 1e6,
             flags: 0,
-            track: 0,
+            track: Some(0),
+            crossing: None,
             correction: 1.,
+            native_use: None,
         },
         Reflection {
             hkl: [0, 1, 0],
@@ -268,8 +278,10 @@ fn hkfl4_refuses_zero_uncertainty_precision_loss() {
             intensity: 20.,
             sigma: 1.,
             flags: 0,
-            track: 1,
+            track: Some(1),
+            crossing: None,
             correction: 1.,
+            native_use: None,
         },
     ];
     let r = call(&mut s, "scxrd_file", json!({"operation":"hkl","path":path}));
@@ -426,4 +438,521 @@ fn recipe_settings_can_transfer_to_new_measurements_without_old_source_files() {
     assert!(!s.scxrd.config.confirmed);
     assert!(s.scxrd.cells.is_empty());
     assert!(!s.scxrd_undo.is_empty());
+}
+
+#[test]
+#[ignore = "Local measured frames and explicit recipe/output paths required"]
+fn matched_mgsio3_mask_ablation() {
+    let recipe = std::env::var("DIOPTAS_SCXRD_COMPARISON_RECIPE").expect("comparison recipe");
+    let output =
+        PathBuf::from(std::env::var("DIOPTAS_SCXRD_COMPARISON_OUTPUT").expect("new output path"));
+    assert!(!output.exists(), "Preserve previous comparisons");
+    let mut session = Session::new(PathBuf::new());
+    assert_eq!(
+        call(
+            &mut session,
+            "scxrd_file",
+            json!({"operation":"open","path":recipe})
+        )
+        .result["ok"],
+        true
+    );
+    assert_eq!(
+        call(&mut session, "scxrd_run", json!({"stage":5})).result["ok"],
+        true
+    );
+    assert!(session.scxrd.error.is_none(), "{:?}", session.scxrd.error);
+    let frozen = session.scxrd.clone();
+    let mut results = Vec::new();
+    for (name, dac, seat) in [
+        ("no-shadows", false, false),
+        ("dac-only", true, false),
+        ("seat-only", false, true),
+        ("combined", true, true),
+    ] {
+        let mut case = frozen.clone();
+        case.config.dac_enabled = dac;
+        case.config.seat_enabled = seat;
+        case.config.dac_axis = [0., 0., 1.];
+        case.config.dac_half_opening = 35.;
+        case.config.shadow_block = 16;
+        case.config.seat_threshold = 0.85;
+        case.config.seat_guard = 32;
+        case.shadows = None;
+        case.prepare_shadows(&session.control).unwrap();
+        case.process(4, &session.control, false).unwrap();
+        case.process(5, &session.control, false).unwrap();
+        results.push(json!({"case":name,"config":case.config,"geometry":case.geometry,"basis":case.basis,"shadows":case.shadows.as_ref().map(|s|&s.report),"scaling":case.scaling,"reflections":case.reflections,"tracks":case.tracks.iter().map(|t|t.observed).collect::<Vec<_>>() }));
+        eprintln!("{name}: {}", case.scaling);
+    }
+    let report = json!({"protocol":"frozen measured tracks/basis/refined geometry; only native shared masks vary; identical original counts and integration supports","baselineAdapter":adapter_identity(),"cases":results});
+    std::fs::write(output, serde_json::to_vec_pretty(&report).unwrap()).unwrap();
+}
+
+#[test]
+fn profile_warnings_retain_explicit_native_eligibility() {
+    let mut row = Reflection {
+        hkl: [1, 2, 3],
+        omega: 0.,
+        intensity: 100.,
+        sigma: 2.,
+        flags: 131072,
+        track: None,
+        crossing: Some(7),
+        correction: 1.,
+        native_use: Some(true),
+    };
+    assert!(row.usable());
+    row.native_use = Some(false);
+    assert!(!row.usable());
+    row.flags = 0;
+    assert!(
+        !row.usable(),
+        "Masked/unmeasured zero-flag rows must remain excluded"
+    );
+}
+#[test]
+fn changing_cell_shadow_controls_invalidates_every_dependent_product() {
+    let c = Config::default();
+    for n in [
+        Config {
+            dac_enabled: true,
+            ..c.clone()
+        },
+        Config {
+            seat_enabled: true,
+            ..c.clone()
+        },
+        Config {
+            dac_half_opening: 34.,
+            ..c.clone()
+        },
+        Config {
+            shadow_block: 32,
+            ..c.clone()
+        },
+        Config {
+            axis: [-1., 0., 0.],
+            ..c.clone()
+        },
+    ] {
+        assert_eq!(c.first_changed(&n), 0);
+    }
+    let profile = Config {
+        integration_method: "profile".into(),
+        ..c.clone()
+    };
+    assert_eq!(
+        profile.first_changed(&Config {
+            group: 61,
+            ..profile.clone()
+        }),
+        2
+    );
+}
+#[test]
+fn fractional_overload_threshold_uses_the_same_integer_boundary() {
+    let threshold = 65535.5f64;
+    for count in [65535u32, 65536] {
+        assert_eq!(
+            f64::from(count) >= threshold,
+            count >= super::profiles::profile_reserved_minimum(threshold)
+        );
+    }
+}
+#[test]
+fn cached_dac_mask_matches_full_exposure_kernel_and_rotation() {
+    use spots::frame_validity as v;
+    let g = reciprocal::Geometry {
+        origin: [-0.008, -0.008, 0.02],
+        fast: [0., 0.001, 0.],
+        slow: [0.001, 0., 0.],
+        beam: [0., 0., 1.],
+        axis: [1., 0., 0.],
+        wavelength: 1.,
+    };
+    let shape = v::Shape {
+        height: 16,
+        width: 16,
+        block: 4,
+    };
+    let options = v::DacOptions {
+        axis_at_zero: [0., 0., 1.],
+        half_opening_degrees: 35.,
+    };
+    let mask = v::dac_mask(g, [20., 21.], shape, options).unwrap();
+    let expanded = mask.expand().unwrap();
+    let cache = Shadows {
+        first: 2,
+        last: 2,
+        block: 4,
+        columns: 4,
+        cells: 16,
+        illumination: vec![],
+        dac: mask.excluded,
+        report: Value::Null,
+    };
+    assert_eq!(
+        (0..256)
+            .map(|p| cache.excluded(2, p, 16))
+            .collect::<Vec<_>>(),
+        expanded
+    );
+    assert!((0..256).all(|p| cache.excluded(1, p, 16)));
+    let rotated = v::dac_mask(g, [-21., -20.], shape, options)
+        .unwrap()
+        .expand()
+        .unwrap();
+    assert_ne!(
+        expanded, rotated,
+        "A moving cell shadow must not become a static rectangle"
+    );
+}
+
+#[test]
+fn profile_source_restores_storage_order_without_double_flipping() {
+    use phasesmith_workflows::single_crystal::FrameSource;
+    let dir = tempfile::tempdir().unwrap();
+    let values: Vec<u32> = (0..256).map(|i| i as u32 + 1).collect();
+    let mut paths = Vec::new();
+    for i in 0..3 {
+        let path = dir.path().join(format!("image_{i:04}.tif"));
+        tiff::encoder::TiffEncoder::new(File::create(&path).unwrap())
+            .unwrap()
+            .write_image::<tiff::encoder::colortype::Gray32>(16, 16, &values)
+            .unwrap();
+        paths.push(path);
+    }
+    let mut s = Session::new(PathBuf::new());
+    assert_eq!(
+        call(&mut s, "scxrd_load", json!({"paths":paths})).result["ok"],
+        true
+    );
+    let original = super::profiles::OriginalSource(&s.scxrd).read(0).unwrap();
+    assert_eq!(original, values);
+    let oriented = s.scxrd.read(0).unwrap();
+    let flipped: Vec<_> = original
+        .as_chunks::<16>()
+        .0
+        .iter()
+        .rev()
+        .flatten()
+        .map(|&v| f64::from(v))
+        .collect();
+    assert_eq!(
+        oriented, flipped,
+        "Native vertical_flip=true produces the same calibrated view once"
+    );
+    assert_ne!(oriented[0], f64::from(original[0]));
+}
+
+#[test]
+fn phasesmith_protocol_load_is_versioned_and_preserves_the_full_document() {
+    let p = protocol::builtin();
+    let mut c = Config::default();
+    let (first, last) = c.apply_protocol(p.clone()).unwrap();
+    assert_eq!((first, last), (2, 143));
+    assert!(!c.confirmed);
+    assert_eq!(c.protocol, Some(p));
+    assert_eq!(c.integration_method, "profile");
+    assert!(c.dac_enabled && c.seat_enabled);
+    assert_eq!(c.axis, [-1., 0., 0.]);
+    let effective = c.active_protocol(3, 140).unwrap();
+    assert_eq!(effective["acquisition"]["first_frame"], 3);
+    assert_eq!(effective["acquisition"]["last_frame_inclusive"], 140);
+    assert_eq!(effective["profiles"], protocol::builtin()["profiles"]);
+}
+#[test]
+fn unsupported_protocol_controls_fail_atomically() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("unsupported.json");
+    let mut p = protocol::builtin();
+    p["integration"]["pixel_radius"] = json!(8);
+    std::fs::write(&path, serde_json::to_vec(&p).unwrap()).unwrap();
+    let mut s = Session::new(PathBuf::new());
+    let before = serde_json::to_value(&s.scxrd.config).unwrap();
+    let r = call(
+        &mut s,
+        "scxrd_file",
+        json!({"operation":"protocol","path":path}),
+    );
+    assert_eq!(r.result["ok"], false);
+    assert_eq!(serde_json::to_value(&s.scxrd.config).unwrap(), before);
+    let mut unknown = protocol::builtin();
+    unknown["space_group_search"] = json!({"mode":"unknown"});
+    assert!(
+        protocol::validate(&unknown)
+            .unwrap_err()
+            .contains("Automatic-symmetry")
+    );
+}
+#[test]
+fn old_v1_recipes_keep_their_original_summation_semantics() {
+    let mut old = serde_json::to_value(Config::default()).unwrap();
+    old.as_object_mut().unwrap().remove("integration_method");
+    let decoded: Config = serde_json::from_value(old).unwrap();
+    assert_eq!(decoded.integration_method, "summation");
+    assert_eq!(Config::default().integration_method, "profile");
+}
+
+#[test]
+fn protocol_algorithm_and_null_rotation_identity_cannot_drift() {
+    for field in [
+        "algorithm_profile",
+        "null_rotations",
+        "unimplemented_control",
+    ] {
+        let mut p = protocol::builtin();
+        p["native_coordinator"][field] = json!("different");
+        assert!(protocol::validate(&p).is_err());
+    }
+    let hash = format!(
+        "{:x}",
+        Sha256::digest(include_bytes!("../data/scxrd-null-rotations-v1.json"))
+    );
+    assert_eq!(
+        protocol::builtin()["native_coordinator"]["null_rotations"]["sha256"],
+        hash
+    );
+    let c = Config {
+        search_seconds: 120.,
+        ..Default::default()
+    };
+    assert!(c.check().unwrap_err().contains("hard_seconds"));
+}
+
+#[test]
+fn protocol_survives_javascript_number_serialization_without_relaxing_values() {
+    fn normalize(v: &mut Value) {
+        match v {
+            Value::Object(o) => o.values_mut().for_each(normalize),
+            Value::Array(a) => a.iter_mut().for_each(normalize),
+            Value::Number(n) => {
+                if let Some(f) = n.as_f64()
+                    && f.fract() == 0.
+                    && f.abs() < 1e12
+                {
+                    *v = json!(f as i64);
+                }
+            }
+            _ => {}
+        }
+    }
+    let p = protocol::builtin();
+    let mut javascript = p.clone();
+    normalize(&mut javascript);
+    assert!(protocol::same_json(&p, &javascript));
+    protocol::validate(&javascript).unwrap();
+    javascript["selection"]["max_cell_angle_deviation_degrees"] = json!(1.00001);
+    assert!(!protocol::same_json(&p, &javascript));
+    assert!(protocol::validate(&javascript).is_err());
+}
+
+#[test]
+#[ignore = "Local raw/PONI files required for original metadata boundary audit"]
+fn matched_original_geometry_boundary() {
+    let root =
+        PathBuf::from(std::env::var("DIOPTAS_SCXRD_MEASURED_DIR").expect("measured directory"));
+    let file = hdf5::File::open(root.join("eiger_0000.h5")).unwrap();
+    let scalar = |name: &str| {
+        file.dataset(&format!(
+            "/entry_0000/ESRF-ID11/eiger/detector_information/pixel_size/{name}"
+        ))
+        .unwrap()
+        .read_raw::<f64>()
+        .unwrap()[0]
+    };
+    let g = crate::geometry::Geometry::load(&root.join("CeO2_20240620_1849_dioptas.poni")).unwrap();
+    let mut c = Crystal {
+        shape: [2162, 2068],
+        ..Default::default()
+    };
+    c.config.axis = [-1., 0., 0.];
+    c.set_poni(&g).unwrap();
+    let (p1, p2) = (scalar("ysize"), scalar("xsize"));
+    let (s1, c1) = g.rot1.sin_cos();
+    let (s2, c2) = g.rot2.sin_cos();
+    let (s3, c3) = g.rot3.sin_cos();
+    let mul = |a: M3, b: M3| -> M3 {
+        std::array::from_fn(|i| std::array::from_fn(|j| (0..3).map(|k| a[i][k] * b[k][j]).sum()))
+    };
+    let r = mul(
+        mul(
+            [[c3, -s3, 0.], [s3, c3, 0.], [0., 0., 1.]],
+            [[c2, 0., -s2], [0., 1., 0.], [s2, 0., c2]],
+        ),
+        [[1., 0., 0.], [0., c1, s1], [0., -s1, c1]],
+    );
+    let mv = |a: V3| -> V3 { std::array::from_fn(|i| (0..3).map(|j| r[i][j] * a[j]).sum()) };
+    let expected = [
+        mv([p1 / 2. - g.poni1, p2 / 2. - g.poni2, g.dist]),
+        mv([0., p2, 0.]),
+        mv([p1, 0., 0.]),
+    ];
+    let actual = c.initial_geometry.unwrap();
+    let actual = [actual.origin, actual.fast, actual.slow];
+    assert_eq!(
+        [g.pixel1.to_bits(), g.pixel2.to_bits()],
+        [p1.to_bits(), p2.to_bits()]
+    );
+    assert_eq!(
+        expected.map(|v| v.map(f64::to_bits)),
+        actual.map(|v| v.map(f64::to_bits)),
+        "Initial PONI conversion must match standalone arithmetic bit for bit"
+    );
+}
+
+#[test]
+fn effective_protocol_export_refuses_unrepresentable_selections_without_writing() {
+    let (dir, paths) = fixture();
+    let mut s = Session::new(PathBuf::new());
+    assert_eq!(
+        call(&mut s, "scxrd_load", json!({"paths":paths})).result["ok"],
+        true
+    );
+    let path = dir.path().join("effective.json");
+    for excluded in [vec![0, 1, 2], vec![1]] {
+        s.scxrd.excluded_frames = excluded;
+        let r = call(
+            &mut s,
+            "scxrd_file",
+            json!({"operation":"protocol_save","path":path}),
+        );
+        assert_eq!(r.result["ok"], false);
+        assert!(!path.exists());
+    }
+    s.scxrd.excluded_frames.clear();
+    s.scxrd.mask.push([1, 1, 3, 3]);
+    let r = call(
+        &mut s,
+        "scxrd_file",
+        json!({"operation":"protocol_save","path":path}),
+    );
+    assert_eq!(r.result["ok"], false);
+    assert!(!path.exists());
+}
+
+#[test]
+fn protocol_scope_and_declared_policies_fail_before_processing() {
+    let c = Config {
+        metric: Some([8., 5., 18., 90., 100., 90.]),
+        ..Config::default()
+    };
+    assert!(c.check().unwrap_err().contains("orthorhombic"));
+    for (section, key, value) in [
+        ("gates", "minimum_exported_observations", json!(1)),
+        ("io", "orientation", json!("unflipped")),
+        ("archive_output", "compression_level", json!(9)),
+        (
+            "frame_input_execution",
+            "reuse_verified_digest",
+            json!(false),
+        ),
+        ("acquisition", "workers", json!(0)),
+    ] {
+        let mut p = protocol::builtin();
+        p[section][key] = value;
+        assert!(protocol::validate(&p).is_err(), "{section}.{key}");
+    }
+}
+#[test]
+fn protocol_snapshot_inspects_applied_overrides_and_blocks_frame_toggles() {
+    let (dir, paths) = fixture();
+    let mut s = Session::new(PathBuf::new());
+    assert_eq!(
+        call(&mut s, "scxrd_load", json!({"paths":paths})).result["ok"],
+        true
+    );
+    let mut p = protocol::builtin();
+    p["acquisition"]["first_frame"] = json!(0);
+    p["acquisition"]["last_frame_inclusive"] = json!(2);
+    s.scxrd.config.apply_protocol(p).unwrap();
+    // Default profile mode also derives effective settings without explicit import.
+    s.scxrd.config.protocol = None;
+    s.scxrd.config.dac_half_opening = 36.;
+    let snap = call(&mut s, "scxrd_snapshot", json!({}));
+    assert_eq!(
+        snap.result["scxrd"]["effectiveProtocol"]["shadow_mask"]["geometric"]["half_opening_degrees"],
+        json!(36.)
+    );
+    let path = dir.path().join("effective.json");
+    assert_eq!(
+        call(
+            &mut s,
+            "scxrd_file",
+            json!({"operation":"protocol_save","path":path})
+        )
+        .result["ok"],
+        true
+    );
+    let saved: Value = serde_json::from_reader(File::open(path).unwrap()).unwrap();
+    assert_eq!(saved, snap.result["scxrd"]["effectiveProtocol"]);
+    assert_eq!(
+        call(&mut s, "scxrd_edit", json!({"operation":"frame","index":0})).result["ok"],
+        false
+    );
+    assert!(s.scxrd.excluded_frames.is_empty());
+}
+
+#[test]
+fn entering_protocol_replaces_manual_frame_selection_with_its_declared_interval() {
+    let (_dir, paths) = fixture();
+    let mut s = Session::new(PathBuf::new());
+    assert_eq!(
+        call(&mut s, "scxrd_load", json!({"paths":paths})).result["ok"],
+        true
+    );
+    let mut p = protocol::builtin();
+    p["acquisition"]["first_frame"] = json!(0);
+    p["acquisition"]["last_frame_inclusive"] = json!(2);
+    s.scxrd.config.apply_protocol(p).unwrap();
+    s.scxrd.config.integration_method = "summation".into();
+    s.scxrd.excluded_frames = vec![1];
+    let mut c = s.scxrd.config.clone();
+    c.integration_method = "profile".into();
+    assert_eq!(
+        call(&mut s, "scxrd_settings", json!({"config":c})).result["ok"],
+        true
+    );
+    assert!(s.scxrd.excluded_frames.is_empty());
+    assert_eq!(s.scxrd.protocol_range().unwrap(), (0, 2));
+    s.scxrd.excluded_frames = vec![0];
+    assert!(s.scxrd.protocol_range().unwrap_err().contains("disagree"));
+}
+
+#[test]
+fn observation_view_filter_preserves_native_signed_eligibility_and_global_counts() {
+    let mut s = Session::new(PathBuf::new());
+    s.scxrd.reflections = [(0, Some(false)), (131072, Some(true)), (0, Some(true))]
+        .into_iter()
+        .map(|(flags, native_use)| Reflection {
+            hkl: [1, 2, 3],
+            omega: 0.,
+            intensity: -3.,
+            sigma: 2.,
+            flags,
+            native_use,
+            track: None,
+            crossing: Some(0),
+            correction: 1.,
+        })
+        .collect();
+    let r = call(
+        &mut s,
+        "scxrd_table",
+        json!({"kind":"reflections","offset":0,"filter":"usable"}),
+    );
+    assert_eq!(r.result["ok"], true);
+    assert_eq!(r.result["scxrd"]["reflectionFilteredCount"], 2);
+    assert_eq!(r.result["scxrd"]["reflectionCount"], 3);
+    assert_eq!(r.result["scxrd"]["reflections"][0]["flags"], 131072);
+    assert_eq!(r.result["scxrd"]["reflections"][0]["intensity"], -3.);
+    let r = call(
+        &mut s,
+        "scxrd_table",
+        json!({"kind":"reflections","offset":0,"filter":"excluded"}),
+    );
+    assert_eq!(r.result["scxrd"]["reflectionFilteredCount"], 1);
+    assert_eq!(r.result["scxrd"]["reflections"][0]["native_use"], false);
+    assert_eq!(s.scxrd.reflections.len(), 3);
 }

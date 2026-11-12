@@ -27,6 +27,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "arbitrary"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3bc62ac97cc33321f50863d514c3bc38a453947a8f9e781137e47c7401020aed"
+dependencies = [
+ "derive_arbitrary",
+]
+
+[[package]]
 name = "arrayvec"
 version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -247,6 +256,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e9de72ce2ad1f90dc62fa25f0f430ef85eb4b0d8fa0be4f30373bc40a21d28e"
 
 [[package]]
+name = "derive_arbitrary"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b034bd7d5f032402a2479444dcc6f74e36a03f31854d41680fb240ef682a1ac"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.9",
+]
+
+[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -275,6 +295,7 @@ dependencies = [
  "phasesmith-crystallography",
  "phasesmith-io",
  "phasesmith-model",
+ "phasesmith-persistence",
  "phasesmith-single-crystal",
  "phasesmith-workflows",
  "png",
@@ -952,6 +973,24 @@ source = "git+https://github.com/CPrescher/PhaseSmith?rev=e47507f4adf32ea2a137dd
 dependencies = [
  "phasesmith-core",
  "phasesmith-engine",
+]
+
+[[package]]
+name = "phasesmith-persistence"
+version = "0.8.1"
+source = "git+https://github.com/CPrescher/PhaseSmith?rev=e47507f4adf32ea2a137ddf6b735db88f8a67537#e47507f4adf32ea2a137ddf6b735db88f8a67537"
+dependencies = [
+ "flate2",
+ "phasesmith-core",
+ "phasesmith-crystallography",
+ "phasesmith-engine",
+ "phasesmith-execution",
+ "phasesmith-model",
+ "phasesmith-workflows",
+ "serde",
+ "serde_json",
+ "sha2",
+ "zip",
 ]
 
 [[package]]
@@ -1702,6 +1741,19 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
+]
+
+[[package]]
+name = "zip"
+version = "5.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f852905151ac8d4d06fdca66520a661c09730a74c6d4e2b0f27b436b382e532"
+dependencies = [
+ "arbitrary",
+ "crc32fast",
+ "flate2",
+ "indexmap",
+ "memchr",
 ]
 
 [[package]]

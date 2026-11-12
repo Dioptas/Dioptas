@@ -1,106 +1,134 @@
 # Single Crystal XRD
 
-SCXRD sits below Map in the left mode bar. Its detector, frame series, geometry,
-processing products, contrast settings and edit history are separate from powder
-Integration. The right panel follows nine stages; the action at its bottom stays
-reachable while controls scroll. All processing uses the Rust stdio worker and
-pinned native PhaseSmith kernels. No Python environment or server is required.
+SCXRD sits below Map in the left mode bar. Its frames, geometry, processing and
+history are independent of powder Integration/Calibration/Map. The production
+worker is Rust over Tauri-owned stdio; no interpreter or scientific server is
+required. Task controls stay on the right; detector navigation uses the shared
+Dioptas gestures and square, full-resolution detector pixels.
 
-## First measurement
+## Starting a protocol
 
 1. **Frames:** load a contiguous numbered image sequence or a supported
-   multi-frame detector file. Check the order using the frame arrows, direct
-   frame entry and spot-count plot. Page Up/Down steps through frames outside
-   text fields. Supply the first exposure start, positive step, exposure width,
-   spindle axis, photons/count gain, read noise and overload threshold. Confirm
-   the acquisition checkbox and Apply settings. Angles are declared by the user,
-   not inferred from file names. Reverse/nonuniform scans must be reordered or
-   prepared with their correct acquisition model before admission.
-2. Load an affine `.poni` calibration, or copy the current powder calibration.
-   Verify its pixel size, wavelength and geometry against this detector. Shape
-   and binning are checked; unsupported distortion/spline/orientation overrides
-   are rejected. The SC copy is independent of subsequent powder edits.
-3. **Background:** optionally prepare an omega arPLS baseline. This supports
-   spotting and centroids. Measured intensities and counting variance always
-   come from original detector counts. Compare Original, Background and
-   Subtracted images using their separate histogram settings.
-4. **Peaks:** detect and link spots across exposures. Select a track to inspect
-   its frame; show observed/predicted/flagged markers. Exclude a bad track with
-   its explicit checkbox, exclude a frame, or draw rectangular detector masks.
-   Mask picking shows a preview; Escape cancels an unfinished rectangle.
-5. **Cell:** blind search ranks reduced primitive lattices. Inspect support and
-   withheld residuals; select the sample cell when choices are ambiguous.
-   Diamond-like lattices require a decision. Candidates are not automatic
-   Bravais-lattice or space-group determinations.
-6. **Geometry:** keep calibration fixed, or explicitly request detector-pose and
-   crystal-orientation refinement. A supplied metric must use the selected row
-   setting. Acceptance checks convergence, parameter identifiability/bounds and
-   improvement on withheld spots. Cell lengths and wavelength are fixed in this
-   fit. Review observed/predicted positions before integrating.
-7. **Intensities:** choose spatial and rocking apertures; integrate original
-   counts with a local background, counting uncertainty, Lorentz and
-   polarization corrections. The polarization vector follows lab fast/y.
-   Signed intensities and flagged observations remain visible. Partial,
-   overloaded, overlapping or poorly predicted observations are not silently
-   promoted to usable reflections.
-8. **Scaling:** supply a space-group number, inspect equivalent-family merging,
-   Rint, available CC½ and systematic-absence evidence. An optional robust omega
-   scale requires repeated families. Its conditional intensity sigmas and scale
-   variance are distinct. This is not an absorption correction.
-9. **Structure:** optionally enter element symbols and a supplied space group
-   for a bounded native candidate search. Select isotropic or anisotropic ADPs
-   explicitly. R1, parameter count, termination and candidate assessment are
-   diagnostic; this is not a final validated refinement. **Export:** save the
-   recipe, full-precision signed observation table, usable HKLF4 intensities,
-   and an available candidate CIF.
+   multi-frame detector file. Review order with the frame arrows, direct entry
+   and scan-order disclosure. Page Up/Down steps outside text fields. Angles
+   are declared, not inferred from file names. Reverse/nonuniform scans require
+   preparation with a supported acquisition model.
+2. Select **PhaseSmith protocol** (the default). **Load protocol…** accepts a
+   supported PhaseSmith JSON document; **Use bundled v29** loads the unchanged
+   supplied-symmetry example. Inspect the full document. Review first/last
+   frames (one-based in the UI), exposure start/step/width, spindle axis,
+   overload threshold and cell-shadow assumptions. Example angles and the 35°
+   DAC opening are declared assumptions, not detector metadata.
+3. Load an affine `.poni` calibration, or copy the current powder calibration.
+   Check pixel size, wavelength and geometry for this detector. Unsupported
+   distortion/spline/orientation overrides are rejected. The SC copy remains
+   independent of subsequent powder edits.
+4. The **Sample setup** block in Frames links to every required prior editor.
+   Before processing, supply the orthorhombic cell in **Geometry**, the supplied
+   space-group number in **Scaling**, and element symbols in **Structure**.
+   These lengths are editable before indexing; incompatible angles carried from
+   exploration have an explicit clear/re-enter action.
+   Atom counts, atomic coordinates and reference intensities are not required.
+   Review seat/illumination and DAC-axis/opening controls in **Background**.
+   Return to Frames, confirm acquisition/shadow assumptions and Apply settings.
+5. Run one stage at a time, or **Run to next decision** for dependent processing
+   and the optional bounded structure search. The native coordinator owns all
+   checkpoints: moving masks; original-count detection/linking; indexing and
+   pose/orientation refinement with family holdout; predicted-crossing profile
+   integration and family scaling. Indexing/geometry complete together, as do
+   integration/scaling. A checkpoint can therefore complete the next tab.
+6. Inspect observed/predicted positions, signed intensities, quality flags,
+   eligibility and merging statistics. The observation table filters all,
+   usable or excluded observations across the whole reduction and paginates that
+   selection. This changes only the view. Expand a quality summary for every
+   decoded reason and its raw flags. Native support/correction settings are in
+   the collapsible details above the table. The native policy retains MISMATCH
+   warnings where upstream permits them; nonzero flags do not all mean excluded.
+   Detected-track and predicted-crossing identities are distinct. Rint measures
+   repeated-family agreement; structural R1 is a different statistic.
+7. **Export:** save the recipe, full-precision observation table, usable HKLF4
+   intensities and, when available, candidate CIF. Native candidate CIFs include
+   available anisotropic tensors. A recovered candidate is not a final validated
+   crystallographic refinement.
 
-**Run to next decision** performs the dependent stages, pausing at failed checks
-or ambiguous cell choices. Without element symbols it stops after scaling and
-offers Review and export. With elements it also runs the optional search. Every
-stage can be visited and rerun. Applying changed settings invalidates dependent
-products; a rerun never silently reuses stale intensities. Stop processing keeps
-completed stages and current settings; rerun the interrupted stage to continue.
-Large scans may stop between bounded tiles/frames rather than instantaneously.
+Protocol numerical controls are checked against the versioned native
+implementation. Frozen fields are read-only. Unsupported changes, unknown
+controls and automatic-symmetry protocols fail explicitly. Current support is
+the supplied-symmetry orthorhombic v1 family, including v29, for 5–225 contiguous
+selected frames and original uint32-compatible counts. The profile recipe uses
+both moving mask providers, original-count guarded-plane background, independent
+3D profile learning, shape fitting, physical corrections, robust
+frame/detector/ray family scaling and its equivalent-error model. It performs no
+absorption correction. The upstream geometry, teacher and usable-observation
+gates are enforced. Reference-coordinate/count grading in the example document
+requires an independent reference and is not run by Dioptas.
 
-## Repeating and correcting work
+## Repeating, inspecting and correcting work
 
-Numbers commit on Enter or blur. Invalid or unapplied drafts block processing
-with an explanation; Reset draft restores applied settings. Mode switches keep
-drafts and detector viewport. SC Undo/Redo (also Ctrl/Cmd Z, Shift Z or Y) keeps
-three scientific edit snapshots independently of powder history. Processing is
-not an undoable edit; rerun from retained inputs instead.
+**Save effective protocol…** records acquisition/shadow overrides, execution
+controls and search budgets. **Inspect protocol** shows this backend-generated,
+applied effective document. Unapplied drafts are labelled; apply them to refresh
+inspection. Default protocol sessions expose the same first/last-frame controls
+without requiring an explicit template import. Entering protocol mode applies
+its declared interval; inconsistent selections are rejected. It refuses exclusions or selections the protocol
+cannot represent. A **Dioptas recipe** additionally records source paths/hashes,
+calibration, sample priors, masks, choices, settings and engine/adapter identity.
+Open recipe verifies decoded counts and rebuilds results from retained inputs.
+Absolute source paths must still exist. Protocol recipes rebuild native stages;
+legacy v1 recipes with no workflow field retain exploratory-summation semantics.
+**Apply recipe settings…** transfers parameters to another measurement while
+retaining its frames, calibration, masks and frame exclusions; review and confirm
+the new acquisition before processing.
 
-Save recipe writes `.scxrd.json`, including source hashes, acquisition,
-calibration, masks, exclusions, choices, applied parameters and engine/adapter
-identity. It does not save unapplied drafts or every intermediate array.
-**Open recipe** verifies the original decoded counts and rebuilds peaks/cell
-choices; run remaining stages again. Absolute source paths must still exist. The search seed and budget are recorded,
-but a wall-clock-limited structure search can stop at different iterations on
-different hardware or system load; retain its actual output and termination.
-**Apply recipe settings** transfers processing parameters to the currently
-loaded measurement while retaining its frames, calibration, masks and excluded
-frames. Computed choices are cleared and acquisition must be confirmed again.
-This is the starting point for a reproducible series of different measurements.
+Enable **Keep lossless intermediate stage outputs** before running to retain an
+exportable NPZ audit of masks, positions, indices, geometry, original shoebox
+samples/backgrounds/variances, teacher membership, profile bank, physical and
+empirical factors, intensities and eligibility. This costs memory and temporary
+storage. Export saves a durable copy; a recipe alone does not contain these
+arrays. Host-owned decoding/cache execution is separate from the frozen
+scientific protocol. Earlier stages are rebuilt at checkpoints because the
+public coordinator does not expose resumable internal workspaces.
 
-Source detector files, HDF5 companions and loaded calibration files are protected
-from export overwrites. Recipe and table writes are atomic. HKLF4 has a common
-scale when necessary and rejects values that cannot retain nonzero sigma within
-its field widths; use the full-precision table in that case. The candidate CIF
-contains P1 full-cell coordinates and per-atom Ueq, **not anisotropic tensors**.
-It does not reproduce an anisotropic candidate's complete refinement model.
+Numbers commit on Enter or blur. Invalid/unapplied drafts block processing;
+Reset draft restores applied values. Mode switches preserve drafts and viewport.
+SC Undo/Redo (Ctrl/Cmd Z, Shift Z or Y) retains three scientific edit snapshots,
+independent of powder history. Undoing a clear/settings edit can restore its
+previous reduction and candidate after Stop. Running a processing stage itself
+does not create an undo entry. Settings and
+stage clearing invalidate dependent products. Stop keeps completed checkpoints
+and settings; an interrupted native checkpoint commits no partial results. Stop
+is cooperative and may wait for a bounded tile/frame/kernel. Rerun to resume.
 
-## Supported scope
+The protocol currently rejects manual detector rectangles, track exclusions and
+interior omitted frames rather than silently ignoring them. Inspect a problem,
+correct acquisition/calibration/shadow settings or use a contiguous frame range,
+then rerun. Native exclusion flags are decoded to readable reasons; their raw
+bits remain in tooltips and exports. A Stop control is available inside the task
+panel as well as in the global status bar. Use the exploratory path when manual exclusions are needed. Source
+files, HDF5 companions and loaded calibration files are protected from export
+overwrites. Output writes are atomic. HKLF4 uses a common scale where needed;
+use the full-precision table if its field widths cannot preserve nonzero sigma.
 
-This first native adapter provides a complete operable path from admitted frames
-through summation intensities, supplied-symmetry assessment, optional candidate
-search and export. It does not yet provide profile fitting, automatic Bravais or
-space-group selection, completeness, absorption/DAC corrections, multi-lattice
-separation, recipe source relinking or a final crystallographic refinement UI.
-A 10,000-frame and 16 GiB raw-plus-baseline scratch admission cap prevents
-unbounded work. Blind indexing samples at most 10,000 positions deterministically.
-Source hashes identify decoded counts, not instrument calibration validity.
+## Exploratory summation
 
-See [validation](SCXRD_VALIDATION.md) for measured limitations and reproducible
-checks. In development only, hot worker replacement refuses to discard a loaded
-SC session: save its recipe, restart and reopen. The production worker does not
-use that development handoff.
+Select **Exploratory measured-track summation** for flexible peak/background
+controls, optional omega arPLS baseline, blind primitive-cell exploration, manual
+frame/track/rectangle exclusions, fixed or refined geometry and measured-track
+summation. Background-subtracted images assist spotting; integration and
+counting variance use original counts. Each image has its own histogram.
+Optional robust log-linear omega scaling requires repeated families. Explicit
+isotropic/anisotropic candidate search and export remain available. Its candidate
+CIF exports Ueq only. This path does not implement native profile/family scaling
+and must not be described as the complete PhaseSmith protocol.
+
+## Validation boundary
+
+The matched MgSiO3 replay reproduces standalone masks through reduction; see the
+[comparison](SCXRD_RINT_COMPARISON.md) and [validation record](SCXRD_VALIDATION.md).
+This exposed dataset does not establish general instrument accuracy, automatic
+Bravais/space-group identification, completeness, multi-lattice separation,
+absorption correction or final structure-refinement support. The exploratory
+path has a 10,000-frame and 16 GiB scratch admission cap; blind indexing samples
+at most 10,000 positions deterministically. Hashes establish decoded-count
+identity, not calibration validity. Time-limited searches can stop at different
+iterations across builds/hardware/load: retain actual results and termination.

@@ -14,7 +14,7 @@ fn cross(a: V3, b: V3) -> V3 {
 fn det(b: M3) -> f64 {
     fft::dot(b[0], cross(b[1], b[2]))
 }
-fn parameters(b: M3) -> [f64; 6] {
+pub(super) fn parameters(b: M3) -> [f64; 6] {
     let l = b.map(length);
     let angle = |i: usize, j: usize| {
         (fft::dot(b[i], b[j]) / (l[i] * l[j]))
@@ -50,6 +50,9 @@ impl Crystal {
         automatic: bool,
     ) -> Result<String, String> {
         control.check()?;
+        if self.config.integration_method == "profile" && stage <= 4 {
+            return self.profile_run(control, stage);
+        }
         match stage {
             0 => self.background(control),
             1 => self.detect(control),
@@ -62,6 +65,7 @@ impl Crystal {
         }
     }
     fn background(&mut self, control: &Control) -> Result<String, String> {
+        self.prepare_shadows(control)?;
         if !self.config.background {
             self.background = None;
             return Ok("Disabled: local background is still fitted during spot detection and original-count integration.".into());
@@ -106,7 +110,11 @@ impl Crystal {
                     let pixel = first + j;
                     let (x, y) = (pixel % self.shape[1], pixel / self.shape[1]);
                     data[k] = v;
-                    mask[k] = self.excluded_frames.contains(&frame)
+                    mask[k] = self
+                        .shadows
+                        .as_ref()
+                        .is_some_and(|s| s.excluded(frame, pixel, self.shape[1]))
+                        || self.excluded_frames.contains(&frame)
                         || !v.is_finite()
                         || v < 0.
                         || v >= self.config.saturation
@@ -259,6 +267,7 @@ impl Crystal {
                 flags |= 1024;
             }
             tracks.push(Track {
+                native: false,
                 observed: [summary[0], summary[1], summary[2]],
                 first,
                 last,
@@ -612,8 +621,10 @@ impl Crystal {
                 intensity: 0.,
                 sigma: 0.,
                 flags: t.flags | position_flag | if partial { 1024 } else { 0 },
-                track: id,
+                track: Some(id),
+                crossing: None,
                 correction,
+                native_use: None,
             });
         }
         if rows.is_empty() {
@@ -678,7 +689,7 @@ impl Crystal {
                 r.flags |= spots::BACKGROUND;
             }
         }
-        let count = rows.iter().filter(|r| r.flags == 0).count();
+        let count = rows.iter().filter(|r| r.usable()).count();
         self.unscaled_reflections = rows.clone();
         self.reflections = rows;
         if count < 12 {
@@ -708,7 +719,7 @@ impl Crystal {
         let observations: Vec<_> = self
             .reflections
             .iter()
-            .filter(|r| r.flags == 0)
+            .filter(|r| r.usable())
             .map(|r| solution::Observation {
                 hkl: r.hkl.map(|v| v as i32),
                 intensity: r.intensity,
@@ -732,11 +743,47 @@ impl Crystal {
             completion: false,
             ..Default::default()
         };
+        let native_options = if self.config.integration_method == "profile" {
+            let mut o = (**self
+                .profile_options
+                .as_ref()
+                .ok_or("Run native protocol Intensities before searching.")?)
+            .clone();
+            let shadows = self
+                .shadows
+                .as_ref()
+                .ok_or("Prepare native masks before search.")?;
+            let effective = self.config.active_protocol(shadows.first, shadows.last)?;
+            o.priors.elements = elements.clone();
+            o.search_seconds = protocol::number(&effective, "search", "native_seconds")?;
+            o.cancellation = token.clone();
+            Some(o)
+        } else {
+            None
+        };
+        let actual_seed = native_options.as_ref().map_or(options.seed, |o| o.seed);
+        let hard_deadline = if native_options.is_some() {
+            let shadows = self.shadows.as_ref().ok_or("Prepare masks first.")?;
+            let p = self.config.active_protocol(shadows.first, shadows.last)?;
+            Some(
+                std::time::Instant::now()
+                    + std::time::Duration::from_secs_f64(protocol::number(
+                        &p,
+                        "search",
+                        "hard_seconds",
+                    )?),
+            )
+        } else {
+            None
+        };
         let result = std::thread::scope(|scope| {
             let done = finished.clone();
             scope.spawn(move || {
                 while !done.load(std::sync::atomic::Ordering::Acquire) {
-                    if control.check().is_err() {
+                    if control.check().is_err()
+                        || hard_deadline
+                            .is_some_and(|deadline| std::time::Instant::now() >= deadline)
+                    {
                         let _ = token.cancel();
                         break;
                     }
@@ -744,14 +791,21 @@ impl Crystal {
                 }
             });
             let _completion = SearchCompletion(finished.clone());
-            let result = solution::solve_elements(
-                &observations,
-                cell,
-                &group,
-                &elements,
-                &options,
-                &solution::SharedSearchOptions::default(),
-            );
+            let result = if let Some(o) = &native_options {
+                phasesmith_workflows::single_crystal::search_observations(&observations, o)
+                    .map(|(result, _)| result)
+                    .map_err(err)
+            } else {
+                solution::solve_elements(
+                    &observations,
+                    cell,
+                    &group,
+                    &elements,
+                    &options,
+                    &solution::SharedSearchOptions::default(),
+                )
+                .map_err(err)
+            };
             finished.store(true, std::sync::atomic::Ordering::Release);
             result
         })
@@ -763,7 +817,23 @@ impl Crystal {
             .as_ref()
             .map(|r| (r.mode.to_owned(), r.parameter_count, r.termination))
             .unwrap_or(("P1".into(), 0, "not refined"));
-        self.structure = json!({"r1":best.r1,"mode":mode,"parameters":parameters,"termination":termination,"searchTermination":result.termination,"targetMet":result.target_met,"atoms":best.species.len(),"species":best.species,"xyz":best.fractional_xyz,"group":self.config.group,"observations":observations.len(),"families":result.data.family_count,"absentObservations":result.data.absent_observations,"seed":0,"engine":ENGINE});
+        self.structure = json!({"r1":best.r1,"mode":mode,"parameters":parameters,"termination":termination,"searchTermination":result.termination,"targetMet":result.target_met,"atoms":best.species.len(),"species":best.species,"xyz":best.fractional_xyz,"group":self.config.group,"observations":observations.len(),"families":result.data.family_count,"absentObservations":result.data.absent_observations,"seed":actual_seed,"engine":ENGINE});
+        self.structure["elements"] = json!(elements);
+        self.structure["searchSeconds"] = json!(self.config.search_seconds);
+        if native_options.is_some() {
+            let shadows = self
+                .shadows
+                .as_ref()
+                .ok_or("Prepare native masks before search.")?;
+            let effective = self.config.active_protocol(shadows.first, shadows.last)?;
+            let identity = json!({"reductionIdentity":self.profile_report["runIdentitySha256"],"effectiveProtocol":effective,"elements":elements,"seed":actual_seed});
+            self.structure["effectiveProtocol"] = effective;
+            self.structure["searchIdentitySha256"] = json!(format!(
+                "{:x}",
+                Sha256::digest(serde_json::to_vec(&identity).map_err(err)?)
+            ));
+        }
+
         let cp = [
             cell.a_angstrom,
             cell.b_angstrom,
@@ -789,11 +859,29 @@ impl Crystal {
                     .unwrap_or(best.u_iso)
             ));
         }
+        if self.config.integration_method == "profile"
+            && let Some(refined) = &best.refinement
+            && !refined.full_u_cif.is_empty()
+        {
+            cif.push_str("loop_\n_atom_site_aniso_label\n_atom_site_aniso_U_11\n_atom_site_aniso_U_22\n_atom_site_aniso_U_33\n_atom_site_aniso_U_23\n_atom_site_aniso_U_13\n_atom_site_aniso_U_12\n");
+            for (i, (species, u)) in best.species.iter().zip(&refined.full_u_cif).enumerate() {
+                cif.push_str(&format!(
+                    "{species}{} {} {} {} {} {} {}\n",
+                    i + 1,
+                    u[0],
+                    u[1],
+                    u[2],
+                    u[3],
+                    u[4],
+                    u[5]
+                ));
+            }
+        }
         self.cif = Some(cif);
         Ok(format!(
             "Candidate R1 {:.3}% · {} ADPs · {parameters} parameters · {termination}. Candidate assessment only; lower R1 does not establish correctness.",
             best.r1 * 100.,
-            self.config.adp
+            mode
         ))
     }
     pub(super) fn cell(&self) -> Result<UnitCell, String> {
@@ -836,6 +924,9 @@ impl Crystal {
                 self.invalidate(2);
             }
             Some("frame") => {
+                if self.config.integration_method == "profile" {
+                    return Err("Edit the contiguous protocol first/last frame in Frames; individual frame toggles are available in exploratory summation.".into());
+                }
                 let id = args["index"].as_u64().ok_or("Choose a frame.")? as usize;
                 if id >= self.sources.len() {
                     return Err("Frame no longer exists.".into());
@@ -960,7 +1051,7 @@ fn cell_score(cell: &Cell, tolerance: f64) -> f64 {
             * tolerance.powi(3)
 }
 
-struct SearchCompletion(Arc<std::sync::atomic::AtomicBool>);
+pub(super) struct SearchCompletion(pub(super) Arc<std::sync::atomic::AtomicBool>);
 impl Drop for SearchCompletion {
     fn drop(&mut self) {
         self.0.store(true, std::sync::atomic::Ordering::Release);
