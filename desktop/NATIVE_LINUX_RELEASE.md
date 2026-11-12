@@ -163,3 +163,8 @@ locally under `artifacts/native-linux/verified-2026-11-12-43200531512/`, alongsi
 `qualification.json`. These files are ignored by Git. They are unsigned test
 artifacts; nothing was tagged, released or published. Earlier candidates with
 the unprojected catalog are marked superseded.
+
+The broader [Rust desktop run 43200528441](https://github.com/Dioptas/Dioptas/actions/runs/43200528441)
+also passed all five jobs at the same source revision: native Linux/macOS
+processing, independent numerical references, Linux Tauri/GLib security, and
+the complete headless desktop/Tauri suite.
