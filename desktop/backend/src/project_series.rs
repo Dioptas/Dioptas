@@ -5,9 +5,13 @@ use crate::{
     series::{Entry, Series},
 };
 fn save_embedded(s: &Series, group: &hdf5::Group, name: &str) -> Result<(), String> {
-    let temp = tempfile::NamedTempFile::new().map_err(|e| e.to_string())?;
-    s.save(temp.path())?;
-    let f = hdf5::File::open(temp.path()).native()?;
+    // Series::save atomically replaces its destination. Keep ownership of the
+    // temporary path without an open destination handle blocking Windows.
+    let temp = tempfile::NamedTempFile::new()
+        .map_err(|e| e.to_string())?
+        .into_temp_path();
+    s.save(&temp)?;
+    let f = hdf5::File::open(&temp).native()?;
     replace(group, name)?;
     f.group("processed").native()?.copy_to(group, name).native()
 }

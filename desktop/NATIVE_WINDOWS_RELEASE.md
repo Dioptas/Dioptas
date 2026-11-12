@@ -74,8 +74,8 @@ The second installer upgrades the first installation. Tests check both the
 registry version and executable version, preserve a user-data marker, reject a
 silent downgrade, and uninstall the app, registration and shortcuts while
 preserving user settings. The checkout and temporary test paths are restored
-on failure. Native Windows backend tests run separately after installation
-qualification.
+on failure. Native Windows backend tests run in the shipping release profile
+before building the installers, so processor failures stop packaging early.
 
 Outputs are in `artifacts/native-windows/<version>-x64-<run>/`: setup executables,
 `SHA256SUMS`, `build.json` and `verification.json`. The report identifies the
