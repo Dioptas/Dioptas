@@ -9,7 +9,7 @@ $sevenZip = (Get-Command 7z).Source
 $registry = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Dioptas Desktop'
 if (Test-Path $registry) { throw 'An existing Dioptas Desktop installation must not be replaced by this test' }
 $temporary = Join-Path $env:RUNNER_TEMP ('Dioptas Installer Test ' + [guid]::NewGuid().ToString('N'))
-$installation = Join-Path $temporary 'Installed App'
+$installation = Join-Path $temporary 'Installed App ü'
 New-Item -ItemType Directory -Path $temporary | Out-Null
 $originalDirectory = Get-Location
 $receipts = @()
