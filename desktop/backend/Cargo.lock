@@ -285,6 +285,7 @@ dependencies = [
  "tempfile",
  "tiff 0.8.1",
  "time",
+ "windows-sys",
  "xraydb",
 ]
 
