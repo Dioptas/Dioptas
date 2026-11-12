@@ -127,6 +127,7 @@ export async function inspectLinuxInstall(prefix, appimage = false) {
     await readFile(path.join(resources, "THIRD_PARTY_NOTICES.json"), "utf8"),
   );
   let systemNoticeCount = 0;
+  const runtimeLibraries = [];
   if (appimage) {
     const directory = path.join(prefix, "usr/share/doc/dioptas-native-runtime");
     const inventory = JSON.parse(
@@ -149,10 +150,41 @@ export async function inspectLinuxInstall(prefix, appimage = false) {
     assert(extraLibraries.some((library) => library.name === "libGLESv2.so.2"));
     for (const library of extraLibraries) {
       assert.equal(path.basename(library.name), library.name);
-      assert.equal(
-        digest(await readFile(path.join(prefix, "usr/lib", library.name))),
-        library.sha256,
+      const file = path.join(prefix, "usr/lib", library.name);
+      const bytes = await readFile(file);
+      assert.equal(elfMachine(bytes), 62);
+      assert.match(library.sha256, /^[a-f0-9]{64}$/);
+      const dynamic = execFileSync("readelf", ["--dynamic", file], {
+        encoding: "utf8",
+      });
+      assert(dynamic.includes(`Library soname: [${library.name}]`));
+      const searchPaths = dynamic
+        .split("\n")
+        .filter((line) => /\((?:RPATH|RUNPATH)\)/.test(line));
+      assert(
+        !searchPaths.some((line) =>
+          /\/home\/runner\/work\/|\/target\//.test(line),
+        ),
+        "Library retained a build-time search path",
       );
+      // linuxdeploy can rewrite RPATH/ELF layout. Retain the source-package
+      // hash separately from the relocated payload protected by the AppImage
+      // checksum; do not falsely label the two byte sequences as identical.
+      const bundledSha256 = digest(bytes);
+      runtimeLibraries.push({
+        name: library.name,
+        package: library.package,
+        version: library.version,
+        sourceSha256: library.sha256,
+        bundledSha256,
+        relocatedByBundler: bundledSha256 !== library.sha256,
+        requiredGlibc: requiredGlibc(
+          execFileSync("readelf", ["--version-info", file], {
+            encoding: "utf8",
+          }),
+        ),
+        searchPaths,
+      });
       assert(
         inventory.packages.some(
           (pkg) =>
@@ -171,6 +203,7 @@ export async function inspectLinuxInstall(prefix, appimage = false) {
     desktopFile,
     bundledElfFiles: nativeFiles.length,
     systemNoticeCount,
+    runtimeLibraries,
     resourcesDirectory: resources,
     pythonPayload: false,
   };

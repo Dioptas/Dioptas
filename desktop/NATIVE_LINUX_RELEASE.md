@@ -32,6 +32,10 @@ The portable payload also explicitly includes WebKit's dynamically loaded
 `libGLESv2.so.2` client, with package/version/hash/copyright provenance. Host
 OpenGL/EGL dispatch and graphics drivers remain system prerequisites; the
 AppImage does not replace drivers with copies from the build machine.
+Verification records the original GLES library hash separately from the
+packaged hash because linuxdeploy can rewrite ELF search paths/layout. It
+checks the relocated library's architecture, SONAME and glibc requirement;
+the complete AppImage remains covered by its candidate checksum.
 
 The workflow `.github/workflows/native_linux_artifacts.yml` builds on
 `ubuntu-22.04`. Its verification matrix uses separate fresh Ubuntu 22.04 and

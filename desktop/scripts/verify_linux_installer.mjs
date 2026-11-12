@@ -231,6 +231,22 @@ try {
       2,
     ) + "\n",
   );
+} catch (error) {
+  await writeFile(
+    reportPath,
+    JSON.stringify(
+      {
+        ok: false,
+        sourceRevision: metadata.sourceRevision,
+        verificationRevision,
+        format,
+        error: error.stack ?? String(error),
+      },
+      null,
+      2,
+    ) + "\n",
+  );
+  throw error;
 } finally {
   if (installed) {
     try {
