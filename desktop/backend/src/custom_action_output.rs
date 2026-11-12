@@ -229,14 +229,14 @@ mod tests {
     };
     fn launch(script: &str, args: &[&std::path::Path], run: Run) -> JoinHandle<()> {
         let reservation = reserve().unwrap();
-        let child = Command::new("/bin/sh")
+        let mut command = Command::new("/bin/sh");
+        command
             .args(["-c", script, "action-test"])
             .args(args)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .unwrap();
+            .stderr(Stdio::piped());
+        let child = crate::child_process::spawn(command).unwrap();
         monitor(child, run, reservation).unwrap()
     }
     fn state() -> Run {

@@ -236,7 +236,7 @@ impl Actions {
                     use std::os::windows::process::CommandExt;
                     cmd.creation_flags(0x08000000);
                 }
-                let child = cmd.spawn().map_err(|e| e.to_string())?;
+                let child = crate::child_process::spawn(cmd).map_err(|e| e.to_string())?;
                 let args = std::iter::once(program.to_string_lossy().into_owned())
                     .chain(arguments)
                     .collect::<Vec<_>>();

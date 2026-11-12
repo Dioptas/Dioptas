@@ -190,7 +190,8 @@ mod tests {
     #[test]
     fn new_outputs_honor_umask_without_changing_the_parent_mask() {
         for (mask, expected) in [("022", "644"), ("077", "600")] {
-            let status = std::process::Command::new("/bin/sh")
+            let mut command = std::process::Command::new("/bin/sh");
+            command
                 .args([
                     "-c",
                     "umask \"$1\"; exec \"$2\" --exact output::tests::umask_child",
@@ -198,8 +199,10 @@ mod tests {
                     mask,
                 ])
                 .arg(std::env::current_exe().unwrap())
-                .env("DIOPTAS_OUTPUT_TEST_MODE", expected)
-                .status()
+                .env("DIOPTAS_OUTPUT_TEST_MODE", expected);
+            let status = crate::child_process::spawn(command)
+                .unwrap()
+                .wait()
                 .unwrap();
             assert!(status.success());
         }

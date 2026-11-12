@@ -8,6 +8,7 @@ mod background_workers;
 mod batch_background;
 mod batch_pattern_background;
 mod batch_waterfall;
+pub mod child_process;
 mod contours;
 pub mod control;
 mod correction_maps;
