@@ -53,6 +53,11 @@ path = "src/main.rs"
 
 [workspace]
 
+# Match the external-file offset ABI of bundled HDF5 2.x on Windows.
+[patch.crates-io]
+hdf5-metno = { path = "../vendor/hdf5-metno" }
+hdf5-metno-sys = { path = "../vendor/hdf5-metno-sys" }
+
 
 # Keep the real-image native algorithms practical in the development preview.
 # This changes optimization only, not float arithmetic policy or CPU target.

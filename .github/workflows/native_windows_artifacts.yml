@@ -50,6 +50,8 @@ jobs:
           $tokens = $null; $errors = $null
           [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD 'scripts/verify_windows_installer.ps1'), [ref]$tokens, [ref]$errors) | Out-Null
           if ($errors.Count) { throw ($errors | Out-String) }
+          node scripts/check_hdf5_windows_abi.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm run test:release-config
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm run test:windows-release-config

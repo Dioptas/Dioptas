@@ -1,0 +1,45 @@
+[package]
+name = "hdf5-metno-sys"
+build = "build.rs"
+description = "Native bindings to the HDF5 library."
+links = "hdf5"
+categories = ["development-tools::ffi", "filesystem", "science"]
+version = "0.12.5"  # !V
+rust-version.workspace = true
+authors.workspace = true
+keywords.workspace = true
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+
+[dependencies]
+libc = { workspace = true }
+mpi-sys = { workspace = true, optional = true }
+libz-sys = { workspace = true, optional = true }
+hdf5-src = { workspace = true, optional = true }
+parking_lot = "0.12.3"
+
+# Please see README for further explanation of these feature flags
+[features]
+default = []
+mpio = ["dep:mpi-sys"]
+hl = ["hdf5-src?/hl"]
+threadsafe = ["hdf5-src?/threadsafe"]
+zlib = ["dep:libz-sys", "hdf5-src?/zlib"]
+static = ["dep:hdf5-src"]
+deprecated = ["hdf5-src?/deprecated"]
+
+[build-dependencies]
+libloading = "0.8"
+regex = { workspace = true }
+
+[target.'cfg(any(all(unix, not(target_os = "macos")), windows))'.build-dependencies]
+pkg-config = "0.3"
+
+[target.'cfg(windows)'.build-dependencies]
+serde = "1.0"
+serde_derive = "1.0"
+winreg = { version = "0.56", features = ["serialization-serde"] }
+
+[package.metadata.docs.rs]
+features = ["static", "zlib"]
