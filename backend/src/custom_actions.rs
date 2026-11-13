@@ -21,12 +21,24 @@ const FIELDS: [&str; 9] = [
 pub(crate) struct Actions {
     runs: Arc<Mutex<BTreeMap<String, crate::custom_action_output::Run>>>,
 }
+/// Expands a leading `~` to the user's home directory. `std::env::home_dir`
+/// reads `HOME` on Unix and `USERPROFILE` on Windows, where `HOME` is
+/// normally not set.
 fn home_path(path: &str) -> Result<PathBuf, String> {
-    if path == "~" || path.starts_with("~/") {
-        let home = std::env::var_os("HOME").ok_or("Home directory is unavailable.")?;
-        Ok(PathBuf::from(home).join(path.strip_prefix("~/").unwrap_or("")))
+    let rest = if path == "~" {
+        Some("")
     } else {
-        Ok(PathBuf::from(path))
+        path.strip_prefix("~/")
+            .or_else(|| cfg!(windows).then(|| path.strip_prefix("~\\")).flatten())
+    };
+    match rest {
+        Some(rest) => {
+            let home = std::env::home_dir()
+                .filter(|h| !h.as_os_str().is_empty())
+                .ok_or("Home directory is unavailable.")?;
+            Ok(home.join(rest))
+        }
+        None => Ok(PathBuf::from(path)),
     }
 }
 fn settings_path() -> Result<PathBuf, String> {

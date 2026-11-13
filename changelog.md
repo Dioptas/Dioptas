@@ -1,8 +1,180 @@
 # Unreleased
 
+Changes since 0.14.0-rc.1, the first release candidate of the Rust desktop. See
+[the rc.1 release notes](docs/release/RELEASE_0.14.0-rc.1.md) for what that
+candidate contains.
+
+## New
+
+- **Single Crystal XRD mode.** A guided workflow (SCXRD in the sidebar) takes a
+  rotation scan from frames through peak finding, indexing, geometry refinement,
+  integration and scaling to an HKLF4 reflection file. Versioned PhaseSmith
+  protocols make a run reproducible and can be inspected and exported with their
+  effective settings. The mode is new; the manual describes what its output does
+  not establish.
+
+- **Restore the previous session.** After an unexpected exit, Dioptas offers
+  **Restore** or **Start fresh** at the next launch. The recovery checkpoint
+  includes the Undo and Redo history.
+
+- **In-app updates.** Installed releases check for a newer version, show it above
+  **Settings**, download the signed package on request and install it on restart.
+  Updates can be configured in **Settings → General → Updates**.
+
+## Improvements
+
+- Saved `.poni` files record the calibrant, as pyFAI-calib2 does, and loading one
+  selects that calibrant. The **Image & setup** step has a **Calibrant** picker
+  next to **Detector** (#276).
+
+- Saved `.poni` files record the image orientation set with the rotate and flip
+  buttons, and loading one turns the image to that view. Calibrations with plain
+  pixel sizes are saved so that pyFAI gives the same 2θ on the raw image file.
+
+- The application is named Dioptas, and window titles show its version. The Map
+  detector image has its own view and zoom, independent of Integration.
+
+- A new user manual with screenshots of the current application is published at
+  <https://dioptas.github.io/Dioptas/manual/>. Read the Docs keeps the manual of
+  the Qt versions.
+
+- The Qt/Python application has been removed from `develop`. It remains on the
+  `legacy/qt` branch; 0.13.0 is its last release.
+
 ## Fixes
 
-- Fixed brief image flicker when loading images or switching modes in the Rust desktop. Images now appear at the correct size from the first frame across all modes, including cake, Map and detached image views.
+- Fixed brief image flicker when loading images or switching modes. Images now
+  appear at the correct size from the first frame across all modes, including
+  cake, Map and detached image views.
+
+- Removed the detector orientation select from the calibration image tab. It
+  duplicated the rotate and flip buttons and caused confusion.
+
+- Fixed custom actions on Windows, where the settings always reported that the
+  home directory was unavailable and no action could be saved or run. Dioptas now
+  finds the home folder from the Windows user profile.
+
+# 0.13.0 (2026-11-07)
+
+## Faster fixed-mask Eiger integration
+
+- Supported Eiger HDF5 frames can now produce their display image and 1D
+  pattern in one native block-decoding pass. Parallel block workers share
+  the fixed integration table. Original uint16/uint32 display counts and
+  float64 integration weights, sums and Poisson uncertainties are preserved.
+- The documented warm-cache Eiger 9M Qt benchmark measured approximately 20%
+  lower open-to-pattern latency: 180–182 ms to 143–145 ms. The comparison
+  includes Qt image/model updates and debounce; physical screen presentation
+  was not measured. See the [benchmark and all-frame validation](https://github.com/Dioptas/Dioptas/blob/0.13.0/docs/benchmarks/2026-11-07-combined-hdf5.md).
+- The combined path is selected automatically for compatible single-frame,
+  fixed-mask integrations. Dynamic masking, Batch, Map and cake integration
+  retain their existing processing paths and compatibility fallbacks.
+
+## Native packages and consistency
+
+- Standalone applications include Dioptrin 0.10.0 and dioptrin-io 0.2.0.
+  The existing `dioptrin` extra installs their published wheels, including
+  the fused bridge, without a separate Rust checkout or adapter build.
+- Source or integration-setting changes invalidate prepared results so the
+  displayed counts and pattern remain consistent. Native work stays on its
+  owning thread, and an active Batch or Map job keeps its processing lane.
+- Release checks verify both native packages in the frozen applications.
+  The bundled Dioptrin update also fixes concurrent initialization of shared
+  lookup tables.
+
+# 0.12.1 (2026-11-06)
+
+## Fixes and performance
+
+- Batch and Map reuse prepared Dioptrin integration state from the image view.
+  Session recovery warms the persistent integration worker, and parallel runs
+  prepare their lookup table before admitting frames. This removes the long
+  initial pause with large Eiger scans.
+- Selecting Map points and Batch frames reuses open readers for unchanged
+  image series and avoids decoding the initial frame twice. Changed or
+  replaced source files are reopened automatically.
+- Image histograms use exact weighted counts for repeated integer intensities
+  and share their cached result between display orientations. Refreshing an
+  edited image invalidates that cache. Every pixel still contributes, and
+  integrated intensities are unchanged.
+- Startup defers the phase editor until needed and avoids a duplicate
+  calibration-overlay redraw during session recovery.
+- Canceled or failed batch runs drain admitted native work before reusing the
+  integration backend; worker-owned native resources are released on their
+  owning thread.
+- Project recovery restores image state and file browsing safely. Standalone
+  update checks include trusted certificate data and handle missing or
+  relocated image directories.
+
+# 0.12.0 (2026-11-06)
+
+## Highlights
+
+- **Edit user-owned crystal structures and EoS records.** Update atomic sites,
+  elements, occupancies and space groups, check crystallographic Z against the
+  chemical formula, and retain the changes in material files and projects.
+  Published library structures remain read-only.
+
+- **Use Dioptrin without activation.** Standalone builds include the MIT-licensed
+  Dioptrin 0.9.0 backend. Source and pip users can select the pinned `dioptrin`
+  extra; pyFAI remains the default and works without that extra.
+
+## Improvements
+
+- Dioptrin 0.9.0 uses CSC by default for fast 1D integration, with cached
+  normalization for fixed masks and fused normalization for changing masks.
+  Integration options offer an explicit CSC/CSR choice. Float64 precision,
+  strict arithmetic, spread and 2D compatibility paths are preserved.
+- Batch and map runs parallelize complete dynamic-mask frame jobs over one
+  shared geometry/weight plan. Fixed/dynamic switches retain valid plans and
+  create only lightweight workers when needed; scientific input changes
+  invalidate dependent caches.
+- Supported Eiger HDF5 data use bounded parallel bitshuffle/LZ4 reading.
+  Spot Mask computes once per frame and releases the GIL during C work.
+
+
+- Updated the calculation engine and bundled material library to core Peritheos
+  0.18.0. Observation datasets are optional and are not required by Dioptas or
+  its release startup checks.
+
+- Native EOSMAT v4 imports and exports use Peritheos's conversion API, retaining
+  legacy v2/v3 readers. The EoS browser and editors show source information,
+  scoped reconstruction assessments, recommendation status and links to the
+  selected material record and reconstruction report. Held recommendations
+  require explicit record selection; no automatic 0 K DFT substitute is used
+  for palladium.
+
+- Batch normalization can be toggled off to restore the original intensities.
+  Its settings select the bin interval and reference frame; backgrounds and
+  azimuthal spread follow the same scaling.
+
+- Added an **A** button beside image colormaps to autoscale intensity using the
+  current settings while preserving zoom and pan, including cake, map and batch
+  views.
+
+- Added an integration guide explaining binning, pixel splitting, backend-specific
+  supersampling, Poisson uncertainties, spottiness, and performance measurements.
+
+- Added Developer ID signing, hardened runtime, notarization and DMG packaging
+  for macOS releases. Build diagnostics support delayed Apple responses and
+  preserve signed payloads so notarization can resume without rebuilding.
+  Standalone apps target macOS 14 or newer, with dependency checks preventing
+  bundled libraries from silently requiring a newer system.
+
+## Fixes
+
+- Startup update checks use the published GitHub release feed. Notifications
+  appear only once per new release: opening the download page, declining or
+  closing the popup is remembered across restarts.
+
+- BM2Reference retains its nonzero reference pressure in calculations, editing,
+  material files and projects. Legacy JCPDS export cannot silently discard that
+  pressure.
+
+- Fixed clipped thermal-model headers in the EoS database table.
+
+- macOS app bundles report the application version in Finder and package
+  metadata instead of the packaging tool's default 0.0.0.
 
 # 0.11.0 (28.09.2026)
 
@@ -17,25 +189,11 @@ Their changes are included here; the previous published release is 0.10.0. -->
 
 ## Improvements
 
-- Updated the material library and calculation engine to Peritheos 0.17.0.
-  BM2Reference retains its nonzero reference pressure in calculations, editing,
-  material files and projects; legacy JCPDS export cannot discard that pressure.
-
-- The EoS database and phase editor's record details link directly to the
-  selected EOS in the Peritheos material documentation, alongside the scoped
-  reconstruction assessments and existing reconstruction reports.
-
-- Batch normalization can be toggled off to restore the original intensities. Its settings select the bin interval and reference frame; backgrounds and azimuthal spread follow the same scaling.
-
-- User-owned crystal structures can be edited in the phase editor, including atomic sites, elements, occupancies and space groups. Valid edits recalculate diffraction lines and persist in material files and projects; published library structures remain read-only.
-
-- The phase editor automatically checks crystallographic Z from symmetry-expanded atomic sites and occupancies against the chemical formula. Formula mismatches and disagreements with stored Z are shown inline, with element counts and multiplicities available on hover; stored formula and EoS normalization are preserved.
-
 - Extended the Python compatibility range through 3.15, with backend and
   controller CI on 3.14 and 3.15 and wheel builds for both. Python 3.15 is
   currently a prerelease and requires source builds for several dependencies.
 
-- Updated to Peritheos 0.16.0 and PhaseSmith 0.7.0. Native EOSMAT v4 imports use Peritheos's conversion API and canonical materials export as v4, retaining legacy v2/v3 readers and project compatibility. The material browser shows scoped reconstruction assessments, separate source/workflow/recommendation information and a link to the selected reconstruction report. Held defaults require explicit selection, including Pd without an automatic 0 K DFT substitute. Deferred source records remain searchable and exportable; qualified diagnostic records require explicit selection. Release startup checks cover native interchange, thermal calculations, source resources and assessments. Qandilite reflections preserve the explicit space-group origin choice.
+- Updated to Peritheos 0.11.0 and PhaseSmith 0.7.0. The material browser keeps deferred source records searchable and exportable while disabling phase loading for those records. Qandilite reflections now preserve the explicit space-group origin choice.
 
 - Added range masking below the intensity thresholds for **2θ**, **q**, and **d-spacing**. Mask or unmask pixels inside or outside an interval, or leave one bound blank for a single cutoff. Uses the current calibration and supports undo/redo (#38).
 
