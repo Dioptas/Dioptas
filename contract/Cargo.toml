@@ -1,0 +1,12 @@
+[package]
+name = "dioptas-contract"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.90"
+publish = false
+license = "MIT"
+description = "Command execution policy and wire metadata shared by the Dioptas host and processor"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

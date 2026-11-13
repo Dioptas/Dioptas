@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-open-update-page"
+description = "Enables the open_update_page command without any pre-configured scope."
+commands.allow = ["open_update_page"]
+
+[[permission]]
+identifier = "deny-open-update-page"
+description = "Denies the open_update_page command without any pre-configured scope."
+commands.deny = ["open_update_page"]

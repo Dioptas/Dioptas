@@ -44,7 +44,7 @@ __version__
 [Rr]elease/
 x64/
 build/
-dist/
+/dist/
 [Bb]in/
 [Oo]bj/
 *.egg-info
@@ -197,20 +197,16 @@ $RECYCLE.BIN/
 __pycache__/
 
 # React desktop build and local verification artifacts
-desktop/node_modules/
-desktop/dist/
-desktop/artifacts/
-desktop/src-tauri/target/
-desktop/backend/target/
-desktop/src-tauri/gen/
-desktop/src-tauri/binaries/dioptas-processor-*
-desktop/src-tauri/resources/
+/node_modules/
+/dist/
+/artifacts/
+/target/
+/src-tauri/gen/
+/src-tauri/binaries/dioptas-processor-*
+/src-tauri/resources/
 
 # Disposable hot-reload smoke probe (normally removed automatically)
-desktop/src/__dioptas_live_check_*.css
+/src/__dioptas_live_check_*.css
 
 # Generated Canvas reference for isolated pattern renderer benchmarks.
-desktop/src/__CanvasBaseline.tsx
-
-# Preserve generated assets belonging to already-running pre-cleanup previews.
-dioptas/desktop/ui/
+/src/__CanvasBaseline.tsx

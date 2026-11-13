@@ -41,7 +41,7 @@ jobs:
         with:
           node-version: '26'
           cache: npm
-          cache-dependency-path: desktop/package-lock.json
+          cache-dependency-path: package-lock.json
       - name: Install Linux build dependencies
         run: |
           sudo apt-get update
@@ -52,14 +52,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
-            desktop/backend -> target
-            desktop/src-tauri -> target
+            . -> target
           key: native-linux-${{ matrix.os }}-x64
           cache-on-failure: true
       - run: npm ci
-        working-directory: desktop
       - name: Check release configuration and pinned dependencies
-        working-directory: desktop
         run: |
           node scripts/check_glib_backport.mjs
           node scripts/check_hdf5_windows_abi.mjs
@@ -67,19 +64,18 @@ jobs:
           npm run test:linux-release-config
           node --test scripts/standalone_licenses.test.mjs scripts/peritheos_distribution.test.mjs
       - name: Test the release-profile Linux processor
-        run: cargo test --release --locked --manifest-path desktop/backend/Cargo.toml --all-features --no-fail-fast
+        run: cargo test --release --locked --manifest-path backend/Cargo.toml --all-features --no-fail-fast
       - name: Build installer candidates
-        working-directory: desktop
         run: npm run release:linux -- --format '${{ matrix.format }}' ${{ matrix.format == 'deb' && '--test-upgrade' || '' }}
       - name: Retain installer candidates
         uses: actions/upload-artifact@v7
         with:
           name: Dioptas-native-linux-x64-${{ matrix.format }}-test
           path: |
-            desktop/artifacts/native-linux/**/*.deb
-            desktop/artifacts/native-linux/**/*.AppImage
-            desktop/artifacts/native-linux/**/SHA256SUMS
-            desktop/artifacts/native-linux/**/build.json
+            artifacts/native-linux/**/*.deb
+            artifacts/native-linux/**/*.AppImage
+            artifacts/native-linux/**/SHA256SUMS
+            artifacts/native-linux/**/build.json
           if-no-files-found: error
           retention-days: 14
       - name: Retain build diagnostics
@@ -87,7 +83,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: Dioptas-native-linux-${{ matrix.format }}-build-diagnostics
-          path: desktop/artifacts/native-linux/
+          path: artifacts/native-linux/
           if-no-files-found: ignore
           retention-days: 14
 
@@ -132,7 +128,7 @@ jobs:
           mapfile -t manifests < <(find "$RUNNER_TEMP/linux-candidates" -name build.json -type f)
           test "${#manifests[@]}" -eq 1
           candidate_directory="$(dirname "${manifests[0]}")"
-          script="$GITHUB_WORKSPACE/desktop/scripts/verify_linux_installer.mjs"
+          script="$GITHUB_WORKSPACE/scripts/verify_linux_installer.mjs"
           cd "$RUNNER_TEMP"
           dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1000x24' node "$script" "$candidate_directory" "$RUNNER_TEMP/linux-verification-${{ matrix.os }}-${{ matrix.format }}.json" '${{ matrix.format }}'
       - name: Retain installation reports and native logs

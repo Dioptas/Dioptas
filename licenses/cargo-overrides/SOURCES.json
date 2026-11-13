@@ -1,0 +1,256 @@
+{
+  "alloc-stdlib@0.3.0": [
+    {
+      "file": "dropbox-rust-alloc-no-stdlib-0a81fd6928ea-LICENSE",
+      "sha256": "c0c56f26d9c051cac4d200c34c84e7ae9aaa853e01a982a1df08b09931e518ae",
+      "url": "https://raw.githubusercontent.com/dropbox/rust-alloc-no-stdlib/0a81fd6928ea3b33c8cd484aa4575d50ffb98012/LICENSE"
+    }
+  ],
+  "block2@0.6.2": [
+    {
+      "file": "madsmtm-objc2-b4167b582b2f-LICENSE.md",
+      "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+      "url": "https://raw.githubusercontent.com/madsmtm/objc2/b4167b582b2f75f9a1be75495c41b765344fd03c/LICENSE.md"
+    }
+  ],
+  "dispatch2@0.3.1": [
+    {
+      "file": "madsmtm-objc2-8852b424193c-LICENSE.md",
+      "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+      "url": "https://raw.githubusercontent.com/madsmtm/objc2/8852b424193ca41602281b3d7540d7c8ed51e49a/LICENSE.md"
+    }
+  ],
+  "dlopen2@0.8.2": [
+    {
+      "basis": "Repository-level license at the exact .cargo_vcs_info.json revision of the published crate; omitted from its package archive.",
+      "file": "OpenByteDev-dlopen2-cc80e4a0a90d-LICENSE",
+      "sha256": "39fa265207450e77c62e90c5594a06c085b655d8374c7ced4bf7894b6bd95dd2",
+      "url": "https://raw.githubusercontent.com/OpenByteDev/dlopen2/cc80e4a0a90d499b677fdf7743699b4b3a43a989/LICENSE"
+    }
+  ],
+  "dlopen2_derive@0.4.3": [
+    {
+      "basis": "Repository-level license at the exact .cargo_vcs_info.json revision of the published crate; omitted from its package archive.",
+      "file": "OpenByteDev-dlopen2-cc80e4a0a90d-LICENSE",
+      "sha256": "39fa265207450e77c62e90c5594a06c085b655d8374c7ced4bf7894b6bd95dd2",
+      "url": "https://raw.githubusercontent.com/OpenByteDev/dlopen2/cc80e4a0a90d499b677fdf7743699b4b3a43a989/LICENSE"
+    }
+  ],
+  "hdf5-metno-derive@0.10.2": [
+    {
+      "file": "metno-hdf5-rust-f9041d021afb-LICENSE-APACHE",
+      "sha256": "8173d5c29b4f956d532781d2b86e4e30f83e6b7878dce18c919451d6ba707c90",
+      "url": "https://raw.githubusercontent.com/metno/hdf5-rust/f9041d021afb344ed21fa2129cfe8c06d07605c6/LICENSE-APACHE"
+    },
+    {
+      "file": "metno-hdf5-rust-f9041d021afb-LICENSE-MIT",
+      "sha256": "d4d628ae2b5e9a4eb4278a431f9d133f957827ebfaf4277c75a9a877683133d3",
+      "url": "https://raw.githubusercontent.com/metno/hdf5-rust/f9041d021afb344ed21fa2129cfe8c06d07605c6/LICENSE-MIT"
+    }
+  ],
+  "hdf5-metno-sys@0.12.5": [
+    {
+      "file": "metno-hdf5-rust-024642e37f34-LICENSE-APACHE",
+      "sha256": "8173d5c29b4f956d532781d2b86e4e30f83e6b7878dce18c919451d6ba707c90",
+      "url": "https://raw.githubusercontent.com/metno/hdf5-rust/024642e37f3468790b4fc667424a3ba72a7f6eb5/LICENSE-APACHE"
+    },
+    {
+      "file": "metno-hdf5-rust-024642e37f34-LICENSE-MIT",
+      "sha256": "d4d628ae2b5e9a4eb4278a431f9d133f957827ebfaf4277c75a9a877683133d3",
+      "url": "https://raw.githubusercontent.com/metno/hdf5-rust/024642e37f3468790b4fc667424a3ba72a7f6eb5/LICENSE-MIT"
+    }
+  ],
+  "hdf5-metno-types@0.11.1": [
+    {
+      "file": "metno-hdf5-rust-15683e2dda46-LICENSE-APACHE",
+      "sha256": "8173d5c29b4f956d532781d2b86e4e30f83e6b7878dce18c919451d6ba707c90",
+      "url": "https://raw.githubusercontent.com/metno/hdf5-rust/15683e2dda465c50304b6192acb01a645212548e/LICENSE-APACHE"
+    },
+    {
+      "file": "metno-hdf5-rust-15683e2dda46-LICENSE-MIT",
+      "sha256": "d4d628ae2b5e9a4eb4278a431f9d133f957827ebfaf4277c75a9a877683133d3",
+      "url": "https://raw.githubusercontent.com/metno/hdf5-rust/15683e2dda465c50304b6192acb01a645212548e/LICENSE-MIT"
+    }
+  ],
+  "hdf5-metno@0.15.1": [
+    {
+      "file": "metno-hdf5-rust-33406e38b3f1-LICENSE-APACHE",
+      "sha256": "8173d5c29b4f956d532781d2b86e4e30f83e6b7878dce18c919451d6ba707c90",
+      "url": "https://raw.githubusercontent.com/metno/hdf5-rust/33406e38b3f18f0a9470abcefe0f768a877750c5/LICENSE-APACHE"
+    },
+    {
+      "file": "metno-hdf5-rust-33406e38b3f1-LICENSE-MIT",
+      "sha256": "d4d628ae2b5e9a4eb4278a431f9d133f957827ebfaf4277c75a9a877683133d3",
+      "url": "https://raw.githubusercontent.com/metno/hdf5-rust/33406e38b3f18f0a9470abcefe0f768a877750c5/LICENSE-MIT"
+    }
+  ],
+  "libappindicator-sys@0.9.0": [
+    {
+      "basis": "Repository-level license at the exact .cargo_vcs_info.json revision of the published crate; omitted from its package archive.",
+      "file": "tauri-apps-libappindicator-rs-eafd1e3682a1-LICENSE-MIT",
+      "sha256": "eb227437252b2a7a9c1fc342c93ade1f3d7ce38cc6dd754f613db07d53ceff0b",
+      "url": "https://raw.githubusercontent.com/tauri-apps/libappindicator-rs/eafd1e3682a1247f595410266091e9684021cb6f/LICENSE-MIT"
+    },
+    {
+      "basis": "Repository-level license at the exact .cargo_vcs_info.json revision of the published crate; omitted from its package archive.",
+      "file": "tauri-apps-libappindicator-rs-eafd1e3682a1-LICENSE-APACHE",
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "url": "https://raw.githubusercontent.com/tauri-apps/libappindicator-rs/eafd1e3682a1247f595410266091e9684021cb6f/LICENSE-APACHE"
+    }
+  ],
+  "moyo@0.15.0": [
+    {
+      "file": "spglib-moyo-e1a47f95f8d5-LICENSE-APACHE",
+      "sha256": "73342e5d908d9a31ee55b240196d88456acf480595e3a7edcb41d3ab535aeca2",
+      "url": "https://raw.githubusercontent.com/spglib/moyo/e1a47f95f8d5c273f35dfc4965d58137caae85d6/LICENSE-APACHE"
+    },
+    {
+      "file": "spglib-moyo-e1a47f95f8d5-LICENSE-MIT",
+      "sha256": "01602b7eaa471fd55484376bd5ac48cbd0b5ea7972fdc349365ca72967873ea4",
+      "url": "https://raw.githubusercontent.com/spglib/moyo/e1a47f95f8d5c273f35dfc4965d58137caae85d6/LICENSE-MIT"
+    }
+  ],
+  "objc2-app-kit@0.3.2": [
+    {
+      "file": "madsmtm-objc2-7b1abfd750a2-LICENSE.md",
+      "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+      "url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md"
+    }
+  ],
+  "objc2-core-foundation@0.3.2": [
+    {
+      "file": "madsmtm-objc2-7b1abfd750a2-LICENSE.md",
+      "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+      "url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md"
+    }
+  ],
+  "objc2-core-graphics@0.3.2": [
+    {
+      "file": "madsmtm-objc2-7b1abfd750a2-LICENSE.md",
+      "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+      "url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md"
+    }
+  ],
+  "objc2-encode@4.1.0": [
+    {
+      "file": "madsmtm-objc2-8d214f547736-LICENSE.md",
+      "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+      "url": "https://raw.githubusercontent.com/madsmtm/objc2/8d214f5477365ffcbcbb7de058c86ed9a518efb7/LICENSE.md"
+    }
+  ],
+  "objc2-exception-helper@0.1.1": [
+    {
+      "file": "madsmtm-objc2-8d214f547736-LICENSE.md",
+      "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+      "url": "https://raw.githubusercontent.com/madsmtm/objc2/8d214f5477365ffcbcbb7de058c86ed9a518efb7/LICENSE.md"
+    }
+  ],
+  "objc2-io-surface@0.3.2": [
+    {
+      "file": "madsmtm-objc2-7b1abfd750a2-LICENSE.md",
+      "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+      "url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md"
+    }
+  ],
+  "objc2-osa-kit@0.3.2": [
+    {
+      "file": "madsmtm-objc2-7b1abfd750a2-LICENSE.md",
+      "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+      "url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md"
+    }
+  ],
+  "objc2-quartz-core@0.3.2": [
+    {
+      "file": "madsmtm-objc2-7b1abfd750a2-LICENSE.md",
+      "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+      "url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md"
+    }
+  ],
+  "objc2-web-kit@0.3.2": [
+    {
+      "file": "madsmtm-objc2-7b1abfd750a2-LICENSE.md",
+      "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+      "url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md"
+    }
+  ],
+  "objc2@0.6.5": [
+    {
+      "file": "madsmtm-objc2-d7d2fa23ceaa-LICENSE.md",
+      "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+      "url": "https://raw.githubusercontent.com/madsmtm/objc2/d7d2fa23ceaa5e6096c923b081040e5d81b3b9df/LICENSE.md"
+    }
+  ],
+  "selectors@0.38.0": [
+    {
+      "basis": "https://github.com/servo/stylo/blob/572ecba2d1600e7c3d490586692a209faf703baa/selectors/lib.rs lines 1-3 identify this license; source is also available from the original crate archive.",
+      "file": "Mozilla-MPL-2.0.txt",
+      "sha256": "3f3d9e0024b1921b067d6f7f88deb4a60cbe7a78e76c64e3f1d7fc3b779b9d04",
+      "url": "https://www.mozilla.org/media/MPL/2.0/index.txt"
+    }
+  ],
+  "tauri-plugin@2.7.2": [
+    {
+      "file": "tauri-apps-tauri-59b63ab500da-LICENSE-APACHE-2.0",
+      "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+      "url": "https://raw.githubusercontent.com/tauri-apps/tauri/59b63ab500da9859f12d8888c3298bc29bba0b92/LICENSE-APACHE-2.0"
+    },
+    {
+      "file": "tauri-apps-tauri-59b63ab500da-LICENSE-MIT",
+      "sha256": "9dd42ea92cff2ede5cd477cbfcce051b2d0115c0ac7f368ee88cb545055dff1d",
+      "url": "https://raw.githubusercontent.com/tauri-apps/tauri/59b63ab500da9859f12d8888c3298bc29bba0b92/LICENSE-MIT"
+    },
+    {
+      "file": "tauri-apps-tauri-59b63ab500da-LICENSE.spdx",
+      "sha256": "5e834fe9788c524210deda859c46a550ffa5aa0cba9ea0572f0d81120e97c008",
+      "url": "https://raw.githubusercontent.com/tauri-apps/tauri/59b63ab500da9859f12d8888c3298bc29bba0b92/LICENSE.spdx"
+    }
+  ],
+  "webview2-com@0.39.1": [
+    {
+      "basis": "Repository-level MIT license at the published crate's exact .cargo_vcs_info.json revision; omitted from the crate archive.",
+      "file": "wravery-webview2-rs-edc2caf88617-LICENSE",
+      "sha256": "0dcf41516e608bbcb6cdc5229feb7b86fe4a643b85e7df251133c93408fdac73",
+      "url": "https://raw.githubusercontent.com/wravery/webview2-rs/edc2caf886175ccaebe86078c9cfe1ae2a187328/LICENSE"
+    }
+  ],
+  "webview2-com-macros@0.8.1": [
+    {
+      "basis": "Repository-level MIT license at the published crate's exact .cargo_vcs_info.json revision; omitted from the crate archive.",
+      "file": "wravery-webview2-rs-dffa41a8a46d-LICENSE",
+      "sha256": "0dcf41516e608bbcb6cdc5229feb7b86fe4a643b85e7df251133c93408fdac73",
+      "url": "https://raw.githubusercontent.com/wravery/webview2-rs/dffa41a8a46d3f5565eefbff2de57d38d399f158/LICENSE"
+    }
+  ],
+  "webview2-com-sys@0.39.1": [
+    {
+      "basis": "Repository-level MIT license at the published crate's exact .cargo_vcs_info.json revision; omitted from the crate archive.",
+      "file": "wravery-webview2-rs-edc2caf88617-LICENSE",
+      "sha256": "0dcf41516e608bbcb6cdc5229feb7b86fe4a643b85e7df251133c93408fdac73",
+      "url": "https://raw.githubusercontent.com/wravery/webview2-rs/edc2caf886175ccaebe86078c9cfe1ae2a187328/LICENSE"
+    }
+  ],
+  "xraydb@0.4.1": [
+    {
+      "file": "ameyanagi-xraydb-rs-c07d4cf0c719-LICENSE-MIT",
+      "sha256": "74c52648e6feb213da8cab51f7ecd1d75075b69940c031474f351d7c15b6974a",
+      "url": "https://raw.githubusercontent.com/Ameyanagi/xraydb-rs/c07d4cf0c71977587a36320be72c50dde12bda2d/LICENSE-MIT"
+    },
+    {
+      "file": "ameyanagi-xraydb-rs-c07d4cf0c719-LICENSE-APACHE",
+      "sha256": "4ef94be6b45f27bdf9783232691b00ff96273a43ee11e19ca14128a1a0274070",
+      "url": "https://raw.githubusercontent.com/Ameyanagi/xraydb-rs/c07d4cf0c71977587a36320be72c50dde12bda2d/LICENSE-APACHE"
+    }
+  ],
+  "xraydb-data@0.4.1": [
+    {
+      "file": "ameyanagi-xraydb-rs-c07d4cf0c719-LICENSE-MIT",
+      "sha256": "74c52648e6feb213da8cab51f7ecd1d75075b69940c031474f351d7c15b6974a",
+      "url": "https://raw.githubusercontent.com/Ameyanagi/xraydb-rs/c07d4cf0c71977587a36320be72c50dde12bda2d/LICENSE-MIT"
+    },
+    {
+      "file": "ameyanagi-xraydb-rs-c07d4cf0c719-LICENSE-APACHE",
+      "sha256": "4ef94be6b45f27bdf9783232691b00ff96273a43ee11e19ca14128a1a0274070",
+      "url": "https://raw.githubusercontent.com/Ameyanagi/xraydb-rs/c07d4cf0c71977587a36320be72c50dde12bda2d/LICENSE-APACHE"
+    }
+  ]
+}

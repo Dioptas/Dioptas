@@ -1,0 +1,115 @@
+name: Native release (publishes verified candidates)
+
+# Publishes installers that the native macOS, Windows and Linux workflows have
+# already built and verified, together with the signed update manifest
+# (latest.json) that installed applications read. Nothing is rebuilt here.
+# The release is left as a draft unless "publish" is selected.
+
+on:
+  workflow_dispatch:
+    inputs:
+      macos_arm64_run_id:
+        description: Run of "Native macOS artifacts" with the Apple Silicon candidate
+        required: true
+        type: string
+      macos_intel_run_id:
+        description: Run of "Native macOS artifacts" with the Intel candidate
+        required: true
+        type: string
+      windows_run_id:
+        description: Run of "Native Windows artifacts"
+        required: true
+        type: string
+      linux_run_id:
+        description: Run of "Native Linux artifacts" (deb and AppImage)
+        required: true
+        type: string
+      publish:
+        description: Publish immediately instead of leaving a draft for review
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: native-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Sign update packages and create the release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # The update signing key is the only secret used. Restrict it to this
+    # environment in the repository settings to require an approval.
+    environment: native-release
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - name: Check the release and update configuration
+        run: npm run test:release-config
+      - name: Download the verified candidates
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MACOS_ARM64_RUN: ${{ inputs.macos_arm64_run_id }}
+          MACOS_INTEL_RUN: ${{ inputs.macos_intel_run_id }}
+          WINDOWS_RUN: ${{ inputs.windows_run_id }}
+          LINUX_RUN: ${{ inputs.linux_run_id }}
+        run: |
+          for run in "$MACOS_ARM64_RUN" "$MACOS_INTEL_RUN" "$WINDOWS_RUN" "$LINUX_RUN"; do
+            [[ "$run" =~ ^[0-9]+$ ]] || { echo "::error::Run IDs are numbers"; exit 1; }
+          done
+          download() { gh run download "$1" --name "$2" --dir "candidates/$2"; }
+          download "$MACOS_ARM64_RUN" Dioptas-native-aarch64-apple-darwin
+          download "$MACOS_INTEL_RUN" Dioptas-native-x86_64-apple-darwin
+          download "$WINDOWS_RUN" Dioptas-native-windows-x64-unsigned-test
+          download "$LINUX_RUN" Dioptas-native-linux-x64-deb-test
+          download "$LINUX_RUN" Dioptas-native-linux-x64-appimage-test
+      - name: Sign the update packages and write the manifest
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: node scripts/updater_release.mjs --candidates ../candidates --output ../release
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLISH: ${{ inputs.publish }}
+        run: |
+          version="$(jq -r .version release/release.json)"
+          revision="$(jq -r .revision release/release.json)"
+          prerelease="$(jq -r .prerelease release/release.json)"
+          # The tag points at the commit the installers were built from.
+          git merge-base --is-ancestor "$revision" HEAD || {
+            echo "::error::The candidates were built from $revision, which is not part of this branch"; exit 1; }
+          arguments=(--target "$revision" --title "Dioptas $version")
+          if [ -f "docs/release/RELEASE_$version.md" ]; then
+            arguments+=(--notes-file "docs/release/RELEASE_$version.md")
+          else
+            arguments+=(--generate-notes)
+          fi
+          # Installed applications follow releases/latest: only a stable native
+          # release may take that place.
+          if [ "$prerelease" = true ]; then
+            arguments+=(--prerelease --latest=false)
+          elif [ "$PUBLISH" = true ]; then
+            arguments+=(--latest)
+          fi
+          [ "$PUBLISH" = true ] || arguments+=(--draft)
+          rm release/release.json
+          gh release create "$version" "${arguments[@]}" release/*
+      - name: Retain the published files
+        uses: actions/upload-artifact@v7
+        with:
+          name: Dioptas-native-release
+          path: release/
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,3 @@
+# The processor is rebuilt and swapped by the host itself; the Tauri CLI
+# must not restart the window when its sources change.
+*

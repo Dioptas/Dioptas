@@ -55,7 +55,7 @@ jobs:
         with:
           node-version: '26'
           cache: npm
-          cache-dependency-path: desktop/package-lock.json
+          cache-dependency-path: package-lock.json
       - name: Install Rust
         if: inputs.resume_dmg_run_id == ''
         run: rustup update stable
@@ -63,16 +63,13 @@ jobs:
         if: inputs.resume_dmg_run_id == ''
         with:
           workspaces: |
-            desktop/backend -> target
-            desktop/src-tauri -> target
+            . -> target
           key: native-release-${{ matrix.target }}
       - run: npm ci
-        working-directory: desktop
       - name: Check shared release configuration
         run: |
           npm run test:release-config
           node --test scripts/peritheos_distribution.test.mjs
-        working-directory: desktop
       - name: Prepare Developer ID and notarization credentials
         run: python3 installer/macos/signing.py setup
         env:
@@ -84,14 +81,12 @@ jobs:
       - name: Restore an already accepted app
         if: inputs.recovery_run_id != '' && inputs.resume_dmg_run_id == ''
         run: node scripts/recover_macos_app.mjs
-        working-directory: desktop
         env:
           DIOPTAS_RECOVERY_RUN_ID: ${{ inputs.recovery_run_id }}
           GH_TOKEN: ${{ github.token }}
       - name: Resume original signed DMG and verify installed app
         if: inputs.resume_dmg_run_id != ''
         run: node scripts/resume_macos_dmg.mjs
-        working-directory: desktop
         env:
           DIOPTAS_DMG_RESUME_RUN_ID: ${{ inputs.resume_dmg_run_id }}
           GH_TOKEN: ${{ github.token }}
@@ -103,16 +98,15 @@ jobs:
           else
             npm run release:macos -- --notarize --native-smoke
           fi
-        working-directory: desktop
       - name: Retain installers, checksums and verification
         uses: actions/upload-artifact@v7
         with:
           name: Dioptas-native-${{ matrix.target }}
           path: |
-            desktop/artifacts/native-release/**/*.dmg
-            desktop/artifacts/native-release/**/*.app.tar.gz
-            desktop/artifacts/native-release/**/SHA256SUMS
-            desktop/artifacts/native-release/**/build.json
+            artifacts/native-release/**/*.dmg
+            artifacts/native-release/**/*.app.tar.gz
+            artifacts/native-release/**/SHA256SUMS
+            artifacts/native-release/**/build.json
           if-no-files-found: error
           retention-days: 14
       - name: Retain notarization logs and recovery payloads
@@ -121,11 +115,11 @@ jobs:
         with:
           name: Dioptas-native-diagnostics-${{ matrix.target }}
           path: |
-            desktop/artifacts/native-release/**/source.json
-            desktop/artifacts/native-release/**/dist/notarization/
-            desktop/artifacts/native-release/**/dist/notarization-payloads/
-            desktop/artifacts/native-release/**/*.dmg
-            desktop/artifacts/standalone/
+            artifacts/native-release/**/source.json
+            artifacts/native-release/**/dist/notarization/
+            artifacts/native-release/**/dist/notarization-payloads/
+            artifacts/native-release/**/*.dmg
+            artifacts/standalone/
           if-no-files-found: ignore
           retention-days: 14
       - name: Remove temporary signing keychain
