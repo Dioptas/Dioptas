@@ -167,7 +167,7 @@ fn empty_untitled_sessions_survive_a_development_handoff() {
 }
 
 #[test]
-fn upgrading_an_older_host_can_adopt_a_private_project_without_using_it_as_the_save_target() {
+fn older_project_only_handoffs_are_refused_because_they_cannot_certify_sc_preservation() {
     let t = tempfile::tempdir().unwrap();
     let p = t.path().join("recovery.dio");
     let mut old = Session::new(root());
@@ -178,14 +178,20 @@ fn upgrading_an_older_host_can_adopt_a_private_project_without_using_it_as_the_s
     );
     call(&mut old, "save_project", json!({"path":p}));
     let mut new = Session::new(root());
-    let recovered = call(
+    let before = call(&mut new, "state", json!({}));
+    let recovered = request(
         &mut new,
         "development_restore",
         json!({"path":p,"project_only":true}),
     );
-    assert_eq!(recovered.result["state"]["bins"], 777);
-    assert_eq!(recovered.result["state"]["unit"], "q_A^-1");
-    assert!(recovered.result["state"]["projectName"].is_null());
+    assert_eq!(recovered.result["ok"], false);
+    assert!(
+        recovered.result["error"]
+            .as_str()
+            .unwrap()
+            .contains("cannot certify a safe session transfer")
+    );
+    assert_eq!(call(&mut new, "state", json!({})).result, before.result);
 }
 
 fn setup_history(s: &mut Session, source: &Path) {

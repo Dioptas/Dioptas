@@ -464,6 +464,12 @@ impl Crystal {
     pub(super) fn has_sources(&self) -> bool {
         !self.sources.is_empty()
     }
+    pub(super) fn needs_development_preservation(&self) -> bool {
+        self.has_sources()
+            || self.config != Config::default()
+            || self.geometry.is_some()
+            || self.revision != 0
+    }
     fn invalidate(&mut self, from: usize) {
         for s in &mut self.stages[from..] {
             *s = Stage::default();
@@ -902,8 +908,12 @@ impl Session {
                 let x = args["x"].as_u64().ok_or("Invalid pixel x.")? as usize;
                 let y = args["y"].as_u64().ok_or("Invalid pixel y.")? as usize;
                 let c = &self.scxrd;
-                if x >= c.shape[1] || y >= c.shape[0] {
-                    return Err("Pixel outside SCXRD detector.".into());
+                if !c.has_sources()
+                    || c.preview_values.is_none()
+                    || x >= c.shape[1]
+                    || y >= c.shape[0]
+                {
+                    return Ok(Reply::metadata(json!({"ok":true,"scxrdPixel":null})));
                 }
                 let value = c
                     .preview_values

@@ -494,9 +494,6 @@ impl Session {
         }
     }
     fn dispatch(&mut self, action: &str, args: &Value) -> Result<Reply, String> {
-        if action == "development_save" && self.scxrd.has_sources() {
-            return Err("A loaded single-crystal scan cannot be hot-swapped without losing its stage products. Save its SCXRD recipe and reopen it after restarting. The current processor is retained.".into());
-        }
         if action.starts_with("scxrd_") {
             return self.scxrd_command(action, args);
         }
