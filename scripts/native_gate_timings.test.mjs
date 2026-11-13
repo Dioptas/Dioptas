@@ -19,10 +19,13 @@ import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 import {
   coverageRequested,
+  gateSwitch,
   markdownSummary,
+  runPool,
   slowestFirst,
   textSummary,
   timingReport,
+  uiJobs,
 } from "./native_gate_timings.mjs";
 
 const scripts = path.dirname(fileURLToPath(import.meta.url));
@@ -100,6 +103,112 @@ describe("timing report", () => {
     assert.equal(coverageRequested("1"), true);
     assert.throws(() => coverageRequested("yes"), /must be 0 or 1/);
   });
+
+  it("keeps a switch's default unless it is set to 0 or 1", () => {
+    assert.equal(gateSwitch("X", undefined, true), true);
+    assert.equal(gateSwitch("X", "", true), true);
+    assert.equal(gateSwitch("X", "0", true), false);
+    assert.equal(gateSwitch("X", "1", false), true);
+    assert.throws(() => gateSwitch("X", "off", true), /X must be 0 or 1/);
+  });
+
+  it("runs three UI checks at a time unless told otherwise", () => {
+    assert.equal(uiJobs(undefined, 14), 3);
+    assert.equal(uiJobs("", 2), 2);
+    assert.equal(uiJobs("1", 14), 1);
+    assert.equal(uiJobs("8", 2), 8);
+    for (const value of ["0", "-1", "2.5", "many"])
+      assert.throws(() => uiJobs(value, 4), /positive integer/);
+  });
+});
+
+describe("check pool", () => {
+  // Tasks finish only when released, so overlaps are observable.
+  function harness() {
+    const running = new Set();
+    const order = [];
+    let most = 0;
+    const overlaps = [];
+    const release = new Map();
+    return {
+      order,
+      overlaps,
+      release,
+      most: () => most,
+      start(task) {
+        order.push(task.name);
+        for (const other of running) overlaps.push([other, task.name]);
+        running.add(task.name);
+        most = Math.max(most, running.size);
+        return new Promise((resolve, reject) =>
+          release.set(task.name, (error) => {
+            running.delete(task.name);
+            if (error) reject(error);
+            else resolve();
+          }),
+        );
+      },
+    };
+  }
+  const settle = () => new Promise((resolve) => setImmediate(resolve));
+  const task = (name, ...locks) => ({ name, locks });
+
+  it("starts in list order and never exceeds the job count", async () => {
+    const h = harness();
+    const done = runPool(
+      [task("a"), task("b"), task("c"), task("d")],
+      2,
+      h.start,
+    );
+    await settle();
+    assert.deepEqual(h.order, ["a", "b"]);
+    h.release.get("a")();
+    await settle();
+    assert.deepEqual(h.order, ["a", "b", "c"]);
+    for (const name of ["b", "c"]) h.release.get(name)();
+    await settle();
+    h.release.get("d")();
+    await done;
+    assert.equal(h.most(), 2);
+  });
+
+  it("never overlaps tasks that share a lock", async () => {
+    const h = harness();
+    const done = runPool(
+      [
+        task("a", "vite"),
+        task("b", "vite", "out"),
+        task("c"),
+        task("d", "out"),
+      ],
+      3,
+      h.start,
+    );
+    await settle();
+    // b waits for a's lock; c and d take the free slots.
+    assert.deepEqual(h.order, ["a", "c", "d"]);
+    h.release.get("a")();
+    await settle();
+    // b also needs d's lock.
+    assert.deepEqual(h.order, ["a", "c", "d"]);
+    h.release.get("d")();
+    await settle();
+    assert.deepEqual(h.order, ["a", "c", "d", "b"]);
+    for (const name of ["c", "b"]) h.release.get(name)();
+    await done;
+    assert.ok(!h.overlaps.some(([x, y]) => x + y === "ab" || x + y === "db"));
+  });
+
+  it("starts nothing new after a failure and rejects with it", async () => {
+    const h = harness();
+    const done = runPool([task("a"), task("b"), task("c")], 2, h.start);
+    await settle();
+    h.release.get("a")(Error("a failed"));
+    await settle();
+    h.release.get("b")();
+    await assert.rejects(done, /a failed/);
+    assert.deepEqual(h.order, ["a", "b"]);
+  });
 });
 
 // A scratch repository layout: scripts holds the real gate, its helper
@@ -116,6 +225,17 @@ function scratchGate() {
     "generate_native_contracts.mjs",
   ])
     writeFileSync(path.join(own, file), "");
+  // Every UI check is an empty stand-in; UI_FAIL names one that exits 1.
+  const gate = readFileSync(
+    path.join(scripts, "check_native_desktop.mjs"),
+    "utf8",
+  );
+  const stub = `if (process.env.UI_FAIL === process.argv[1].split(/[\\\\/]/).at(-1)) process.exit(1);\n`;
+  for (const [, file] of gate.matchAll(/\["([a-z0-9_]+)"[\],]/g))
+    writeFileSync(path.join(own, `${file}.mjs`), stub);
+  for (const [, file] of gate.matchAll(/"scripts\/([a-z0-9_.]+\.mjs)"/g))
+    writeFileSync(path.join(own, file), "");
+  writeFileSync(path.join(own, "functional_coverage.mjs"), "");
   const bin = path.join(root, "bin");
   mkdirSync(bin);
   for (const tool of ["cargo", "npm"]) {
@@ -149,6 +269,8 @@ function scratchGate() {
             FAKE_FAIL: "",
             GITHUB_STEP_SUMMARY: summary,
             DIOPTAS_GATE_COVERAGE: "",
+            DIOPTAS_GATE_CORE_TESTS: "",
+            DIOPTAS_GATE_UI_JOBS: "",
             ...env,
           },
         },
@@ -254,6 +376,52 @@ describe(
       assert.match(r.stderr, /contract-clippy failed \(3\) after \d+\.\d s/);
       assert.equal(r.summary.match(/### Native gate timings/g).length, 1);
       assert.match(r.summary, /\| contract-clippy \| .* \| failed \|/);
+    });
+
+    it("skips only the no-features tests when they are switched off", () => {
+      const r = gate.run(["--processor"], { DIOPTAS_GATE_CORE_TESTS: "0" });
+      assert.equal(r.status, 0, r.stderr);
+      assert.deepEqual(
+        r.calls,
+        processorCalls.filter(
+          (c) => !c.includes("--no-default-features --lib"),
+        ),
+      );
+      assert.deepEqual(
+        r.timings.steps.map((s) => s.name),
+        processorSteps.filter((s) => s !== "rust-core-tests"),
+      );
+    });
+
+    it("runs every UI check, side by side or one at a time", () => {
+      for (const jobs of ["3", "1"]) {
+        const r = gate.run(["--ui"], { DIOPTAS_GATE_UI_JOBS: jobs });
+        assert.equal(r.status, 0, r.stderr);
+        assert.match(r.stdout, new RegExp(`UI checks: 43, ${jobs} at a time`));
+        const names = r.timings.steps.map((s) => s.name);
+        assert.equal(new Set(names).size, names.length);
+        for (const name of [
+          "hook_refresh_smoke",
+          "companion_windows_smoke",
+          "batch_background_export",
+          "image_change_webkit",
+          "native-transport",
+        ])
+          assert.ok(names.includes(name), name);
+        assert.ok(r.timings.steps.every((s) => s.status === "passed"));
+      }
+    });
+
+    it("fails the UI gate when one check fails", () => {
+      const r = gate.run(["--ui"], { UI_FAIL: "spottiness_smoke.mjs" });
+      assert.notEqual(r.status, 0);
+      assert.equal(r.timings.status, "failed");
+      assert.deepEqual(
+        r.timings.steps.filter((s) => s.status === "failed").map((s) => s.name),
+        ["spottiness_smoke"],
+      );
+      assert.match(r.stderr, /spottiness_smoke failed \(1\)/);
+      assert.ok(!r.timings.steps.some((s) => s.name === "native-transport"));
     });
 
     it("swaps only the all-features test step under the coverage opt-in", () => {

@@ -1,15 +1,19 @@
 // Native gates are used locally and by CI; frozen independent reference data
 // is exercised by Rust tests without a Python environment.
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { availableParallelism } from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import {
   coverageRequested,
+  gateSwitch,
   markdownSummary,
+  runPool,
   seconds,
   textSummary,
   timingReport,
+  uiJobs,
 } from "./native_gate_timings.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -27,6 +31,16 @@ const artifacts = path.join(desktop, "artifacts/ci-native");
 const coverage =
   coverageRequested(process.env.DIOPTAS_GATE_COVERAGE) &&
   selected.has("--processor");
+// DIOPTAS_GATE_CORE_TESTS=0 (set by CI on pull requests) skips the library
+// tests of the build without features. They need a second full compile of the
+// processor for a few seconds of tests that the all-features run repeats; CI
+// runs them on develop, and the build without features is still linted.
+const coreTests = gateSwitch(
+  "DIOPTAS_GATE_CORE_TESTS",
+  process.env.DIOPTAS_GATE_CORE_TESTS,
+  true,
+);
+const jobs = uiJobs(process.env.DIOPTAS_GATE_UI_JOBS, availableParallelism());
 mkdirSync(artifacts, { recursive: true });
 // Every step's wall time goes to the console, timings.json (latest run),
 // timings-<flags>.json (kept when one CI job runs several gates) and, in
@@ -54,6 +68,32 @@ function report(status) {
 }
 // Errors outside a step (for example a missing reference interpreter).
 process.on("exit", (code) => report(code === 0 ? "passed" : "failed"));
+const stepTimeout = 20 * 60 * 1000;
+// Records one finished step; returns the error to throw when it failed.
+function finish(name, commandLine, cwd, start, r) {
+  const elapsed = (performance.now() - start) / 1000;
+  const failed = r.status !== 0 || r.error;
+  steps.push({
+    name,
+    command: commandLine,
+    cwd: path.relative(root, cwd) || ".",
+    seconds: elapsed,
+    status: r.stopped ? "stopped" : failed ? "failed" : "passed",
+    exitCode: r.status,
+    signal: r.signal,
+  });
+  const output = `${r.output}${r.error ? `\n${r.error.stack}` : ""}`;
+  writeFileSync(path.join(artifacts, `${name}.log`), output);
+  if (r.stopped) return undefined;
+  if (!failed) {
+    console.log(`${name}: passed in ${seconds(elapsed)} s`);
+    return undefined;
+  }
+  process.stderr.write(output.slice(-16000));
+  return Error(
+    `${name} failed (${r.status ?? r.signal}) after ${seconds(elapsed)} s; see artifacts/ci-native/${name}.log`,
+  );
+}
 function run(name, command, args, cwd = desktop) {
   const commandLine = `${command} ${args.join(" ")}`;
   console.log(`\n[${name}] ${commandLine}`);
@@ -62,33 +102,88 @@ function run(name, command, args, cwd = desktop) {
     cwd,
     env: process.env,
     encoding: "utf8",
-    timeout: 20 * 60 * 1000,
+    timeout: stepTimeout,
     maxBuffer: 128 * 1024 * 1024,
   });
-  const elapsed = (performance.now() - start) / 1000;
-  const failed = r.status !== 0 || r.error;
-  steps.push({
-    name,
-    command: commandLine,
-    cwd: path.relative(root, cwd) || ".",
-    seconds: elapsed,
-    status: failed ? "failed" : "passed",
-    exitCode: r.status,
-    signal: r.signal,
+  const error = finish(name, commandLine, cwd, start, {
+    ...r,
+    output: `${r.stdout ?? ""}${r.stderr ?? ""}`,
   });
-  const output = `${r.stdout ?? ""}${r.stderr ?? ""}${r.error ? `\n${r.error.stack}` : ""}`;
-  writeFileSync(path.join(artifacts, `${name}.log`), output);
-  if (failed) {
-    process.stderr.write(output.slice(-16000));
+  if (error) {
     report("failed");
-    throw Error(
-      `${name} failed (${r.status ?? r.signal}) after ${seconds(elapsed)} s; see artifacts/ci-native/${name}.log`,
-    );
+    throw error;
   }
-  console.log(`${name}: passed in ${seconds(elapsed)} s`);
 }
 const node = (name, script, ...args) =>
   run(name, process.execPath, ["scripts/" + script, ...args]);
+// The same step without blocking, for checks that run side by side. Each
+// child leads its own process group so that stopping it also stops the
+// browsers and processors it started.
+// After the first failure the checks still running are stopped and reported
+// as "stopped" rather than as failures of their own.
+const group = process.platform !== "win32";
+const active = new Set();
+let stopping = false;
+function stopActive() {
+  stopping = true;
+  for (const child of active) stop(child);
+}
+function stop(child) {
+  try {
+    if (group) process.kill(-child.pid, "SIGKILL");
+    else child.kill("SIGKILL");
+  } catch {
+    /* Already gone. */
+  }
+}
+// The process groups do not receive the terminal's interrupt themselves.
+for (const signal of ["SIGINT", "SIGTERM"])
+  process.on(signal, () => {
+    stopActive();
+    process.exit(1);
+  });
+function runAsync(name, command, args, cwd = desktop) {
+  const commandLine = `${command} ${args.join(" ")}`;
+  console.log(`[${name}] ${commandLine}`);
+  const start = performance.now();
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd,
+      env: process.env,
+      detached: group,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    active.add(child);
+    let output = "";
+    child.stdout.on("data", (chunk) => (output += chunk));
+    child.stderr.on("data", (chunk) => (output += chunk));
+    let failure;
+    const timer = setTimeout(() => {
+      failure = Error(`${name} timed out`);
+      stop(child);
+    }, stepTimeout);
+    const done = (status, signal, error) => {
+      if (!active.delete(child)) return;
+      clearTimeout(timer);
+      const failed = finish(name, commandLine, cwd, start, {
+        status,
+        signal,
+        error: error ?? failure,
+        stopped: stopping,
+        output,
+      });
+      if (!failed) return resolve();
+      stopActive();
+      reject(failed);
+    };
+    child.on("error", (error) => done(null, null, error));
+    child.on("close", (status, signal) => done(status, signal));
+    // A stray grandchild can keep the pipes open after the check has exited.
+    child.on("exit", (status, signal) =>
+      setTimeout(() => done(status, signal), 2000).unref(),
+    );
+  });
+}
 // Every gate checks the shared boundary, including processor-only CI jobs that
 // do not install frontend dependencies.
 node("glib-security-backport", "check_glib_backport.mjs");
@@ -134,14 +229,15 @@ if (selected.has("--processor")) {
     "-D",
     "warnings",
   ]);
-  run("rust-core-tests", "cargo", [
-    "test",
-    "--locked",
-    "--manifest-path",
-    "backend/Cargo.toml",
-    "--no-default-features",
-    "--lib",
-  ]);
+  if (coreTests)
+    run("rust-core-tests", "cargo", [
+      "test",
+      "--locked",
+      "--manifest-path",
+      "backend/Cargo.toml",
+      "--no-default-features",
+      "--lib",
+    ]);
   run("rust-clippy", "cargo", [
     "clippy",
     "--locked",
@@ -212,52 +308,80 @@ if (selected.has("--ui")) {
   node("functional-coverage-map", "functional_coverage.mjs");
   run("frontend-unit", "npm", ["test"]);
   run("frontend-build", "npm", ["run", "build"]);
-  for (const script of [
-    "hook_refresh_smoke",
-    "ui_components",
-    "app_update_smoke",
-    "native_backend_smoke",
-    "native_custom_actions_smoke",
-    "native_calibration_smoke",
-    "native_mask_smoke",
-    "native_integration_workflow_smoke",
-    "overlay_command_order_smoke",
-    "phase_editor_workflow_smoke",
-    "pattern_figure_export_smoke",
-    "pattern_figure_save_smoke",
-    "pattern_figure_editor_smoke",
-    "spottiness_smoke",
-    "batch_waterfall_smoke",
-    "batch_surface_smoke",
-    "batch_surface_gpu_smoke",
-    "batch_surface_guides_smoke",
-    "batch_surface_axes_smoke",
-    "batch_export_smoke",
-    "batch_background_smoke",
-    "processing_workers_smoke",
-    "native_corrections_smoke",
-    "correction_previews_smoke",
-    "processing_drafts_smoke",
-    "metadata_products_smoke",
-    "native_project_smoke",
-    "session_recovery_smoke",
-    "dac_thermal_pressure_smoke",
-    "native_geometry_mask_smoke",
-    "native_detector_smoke",
-    "native_lacosmic_smoke",
-    "native_file_errors_smoke",
-    "native_map_progress_smoke",
-    "image_change_smoke",
-    "hdf5_sources_smoke",
-    "hdf5_master_vds_smoke",
-    "detector_window_smoke",
-    "map_detector_independence_smoke",
-    "detector_source_smoke",
-    "companion_windows_smoke",
-  ])
-    node(script, `${script}.mjs`);
-  node("batch_background_export", "batch_export_smoke.mjs", "--background");
-  node("image_change_webkit", "image_change_smoke.mjs", "--webkit");
+  // The UI checks run side by side (DIOPTAS_GATE_UI_JOBS at a time, three by
+  // default). Each entry is a script name followed by the things it must not
+  // share with a check running at the same moment: "vite" for scripts that
+  // start a Vite dev server, which all prepare dependencies in
+  // node_modules/.vite, and a folder name for scripts that write to the same
+  // artifacts folder.
+  const checks = [
+    ["hook_refresh_smoke", "vite"],
+    ["ui_components"],
+    ["app_update_smoke", "vite"],
+    ["native_backend_smoke"],
+    ["native_custom_actions_smoke"],
+    ["native_calibration_smoke"],
+    ["native_mask_smoke"],
+    ["native_integration_workflow_smoke"],
+    ["overlay_command_order_smoke", "vite"],
+    ["phase_editor_workflow_smoke"],
+    ["pattern_figure_export_smoke", "vite", "pattern-figure-export"],
+    ["pattern_figure_save_smoke", "pattern-figure-export"],
+    ["pattern_figure_editor_smoke", "vite"],
+    ["spottiness_smoke"],
+    ["batch_waterfall_smoke", "vite"],
+    ["batch_surface_smoke", "vite"],
+    ["batch_surface_gpu_smoke", "vite"],
+    ["batch_surface_guides_smoke", "vite"],
+    ["batch_surface_axes_smoke", "vite"],
+    ["batch_export_smoke", "batch-export"],
+    ["batch_background_smoke"],
+    ["processing_workers_smoke"],
+    ["native_corrections_smoke"],
+    ["correction_previews_smoke"],
+    ["processing_drafts_smoke"],
+    ["metadata_products_smoke"],
+    ["native_project_smoke"],
+    ["session_recovery_smoke"],
+    ["dac_thermal_pressure_smoke", "vite"],
+    ["native_geometry_mask_smoke"],
+    ["native_detector_smoke"],
+    ["native_lacosmic_smoke"],
+    ["native_file_errors_smoke"],
+    ["native_map_progress_smoke"],
+    ["image_change_smoke", "vite", "image-change"],
+    ["hdf5_sources_smoke", "vite"],
+    ["hdf5_master_vds_smoke", "vite"],
+    ["detector_window_smoke", "detector-window"],
+    ["map_detector_independence_smoke"],
+    ["detector_source_smoke", "detector-window"],
+    ["companion_windows_smoke"],
+  ].map(([script, ...locks]) => ({
+    name: script,
+    args: [`scripts/${script}.mjs`],
+    locks,
+  }));
+  checks.push(
+    {
+      name: "batch_background_export",
+      args: ["scripts/batch_export_smoke.mjs", "--background"],
+      locks: ["batch-export"],
+    },
+    {
+      name: "image_change_webkit",
+      args: ["scripts/image_change_smoke.mjs", "--webkit"],
+      locks: ["vite", "image-change"],
+    },
+  );
+  console.log(`\nUI checks: ${checks.length}, ${jobs} at a time`);
+  try {
+    await runPool(checks, jobs, (check) =>
+      runAsync(check.name, process.execPath, check.args),
+    );
+  } catch (error) {
+    report("failed");
+    throw error;
+  }
   run("native-transport", process.execPath, [
     "--test",
     "scripts/native_calibration_transport.test.mjs",

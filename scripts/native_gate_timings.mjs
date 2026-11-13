@@ -1,11 +1,62 @@
 // Pure helpers for check_native_desktop.mjs: per-step wall times, the summary
 // printed after every gate run, timings.json and the GitHub job summary table.
 
-// DIOPTAS_GATE_COVERAGE is an explicit opt-in; anything but 0/1 is a typo.
-export function coverageRequested(value) {
-  if (value === undefined || value === "" || value === "0") return false;
+// Gate switches are explicit; anything but 0/1 is a typo.
+export function gateSwitch(name, value, fallback) {
+  if (value === undefined || value === "") return fallback;
+  if (value === "0") return false;
   if (value === "1") return true;
-  throw Error(`DIOPTAS_GATE_COVERAGE must be 0 or 1, not ${value}`);
+  throw Error(`${name} must be 0 or 1, not ${value}`);
+}
+
+// DIOPTAS_GATE_COVERAGE is an opt-in.
+export const coverageRequested = (value) =>
+  gateSwitch("DIOPTAS_GATE_COVERAGE", value, false);
+
+// DIOPTAS_GATE_UI_JOBS: how many UI checks run at once. Three by default,
+// which is what a hosted CI runner has cores for; never more than the machine.
+export function uiJobs(value, cores) {
+  if (value === undefined || value === "")
+    return Math.max(1, Math.min(3, cores));
+  if (!/^[1-9]\d*$/.test(value))
+    throw Error(
+      `DIOPTAS_GATE_UI_JOBS must be a positive integer, not ${value}`,
+    );
+  return Number(value);
+}
+
+// Runs every task, at most `jobs` at a time, starting them in list order.
+// Tasks that share a lock never overlap. The first failure stops new starts
+// and rejects once the tasks already running have settled.
+export async function runPool(tasks, jobs, start) {
+  const pending = [...tasks];
+  const held = new Set();
+  let running = 0;
+  let failure;
+  await new Promise((resolve) => {
+    const next = () => {
+      while (!failure && running < jobs) {
+        const index = pending.findIndex((task) =>
+          (task.locks ?? []).every((lock) => !held.has(lock)),
+        );
+        if (index < 0) break;
+        const [task] = pending.splice(index, 1);
+        for (const lock of task.locks ?? []) held.add(lock);
+        running++;
+        Promise.resolve()
+          .then(() => start(task))
+          .catch((error) => (failure ??= error))
+          .finally(() => {
+            for (const lock of task.locks ?? []) held.delete(lock);
+            running--;
+            next();
+          });
+      }
+      if (running === 0) resolve();
+    };
+    next();
+  });
+  if (failure) throw failure;
 }
 
 export const seconds = (s) => s.toFixed(1);
