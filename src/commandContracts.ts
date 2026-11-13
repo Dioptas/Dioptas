@@ -28,6 +28,7 @@ export type WorkspaceDelta = Pick<
   | "clearImage"
   | "calibrationReset"
   | "calibrantNotice"
+  | "orientationNotice"
   | "imageStateReset"
   | "configurationReset"
   | "nextRing"

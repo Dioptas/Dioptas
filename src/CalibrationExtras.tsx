@@ -130,27 +130,6 @@ export function CalibrationExtras({
               </Button>
             ))}
           </div>
-          {c?.detectorOrientation !== undefined && (
-            <label className="field-label">
-              Detector orientation
-              <Select
-                aria-label="Detector orientation"
-                value={c?.detectorOrientation ?? 3}
-                disabled={!ready}
-                onChange={(event) =>
-                  run("calibration_setup", {
-                    orientation: Number(event.target.value),
-                  })
-                }
-              >
-                <option value={0}>Unspecified · standard</option>
-                <option value={3}>Bottom right · standard</option>
-                <option value={1}>Top left</option>
-                <option value={2}>Top right</option>
-                <option value={4}>Bottom left</option>
-              </Select>
-            </label>
-          )}
           <hr className="calibration-tool-divider" />
           <div className="file-actions">
             <Button

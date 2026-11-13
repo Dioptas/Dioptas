@@ -338,7 +338,13 @@ impl Session {
     }
     fn restore_calibration(&mut self, s: Snapshot) -> Result<(), String> {
         if s.transformations != self.settings.transformations {
-            self.reorient_view(&s.transformations)?;
+            // A loaded PONI can set the view before any image is open; there
+            // are then no pixels to permute.
+            if self.image.is_some() {
+                self.reorient_view(&s.transformations)?;
+            } else {
+                self.settings.transformations = s.transformations;
+            }
             self.settings.roi = s.roi;
         }
         self.settings.original_pixels = s.original_pixels;

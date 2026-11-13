@@ -333,11 +333,12 @@ impl Geometry {
     /// Read explicit PONI geometry and retain supported physical detector data.
     /// Unsupported settings fail before the session publishes a change.
     pub fn load(path: &Path) -> Result<Self, String> {
-        Self::load_with_calibrant(path).map(|(geometry, _)| geometry)
+        Self::load_with_comments(path).map(|(geometry, _)| geometry)
     }
-    /// Like [`Geometry::load`], also returning the calibrant named in a
-    /// `# Calibrant: <name>` comment (the pyFAI-calib2 convention), if any.
-    pub fn load_with_calibrant(path: &Path) -> Result<(Self, Option<String>), String> {
+    /// Like [`Geometry::load`], also returning the Dioptas notes kept as
+    /// comments: the calibrant (the pyFAI-calib2 `# Calibrant: <name>`
+    /// convention) and the image orientation the geometry was fitted in.
+    pub fn load_with_comments(path: &Path) -> Result<(Self, PoniComments), String> {
         use std::io::Read;
         let mut file = String::new();
         std::fs::File::open(path)
@@ -550,7 +551,20 @@ impl Geometry {
                 }
             }
             d.validate()?;
-            geometry.detector = Some(std::sync::Arc::new(d));
+            // Plain pixel sizes in Dioptas's bottom-up rows are saved for pyFAI
+            // as a uniform custom detector with orientation 2 (3 here). That is
+            // the same geometry as no detector, so keep reading it as plain
+            // pixel sizes, which apply to any image size as before.
+            let plain = d.name == "Detector"
+                && matches!(d.map, dioptrin::detector::PixelMap::Uniform)
+                && !d.has_spline()
+                && d.orientation == 3
+                && d.mask.is_empty()
+                && !d.circular_mask
+                && d.unsupported.is_none();
+            if !plain {
+                geometry.detector = Some(std::sync::Arc::new(d));
+            }
         }
         if let Some(file) = spline.filter(|s| !s.is_empty() && !s.eq_ignore_ascii_case("none")) {
             let spline_path = Path::new(&file);
@@ -577,7 +591,11 @@ impl Geometry {
         }
         geometry.detector_file = fields.get("__native_detector_file").cloned();
         geometry.validate()?;
-        Ok((geometry, calibrant_comment(&file)))
+        let comments = PoniComments {
+            calibrant: comment(&file, CALIBRANT_KEY),
+            orientation: comment(&file, ORIENTATION_KEY),
+        };
+        Ok((geometry, comments))
     }
     pub fn manual(values: &Value) -> Result<(Self, f64), String> {
         let fields = values
@@ -636,10 +654,10 @@ impl Geometry {
             "pixel1": self.pixel1, "pixel2": self.pixel2, "wavelength": self.wavelength,
             "rot1": self.rot1, "rot2": self.rot2, "rot3": self.rot3, "polarization_factor": polarization})
     }
-    pub fn save_text(&self, calibrant: Option<&str>) -> String {
+    pub fn save_text(&self, notes: PoniNotes) -> String {
         format!(
             "# Dioptas native backend; flat uniform pixels; SI geometry\n{}PixelSize1: {}\nPixelSize2: {}\nDistance: {}\nPoni1: {}\nPoni2: {}\nRot1: {}\nRot2: {}\nRot3: {}\nSplineFile: None\nWavelength: {}\n",
-            calibrant_header(calibrant),
+            poni_header(notes),
             self.pixel1,
             self.pixel2,
             self.dist,
@@ -653,23 +671,46 @@ impl Geometry {
     }
 }
 
-/// Comment line recording the calibrant, as pyFAI-calib2 writes it. Comments
-/// keep the file readable by pyFAI and by Dioptas versions that predate it.
-pub(crate) fn calibrant_header(calibrant: Option<&str>) -> String {
-    match calibrant.map(str::trim) {
-        Some(name) if !name.is_empty() && !name.chars().any(char::is_control) => {
-            format!("# Calibrant: {name}\n")
+const CALIBRANT_KEY: &str = "Calibrant";
+const ORIENTATION_KEY: &str = "Dioptas image orientation";
+
+/// Dioptas notes written as PONI comments. Comments keep the file readable by
+/// pyFAI and by Dioptas versions that predate them.
+#[derive(Clone, Copy, Default)]
+pub struct PoniNotes<'a> {
+    /// Recorded as pyFAI-calib2 writes it.
+    pub calibrant: Option<&'a str>,
+    /// Image view the geometry describes, e.g. `rotate_right`; see
+    /// [`crate::transform::orientation_name`].
+    pub orientation: Option<&'a str>,
+}
+
+/// Notes read back from PONI comments.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PoniComments {
+    pub calibrant: Option<String>,
+    pub orientation: Option<String>,
+}
+
+pub(crate) fn poni_header(notes: PoniNotes) -> String {
+    comment_line(CALIBRANT_KEY, notes.calibrant) + &comment_line(ORIENTATION_KEY, notes.orientation)
+}
+
+fn comment_line(key: &str, value: Option<&str>) -> String {
+    match value.map(str::trim) {
+        Some(value) if !value.is_empty() && !value.chars().any(char::is_control) => {
+            format!("# {key}: {value}\n")
         }
         _ => String::new(),
     }
 }
 
-/// The last `# Calibrant: <name>` comment, matching pyFAI's last-record rule.
-fn calibrant_comment(text: &str) -> Option<String> {
+/// The last `# <key>: <value>` comment, matching pyFAI's last-record rule.
+fn comment(text: &str, key: &str) -> Option<String> {
     text.lines()
         .rev()
         .filter_map(|line| line.trim().strip_prefix('#')?.split_once(':'))
-        .filter(|(key, _)| key.trim().eq_ignore_ascii_case("calibrant"))
+        .filter(|(found, _)| found.trim().eq_ignore_ascii_case(key))
         .map(|(_, value)| value.trim())
         .find(|value| !value.is_empty())
         .map(str::to_owned)
@@ -741,13 +782,26 @@ mod tests {
 
     #[test]
     fn calibrant_comments_follow_pyfai_and_reject_line_breaks() {
-        assert_eq!(calibrant_header(Some(" Si ")), "# Calibrant: Si\n");
-        assert_eq!(calibrant_header(Some("Si\nDistance: 1")), "");
-        assert_eq!(calibrant_header(Some("")), "");
-        assert_eq!(calibrant_header(None), "");
+        let calibrant = |name| {
+            poni_header(PoniNotes {
+                calibrant: name,
+                orientation: None,
+            })
+        };
+        assert_eq!(calibrant(Some(" Si ")), "# Calibrant: Si\n");
+        assert_eq!(calibrant(Some("Si\nDistance: 1")), "");
+        assert_eq!(calibrant(Some("")), "");
+        assert_eq!(calibrant(None), "");
+        assert_eq!(
+            poni_header(PoniNotes {
+                calibrant: Some("Si"),
+                orientation: Some("rotate_left")
+            }),
+            "# Calibrant: Si\n# Dioptas image orientation: rotate_left\n"
+        );
         let text = "# calibrant: CeO2\nDistance: 0.1\n#Calibrant:LaB6\n# Calibrant:\n# Image: x\n";
-        assert_eq!(calibrant_comment(text).as_deref(), Some("LaB6"));
-        assert_eq!(calibrant_comment("Distance: 0.1\n"), None);
+        assert_eq!(comment(text, CALIBRANT_KEY).as_deref(), Some("LaB6"));
+        assert_eq!(comment("Distance: 0.1\n", CALIBRANT_KEY), None);
     }
 
     #[test]
@@ -786,11 +840,13 @@ mod tests {
         let g = Geometry::default();
         let text = format!(
             "poni_version: 2\n{}Detector_config: {{\"pixel1\":0.000079,\"pixel2\":0.000079}}\n",
-            g.save_text(None)
+            g.save_text(PoniNotes::default())
         );
         std::fs::write(&path, text).unwrap();
         let loaded = Geometry::load(&path).unwrap();
-        assert_eq!(loaded.detector.as_ref().unwrap().orientation, 3);
+        // No orientation in a v2 file keeps Dioptas rows unflipped (orientation
+        // 3), which is read as plain pixel sizes.
+        assert!(loaded.detector.is_none());
         let mut d = Detector::custom(50e-6, 50e-6);
         d.max_shape = Some([3, 5]);
         let fixture =
@@ -810,9 +866,14 @@ mod tests {
             ..Default::default()
         };
         let path = temp.path().join("transformed.poni");
-        original.save_to(&path, Some("CeO2")).unwrap();
-        let (mut restored, calibrant) = Geometry::load_with_calibrant(&path).unwrap();
-        assert_eq!(calibrant.as_deref(), Some("CeO2"));
+        let notes = PoniNotes {
+            calibrant: Some("CeO2"),
+            orientation: Some("transverse"),
+        };
+        original.save_to(&path, notes).unwrap();
+        let (mut restored, comments) = Geometry::load_with_comments(&path).unwrap();
+        assert_eq!(comments.calibrant.as_deref(), Some("CeO2"));
+        assert_eq!(comments.orientation.as_deref(), Some("transverse"));
         let before = original.native_geometry([5, 3]).unwrap().calc_tth_all();
         let after = restored.native_geometry([5, 3]).unwrap().calc_tth_all();
         assert_eq!(before, after);

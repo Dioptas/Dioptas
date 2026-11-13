@@ -21,6 +21,11 @@ their removed Python commands are archival reproduction instructions.
   revision/hashes, dependency versions and input hashes. Native-selected bin
   ranges are recorded explicitly, so this fixture does not independently test
   the automatic choice of integration range.
+- `backend/tests/fixtures/reference-data/poni-orientation.json`: pyFAI
+  2025.12.1 2θ on raw 40×60 file pixels for a PONI file in pyFAI's standard
+  layout and for the file Dioptas writes for plain pixel sizes (orientation 2).
+  The test also pins that written file, so a writer change needs a new pyFAI
+  check; the generator call and versions are in the fixture's provenance.
 - Existing `batch_background_qt.json`, `dac-qt-reference.json`, HDF5 and mask
   fixtures, consumed by Rust tests. The DAC fixture identifies its source
   branches and the Batch fixture identifies its independent algorithm.
