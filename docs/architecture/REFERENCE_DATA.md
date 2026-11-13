@@ -51,11 +51,10 @@ This creates input only; it does not calculate expected scientific results.
 
 ## Remaining Python tooling
 
-Only `docs/source/conf.py` (Sphinx configuration) and
-`installer/macos/signing.py` (native Apple signing/notarization utility) remain.
-They are outside scientific processing and the active test suite. Python is
-not required by native builds or test gates; documentation builds and signed
-macOS releases use these utilities separately.
+Only `installer/macos/signing.py` (native Apple signing/notarization utility)
+remains. It is outside scientific processing and the active test suite. Python
+is not required by native builds, test gates or the user manual; signed macOS
+releases use this utility separately.
 
 ## Cleanup verification — November 12, 2026
 
