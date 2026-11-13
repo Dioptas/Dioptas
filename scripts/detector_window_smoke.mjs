@@ -356,10 +356,22 @@ for (const [name, browserType] of [
     assert.ok((await native.invoke("state")).linked?.imagePoint);
     await page.getByTestId("click-readout").waitFor();
     await child.getByTestId("detector-click-readout").waitFor();
-    const clickedFields = await child
-      .getByTestId("detector-click-readout")
-      .locator("[data-field]")
-      .allTextContents();
+    // Both windows receive the click through the shared state, not at the
+    // same moment: wait until they show the same fields.
+    const fields = (window, id) =>
+      window.getByTestId(id).locator("[data-field]").allTextContents();
+    let clickedFields;
+    for (const deadline = Date.now() + 10000; ;) {
+      clickedFields = await fields(child, "detector-click-readout");
+      const main = await fields(page, "click-readout");
+      if (
+        clickedFields.length > 0 &&
+        JSON.stringify(main) === JSON.stringify(clickedFields)
+      )
+        break;
+      if (Date.now() > deadline) break;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
     assert.ok(clickedFields.length > 0);
     assert.deepEqual(
       await page

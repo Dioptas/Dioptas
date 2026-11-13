@@ -154,6 +154,8 @@ jobs:
           DIOPTAS_GATE_PREBUILT: '1'
           DIOPTAS_GATE_UI_SHARD: ${{ matrix.shard }}/3
           DIOPTAS_GATE_UI_JOBS: '1'
+          # Run every check even after one fails: one run shows all failures.
+          DIOPTAS_GATE_UI_KEEP_GOING: '1'
         run: node scripts/check_native_desktop.mjs --ui
       - uses: actions/upload-artifact@v7
         if: always()

@@ -50,6 +50,13 @@ const prebuilt = gateSwitch(
   process.env.DIOPTAS_GATE_PREBUILT,
   false,
 );
+// DIOPTAS_GATE_UI_KEEP_GOING=1 (set by CI) runs every UI check even after
+// one has failed, so that a single run shows all failures.
+const keepGoing = gateSwitch(
+  "DIOPTAS_GATE_UI_KEEP_GOING",
+  process.env.DIOPTAS_GATE_UI_KEEP_GOING,
+  false,
+);
 const shard = uiShard(process.env.DIOPTAS_GATE_UI_SHARD);
 const jobs = uiJobs(process.env.DIOPTAS_GATE_UI_JOBS, availableParallelism());
 mkdirSync(artifacts, { recursive: true });
@@ -184,7 +191,7 @@ function runAsync(name, command, args, env = {}, cwd = desktop) {
         output,
       });
       if (!failed) return resolve();
-      stopActive();
+      if (!keepGoing) stopActive();
       reject(failed);
     };
     child.on("error", (error) => done(null, null, error));
@@ -401,12 +408,20 @@ if (selected.has("--ui")) {
   console.log(
     `\nUI checks: ${mine.length}${shard ? ` of ${checks.length} (shard ${shard.index}/${shard.count})` : ""}, ${jobs} at a time`,
   );
+  const failures = [];
   try {
     await runPool(mine, jobs, (check) =>
       runAsync(check.name, process.execPath, check.args, {
         DIOPTAS_VITE_CACHE_DIR: `node_modules/.vite-gate/${check.name}`,
+      }).catch((error) => {
+        if (!keepGoing) throw error;
+        failures.push(error.message);
       }),
     );
+    if (failures.length)
+      throw Error(
+        `${failures.length} UI checks failed:\n${failures.join("\n")}`,
+      );
   } catch (error) {
     report("failed");
     throw error;

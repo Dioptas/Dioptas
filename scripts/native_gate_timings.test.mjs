@@ -303,6 +303,7 @@ function scratchGate() {
             DIOPTAS_GATE_UI_JOBS: "",
             DIOPTAS_GATE_UI_SHARD: "",
             DIOPTAS_GATE_PREBUILT: "",
+            DIOPTAS_GATE_UI_KEEP_GOING: "",
             ...env,
           },
         },
@@ -442,6 +443,20 @@ describe(
           assert.ok(names.includes(name), name);
         assert.ok(r.timings.steps.every((s) => s.status === "passed"));
       }
+    });
+
+    it("runs every UI check past a failure when told to keep going", () => {
+      const r = gate.run(["--ui"], {
+        UI_FAIL: "spottiness_smoke.mjs",
+        DIOPTAS_GATE_UI_KEEP_GOING: "1",
+      });
+      assert.notEqual(r.status, 0);
+      assert.match(r.stderr, /1 UI checks failed:\nspottiness_smoke failed/);
+      const checks = r.timings.steps.filter((s) =>
+        /_smoke|ui_components|_export|_webkit/.test(s.name),
+      );
+      assert.equal(checks.length, 43);
+      assert.equal(checks.filter((s) => s.status === "passed").length, 42);
     });
 
     it("splits the UI checks over shards without losing or repeating one", () => {
