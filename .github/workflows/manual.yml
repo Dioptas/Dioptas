@@ -1,0 +1,67 @@
+name: User manual
+on:
+  push:
+    branches: [develop]
+    paths: ['manual/**', '.github/workflows/manual.yml']
+  pull_request:
+    branches: [develop]
+    paths: ['manual/**', '.github/workflows/manual.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: user-manual-${{ github.event_name == 'pull_request' && github.ref || 'pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+          cache: npm
+          cache-dependency-path: manual/package-lock.json
+      - run: npm ci --prefix manual
+      - name: Build the manual and check its local links
+        env:
+          DIOPTAS_MANUAL_SITE: https://${{ github.repository_owner }}.github.io
+          DIOPTAS_MANUAL_BASE: /${{ github.event.repository.name }}/manual
+          DIOPTAS_MANUAL_REF: ${{ github.event_name == 'pull_request' && 'develop' || github.ref_name }}
+        run: npm --prefix manual run build
+      - name: Lay out the Pages site
+        # The manual lives under manual/ so that the site root stays free for
+        # other pages; until there are any, the root forwards to the manual.
+        run: |
+          mkdir site
+          cp -R manual/dist site/manual
+          cat > site/index.html <<'HTML'
+          <!doctype html>
+          <meta charset="utf-8">
+          <title>Dioptas manual</title>
+          <meta http-equiv="refresh" content="0; url=manual/">
+          <link rel="canonical" href="manual/">
+          <p><a href="manual/">Dioptas manual</a></p>
+          HTML
+      - if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}manual/
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
