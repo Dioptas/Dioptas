@@ -1,6 +1,11 @@
 import { Button } from "./ui";
-import { Crosshair, ScanLine } from "lucide-react";
-import { IntegrationModeIcon, MapModeIcon, MaskModeIcon } from "./ModeIcons";
+import { Crosshair } from "lucide-react";
+import {
+  IntegrationModeIcon,
+  MapModeIcon,
+  MaskModeIcon,
+  SingleCrystalModeIcon,
+} from "./ModeIcons";
 export type WorkspaceMode =
   "calibration" | "mask" | "integration" | "map" | "scxrd";
 const modes = [
@@ -20,9 +25,9 @@ const modes = [
   { value: "map", name: "Map", label: "Map", icon: <MapModeIcon /> },
   {
     value: "scxrd",
-    name: "Single Crystal XRD",
-    label: "SCXRD",
-    icon: <ScanLine size={20} />,
+    name: "Single Crystal",
+    label: "SC",
+    icon: <SingleCrystalModeIcon />,
   },
 ] as const;
 

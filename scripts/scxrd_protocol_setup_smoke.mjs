@@ -38,7 +38,7 @@ try {
   });
   await page.goto(pathToFileURL(path.join(root, "dist/index.html")).href);
   await page
-    .getByRole("button", { name: "Single Crystal XRD", exact: true })
+    .getByRole("button", { name: "Single Crystal", exact: true })
     .click();
   await page.getByRole("tab", { name: "Frames", exact: true }).click();
   assert.equal((await invoke("scxrd_snapshot")).scxrd.config.protocol, null);
@@ -86,7 +86,7 @@ try {
   await invoke("scxrd_edit", { operation: "frame", index: 5 });
   await page.reload();
   await page
-    .getByRole("button", { name: "Single Crystal XRD", exact: true })
+    .getByRole("button", { name: "Single Crystal", exact: true })
     .click();
   await page.getByRole("tab", { name: "Frames", exact: true }).click();
   await page

@@ -62,7 +62,7 @@ for (const [engine, type] of Object.entries({ chromium, webkit })) {
     });
     await page.goto(pathToFileURL(path.join(root, "dist/index.html")).href);
     await page
-      .getByRole("button", { name: "Single Crystal XRD", exact: true })
+      .getByRole("button", { name: "Single Crystal", exact: true })
       .click();
     await page.locator(".sc-empty").waitFor();
     await page.waitForFunction(
@@ -147,7 +147,7 @@ for (const [engine, type] of Object.entries({ chromium, webkit })) {
       .getByRole("button", { name: "Integration", exact: true })
       .click();
     await page
-      .getByRole("button", { name: "Single Crystal XRD", exact: true })
+      .getByRole("button", { name: "Single Crystal", exact: true })
       .click();
     assert.equal(await page.getByLabel("Peak threshold").inputValue(), "6");
     await page

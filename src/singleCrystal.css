@@ -58,89 +58,6 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  border-left: 1px solid #3c3e43;
-  padding-left: 12px;
-}
-.sc-steps {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
-  padding: 4px 0 10px;
-  border-bottom: 1px solid #3d3f44;
-  flex-shrink: 0;
-}
-.sc-steps .ui-button {
-  padding: 7px 3px;
-  gap: 4px;
-  font-size: var(--text-meta);
-  min-height: 34px;
-  white-space: nowrap;
-  background: transparent;
-}
-.sc-steps .sc-selected {
-  background: #41372d !important;
-  color: #ffab5e !important;
-  box-shadow: inset 0 -2px #ff9500;
-}
-.sc-stage-icon {
-  display: inline-flex;
-  opacity: 0.55;
-}
-.sc-stage-icon--complete {
-  opacity: 1;
-  color: #d9dbde;
-}
-.sc-stage-icon--attention,
-.sc-stage-icon--paused {
-  color: #ffb05c;
-  opacity: 1;
-}
-.sc-content {
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
-  padding: 14px 4px 16px 0;
-  scrollbar-gutter: stable;
-}
-.sc-hint {
-  line-height: 1.5;
-  margin: 0 0 18px;
-  color: #d7d9dc;
-}
-.sc-content fieldset {
-  min-width: 0;
-  border: 1px solid #484a50;
-  border-radius: 4px;
-  margin: 16px 0;
-  padding: 12px;
-}
-.sc-content legend {
-  padding: 0 6px;
-  font-size: var(--text-small);
-  color: #e1e2e4;
-}
-.sc-field {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 10px 0;
-  min-width: 0;
-}
-.sc-field > span {
-  min-width: 0;
-}
-.sc-field small {
-  margin-left: 8px;
-  color: #b8bac0;
-}
-.sc-field > .ui-input {
-  width: 115px;
-  min-width: 80px;
-}
-.sc-field > .ui-select {
-  max-width: 64%;
-  min-width: 0;
 }
 .sc-check {
   display: flex;
@@ -152,128 +69,11 @@
   margin-top: 4px;
   flex-shrink: 0;
 }
-.sc-note {
-  font-size: var(--text-meta);
-  line-height: 1.5;
-  color: #b9bcc3;
-  margin: 10px 0;
-}
 .sc-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-}
-.sc-source {
-  padding: 10px;
-  background: #282a2f;
-  line-height: 1.6;
-  overflow-wrap: anywhere;
-}
-.sc-summary {
-  padding: 10px 0;
-  font-variant-numeric: tabular-nums;
-}
-.sc-attention {
-  border-left: 3px solid #f29c49;
-  background: #3b332b;
-  padding: 12px;
-  margin: 0 0 16px;
-  color: #f2d5b7;
-}
-.sc-attention p {
-  margin: 8px 0 0;
-  line-height: 1.5;
-}
-.sc-table {
-  max-height: 300px;
-  margin: 14px 0;
-  border: 1px solid #44464b;
-  overflow: auto;
-}
-.sc-table table {
-  font-size: var(--text-meta);
-  min-width: 100%;
-}
-.sc-table caption {
-  font-size: var(--text-meta);
-  text-align: left;
-  color: #c6c9cf;
-  padding: 8px;
-  caption-side: top;
-}
-.sc-table th {
-  position: sticky;
-  top: 0;
-  background: #303238;
-  z-index: 1;
-  white-space: normal;
-}
-.sc-table td {
-  font-variant-numeric: tabular-nums;
-}
-.sc-table tr[aria-selected="true"] {
-  background: #483a2c;
-}
-.sc-table .ui-button {
-  font-size: var(--text-meta);
-  padding: 4px 6px;
-}
-.sc-statistics {
-  display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-  gap: 10px;
-  margin: 18px 0;
-  font-size: var(--text-small);
-}
-.sc-statistics dt {
-  color: #bfc2c8;
-}
-.sc-statistics dd {
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
-}
-.sc-stage-result {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  line-height: 1.5;
-  color: #d1d3d8;
-  border-top: 1px solid #42444a;
-  padding: 14px 0 0;
-  margin: 18px 0 0;
-}
-.sc-stage-result > svg {
-  flex-shrink: 0;
-  margin-top: 3px;
-}
-.sc-task-footer {
-  flex-shrink: 0;
-  border-top: 1px solid #44464b;
-  padding: 12px 4px 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.sc-auto {
-  width: 100%;
-  min-height: 38px;
-}
-.sc-engine {
-  font-size: var(--text-meta);
-  color: #a6a9b0;
-  text-align: right;
-  padding: 0 2px 3px;
-}
-.sc-draft {
-  padding: 10px;
-  background: #3c332a;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  font-size: var(--text-meta);
-  color: #f3c591;
 }
 .sc-working {
   display: flex;
@@ -318,109 +118,10 @@
   white-space: nowrap;
   color: #c9cbd0;
 }
-.sc-export {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 9px;
-}
-.sc-export p {
-  margin: 0 0 16px;
-  color: #b9bcc3;
-  font-size: var(--text-meta);
-  line-height: 1.5;
-}
-.sc-export .ui-button {
-  justify-content: flex-start;
-}
 @media (max-width: 1050px) {
-  .sc-workspace {
-    grid-template-columns: minmax(180px, 1fr) minmax(350px, 42%);
-  }
-  .sc-panel {
-    padding-left: 8px;
-  }
-  .sc-workspace {
-    gap: 6px;
-  }
   .sc-framebar {
     gap: 4px;
   }
-}
-@media (max-height: 700px) {
-  .sc-content {
-    padding-top: 8px;
-  }
-  .sc-task-footer {
-    gap: 6px;
-    padding-top: 8px;
-  }
-  .sc-engine {
-    display: none;
-  }
-  .sc-note {
-    margin: 6px 0;
-  }
-  .sc-steps {
-    padding-bottom: 6px;
-  }
-  .sc-table {
-    max-height: 180px;
-  }
-}
-
-.sc-metric {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin: 14px 0;
-}
-.sc-metric label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.sc-metric .ui-input {
-  width: 100%;
-  min-width: 0;
-}
-
-.sc-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: var(--text-meta);
-}
-.sc-source-order {
-  font-size: var(--text-meta);
-  color: var(--ui-muted);
-  margin: 10px 0;
-}
-.sc-source-order p {
-  overflow-wrap: anywhere;
-  line-height: 1.5;
-}
-
-.sc-steps .ui-button {
-  transition: none !important;
-}
-.sc-number .integration-number-field {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 118px;
-  align-items: center;
-  gap: 12px;
-  margin: 10px 0;
-}
-.sc-number .scientific-number-input {
-  width: 118px;
-  min-width: 0;
-}
-.sc-number .scientific-number-input input {
-  width: 100%;
-}
-.sc-content {
-  scrollbar-width: thin;
-  scrollbar-color: #697580 #20262c;
 }
 .sc-cell-list {
   display: flex;
@@ -462,171 +163,222 @@
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
-.sc-metric {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-.sc-metric .integration-number-field {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  margin: 0;
-  gap: 6px;
-}
-.sc-metric .scientific-number-input {
-  width: 100%;
-}
-
-.sc-region-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: var(--text-meta);
-  margin: 6px 0;
-}
-.sc-region-row span {
-  overflow-wrap: anywhere;
-}
-.sc-marker-legend {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  color: #acb2ba;
-  font-size: var(--text-meta);
-  padding: 0 4px 4px;
-}
-.sc-observed-key {
-  color: #ffac58;
-}
-.sc-predicted-key {
-  color: #69baff;
-}
-.sc-image-kind .ui-select {
-  max-width: 195px;
-  font-size: var(--text-meta);
-}
-.sc-framebar .integration-number-field {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-}
-.sc-framebar .scientific-number-input {
-  width: 54px;
-}
-.sc-framebar .scientific-number-input input {
-  width: 100%;
-}
-.sc-framebar .integration-number-field > span:first-child {
-  font-size: var(--text-meta);
-}
-
-.sc-peak-chart {
-  margin: 12px 0;
-  color: var(--ui-muted);
-  font-size: var(--text-meta);
-}
-.sc-peak-chart svg {
-  width: 100%;
-  height: 72px;
-  cursor: crosshair;
-  background: #192027;
-  border-bottom: 1px solid #55616d;
-}
-.sc-peak-chart span {
-  display: block;
-  margin-top: 5px;
-}
-
-.sc-export-recipe {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--text-small);
-  color: var(--ui-text);
-}
-.sc-scroll-cue.ui-button {
-  flex-shrink: 0;
-  min-height: 27px;
-  width: 100%;
-  color: #ffb366;
-  border-top: 1px solid #48433d;
-  background: #24282c;
-  font-size: var(--text-meta);
-}
 .sc-cell-card-head .ui-button {
   min-height: 30px;
   padding: 4px 8px;
   border: 1px solid #65717b;
 }
-.sc-table:focus-visible {
-  outline: 2px solid #ffad5c;
-  outline-offset: 2px;
+
+/* Lean workspace: slider-driven frame bar and a task panel on the shared
+   sidebar surface (surfaces.css), wider than other modes for crystal results. */
+.scxrd-mode:has(> .sc-workspace--lean) {
+  padding: 0 !important;
 }
-.sc-auto.ui-button:disabled {
-  background: #30363b;
-  color: #b6bfc6;
-  border-color: #4f5962;
-  opacity: 1;
+.sc-workspace--lean {
+  --sc-panel-width: 380px;
+  grid-template-columns: minmax(220px, 1fr) min(var(--sc-panel-width), 50%);
+  gap: 0;
+  position: relative;
 }
-.sc-protocol-code {
-  max-height: 280px;
-  overflow: auto;
-  font-size: 12px;
-  line-height: 1.5;
-  border: 1px solid #48525b;
-  padding: 10px;
-  background: #191e22;
-  color: #d7dde2;
+/* Shared LayoutDivider look (integration.css), laid over the panel's edge:
+   positioned within the panel's grid area. */
+.sc-panel-divider-anchor {
+  display: contents;
 }
-.sc-protocol-code:focus-visible {
-  outline: 2px solid #ffad5c;
+.sc-workspace--lean .sc-panel-divider {
+  grid-column: 2;
+  grid-row: 1;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 8px;
+  transform: translateX(-50%);
 }
-.sc-content fieldset.sc-number-fieldset {
-  border: 0;
-  padding: 0;
-  margin: 0;
+.app[data-text-size="large"] .sc-workspace--lean {
+  --sc-panel-width: 410px;
+}
+.sc-workspace--lean .sc-detector {
+  padding: 8px 8px 0;
+}
+.sc-workspace--lean .sc-panel {
+  border-left: 1px solid var(--border);
+  padding: 0 14px 8px;
+  overflow-y: auto;
+}
+.sc-workspace--lean .sc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   min-width: 0;
+  margin: 0;
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+}
+.sc-workspace--lean .sc-section > .section-label {
+  margin: 0;
+}
+.sc-workspace--lean .sc-section .ui-button {
+  min-height: 32px;
+  padding: 5px 8px;
+}
+.sc-workspace--lean .sc-open-series {
+  width: 100%;
+}
+.sc-workspace--lean .sc-source {
+  margin: 0;
+  padding: 0;
+  background: none;
+  color: var(--ui-muted);
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.sc-workspace--lean .sc-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.sc-workspace--lean .sc-actions > span {
+  grid-column: 1 / -1;
+  color: var(--ui-muted);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+.sc-angles {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+/* A floated legend joins the grid like the panel's other section labels. */
+.sc-angles > legend.section-label {
+  float: left;
+  width: 100%;
+  margin: 0 0 2px;
+  padding: 0;
+}
+/* Rows reuse the shared integration-number-field parts, laid out like the
+   Calibration geometry rows: name left, box, unit right. */
+.sc-panel .sc-angles .field-label.integration-number-field {
+  grid-template-columns: minmax(0, 1fr) 96px 30px;
+  justify-self: stretch;
+  width: 100%;
+  text-align: left;
+  font-size: var(--text-small);
+  color: var(--ui-muted);
+}
+.sc-panel .sc-angles .integration-number-field > .ui-field-error {
+  grid-column: 1 / -1;
+}
+.sc-angles .sc-help-label {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.sc-axis-diagram {
+  display: block;
+  width: 160px;
+  margin: 0 auto 6px;
+  font-size: 10px;
+  fill: currentColor;
+}
+.sc-axis-diagram .sc-axis-frame {
+  fill: #0006;
+  stroke: var(--border);
+}
+.sc-frame-slider {
+  flex: 1;
+  min-width: 80px;
+  max-width: 520px;
 }
 
-/* Keep each Miller-index triplet intact beside longer diagnostic reasons. */
-.sc-reflections td:nth-child(-n + 3) {
-  white-space: nowrap;
+/* Analysis: full-width start action above the step list. */
+.sc-workspace--lean .sc-panel > .ui-button.primary {
+  width: 100%;
+  margin-top: 10px;
+  min-height: 34px;
 }
-.sc-reflections td:first-child {
-  min-width: 72px;
+.sc-workspace--lean .sc-panel > .sc-working {
+  margin-top: 10px;
+  font-size: var(--text-small);
 }
-.sc-reflections td:last-child {
-  min-width: 170px;
+.sc-step-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0 4px;
+  display: grid;
+  gap: 0;
+}
+.sc-step-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+}
+.sc-step-row > .ui-button {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  min-height: 26px;
+  padding: 3px;
+}
+.sc-step-row > .ui-button[aria-expanded="true"] {
+  color: var(--accent);
+}
+.sc-step-name {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  line-height: 1.3;
+}
+.sc-step-name small {
+  color: var(--ui-muted);
+  font-size: var(--text-meta);
+  overflow-wrap: anywhere;
+}
+.sc-step-name .sc-step-problem {
+  color: #f0b36a;
+}
+.sc-step-time {
+  color: var(--ui-muted);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+/* Per-step settings sit indented under their step, without a frame. */
+.sc-step-list .sc-angles {
+  padding: 2px 0 10px 32px;
+}
+.sc-step-list .sc-check {
+  align-items: center;
+  font-size: var(--text-small);
 }
 
-.sc-protocol-details {
-  border: 1px solid #444e56;
-  border-radius: 4px;
+/* Lattice candidates follow the step list as the last panel section. */
+.sc-workspace--lean .sc-cell-list {
+  margin: 4px 0 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 0;
+}
+.sc-workspace--lean .sc-cell-card {
+  border: 1px solid var(--border);
+  border-radius: var(--ui-radius);
   padding: 8px 10px;
-  margin: 12px 0;
 }
-.sc-protocol-details > summary,
-.sc-quality-details > summary {
-  cursor: pointer;
-  color: #d2dae0;
+.sc-workspace--lean .sc-cell-chosen {
+  border-color: #ff950066;
+  background: #ff95000c;
 }
-.sc-quality-details > p {
-  margin: 6px 0;
-  line-height: 1.4;
+.sc-workspace--lean .sc-cell-card-head .ui-button {
+  min-height: 28px;
+  padding: 3px 10px;
+  border: 0;
 }
-.sc-quality-details > small {
-  color: #bdc7ce;
-}
-.sc-quality-details > summary:focus-visible,
-.sc-protocol-details > summary:focus-visible {
-  outline: 2px solid #ffad5c;
-  outline-offset: 2px;
-}
-.sc-draft .ui-button:disabled {
-  background: #30363b;
-  color: #c2c9cd;
-  border-color: #5a636d;
-  opacity: 1;
+.sc-workspace--lean .sc-cell-card dl {
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 8px 0 0;
 }

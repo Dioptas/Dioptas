@@ -3,7 +3,7 @@ title: Single Crystal XRD
 description: A guided workflow from a rotation scan to indexed, integrated and exported intensities.
 ---
 
-Single Crystal XRD (SCXRD in the sidebar) processes a rotation scan of a single crystal: it finds peaks, indexes a cell, refines the geometry, integrates intensities, scales them and exports a reflection file. It is separate from the powder modes. Its frames, calibration, settings and Undo history are its own.
+Single Crystal XRD (SC in the sidebar) processes a rotation scan of a single crystal: it finds peaks, indexes a cell, refines the geometry, integrates intensities, scales them and exports a reflection file. It is separate from the powder modes. Its frames, calibration, settings and Undo history are its own.
 
 This mode is new. Read [What it does not establish](#what-it-does-not-establish) before using its output.
 

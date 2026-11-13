@@ -5,6 +5,7 @@ import { numericDraftError, type NumericLimits } from "./numericDraft";
 /** Commit valid numeric text on blur/Enter; Escape restores the applied value. */
 export function CommitNumberField({
   label,
+  unit,
   value,
   onCommit,
   hideLabel = false,
@@ -13,6 +14,8 @@ export function CommitNumberField({
   ...limits
 }: {
   label: string;
+  /** Shown right of the box; the accessible name stays "label / unit". */
+  unit?: string;
   value: number;
   onCommit: (value: number) => void;
   hideLabel?: boolean;
@@ -28,10 +31,12 @@ export function CommitNumberField({
   }, [error, onValidationChange]);
   useEffect(() => () => onValidationChange?.(null), [onValidationChange]);
   return (
-    <label className="field-label integration-number-field">
+    <label
+      className={`field-label integration-number-field${unit ? " integration-number-with-unit" : ""}`}
+    >
       <span className={hideLabel ? "visually-hidden" : undefined}>{label}</span>
       <ScientificNumberInput
-        aria-label={label}
+        aria-label={unit ? `${label} / ${unit}` : label}
         value={draft}
         min={limits.min}
         max={limits.max}
@@ -55,6 +60,11 @@ export function CommitNumberField({
           }
         }}
       />
+      {unit && (
+        <span className="integration-number-unit" aria-hidden="true">
+          {unit}
+        </span>
+      )}
       {error && !onValidationChange && (
         <span className="ui-field-error" id={`${id}-error`}>
           {error}

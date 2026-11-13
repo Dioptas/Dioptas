@@ -1,61 +1,68 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useCallback,
-  useLayoutEffect,
-} from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   FolderOpen,
   ChevronLeft,
   ChevronRight,
-  Check,
-  Circle,
-  AlertTriangle,
   Play,
-  RotateCcw,
-  ScanLine,
-  Save,
+  Settings2,
+  Check,
 } from "lucide-react";
 import { CommitNumberField } from "./CommitNumberField";
+import { CalibrationHelp } from "./CalibrationHelp";
+import { RotationAxisDiagram } from "./RotationAxisDiagram";
+import { SingleCrystalPanelDivider } from "./SingleCrystalPanelDivider";
+import { SingleCrystalModeIcon } from "./ModeIcons";
 import { Button, Input, Select } from "./ui";
 import { RasterView, type RasterMarker } from "./RasterView";
 import { ImageIntensity } from "./ImageIntensity";
 import { createPlotViews, detectorViewport } from "./plotViewport";
 import { useCrystalDisplay } from "./useCrystalDisplay";
-import {
-  SingleCrystalStages,
-  type CrystalStageProps,
-} from "./SingleCrystalStages";
 import { useCrystalHover } from "./useCrystalHover";
-import type { ReportPlot } from "./plotReadout";
+import { useCrystalClick } from "./useCrystalClick";
+import type { PlotReading, ReportPlot } from "./plotReadout";
 import type { Invoke, Run } from "./commandContracts";
-import type { Palette, Response } from "./types";
-import {
-  crystalDefaults,
-  crystalConfigError,
-  crystalSteps,
-  nextCrystalStep,
-  type CrystalConfig,
-  type CrystalData,
-  type CrystalFileOperation,
-  type CrystalImageKind,
-} from "./singleCrystalDomain";
+import type { Response } from "./types";
+import type { CrystalConfig, CrystalData } from "./singleCrystalDomain";
+import "./integrationNumericFields.css";
 import "./singleCrystal.css";
+// Checked against Crystal::set_poni, RasterView marker placement and
+// PhaseSmith reciprocal::Geometry::convert (right-handed sample rotation).
+const ROTATION_AXIS_HELP =
+  "Directions refer to the image as shown. The sign sets the rotation sense. If Find lattices finds nothing, try the opposite sign.";
 export const crystalNumber = (n: number, d = 3) =>
   Number.isFinite(n) ? n.toFixed(d) : "—";
-const hints = [
-  "Load a rotation scan, then confirm its acquisition and detector geometry.",
-  "Remove the slowly varying omega background for peak positions. Intensities always use original counts.",
-  "Detect peaks and link neighbouring frames into rotation tracks. Inspect and exclude unwanted tracks.",
-  "Compare position-supported reduced primitive cells. Select the sample lattice when candidates are ambiguous.",
-  "Validate predicted positions against observations. Keep the detector calibration fixed, or opt into refinement.",
-  "Integrate complete measured tracks from original counts, with a local background and propagated counting errors.",
-  "Merge equivalent observations, inspect symmetry evidence and optionally fit a robust omega scale from repeated families.",
-  "Optional element-only candidate search in an explicitly supplied space group. This is candidate assessment, not a final structure refinement.",
-  "Export signed observations, usable HKLF4 intensities and a reproducible recipe. Source files are never modified.",
-];
+/**
+ * The flexible measured-track path; the fixed protocol and the omega
+ * background are not offered here. Masks start on, as for a DAC measurement.
+ */
+const exploratory = (c: CrystalConfig): CrystalConfig =>
+  c.integration_method === "summation"
+    ? { ...c, confirmed: true, background: false }
+    : {
+        ...c,
+        confirmed: true,
+        integration_method: "summation",
+        protocol: null,
+        background: false,
+        dac_enabled: true,
+        dac_axis: [0, 0, 1],
+        seat_enabled: true,
+        diamond_enabled: true,
+        aperture_radius: 6,
+        omega_radius: 1.5,
+        polarization: 0.99,
+        link_radius: 3,
+        refine_geometry: false,
+        scan_scaling: false,
+      };
+const steps = ["Prepare masks", "Find spots", "Find lattices"] as const;
+const baseName = (path: string | null | undefined) =>
+  path?.split(/[\\/]/).pop() ?? "";
+/**
+ * Single-crystal mode, rebuilt step by step after the Qt workflow: open a
+ * rotation series, declare its angles and browse the frames. Processing steps
+ * are added to the task panel one at a time.
+ */
 export function SingleCrystalWorkspace({
   active,
   data,
@@ -66,6 +73,7 @@ export function SingleCrystalWorkspace({
   calibrated,
   invoke,
   reportPlot,
+  reportClick,
   onDraftDirty,
 }: {
   active: boolean;
@@ -77,6 +85,7 @@ export function SingleCrystalWorkspace({
   calibrated: boolean;
   invoke: Invoke | null;
   reportPlot: ReportPlot;
+  reportClick: (reading: PlotReading | null) => void;
   onDraftDirty: (dirty: boolean) => void;
 }) {
   const [plotViews] = useState(createPlotViews);
@@ -88,25 +97,7 @@ export function SingleCrystalWorkspace({
       ),
     [plotViews, data?.firstSource, data?.shape[0], data?.shape[1]],
   );
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [moreBelow, setMoreBelow] = useState(false);
   const initialized = useRef(false);
-  const [resetToken, setResetToken] = useState(0);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>(
-    {},
-  );
-  const onValidation = useCallback(
-    (field: string, error: string | null) =>
-      setFieldErrors((previous) =>
-        previous[field] === error ? previous : { ...previous, [field]: error },
-      ),
-    [],
-  );
-  const [step, setStep] = useState(0),
-    [draft, setDraft] = useState<CrystalConfig>(
-      data?.config ?? crystalDefaults,
-    );
-  const imageKind = data?.previewKind || "raw";
   const {
     preferences,
     setPreferences,
@@ -118,128 +109,140 @@ export function SingleCrystalWorkspace({
     setPalette,
     autoLevels,
     setAutoLevels,
-  } = useCrystalDisplay(imageKind);
-  const [observed, setObserved] = useState(true),
-    [predicted, setPredicted] = useState(true),
-    [rejected, setRejected] = useState(false),
-    [selectedTrack, setSelectedTrack] = useState<number | null>(null),
-    [maskPicking, setMaskPicking] = useState(false),
-    [maskHover, setMaskHover] = useState<{ x: number; y: number } | null>(null),
-    [corner, setCorner] = useState<{ x: number; y: number } | null>(null);
-  const [frameDraft, setFrameDraft] = useState("1"),
-    [frameStep, setFrameStep] = useState(1);
+  } = useCrystalDisplay("raw");
+  const [frameDraft, setFrameDraft] = useState("1");
   const frameCursor = useRef(data?.frame ?? 0);
-  useEffect(() => {
-    frameCursor.current = data?.frame ?? 0;
-  }, [data?.firstSource, data?.frames]);
   const lastImage = useRef<string | null>(null);
-  const configKey = JSON.stringify(data?.config),
-    dirty = !!data && JSON.stringify(draft) !== configKey;
-  useEffect(() => {
-    if (data?.config) setDraft(data.config);
-  }, [configKey]);
+  useEffect(() => onDraftDirty(false), [onDraftDirty]);
   useEffect(() => {
     if (active && ready && !data && !initialized.current) {
       initialized.current = true;
       void run("scxrd_snapshot", {}, "");
     }
   }, [active, ready, !!data, run]);
+  // Live scrubbing: at most one frame request is in flight; when it returns
+  // only the newest wanted position is requested and the ones between are
+  // dropped. While that runs, replies for older positions must not pull the
+  // slider back, so the draft is resynchronised once the scrub has settled.
+  const scrub = useRef({ wanted: -1, running: false });
+  const [scrubSettled, setScrubSettled] = useState(0);
   useEffect(() => {
+    if (scrub.current.running) return;
+    frameCursor.current = data?.frame ?? 0;
     setFrameDraft(String((data?.frame ?? 0) + 1));
-  }, [data?.frame]);
+  }, [data?.frame, data?.firstSource, data?.frames, scrubSettled]);
+  // While spots are being searched the processor sends the frame it has just
+  // finished; show that instead of the selected frame.
+  const live = busy ? progress?.scxrdPreview : undefined;
+  const frame = live?.raster ?? data?.image;
   useEffect(() => {
-    const frame = data?.image;
-    const key = frame ? `${imageKind}:${frame.bufferId}` : null;
+    const key = frame?.bufferId ?? null;
     if (key !== lastImage.current && frame && autoLevels)
       setLimits(frame.limits ?? [0, 1]);
     lastImage.current = key;
-  }, [data?.image, imageKind, autoLevels]);
-  useEffect(() => {
-    if (data?.error) {
-      const i = data.stages.findIndex(
-        (s) => s.status === "attention" || s.status === "paused",
-      );
-      if (i >= 0) setStep(i + 1);
-    }
-  }, [data?.error, data?.revision]);
-  useLayoutEffect(() => {
-    const element = contentRef.current;
-    if (!element || !active) return;
-    const update = () =>
-      setMoreBelow(
-        element.scrollHeight - element.scrollTop - element.clientHeight > 12,
-      );
-    const observer = new ResizeObserver(update);
-    observer.observe(element);
-    for (const child of element.children) observer.observe(child);
-    element.addEventListener("scroll", update, { passive: true });
-    update();
-    return () => {
-      observer.disconnect();
-      element.removeEventListener("scroll", update);
-    };
-  }, [active, step, data?.revision, dirty, resetToken]);
+  }, [frame, autoLevels]);
   const onHover = useCrystalHover(data, invoke, reportPlot, active);
-  const frame = data?.image;
-  const configError = crystalConfigError(draft),
-    fieldError = Object.values(fieldErrors).find(Boolean),
-    valid = !configError && !fieldError;
-  useEffect(() => onDraftDirty(dirty || !valid), [dirty, valid, onDraftDirty]);
-
-  const protocolSetup =
-    data?.config.integration_method !== "profile"
-      ? null
-      : !data?.geometry
-        ? "Load a PONI calibration in Frames before running the protocol."
-        : !data.config.metric
-          ? "Supply the orthorhombic cell in Geometry before running the protocol."
-          : !data.config.elements.trim()
-            ? "Supply element symbols in Structure and review the space group in Scaling."
-            : !data.config.dac_enabled || !data.config.seat_enabled
-              ? "Review and enable both cell-shadow masks in Background."
-              : null;
-  const canProcess =
-    ready &&
-    !!data?.frames &&
-    !dirty &&
-    !!data?.config.confirmed &&
-    !!data?.geometry &&
-    valid &&
-    !protocolSetup;
-  const canRunCurrent =
-    ready &&
-    !!data?.frames &&
-    !dirty &&
-    !!data?.config.confirmed &&
-    valid &&
-    (step <= 2 || !!data?.geometry) &&
-    !protocolSetup;
-  const coreComplete =
-    !!data?.frames &&
-    data.stages.slice(0, 6).every((stage) => stage.status === "complete");
-  const searchReady = !!data?.config.elements.trim();
-  const reviewExport =
-    coreComplete && (!searchReady || data?.stages[6].status === "complete");
-  const update: CrystalStageProps["update"] = (key, value) =>
-    setDraft((old) => ({ ...old, [key]: value }));
-  const file = (operation: CrystalFileOperation) =>
-    void run(
-      "scxrd_file",
-      { operation },
-      operation === "open"
-        ? "Verifying recipe sources…"
-        : operation === "calibration"
-          ? "Loading SCXRD calibration…"
-          : "Saving…",
-    );
-  const changeFrame = (
-    index: number,
-    kind: CrystalImageKind = data?.previewKind || "raw",
-  ) => {
-    if (!data || index < 0 || index >= data.frames) return;
-    frameCursor.current = index;
-    void run("scxrd_frame", { frame: index, kind }, "");
+  const click = useCrystalClick(data, invoke, reportClick);
+  const frames = data?.frames ?? 0;
+  const openSeries = () => void run("scxrd_load", {}, "Opening frames…");
+  const changeFrame = (index: number) => {
+    if (!data || !frames) return;
+    const next = Math.max(0, Math.min(frames - 1, index));
+    if (next === frameCursor.current) return;
+    frameCursor.current = next;
+    setFrameDraft(String(next + 1));
+    const s = scrub.current;
+    s.wanted = next;
+    if (s.running) return;
+    s.running = true;
+    void (async () => {
+      try {
+        for (let sent = -1; sent !== s.wanted;) {
+          sent = s.wanted;
+          await run("scxrd_frame", { frame: sent, kind: "raw" }, "");
+        }
+      } finally {
+        s.running = false;
+        setScrubSettled((n) => n + 1);
+      }
+    })();
   };
+  const commitFrameDraft = () => {
+    const v = Number(frameDraft);
+    if (Number.isInteger(v) && v >= 1 && v <= frames) changeFrame(v - 1);
+    else setFrameDraft(String((data?.frame ?? 0) + 1));
+  };
+  const [openStep, setOpenStep] = useState<number | null>(null);
+  /** The settings as they will be sent, including the mask defaults. */
+  const config = data ? exploratory(data.config) : null;
+  const setConfig = (patch: Partial<CrystalConfig>, then?: () => void) => {
+    if (!data) return;
+    const config = exploratory({ ...data.config, ...patch });
+    if (JSON.stringify(config) === JSON.stringify(data.config)) then?.();
+    else
+      void run("scxrd_settings", { config }, "", (r) => {
+        if (r.ok && then) afterCommand.current = then;
+      });
+  };
+  // A command cannot start from inside another command's reply (the app is
+  // still busy then), so a follow-up waits here until that command is done.
+  const afterCommand = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    if (busy || !ready || !afterCommand.current) return;
+    const next = afterCommand.current;
+    afterCommand.current = null;
+    next();
+  }, [busy, ready, data?.revision, data?.config]);
+  /** Run through `stage`; a finished step is cleared first so it runs again. */
+  const runTo = (stage: number, from: number, automatic: boolean) => {
+    if (!data) return;
+    const start = () =>
+      void run(
+        "scxrd_run",
+        { stage, automatic },
+        automatic ? "Running analysis…" : `${steps[stage]}…`,
+      );
+    setConfig({}, () =>
+      data.stages[from]?.status === "complete"
+        ? void run(
+            "scxrd_edit",
+            { operation: "rerun", index: from },
+            "",
+            (r) => {
+              if (r.ok) afterCommand.current = start;
+            },
+          )
+        : start(),
+    );
+  };
+  const stepSummary = (stage: number) => {
+    if (!data) return "";
+    const state = data.stages[stage];
+    if (stage === 2 && data.cells.length)
+      return `${data.cells.length} candidate${data.cells.length === 1 ? "" : "s"}${data.selected == null ? " · choose one" : ""}`;
+    if (state.status === "attention" || state.status === "paused")
+      return state.detail;
+    if (state.status !== "complete") return "";
+    return stage === 0
+      ? state.detail
+      : stage === 1
+        ? `${data.trackCount} linked spots`
+        : `${data.cells.length} candidate${data.cells.length === 1 ? "" : "s"}`;
+  };
+  const lastStage = data?.geometry ? 2 : 1;
+  const analysed = !!data?.stages
+    .slice(0, lastStage + 1)
+    .every((stage) => stage.status === "complete");
+  const markers = useMemo<RasterMarker[]>(
+    () =>
+      (live?.peaks ?? data?.peaks ?? []).map((p) => ({
+        x: p.x,
+        y: p.y,
+        kind:
+          p.flags || ("excluded" in p && p.excluded) ? "rejected" : "observed",
+      })),
+    [data?.peaks, live?.peaks],
+  );
   useEffect(() => {
     if (!active) return;
     const key = (e: KeyboardEvent) => {
@@ -248,99 +251,37 @@ export function SingleCrystalWorkspace({
         target.closest('input,select,textarea,[contenteditable="true"],dialog')
       )
         return;
-      if (e.key === "Escape" && maskPicking) {
-        e.preventDefault();
-        e.stopPropagation();
-        setMaskPicking(false);
-        setCorner(null);
-        return;
-      }
-      if (!ready || !data?.frames || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (!ready || !frames || e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === "PageUp" || e.key === "PageDown") {
         e.preventDefault();
-        changeFrame(
-          Math.max(
-            0,
-            Math.min(
-              data.frames - 1,
-              frameCursor.current + (e.key === "PageDown" ? 1 : -1) * frameStep,
-            ),
-          ),
-        );
+        changeFrame(frameCursor.current + (e.key === "PageDown" ? 1 : -1));
       }
     };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
-  }, [
-    active,
-    ready,
-    data?.frame,
-    data?.frames,
-    data?.previewKind,
-    frameStep,
-    maskPicking,
-  ]);
-  const runStage = (automatic: boolean) => {
-    const stage = automatic
-      ? searchReady
-        ? 6
-        : 5
-      : Math.max(0, Math.min(6, step - 1));
-    void run(
-      "scxrd_run",
-      { stage, automatic },
-      automatic
-        ? "Processing to the next decision…"
-        : `Running ${crystalSteps[step]}…`,
-      (result) => {
-        if (result.ok && result.scxrd && !result.scxrd.error)
-          setStep(
-            stage === 6
-              ? 7
-              : automatic
-                ? nextCrystalStep(result.scxrd)
-                : Math.min(8, step + 1),
-          );
-      },
-    );
-  };
-  const markers = useMemo<RasterMarker[]>(() => {
-    const result: RasterMarker[] =
-      data?.peaks
-        .filter((p) => (p.flags || p.excluded ? rejected : observed))
-        .map((p) => ({
-          x: p.x,
-          y: p.y,
-          kind:
-            p.track === selectedTrack
-              ? "selected"
-              : p.flags || p.excluded
-                ? "rejected"
-                : "observed",
-        })) ?? [];
-    if (predicted)
-      result.push(
-        ...(data?.predictions ?? []).map((p) => ({
-          x: p.x,
-          y: p.y,
-          kind: "predicted" as const,
-        })),
-      );
-    if (corner) result.push({ ...corner, kind: "selected" });
-    return result;
-  }, [
-    data?.peaks,
-    observed,
-    rejected,
-    selectedTrack,
-    corner,
-    predicted,
-    data?.predictions,
-  ]);
+  }, [active, ready, frames, data]);
+  // Numbers change by typing only: the wheel must not step a focused field.
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const element = workspaceRef.current;
+    if (!element) return;
+    const wheel = (e: WheelEvent) => {
+      const target = e.target;
+      if (
+        target instanceof HTMLInputElement &&
+        target.type === "number" &&
+        document.activeElement === target
+      )
+        e.preventDefault();
+    };
+    element.addEventListener("wheel", wheel, { passive: false });
+    return () => element.removeEventListener("wheel", wheel);
+  }, [active]);
   if (!active) return null;
   return (
     <div
-      className="sc-workspace"
+      ref={workspaceRef}
+      className="sc-workspace sc-workspace--lean"
       aria-label="Single-crystal processing workspace"
     >
       <section className="sc-detector">
@@ -354,72 +295,15 @@ export function SingleCrystalWorkspace({
               palette={palette}
               busy={busy}
               markers={markers}
-              regions={[
-                ...(data?.mask ?? []).map((bounds) => ({ bounds })),
-                ...(corner && maskHover
-                  ? [
-                      {
-                        bounds: [
-                          Math.min(corner.x, maskHover.x),
-                          Math.min(corner.y, maskHover.y),
-                          Math.max(corner.x, maskHover.x),
-                          Math.max(corner.y, maskHover.y),
-                        ] as [number, number, number, number],
-                        preview: true,
-                      },
-                    ]
-                  : []),
-              ]}
-              tool={maskPicking ? "pick" : "pan"}
-              onHover={(p) => {
-                if (maskPicking) setMaskHover(p ? { x: p.x, y: p.y } : null);
-                onHover(p);
-              }}
-              onPick={(point) => {
-                if (!corner) {
-                  setCorner(point);
-                  return;
-                }
-                const w = data!.shape[1],
-                  h = data!.shape[0];
-                const bounds: [number, number, number, number] = [
-                  Math.max(0, Math.floor(Math.min(corner.x, point.x))),
-                  Math.max(0, Math.floor(Math.min(corner.y, point.y))),
-                  Math.min(w, Math.ceil(Math.max(corner.x, point.x)) + 1),
-                  Math.min(h, Math.ceil(Math.max(corner.y, point.y)) + 1),
-                ];
-                setCorner(null);
-                void run(
-                  "scxrd_edit",
-                  { operation: "mask", bounds },
-                  "Applying exclusion…",
-                );
-              }}
-              onInspect={(point) => {
-                if (maskPicking || !data?.peaks.length) return;
-                const nearest = data.peaks.reduce((a, b) =>
-                  Math.hypot(a.x - point.x, a.y - point.y) <
-                  Math.hypot(b.x - point.x, b.y - point.y)
-                    ? a
-                    : b,
-                );
-                if (Math.hypot(nearest.x - point.x, nearest.y - point.y) < 10) {
-                  setSelectedTrack(nearest.track);
-                  if (!data.tracks.some((t) => t.id === nearest.track))
-                    void run(
-                      "scxrd_table",
-                      {
-                        kind: "tracks",
-                        offset: Math.floor(nearest.track / 200) * 200,
-                      },
-                      "",
-                    );
-                  if (step !== 4 && step !== 5) setStep(2);
-                }
-              }}
+              mask={live ? undefined : (data?.maskImage ?? undefined)}
+              maskOpacity={0.45}
+              tool="pan"
+              onHover={onHover}
+              clickedPoint={click.clickedPoint}
+              rings={click.rings}
+              onInspect={click.onInspect}
             />
             <ImageIntensity
-              key={imageKind}
               raster={frame}
               limits={limits}
               onLimits={(v) => {
@@ -446,445 +330,430 @@ export function SingleCrystalWorkspace({
           </div>
         ) : (
           <div className="sc-empty">
-            <ScanLine size={42} />
-            <h2>Single-crystal XRD</h2>
-            <p>
-              Start with a rotation scan.
-              <br />
-              Inspect each step, or run to the next decision.
-            </p>
-            <Button
-              variant="primary"
-              disabled={!ready}
-              onClick={() =>
-                void run("scxrd_load", {}, "Verifying rotation frames…")
-              }
-            >
+            <SingleCrystalModeIcon size={42} />
+            <Button variant="primary" disabled={!ready} onClick={openSeries}>
               <FolderOpen size={16} />
-              Load frames…
-            </Button>
-            <Button
-              variant="quiet"
-              disabled={!ready}
-              onClick={() => file("open")}
-            >
-              Open a saved recipe…
+              Open series…
             </Button>
           </div>
         )}
-        {!!data?.frames && (
+        {!!frames && data && (
           <div className="sc-framebar" aria-label="Rotation frame navigation">
             <Button
               variant="quiet"
               aria-label="Previous rotation frame"
               disabled={!ready || data.frame === 0}
-              onClick={() =>
-                changeFrame(Math.max(0, frameCursor.current - frameStep))
-              }
+              onClick={() => changeFrame(frameCursor.current - 1)}
             >
               <ChevronLeft size={17} />
             </Button>
+            <Input
+              className="sc-frame-slider"
+              aria-label="Rotation frame slider"
+              type="range"
+              min={1}
+              max={frames}
+              value={Math.min(Math.max(1, Number(frameDraft) || 1), frames)}
+              disabled={!ready}
+              onChange={(e) => changeFrame(Number(e.target.value) - 1)}
+            />
+            <Button
+              variant="quiet"
+              aria-label="Next rotation frame"
+              disabled={!ready || data.frame + 1 === frames}
+              onClick={() => changeFrame(frameCursor.current + 1)}
+            >
+              <ChevronRight size={17} />
+            </Button>
             <label>
-              Frame{" "}
               <Input
                 aria-label="Rotation frame"
                 type="number"
                 min={1}
-                max={data.frames}
+                max={frames}
                 value={frameDraft}
                 onChange={(e) => setFrameDraft(e.target.value)}
-                onBlur={() => {
-                  const v = Number(frameDraft);
-                  if (
-                    Number.isInteger(v) &&
-                    v >= 1 &&
-                    v <= data.frames &&
-                    v !== data.frame + 1
-                  )
-                    changeFrame(v - 1);
-                  else setFrameDraft(String(data.frame + 1));
-                }}
+                onBlur={commitFrameDraft}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") e.currentTarget.blur();
                 }}
                 disabled={!ready}
               />
-              <span>/ {data.frames}</span>
+              <span>/ {frames}</span>
             </label>
-            <Button
-              variant="quiet"
-              aria-label="Next rotation frame"
-              disabled={!ready || data.frame + 1 === data.frames}
-              onClick={() =>
-                changeFrame(
-                  Math.min(data.frames - 1, frameCursor.current + frameStep),
-                )
-              }
-            >
-              <ChevronRight size={17} />
-            </Button>
-            <CommitNumberField
-              label="Frame step"
-              value={frameStep}
-              onCommit={setFrameStep}
-              integer
-              min={1}
-              max={data.frames}
-            />
             <span className="sc-omega">
               ω{" "}
               {crystalNumber(
                 data.config.omega_start +
-                  data.frame * data.config.omega_step +
-                  data.config.exposure / 2,
+                  Math.min(
+                    Math.max(1, Number(frameDraft) || 1) - 1,
+                    frames - 1,
+                  ) *
+                    data.config.omega_step,
               )}
               °
             </span>
-            <label className="sc-image-kind">
-              <span className="visually-hidden">Displayed rotation image</span>
-              <Select
-                aria-label="Displayed rotation image"
-                disabled={!ready}
-                value={data.previewKind}
-                onChange={(e) =>
-                  changeFrame(data.frame, e.target.value as CrystalImageKind)
-                }
-              >
-                <option value="raw">Original counts</option>
-                <option
-                  value="background"
-                  disabled={
-                    !data.config.background ||
-                    data.stages[0].status !== "complete"
-                  }
-                >
-                  Background · positions
-                </option>
-                <option
-                  value="corrected"
-                  disabled={
-                    !data.config.background ||
-                    data.stages[0].status !== "complete"
-                  }
-                >
-                  Subtracted · positions
-                </option>
-              </Select>
-            </label>
-          </div>
-        )}
-        {!!data?.frames && (
-          <div className="sc-marker-legend" aria-label="Marker legend">
-            <span className="sc-observed-key">○ Observed</span>
-            <span className="sc-predicted-key">+ Predicted</span>
-            <span>○ Flagged / excluded</span>
-            <span>White: selected track</span>
           </div>
         )}
       </section>
+      <SingleCrystalPanelDivider />
       <aside className="sc-panel" aria-label="Single-crystal workflow controls">
-        <nav
-          className="sc-steps"
-          role="tablist"
-          aria-label="Single-crystal stages"
-        >
-          {crystalSteps.map((name, i) => {
-            const status =
-              i === 0
-                ? data?.config.confirmed
-                  ? "complete"
-                  : "pending"
-                : i === 8
-                  ? data?.exported
-                    ? "complete"
-                    : "pending"
-                  : (data?.stages[i - 1]?.status ?? "pending");
-            return (
-              <Button
-                key={name}
-                role="tab"
-                id={`sc-tab-${i}`}
-                aria-controls="sc-content"
-                aria-selected={step === i}
-                className={step === i ? "sc-selected" : ""}
-                tabIndex={step === i ? 0 : -1}
-                onKeyDown={(e) => {
-                  const offset =
-                    e.key === "ArrowRight" || e.key === "ArrowDown"
-                      ? 1
-                      : e.key === "ArrowLeft" || e.key === "ArrowUp"
-                        ? -1
-                        : 0;
-                  if (offset || e.key === "Home" || e.key === "End") {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const next =
-                      e.key === "Home"
-                        ? 0
-                        : e.key === "End"
-                          ? 8
-                          : (i + offset + 9) % 9;
-                    setStep(next);
-                    document.getElementById(`sc-tab-${next}`)?.focus();
-                  }
-                }}
-                onClick={() => {
-                  setStep(i);
-                  setMaskPicking(false);
-                  setCorner(null);
-                }}
-                title={`${name}: ${status}`}
-              >
-                <span className={`sc-stage-icon sc-stage-icon--${status}`}>
-                  {status === "complete" ? (
-                    <Check size={13} />
-                  ) : status === "attention" || status === "paused" ? (
-                    <AlertTriangle size={13} />
-                  ) : (
-                    <Circle size={10} />
-                  )}
-                </span>
-                {name}
-              </Button>
-            );
-          })}
-        </nav>
-        <div
-          ref={contentRef}
-          className="sc-content"
-          id="sc-content"
-          role="tabpanel"
-          aria-labelledby={`sc-tab-${step}`}
-          tabIndex={0}
-        >
-          <p className="sc-hint">
-            {draft.integration_method === "profile"
-              ? [
-                  "Load a supported PhaseSmith protocol and declare acquisition, calibration, sample metric, symmetry, elements and cell-shadow assumptions before processing.",
-                  "The protocol uses shared original-count seat masks and full-exposure DAC aperture masks. It estimates local background during integration.",
-                  "Detect and link observations with the protocol's native controls and shared masks. This checkpoint uses the same coordinator as standalone.",
-                  "Index the supplied orthorhombic metric and validate sample orientation using native independent position gates. Pose refinement shares this checkpoint.",
-                  "Review native detector-pose/orientation refinement and whole-family holdouts. Wavelength and supplied cell metric remain fixed.",
-                  "Integrate predicted crossings from original counts with guarded local background, learned 3D profiles and native family scaling. Signed intensities and eligibility remain inspectable.",
-                  "Review native frame/detector/ray family scaling, equivalent-error uncertainty and merging statistics for the supplied symmetry. No absorption correction is applied.",
-                  "Review the protocol's staged native structure candidate, actual ADP model and optimizer termination. Candidate assessment is not a final structure refinement.",
-                  "Export the recipe, effective protocol, signed observations, usable HKLF4 intensities, available candidate CIF and retained stage audit.",
-                ][step]
-              : hints[step]}
-          </p>
-          {data?.error && (
-            <div className="sc-attention" role="alert">
-              <strong>
-                {data.stages[2].status === "attention" && data.cells.length
-                  ? "Review cell choice"
-                  : data.stages.some((stage) => stage.status === "paused")
-                    ? "Processing stopped"
-                    : "Stage needs attention"}
-              </strong>
-              <p>{data.error}</p>
-            </div>
-          )}
-          {data?.notice && step === 0 && (
-            <p className="sc-note">{data.notice}</p>
-          )}
-          <SingleCrystalStages
-            key={resetToken}
-            {...{
-              step,
-              setStep,
-              data,
-              run,
-              ready,
-              calibrated,
-              draft,
-              update,
-              file,
-              changeFrame,
-              observed,
-              setObserved,
-              predicted,
-              setPredicted,
-              rejected,
-              setRejected,
-              selectedTrack,
-              setSelectedTrack,
-              maskPicking,
-              setMaskPicking,
-              corner,
-              setCorner,
-              onValidation,
-            }}
-          />
-          {step > 0 &&
-            step < 8 &&
-            data?.stages[step - 1]?.status === "complete" && (
-              <p className="sc-stage-result">
-                <Check size={14} />
-                {data.stages[step - 1].detail}
-              </p>
-            )}
-        </div>
-        {moreBelow && (
+        <section className="sc-section">
           <Button
-            className="sc-scroll-cue"
-            variant="quiet"
-            onClick={() =>
-              contentRef.current?.scrollBy({
-                top: contentRef.current.clientHeight * 0.65,
-                behavior: "smooth",
-              })
-            }
+            className="sc-open-series"
+            disabled={!ready}
+            onClick={openSeries}
           >
-            More controls below ↓
+            <FolderOpen size={15} />
+            Open series…
           </Button>
+          {!!frames && data && (
+            <p className="sc-source">
+              {baseName(data.firstSource)} … {baseName(data.lastSource)}
+              <br />
+              {frames} frames · {data.shape[1]} × {data.shape[0]} px
+            </p>
+          )}
+        </section>
+        {!!frames && data && (
+          <>
+            <fieldset className="sc-angles sc-section" disabled={!ready}>
+              <legend className="section-label">Rotation</legend>
+              <CommitNumberField
+                label="First frame start"
+                unit="°"
+                value={data.config.omega_start}
+                onCommit={(v) => setConfig({ omega_start: v })}
+              />
+              <CommitNumberField
+                label="Step"
+                unit="°"
+                value={data.config.omega_step}
+                onCommit={(v) => setConfig({ omega_step: v })}
+                positive
+              />
+              <CommitNumberField
+                label="Width per frame"
+                unit="°"
+                value={data.config.exposure}
+                onCommit={(v) => setConfig({ exposure: v })}
+                positive
+              />
+              <div className="field-label integration-number-field">
+                <span className="sc-help-label">
+                  Rotation axis
+                  <CalibrationHelp
+                    label="Rotation axis"
+                    text={ROTATION_AXIS_HELP}
+                  >
+                    <RotationAxisDiagram />
+                  </CalibrationHelp>
+                </span>
+                <Select
+                  aria-label="Rotation axis"
+                  value={JSON.stringify(data.config.axis)}
+                  onChange={(e) =>
+                    setConfig({ axis: JSON.parse(e.target.value) })
+                  }
+                >
+                  <option value="[1,0,0]">+slow</option>
+                  <option value="[-1,0,0]">−slow</option>
+                  <option value="[0,1,0]">+fast</option>
+                  <option value="[0,-1,0]">−fast</option>
+                </Select>
+              </div>
+            </fieldset>
+          </>
         )}
-        <div className="sc-task-footer">
-          {(dirty || !valid) && (
-            <div className="sc-draft" role="status">
-              <span>
-                {valid
-                  ? "Unapplied settings · dependent results will be invalidated."
-                  : (configError ??
-                    fieldError ??
-                    "Check the processing settings.")}
-              </span>
+        {!!frames && data && (
+          <>
+            <section className="sc-section" aria-label="Calibration">
+              <div className="section-label">Calibration</div>
               <div className="sc-actions">
                 <Button
-                  variant="primary"
-                  disabled={!ready || !valid}
+                  disabled={!ready}
                   onClick={() =>
                     void run(
-                      "scxrd_settings",
-                      { config: draft },
-                      "Applying single-crystal settings…",
+                      "scxrd_file",
+                      { operation: "calibration" },
+                      "Loading calibration…",
                     )
                   }
                 >
-                  Apply settings
+                  Load .poni…
                 </Button>
                 <Button
-                  variant="quiet"
-                  disabled={!ready}
-                  onClick={() => {
-                    setDraft(data?.config ?? crystalDefaults);
-                    setFieldErrors({});
-                    setResetToken((v) => v + 1);
-                  }}
+                  disabled={!ready || !calibrated}
+                  onClick={() =>
+                    void run("scxrd_file", { operation: "use_calibration" }, "")
+                  }
                 >
-                  Reset draft
+                  Use calibration
                 </Button>
+                {data.geometry && (
+                  <span>λ {crystalNumber(data.geometry.wavelength, 4)} Å</span>
+                )}
               </div>
-            </div>
-          )}
-          {busy ? (
-            <div className="sc-working" role="status">
-              {progress?.running
-                ? (progress.label ?? "Processing…")
-                : "Updating workspace…"}
-              {!!progress?.running &&
-                !!progress?.total &&
-                progress.total > 0 && (
+            </section>
+            {busy && progress?.running ? (
+              <div className="sc-working" role="status">
+                {progress.label ?? "Working…"}
+                {live && ` · frame ${live.frame + 1} · ${live.spots} spots`}
+                {!!progress.total && (
                   <progress max={progress.total} value={progress.current} />
                 )}
-              {progress?.running && (
-                <>
-                  <span>Completed stages will be kept if you stop.</span>
-                  <Button
-                    variant="secondary"
-                    aria-label="Stop single-crystal processing"
-                    onClick={() => {
-                      void invoke?.("cancel_refinement", {});
-                    }}
-                  >
-                    Stop processing
-                  </Button>
-                </>
-              )}
-            </div>
-          ) : (
-            <>
-              {step > 0 && step < 8 && (
-                <div className="sc-actions">
-                  <Button
-                    variant="secondary"
-                    disabled={!canRunCurrent}
-                    onClick={() => runStage(false)}
-                  >
-                    <Play size={14} />
-                    Run {crystalSteps[step].toLowerCase()}
-                  </Button>
-                  {data?.stages[step - 1]?.status === "complete" && (
-                    <Button
-                      variant="quiet"
-                      disabled={!ready || dirty}
-                      title="Invalidate this stage and all dependent results"
-                      onClick={() =>
-                        void run(
-                          "scxrd_edit",
-                          { operation: "rerun", index: step - 1 },
-                          "Preparing stage rerun…",
-                        )
-                      }
-                    >
-                      <RotateCcw size={14} />
-                      Clear stage and later results
-                    </Button>
-                  )}
-                </div>
-              )}
+                <Button onClick={() => void invoke?.("cancel_refinement", {})}>
+                  Cancel
+                </Button>
+              </div>
+            ) : (
               <Button
                 variant="primary"
-                className="sc-auto"
-                data-testid="sc-primary-action"
-                disabled={
-                  step === 8 ? !ready || !data?.frames || dirty : !canProcess
-                }
-                onClick={() =>
-                  step === 8
-                    ? file("save")
-                    : reviewExport
-                      ? setStep(8)
-                      : runStage(true)
-                }
+                disabled={!ready}
+                onClick={() => runTo(lastStage, 0, true)}
               >
-                {step === 8 ? <Save size={16} /> : <Play size={16} />}
-                {step === 8
-                  ? "Save recipe…"
-                  : reviewExport
-                    ? "Review and export"
-                    : "Run to next decision"}
+                <Play size={15} />
+                {analysed ? "Restart analysis" : "Start analysis"}
               </Button>
-              {ready &&
-                !dirty &&
-                !!data?.frames &&
-                !data.config.confirmed &&
-                step !== 0 &&
-                step !== 8 && (
-                  <Button variant="secondary" onClick={() => setStep(0)}>
-                    Review acquisition in Frames
-                  </Button>
-                )}
-              {!canProcess && step !== 8 && (
-                <p className="sc-note">
-                  {dirty
-                    ? "Apply or reset the settings draft first."
-                    : !data?.frames
-                      ? "Load frames to begin."
-                      : !data.config.confirmed
-                        ? "Confirm acquisition settings in Frames."
-                        : protocolSetup
-                          ? protocolSetup
-                          : !data.geometry
-                            ? "Background and peaks can run now. Load a PONI calibration for cell finding or automatic processing."
-                            : "Wait for processing to finish."}
-                </p>
-              )}
-            </>
-          )}
-          <span className="sc-engine">
-            {data?.engine ?? "Rust · PhaseSmith"}
-          </span>
-        </div>
+            )}
+            <ol className="sc-step-list" aria-label="Analysis steps">
+              {steps.map((name, stage) => (
+                <li key={name}>
+                  <div className="sc-step-row">
+                    <Button
+                      variant="quiet"
+                      aria-label={`Run ${name}`}
+                      title="Run up to this step"
+                      disabled={!ready || (stage === 2 && !data.geometry)}
+                      onClick={() => runTo(stage, stage, false)}
+                    >
+                      {data.stages[stage].status === "complete" ? (
+                        <Check size={14} />
+                      ) : (
+                        <Play size={14} />
+                      )}
+                    </Button>
+                    <span className="sc-step-name">
+                      {name}
+                      <small
+                        className={
+                          data.stages[stage].status === "attention"
+                            ? "sc-step-problem"
+                            : undefined
+                        }
+                      >
+                        {stepSummary(stage) ||
+                          (!data.geometry &&
+                          (stage === 2 ||
+                            (stage === 0 &&
+                              (config!.dac_enabled || config!.diamond_enabled)))
+                            ? "Needs a calibration"
+                            : "")}
+                      </small>
+                    </span>
+                    {data.stages[stage].status === "complete" && (
+                      <span className="sc-step-time">
+                        {data.stages[stage].seconds.toFixed(1)} s
+                      </span>
+                    )}
+                    <Button
+                      variant="quiet"
+                      aria-label={`${name} settings`}
+                      aria-expanded={openStep === stage}
+                      onClick={() =>
+                        setOpenStep(openStep === stage ? null : stage)
+                      }
+                    >
+                      <Settings2 size={14} />
+                    </Button>
+                  </div>
+                  {openStep === stage && (
+                    <fieldset className="sc-angles" disabled={!ready}>
+                      {stage === 0 && (
+                        <>
+                          <label className="sc-check">
+                            <Input
+                              type="checkbox"
+                              checked={config!.dac_enabled}
+                              onChange={(e) =>
+                                setConfig({ dac_enabled: e.target.checked })
+                              }
+                            />
+                            DAC opening
+                          </label>
+                          {config!.dac_enabled && (
+                            <CommitNumberField
+                              label="Half-opening"
+                              unit="°"
+                              value={config!.dac_half_opening}
+                              onCommit={(v) =>
+                                setConfig({ dac_half_opening: v })
+                              }
+                              positive
+                              max={89.9}
+                            />
+                          )}
+                          <label className="sc-check">
+                            <Input
+                              type="checkbox"
+                              checked={config!.seat_enabled}
+                              onChange={(e) =>
+                                setConfig({ seat_enabled: e.target.checked })
+                              }
+                            />
+                            Seat shadow
+                          </label>
+                          <label className="sc-check">
+                            <Input
+                              type="checkbox"
+                              checked={config!.diamond_enabled}
+                              onChange={(e) =>
+                                setConfig({ diamond_enabled: e.target.checked })
+                              }
+                            />
+                            Diamond spots
+                          </label>
+                          {config!.diamond_enabled && (
+                            <>
+                              <CommitNumberField
+                                label="Min. size"
+                                unit="px"
+                                value={config!.diamond_min_area}
+                                onCommit={(v) =>
+                                  setConfig({ diamond_min_area: v })
+                                }
+                                integer
+                                min={1}
+                              />
+                              <CommitNumberField
+                                label="d tolerance"
+                                unit="%"
+                                value={config!.diamond_tolerance}
+                                onCommit={(v) =>
+                                  setConfig({ diamond_tolerance: v })
+                                }
+                                positive
+                                max={20}
+                              />
+                            </>
+                          )}
+                        </>
+                      )}
+                      {stage === 1 && (
+                        <>
+                          <CommitNumberField
+                            label="Threshold"
+                            unit="σ"
+                            value={data.config.threshold}
+                            onCommit={(v) => setConfig({ threshold: v })}
+                            positive
+                          />
+                          <CommitNumberField
+                            label="Minimum area"
+                            unit="px"
+                            value={data.config.min_pixels}
+                            onCommit={(v) => setConfig({ min_pixels: v })}
+                            integer
+                            min={1}
+                          />
+                          <CommitNumberField
+                            label="Link radius"
+                            unit="px"
+                            value={data.config.link_radius}
+                            onCommit={(v) => setConfig({ link_radius: v })}
+                            positive
+                          />
+                        </>
+                      )}
+                      {stage === 2 && (
+                        <>
+                          <CommitNumberField
+                            label="Shortest vector"
+                            unit="Å"
+                            value={data.config.min_cell}
+                            onCommit={(v) => setConfig({ min_cell: v })}
+                            positive
+                          />
+                          <CommitNumberField
+                            label="Longest vector"
+                            unit="Å"
+                            value={data.config.max_cell}
+                            onCommit={(v) => setConfig({ max_cell: v })}
+                            positive
+                          />
+                          <CommitNumberField
+                            label="Tolerance"
+                            unit="Å⁻¹"
+                            value={data.config.tolerance}
+                            onCommit={(v) => setConfig({ tolerance: v })}
+                            positive
+                          />
+                        </>
+                      )}
+                    </fieldset>
+                  )}
+                </li>
+              ))}
+            </ol>
+            {data.cells.length > 0 && (
+              <section
+                className="sc-section sc-cell-list"
+                aria-label="Lattice candidates"
+              >
+                <div className="section-label">Lattice candidates</div>
+                {data.cells.map((cell, i) => (
+                  <div
+                    className={`sc-cell-card ${data.selected === i ? "sc-cell-chosen" : ""}`}
+                    key={i}
+                  >
+                    <div className="sc-cell-card-head">
+                      <Button
+                        disabled={!ready}
+                        aria-pressed={data.selected === i}
+                        onClick={() =>
+                          void run(
+                            "scxrd_edit",
+                            { operation: "cell", index: i },
+                            "",
+                          )
+                        }
+                      >
+                        {data.selected === i ? "Selected" : "Use lattice"}
+                      </Button>
+                      <span>
+                        {cell.indexed}/{cell.total} spots
+                      </span>
+                    </div>
+                    <dl>
+                      <dt>a, b, c / Å</dt>
+                      <dd>
+                        {cell.parameters
+                          .slice(0, 3)
+                          .map((n) => crystalNumber(n))
+                          .join(" · ")}
+                      </dd>
+                      <dt>α, β, γ / °</dt>
+                      <dd>
+                        {cell.parameters
+                          .slice(3)
+                          .map((n) => crystalNumber(n, 2))
+                          .join(" · ")}
+                      </dd>
+                    </dl>
+                  </div>
+                ))}
+              </section>
+            )}
+          </>
+        )}
+        {!frames && busy && progress?.running && (
+          <div className="sc-working" role="status">
+            {progress.label ?? "Working…"}
+            {!!progress.total && (
+              <progress max={progress.total} value={progress.current} />
+            )}
+          </div>
+        )}
       </aside>
     </div>
   );

@@ -13,7 +13,7 @@ The window has the same parts in every mode: the mode bar on the left, plots in 
 
 | Area | Purpose |
 | --- | --- |
-| Mode bar, top left | **Calibration**, **Mask**, **Integration**, **Map** and **Single Crystal XRD** |
+| Mode bar, top left | **Calibration**, **Mask**, **Integration**, **Map** and **Single Crystal** |
 | Mode bar, bottom left | Your [custom actions](/Dioptas/manual/guides/custom-actions/), **Undo** and **Redo**, **Open project**, **Save project**, and **Settings** at the very bottom |
 | Image area | The detector image or cake, with its intensity histogram and color bar |
 | Task panel, right | The controls of the current mode, usually in tabs |

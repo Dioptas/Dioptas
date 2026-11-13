@@ -1027,3 +1027,72 @@ fn observation_view_filter_preserves_native_signed_eligibility_and_global_counts
     assert_eq!(r.result["scxrd"]["reflections"][0]["native_use"], false);
     assert_eq!(s.scxrd.reflections.len(), 3);
 }
+#[test]
+fn selected_frames_follow_their_numbers_whatever_the_dialog_order() {
+    let mut names = vec!["s_10_a.tif", "s_2_a.tif", "s_1_a.tif", "s_010_b.tif"];
+    names.sort_by(|a, b| super::natural_order(a, b));
+    assert_eq!(
+        names,
+        ["s_1_a.tif", "s_2_a.tif", "s_10_a.tif", "s_010_b.tif"]
+    );
+    // Names without a trailing number used to keep the dialog's order.
+    let dir = tempfile::tempdir().unwrap();
+    let mut paths = Vec::new();
+    for i in [3, 1, 2] {
+        let p = dir.path().join(format!("f_raw_{i}.tif"));
+        tiff::encoder::TiffEncoder::new(File::create(&p).unwrap())
+            .unwrap()
+            .write_image::<tiff::encoder::colortype::Gray16>(8, 8, &[i as u16; 64])
+            .unwrap();
+        paths.push(p);
+    }
+    let mut s = Session::new(PathBuf::new());
+    let loaded = call(&mut s, "scxrd_load", json!({"paths":paths}));
+    assert_eq!(loaded.result["ok"], true, "{:?}", loaded.result);
+    let order: Vec<_> = s
+        .scxrd
+        .sources
+        .iter()
+        .map(|s| s.path.file_name().unwrap().to_string_lossy().into_owned())
+        .collect();
+    assert_eq!(order, ["f_raw_1.tif", "f_raw_2.tif", "f_raw_3.tif"]);
+    // One file of a run opens the whole run, but not a neighbouring run.
+    std::fs::copy(&paths[0], dir.path().join("g_raw_1.tif")).unwrap();
+    let loaded = call(&mut s, "scxrd_load", json!({"paths":[paths[0]]}));
+    assert_eq!(loaded.result["ok"], true, "{:?}", loaded.result);
+    assert_eq!(s.scxrd.sources.len(), 3);
+    // Opening hashes nothing; the first processing read records the counts.
+    assert!(s.scxrd.sources.iter().all(|s| s.digest.get().is_none()));
+    s.scxrd.read(1).unwrap();
+    assert!(s.scxrd.sources[1].digest.get().is_some());
+}
+#[test]
+fn pixel_click_traces_the_sc_constant_two_theta_line() {
+    let (_dir, paths) = fixture();
+    let mut s = Session::new(PathBuf::new());
+    call(&mut s, "scxrd_load", json!({"paths":paths}));
+    s.scxrd.preview_values = Some(Arc::new(vec![1.; 256]));
+    let plain = call(&mut s, "scxrd_pixel", json!({"x":12,"y":8}));
+    assert!(plain.result["scxrdPixel"]["contour"].is_null());
+    // Beam through pixel (8, 8): constant 2θ is a circle about its centre.
+    s.scxrd.geometry = Some(Geometry {
+        origin: [-8., -8., 100.],
+        fast: [1., 0., 0.],
+        slow: [0., 1., 0.],
+        beam: [0., 0., 1.],
+        axis: [1., 0., 0.],
+        wavelength: 0.5,
+    });
+    let r = call(&mut s, "scxrd_pixel", json!({"x":12,"y":8,"contour":true}));
+    let pixel = &r.result["scxrdPixel"];
+    let paths = pixel["contour"].as_array().unwrap();
+    assert!(!paths.is_empty());
+    for path in paths {
+        assert_eq!(path["ring"], 0);
+        for p in path["points"].as_array().unwrap() {
+            let (x, y) = (p[0].as_f64().unwrap() - 8.5, p[1].as_f64().unwrap() - 8.5);
+            assert!(((x * x + y * y).sqrt() - 4.).abs() < 0.1, "{p}");
+        }
+    }
+    assert!(pixel["twoTheta"].as_f64().unwrap() > 0.);
+}

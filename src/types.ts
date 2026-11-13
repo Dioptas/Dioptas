@@ -325,6 +325,13 @@ export interface Response {
     label?: string;
     fps?: number;
     elapsedSeconds?: number;
+    /** Frame a running single-crystal spot search has just finished. */
+    scxrdPreview?: {
+      raster: Raster;
+      frame: number;
+      spots: number;
+      peaks: { x: number; y: number; flags: number }[];
+    };
     mapPreview?: {
       raster: Raster;
       completed: number;

@@ -85,7 +85,7 @@ try {
       });
       await page.goto(server.resolvedUrls.local[0]);
       await page
-        .getByRole("button", { name: "Single Crystal XRD", exact: true })
+        .getByRole("button", { name: "Single Crystal", exact: true })
         .click();
       await page.getByTestId("detector-canvas").waitFor();
       await page.waitForFunction(() => !!window.__reloadTestEvent);

@@ -462,7 +462,7 @@ const tasks = {
     await session(async (s) => {
       const { page } = s;
       await s.open();
-      await s.mode("Single Crystal XRD");
+      await s.mode("Single Crystal");
       await s.capture(
         "scxrd-start",
         "Single Crystal XRD before a rotation scan is loaded: stage tabs and the Frames setup.",
