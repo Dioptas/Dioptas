@@ -362,7 +362,10 @@ impl Plan {
         o: &Options,
     ) -> Result<dioptrin::lut::AzimuthalIntegrationResult, String> {
         self.prepare_general(o)?;
-        if o.pyfai && !o.dynamic_mask && !o.spread && supplied_variance.is_none() {
+        // Reuse the strict CSR snapshot for any fixed-mask custom grid. It owns
+        // the existing weights/order and caches the same normalization sums.
+        // Supplied variances, spread and changing masks retain their kernels.
+        if !o.dynamic_mask && !o.spread && supplied_variance.is_none() {
             let result = self
                 .fixed_compatibility(o, mask)?
                 .integrate_frame(data, o.errors)?;
@@ -1387,3 +1390,7 @@ mod zero_trimming_tests {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "integration_prepared_tests.rs"]
+mod prepared_plan_tests;
