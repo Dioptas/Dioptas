@@ -1,0 +1,105 @@
+{
+ "schemaVersion": 1,
+ "provenance": {
+  "generator": "pyFAI.load(poni).center_array((40, 60), unit='2th_rad') in degrees, evaluated at raw file (row, column) pixel centres",
+  "pyFAI": "2025.12.1",
+  "numpy": "2.4.2",
+  "date": "2026-11-13",
+  "imageShape": [
+   40,
+   60
+  ],
+  "tolerance": {
+   "twoThetaDeg": 1e-10
+  },
+  "inputs": {
+   "poni-orientation-dioptas.poni": "601f042fe2cb4c7366248356eaebc880cc5212b500b5089742ed1e8e678d8ee0",
+   "poni-orientation-pyfai.poni": "b2ed4f4e9d84a4cc81c58dbee00bc6b5d94d459eb8cb7502b1ee95ac0627d8bb"
+  },
+  "notes": "Raw file rows count top-down (pyFAI). Dioptas views rows bottom-up, so file row r is Dioptas pixel y = 39 - r."
+ },
+ "cases": [
+  {
+   "poni": "poni-orientation-dioptas.poni",
+   "pyfaiOrientation": 2,
+   "twoThetaDeg": [
+    [
+     0,
+     0,
+     4.207214741329444
+    ],
+    [
+     0,
+     59,
+     6.080659390938431
+    ],
+    [
+     39,
+     0,
+     6.382400295065529
+    ],
+    [
+     39,
+     59,
+     7.748477176149656
+    ],
+    [
+     36,
+     5,
+     6.273894837124343
+    ],
+    [
+     9,
+     50,
+     6.082689606166842
+    ],
+    [
+     22,
+     31,
+     6.063336054023201
+    ]
+   ]
+  },
+  {
+   "poni": "poni-orientation-pyfai.poni",
+   "pyfaiOrientation": 3,
+   "twoThetaDeg": [
+    [
+     0,
+     0,
+     6.382400295065529
+    ],
+    [
+     0,
+     59,
+     7.748477176149656
+    ],
+    [
+     39,
+     0,
+     4.207214741329444
+    ],
+    [
+     39,
+     59,
+     6.080659390938431
+    ],
+    [
+     36,
+     5,
+     4.457278621685258
+    ],
+    [
+     9,
+     50,
+     7.029791396450173
+    ],
+    [
+     22,
+     31,
+     5.8144710838488045
+    ]
+   ]
+  }
+ ]
+}

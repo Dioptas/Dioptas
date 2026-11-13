@@ -836,3 +836,68 @@ fn plain_pixel_calibrations_save_the_row_flip_as_pyfai_orientation() {
         );
     }
 }
+
+#[test]
+fn recorded_rotation_on_a_non_square_image_rotates_instead_of_refusing() {
+    let temp = tempfile::tempdir().unwrap();
+    let image = temp.path().join("wide.npy");
+    let values: Vec<f64> = (0..40 * 60).map(f64::from).collect();
+    npy(&image, [40, 60], &values);
+    // A detector definition sized for the rotated (60 × 40) view.
+    let geometry = "poni_version: 2.1\nDetector: Detector\nDetector_config: {\"pixel1\": 0.0001, \"pixel2\": 0.0001, \"max_shape\": [60, 40], \"orientation\": 3}\nDistance: 0.1\nPoni1: 0.002\nPoni2: 0.003\nRot1: 0\nRot2: 0\nRot3: 0\nWavelength: 3e-11\n";
+    let noted = temp.path().join("noted.poni");
+    fs::write(
+        &noted,
+        format!("# Dioptas image orientation: rotate_right\n{geometry}"),
+    )
+    .unwrap();
+    let bare = temp.path().join("bare.poni");
+    fs::write(&bare, geometry).unwrap();
+
+    // Without the note the 60 × 40 detector does not fit the 40 × 60 image.
+    let mut s = Session::new(root());
+    call(&mut s, "open_image", json!({"path":image}));
+    let refused = call(&mut s, "open_calibration", json!({"path":bare}));
+    assert_eq!(refused["cancelled"], true);
+    assert_eq!(refused["calibrationChange"]["imageShape"], json!([40, 60]));
+    assert_eq!(state(&mut s)["calibrated"], false);
+
+    // With the note the view turns first, so the detector fits.
+    let loaded = call(&mut s, "open_calibration", json!({"path":noted}));
+    assert!(loaded.get("cancelled").is_none(), "{loaded}");
+    assert_eq!(
+        loaded["orientationNotice"],
+        "image orientation rotate_right from file"
+    );
+    let after = state(&mut s);
+    assert_eq!(after["calibrated"], true);
+    assert_eq!(
+        after["calibration"]["transformations"],
+        json!(["rotate_matrix_p90"])
+    );
+    let corner = call(
+        &mut s,
+        "pixel",
+        json!({"x":39,"y":59,"source":"raw_detector"}),
+    );
+    assert!(corner["pixel"]["twoTheta"].is_number(), "{corner}");
+
+    // Saving and reloading in a fresh session restores the same view and 2θ.
+    let saved = temp.path().join("saved.poni");
+    call(&mut s, "save_calibration", json!({"path":saved}));
+    let mut fresh = Session::new(root());
+    call(&mut fresh, "open_image", json!({"path":image}));
+    let reloaded = call(&mut fresh, "open_calibration", json!({"path":saved}));
+    assert!(reloaded.get("cancelled").is_none(), "{reloaded}");
+    assert_eq!(
+        state(&mut fresh)["calibration"]["transformations"],
+        json!(["rotate_matrix_p90"])
+    );
+    for (x, y) in [(0, 0), (39, 59), (12, 31)] {
+        let pixel = json!({"x":x,"y":y,"source":"raw_detector"});
+        assert_eq!(
+            call(&mut s, "pixel", pixel.clone())["pixel"],
+            call(&mut fresh, "pixel", pixel)["pixel"]
+        );
+    }
+}

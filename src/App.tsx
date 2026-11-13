@@ -708,7 +708,9 @@ export default function App() {
             ++progressGeneration.current;
             setProgress(undefined);
             setBusy(message);
-            setNotice(null);
+            // The automatic display refresh after a load must not wipe the
+            // notice of the command that triggered it (e.g. Loaded calibration).
+            if (command !== "display_products") setNotice(null);
           }
           if (command !== "integration_autoprocess_poll") setError(null);
           if (command === "workflow_settings")

@@ -1,0 +1,11 @@
+# Dioptas native geometry; file rows use pyFAI convention
+poni_version: 2.1
+Detector: Detector
+Detector_config: {"pixel1":0.0001,"pixel2":0.0001,"max_shape":[40,60],"orientation":2}
+Distance: 0.1
+Poni1: 0.001
+Poni2: 0.003
+Rot1: 0.05
+Rot2: 0.1
+Rot3: 0.02
+Wavelength: 0.00000000003
