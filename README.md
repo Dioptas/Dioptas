@@ -13,7 +13,7 @@ runtime needs no Python installation.
 **Native installers are the recommended installation route for the Rust
 desktop.** Choose the macOS DMG for Apple Silicon or Intel, the Windows x64
 setup executable, or a Linux x64 Debian package or AppImage. See the
-[installation guide](docs/source/installation.rst) for requirements and steps.
+[installation guide](manual/src/content/docs/getting-started/installation.md) for requirements and steps.
 
 The first Rust desktop prerelease is
 [Dioptas 0.14.0-rc.1](https://github.com/Dioptas/Dioptas/releases/tag/0.14.0-rc.1),

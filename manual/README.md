@@ -1,6 +1,6 @@
 # Dioptas user manual
 
-An Astro Starlight documentation site for the Dioptas desktop application. It is written for people who use Dioptas at a beamline or in the lab. Developer documentation stays in `DEVELOPMENT.md` and `docs/`; the older Sphinx pages in `docs/source/` are unchanged.
+An Astro Starlight documentation site for the Dioptas desktop application. It is written for people who use Dioptas at a beamline or in the lab. Developer documentation stays in `DEVELOPMENT.md` and `docs/`. The manual replaces the Sphinx pages that used to be in `docs/source/`; the Qt application and its manual are preserved on the `legacy/qt` branch.
 
 ## Develop
 
@@ -67,7 +67,7 @@ npm --prefix manual run preview
 
 ## Publishing
 
-The manual is published on GitHub Pages at `https://dioptas.github.io/Dioptas/manual/`, as an interim home; the older Qt manual stays on Read the Docs. `.github/workflows/manual.yml` builds the manual for every pull request that touches `manual/`, and builds and deploys it on each push to `develop` that does (or when the workflow is started by hand). The site root forwards to `manual/`.
+The manual is published on GitHub Pages at `https://dioptas.github.io/Dioptas/manual/`, as an interim home. The Read the Docs site still shows the manual of the released Qt versions, but is no longer built from this branch. `.github/workflows/manual.yml` builds the manual for every pull request that touches `manual/`, and builds and deploys it on each push to `develop` that does (or when the workflow is started by hand). The site root forwards to `manual/`.
 
 This needs a one-time repository setting: **Settings → Pages → Source: GitHub Actions**. If the `github-pages` environment restricts deployment branches, `develop` must be allowed.
 

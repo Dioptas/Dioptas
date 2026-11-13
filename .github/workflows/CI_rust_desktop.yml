@@ -6,9 +6,9 @@ on:
   push:
     branches: [develop]
     tags: ['**']
-    paths-ignore: ['docs/source/**', '.readthedocs.yaml']
+    paths-ignore: ['manual/**', '.github/workflows/manual.yml']
   pull_request:
-    paths-ignore: ['docs/source/**', '.readthedocs.yaml']
+    paths-ignore: ['manual/**', '.github/workflows/manual.yml']
   workflow_dispatch:
 
 permissions:
