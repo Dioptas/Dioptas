@@ -274,6 +274,36 @@
 .sc-panel .sc-angles .integration-number-field > .ui-field-error {
   grid-column: 1 / -1;
 }
+/* The axis choice is a word, not a number: let it span box and unit columns. */
+.sc-panel .sc-angles .integration-number-field > select {
+  grid-column: 2 / -1;
+}
+.sc-panel .sc-angles .integration-number-field > .sc-direction {
+  grid-column: 2 / -1;
+  display: flex;
+  gap: 4px;
+}
+.sc-direction .ui-button {
+  flex: 1;
+  min-height: 40px;
+  padding: 2px;
+}
+.sc-direction-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+.sc-direction-icon .sc-axis-line {
+  stroke: #f99b42;
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+}
+.sc-direction-icon .sc-direction-back {
+  opacity: 0.35;
+}
+.sc-direction-icon path[fill] {
+  stroke: none;
+}
 .sc-angles .sc-help-label {
   display: flex;
   align-items: center;
@@ -281,14 +311,26 @@
 }
 .sc-axis-diagram {
   display: block;
-  width: 160px;
+  width: 260px;
   margin: 0 auto 6px;
   font-size: 10px;
   fill: currentColor;
 }
 .sc-axis-diagram .sc-axis-frame {
-  fill: #0006;
+  fill: #8a8f96;
   stroke: var(--border);
+}
+.sc-axis-diagram .sc-axis-shadow {
+  fill: #15171a;
+}
+.sc-axis-diagram .sc-axis-line {
+  stroke: #f99b42;
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
+}
+.sc-axis-diagram .sc-axis-title {
+  font-size: 11px;
+  font-weight: 600;
 }
 .sc-frame-slider {
   flex: 1;

@@ -9,7 +9,10 @@ import {
 } from "lucide-react";
 import { CommitNumberField } from "./CommitNumberField";
 import { CalibrationHelp } from "./CalibrationHelp";
-import { RotationAxisDiagram } from "./RotationAxisDiagram";
+import {
+  RotationAxisDiagram,
+  RotationDirectionIcon,
+} from "./RotationAxisDiagram";
 import { SingleCrystalPanelDivider } from "./SingleCrystalPanelDivider";
 import { SingleCrystalModeIcon } from "./ModeIcons";
 import { Button, Input, Select } from "./ui";
@@ -28,7 +31,7 @@ import "./singleCrystal.css";
 // Checked against Crystal::set_poni, RasterView marker placement and
 // PhaseSmith reciprocal::Geometry::convert (right-handed sample rotation).
 const ROTATION_AXIS_HELP =
-  "Directions refer to the image as shown. The sign sets the rotation sense. If Find lattices finds nothing, try the opposite sign.";
+  "The axis the crystal turns about, as seen in the image. Rotation direction is the sense of that turn: if Find lattices finds nothing, try the other direction.";
 export const crystalNumber = (n: number, d = 3) =>
   Number.isFinite(n) ? n.toFixed(d) : "—";
 /**
@@ -47,6 +50,10 @@ const exploratory = (c: CrystalConfig): CrystalConfig =>
         dac_enabled: true,
         dac_axis: [0, 0, 1],
         seat_enabled: true,
+        // Measured on the ID11 Eiger scan: the shadow edge is sharp (fully lit
+        // 8 px past half level), so mask below half the lit level plus one block.
+        seat_threshold: 0.5,
+        seat_guard: 16,
         diamond_enabled: true,
         aperture_radius: 6,
         omega_radius: 1.5,
@@ -172,6 +179,9 @@ export function SingleCrystalWorkspace({
     if (Number.isInteger(v) && v >= 1 && v <= frames) changeFrame(v - 1);
     else setFrameDraft(String((data?.frame ?? 0) + 1));
   };
+  // The axis vector's sign is the sense of rotation for increasing frames.
+  const axisSign =
+    (data?.config.axis[0] || data?.config.axis[1] || 1) < 0 ? -1 : 1;
   const [openStep, setOpenStep] = useState<number | null>(null);
   /** The settings as they will be sent, including the mask defaults. */
   const config = data ? exploratory(data.config) : null;
@@ -451,16 +461,58 @@ export function SingleCrystalWorkspace({
                 </span>
                 <Select
                   aria-label="Rotation axis"
-                  value={JSON.stringify(data.config.axis)}
+                  value={data.config.axis[0] ? "vertical" : "horizontal"}
                   onChange={(e) =>
-                    setConfig({ axis: JSON.parse(e.target.value) })
+                    setConfig({
+                      axis:
+                        e.target.value === "vertical"
+                          ? [axisSign, 0, 0]
+                          : [0, axisSign, 0],
+                    })
                   }
                 >
-                  <option value="[1,0,0]">+slow</option>
-                  <option value="[-1,0,0]">−slow</option>
-                  <option value="[0,1,0]">+fast</option>
-                  <option value="[0,-1,0]">−fast</option>
+                  <option value="vertical">vertical</option>
+                  <option value="horizontal">horizontal</option>
                 </Select>
+              </div>
+              <div className="field-label integration-number-field">
+                <span>Rotation direction</span>
+                <span
+                  className="segmented sc-direction"
+                  role="group"
+                  aria-label="Rotation direction"
+                >
+                  {([-1, 1] as const).map((sign) => (
+                    <Button
+                      key={sign}
+                      aria-pressed={axisSign === sign}
+                      aria-label={
+                        (sign > 0 ? "Counterclockwise" : "Clockwise") +
+                        (data.config.axis[0]
+                          ? ", seen from above"
+                          : ", seen from the right")
+                      }
+                      title={
+                        (sign > 0 ? "Counterclockwise" : "Clockwise") +
+                        (data.config.axis[0]
+                          ? ", seen from above"
+                          : ", seen from the right")
+                      }
+                      onClick={() =>
+                        setConfig({
+                          axis: data.config.axis[0]
+                            ? [sign, 0, 0]
+                            : [0, sign, 0],
+                        })
+                      }
+                    >
+                      <RotationDirectionIcon
+                        sign={sign}
+                        horizontal={!data.config.axis[0]}
+                      />
+                    </Button>
+                  ))}
+                </span>
               </div>
             </fieldset>
           </>
@@ -537,7 +589,9 @@ export function SingleCrystalWorkspace({
                       {name}
                       <small
                         className={
-                          data.stages[stage].status === "attention"
+                          data.stages[stage].status === "attention" ||
+                          // Masks were made but disagree with the data.
+                          (stage === 0 && !!data.notice)
                             ? "sc-step-problem"
                             : undefined
                         }
@@ -603,6 +657,27 @@ export function SingleCrystalWorkspace({
                             />
                             Seat shadow
                           </label>
+                          {config!.seat_enabled && (
+                            <>
+                              <CommitNumberField
+                                label="Below / × lit"
+                                value={config!.seat_threshold}
+                                onCommit={(v) =>
+                                  setConfig({ seat_threshold: v })
+                                }
+                                positive
+                                max={0.99}
+                              />
+                              <CommitNumberField
+                                label="Margin / px"
+                                value={config!.seat_guard}
+                                onCommit={(v) => setConfig({ seat_guard: v })}
+                                integer
+                                min={0}
+                                max={4096}
+                              />
+                            </>
+                          )}
                           <label className="sc-check">
                             <Input
                               type="checkbox"

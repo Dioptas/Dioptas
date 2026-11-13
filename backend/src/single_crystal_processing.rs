@@ -72,6 +72,7 @@ impl Crystal {
     fn background(&mut self, control: &Control) -> Result<String, String> {
         self.prepare_shadows(control)?;
         self.prepare_diamonds(control)?;
+        self.notice = self.dac_warning();
         if !self.config.background {
             self.background = None;
             return Ok(self.mask_summary());

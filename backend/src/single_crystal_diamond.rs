@@ -201,7 +201,22 @@ impl Crystal {
             let plural = if d.regions == 1 { "" } else { "s" };
             summary += &format!(" · {} diamond spot{plural}", d.regions);
         }
+        if let Some(warning) = self.dac_warning() {
+            summary += &format!(" · {warning}");
+        }
         summary
+    }
+    /// The geometric DAC mask must cover the seat shadow measured in the same
+    /// frames; otherwise the declared rotation (most often the axis) is wrong
+    /// and the DAC mask would hide illuminated data instead of the shadow.
+    pub(super) fn dac_warning(&self) -> Option<String> {
+        let agreement = self.shadows.as_ref()?.dac_agreement()?;
+        (agreement < 0.8).then(|| {
+            format!(
+                "DAC mask covers only {:.0}\u{a0}% of the measured shadow: check the rotation axis",
+                100. * agreement
+            )
+        })
     }
     /// Exclude broad diamond spots on every processed frame. Shadow masks must
     /// be prepared first so that shadowed pixels never seed a region.
@@ -362,5 +377,146 @@ mod tests {
             regions: 2,
         }));
         assert_eq!(c.mask_summary(), "0.0\u{a0}% masked · 2 diamond spots");
+    }
+
+    /// Coarse DAC cells masked at one frame, split into image halves:
+    /// [low rows, high rows, low columns, high columns].
+    fn dac_halves(axis: V3, frame: usize) -> [usize; 4] {
+        let p = 7.5e-4;
+        let (h, w) = (224, 208);
+        let mut c = Crystal {
+            shape: [h, w],
+            ..Default::default()
+        };
+        c.sources = (0..144)
+            .map(|frame| Source {
+                path: PathBuf::new(),
+                frame,
+                digest: Default::default(),
+            })
+            .collect();
+        c.config.omega_start = -36.;
+        c.config.omega_step = 0.5;
+        c.config.exposure = 0.5;
+        c.config.axis = axis;
+        c.config.dac_enabled = true;
+        // As Crystal::set_poni builds it: slow along detector rows, fast along
+        // columns, beam centre in the middle of the image.
+        c.initial_geometry = Some(Geometry {
+            origin: [p / 2. - h as f64 * p / 2., p / 2. - w as f64 * p / 2., 0.15],
+            fast: [0., p, 0.],
+            slow: [p, 0., 0.],
+            beam: [0., 0., 1.],
+            axis,
+            wavelength: 0.2846,
+        });
+        c.prepare_shadows(&Control::default()).unwrap();
+        let s = c.shadows.unwrap();
+        let rows = s.cells / s.columns;
+        let mut halves = [0; 4];
+        for cell in 0..s.cells {
+            if s.dac[frame * s.cells + cell] {
+                let (row, column) = (cell / s.columns, cell % s.columns);
+                halves[usize::from(row >= rows / 2)] += 1;
+                // 13 columns: the middle one straddles the beam centre.
+                if column != s.columns / 2 {
+                    halves[2 + usize::from(column > s.columns / 2)] += 1;
+                }
+            }
+        }
+        halves
+    }
+
+    /// Measured on the ID11 Eiger enstatite scan (axis -slow, start -36 deg):
+    /// at negative omega the cell body darkens the high-column side and the
+    /// shadow edge sweeps across columns, symmetric between top and bottom.
+    /// An axis along the columns instead moves the shadow up and down.
+    #[test]
+    fn dac_shadow_sweeps_across_the_rotation_axis() {
+        let [top, bottom, left, right] = dac_halves([-1., 0., 0.], 35);
+        assert!(right > 0 && left == 0, "{left} {right}");
+        assert_eq!(top, bottom);
+        let [top, bottom, left, right] = dac_halves([-1., 0., 0.], 108);
+        assert!(left > 0 && right == 0, "{left} {right}");
+        assert_eq!(top, bottom);
+        let [top, bottom, left, right] = dac_halves([0., 1., 0.], 35);
+        assert!(top.abs_diff(bottom) > 0 && left == right, "{top} {bottom}");
+    }
+
+    #[test]
+    fn a_dac_mask_away_from_the_measured_shadow_asks_to_check_the_axis() {
+        let shadows = |dac: Vec<bool>| Shadows {
+            first: 0,
+            last: 1,
+            block: 16,
+            columns: 2,
+            cells: 4,
+            // Frame 0: the left column is dark. Frame 1: closed by the DAC
+            // mask, which carries no information.
+            illumination: vec![true, false, true, false, true, true, true, true],
+            dac,
+            report: Value::Null,
+        };
+        let agreeing = shadows(vec![true, false, true, true, true, true, true, true]);
+        assert_eq!(agreeing.dac_agreement(), Some(1.));
+        let crossed = shadows(vec![false, false, true, true, true, true, true, true]);
+        assert_eq!(crossed.dac_agreement(), Some(0.5));
+        let mut c = Crystal::default();
+        c.config.dac_enabled = true;
+        c.config.seat_enabled = true;
+        c.shadows = Some(Arc::new(agreeing));
+        assert!(c.dac_warning().is_none());
+        c.shadows = Some(Arc::new(crossed));
+        assert!(c.mask_summary().ends_with("check the rotation axis"));
+    }
+
+    /// Measured on the ID11 Eiger scan: the seat shadow edge is sharp, but
+    /// powder rings and omega-dependent background raise the estimator's
+    /// per-frame scale (its 90th-percentile ratio). At the old 0.85 level
+    /// fully lit cells next to the shadow then counted as shadow; at half
+    /// the lit level only the shadow itself does.
+    #[test]
+    fn seat_level_at_half_lit_keeps_lit_cells_beside_a_brighter_band() {
+        use spots::frame_validity as validity;
+        let shape = validity::Shape {
+            height: 128,
+            width: 512,
+            block: 16,
+        };
+        let (h, w, frames) = (8, 32, 10);
+        let mut coarse = vec![100.; frames * h * w];
+        for y in 0..h {
+            for x in 0..w {
+                // Frame 0: the right quarter lies in the seat shadow, the
+                // left quarter is a quarter brighter than in the references.
+                coarse[y * w + x] = match x {
+                    24.. => 5.,
+                    ..8 => 125.,
+                    _ => 100.,
+                };
+            }
+        }
+        let available = vec![true; frames];
+        let masked = |threshold: f64| {
+            let e = validity::estimate(
+                &coarse,
+                &available,
+                shape,
+                validity::SeatOptions {
+                    threshold,
+                    guard_pixels: 16,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+            let lit = (0..h * w).filter(|i| (8..22).contains(&(i % w)) && e.excluded[*i]);
+            let dark = (0..h * w).filter(|i| i % w >= 24 && e.excluded[*i]);
+            (lit.count(), dark.count())
+        };
+        let (lit, dark) = masked(0.85);
+        // Smoothing may round off a shadow corner cell or two.
+        assert!(lit > 4 * h && dark + 2 >= 8 * h, "{lit} {dark}");
+        let (lit, dark) = masked(0.5);
+        assert!(lit == 0 && dark + 2 >= 8 * h, "{lit} {dark}");
     }
 }
