@@ -15,6 +15,7 @@ import {
   useState,
   type Ref,
 } from "react";
+import { flushSync } from "react-dom";
 import type { Cake, Palette, Raster, Tool, RingOverlay } from "./types";
 import type { MaskOverlay } from "./maskDomain";
 import {
@@ -171,7 +172,8 @@ export function RasterView({
 }) {
   const container = useRef<HTMLDivElement>(null),
     canvas = useRef<HTMLCanvasElement>(null);
-  const [size, setSize] = useState({ width: 500, height: 380 });
+  // No provisional image projection: measure the mounted surface before drawing.
+  const [size, setSize] = useState({ width: 0, height: 0 });
   const [cakeAxisWidth, setCakeAxisWidth] = useState(60);
   const cakeAxis = useMemo(
     () =>
@@ -256,7 +258,7 @@ export function RasterView({
   const gpu = useRef<WebGLRaster | null>(null);
   const [renderer, setRenderer] = useState("pending");
   const [contextVersion, setContextVersion] = useState(0);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const element = gpuCanvas.current!;
     let disposed = false;
     const initialize = () => {
@@ -286,16 +288,24 @@ export function RasterView({
       gpu.current = null;
     };
   }, []);
-  useEffect(() => {
-    const observer = new ResizeObserver(([entry]) =>
-      setSize({
-        width: entry.contentRect.width,
-        height: entry.contentRect.height,
-      }),
+  const measure = useCallback(() => {
+    const { width, height } = container.current!.getBoundingClientRect();
+    setSize((previous) =>
+      previous.width === width && previous.height === height
+        ? previous
+        : { width, height },
     );
-    if (container.current) observer.observe(container.current);
-    return () => observer.disconnect();
   }, []);
+  // Mode/layout changes can retain this component. Recheck synchronously so
+  // those transitions also finish resizing before the browser paints.
+  useLayoutEffect(measure);
+  useLayoutEffect(() => {
+    // ResizeObserver runs before paint, but an ordinary React update can be
+    // deferred past it. Commit external resizes in this same browser frame.
+    const observer = new ResizeObserver(() => flushSync(measure));
+    observer.observe(container.current!);
+    return () => observer.disconnect();
+  }, [measure]);
   const typography = usePlotTypography(canvas);
   const left = cake ? (showCakeAzimuthAxis ? cakeAxisWidth : 8) : imagePadding,
     right = cake ? 22 : imagePadding,
@@ -381,7 +391,7 @@ export function RasterView({
   const zoom = fitWidth / (view.xMax - view.xMin);
   const editableRoi = !!onRoiChange;
   useLayoutEffect(() => {
-    if (!gpu.current) return;
+    if (!gpu.current || size.width <= 0 || size.height <= 0) return;
     try {
       navigationTrace("raster-start", {
         bufferId: raster.bufferId,
@@ -440,6 +450,7 @@ export function RasterView({
   ]);
   const draw = useCallback(
     (output: HTMLCanvasElement, exporting = false) => {
+      if (size.width <= 0 || size.height <= 0 || renderer === "pending") return;
       const context = output.getContext("2d");
       if (!context) return;
       const dpr = exporting
