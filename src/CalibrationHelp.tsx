@@ -5,7 +5,7 @@ import { CircleHelp } from "lucide-react";
 import { isTauri } from "@tauri-apps/api/core";
 import { nativeTooltipCommand } from "./NativeCalibrationTooltip";
 
-// Text follows the refinement options in docs/source/calibration.rst.
+// Text follows the refinement options in the Qt manual (calibration.rst on legacy/qt).
 // Search thresholds are checked against CalibrationModel.search_peaks_on_ring.
 export const calibrationHelp = {
   deltaTth:

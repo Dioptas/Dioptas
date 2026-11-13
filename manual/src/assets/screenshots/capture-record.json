@@ -1,0 +1,426 @@
+{
+  "records": [
+    {
+      "name": "batch-docked",
+      "file": "manual/src/assets/screenshots/batch-docked.jpg",
+      "description": "Batch docked below the detector image in Integration; the selected frame drives image and pattern.",
+      "capturedAt": "2026-11-12T21:50:05.806Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Ready",
+      "sha256": "06e278e2793dc098ca47e1bdb056a142021664277c2f38678a340c3445c05c2d"
+    },
+    {
+      "name": "batch-window",
+      "file": "manual/src/assets/screenshots/batch-window.jpg",
+      "description": "Batch window with nine detector images integrated into one series.",
+      "capturedAt": "2026-11-12T21:49:33.660Z",
+      "viewport": {
+        "width": 900,
+        "height": 600
+      },
+      "status": null,
+      "sha256": "67b672efa39187e55197f14329af87cf11a016b57b3702075561e94e23903931"
+    },
+    {
+      "name": "calibration-fit",
+      "file": "manual/src/assets/screenshots/calibration-fit.jpg",
+      "description": "Calibration, Fit tab after Calibrate with automatic refinement: fitted geometry and calibrant rings over the image.",
+      "capturedAt": "2026-11-12T21:49:05.295Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Inspect fitted ring alignment and RMS, then save .poni.",
+      "sha256": "05bf4592a76871c9f216509fc9607bdb969276c36ea9784af47150312f707ca3"
+    },
+    {
+      "name": "calibration-fit-start",
+      "file": "manual/src/assets/screenshots/calibration-fit-start.jpg",
+      "description": "Calibration, Fit tab before fitting: calibrant, start values with their Fit checkboxes, and Refinement options.",
+      "capturedAt": "2026-11-12T21:49:02.246Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Check fit parameters, then calibrate the detector.",
+      "sha256": "3d5b7e1ec80105d8df86f8e6a8d45bf368592a0bf069d3003512e32166046d8f"
+    },
+    {
+      "name": "calibration-image",
+      "file": "manual/src/assets/screenshots/calibration-image.jpg",
+      "description": "Calibration, Image tab: the raw CeO2 calibrant image with detector, pixel size and orientation controls.",
+      "capturedAt": "2026-11-12T21:48:58.893Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Check detector settings. Pick peaks on the image or open another tab.",
+      "sha256": "3c2d7abeecca1a2d2fef0612ec2b835fefc80ce76f91e3703da171c5e79aa33e"
+    },
+    {
+      "name": "calibration-peaks",
+      "file": "manual/src/assets/screenshots/calibration-peaks.jpg",
+      "description": "Calibration, Peaks tab: four CeO2 rings picked with automatic peak search, one click each; the group table lists ring, peak count and position.",
+      "capturedAt": "2026-11-12T21:49:01.626Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Pick ring 5. Ring number increases after each pick.",
+      "sha256": "671ca3a7bbee19292ebaa345556aa9f1d93d09dafd7b184b454ea3b28fd41b91"
+    },
+    {
+      "name": "calibration-validate",
+      "file": "manual/src/assets/screenshots/calibration-validate.jpg",
+      "description": "Calibration, Validate tab: fit residual, geometry in pyFAI convention, ring overlay.",
+      "capturedAt": "2026-11-12T21:49:05.906Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Inspect fitted ring alignment and RMS, then save .poni.",
+      "sha256": "05bf4592a76871c9f216509fc9607bdb969276c36ea9784af47150312f707ca3"
+    },
+    {
+      "name": "configuration-toolbar",
+      "file": "manual/src/assets/screenshots/configuration-toolbar.jpg",
+      "description": "Integration with the configuration toolbar enabled above the workspace.",
+      "capturedAt": "2026-11-12T21:50:27.242Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Ready",
+      "sha256": "2993fb372cb6e161c2d2d096a63add43d92a3e59c2e8425782cd33e22c2f6feb"
+    },
+    {
+      "name": "custom-action-form",
+      "file": "manual/src/assets/screenshots/custom-action-form.jpg",
+      "description": "Settings, Custom actions: a new action with program, arguments, input placeholders and the sidebar preview. The script path is an example.",
+      "capturedAt": "2026-11-12T21:50:33.875Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Inspect ring overlays. This geometry has no fitted peak residual.",
+      "sha256": "f3a391a91ca4bac0b262c1a199a033cbeaf6dc8e1a63e4a3f851f9e6d29adce3"
+    },
+    {
+      "name": "custom-action-saved",
+      "file": "manual/src/assets/screenshots/custom-action-saved.jpg",
+      "description": "Settings, Custom actions after Save action: the action in the list and its button above Undo and Redo in the sidebar.",
+      "capturedAt": "2026-11-12T21:50:34.843Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Inspect ring overlays. This geometry has no fitted peak residual.",
+      "sha256": "9bbcdff34201c8e0f90041789d38db36e20d738a7f7f6ec16bdbcc8042153313"
+    },
+    {
+      "name": "first-start",
+      "file": "manual/src/assets/screenshots/first-start.jpg",
+      "description": "Empty workspace directly after start: Calibration mode, Image tab, no image loaded.",
+      "capturedAt": "2026-11-12T21:48:52.423Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Open a calibrant image to begin.",
+      "sha256": "fe1313349de797e46d5e77cc590bbeb56a1c5919b3b67118342bbb633eae27d7"
+    },
+    {
+      "name": "footer-readout",
+      "file": "manual/src/assets/screenshots/footer-readout.jpg",
+      "description": "Footer after clicking a detector position: live readout on the left, green Click position, status on the right.",
+      "capturedAt": "2026-11-12T21:48:55.937Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Loaded calibration: CeO2_Pilatus1M.poni",
+      "sha256": "50ce7418858034dcb7114454a914dcedacaa1e9680fd3610e8be50078c702e42"
+    },
+    {
+      "name": "integration-background",
+      "file": "manual/src/assets/screenshots/integration-background.jpg",
+      "description": "Integration, Background tab: automatic pattern background with Inspect on, showing the estimated background under the measured pattern.",
+      "capturedAt": "2026-11-12T21:49:21.371Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Ready",
+      "sha256": "43229fb1e40797bc2ce412e455944a4a97f7051ddfc188062e81bd7df006b873"
+    },
+    {
+      "name": "integration-cake",
+      "file": "manual/src/assets/screenshots/integration-cake.jpg",
+      "description": "Integration with the detector display switched to Cake: azimuth against 2θ above the same radial axis as the pattern.",
+      "capturedAt": "2026-11-12T21:49:19.312Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Ready",
+      "sha256": "99accb2fd11a3d23017c248561662b5017adf2d0a07cb68a19efb851b88f428b"
+    },
+    {
+      "name": "integration-corrections",
+      "file": "manual/src/assets/screenshots/integration-corrections.jpg",
+      "description": "Integration, Corrections tab with the cBN seat correction selected (not applied).",
+      "capturedAt": "2026-11-12T21:49:22.682Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Ready",
+      "sha256": "924c100a2b156aab1d08f2562d82d77e268b7d084aac1c7947346a54be999e84"
+    },
+    {
+      "name": "integration-overlays",
+      "file": "manual/src/assets/screenshots/integration-overlays.jpg",
+      "description": "Integration, Overlay tab: the current pattern stored as an overlay and a second pattern file loaded, with scale, offset and waterfall controls.",
+      "capturedAt": "2026-11-12T21:49:24.201Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Ready",
+      "sha256": "69128172459bfc9ea4f6418c404016ecc4e0b61eee3997cc81fc0dc9c9280c7d"
+    },
+    {
+      "name": "integration-pattern",
+      "file": "manual/src/assets/screenshots/integration-pattern.jpg",
+      "description": "Integration, Pattern tab: pattern file browser, Autocreate formats and Spottiness.",
+      "capturedAt": "2026-11-12T21:49:20.020Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Ready",
+      "sha256": "0ece6d8558f994673fd5c5ed47047471221a8c3df771f2ceceb27ef24dc361c1"
+    },
+    {
+      "name": "integration-phases",
+      "file": "manual/src/assets/screenshots/integration-phases.jpg",
+      "description": "Integration, Phase tab: gold and platinum JCPDS references loaded over the CeO2 example to show the phase table and reflection markers. They are not phases of this sample.",
+      "capturedAt": "2026-11-12T21:49:26.352Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Ready",
+      "sha256": "3fd76172b530e38b30198128c4049b0f1f9b0cc9dc03e10f353d50bbd9d4752f"
+    },
+    {
+      "name": "map-empty",
+      "file": "manual/src/assets/screenshots/map-empty.jpg",
+      "description": "Map mode before a scan is loaded.",
+      "capturedAt": "2026-11-12T21:50:09.660Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Build a map from detector images or a folder.",
+      "sha256": "c12fd1eceeda3023125bba1a1c5ec32b55dd4b1bb605d1134d824337301ce430"
+    },
+    {
+      "name": "map-grid",
+      "file": "manual/src/assets/screenshots/map-grid.jpg",
+      "description": "Map mode, Grid tab: scan dimensions.",
+      "capturedAt": "2026-11-12T21:50:13.334Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Select a map cell to inspect its detector image and pattern.",
+      "sha256": "38c3ff5431484076b0d94fe273d3a4b53520f5c7b61bd97477062f086003788e"
+    },
+    {
+      "name": "map-layers",
+      "file": "manual/src/assets/screenshots/map-layers.jpg",
+      "description": "Map mode, Layers tab: pattern windows and expressions that define the displayed map layer.",
+      "capturedAt": "2026-11-12T21:50:12.734Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Select a map cell to inspect its detector image and pattern.",
+      "sha256": "09ade6beb9850333e1aecf218e20fb27efc5ba8810988fa8213acd4457a70cf9"
+    },
+    {
+      "name": "map-points",
+      "file": "manual/src/assets/screenshots/map-points.jpg",
+      "description": "Map mode with nine scan images: scan map, detector image, Points tab and the selected point's pattern.",
+      "capturedAt": "2026-11-12T21:50:12.127Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Select a map cell to inspect its detector image and pattern.",
+      "sha256": "734e28b973f3e4c373dc96e205ced5bb2b06958b94e5c2334169ec754093414a"
+    },
+    {
+      "name": "mask-plugins",
+      "file": "manual/src/assets/screenshots/mask-plugins.jpg",
+      "description": "Dynamic masking plugins: Spot Mask enabled with its settings open.",
+      "capturedAt": "2026-11-12T21:49:14.889Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Click vertices; double-click or Enter to finish. Esc cancels. · 56,299 masked",
+      "sha256": "f6c14e60f1097418b97fd475790c913641fcaeb7ce77884df0b8b9cfda9f6123"
+    },
+    {
+      "name": "mask-tools",
+      "file": "manual/src/assets/screenshots/mask-tools.jpg",
+      "description": "Mask mode: a circle over the beam stop, a rectangle and a polygon over its holder, and an upper threshold, made with the tools in the right panel.",
+      "capturedAt": "2026-11-12T21:49:13.618Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Click vertices; double-click or Enter to finish. Esc cancels. · 37,694 masked",
+      "sha256": "b79393191f826537f601499ac2bfe997b95ffceec0c62de43364d9ba28185f58"
+    },
+    {
+      "name": "pattern-figure",
+      "file": "manual/src/assets/screenshots/pattern-figure.jpg",
+      "description": "Pattern figure export dialog with the current pattern and phase references.",
+      "capturedAt": "2026-11-12T21:49:27.832Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Choose a destination when saving",
+      "sha256": "69af385eb630677666f84c2c1ac74f36f2839c306b12a0ad4dbbe6e55d151902"
+    },
+    {
+      "name": "scxrd-cell",
+      "file": "manual/src/assets/screenshots/scxrd-cell.jpg",
+      "description": "Single Crystal XRD, Cell: candidate cells from blind indexing of the synthetic scan, waiting for a choice.",
+      "capturedAt": "2026-11-12T21:50:22.288Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "One plausible cell found; confirm it before continuing. Inspect indexed coverage and withheld RMS, then use the sample cell.",
+      "sha256": "367dc8885ef6ea02fbc2732705bac3f633c6b60052b477b1ffad886a4cea7bb6"
+    },
+    {
+      "name": "scxrd-frames",
+      "file": "manual/src/assets/screenshots/scxrd-frames.jpg",
+      "description": "Single Crystal XRD, Frames: a synthetic 161-frame rotation scan with declared acquisition and a loaded calibration (exploratory summation workflow).",
+      "capturedAt": "2026-11-12T21:50:17.160Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Inspect stages or run to the next decision.",
+      "sha256": "ef6892ff8c20b82c4d5459df86a155141da137b718c7fc5b3d160bd2748fb133"
+    },
+    {
+      "name": "scxrd-peaks",
+      "file": "manual/src/assets/screenshots/scxrd-peaks.jpg",
+      "description": "Single Crystal XRD, Peaks: detected peaks linked into tracks on the synthetic scan.",
+      "capturedAt": "2026-11-12T21:50:19.040Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Inspect stages or run to the next decision.",
+      "sha256": "c49b4bacd42cfae7e315cada44efd5ece0e9080cacf16a14284719f866b5c0b0"
+    },
+    {
+      "name": "scxrd-start",
+      "file": "manual/src/assets/screenshots/scxrd-start.jpg",
+      "description": "Single Crystal XRD before a rotation scan is loaded: stage tabs and the Frames setup.",
+      "capturedAt": "2026-11-12T21:50:15.263Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Load a rotation scan to begin.",
+      "sha256": "bae60295323b8a944cb71f89646fe0255413e712c661f10c9684bd3eb5b55e7c"
+    },
+    {
+      "name": "settings-configurations",
+      "file": "manual/src/assets/screenshots/settings-configurations.jpg",
+      "description": "Settings, Configurations: configurations enabled, with the browsing rules for filename and folder numbers.",
+      "capturedAt": "2026-11-12T21:50:26.094Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Inspect ring overlays. This geometry has no fitted peak residual.",
+      "sha256": "06ed1fa43761c93525ceead4af3a3d76d623f145ec4639533db8e9d719880998"
+    },
+    {
+      "name": "settings-general",
+      "file": "manual/src/assets/screenshots/settings-general.jpg",
+      "description": "Settings, General: interface text size, processing workers and updates.",
+      "capturedAt": "2026-11-12T21:50:30.925Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Inspect ring overlays. This geometry has no fitted peak residual.",
+      "sha256": "c3397b3cfaeb438c071a3eb00ff209f28420feb012ca28dab6c1ad0f1c3b0cae"
+    },
+    {
+      "name": "settings-integration",
+      "file": "manual/src/assets/screenshots/settings-integration.jpg",
+      "description": "Settings, Integration: radial coordinate and bins, method, azimuth ranges, cake bins and corrections.",
+      "capturedAt": "2026-11-12T21:50:31.564Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Inspect ring overlays. This geometry has no fitted peak residual.",
+      "sha256": "3139bb0b6a1810a7037bf20cd8c49a7fe886daabd250172d3129773b0d173c95"
+    },
+    {
+      "name": "settings-phase",
+      "file": "manual/src/assets/screenshots/settings-phase.jpg",
+      "description": "Settings, Phase: DAC thermal pressure.",
+      "capturedAt": "2026-11-12T21:50:32.842Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Inspect ring overlays. This geometry has no fitted peak residual.",
+      "sha256": "1aca8b86efbb7e5de8b03fa29caafdcdb4cfd8edbc23498131675c64bcbd4944"
+    },
+    {
+      "name": "settings-shortcuts",
+      "file": "manual/src/assets/screenshots/settings-shortcuts.jpg",
+      "description": "Settings, Keyboard shortcuts: the built-in reference.",
+      "capturedAt": "2026-11-12T21:50:32.211Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Inspect ring overlays. This geometry has no fitted peak residual.",
+      "sha256": "785deb5351d7a1ef62000edca09ef3150ae149f8046427be105310f9b2847b77"
+    },
+    {
+      "name": "workspace",
+      "file": "manual/src/assets/screenshots/workspace.jpg",
+      "description": "Integration mode with the CeO2 Pilatus 1M example and its reference calibration: mode bar, detector image, task tabs, pattern and footer.",
+      "capturedAt": "2026-11-12T21:48:54.556Z",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "status": "Loaded calibration: CeO2_Pilatus1M.poni",
+      "sha256": "85ea10e1d18b5c6407642ae3ec66bde78118a3f2fc42835b521f34cbd2a21f67"
+    }
+  ],
+  "method": "Actual Dioptas interface in headless Chromium (Playwright) at 1440 × 900, device scale 1.5, connected to the native Rust processor. Driven through the visible controls; no compositing.",
+  "sourceCommit": "dafe1afc3aff5809aafbb1384b206e1e9fb0bc68"
+}
