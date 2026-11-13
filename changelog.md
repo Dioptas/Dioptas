@@ -31,6 +31,11 @@ candidate contains.
   buttons, and loading one turns the image to that view. Calibrations with plain
   pixel sizes are saved so that pyFAI gives the same 2θ on the raw image file.
 
+- Image dialogs in all modes, including the correction pickers, list every
+  supported detector format, among them Esperanto (`.esperanto`, `.esper`) and
+  gzip/bzip2-compressed files. Folder scanning recognises names such as
+  `.edf.gz`. **All files** still opens detector files with other names.
+
 - The application is named Dioptas, and window titles show its version. The Map
   detector image has its own view and zoom, independent of Integration.
 
