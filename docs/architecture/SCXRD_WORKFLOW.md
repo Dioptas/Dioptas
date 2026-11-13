@@ -135,6 +135,14 @@ from the processor that remains active. If an earlier update already lost a
 scan, the obsolete image clears and a message asks you to open the frames again.
 Original detector files are unaffected. Hover outside the detector or over an
 unavailable frame clears the readout instead of opening an error dialog.
+Recovery guidance stays in the footer with a Details button and explicit
+dismissal. Active processing and backend build status take priority; these
+messages do not block data processing. Loading frames clears scan-loss guidance.
+
+`npm run test:scxrd-hover` checks hover boundaries, coalescing, late replies,
+retained and lost scans, update generations and accessible recovery in headless
+Chromium and WebKit. The native suite separately checks checkpoint refusal,
+certification and valid powder handoffs.
 
 ## Validation boundary
 

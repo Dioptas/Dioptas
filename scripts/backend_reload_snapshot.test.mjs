@@ -8,6 +8,31 @@ import {
   initialResponseSnapshot,
   reduceResponseSnapshot,
 } from "../src/responseSnapshot.ts";
+import {
+  beginBackendUpdate,
+  isCurrentBackendUpdate,
+  backendStatus,
+  publishBackendGuidance,
+  dismissBackendGuidance,
+} from "../src/backendUpdateStatus.ts";
+
+test("new update generations invalidate late responses and clear only update-owned guidance", () => {
+  const first = beginBackendUpdate("Compile failed", false, true);
+  assert.equal(backendStatus().guidance.message, "Compile failed");
+  const next = beginBackendUpdate("Rebuilding…", false, false);
+  assert.equal(isCurrentBackendUpdate(first), false);
+  assert.equal(isCurrentBackendUpdate(next), true);
+  assert.equal(backendStatus().guidance, null);
+  publishBackendGuidance({ kind: "lost-scan", message: "Reopen frames" });
+  beginBackendUpdate("Restoring…", false, false);
+  assert.equal(backendStatus().updating, true);
+  assert.equal(backendStatus().guidance.message, "Reopen frames");
+  beginBackendUpdate("Another refusal", false, true);
+  assert.equal(backendStatus().updating, false);
+  assert.equal(backendStatus().guidance.message, "Reopen frames");
+  dismissBackendGuidance();
+  assert.equal(backendStatus().guidance, null);
+});
 
 test("update guidance drops the redundant host prefix and keeps the recovery action first", () => {
   assert.equal(

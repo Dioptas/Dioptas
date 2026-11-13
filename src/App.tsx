@@ -59,9 +59,13 @@ import { SingleCrystalHistory } from "./SingleCrystalHistory";
 import { SingleCrystalWorkspace } from "./SingleCrystalWorkspace";
 import {
   refreshBackendSnapshots,
-  backendUpdateMessage,
   lostCrystalScanMessage,
 } from "./backendReloadSnapshot";
+import {
+  beginBackendUpdate,
+  isCurrentBackendUpdate,
+  publishBackendGuidance,
+} from "./backendUpdateStatus";
 import { WorkspaceModeButtons } from "./WorkspaceModeButtons";
 import { HistoryControls } from "./HistoryControls";
 import { useGeometryDraft } from "./geometryDraft";
@@ -78,7 +82,7 @@ import {
   useIntegrationSettingsAutoApply,
 } from "./IntegrationSettings";
 import { GeometryProvenance } from "./GeometryProvenance";
-import { StatusMessage } from "./StatusMessage";
+import { BackendStatusMessage } from "./BackendStatusMessage";
 import {
   layoutKeys,
   readLayoutFlag,
@@ -876,20 +880,26 @@ export default function App() {
   }, [state?.revision, image?.bufferId]);
   useBackendReload((message, restored, failed) => {
     setNotice(message);
-    // Keep recovery instructions in the existing accessible footer details
-    // until dismissed or another command begins; do not open a dialog.
-    if (failed) setError(backendUpdateMessage(message));
+    const update = beginBackendUpdate(message, restored, failed);
     if ((restored || failed) && bridge.current)
       void refreshBackendSnapshots(
         bridge.current,
-        (result) => apply(result, false, true),
+        (result) => {
+          if (isCurrentBackendUpdate(update)) apply(result, false, true);
+        },
         !!scxrd?.frames,
         restored,
       )
         .then((missingScan) => {
-          if (missingScan) setError(lostCrystalScanMessage);
+          if (missingScan && isCurrentBackendUpdate(update))
+            publishBackendGuidance({
+              kind: "lost-scan",
+              message: lostCrystalScanMessage,
+            });
         })
-        .catch((error) => setError(String(error)));
+        .catch((error) => {
+          if (isCurrentBackendUpdate(update)) setError(String(error));
+        });
   });
   useNativePhaseEditorSync(run, state?.revision);
   useEffect(() => {
@@ -3668,7 +3678,12 @@ export default function App() {
             ) : (
               <span className="ready-dot" />
             )}
-            <StatusMessage error={error} message={statusMessage} />
+            <BackendStatusMessage
+              error={error}
+              message={statusMessage}
+              crystalFrames={scxrd?.frames ?? 0}
+              processing={!!busy || !!progress?.running}
+            />
             {error && (
               <Button
                 variant="secondary"

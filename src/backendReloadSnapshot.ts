@@ -4,12 +4,7 @@ import type { Response } from "./types";
 export const lostCrystalScanMessage =
   "Reopen the rotation frames to continue. An earlier backend update lost the loaded scan; your original files are unchanged. Save your work before restarting to adopt the backend update.";
 
-export function backendUpdateMessage(message: string): string {
-  return message.replace(
-    /^Backend update failed; current session retained\.\s*/,
-    "",
-  );
-}
+export { backendUpdateMessage } from "./backendUpdateStatus.ts";
 
 /** Reconcile each scientific workspace with the worker that actually survived
  * the update. An omitted SC snapshot must never leave an obsolete image live. */
