@@ -15,8 +15,11 @@
     "@astrojs/markdown-remark": "7.3.6",
     "@astrojs/starlight": "0.42.10",
     "astro": "7.4.7",
-    "katex": "0.18.2",
+    "katex": "0.18.10",
     "rehype-katex": "7.0.1",
     "remark-math": "6.0.0"
+  },
+  "overrides": {
+    "katex": "$katex"
   }
 }
