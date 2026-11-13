@@ -67,4 +67,8 @@ npm --prefix manual run preview
 
 ## Publishing
 
-The site is built for `https://dioptas.github.io/Dioptas/manual/` by default. Nothing deploys it yet. Set `DIOPTAS_MANUAL_SITE`, `DIOPTAS_MANUAL_BASE` and `DIOPTAS_MANUAL_REF` (the branch used for the "Edit page" and source links) to build for another location. Generated output, Astro caches and `node_modules/` are ignored by `manual/.gitignore`.
+The manual is published on GitHub Pages at `https://dioptas.github.io/Dioptas/manual/`, as an interim home; the older Qt manual stays on Read the Docs. `.github/workflows/manual.yml` builds the manual for every pull request that touches `manual/`, and builds and deploys it on each push to `develop` that does (or when the workflow is started by hand). The site root forwards to `manual/`.
+
+This needs a one-time repository setting: **Settings → Pages → Source: GitHub Actions**. If the `github-pages` environment restricts deployment branches, `develop` must be allowed.
+
+The screenshots are committed, so the deployment needs neither Rust nor the application. Set `DIOPTAS_MANUAL_SITE`, `DIOPTAS_MANUAL_BASE` and `DIOPTAS_MANUAL_REF` (the branch used for the "Edit page" and source links) to build for another location. Generated output, Astro caches and `node_modules/` are ignored by `manual/.gitignore`.
