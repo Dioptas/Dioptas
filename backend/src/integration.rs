@@ -92,6 +92,9 @@ struct Plan {
     general_1d: Option<Arc<dioptrin::lut::Lut1d>>,
     dynamic_series: Option<Arc<Dynamic1dPlan>>,
     compatibility_1d: Option<Arc<FixedCsr1dPlan>>,
+    custom_snapshot_rejected: bool,
+    #[cfg(test)]
+    compatibility_build_attempts: usize,
     compatibility_input: Option<Arc<FixedCsr1dInputPlan>>,
     compatibility_cake: Option<CompatibilityCake>,
     general_2d: Option<crate::sector::Grid>,
@@ -249,6 +252,9 @@ impl Plan {
             general_1d: None,
             dynamic_series: None,
             compatibility_1d: None,
+            custom_snapshot_rejected: false,
+            #[cfg(test)]
+            compatibility_build_attempts: 0,
             compatibility_input: None,
             compatibility_cake: None,
             general_2d: None,
@@ -332,6 +338,10 @@ impl Plan {
     ) -> Result<Arc<FixedCsr1dPlan>, String> {
         self.prepare_general(o)?;
         if self.compatibility_1d.is_none() {
+            #[cfg(test)]
+            {
+                self.compatibility_build_attempts += 1;
+            }
             self.compatibility_1d = Some(Arc::new(FixedCsr1dPlan::new(
                 self.general_1d.as_ref().unwrap().as_ref().clone(),
                 self.normalization.as_ref().unwrap().as_ref().clone(),
@@ -365,7 +375,11 @@ impl Plan {
         // Reuse the strict CSR snapshot for any fixed-mask custom grid. It owns
         // the existing weights/order and caches the same normalization sums.
         // Supplied variances, spread and changing masks retain their kernels.
-        if !o.dynamic_mask && !o.spread && supplied_variance.is_none() {
+        if !o.dynamic_mask
+            && !o.spread
+            && supplied_variance.is_none()
+            && !self.custom_snapshot_rejected
+        {
             match self.fixed_compatibility(o, mask) {
                 Ok(plan) => {
                     let result = plan.integrate_frame(data, o.errors)?;
@@ -380,7 +394,7 @@ impl Plan {
                 // The strict constructor has stronger normalization/grid
                 // preconditions than the old custom-grid kernels. Keep their
                 // previous results when a snapshot cannot represent the input.
-                Err(_) => {}
+                Err(_) => self.custom_snapshot_rejected = true,
             }
         }
         let lut = self.general_1d.as_ref().unwrap();

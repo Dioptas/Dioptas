@@ -268,29 +268,77 @@ fn rejected_custom_snapshots_preserve_the_previous_kernel_results() {
         let p = parameters(shape);
         let mask = vec![0; shape[0] * shape[1]];
         let data: Vec<_> = (0..mask.len()).map(|i| (i % 37) as f64 - 9.).collect();
-        for rejected in 0..5 {
-            let mut o = options();
-            let mut plan = Plan::new(key(shape, &p, &mask, &o, false)).unwrap();
-            plan.prepare_general(&o).unwrap();
-            if rejected < 3 {
-                let value = [-1., f64::NAN, f64::INFINITY][rejected];
-                plan.normalization = Some(Arc::new(vec![value; data.len()]));
-            } else {
-                let lut = Arc::make_mut(plan.general_1d.as_mut().unwrap());
-                lut.hist_step = if rejected == 3 { 0. } else { f64::NAN };
+        for pyfai in [false, true] {
+            for rejected in 0..5 {
+                let mut o = options();
+                o.pyfai = pyfai;
+                let mut plan = Plan::new(key(shape, &p, &mask, &o, false)).unwrap();
+                plan.prepare_general(&o).unwrap();
+                if rejected < 3 {
+                    let value = [-1., f64::NAN, f64::INFINITY][rejected];
+                    plan.normalization = Some(Arc::new(vec![value; data.len()]));
+                } else {
+                    let lut = Arc::make_mut(plan.general_1d.as_mut().unwrap());
+                    lut.hist_step = if rejected == 3 { 0. } else { f64::NAN };
+                }
+                for errors in [false, true] {
+                    o.errors = errors;
+                    if pyfai {
+                        // pyFAI already required a valid strict snapshot before this PR.
+                        assert!(plan.general_pattern(&data, None, &mask, &o).is_err());
+                        assert!(!plan.custom_snapshot_rejected);
+                    } else {
+                        let expected = previous(&mut plan, &data, None, &mask, &o);
+                        let actual = plan.general_pattern(&data, None, &mask, &o).unwrap();
+                        same_result(&actual, &expected);
+                        assert!(plan.custom_snapshot_rejected);
+                        assert_eq!(plan.compatibility_build_attempts, 1);
+                    }
+                    assert!(plan.compatibility_1d.is_none());
+                }
             }
-            for errors in [false, true] {
-                o.errors = errors;
-                let expected = previous(&mut plan, &data, None, &mask, &o);
-                let actual = plan.general_pattern(&data, None, &mask, &o).unwrap();
-                same_result(&actual, &expected);
-                assert!(plan.compatibility_1d.is_none());
-            }
-            // pyFAI already required a valid strict snapshot before this PR.
-            o.pyfai = true;
-            assert!(plan.general_pattern(&data, None, &mask, &o).is_err());
         }
+        // A scientific-key change constructs a fresh plan and permits admission again.
+        let mut engine = Engine::default();
+        let mut o = options();
+        let failed = engine
+            .pattern_plan(key(shape, &p, &mask, &o, false))
+            .unwrap();
+        failed.prepare_general(&o).unwrap();
+        failed.normalization = Some(Arc::new(vec![-1.; data.len()]));
+        failed.general_pattern(&data, None, &mask, &o).unwrap();
+        assert!(failed.custom_snapshot_rejected);
+        o.polarization = 0.4;
+        let fresh = engine
+            .pattern_plan(key(shape, &p, &mask, &o, false))
+            .unwrap();
+        assert!(!fresh.custom_snapshot_rejected);
+        fresh.general_pattern(&data, None, &mask, &o).unwrap();
+        assert!(fresh.compatibility_1d.is_some());
+        assert_eq!(fresh.compatibility_build_attempts, 1);
+        assert_eq!(engine.pattern_builds, 2);
     });
+}
+
+fn same_json_numbers(a: &Value, b: &Value) {
+    match (a, b) {
+        (Value::Number(a), Value::Number(b)) => {
+            assert_eq!(a.as_f64().unwrap().to_bits(), b.as_f64().unwrap().to_bits());
+        }
+        (Value::Array(a), Value::Array(b)) => {
+            assert_eq!(a.len(), b.len());
+            for (a, b) in a.iter().zip(b) {
+                same_json_numbers(a, b);
+            }
+        }
+        (Value::Object(a), Value::Object(b)) => {
+            assert_eq!(a.len(), b.len());
+            for (key, value) in a {
+                same_json_numbers(value, b.get(key).expect("engine output key changed"));
+            }
+        }
+        _ => assert_eq!(a, b),
+    }
 }
 
 #[test]
@@ -350,7 +398,7 @@ fn warmed_engine_alternates_fallbacks_and_prepared_calls_without_rebuilding() {
                     &o,
                 )
                 .unwrap();
-                assert_eq!(actual.0, expected.0);
+                same_json_numbers(&actual.0, &expected.0);
                 match (&actual.1, &expected.1) {
                     (Some(a), Some(b)) => same(a, b),
                     (None, None) => (),
@@ -363,6 +411,7 @@ fn warmed_engine_alternates_fallbacks_and_prepared_calls_without_rebuilding() {
                     snapshot = Some(current.clone());
                 }
                 assert_eq!(engine.pattern_builds, 1);
+                assert_eq!(plan.compatibility_build_attempts, 1);
                 assert_eq!(engine.resident_calls, frame as u64 + 1);
             }
         }
