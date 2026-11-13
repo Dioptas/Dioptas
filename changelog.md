@@ -1,3 +1,9 @@
+# Unreleased
+
+## Fixes
+
+- Fixed brief image flicker when loading images or switching modes in the Rust desktop. Images now appear at the correct size from the first frame across all modes, including cake, Map and detached image views.
+
 # 0.11.0 (28.09.2026)
 
 <!-- 0.10.1 and 0.10.2 were development headings, not published releases.
