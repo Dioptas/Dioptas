@@ -61,6 +61,10 @@ try {
       await page.goto(url);
       await ready(page);
       await page.evaluate(() => window.setSurfaceGuideFixture());
+      // The first fixture stays "ready" until React has rendered the new one.
+      await page.waitForFunction(
+        () => window.surfaceBuffer.byteLength === 31 * 201 * 4,
+      );
       await ready(page);
       const surface = page.getByTestId("batch-surface");
       const source = await hash(page),

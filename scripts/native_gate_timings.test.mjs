@@ -19,10 +19,15 @@ import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 import {
   coverageRequested,
+  gateSwitch,
   markdownSummary,
+  runPool,
+  shardTasks,
   slowestFirst,
   textSummary,
   timingReport,
+  uiJobs,
+  uiShard,
 } from "./native_gate_timings.mjs";
 
 const scripts = path.dirname(fileURLToPath(import.meta.url));
@@ -100,6 +105,164 @@ describe("timing report", () => {
     assert.equal(coverageRequested("1"), true);
     assert.throws(() => coverageRequested("yes"), /must be 0 or 1/);
   });
+
+  it("keeps a switch's default unless it is set to 0 or 1", () => {
+    assert.equal(gateSwitch("X", undefined, true), true);
+    assert.equal(gateSwitch("X", "", true), true);
+    assert.equal(gateSwitch("X", "0", true), false);
+    assert.equal(gateSwitch("X", "1", false), true);
+    assert.throws(() => gateSwitch("X", "off", true), /X must be 0 or 1/);
+  });
+
+  it("runs UI checks side by side only on machines with many cores", () => {
+    assert.equal(uiJobs(undefined, 14), 7);
+    assert.equal(uiJobs(undefined, 8), 4);
+    assert.equal(uiJobs(undefined, 4), 1);
+    assert.equal(uiJobs("", 3), 1);
+    assert.equal(uiJobs("1", 14), 1);
+    assert.equal(uiJobs("8", 2), 8);
+    for (const value of ["0", "-1", "2.5", "many"])
+      assert.throws(() => uiJobs(value, 4), /positive integer/);
+  });
+});
+
+describe("UI shards", () => {
+  it("reads a shard and rejects anything unclear", () => {
+    assert.equal(uiShard(undefined), undefined);
+    assert.equal(uiShard(""), undefined);
+    assert.deepEqual(uiShard("2/3"), { index: 2, count: 3 });
+    for (const value of ["0/3", "4/3", "2", "2/0", "a/b", "1/3/5"])
+      assert.throws(() => uiShard(value), /must look like 2\/3/);
+  });
+
+  const tasks = [
+    ["a", 100],
+    ["b", 10],
+    ["c", 60],
+    ["d", 50],
+    ["e", 40],
+    ["f", 5],
+  ].map(([name]) => ({ name }));
+  const seconds = { a: 100, b: 10, c: 60, d: 50, e: 40, f: 5 };
+  const names = (index, count, head) =>
+    shardTasks(tasks, { index, count }, seconds, head).map((t) => t.name);
+
+  it("deals every task to exactly one shard, in list order", () => {
+    assert.equal(shardTasks(tasks, undefined), tasks);
+    const shares = [1, 2, 3].map((index) => names(index, 3));
+    assert.deepEqual(shares.flat().sort(), ["a", "b", "c", "d", "e", "f"]);
+    for (const share of shares) assert.deepEqual(share, [...share].sort());
+  });
+
+  it("gives the shards about equal estimated time", () => {
+    // Longest first to the lightest shard: a | c, b, f | d, e.
+    assert.deepEqual(names(1, 3), ["a"]);
+    assert.deepEqual(names(2, 3), ["b", "c", "f"]);
+    assert.deepEqual(names(3, 3), ["d", "e"]);
+  });
+
+  it("counts what the first shard carries besides its tasks", () => {
+    assert.deepEqual(names(1, 2, 0), ["a", "e"]);
+    assert.deepEqual(names(1, 2, 200), ["e"]);
+    assert.deepEqual(names(1, 2, 1000), []);
+  });
+
+  it("estimates an unknown task at 30 seconds", () => {
+    const unknown = [{ name: "x" }, { name: "y" }, { name: "z" }];
+    assert.deepEqual(
+      shardTasks(unknown, { index: 1, count: 2 }, { x: 50 }).map((t) => t.name),
+      ["x"],
+    );
+  });
+});
+
+describe("check pool", () => {
+  // Tasks finish only when released, so overlaps are observable.
+  function harness() {
+    const running = new Set();
+    const order = [];
+    let most = 0;
+    const overlaps = [];
+    const release = new Map();
+    return {
+      order,
+      overlaps,
+      release,
+      most: () => most,
+      start(task) {
+        order.push(task.name);
+        for (const other of running) overlaps.push([other, task.name]);
+        running.add(task.name);
+        most = Math.max(most, running.size);
+        return new Promise((resolve, reject) =>
+          release.set(task.name, (error) => {
+            running.delete(task.name);
+            if (error) reject(error);
+            else resolve();
+          }),
+        );
+      },
+    };
+  }
+  const settle = () => new Promise((resolve) => setImmediate(resolve));
+  const task = (name, ...locks) => ({ name, locks });
+
+  it("starts in list order and never exceeds the job count", async () => {
+    const h = harness();
+    const done = runPool(
+      [task("a"), task("b"), task("c"), task("d")],
+      2,
+      h.start,
+    );
+    await settle();
+    assert.deepEqual(h.order, ["a", "b"]);
+    h.release.get("a")();
+    await settle();
+    assert.deepEqual(h.order, ["a", "b", "c"]);
+    for (const name of ["b", "c"]) h.release.get(name)();
+    await settle();
+    h.release.get("d")();
+    await done;
+    assert.equal(h.most(), 2);
+  });
+
+  it("never overlaps tasks that share a lock", async () => {
+    const h = harness();
+    const done = runPool(
+      [
+        task("a", "vite"),
+        task("b", "vite", "out"),
+        task("c"),
+        task("d", "out"),
+      ],
+      3,
+      h.start,
+    );
+    await settle();
+    // b waits for a's lock; c and d take the free slots.
+    assert.deepEqual(h.order, ["a", "c", "d"]);
+    h.release.get("a")();
+    await settle();
+    // b also needs d's lock.
+    assert.deepEqual(h.order, ["a", "c", "d"]);
+    h.release.get("d")();
+    await settle();
+    assert.deepEqual(h.order, ["a", "c", "d", "b"]);
+    for (const name of ["c", "b"]) h.release.get(name)();
+    await done;
+    assert.ok(!h.overlaps.some(([x, y]) => x + y === "ab" || x + y === "db"));
+  });
+
+  it("starts nothing new after a failure and rejects with it", async () => {
+    const h = harness();
+    const done = runPool([task("a"), task("b"), task("c")], 2, h.start);
+    await settle();
+    h.release.get("a")(Error("a failed"));
+    await settle();
+    h.release.get("b")();
+    await assert.rejects(done, /a failed/);
+    assert.deepEqual(h.order, ["a", "b"]);
+  });
 });
 
 // A scratch repository layout: scripts holds the real gate, its helper
@@ -116,6 +279,17 @@ function scratchGate() {
     "generate_native_contracts.mjs",
   ])
     writeFileSync(path.join(own, file), "");
+  // Every UI check is an empty stand-in; UI_FAIL names one that exits 1.
+  const gate = readFileSync(
+    path.join(scripts, "check_native_desktop.mjs"),
+    "utf8",
+  );
+  const stub = `if (process.env.UI_FAIL === process.argv[1].split(/[\\\\/]/).at(-1)) process.exit(1);\n`;
+  for (const [, file] of gate.matchAll(/\["([a-z0-9_]+)"[\],]/g))
+    writeFileSync(path.join(own, `${file}.mjs`), stub);
+  for (const [, file] of gate.matchAll(/"scripts\/([a-z0-9_.]+\.mjs)"/g))
+    writeFileSync(path.join(own, file), "");
+  writeFileSync(path.join(own, "functional_coverage.mjs"), "");
   const bin = path.join(root, "bin");
   mkdirSync(bin);
   for (const tool of ["cargo", "npm"]) {
@@ -149,6 +323,11 @@ function scratchGate() {
             FAKE_FAIL: "",
             GITHUB_STEP_SUMMARY: summary,
             DIOPTAS_GATE_COVERAGE: "",
+            DIOPTAS_GATE_CORE_TESTS: "",
+            DIOPTAS_GATE_UI_JOBS: "",
+            DIOPTAS_GATE_UI_SHARD: "",
+            DIOPTAS_GATE_PREBUILT: "",
+            DIOPTAS_GATE_UI_KEEP_GOING: "",
             ...env,
           },
         },
@@ -254,6 +433,116 @@ describe(
       assert.match(r.stderr, /contract-clippy failed \(3\) after \d+\.\d s/);
       assert.equal(r.summary.match(/### Native gate timings/g).length, 1);
       assert.match(r.summary, /\| contract-clippy \| .* \| failed \|/);
+    });
+
+    it("skips only the no-features tests when they are switched off", () => {
+      const r = gate.run(["--processor"], { DIOPTAS_GATE_CORE_TESTS: "0" });
+      assert.equal(r.status, 0, r.stderr);
+      assert.deepEqual(
+        r.calls,
+        processorCalls.filter(
+          (c) => !c.includes("--no-default-features --lib"),
+        ),
+      );
+      assert.deepEqual(
+        r.timings.steps.map((s) => s.name),
+        processorSteps.filter((s) => s !== "rust-core-tests"),
+      );
+    });
+
+    it("runs every UI check, side by side or one at a time", () => {
+      for (const jobs of ["3", "1"]) {
+        const r = gate.run(["--ui"], { DIOPTAS_GATE_UI_JOBS: jobs });
+        assert.equal(r.status, 0, r.stderr);
+        assert.match(r.stdout, new RegExp(`UI checks: 43, ${jobs} at a time`));
+        const names = r.timings.steps.map((s) => s.name);
+        assert.equal(new Set(names).size, names.length);
+        for (const name of [
+          "hook_refresh_smoke",
+          "companion_windows_smoke",
+          "batch_background_export",
+          "image_change_webkit",
+          "native-transport",
+        ])
+          assert.ok(names.includes(name), name);
+        assert.ok(r.timings.steps.every((s) => s.status === "passed"));
+      }
+    });
+
+    it("runs every UI check past a failure when told to keep going", () => {
+      const r = gate.run(["--ui"], {
+        UI_FAIL: "spottiness_smoke.mjs",
+        DIOPTAS_GATE_UI_KEEP_GOING: "1",
+      });
+      assert.notEqual(r.status, 0);
+      assert.match(r.stderr, /1 UI checks failed:\nspottiness_smoke failed/);
+      const checks = r.timings.steps.filter((s) =>
+        /_smoke|ui_components|_export|_webkit/.test(s.name),
+      );
+      assert.equal(checks.length, 43);
+      assert.equal(checks.filter((s) => s.status === "passed").length, 42);
+    });
+
+    it("splits the UI checks over shards without losing or repeating one", () => {
+      const whole = gate
+        .run(["--ui"])
+        .timings.steps.map((s) => s.name)
+        .sort();
+      const parts = ["1/3", "2/3", "3/3"].map((shard) => {
+        const r = gate.run(["--ui"], { DIOPTAS_GATE_UI_SHARD: shard });
+        assert.equal(r.status, 0, r.stderr);
+        assert.match(r.stdout, new RegExp(`of 43 \\(shard ${shard}\\)`));
+        return r.timings.steps.map((s) => s.name);
+      });
+      // Every shard checks the boundary and builds the frontend it serves.
+      const perShard = [
+        "glib-security-backport",
+        "native-contract-generation",
+        "native-test-fixtures",
+        "frontend-build",
+      ];
+      const once = parts.flatMap((names) =>
+        names.filter((name) => !perShard.includes(name)),
+      );
+      assert.deepEqual([...once, ...perShard].sort(), whole);
+      for (const name of ["frontend-unit", "native-transport"]) {
+        assert.ok(parts[0].includes(name), name);
+        assert.ok(!parts[1].includes(name) && !parts[2].includes(name), name);
+      }
+    });
+
+    it("uses prebuilt binaries instead of compiling, and insists on them", () => {
+      const missing = gate.run(["--ui"], { DIOPTAS_GATE_PREBUILT: "1" });
+      assert.notEqual(missing.status, 0);
+      assert.match(missing.stderr, /dioptas-processor is missing/);
+      for (const file of [
+        "dioptas-processor",
+        "examples/test_fixtures",
+        "examples/hdf5_master_fixture",
+        "examples/hdf5_source_fixture",
+      ]) {
+        const target = path.join(gate.root, "target/debug", file);
+        mkdirSync(path.dirname(target), { recursive: true });
+        writeFileSync(target, "");
+      }
+      const r = gate.run(["--ui"], { DIOPTAS_GATE_PREBUILT: "1" });
+      assert.equal(r.status, 0, r.stderr);
+      assert.ok(!r.calls.some((c) => c.includes("cargo")));
+      assert.ok(
+        !r.timings.steps.some((s) => s.name === "native-test-fixtures"),
+      );
+    });
+
+    it("fails the UI gate when one check fails", () => {
+      const r = gate.run(["--ui"], { UI_FAIL: "spottiness_smoke.mjs" });
+      assert.notEqual(r.status, 0);
+      assert.equal(r.timings.status, "failed");
+      assert.deepEqual(
+        r.timings.steps.filter((s) => s.status === "failed").map((s) => s.name),
+        ["spottiness_smoke"],
+      );
+      assert.match(r.stderr, /spottiness_smoke failed \(1\)/);
+      assert.ok(!r.timings.steps.some((s) => s.name === "native-transport"));
     });
 
     it("swaps only the all-features test step under the coverage opt-in", () => {

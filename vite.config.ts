@@ -20,6 +20,11 @@ try {
   /* Source archives have no Git metadata. */
 }
 export default defineConfig({
+  // The native gate runs several dev servers at once and gives each its own
+  // dependency cache; otherwise Vite's default, node_modules/.vite.
+  ...(process.env.DIOPTAS_VITE_CACHE_DIR
+    ? { cacheDir: process.env.DIOPTAS_VITE_CACHE_DIR }
+    : {}),
   define: {
     "import.meta.env.VITE_DIOPTAS_VERSION": JSON.stringify(version),
     "import.meta.env.VITE_DIOPTAS_BUILD": JSON.stringify(
