@@ -333,6 +333,11 @@ impl Geometry {
     /// Read explicit PONI geometry and retain supported physical detector data.
     /// Unsupported settings fail before the session publishes a change.
     pub fn load(path: &Path) -> Result<Self, String> {
+        Self::load_with_calibrant(path).map(|(geometry, _)| geometry)
+    }
+    /// Like [`Geometry::load`], also returning the calibrant named in a
+    /// `# Calibrant: <name>` comment (the pyFAI-calib2 convention), if any.
+    pub fn load_with_calibrant(path: &Path) -> Result<(Self, Option<String>), String> {
         use std::io::Read;
         let mut file = String::new();
         std::fs::File::open(path)
@@ -572,7 +577,7 @@ impl Geometry {
         }
         geometry.detector_file = fields.get("__native_detector_file").cloned();
         geometry.validate()?;
-        Ok(geometry)
+        Ok((geometry, calibrant_comment(&file)))
     }
     pub fn manual(values: &Value) -> Result<(Self, f64), String> {
         let fields = values
@@ -631,9 +636,10 @@ impl Geometry {
             "pixel1": self.pixel1, "pixel2": self.pixel2, "wavelength": self.wavelength,
             "rot1": self.rot1, "rot2": self.rot2, "rot3": self.rot3, "polarization_factor": polarization})
     }
-    pub fn save_text(&self) -> String {
+    pub fn save_text(&self, calibrant: Option<&str>) -> String {
         format!(
-            "# Dioptas native backend; flat uniform pixels; SI geometry\nPixelSize1: {}\nPixelSize2: {}\nDistance: {}\nPoni1: {}\nPoni2: {}\nRot1: {}\nRot2: {}\nRot3: {}\nSplineFile: None\nWavelength: {}\n",
+            "# Dioptas native backend; flat uniform pixels; SI geometry\n{}PixelSize1: {}\nPixelSize2: {}\nDistance: {}\nPoni1: {}\nPoni2: {}\nRot1: {}\nRot2: {}\nRot3: {}\nSplineFile: None\nWavelength: {}\n",
+            calibrant_header(calibrant),
             self.pixel1,
             self.pixel2,
             self.dist,
@@ -645,6 +651,29 @@ impl Geometry {
             self.wavelength
         )
     }
+}
+
+/// Comment line recording the calibrant, as pyFAI-calib2 writes it. Comments
+/// keep the file readable by pyFAI and by Dioptas versions that predate it.
+pub(crate) fn calibrant_header(calibrant: Option<&str>) -> String {
+    match calibrant.map(str::trim) {
+        Some(name) if !name.is_empty() && !name.chars().any(char::is_control) => {
+            format!("# Calibrant: {name}\n")
+        }
+        _ => String::new(),
+    }
+}
+
+/// The last `# Calibrant: <name>` comment, matching pyFAI's last-record rule.
+fn calibrant_comment(text: &str) -> Option<String> {
+    text.lines()
+        .filter_map(|line| line.trim().strip_prefix('#'))
+        .filter_map(|comment| comment.split_once(':'))
+        .filter(|(key, _)| key.trim().eq_ignore_ascii_case("calibrant"))
+        .map(|(_, value)| value.trim())
+        .filter(|value| !value.is_empty())
+        .last()
+        .map(str::to_owned)
 }
 
 impl PartialEq for Geometry {
@@ -712,6 +741,17 @@ mod tests {
     }
 
     #[test]
+    fn calibrant_comments_follow_pyfai_and_reject_line_breaks() {
+        assert_eq!(calibrant_header(Some(" Si ")), "# Calibrant: Si\n");
+        assert_eq!(calibrant_header(Some("Si\nDistance: 1")), "");
+        assert_eq!(calibrant_header(Some("")), "");
+        assert_eq!(calibrant_header(None), "");
+        let text = "# calibrant: CeO2\nDistance: 0.1\n#Calibrant:LaB6\n# Calibrant:\n# Image: x\n";
+        assert_eq!(calibrant_comment(text).as_deref(), Some("LaB6"));
+        assert_eq!(calibrant_comment("Distance: 0.1\n"), None);
+    }
+
+    #[test]
     fn eiger_poni_accepts_its_detector_shape_and_explains_pilatus_mismatch() {
         let temporary = tempfile::tempdir().unwrap();
         let path = temporary.path().join("eiger_0000.poni");
@@ -747,7 +787,7 @@ mod tests {
         let g = Geometry::default();
         let text = format!(
             "poni_version: 2\n{}Detector_config: {{\"pixel1\":0.000079,\"pixel2\":0.000079}}\n",
-            g.save_text()
+            g.save_text(None)
         );
         std::fs::write(&path, text).unwrap();
         let loaded = Geometry::load(&path).unwrap();
@@ -771,8 +811,9 @@ mod tests {
             ..Default::default()
         };
         let path = temp.path().join("transformed.poni");
-        original.save_to(&path).unwrap();
-        let mut restored = Geometry::load(&path).unwrap();
+        original.save_to(&path, Some("CeO2")).unwrap();
+        let (mut restored, calibrant) = Geometry::load_with_calibrant(&path).unwrap();
+        assert_eq!(calibrant.as_deref(), Some("CeO2"));
         let before = original.native_geometry([5, 3]).unwrap().calc_tth_all();
         let after = restored.native_geometry([5, 3]).unwrap().calc_tth_all();
         assert_eq!(before, after);

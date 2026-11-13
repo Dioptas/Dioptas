@@ -834,7 +834,7 @@ impl Session {
             "open_calibration" => {
                 check_keys(args, &["path", "defer_integration", "clear_image"])?;
                 let file = path(args)?;
-                let mut candidate = Geometry::load(file)?;
+                let (mut candidate, calibrant) = Geometry::load_with_calibrant(file)?;
                 let clear = args
                     .get("clear_image")
                     .map(|v| boolean(v, "Clear image"))
@@ -860,6 +860,13 @@ impl Session {
                     self.effective_mask = self.mask.clone();
                 }
                 self.settings.geometry = candidate;
+                // A calibrant recorded in the file wins when it is one we know;
+                // unknown names keep the current selection.
+                if let Some(reference) =
+                    calibrant.and_then(|name| self.calibration.choose(&name).ok())
+                {
+                    self.calibration.reference = reference;
+                }
                 self.settings.original_pixels = None;
                 self.settings.calibration_path = Some(file.to_string_lossy().into_owned());
                 self.settings.calibrated = true;
@@ -919,7 +926,9 @@ impl Session {
                     );
                 }
                 let file = path(args)?;
-                self.settings.geometry.save_to(file)?;
+                self.settings
+                    .geometry
+                    .save_to(file, Some(&self.calibration.reference.name))?;
                 self.calibration.saved = true;
                 self.settings.calibration_path = Some(file.to_string_lossy().into_owned());
                 self.settings.calibration_name = Some(

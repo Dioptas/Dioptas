@@ -558,3 +558,49 @@ fn custom_calibrants_are_session_owned_and_invalid_files_do_not_replace_them() {
     );
     assert_eq!(state(&mut s)["calibration"], before);
 }
+
+#[test]
+fn poni_calibrant_comment_round_trips_and_follows_pyfai_calib2() {
+    let temp = tempfile::tempdir().unwrap();
+    let geometry = "PixelSize1: 0.0001\nPixelSize2: 0.0001\nDistance: 0.1\nPoni1: 0.003\nPoni2: 0.004\nRot1: 0\nRot2: 0\nRot3: 0\nSplineFile: None\nWavelength: 4e-11\n";
+    // pyFAI-calib2 writes the calibrant and image as trailing comments.
+    let pyfai = temp.path().join("pyfai.poni");
+    fs::write(
+        &pyfai,
+        format!("# Nota: C-Order, 1 refers to the Y axis, 2 to the X axis\n{geometry}# Calibrant: Si\n# Image: si.tif\n"),
+    )
+    .unwrap();
+    let unknown = temp.path().join("unknown.poni");
+    fs::write(&unknown, format!("# Calibrant: Unobtainium\n{geometry}")).unwrap();
+    let plain = temp.path().join("plain.poni");
+    fs::write(&plain, geometry).unwrap();
+
+    let mut s = Session::new(root());
+    call(&mut s, "validation_calibrant", json!({"calibrant":"CeO2"}));
+    call(&mut s, "open_calibration", json!({"path":pyfai}));
+    assert_eq!(state(&mut s)["calibration"]["calibrant"], "Si");
+    // Unknown names and files without a comment keep the current selection.
+    call(&mut s, "open_calibration", json!({"path":unknown}));
+    assert_eq!(state(&mut s)["calibration"]["calibrant"], "Si");
+    call(&mut s, "open_calibration", json!({"path":plain}));
+    assert_eq!(state(&mut s)["calibration"]["calibrant"], "Si");
+
+    call(
+        &mut s,
+        "validation_calibrant",
+        json!({"calibrant":"LaB6_SRM660c"}),
+    );
+    let saved = temp.path().join("saved.poni");
+    call(&mut s, "save_calibration", json!({"path":saved}));
+    let text = fs::read_to_string(&saved).unwrap();
+    assert_eq!(text.matches("# Calibrant: LaB6_SRM660c\n").count(), 1);
+
+    call(&mut s, "validation_calibrant", json!({"calibrant":"CeO2"}));
+    call(&mut s, "open_calibration", json!({"path":saved}));
+    let restored = state(&mut s);
+    assert_eq!(restored["calibration"]["calibrant"], "LaB6_SRM660c");
+    assert_eq!(restored["geometry"]["dist"], 0.1);
+    // Loading the calibration is one undo step, calibrant included.
+    call(&mut s, "undo_calibration", json!({}));
+    assert_eq!(state(&mut s)["calibration"]["calibrant"], "CeO2");
+}
