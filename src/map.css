@@ -1,6 +1,6 @@
 .map-mode {
   padding: 8px;
-  overflow: auto;
+  overflow: hidden;
   min-width: 0;
 }
 .map-layout {
@@ -437,6 +437,9 @@
   font-size: var(--text-small);
 }
 @media (max-width: 850px) {
+  .map-mode {
+    overflow: auto;
+  }
   .map-layout {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: 400px 380px 340px;

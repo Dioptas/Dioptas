@@ -128,6 +128,70 @@ try {
   await ready();
   const initial = await invoke("state");
   assert.equal(initial.map.points, 9);
+  // The embedded detector needs the shared flex workspace, including when
+  // splitters resize it. Check pixels and histogram placement, not just panels.
+  const detector = page.locator(".map-detector-panel");
+  const detectorCanvas = detector.getByTestId("detector-canvas");
+  const detectorLayout = async () => {
+    await page.waitForFunction(() => {
+      const panel = document.querySelector(".map-detector-panel");
+      const canvas = panel?.querySelector('[data-testid="detector-canvas"]');
+      const histogram = panel?.querySelector(".image-intensity");
+      const tools = panel?.querySelector(".map-detector-tools");
+      if (!canvas || !histogram || !tools) return false;
+      const c = canvas.getBoundingClientRect();
+      const h = histogram.getBoundingClientRect();
+      const t = tools.getBoundingClientRect();
+      return (
+        c.width > 100 &&
+        c.height > 100 &&
+        h.bottom <= c.top + 1 &&
+        c.bottom <= t.top + 1 &&
+        Math.abs(canvas.width - Math.round(c.width * devicePixelRatio)) <= 1 &&
+        Math.abs(canvas.height - Math.round(c.height * devicePixelRatio)) <=
+          1 &&
+        Math.abs(Number(canvas.dataset.plotWidth) - c.width) < 1 &&
+        Math.abs(Number(canvas.dataset.plotHeight) - c.height) < 1 &&
+        Math.abs(
+          c.width /
+            (Number(canvas.dataset.viewXMax) -
+              Number(canvas.dataset.viewXMin)) -
+            c.height /
+              (Number(canvas.dataset.viewYMax) -
+                Number(canvas.dataset.viewYMin)),
+        ) < 1e-6
+      );
+    });
+    return detectorCanvas.boundingBox();
+  };
+  const originalDetector = await detectorLayout();
+  const rowDivider = page.getByRole("separator", {
+    name: "Detector and pattern heights",
+    exact: true,
+  });
+  await rowDivider.press("ArrowDown");
+  const tallerDetector = await detectorLayout();
+  assert(tallerDetector.height > originalDetector.height + 10);
+  await rowDivider.press("ArrowUp");
+  const columnDivider = page.getByRole("separator", {
+    name: "Map panel width",
+    exact: true,
+  });
+  await columnDivider.press("ArrowLeft");
+  const widerDetector = await detectorLayout();
+  assert(widerDetector.width > originalDetector.width + 10);
+  await columnDivider.press("ArrowRight");
+  await detectorLayout();
+  await page.screenshot({
+    path: path.join(evidence, "map-detector-layout.png"),
+  });
+  await page.setViewportSize({ width: 1100, height: 1000 });
+  await page
+    .getByRole("tab", { name: "Image", exact: true })
+    .click({ timeout: 5000 });
+  await detectorLayout();
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await detectorLayout();
   const analysisBefore = await page.locator(".map-analysis-top").boundingBox();
   const popupPromise = page.waitForEvent("popup");
   await page.getByRole("button", { name: "Detach map", exact: true }).click();
@@ -542,6 +606,9 @@ try {
     `${engineName} (${runtimeName}): detached Map frame selection, rapid selections, export, contrast and dock/close/reopen passed`,
   );
 } catch (error) {
+  const errorReport = page.locator(".operation-error-dialog textarea");
+  if (await errorReport.count())
+    console.log("Error report:", await errorReport.inputValue());
   console.log(
     "Main UI:",
     (await page.locator("body").innerText()).slice(-2500),
