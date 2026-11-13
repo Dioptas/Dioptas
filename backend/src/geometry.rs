@@ -551,7 +551,20 @@ impl Geometry {
                 }
             }
             d.validate()?;
-            geometry.detector = Some(std::sync::Arc::new(d));
+            // Plain pixel sizes in Dioptas's bottom-up rows are saved for pyFAI
+            // as a uniform custom detector with orientation 2 (3 here). That is
+            // the same geometry as no detector, so keep reading it as plain
+            // pixel sizes, which apply to any image size as before.
+            let plain = d.name == "Detector"
+                && matches!(d.map, dioptrin::detector::PixelMap::Uniform)
+                && !d.has_spline()
+                && d.orientation == 3
+                && d.mask.is_empty()
+                && !d.circular_mask
+                && d.unsupported.is_none();
+            if !plain {
+                geometry.detector = Some(std::sync::Arc::new(d));
+            }
         }
         if let Some(file) = spline.filter(|s| !s.is_empty() && !s.eq_ignore_ascii_case("none")) {
             let spline_path = Path::new(&file);
@@ -831,7 +844,9 @@ mod tests {
         );
         std::fs::write(&path, text).unwrap();
         let loaded = Geometry::load(&path).unwrap();
-        assert_eq!(loaded.detector.as_ref().unwrap().orientation, 3);
+        // No orientation in a v2 file keeps Dioptas rows unflipped (orientation
+        // 3), which is read as plain pixel sizes.
+        assert!(loaded.detector.is_none());
         let mut d = Detector::custom(50e-6, 50e-6);
         d.max_shape = Some([3, 5]);
         let fixture =

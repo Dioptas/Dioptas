@@ -787,6 +787,10 @@ fn poni_orientation_waits_for_the_next_image_when_none_is_open() {
     .unwrap();
     let mut s = Session::new(root());
     call(&mut s, "open_calibration", json!({"path":rotated}));
+    // Undo and redo work before any image exists.
+    let undone = call(&mut s, "undo_calibration", json!({}));
+    assert_eq!(undone["state"]["calibration"]["transformations"], json!([]));
+    call(&mut s, "redo_calibration", json!({}));
     call(&mut s, "open_image", json!({"path":f.image}));
     assert_eq!(
         state(&mut s)["calibration"]["transformations"],
@@ -817,6 +821,13 @@ fn plain_pixel_calibrations_save_the_row_flip_as_pyfai_orientation() {
     let mut fresh = Session::new(root());
     call(&mut fresh, "open_image", json!({"path":f.image}));
     call(&mut fresh, "open_calibration", json!({"path":saved}));
+    // Plain pixel sizes still apply to other image sizes, as before.
+    let small = f.temp.path().join("small.npy");
+    npy(&small, [64, 96], &vec![1.0; 64 * 96]);
+    let mut other = Session::new(root());
+    call(&mut other, "open_image", json!({"path":small}));
+    call(&mut other, "open_calibration", json!({"path":saved}));
+    assert_eq!(state(&mut other)["calibrated"], true);
     for (x, y) in [(5, 3), (200, 40), (17, 230)] {
         let pixel = json!({"x":x,"y":y,"source":"raw_detector"});
         assert_eq!(
