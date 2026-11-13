@@ -102,40 +102,9 @@ impl Files {
     }
 }
 pub(super) fn image_file(path: &Path) -> bool {
-    let name = path
-        .file_name()
-        .unwrap_or_default()
-        .to_string_lossy()
-        .to_lowercase();
-    !name.starts_with('.')
-        && [
-            "tif",
-            "tiff",
-            "edf",
-            "edf.gz",
-            "cbf",
-            "cbf.gz",
-            "h5",
-            "hdf5",
-            "nxs",
-            "npy",
-            "npz",
-            "img",
-            "mccd",
-            "mar3450",
-            "mar345",
-            "kcd",
-            "mpa",
-            "sfrm",
-            "osc",
-            "gfrm",
-            "cor",
-            "spe",
-            "dat",
-            "esperanto",
-        ]
-        .iter()
-        .any(|e| name.ends_with(&format!(".{e}")))
+    dioptas_contract::image_formats::detector_image_filename(
+        &path.file_name().unwrap_or_default().to_string_lossy(),
+    )
 }
 pub(super) fn numbered(path: &Path, step: i64) -> Option<PathBuf> {
     let name = path.file_name()?.to_str()?;
@@ -1199,6 +1168,29 @@ fn save_svg(file: &Path, value: &Value) -> Result<(), String> {
 #[cfg(test)]
 mod navigation_tests {
     use super::*;
+    #[test]
+    fn supported_image_aliases_and_wrappers_are_admitted_to_folder_navigation() {
+        for name in [
+            "frame_001.esperanto",
+            "frame_001.ESPER",
+            "frame_001.mar1200",
+            "frame_001.mrc",
+            "frame_001.dm3",
+            "frame_001.f2d",
+            "frame_001.pgm",
+            "frame_001.xsd",
+            "frame_001.edf.gz",
+            "frame_001.ESPER.BZ2",
+            "frame_001.npy.gz",
+        ] {
+            assert!(image_file(Path::new(name)), "{name}");
+        }
+        assert!(!image_file(Path::new(".hidden.esper")));
+        assert!(!image_file(Path::new("frame_001.esper.txt")));
+        assert!(!image_file(Path::new("unrelated.txt.gz")));
+        assert!(!image_file(Path::new("frame_001.npz")));
+    }
+
     #[test]
     fn time_order_filters_entries_preserves_steps_and_finds_new_arrivals() {
         let temp = tempfile::tempdir().unwrap();

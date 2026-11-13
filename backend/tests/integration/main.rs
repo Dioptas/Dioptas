@@ -19,6 +19,7 @@ mod detector_gap_margins;
 mod detector_switch;
 mod detectors;
 mod development_reload;
+mod esperanto;
 mod frozen_references;
 mod functional_flows;
 mod geometry_masks;

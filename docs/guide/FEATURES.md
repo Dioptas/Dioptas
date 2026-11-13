@@ -2,6 +2,18 @@
 
 > Moved from the former desktop README (now `DEVELOPMENT.md`). Source paths and commands are relative to the repository root.
 
+The image dialogs in Calibration, Integration, Map, Batch and Single Crystal XRD,
+including image background, flat-field and transfer correction selection, show
+the same supported image extensions. These include NumPy `.npy`, TIFF/MAR,
+EDF/CBF, HDF5, Oxford/R-AXIS/HiPiC/ADSC `.img`, Bruker, KCD/MPA/SPE,
+Esperanto `.esperanto`/`.esper`, MRC/DM3, FIT2D `.f2d`, grayscale PNM and XSD XML.
+Gzip (`.gz`) and bzip2 (`.bz2`) files are also visible. Folder scanning requires a
+known image extension before the compression suffix, such as `.edf.gz` or
+`.esper.bz2`, and skips hidden files. File contents still determine the reader;
+an extension does not override format, shape or data validation. Select **All
+files** for supported detector files with other names. JPEG, JPEG 2000 and NumPy
+`.npz` archives are not enabled in this application.
+
 The development branch is `develop`, promoted from `codex/rust-desktop` on
 November 11, 2026. The former Qt `develop` is preserved on `legacy/qt`, and
 existing stable releases remain Qt applications. New desktop work targets

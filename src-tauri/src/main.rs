@@ -21,6 +21,7 @@ use calibration_tooltip::{
 
 use processor::{Backend, Packet, wire_contract};
 use processor_reload::ProcessorHost;
+use dioptas_contract::image_formats::DETECTOR_IMAGE_EXTENSIONS;
 use serde_json::{json, Value};
 use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use tauri::{Manager, State};
@@ -151,13 +152,13 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
     let (label, extensions, name, save): (_, &[&str], _, _) = match action {
         "open_image" => (
             "Detector images",
-            &["tif", "tiff", "edf", "cbf", "h5", "hdf5", "nxs", "mar3450"],
+            DETECTOR_IMAGE_EXTENSIONS,
             "",
             false,
         ),
         "scxrd_load" | "map_load" | "batch_load" | "batch_load_data" => (
             "Detector images",
-            &["tif", "tiff", "edf", "cbf", "h5", "hdf5", "nxs", "mar3450"],
+            DETECTOR_IMAGE_EXTENSIONS,
             "",
             false,
         ),
@@ -238,7 +239,7 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
         ),
         "integration_image_background" | "integration_flat_field" | "integration_transfer" => (
             "Detector image",
-            &["tif", "tiff", "edf", "cbf", "h5", "hdf5"],
+            DETECTOR_IMAGE_EXTENSIONS,
             "",
             false,
         ),
@@ -755,6 +756,16 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn supported_formats_are_selectable_in_every_detector_image_chooser() {
+        for action in ["open_image", "scxrd_load", "map_load", "batch_load", "batch_load_data",
+            "integration_image_background", "integration_flat_field", "integration_transfer"] {
+            let choice = file_choice(action, &json!({})).unwrap();
+            assert!(!choice.save, "{action}");
+            assert_eq!(choice.extensions, DETECTOR_IMAGE_EXTENSIONS, "{action}");
+        }
+    }
+
     #[test]
     fn scxrd_choosers_keep_sources_and_exports_explicit() {
         assert!(file_choice("scxrd_load", &json!({})).is_some());
