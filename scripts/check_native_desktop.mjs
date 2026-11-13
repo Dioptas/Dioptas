@@ -142,14 +142,14 @@ for (const signal of ["SIGINT", "SIGTERM"])
     stopActive();
     process.exit(1);
   });
-function runAsync(name, command, args, cwd = desktop) {
+function runAsync(name, command, args, env = {}, cwd = desktop) {
   const commandLine = `${command} ${args.join(" ")}`;
   console.log(`[${name}] ${commandLine}`);
   const start = performance.now();
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd,
-      env: process.env,
+      env: { ...process.env, ...env },
       detached: group,
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -308,32 +308,32 @@ if (selected.has("--ui")) {
   node("functional-coverage-map", "functional_coverage.mjs");
   run("frontend-unit", "npm", ["test"]);
   run("frontend-build", "npm", ["run", "build"]);
-  // The UI checks run side by side (DIOPTAS_GATE_UI_JOBS at a time, three by
-  // default). Each entry is a script name followed by the things it must not
-  // share with a check running at the same moment: "vite" for scripts that
-  // start a Vite dev server, which all prepare dependencies in
-  // node_modules/.vite, and a folder name for scripts that write to the same
-  // artifacts folder.
+  // The UI checks run side by side (DIOPTAS_GATE_UI_JOBS at a time; by
+  // default half the cores, and one at a time below eight cores). Each entry is a script name,
+  // followed by the artifacts folder it writes to when another check writes
+  // there too: those two never run at the same moment. Every check gets its
+  // own Vite dependency cache (see vite.config.ts), because dev servers that
+  // prepare dependencies in one shared folder overwrite each other's files.
   const checks = [
-    ["hook_refresh_smoke", "vite"],
+    ["hook_refresh_smoke"],
     ["ui_components"],
-    ["app_update_smoke", "vite"],
+    ["app_update_smoke"],
     ["native_backend_smoke"],
     ["native_custom_actions_smoke"],
     ["native_calibration_smoke"],
     ["native_mask_smoke"],
     ["native_integration_workflow_smoke"],
-    ["overlay_command_order_smoke", "vite"],
+    ["overlay_command_order_smoke"],
     ["phase_editor_workflow_smoke"],
-    ["pattern_figure_export_smoke", "vite", "pattern-figure-export"],
+    ["pattern_figure_export_smoke", "pattern-figure-export"],
     ["pattern_figure_save_smoke", "pattern-figure-export"],
-    ["pattern_figure_editor_smoke", "vite"],
+    ["pattern_figure_editor_smoke"],
     ["spottiness_smoke"],
-    ["batch_waterfall_smoke", "vite"],
-    ["batch_surface_smoke", "vite"],
-    ["batch_surface_gpu_smoke", "vite"],
-    ["batch_surface_guides_smoke", "vite"],
-    ["batch_surface_axes_smoke", "vite"],
+    ["batch_waterfall_smoke"],
+    ["batch_surface_smoke"],
+    ["batch_surface_gpu_smoke"],
+    ["batch_surface_guides_smoke"],
+    ["batch_surface_axes_smoke"],
     ["batch_export_smoke", "batch-export"],
     ["batch_background_smoke"],
     ["processing_workers_smoke"],
@@ -343,15 +343,15 @@ if (selected.has("--ui")) {
     ["metadata_products_smoke"],
     ["native_project_smoke"],
     ["session_recovery_smoke"],
-    ["dac_thermal_pressure_smoke", "vite"],
+    ["dac_thermal_pressure_smoke"],
     ["native_geometry_mask_smoke"],
     ["native_detector_smoke"],
     ["native_lacosmic_smoke"],
     ["native_file_errors_smoke"],
     ["native_map_progress_smoke"],
-    ["image_change_smoke", "vite", "image-change"],
-    ["hdf5_sources_smoke", "vite"],
-    ["hdf5_master_vds_smoke", "vite"],
+    ["image_change_smoke", "image-change"],
+    ["hdf5_sources_smoke"],
+    ["hdf5_master_vds_smoke"],
     ["detector_window_smoke", "detector-window"],
     ["map_detector_independence_smoke"],
     ["detector_source_smoke", "detector-window"],
@@ -370,13 +370,15 @@ if (selected.has("--ui")) {
     {
       name: "image_change_webkit",
       args: ["scripts/image_change_smoke.mjs", "--webkit"],
-      locks: ["vite", "image-change"],
+      locks: ["image-change"],
     },
   );
   console.log(`\nUI checks: ${checks.length}, ${jobs} at a time`);
   try {
     await runPool(checks, jobs, (check) =>
-      runAsync(check.name, process.execPath, check.args),
+      runAsync(check.name, process.execPath, check.args, {
+        DIOPTAS_VITE_CACHE_DIR: `node_modules/.vite-gate/${check.name}`,
+      }),
     );
   } catch (error) {
     report("failed");

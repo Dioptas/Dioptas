@@ -13,11 +13,14 @@ export function gateSwitch(name, value, fallback) {
 export const coverageRequested = (value) =>
   gateSwitch("DIOPTAS_GATE_COVERAGE", value, false);
 
-// DIOPTAS_GATE_UI_JOBS: how many UI checks run at once. Three by default,
-// which is what a hosted CI runner has cores for; never more than the machine.
+// DIOPTAS_GATE_UI_JOBS: how many UI checks run at once. By default half the
+// cores on a machine with at least eight, otherwise one. Each check drives a
+// browser and a processor that already use several cores: on a 3-core hosted
+// runner three at a time made every check three to seven times slower and
+// one of them time out, for no gain overall.
 export function uiJobs(value, cores) {
   if (value === undefined || value === "")
-    return Math.max(1, Math.min(3, cores));
+    return cores >= 8 ? Math.floor(cores / 2) : 1;
   if (!/^[1-9]\d*$/.test(value))
     throw Error(
       `DIOPTAS_GATE_UI_JOBS must be a positive integer, not ${value}`,

@@ -112,9 +112,11 @@ describe("timing report", () => {
     assert.throws(() => gateSwitch("X", "off", true), /X must be 0 or 1/);
   });
 
-  it("runs three UI checks at a time unless told otherwise", () => {
-    assert.equal(uiJobs(undefined, 14), 3);
-    assert.equal(uiJobs("", 2), 2);
+  it("runs UI checks side by side only on machines with many cores", () => {
+    assert.equal(uiJobs(undefined, 14), 7);
+    assert.equal(uiJobs(undefined, 8), 4);
+    assert.equal(uiJobs(undefined, 4), 1);
+    assert.equal(uiJobs("", 3), 1);
     assert.equal(uiJobs("1", 14), 1);
     assert.equal(uiJobs("8", 2), 8);
     for (const value of ["0", "-1", "2.5", "many"])

@@ -109,8 +109,8 @@ npm run test:native-map-progress
 
 `npm run test:ci-native` runs the Rust and headless UI gates. Host checks use
 `node scripts/check_native_desktop.mjs --host` without opening an app window.
-The UI gate runs three checks at a time; `DIOPTAS_GATE_UI_JOBS=1` runs them
-one after another, which is easier to read when one fails. Pull requests set
+On a machine with at least eight cores the UI gate runs several checks at a
+time (half the cores); `DIOPTAS_GATE_UI_JOBS=1` runs them one after another, which is easier to read when one fails. Pull requests set
 `DIOPTAS_GATE_CORE_TESTS=0` to skip the library tests of the build without
 features; local runs and `develop` keep them.
 Native bulk transport/progress tests use the Rust `test_fixtures` example to
