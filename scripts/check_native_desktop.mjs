@@ -8,10 +8,10 @@ import path from "node:path";
 import {
   coverageRequested,
   gateSwitch,
-  inShard,
   markdownSummary,
   runPool,
   seconds,
+  shardTasks,
   textSummary,
   timingReport,
   uiJobs,
@@ -320,6 +320,8 @@ if (selected.has("--ui")) {
     for (const file of [
       `target/debug/dioptas-processor${exe}`,
       `target/debug/examples/test_fixtures${exe}`,
+      `target/debug/examples/hdf5_master_fixture${exe}`,
+      `target/debug/examples/hdf5_source_fixture${exe}`,
     ])
       if (!existsSync(path.join(root, file)))
         throw Error(`DIOPTAS_GATE_PREBUILT=1 but ${file} is missing`);
@@ -404,7 +406,55 @@ if (selected.has("--ui")) {
       locks: ["image-change"],
     },
   );
-  const mine = checks.filter((_, position) => inShard(shard, position));
+  // Seconds each check took on a hosted Linux runner (13.11.2026), used only
+  // to give CI's shards equal shares. A check missing here counts as 30.
+  const ciSeconds = {
+    native_project_smoke: 100,
+    phase_editor_workflow_smoke: 74,
+    batch_surface_smoke: 68,
+    native_integration_workflow_smoke: 60,
+    detector_window_smoke: 60,
+    hdf5_master_vds_smoke: 60,
+    native_map_progress_smoke: 56,
+    hdf5_sources_smoke: 50,
+    companion_windows_smoke: 49,
+    detector_source_smoke: 42,
+    ui_components: 41,
+    native_calibration_smoke: 37,
+    batch_surface_axes_smoke: 31,
+    native_file_errors_smoke: 31,
+    spottiness_smoke: 30,
+    correction_previews_smoke: 30,
+    native_geometry_mask_smoke: 27,
+    pattern_figure_export_smoke: 24,
+    native_backend_smoke: 23,
+    processing_drafts_smoke: 22,
+    pattern_figure_editor_smoke: 21,
+    pattern_figure_save_smoke: 21,
+    hook_refresh_smoke: 19,
+    batch_export_smoke: 19,
+    image_change_webkit: 18,
+    batch_waterfall_smoke: 16,
+    session_recovery_smoke: 14,
+    batch_surface_gpu_smoke: 14,
+    dac_thermal_pressure_smoke: 14,
+    image_change_smoke: 14,
+    map_detector_independence_smoke: 14,
+    native_mask_smoke: 13,
+    native_lacosmic_smoke: 13,
+    batch_background_smoke: 13,
+    batch_background_export: 13,
+    overlay_command_order_smoke: 12,
+    native_custom_actions_smoke: 11,
+    native_detector_smoke: 11,
+    batch_surface_guides_smoke: 11,
+    native_corrections_smoke: 10,
+    processing_workers_smoke: 4,
+    app_update_smoke: 3,
+    metadata_products_smoke: 1,
+  };
+  // The first shard also runs the frontend unit and transport tests.
+  const mine = shardTasks(checks, shard, ciSeconds, 30);
   console.log(
     `\nUI checks: ${mine.length}${shard ? ` of ${checks.length} (shard ${shard.index}/${shard.count})` : ""}, ${jobs} at a time`,
   );

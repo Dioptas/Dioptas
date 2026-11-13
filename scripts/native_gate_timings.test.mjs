@@ -20,9 +20,9 @@ import { describe, it } from "node:test";
 import {
   coverageRequested,
   gateSwitch,
-  inShard,
   markdownSummary,
   runPool,
+  shardTasks,
   slowestFirst,
   textSummary,
   timingReport,
@@ -135,19 +135,43 @@ describe("UI shards", () => {
       assert.throws(() => uiShard(value), /must look like 2\/3/);
   });
 
-  it("deals every position to exactly one shard", () => {
-    const positions = [...Array(43).keys()];
-    assert.ok(positions.every((p) => inShard(undefined, p)));
-    const shares = [1, 2, 3].map((index) =>
-      positions.filter((p) => inShard({ index, count: 3 }, p)),
-    );
+  const tasks = [
+    ["a", 100],
+    ["b", 10],
+    ["c", 60],
+    ["d", 50],
+    ["e", 40],
+    ["f", 5],
+  ].map(([name]) => ({ name }));
+  const seconds = { a: 100, b: 10, c: 60, d: 50, e: 40, f: 5 };
+  const names = (index, count, head) =>
+    shardTasks(tasks, { index, count }, seconds, head).map((t) => t.name);
+
+  it("deals every task to exactly one shard, in list order", () => {
+    assert.equal(shardTasks(tasks, undefined), tasks);
+    const shares = [1, 2, 3].map((index) => names(index, 3));
+    assert.deepEqual(shares.flat().sort(), ["a", "b", "c", "d", "e", "f"]);
+    for (const share of shares) assert.deepEqual(share, [...share].sort());
+  });
+
+  it("gives the shards about equal estimated time", () => {
+    // Longest first to the lightest shard: a | c, b, f | d, e.
+    assert.deepEqual(names(1, 3), ["a"]);
+    assert.deepEqual(names(2, 3), ["b", "c", "f"]);
+    assert.deepEqual(names(3, 3), ["d", "e"]);
+  });
+
+  it("counts what the first shard carries besides its tasks", () => {
+    assert.deepEqual(names(1, 2, 0), ["a", "e"]);
+    assert.deepEqual(names(1, 2, 200), ["e"]);
+    assert.deepEqual(names(1, 2, 1000), []);
+  });
+
+  it("estimates an unknown task at 30 seconds", () => {
+    const unknown = [{ name: "x" }, { name: "y" }, { name: "z" }];
     assert.deepEqual(
-      shares.flat().sort((a, b) => a - b),
-      positions,
-    );
-    assert.deepEqual(
-      shares.map((s) => s.length),
-      [15, 14, 14],
+      shardTasks(unknown, { index: 1, count: 2 }, { x: 50 }).map((t) => t.name),
+      ["x"],
     );
   });
 });
@@ -491,7 +515,12 @@ describe(
       const missing = gate.run(["--ui"], { DIOPTAS_GATE_PREBUILT: "1" });
       assert.notEqual(missing.status, 0);
       assert.match(missing.stderr, /dioptas-processor is missing/);
-      for (const file of ["dioptas-processor", "examples/test_fixtures"]) {
+      for (const file of [
+        "dioptas-processor",
+        "examples/test_fixtures",
+        "examples/hdf5_master_fixture",
+        "examples/hdf5_source_fixture",
+      ]) {
         const target = path.join(gate.root, "target/debug", file);
         mkdirSync(path.dirname(target), { recursive: true });
         writeFileSync(target, "");

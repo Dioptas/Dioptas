@@ -38,9 +38,25 @@ export function uiShard(value) {
   return { index: Number(index), count: Number(count) };
 }
 
-// Checks are dealt out in list order, like cards.
-export const inShard = (shard, position) =>
-  !shard || position % shard.count === shard.index - 1;
+// The tasks of one shard, in list order. Tasks are dealt out so that the
+// shards take about equally long: longest first, each to the shard that is
+// lightest so far. `seconds` estimates a task by name (30 when unknown) and
+// `head` is what the first shard carries besides its tasks.
+export function shardTasks(tasks, shard, seconds = {}, head = 0) {
+  if (!shard) return tasks;
+  const cost = (task) => seconds[task.name] ?? 30;
+  const load = Array.from({ length: shard.count }, (_, i) => (i ? 0 : head));
+  const mine = new Set();
+  const longestFirst = tasks
+    .map((task, order) => ({ task, order }))
+    .sort((a, b) => cost(b.task) - cost(a.task) || a.order - b.order);
+  for (const { task } of longestFirst) {
+    const lightest = load.indexOf(Math.min(...load));
+    load[lightest] += cost(task);
+    if (lightest === shard.index - 1) mine.add(task);
+  }
+  return tasks.filter((task) => mine.has(task));
+}
 
 // Runs every task, at most `jobs` at a time, starting them in list order.
 // Tasks that share a lock never overlap. The first failure stops new starts

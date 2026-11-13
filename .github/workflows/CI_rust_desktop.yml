@@ -103,15 +103,18 @@ jobs:
       # the real Linux Tauri dependency graph and runs its tests.
       - name: Prepare and test the native host (no application window)
         run: node scripts/check_native_desktop.mjs --host
-      - name: Build the test-fixture helper for the UI checks
-        run: cargo build --locked --manifest-path backend/Cargo.toml --example test_fixtures
-      # The UI jobs run this processor and helper instead of compiling them.
+      - name: Build the test-fixture helpers for the UI checks
+        run: cargo build --locked --manifest-path backend/Cargo.toml --example test_fixtures --example hdf5_master_fixture --example hdf5_source_fixture
+      # The UI jobs run this processor and these helpers instead of compiling
+      # them: they have no Rust cache, so each compile would take minutes.
       - uses: actions/upload-artifact@v7
         with:
           name: ui-binaries
           path: |
             target/debug/dioptas-processor
             target/debug/examples/test_fixtures
+            target/debug/examples/hdf5_master_fixture
+            target/debug/examples/hdf5_source_fixture
           retention-days: 1
       - name: Exercise the optimized GLib security regression
         run: cargo test --release --locked --manifest-path security/glib-regression/Cargo.toml --jobs 2
@@ -146,7 +149,7 @@ jobs:
           name: ui-binaries
           path: target/debug
       # Artifacts do not keep the executable bit.
-      - run: chmod +x target/debug/dioptas-processor target/debug/examples/test_fixtures
+      - run: chmod +x target/debug/dioptas-processor target/debug/examples/*
       # One check at a time within a job: checks that overlap on a hosted
       # runner slow each other down until timing-sensitive ones fail.
       - name: Run headless UI, data flow and stdio checks

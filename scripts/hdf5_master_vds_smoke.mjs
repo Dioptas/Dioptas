@@ -6,25 +6,13 @@ import path from "node:path";
 import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
 import { nativeClient, root } from "./native_backend_client.mjs";
+import { runExample } from "./test_fixtures.mjs";
 import { setInterfaceTextSize } from "./plot_navigation.mjs";
 const desktop = root,
   artifacts = path.join(desktop, "artifacts/hdf5-master-vds");
 await mkdir(artifacts, { recursive: true });
 const temp = await mkdtemp(path.join(tmpdir(), "dioptas-master-vds-"));
-execFileSync(
-  "cargo",
-  [
-    "run",
-    "--quiet",
-    "--manifest-path",
-    path.join(desktop, "backend/Cargo.toml"),
-    "--example",
-    "hdf5_master_fixture",
-    "--",
-    temp,
-  ],
-  { cwd: desktop, stdio: "inherit" },
-);
+runExample("hdf5_master_fixture", temp);
 const metadata = JSON.parse(
   execFileSync(
     "cargo",

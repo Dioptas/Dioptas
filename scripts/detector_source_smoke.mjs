@@ -3,13 +3,13 @@ import {
   checkCakeProfileWidthResize,
 } from "./cake_profile_interaction.mjs";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { mkdtemp, rm, mkdir, writeFile, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium, webkit } from "playwright";
 import { nativeClient, root } from "./native_backend_client.mjs";
+import { runExample } from "./test_fixtures.mjs";
 import { selectIntegrationDisplay } from "./integration_display.mjs";
 import { setInterfaceTextSize } from "./plot_navigation.mjs";
 const temporary = await mkdtemp(
@@ -17,21 +17,7 @@ const temporary = await mkdtemp(
 );
 const source = path.join(temporary, "sources.h5"),
   artifacts = path.join(root, "artifacts/detector-window");
-execFileSync(
-  "cargo",
-  [
-    "run",
-    "--quiet",
-    "--locked",
-    "--manifest-path",
-    path.join(root, "backend/Cargo.toml"),
-    "--example",
-    "hdf5_source_fixture",
-    "--",
-    source,
-  ],
-  { cwd: root, stdio: "inherit" },
-);
+runExample("hdf5_source_fixture", source);
 // A disabled, loaded flat field is still a valid Qt correction preview.
 const flat = path.join(temporary, "flat.npy");
 let header = "{'descr': '<f8', 'fortran_order': False, 'shape': (24, 32), }";
