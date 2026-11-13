@@ -1,3 +1,9 @@
+# Unreleased
+
+## Fixes
+
+- Fixed custom actions on Windows, where the settings always reported that the home directory was unavailable and no action could be saved or run. Dioptas now finds the home folder from the Windows user profile.
+
 # 0.11.0 (28.09.2026)
 
 <!-- 0.10.1 and 0.10.2 were development headings, not published releases.
