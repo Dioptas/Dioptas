@@ -16,7 +16,7 @@ dioptrin = []
 [dependencies]
 dioptas-contract = { path = "../contract" }
 dioptrin-io = { git = "https://github.com/CPrescher/dioptrin-io", tag = "v0.3.0", features = ["wrappers", "hdf5", "containers", "bruker", "oxford", "raxis", "fixed", "fit2d", "kcd", "mpa", "esperanto", "mar345", "xsd"] }
-dioptrin = { git = "https://github.com/CPrescher/Dioptrin", rev = "71cb46634cfdb2f7884cc2693bf602a328792fa6", default-features = false }
+dioptrin = { git = "https://github.com/CPrescher/Dioptrin", rev = "ff5fcd8c72616cfb4b6d16571f0d4efd30a93749", default-features = false }
 half = "2"
 serde = { version = "1", features = ["derive", "rc"] }
 # Preserve the established ordering of plugin controls in embedded schemas.
