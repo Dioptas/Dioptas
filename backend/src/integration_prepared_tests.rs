@@ -261,6 +261,114 @@ fn fixed_custom_cache_rebuilds_after_scientific_inputs_change() {
     });
 }
 
+#[test]
+fn rejected_custom_snapshots_preserve_the_previous_kernel_results() {
+    crate::worker_pool::pool(Some(2)).unwrap().install(|| {
+        let shape = [13, 17];
+        let p = parameters(shape);
+        let mask = vec![0; shape[0] * shape[1]];
+        let data: Vec<_> = (0..mask.len()).map(|i| (i % 37) as f64 - 9.).collect();
+        for rejected in 0..5 {
+            let mut o = options();
+            let mut plan = Plan::new(key(shape, &p, &mask, &o, false)).unwrap();
+            plan.prepare_general(&o).unwrap();
+            if rejected < 3 {
+                let value = [-1., f64::NAN, f64::INFINITY][rejected];
+                plan.normalization = Some(Arc::new(vec![value; data.len()]));
+            } else {
+                let lut = Arc::make_mut(plan.general_1d.as_mut().unwrap());
+                lut.hist_step = if rejected == 3 { 0. } else { f64::NAN };
+            }
+            for errors in [false, true] {
+                o.errors = errors;
+                let expected = previous(&mut plan, &data, None, &mask, &o);
+                let actual = plan.general_pattern(&data, None, &mask, &o).unwrap();
+                same_result(&actual, &expected);
+                assert!(plan.compatibility_1d.is_none());
+            }
+            // pyFAI already required a valid strict snapshot before this PR.
+            o.pyfai = true;
+            assert!(plan.general_pattern(&data, None, &mask, &o).is_err());
+        }
+    });
+}
+
+#[test]
+fn warmed_engine_alternates_fallbacks_and_prepared_calls_without_rebuilding() {
+    crate::worker_pool::pool(Some(2)).unwrap().install(|| {
+        let shape = [19, 23];
+        let p = parameters(shape);
+        let mask: Vec<_> = (0..shape[0] * shape[1])
+            .map(|i| u8::from(i % 19 == 0))
+            .collect();
+        for pyfai in [false, true] {
+            let mut o = options();
+            o.pyfai = pyfai;
+            let mut engine = Engine::default();
+            let mut snapshot = None;
+            for (frame, (errors, spread, supplied)) in [
+                (false, false, false),
+                (true, false, false),
+                (true, true, false),
+                (true, false, true),
+                (true, true, true),
+                (false, false, false),
+            ]
+            .into_iter()
+            .enumerate()
+            {
+                o.errors = errors;
+                o.spread = spread;
+                let data: Vec<_> = (0..mask.len())
+                    .map(|i| ((i * 37) % 101) as f64 - 13.7 * frame as f64)
+                    .collect();
+                let variance: Vec<_> = data.iter().map(|v| 2. * v.abs() + 3.).collect();
+                let variance = supplied.then_some(variance.as_slice());
+                let previous_result = previous(
+                    engine
+                        .pattern_plan(key(shape, &p, &mask, &o, false))
+                        .unwrap(),
+                    &data,
+                    variance,
+                    &mask,
+                    &o,
+                );
+                let actual = engine
+                    .integrate_pattern_with_variance(&data, variance, shape, &p, &mask, &o, None)
+                    .unwrap();
+                let plan = engine.pattern.as_mut().unwrap();
+                same_result(
+                    &plan.general_pattern(&data, variance, &mask, &o).unwrap(),
+                    &previous_result,
+                );
+                let expected = Engine::finish_pattern(
+                    previous_result.radial,
+                    previous_result.intensity,
+                    previous_result.errors,
+                    o.spread.then_some(previous_result.azimuthal_std),
+                    &p,
+                    &o,
+                )
+                .unwrap();
+                assert_eq!(actual.0, expected.0);
+                match (&actual.1, &expected.1) {
+                    (Some(a), Some(b)) => same(a, b),
+                    (None, None) => (),
+                    _ => panic!("engine error availability changed"),
+                }
+                let current = plan.compatibility_1d.as_ref().unwrap();
+                if let Some(first) = &snapshot {
+                    assert!(Arc::ptr_eq(first, current));
+                } else {
+                    snapshot = Some(current.clone());
+                }
+                assert_eq!(engine.pattern_builds, 1);
+                assert_eq!(engine.resident_calls, frame as u64 + 1);
+            }
+        }
+    });
+}
+
 /// Explicit local benchmark; results are printed, never written into the repo.
 /// DIOPTRIN_FIXTURES must point to a directory containing v1.poni and
 /// CeO2_Pilatus1M.tif (Dioptrin's documented test fixture).
@@ -295,20 +403,75 @@ fn benchmark_prepared_custom_patterns() {
         .ok()
         .map(|s| s.parse().unwrap())
         .unwrap_or(crate::worker_pool::effective(None));
-    crate::worker_pool::pool(Some(threads)).unwrap().install(|| {
-        for (name,angle,solid,pyfai) in [("custom_sector",Some([-110.,65.]),true,false),("no_solid_angle",None,false,false),("pyfai_control",Some([-110.,65.]),true,true)] {
-            let mut o=options();o.bins=1250;o.azimuth=angle;o.solid_angle=solid;o.pyfai=pyfai;o.polarization=0.99;
-            let mut plan=Plan::new(key(shape,&p,&mask,&o,false)).unwrap();plan.prepare_general(&o).unwrap();
-            let setup=Instant::now();plan.fixed_compatibility(&o,&mask).unwrap();let setup_ms=setup.elapsed().as_secs_f64()*1e3;
-            for errors in [false,true] {o.errors=errors;
-                let expected=previous(&mut plan,&data,None,&mask,&o);let actual=plan.general_pattern(&data,None,&mask,&o).unwrap();same_result(&actual,&expected);
-                let run=|plan:&mut Plan,candidate:bool,repeats:usize| {let start=Instant::now();for _ in 0..repeats {if candidate {black_box(plan.general_pattern(&data,None,&mask,&o).unwrap());}else{black_box(previous(plan,&data,None,&mask,&o));}}start.elapsed().as_secs_f64()*1e6/repeats as f64};
-                run(&mut plan,false,8);run(&mut plan,true,8);
-                let mut old=vec![];let mut new=vec![];
-                for i in 0..31 {if i%2==0 {old.push(run(&mut plan,false,48));new.push(run(&mut plan,true,48));}else{new.push(run(&mut plan,true,48));old.push(run(&mut plan,false,48));}}
-                old.sort_by(f64::total_cmp);new.sort_by(f64::total_cmp);
-                println!("{}",json!({"case":name,"errors":errors,"threads":threads,"baseline_us":old[15],"prepared_us":new[15],"speedup":old[15]/new[15],"setup_ms":setup_ms,"bitwise_equal":true,"samples":31,"repeats":48,"base_p10_p90_us":[old[3],old[27]],"plan_p10_p90_us":[new[3],new[27]]}));
+    crate::worker_pool::pool(Some(threads))
+        .unwrap()
+        .install(|| {
+            let cases = [
+                ("custom_sector", Some([-110., 65.]), true, false),
+                ("no_solid_angle", None, false, false),
+                ("pyfai_control", Some([-110., 65.]), true, true),
+            ];
+            for (name, angle, solid, pyfai) in cases {
+                let mut o = options();
+                o.bins = 1250;
+                o.azimuth = angle;
+                o.solid_angle = solid;
+                o.pyfai = pyfai;
+                o.polarization = 0.99;
+                let mut plan = Plan::new(key(shape, &p, &mask, &o, false)).unwrap();
+                plan.prepare_general(&o).unwrap();
+                let setup = Instant::now();
+                plan.fixed_compatibility(&o, &mask).unwrap();
+                let setup_ms = setup.elapsed().as_secs_f64() * 1e3;
+                for errors in [false, true] {
+                    o.errors = errors;
+                    let expected = previous(&mut plan, &data, None, &mask, &o);
+                    let actual = plan.general_pattern(&data, None, &mask, &o).unwrap();
+                    same_result(&actual, &expected);
+                    let run = |plan: &mut Plan, candidate: bool, repeats: usize| {
+                        let start = Instant::now();
+                        for _ in 0..repeats {
+                            if candidate {
+                                black_box(plan.general_pattern(&data, None, &mask, &o).unwrap());
+                            } else {
+                                black_box(previous(plan, &data, None, &mask, &o));
+                            }
+                        }
+                        start.elapsed().as_secs_f64() * 1e6 / repeats as f64
+                    };
+                    run(&mut plan, false, 8);
+                    run(&mut plan, true, 8);
+                    let mut old = vec![];
+                    let mut new = vec![];
+                    for i in 0..31 {
+                        if i % 2 == 0 {
+                            old.push(run(&mut plan, false, 48));
+                            new.push(run(&mut plan, true, 48));
+                        } else {
+                            new.push(run(&mut plan, true, 48));
+                            old.push(run(&mut plan, false, 48));
+                        }
+                    }
+                    old.sort_by(f64::total_cmp);
+                    new.sort_by(f64::total_cmp);
+                    println!(
+                        "{}",
+                        json!({
+                            "case": name,
+                            "errors": errors,
+                            "threads": threads,
+                            "baseline_us": old[15],
+                            "prepared_us": new[15],
+                            "speedup": old[15] / new[15],
+                            "setup_ms": setup_ms,
+                            "bitwise_equal": true,
+                            "samples": 31,
+                            "repeats": 48,
+                            "base_p10_p90_us": [old[3], old[27]],
+                            "plan_p10_p90_us": [new[3], new[27]],
+                        })
+                    );
+                }
             }
-        }
-    });
+        });
 }

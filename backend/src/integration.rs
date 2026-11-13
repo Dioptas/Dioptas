@@ -366,15 +366,22 @@ impl Plan {
         // the existing weights/order and caches the same normalization sums.
         // Supplied variances, spread and changing masks retain their kernels.
         if !o.dynamic_mask && !o.spread && supplied_variance.is_none() {
-            let result = self
-                .fixed_compatibility(o, mask)?
-                .integrate_frame(data, o.errors)?;
-            return Ok(dioptrin::lut::AzimuthalIntegrationResult {
-                radial: result.radial,
-                intensity: result.intensity,
-                errors: result.errors,
-                azimuthal_std: vec![],
-            });
+            match self.fixed_compatibility(o, mask) {
+                Ok(plan) => {
+                    let result = plan.integrate_frame(data, o.errors)?;
+                    return Ok(dioptrin::lut::AzimuthalIntegrationResult {
+                        radial: result.radial,
+                        intensity: result.intensity,
+                        errors: result.errors,
+                        azimuthal_std: vec![],
+                    });
+                }
+                Err(error) if o.pyfai => return Err(error),
+                // The strict constructor has stronger normalization/grid
+                // preconditions than the old custom-grid kernels. Keep their
+                // previous results when a snapshot cannot represent the input.
+                Err(_) => {}
+            }
         }
         let lut = self.general_1d.as_ref().unwrap();
         let norm = self.normalization.as_ref().unwrap();
