@@ -1,10 +1,23 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { refreshBackendSnapshots } from "../src/backendReloadSnapshot.ts";
+import {
+  refreshBackendSnapshots,
+  backendUpdateMessage,
+} from "../src/backendReloadSnapshot.ts";
 import {
   initialResponseSnapshot,
   reduceResponseSnapshot,
 } from "../src/responseSnapshot.ts";
+
+test("update guidance drops the redundant host prefix and keeps the recovery action first", () => {
+  assert.equal(
+    backendUpdateMessage(
+      "Backend update failed; current session retained. Save your work, then restart.",
+    ),
+    "Save your work, then restart.",
+  );
+  assert.equal(backendUpdateMessage("Compilation error"), "Compilation error");
+});
 
 test("successful worker updates refresh SC as well as powder snapshots", async () => {
   const actions = [],

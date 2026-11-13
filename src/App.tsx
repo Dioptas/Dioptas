@@ -57,7 +57,11 @@ import { useCalibrationFitDraft } from "./useCalibrationFitDraft";
 import { IntegrationModeIcon } from "./ModeIcons";
 import { SingleCrystalHistory } from "./SingleCrystalHistory";
 import { SingleCrystalWorkspace } from "./SingleCrystalWorkspace";
-import { refreshBackendSnapshots } from "./backendReloadSnapshot";
+import {
+  refreshBackendSnapshots,
+  backendUpdateMessage,
+  lostCrystalScanMessage,
+} from "./backendReloadSnapshot";
 import { WorkspaceModeButtons } from "./WorkspaceModeButtons";
 import { HistoryControls } from "./HistoryControls";
 import { useGeometryDraft } from "./geometryDraft";
@@ -872,6 +876,9 @@ export default function App() {
   }, [state?.revision, image?.bufferId]);
   useBackendReload((message, restored, failed) => {
     setNotice(message);
+    // Keep recovery instructions in the existing accessible footer details
+    // until dismissed or another command begins; do not open a dialog.
+    if (failed) setError(backendUpdateMessage(message));
     if ((restored || failed) && bridge.current)
       void refreshBackendSnapshots(
         bridge.current,
@@ -880,10 +887,7 @@ export default function App() {
         restored,
       )
         .then((missingScan) => {
-          if (missingScan)
-            setNotice(
-              "An earlier backend update lost the loaded rotation scan. Open the frames again to continue; your original files are unchanged.",
-            );
+          if (missingScan) setError(lostCrystalScanMessage);
         })
         .catch((error) => setError(String(error)));
   });

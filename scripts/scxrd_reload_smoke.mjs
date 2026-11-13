@@ -5,6 +5,7 @@ import path from "node:path";
 import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
 import { nativeClient, root } from "./native_backend_client.mjs";
+import { lostCrystalScanMessage } from "../src/backendReloadSnapshot.ts";
 
 // Only the Tauri event subscription is adapted for a headless browser. The App,
 // reload callback, snapshot application and both Rust processors are real.
@@ -59,9 +60,14 @@ try {
       );
       await page.addInitScript(() => {
         window.__documentToken = crypto.randomUUID();
+        window.__scSnapshotReplies = 0;
         window.pywebview = {
           api: {
-            invoke: (action, payload) => window.__nativeInvoke(action, payload),
+            invoke: async (action, payload) => {
+              const result = await window.__nativeInvoke(action, payload);
+              if (action === "scxrd_snapshot") window.__scSnapshotReplies++;
+              return result;
+            },
           },
         };
       });
@@ -72,12 +78,22 @@ try {
       await page.getByTestId("detector-canvas").waitFor();
       await page.waitForFunction(() => !!window.__reloadTestEvent);
       const token = await page.evaluate(() => window.__documentToken);
+      const beforeReady = await page.evaluate(() => window.__scSnapshotReplies);
       await page.evaluate(() =>
         window.__reloadTestEvent({
           payload: { phase: "ready", message: "Session restored" },
         }),
       );
+      await page.waitForFunction(
+        (n) => window.__scSnapshotReplies > n,
+        beforeReady,
+      );
+      await page.waitForTimeout(50);
       await page.getByTestId("detector-canvas").waitFor();
+      assert.equal(await page.locator(".sc-empty").count(), 0);
+      const beforeFailure = await page.evaluate(
+        () => window.__scSnapshotReplies,
+      );
       // Model a session already lost by the previous version's unsafe swap.
       active = empty;
       await page.evaluate(() =>
@@ -88,13 +104,33 @@ try {
           },
         }),
       );
+      await page.waitForFunction(
+        (n) => window.__scSnapshotReplies > n,
+        beforeFailure,
+      );
       await page.locator(".sc-empty").waitFor();
+      const guidance = page
+        .getByRole("alert")
+        .filter({ hasText: lostCrystalScanMessage });
+      await guidance.waitFor();
+      assert.equal(
+        await page.getByRole("dialog").count(),
+        0,
+        "update guidance must not interrupt with a modal",
+      );
+      await page.waitForTimeout(4700);
+      await guidance.waitFor();
       await page
-        .getByText(
-          "An earlier backend update lost the loaded rotation scan. Open the frames again to continue; your original files are unchanged.",
-          { exact: true },
-        )
+        .getByRole("button", { name: "View error details", exact: true })
+        .click();
+      const details = page.getByRole("dialog", {
+        name: "Error details",
+        exact: true,
+      });
+      await details
+        .getByText(lostCrystalScanMessage, { exact: true })
         .waitFor();
+      await page.keyboard.press("Escape");
       assert.equal(await page.getByTestId("detector-canvas").count(), 0);
       assert.equal(
         await page.evaluate(() => window.__documentToken),
