@@ -57,6 +57,7 @@ import { useCalibrationFitDraft } from "./useCalibrationFitDraft";
 import { IntegrationModeIcon } from "./ModeIcons";
 import { SingleCrystalHistory } from "./SingleCrystalHistory";
 import { SingleCrystalWorkspace } from "./SingleCrystalWorkspace";
+import { refreshBackendSnapshots } from "./backendReloadSnapshot";
 import { WorkspaceModeButtons } from "./WorkspaceModeButtons";
 import { HistoryControls } from "./HistoryControls";
 import { useGeometryDraft } from "./geometryDraft";
@@ -869,12 +870,21 @@ export default function App() {
       bufferId: image?.bufferId,
     });
   }, [state?.revision, image?.bufferId]);
-  useBackendReload((message, restored) => {
+  useBackendReload((message, restored, failed) => {
     setNotice(message);
-    if (restored)
-      void bridge
-        .current?.("state")
-        .then((result) => apply(result, false, true))
+    if ((restored || failed) && bridge.current)
+      void refreshBackendSnapshots(
+        bridge.current,
+        (result) => apply(result, false, true),
+        !!scxrd?.frames,
+        restored,
+      )
+        .then((missingScan) => {
+          if (missingScan)
+            setNotice(
+              "An earlier backend update lost the loaded rotation scan. Open the frames again to continue; your original files are unchanged.",
+            );
+        })
         .catch((error) => setError(String(error)));
   });
   useNativePhaseEditorSync(run, state?.revision);

@@ -18,6 +18,7 @@ let sequence = 0;
 const quiet = new Set([
   "progress",
   "pixel",
+  "scxrd_pixel",
   "state",
   "image_levels",
   "map_levels",

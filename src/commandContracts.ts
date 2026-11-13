@@ -82,7 +82,7 @@ export interface CommandContracts {
         y: number;
         value: number | null;
         twoTheta: number | null;
-      };
+      } | null;
     }
   >;
   scxrd_snapshot: Spec<
