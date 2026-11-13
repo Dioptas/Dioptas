@@ -52,6 +52,11 @@
    geometry edits or refit changed selections before saving.
    Alternatively, use **Load .poni** or **Enter manually** from any tab, without
    picking peaks.
+   The geometry in a saved `.poni` file describes the image as shown, after the
+   rotate and flip buttons. The file records that view in a
+   `# Dioptas image orientation: <view>` comment, next to `# Calibrant:`.
+   pyFAI ignores both comments. Loading the file in Dioptas turns the open
+   image to the recorded view; files without the comment keep the current view.
 8. Switch to **Mask** for drawing, geometric selections, thresholds, automatic
    masks and mask files; see [Mask parity](../parity/MASK_PARITY.md). Switch to
    **Integration** for image/cake/pattern display, integration options, shared

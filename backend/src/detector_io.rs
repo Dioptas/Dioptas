@@ -26,9 +26,9 @@ fn find(group: &hdf5::Group, depth: usize, out: &mut Vec<hdf5::Group>) -> Result
 }
 impl Geometry {
     /// Save portable PONI geometry plus owned spline/NeXus companion resources.
-    pub fn save_to(&self, path: &Path, calibrant: Option<&str>) -> Result<(), String> {
+    pub fn save_to(&self, path: &Path, notes: super::PoniNotes) -> Result<(), String> {
         let Some(d) = &self.detector else {
-            return crate::session::atomic_write(path, self.save_text(calibrant).as_bytes());
+            return crate::session::atomic_write(path, self.save_text(notes).as_bytes());
         };
         let dir = path.parent().unwrap_or(Path::new("."));
         let stem = path
@@ -73,7 +73,7 @@ impl Geometry {
         }
         let text = format!(
             "# Dioptas native geometry; file rows use pyFAI convention\n{}poni_version: 2.1\nDetector: {name}\nDetector_config: {config}\nDistance: {}\nPoni1: {}\nPoni2: {}\nRot1: {}\nRot2: {}\nRot3: {}\nWavelength: {}\n",
-            super::calibrant_header(calibrant),
+            super::poni_header(notes),
             self.dist,
             self.poni1,
             self.poni2,

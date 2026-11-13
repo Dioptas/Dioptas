@@ -688,3 +688,108 @@ fn custom_calibrants_are_recorded_by_file_stem_and_unknown_names_are_reported() 
     );
     assert_eq!(missing["state"]["calibration"]["calibrant"], "LaB6");
 }
+
+#[test]
+fn poni_records_the_image_orientation_and_loading_restores_it() {
+    let f = fixture();
+    let mut s = prepared(&f);
+    let picks = state(&mut s)["calibration"]["picks"].clone();
+    let plain = f.temp.path().join("plain.poni");
+    fs::write(&plain, PLAIN_PONI).unwrap();
+    let view = |s: &mut Session| state(s)["calibration"]["transformations"].clone();
+
+    // Three left turns are one right turn; the file names the view, not the clicks.
+    for _ in 0..3 {
+        call(
+            &mut s,
+            "image_transform",
+            json!({"operation":"rotate_left"}),
+        );
+    }
+    // A file without the note keeps the current view.
+    let loaded = call(&mut s, "open_calibration", json!({"path":plain}));
+    assert!(loaded.get("orientationNotice").is_none());
+    assert_eq!(view(&mut s).as_array().unwrap().len(), 3);
+    let rotated = f.temp.path().join("rotated.poni");
+    call(&mut s, "save_calibration", json!({"path":rotated}));
+    let text = fs::read_to_string(&rotated).unwrap();
+    assert_eq!(
+        text.matches("# Dioptas image orientation: rotate_right\n")
+            .count(),
+        1
+    );
+
+    // Loading it onto the untransformed image turns the view to match.
+    call(&mut s, "image_transform", json!({"operation":"reset"}));
+    call(&mut s, "load_peaks", json!({"path":f.peaks}));
+    assert_eq!(view(&mut s), json!([]));
+    let loaded = call(&mut s, "open_calibration", json!({"path":rotated}));
+    assert_eq!(
+        loaded["orientationNotice"],
+        "image orientation rotate_right from file"
+    );
+    assert_eq!(view(&mut s), json!(["rotate_matrix_p90"]));
+    // Picks belonged to the previous view; undo restores view and picks together.
+    assert_eq!(loaded["state"]["calibration"]["picks"], json!([]));
+    let undone = call(&mut s, "undo_calibration", json!({}));
+    assert_eq!(undone["state"]["calibration"]["transformations"], json!([]));
+    assert_eq!(undone["state"]["calibration"]["picks"], picks);
+
+    // Saving without transforms records "none", which resets a rotated view.
+    call(&mut s, "open_calibration", json!({"path":plain}));
+    let upright = f.temp.path().join("upright.poni");
+    call(&mut s, "save_calibration", json!({"path":upright}));
+    assert!(
+        fs::read_to_string(&upright)
+            .unwrap()
+            .contains("# Dioptas image orientation: none\n")
+    );
+    call(
+        &mut s,
+        "image_transform",
+        json!({"operation":"flip_vertical"}),
+    );
+    let loaded = call(&mut s, "open_calibration", json!({"path":upright}));
+    assert_eq!(
+        loaded["orientationNotice"],
+        "image orientation none from file"
+    );
+    assert_eq!(view(&mut s), json!([]));
+
+    // Unknown names are reported and leave the view alone.
+    let odd = f.temp.path().join("odd.poni");
+    fs::write(
+        &odd,
+        format!("{PLAIN_PONI}# Dioptas image orientation: sideways\n"),
+    )
+    .unwrap();
+    call(
+        &mut s,
+        "image_transform",
+        json!({"operation":"flip_vertical"}),
+    );
+    let loaded = call(&mut s, "open_calibration", json!({"path":odd}));
+    assert_eq!(
+        loaded["orientationNotice"],
+        "recorded image orientation sideways is unknown; kept the current view"
+    );
+    assert_eq!(view(&mut s), json!(["flipud"]));
+}
+
+#[test]
+fn poni_orientation_waits_for_the_next_image_when_none_is_open() {
+    let f = fixture();
+    let rotated = f.temp.path().join("rotated.poni");
+    fs::write(
+        &rotated,
+        format!("{PLAIN_PONI}# Dioptas image orientation: rotate_left\n"),
+    )
+    .unwrap();
+    let mut s = Session::new(root());
+    call(&mut s, "open_calibration", json!({"path":rotated}));
+    call(&mut s, "open_image", json!({"path":f.image}));
+    assert_eq!(
+        state(&mut s)["calibration"]["transformations"],
+        json!(["rotate_matrix_m90"])
+    );
+}
