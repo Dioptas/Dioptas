@@ -73,26 +73,22 @@ for (const [name, type] of [
       (await invoke("state")).state.calibration.detector,
       "Pilatus 1M",
     );
-    await page
-      .getByLabel("Detector orientation", { exact: true })
-      .selectOption("2");
+    // Image orientation is set with the rotate and flip buttons only.
+    assert.equal(await page.getByLabel("Detector orientation").count(), 0);
+    const view = async () =>
+      (await invoke("state")).state.calibration.transformations;
+    await button("Rotate image +90°").click();
     await ready();
-    assert.equal(
-      (await invoke("state")).state.calibration.detectorOrientation,
-      2,
-    );
+    assert.deepEqual(await view(), ["rotate_matrix_p90"]);
     await button("Undo").click();
     await ready();
-    assert.equal(
-      (await invoke("state")).state.calibration.detectorOrientation,
-      3,
-    );
+    assert.deepEqual(await view(), []);
     await button("Redo").click();
     await ready();
-    assert.equal(
-      (await invoke("state")).state.calibration.detectorOrientation,
-      2,
-    );
+    assert.deepEqual(await view(), ["rotate_matrix_p90"]);
+    await button("Reset image transformations").click();
+    await ready();
+    assert.deepEqual(await view(), []);
     await button("Enter manually").click();
     await ready();
     const dialog = page.getByRole("dialog");
@@ -118,7 +114,7 @@ for (const [name, type] of [
     receipts.push({
       browser: name,
       detectors: 110,
-      orientationUndoRedo: true,
+      transformUndoRedo: true,
       fit2d: true,
     });
   } finally {

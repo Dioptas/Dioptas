@@ -7,12 +7,12 @@ import {
   rm,
   writeFile,
 } from "node:fs/promises";
-import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
 import { nativeClient, root } from "./native_backend_client.mjs";
+import { runExample } from "./test_fixtures.mjs";
 import { setInterfaceTextSize } from "./plot_navigation.mjs";
 const desktop = root,
   artifacts = path.join(desktop, "artifacts/hdf5-sources");
@@ -20,22 +20,7 @@ await mkdir(artifacts, { recursive: true });
 const temporary = await mkdtemp(path.join(tmpdir(), "dioptas-hdf5-source-"));
 const fixture = path.join(temporary, "sources_001.h5"),
   project = path.join(temporary, "sources.dio");
-execFileSync(
-  "cargo",
-  [
-    "run",
-    "--quiet",
-    "--locked",
-    "--manifest-path",
-    path.join(desktop, "backend/Cargo.toml"),
-    "--example",
-    "hdf5_source_fixture",
-    "--",
-    fixture,
-    temporary,
-  ],
-  { cwd: desktop, stdio: "inherit" },
-);
+runExample("hdf5_source_fixture", fixture, temporary);
 const secondFile = path.join(temporary, "sources_002.h5"),
   thirdFile = path.join(temporary, "sources_003.h5");
 await copyFile(fixture, secondFile);

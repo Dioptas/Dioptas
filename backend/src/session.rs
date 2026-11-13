@@ -666,6 +666,7 @@ impl Session {
                 self.settings = settings;
                 self.calibration = Calibration::default();
                 self.calibration.reference = self.calibration.choose("CeO2")?;
+                self.calibration.reference_chosen = true;
                 self.calibration.start[6] = self.settings.geometry.wavelength;
                 self.calibration.reference_wavelength = self.settings.geometry.wavelength;
                 self.calibration.confirmed = true;
@@ -831,22 +832,58 @@ impl Session {
             "open_calibration" => {
                 check_keys(args, &["path", "defer_integration", "clear_image"])?;
                 let file = path(args)?;
-                let mut candidate = Geometry::load(file)?;
+                let (mut candidate, comments) = Geometry::load_with_comments(file)?;
+                let calibrant = comments.calibrant;
                 let clear = args
                     .get("clear_image")
                     .map(|v| boolean(v, "Clear image"))
                     .transpose()?
                     .unwrap_or(false);
+                // The geometry describes the image view it was fitted in. A
+                // recorded view replaces the current one; files without the
+                // note, or with one we do not know, keep the current view
+                // (none when the image is cleared, as before).
+                let current = if clear {
+                    vec![]
+                } else {
+                    self.settings.transformations.clone()
+                };
+                let mut orientation_notice = None;
+                let view = match comments.orientation.as_deref() {
+                    Some(name) => match crate::transform::orientation_ops(name) {
+                        Some(ops) => {
+                            if crate::transform::orientation_name(&current)
+                                != crate::transform::orientation_name(&ops)
+                            {
+                                orientation_notice = Some(format!(
+                                    "image orientation {} from file",
+                                    name.trim().to_lowercase()
+                                ));
+                            }
+                            ops
+                        }
+                        None => {
+                            orientation_notice = Some(format!(
+                                "recorded image orientation {name} is unknown; kept the current view"
+                            ));
+                            current
+                        }
+                    },
+                    None => current,
+                };
+                let reorient = crate::transform::orientation_name(&view)
+                    != crate::transform::orientation_name(&self.settings.transformations);
                 if let Some(image) = &self.image {
-                    if candidate.validate_shape(image.shape).is_err() && !clear {
+                    let shape = crate::transform::shape(image.source_shape, &view);
+                    if candidate.validate_shape(shape).is_err() && !clear {
                         return Ok(Reply::deferred(
                             crate::protocol::wire_contract::DecisionKind::CalibrationChange,
-                            json!({"path":file,"imageShape":image.shape,
+                            json!({"path":file,"imageShape":shape,
                                 "calibrationShape":candidate.detector.as_ref().and_then(|d|d.max_shape)}),
                         ));
                     }
                     if !clear {
-                        candidate.sync_shape(image.shape)?;
+                        candidate.sync_shape(shape)?;
                     }
                 }
                 if clear {
@@ -856,7 +893,50 @@ impl Session {
                     self.mask = Arc::new(Vec::new());
                     self.effective_mask = self.mask.clone();
                 }
+                if reorient || clear {
+                    if self.image.is_some() {
+                        self.reorient_view(&view)?;
+                        // Keep valid ROI slices, as the rotate and flip buttons do.
+                        if let Some([r0, r1, c0, c1]) = self.settings.roi {
+                            let [h, w] = self.image.as_ref().unwrap().shape;
+                            self.settings.roi = (r0 < r1.min(h) && c0 < c1.min(w)).then_some([
+                                r0,
+                                r1.min(h),
+                                c0,
+                                c1.min(w),
+                            ]);
+                        }
+                        // Ring picks were made in the previous view's pixels.
+                        self.calibration.picks.clear();
+                    } else {
+                        self.settings.transformations = view;
+                    }
+                }
                 self.settings.geometry = candidate;
+                // A calibrant recorded in the file wins when it is one we know;
+                // unknown names keep the current selection. Ring picks belong to
+                // the previous calibrant's reflections, so a switch drops them
+                // (loading is one undo step, picks included).
+                let mut calibrant_notice = None;
+                if let Some(name) = calibrant {
+                    match self.calibration.choose(&name) {
+                        Ok(reference) => {
+                            if reference.name != self.calibration.reference.name {
+                                calibrant_notice =
+                                    Some(format!("calibrant {} from file", reference.name));
+                                self.calibration.picks.clear();
+                            }
+                            self.calibration.reference = reference;
+                            self.calibration.reference_chosen = true;
+                        }
+                        Err(_) => {
+                            calibrant_notice = Some(format!(
+                                "recorded calibrant {name} is not available; kept {}",
+                                self.calibration.reference.name
+                            ))
+                        }
+                    }
+                }
                 self.settings.original_pixels = None;
                 self.settings.calibration_path = Some(file.to_string_lossy().into_owned());
                 self.settings.calibrated = true;
@@ -869,13 +949,19 @@ impl Session {
                 self.rebase_detector_reset()?;
                 self.loaded_geometry("loaded");
                 self.calculate(defer)?;
+                self.revision += 1;
+                let mut reply = self.snapshot(true);
                 if clear {
-                    self.revision += 1;
-                    let mut reply = self.snapshot(true);
                     reply.result["clearImage"] = json!(true);
                     reply.result["imageStateReset"] = json!(true);
-                    return Ok(reply);
                 }
+                if let Some(notice) = calibrant_notice {
+                    reply.result["calibrantNotice"] = json!(notice);
+                }
+                if let Some(notice) = orientation_notice {
+                    reply.result["orientationNotice"] = json!(notice);
+                }
+                return Ok(reply);
             }
             "manual_geometry" => {
                 check_keys(args, &["convention", "values", "defer_integration"])?;
@@ -916,7 +1002,30 @@ impl Session {
                     );
                 }
                 let file = path(args)?;
-                self.settings.geometry.save_to(file)?;
+                let notes = crate::geometry::PoniNotes {
+                    calibrant: self
+                        .calibration
+                        .reference_chosen
+                        .then(|| self.calibration.reference.recorded_name()),
+                    orientation: Some(crate::transform::orientation_name(
+                        &self.settings.transformations,
+                    )),
+                };
+                // Plain pixel sizes describe the bottom-up Dioptas view. Saved
+                // with the open image's size as a pyFAI v2.1 detector, the file
+                // carries the row flip as pyFAI orientation and reads correctly
+                // in pyFAI on the raw image. Without an image the size is
+                // unknown and the legacy uniform-pixel format remains.
+                let mut geometry = self.settings.geometry.clone();
+                if geometry.detector.is_none()
+                    && let Some(image) = &self.image
+                {
+                    let mut detector =
+                        dioptrin::detector::Detector::custom(geometry.pixel1, geometry.pixel2);
+                    detector.max_shape = Some(image.shape);
+                    geometry.detector = Some(Arc::new(detector));
+                }
+                geometry.save_to(file, notes)?;
                 self.calibration.saved = true;
                 self.settings.calibration_path = Some(file.to_string_lossy().into_owned());
                 self.settings.calibration_name = Some(

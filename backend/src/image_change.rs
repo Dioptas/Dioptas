@@ -135,6 +135,7 @@ impl Session {
         }
         let reference = self.calibration.reference.clone();
         let custom = self.calibration.custom.clone();
+        let chosen = self.calibration.reference_chosen;
         let start = self.calibration.start;
         self.settings.geometry = Geometry {
             dist: start[0],
@@ -153,6 +154,7 @@ impl Session {
         self.calibration = Calibration::default();
         self.calibration.reference = reference;
         self.calibration.custom = custom;
+        self.calibration.reference_chosen = chosen;
         self.calibration.start = start;
         self.calibration.reference_wavelength = start[6];
         self.processing = Default::default();

@@ -34,6 +34,7 @@ pub(super) struct Group {
     pub ring: usize,
     pub points: Vec<[f64; 2]>,
 }
+const CUSTOM_SUFFIX: &str = " (custom)";
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub(super) struct Reference {
     pub name: String,
@@ -41,6 +42,11 @@ pub(super) struct Reference {
     pub content: String,
 }
 impl Reference {
+    /// Name written to PONI files: custom calibrants drop the display suffix
+    /// so the file names the spacings file itself.
+    pub(super) fn recorded_name(&self) -> &str {
+        self.name.strip_suffix(CUSTOM_SUFFIX).unwrap_or(&self.name)
+    }
     pub(super) fn parse(name: &str, content: &str) -> Result<Self, String> {
         if content.len() > 1024 * 1024 {
             return Err("Calibrant files must be smaller than 1 MiB.".into());
@@ -105,6 +111,10 @@ pub(super) struct Calibration {
     pub source: String,
     pub saved: bool,
     pub reference_wavelength: f64,
+    /// The reference was chosen, fitted against, or read from a file, rather
+    /// than left at the session default; only then is it recorded in PONI files.
+    #[serde(default)]
+    pub reference_chosen: bool,
 }
 impl Default for Calibration {
     fn default() -> Self {
@@ -120,6 +130,7 @@ impl Default for Calibration {
             source: "none".into(),
             saved: false,
             reference_wavelength: 0.3344e-10,
+            reference_chosen: false,
         }
     }
 }
@@ -129,7 +140,7 @@ impl Calibration {
     }
     pub fn choose(&self, name: &str) -> Result<Reference, String> {
         if let Some(custom) = &self.custom
-            && custom.name == name
+            && (custom.name == name || custom.recorded_name() == name)
         {
             return Ok(custom.clone());
         }
@@ -327,7 +338,13 @@ impl Session {
     }
     fn restore_calibration(&mut self, s: Snapshot) -> Result<(), String> {
         if s.transformations != self.settings.transformations {
-            self.reorient_view(&s.transformations)?;
+            // A loaded PONI can set the view before any image is open; there
+            // are then no pixels to permute.
+            if self.image.is_some() {
+                self.reorient_view(&s.transformations)?;
+            } else {
+                self.settings.transformations = s.transformations;
+            }
             self.settings.roi = s.roi;
         }
         self.settings.original_pixels = s.original_pixels;
@@ -432,7 +449,13 @@ impl Session {
                     self.calibration.reference = self
                         .calibration
                         .choose(name.as_str().ok_or("Calibrant needs a name.")?)?;
+                    self.calibration.reference_chosen = true;
                 }
+                // Choosing only the calibrant leaves a loaded or fitted geometry
+                // valid; it needs a refit only when ring picks depend on it.
+                let calibrant_only = args
+                    .as_object()
+                    .is_some_and(|keys| keys.len() == 1 && keys.contains_key("calibrant"));
                 if let Some(v) = args.get("detector") {
                     self.settings
                         .geometry
@@ -493,8 +516,18 @@ impl Session {
                 {
                     self.rebase_detector_reset()?;
                 }
-                self.calibration.reference_wavelength = self.calibration.start[6];
-                self.calibration.dirty = self.settings.calibrated;
+                if calibrant_only {
+                    self.calibration.reference_wavelength = if self.settings.calibrated {
+                        self.settings.geometry.wavelength
+                    } else {
+                        self.calibration.start[6]
+                    };
+                    self.calibration.dirty =
+                        self.settings.calibrated && !self.calibration.picks.is_empty();
+                } else {
+                    self.calibration.reference_wavelength = self.calibration.start[6];
+                    self.calibration.dirty = self.settings.calibrated;
+                }
                 self.calibration.rms = None;
                 self.calibration.saved = false;
             }
@@ -685,12 +718,13 @@ impl Session {
                 let file = path(args)?;
                 let content = read_text(file, 1024 * 1024)?;
                 let name = format!(
-                    "{} (custom)",
+                    "{}{CUSTOM_SUFFIX}",
                     file.file_stem().unwrap_or_default().to_string_lossy()
                 );
                 let reference = Reference::parse(&name, &content)?;
                 self.calibration.custom = Some(reference.clone());
                 self.calibration.reference = reference;
+                self.calibration.reference_chosen = true;
                 self.calibration.rms = None;
                 self.calibration.dirty = self.settings.calibrated
                     && !args
@@ -709,6 +743,7 @@ impl Session {
                 self.calibration.reference = self
                     .calibration
                     .choose(args["calibrant"].as_str().ok_or("Choose a calibrant.")?)?;
+                self.calibration.reference_chosen = true;
                 self.calibration.reference_wavelength = if self.settings.calibrated {
                     self.settings.geometry.wavelength
                 } else {

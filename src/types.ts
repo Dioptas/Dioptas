@@ -260,6 +260,10 @@ export interface Response {
     newShape: [number, number];
   };
   calibrationReset?: boolean;
+  /** Set when a loaded PONI file changed, or could not apply, its recorded calibrant. */
+  calibrantNotice?: string;
+  /** Set when a loaded PONI file changed, or could not apply, its recorded image orientation. */
+  orientationNotice?: string;
   savedPaths?: string[];
   clearImage?: boolean;
   customCommands?: import("./customCommands").CustomCommand[];

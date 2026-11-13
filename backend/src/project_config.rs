@@ -145,7 +145,7 @@ pub(super) fn save_overlays(
 }
 pub(super) fn desktop_metadata(s: &Session) -> Value {
     json!({"version":1,"combination":{"patterns":s.combination.patterns,"cakes":s.combination.cakes,"cake_source_unit":s.combination.cake.as_ref().and_then(|c|c.metadata["unit"].as_str()).or(s.combination.cake_source_unit.as_deref())},"calibrant":s.calibration.reference.name,"fit_dirty":s.calibration.dirty,"rms_degrees":s.calibration.rms,
-        "custom_calibrant":s.calibration.custom.as_ref().map(|r|json!({"name":r.name,"content":r.content})),"setup_confirmed":s.calibration.confirmed,
+        "custom_calibrant":s.calibration.custom.as_ref().map(|r|json!({"name":r.name,"content":r.content})),"setup_confirmed":s.calibration.confirmed,"calibrant_chosen":s.calibration.reference_chosen,
         "workflow":s.workflow,"geometry_source":s.calibration.source})
 }
 fn geometry(p: &Value) -> Result<Geometry, String> {
@@ -735,6 +735,7 @@ fn restore_calibration(s: &mut Session, cal: &Value, meta: &Value) -> Result<(),
     if let Some(name) = meta["calibrant"].as_str() {
         c.reference = c.choose(name)?;
     }
+    c.reference_chosen = meta["calibrant_chosen"].as_bool().unwrap_or(false);
     for (i, key) in GEOMETRY_KEYS.iter().enumerate() {
         let live = s.settings.geometry.manual_values(s.settings.polarization);
         c.start[i] = cal["fixed_values"]
@@ -940,7 +941,7 @@ pub(super) fn save(
         &mut native,
         &json!({"version":1,"sparse_layout":if settings.auto_layout {"auto"}else if settings.csc {"csc"}else{"csr"},"integration_method":if settings.pyfai_splitting {"pyfai_full"} else if settings.supersampling>1 {"subpixel"} else {"polygon"},"original_pixel_sizes":settings.original_pixels,"pattern_name":s.patterns.name,"correction_drafts":processing["corrections"],"label":c.label,"reader_options":image.map(|i|&i.options),"image_sources":image.map(|i|&i.sources).cloned().unwrap_or_default(),"automatic_image_source":image.is_some_and(|i|i.automatic_source),"image_source_error":image.and_then(|i|i.source_discovery_error.as_ref()),"mask_filename":s.mask_filename,"image_batch_mode":s.image_batch_mode,
         "calibration":{"version":1,"calibrant":s.calibration.reference.name,"fit_dirty":s.calibration.dirty,"rms_degrees":s.calibration.rms,
-        "custom_calibrant":s.calibration.custom.as_ref().map(|r|json!({"name":r.name,"content":r.content})),"setup_confirmed":s.calibration.confirmed,
+        "custom_calibrant":s.calibration.custom.as_ref().map(|r|json!({"name":r.name,"content":r.content})),"setup_confirmed":s.calibration.confirmed,"calibrant_chosen":s.calibration.reference_chosen,
         "workflow":s.workflow,"geometry_source":s.calibration.source}}),
     );
     let mut owned = g.clone();

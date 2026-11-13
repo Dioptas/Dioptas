@@ -32,6 +32,19 @@
   width: 100%;
   min-width: 0;
 }
+.setup-calibrant-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.setup-calibrant-row select {
+  flex: 1;
+}
+.setup-calibrant-row .icon-button {
+  flex-shrink: 0;
+  width: 30px;
+  padding: 4px;
+}
 .setup-image-navigation {
   display: flex;
   gap: 4px;

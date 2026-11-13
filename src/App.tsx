@@ -169,6 +169,7 @@ import { SpottinessPattern } from "./SpottinessPattern";
 import { ORIGINAL_PATTERN_UID } from "./integration";
 import { useLiveBackground, DEFAULT_BACKGROUND } from "./useLiveBackground";
 import { BACKGROUND_RANGE_COLOR } from "./drawRangeSelection";
+import { CalibrantPicker } from "./CalibrantPicker";
 import { CalibrationControls } from "./CalibrationControls";
 import { CalibrationPanel } from "./CalibrationPanel";
 import { CalibrationWorkflowTabs } from "./CalibrationWorkflowTabs";
@@ -722,7 +723,9 @@ export default function App() {
             ++progressGeneration.current;
             setProgress(undefined);
             setBusy(message);
-            setNotice(null);
+            // The automatic display refresh after a load must not wipe the
+            // notice of the command that triggered it (e.g. Loaded calibration).
+            if (command !== "display_products") setNotice(null);
           }
           if (command !== "integration_autoprocess_poll") setError(null);
           if (command === "workflow_settings")
@@ -3243,44 +3246,16 @@ export default function App() {
                             <>
                               <GeometryProvenance state={state} detail />
                               <section className="calibration-validation-reference">
-                                <label className="calibration-field-row">
-                                  <span>Calibrant</span>
-                                  <Select
-                                    aria-label="Validation calibrant"
-                                    disabled={!ready}
-                                    value={
-                                      state?.calibration.calibrant ?? "CeO2"
-                                    }
-                                    onChange={(e) =>
-                                      run(
-                                        "validation_calibrant",
-                                        { calibrant: e.target.value },
-                                        "Updating reference lines…",
-                                      )
-                                    }
-                                  >
-                                    {(state?.calibration.calibrants ?? []).map(
-                                      (name) => (
-                                        <option key={name}>{name}</option>
-                                      ),
-                                    )}
-                                  </Select>
+                                <label htmlFor="validation-calibrant">
+                                  Calibrant
                                 </label>
-                                <Button
-                                  className="icon-button"
-                                  aria-label="Load custom validation reference"
-                                  title="Load custom reference spacings"
-                                  disabled={!ready}
-                                  onClick={() =>
-                                    run(
-                                      "open_calibrant",
-                                      { validation: true },
-                                      "Loading reference spacings…",
-                                    )
-                                  }
-                                >
-                                  <FolderOpen size={16} />
-                                </Button>
+                                <CalibrantPicker
+                                  calibration={state?.calibration}
+                                  ready={ready}
+                                  run={run}
+                                  purpose="validation"
+                                  id="validation-calibrant"
+                                />
                               </section>
                             </>
                           )}

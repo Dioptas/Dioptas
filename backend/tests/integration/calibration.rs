@@ -558,3 +558,346 @@ fn custom_calibrants_are_session_owned_and_invalid_files_do_not_replace_them() {
     );
     assert_eq!(state(&mut s)["calibration"], before);
 }
+
+#[test]
+fn poni_calibrant_comment_round_trips_and_follows_pyfai_calib2() {
+    let temp = tempfile::tempdir().unwrap();
+    let geometry = "PixelSize1: 0.0001\nPixelSize2: 0.0001\nDistance: 0.1\nPoni1: 0.003\nPoni2: 0.004\nRot1: 0\nRot2: 0\nRot3: 0\nSplineFile: None\nWavelength: 4e-11\n";
+    // pyFAI-calib2 writes the calibrant and image as trailing comments.
+    let pyfai = temp.path().join("pyfai.poni");
+    fs::write(
+        &pyfai,
+        format!("# Nota: C-Order, 1 refers to the Y axis, 2 to the X axis\n{geometry}# Calibrant: Si\n# Image: si.tif\n"),
+    )
+    .unwrap();
+    let unknown = temp.path().join("unknown.poni");
+    fs::write(&unknown, format!("# Calibrant: Unobtainium\n{geometry}")).unwrap();
+    let plain = temp.path().join("plain.poni");
+    fs::write(&plain, geometry).unwrap();
+
+    let mut s = Session::new(root());
+    call(&mut s, "validation_calibrant", json!({"calibrant":"CeO2"}));
+    call(&mut s, "open_calibration", json!({"path":pyfai}));
+    assert_eq!(state(&mut s)["calibration"]["calibrant"], "Si");
+    // Unknown names and files without a comment keep the current selection.
+    call(&mut s, "open_calibration", json!({"path":unknown}));
+    assert_eq!(state(&mut s)["calibration"]["calibrant"], "Si");
+    call(&mut s, "open_calibration", json!({"path":plain}));
+    assert_eq!(state(&mut s)["calibration"]["calibrant"], "Si");
+
+    call(
+        &mut s,
+        "validation_calibrant",
+        json!({"calibrant":"LaB6_SRM660c"}),
+    );
+    let saved = temp.path().join("saved.poni");
+    call(&mut s, "save_calibration", json!({"path":saved}));
+    let text = fs::read_to_string(&saved).unwrap();
+    assert_eq!(text.matches("# Calibrant: LaB6_SRM660c\n").count(), 1);
+
+    call(&mut s, "validation_calibrant", json!({"calibrant":"CeO2"}));
+    call(&mut s, "open_calibration", json!({"path":saved}));
+    let restored = state(&mut s);
+    assert_eq!(restored["calibration"]["calibrant"], "LaB6_SRM660c");
+    assert_eq!(restored["geometry"]["dist"], 0.1);
+    // Loading the calibration is one undo step, calibrant included.
+    call(&mut s, "undo_calibration", json!({}));
+    assert_eq!(state(&mut s)["calibration"]["calibrant"], "CeO2");
+}
+
+const PLAIN_PONI: &str = "PixelSize1: 0.0001\nPixelSize2: 0.0001\nDistance: 0.019\nPoni1: 0.0125\nPoni2: 0.013\nRot1: 0\nRot2: 0\nRot3: 0\nSplineFile: None\nWavelength: 5e-11\n";
+
+#[test]
+fn poni_calibrant_is_recorded_only_once_chosen_and_choosing_keeps_the_fit_clean() {
+    let temp = tempfile::tempdir().unwrap();
+    let plain = temp.path().join("plain.poni");
+    fs::write(&plain, PLAIN_PONI).unwrap();
+    let saved = temp.path().join("saved.poni");
+    let mut s = Session::new(root());
+    call(&mut s, "open_calibration", json!({"path":plain}));
+    // The session default was never chosen, so nothing is claimed.
+    call(&mut s, "save_calibration", json!({"path":saved}));
+    assert!(!fs::read_to_string(&saved).unwrap().contains("Calibrant"));
+    // Choosing a calibrant on the setup step leaves a loaded calibration savable.
+    let chosen = call(&mut s, "calibration_setup", json!({"calibrant":"Si"}));
+    assert_eq!(chosen["state"]["calibration"]["fitDirty"], false);
+    call(&mut s, "save_calibration", json!({"path":saved}));
+    assert!(
+        fs::read_to_string(&saved)
+            .unwrap()
+            .contains("# Calibrant: Si\n")
+    );
+}
+
+#[test]
+fn poni_calibrant_switch_drops_picks_and_reports_the_change() {
+    let f = fixture();
+    let mut s = prepared(&f);
+    let picks = state(&mut s)["calibration"]["picks"].clone();
+    assert!(!picks.as_array().unwrap().is_empty());
+    let si = f.temp.path().join("si.poni");
+    fs::write(&si, format!("{PLAIN_PONI}# Calibrant: Si\n")).unwrap();
+    let loaded = call(&mut s, "open_calibration", json!({"path":si}));
+    assert_eq!(loaded["calibrantNotice"], "calibrant Si from file");
+    assert_eq!(loaded["state"]["calibration"]["calibrant"], "Si");
+    assert_eq!(loaded["state"]["calibration"]["picks"], json!([]));
+    let undone = call(&mut s, "undo_calibration", json!({}));
+    assert_eq!(undone["state"]["calibration"]["calibrant"], "CeO2");
+    assert_eq!(undone["state"]["calibration"]["picks"], picks);
+    // Loading the calibrant already selected keeps picks and says nothing.
+    let ceo2 = f.temp.path().join("ceo2.poni");
+    fs::write(&ceo2, format!("{PLAIN_PONI}# Calibrant: CeO2\n")).unwrap();
+    let same = call(&mut s, "open_calibration", json!({"path":ceo2}));
+    assert!(same.get("calibrantNotice").is_none());
+    assert_eq!(same["state"]["calibration"]["picks"], picks);
+}
+
+#[test]
+fn custom_calibrants_are_recorded_by_file_stem_and_unknown_names_are_reported() {
+    let temp = tempfile::tempdir().unwrap();
+    let spacings = temp.path().join("mysample.D");
+    fs::write(&spacings, "3.1\n2.7\n1.9\n").unwrap();
+    let plain = temp.path().join("plain.poni");
+    fs::write(&plain, PLAIN_PONI).unwrap();
+    let saved = temp.path().join("custom.poni");
+    let mut s = Session::new(root());
+    call(&mut s, "open_calibration", json!({"path":plain}));
+    call(
+        &mut s,
+        "open_calibrant",
+        json!({"path":spacings,"validation":true}),
+    );
+    call(&mut s, "save_calibration", json!({"path":saved}));
+    assert!(
+        fs::read_to_string(&saved)
+            .unwrap()
+            .contains("# Calibrant: mysample\n")
+    );
+    call(&mut s, "validation_calibrant", json!({"calibrant":"Si"}));
+    let reloaded = call(&mut s, "open_calibration", json!({"path":saved}));
+    assert_eq!(
+        reloaded["state"]["calibration"]["calibrant"],
+        "mysample (custom)"
+    );
+    // Without the spacings file the name cannot be resolved; say so.
+    let mut fresh = Session::new(root());
+    let missing = call(&mut fresh, "open_calibration", json!({"path":saved}));
+    assert_eq!(
+        missing["calibrantNotice"],
+        "recorded calibrant mysample is not available; kept LaB6"
+    );
+    assert_eq!(missing["state"]["calibration"]["calibrant"], "LaB6");
+}
+
+#[test]
+fn poni_records_the_image_orientation_and_loading_restores_it() {
+    let f = fixture();
+    let mut s = prepared(&f);
+    let picks = state(&mut s)["calibration"]["picks"].clone();
+    let plain = f.temp.path().join("plain.poni");
+    fs::write(&plain, PLAIN_PONI).unwrap();
+    let view = |s: &mut Session| state(s)["calibration"]["transformations"].clone();
+
+    // Three left turns are one right turn; the file names the view, not the clicks.
+    for _ in 0..3 {
+        call(
+            &mut s,
+            "image_transform",
+            json!({"operation":"rotate_left"}),
+        );
+    }
+    // A file without the note keeps the current view.
+    let loaded = call(&mut s, "open_calibration", json!({"path":plain}));
+    assert!(loaded.get("orientationNotice").is_none());
+    assert_eq!(view(&mut s).as_array().unwrap().len(), 3);
+    let rotated = f.temp.path().join("rotated.poni");
+    call(&mut s, "save_calibration", json!({"path":rotated}));
+    let text = fs::read_to_string(&rotated).unwrap();
+    assert_eq!(
+        text.matches("# Dioptas image orientation: rotate_right\n")
+            .count(),
+        1
+    );
+
+    // Loading it onto the untransformed image turns the view to match.
+    call(&mut s, "image_transform", json!({"operation":"reset"}));
+    call(&mut s, "load_peaks", json!({"path":f.peaks}));
+    assert_eq!(view(&mut s), json!([]));
+    let loaded = call(&mut s, "open_calibration", json!({"path":rotated}));
+    assert_eq!(
+        loaded["orientationNotice"],
+        "image orientation rotate_right from file"
+    );
+    assert_eq!(view(&mut s), json!(["rotate_matrix_p90"]));
+    // Picks belonged to the previous view; undo restores view and picks together.
+    assert_eq!(loaded["state"]["calibration"]["picks"], json!([]));
+    let undone = call(&mut s, "undo_calibration", json!({}));
+    assert_eq!(undone["state"]["calibration"]["transformations"], json!([]));
+    assert_eq!(undone["state"]["calibration"]["picks"], picks);
+
+    // Saving without transforms records "none", which resets a rotated view.
+    call(&mut s, "open_calibration", json!({"path":plain}));
+    let upright = f.temp.path().join("upright.poni");
+    call(&mut s, "save_calibration", json!({"path":upright}));
+    assert!(
+        fs::read_to_string(&upright)
+            .unwrap()
+            .contains("# Dioptas image orientation: none\n")
+    );
+    call(
+        &mut s,
+        "image_transform",
+        json!({"operation":"flip_vertical"}),
+    );
+    let loaded = call(&mut s, "open_calibration", json!({"path":upright}));
+    assert_eq!(
+        loaded["orientationNotice"],
+        "image orientation none from file"
+    );
+    assert_eq!(view(&mut s), json!([]));
+
+    // Unknown names are reported and leave the view alone.
+    let odd = f.temp.path().join("odd.poni");
+    fs::write(
+        &odd,
+        format!("{PLAIN_PONI}# Dioptas image orientation: sideways\n"),
+    )
+    .unwrap();
+    call(
+        &mut s,
+        "image_transform",
+        json!({"operation":"flip_vertical"}),
+    );
+    let loaded = call(&mut s, "open_calibration", json!({"path":odd}));
+    assert_eq!(
+        loaded["orientationNotice"],
+        "recorded image orientation sideways is unknown; kept the current view"
+    );
+    assert_eq!(view(&mut s), json!(["flipud"]));
+}
+
+#[test]
+fn poni_orientation_waits_for_the_next_image_when_none_is_open() {
+    let f = fixture();
+    let rotated = f.temp.path().join("rotated.poni");
+    fs::write(
+        &rotated,
+        format!("{PLAIN_PONI}# Dioptas image orientation: rotate_left\n"),
+    )
+    .unwrap();
+    let mut s = Session::new(root());
+    call(&mut s, "open_calibration", json!({"path":rotated}));
+    // Undo and redo work before any image exists.
+    let undone = call(&mut s, "undo_calibration", json!({}));
+    assert_eq!(undone["state"]["calibration"]["transformations"], json!([]));
+    call(&mut s, "redo_calibration", json!({}));
+    call(&mut s, "open_image", json!({"path":f.image}));
+    assert_eq!(
+        state(&mut s)["calibration"]["transformations"],
+        json!(["rotate_matrix_m90"])
+    );
+}
+
+#[test]
+fn plain_pixel_calibrations_save_the_row_flip_as_pyfai_orientation() {
+    let f = fixture();
+    let mut s = Session::new(root());
+    call(&mut s, "open_image", json!({"path":f.image}));
+    call(
+        &mut s,
+        "manual_geometry",
+        json!({"convention":"pyfai","values":{"dist":0.1,"poni1":0.004,"poni2":0.013,"rot1":0.05,"rot2":0.1,"rot3":0.02,"pixel1":0.0001,"pixel2":0.0001,"wavelength":3e-11,"polarization_factor":0.99}}),
+    );
+    let saved = f.temp.path().join("scratch.poni");
+    call(&mut s, "save_calibration", json!({"path":saved}));
+    // pyFAI counts rows top-down; Dioptas views them bottom-up. Orientation 2
+    // tells pyFAI so, and its 2θ on the raw file then matches Dioptas.
+    let text = fs::read_to_string(&saved).unwrap();
+    assert!(text.contains("poni_version: 2.1\n"), "{text}");
+    assert!(
+        text.contains(r#""max_shape":[256,256],"orientation":2"#),
+        "{text}"
+    );
+    let mut fresh = Session::new(root());
+    call(&mut fresh, "open_image", json!({"path":f.image}));
+    call(&mut fresh, "open_calibration", json!({"path":saved}));
+    // Plain pixel sizes still apply to other image sizes, as before.
+    let small = f.temp.path().join("small.npy");
+    npy(&small, [64, 96], &vec![1.0; 64 * 96]);
+    let mut other = Session::new(root());
+    call(&mut other, "open_image", json!({"path":small}));
+    call(&mut other, "open_calibration", json!({"path":saved}));
+    assert_eq!(state(&mut other)["calibrated"], true);
+    for (x, y) in [(5, 3), (200, 40), (17, 230)] {
+        let pixel = json!({"x":x,"y":y,"source":"raw_detector"});
+        assert_eq!(
+            call(&mut s, "pixel", pixel.clone())["pixel"]["twoTheta"],
+            call(&mut fresh, "pixel", pixel)["pixel"]["twoTheta"]
+        );
+    }
+}
+
+#[test]
+fn recorded_rotation_on_a_non_square_image_rotates_instead_of_refusing() {
+    let temp = tempfile::tempdir().unwrap();
+    let image = temp.path().join("wide.npy");
+    let values: Vec<f64> = (0..40 * 60).map(f64::from).collect();
+    npy(&image, [40, 60], &values);
+    // A detector definition sized for the rotated (60 × 40) view.
+    let geometry = "poni_version: 2.1\nDetector: Detector\nDetector_config: {\"pixel1\": 0.0001, \"pixel2\": 0.0001, \"max_shape\": [60, 40], \"orientation\": 3}\nDistance: 0.1\nPoni1: 0.002\nPoni2: 0.003\nRot1: 0\nRot2: 0\nRot3: 0\nWavelength: 3e-11\n";
+    let noted = temp.path().join("noted.poni");
+    fs::write(
+        &noted,
+        format!("# Dioptas image orientation: rotate_right\n{geometry}"),
+    )
+    .unwrap();
+    let bare = temp.path().join("bare.poni");
+    fs::write(&bare, geometry).unwrap();
+
+    // Without the note the 60 × 40 detector does not fit the 40 × 60 image.
+    let mut s = Session::new(root());
+    call(&mut s, "open_image", json!({"path":image}));
+    let refused = call(&mut s, "open_calibration", json!({"path":bare}));
+    assert_eq!(refused["cancelled"], true);
+    assert_eq!(refused["calibrationChange"]["imageShape"], json!([40, 60]));
+    assert_eq!(state(&mut s)["calibrated"], false);
+
+    // With the note the view turns first, so the detector fits.
+    let loaded = call(&mut s, "open_calibration", json!({"path":noted}));
+    assert!(loaded.get("cancelled").is_none(), "{loaded}");
+    assert_eq!(
+        loaded["orientationNotice"],
+        "image orientation rotate_right from file"
+    );
+    let after = state(&mut s);
+    assert_eq!(after["calibrated"], true);
+    assert_eq!(
+        after["calibration"]["transformations"],
+        json!(["rotate_matrix_p90"])
+    );
+    let corner = call(
+        &mut s,
+        "pixel",
+        json!({"x":39,"y":59,"source":"raw_detector"}),
+    );
+    assert!(corner["pixel"]["twoTheta"].is_number(), "{corner}");
+
+    // Saving and reloading in a fresh session restores the same view and 2θ.
+    let saved = temp.path().join("saved.poni");
+    call(&mut s, "save_calibration", json!({"path":saved}));
+    let mut fresh = Session::new(root());
+    call(&mut fresh, "open_image", json!({"path":image}));
+    let reloaded = call(&mut fresh, "open_calibration", json!({"path":saved}));
+    assert!(reloaded.get("cancelled").is_none(), "{reloaded}");
+    assert_eq!(
+        state(&mut fresh)["calibration"]["transformations"],
+        json!(["rotate_matrix_p90"])
+    );
+    for (x, y) in [(0, 0), (39, 59), (12, 31)] {
+        let pixel = json!({"x":x,"y":y,"source":"raw_detector"});
+        assert_eq!(
+            call(&mut s, "pixel", pixel.clone())["pixel"],
+            call(&mut fresh, "pixel", pixel)["pixel"]
+        );
+    }
+}
