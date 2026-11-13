@@ -1014,7 +1014,21 @@ impl Session {
                         &self.settings.transformations,
                     )),
                 };
-                self.settings.geometry.save_to(file, notes)?;
+                // Plain pixel sizes describe the bottom-up Dioptas view. Saved
+                // with the open image's size as a pyFAI v2.1 detector, the file
+                // carries the row flip as pyFAI orientation and reads correctly
+                // in pyFAI on the raw image. Without an image the size is
+                // unknown and the legacy uniform-pixel format remains.
+                let mut geometry = self.settings.geometry.clone();
+                if geometry.detector.is_none()
+                    && let Some(image) = &self.image
+                {
+                    let mut detector =
+                        dioptrin::detector::Detector::custom(geometry.pixel1, geometry.pixel2);
+                    detector.max_shape = Some(image.shape);
+                    geometry.detector = Some(Arc::new(detector));
+                }
+                geometry.save_to(file, notes)?;
                 self.calibration.saved = true;
                 self.settings.calibration_path = Some(file.to_string_lossy().into_owned());
                 self.settings.calibration_name = Some(

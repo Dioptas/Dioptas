@@ -793,3 +793,35 @@ fn poni_orientation_waits_for_the_next_image_when_none_is_open() {
         json!(["rotate_matrix_m90"])
     );
 }
+
+#[test]
+fn plain_pixel_calibrations_save_the_row_flip_as_pyfai_orientation() {
+    let f = fixture();
+    let mut s = Session::new(root());
+    call(&mut s, "open_image", json!({"path":f.image}));
+    call(
+        &mut s,
+        "manual_geometry",
+        json!({"convention":"pyfai","values":{"dist":0.1,"poni1":0.004,"poni2":0.013,"rot1":0.05,"rot2":0.1,"rot3":0.02,"pixel1":0.0001,"pixel2":0.0001,"wavelength":3e-11,"polarization_factor":0.99}}),
+    );
+    let saved = f.temp.path().join("scratch.poni");
+    call(&mut s, "save_calibration", json!({"path":saved}));
+    // pyFAI counts rows top-down; Dioptas views them bottom-up. Orientation 2
+    // tells pyFAI so, and its 2θ on the raw file then matches Dioptas.
+    let text = fs::read_to_string(&saved).unwrap();
+    assert!(text.contains("poni_version: 2.1\n"), "{text}");
+    assert!(
+        text.contains(r#""max_shape":[256,256],"orientation":2"#),
+        "{text}"
+    );
+    let mut fresh = Session::new(root());
+    call(&mut fresh, "open_image", json!({"path":f.image}));
+    call(&mut fresh, "open_calibration", json!({"path":saved}));
+    for (x, y) in [(5, 3), (200, 40), (17, 230)] {
+        let pixel = json!({"x":x,"y":y,"source":"raw_detector"});
+        assert_eq!(
+            call(&mut s, "pixel", pixel.clone())["pixel"]["twoTheta"],
+            call(&mut fresh, "pixel", pixel)["pixel"]["twoTheta"]
+        );
+    }
+}

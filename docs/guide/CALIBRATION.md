@@ -57,6 +57,11 @@
    `# Dioptas image orientation: <view>` comment, next to `# Calibrant:`.
    pyFAI ignores both comments. Loading the file in Dioptas turns the open
    image to the recorded view; files without the comment keep the current view.
+   Without rotate or flip buttons, a saved `.poni` works in pyFAI on the raw
+   image: Dioptas shows rows bottom-up, and the file records this as pyFAI
+   detector orientation 2. Calibrations with plain pixel sizes are saved this
+   way when an image is open; without one, the image size is unknown and the
+   older uniform-pixel format, which describes the flipped image, is written.
 8. Switch to **Mask** for drawing, geometric selections, thresholds, automatic
    masks and mask files; see [Mask parity](../parity/MASK_PARITY.md). Switch to
    **Integration** for image/cake/pattern display, integration options, shared
