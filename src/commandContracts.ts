@@ -27,6 +27,7 @@ export type WorkspaceDelta = Pick<
   | "phaseOnly"
   | "clearImage"
   | "calibrationReset"
+  | "calibrantNotice"
   | "imageStateReset"
   | "configurationReset"
   | "nextRing"

@@ -604,3 +604,87 @@ fn poni_calibrant_comment_round_trips_and_follows_pyfai_calib2() {
     call(&mut s, "undo_calibration", json!({}));
     assert_eq!(state(&mut s)["calibration"]["calibrant"], "CeO2");
 }
+
+const PLAIN_PONI: &str = "PixelSize1: 0.0001\nPixelSize2: 0.0001\nDistance: 0.019\nPoni1: 0.0125\nPoni2: 0.013\nRot1: 0\nRot2: 0\nRot3: 0\nSplineFile: None\nWavelength: 5e-11\n";
+
+#[test]
+fn poni_calibrant_is_recorded_only_once_chosen_and_choosing_keeps_the_fit_clean() {
+    let temp = tempfile::tempdir().unwrap();
+    let plain = temp.path().join("plain.poni");
+    fs::write(&plain, PLAIN_PONI).unwrap();
+    let saved = temp.path().join("saved.poni");
+    let mut s = Session::new(root());
+    call(&mut s, "open_calibration", json!({"path":plain}));
+    // The session default was never chosen, so nothing is claimed.
+    call(&mut s, "save_calibration", json!({"path":saved}));
+    assert!(!fs::read_to_string(&saved).unwrap().contains("Calibrant"));
+    // Choosing a calibrant on the setup step leaves a loaded calibration savable.
+    let chosen = call(&mut s, "calibration_setup", json!({"calibrant":"Si"}));
+    assert_eq!(chosen["state"]["calibration"]["fitDirty"], false);
+    call(&mut s, "save_calibration", json!({"path":saved}));
+    assert!(
+        fs::read_to_string(&saved)
+            .unwrap()
+            .contains("# Calibrant: Si\n")
+    );
+}
+
+#[test]
+fn poni_calibrant_switch_drops_picks_and_reports_the_change() {
+    let f = fixture();
+    let mut s = prepared(&f);
+    let picks = state(&mut s)["calibration"]["picks"].clone();
+    assert!(!picks.as_array().unwrap().is_empty());
+    let si = f.temp.path().join("si.poni");
+    fs::write(&si, format!("{PLAIN_PONI}# Calibrant: Si\n")).unwrap();
+    let loaded = call(&mut s, "open_calibration", json!({"path":si}));
+    assert_eq!(loaded["calibrantNotice"], "calibrant Si from file");
+    assert_eq!(loaded["state"]["calibration"]["calibrant"], "Si");
+    assert_eq!(loaded["state"]["calibration"]["picks"], json!([]));
+    let undone = call(&mut s, "undo_calibration", json!({}));
+    assert_eq!(undone["state"]["calibration"]["calibrant"], "CeO2");
+    assert_eq!(undone["state"]["calibration"]["picks"], picks);
+    // Loading the calibrant already selected keeps picks and says nothing.
+    let ceo2 = f.temp.path().join("ceo2.poni");
+    fs::write(&ceo2, format!("{PLAIN_PONI}# Calibrant: CeO2\n")).unwrap();
+    let same = call(&mut s, "open_calibration", json!({"path":ceo2}));
+    assert!(same.get("calibrantNotice").is_none());
+    assert_eq!(same["state"]["calibration"]["picks"], picks);
+}
+
+#[test]
+fn custom_calibrants_are_recorded_by_file_stem_and_unknown_names_are_reported() {
+    let temp = tempfile::tempdir().unwrap();
+    let spacings = temp.path().join("mysample.D");
+    fs::write(&spacings, "3.1\n2.7\n1.9\n").unwrap();
+    let plain = temp.path().join("plain.poni");
+    fs::write(&plain, PLAIN_PONI).unwrap();
+    let saved = temp.path().join("custom.poni");
+    let mut s = Session::new(root());
+    call(&mut s, "open_calibration", json!({"path":plain}));
+    call(
+        &mut s,
+        "open_calibrant",
+        json!({"path":spacings,"validation":true}),
+    );
+    call(&mut s, "save_calibration", json!({"path":saved}));
+    assert!(
+        fs::read_to_string(&saved)
+            .unwrap()
+            .contains("# Calibrant: mysample\n")
+    );
+    call(&mut s, "validation_calibrant", json!({"calibrant":"Si"}));
+    let reloaded = call(&mut s, "open_calibration", json!({"path":saved}));
+    assert_eq!(
+        reloaded["state"]["calibration"]["calibrant"],
+        "mysample (custom)"
+    );
+    // Without the spacings file the name cannot be resolved; say so.
+    let mut fresh = Session::new(root());
+    let missing = call(&mut fresh, "open_calibration", json!({"path":saved}));
+    assert_eq!(
+        missing["calibrantNotice"],
+        "recorded calibrant mysample is not available; kept LaB6"
+    );
+    assert_eq!(missing["state"]["calibration"]["calibrant"], "LaB6");
+}

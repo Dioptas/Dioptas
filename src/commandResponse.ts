@@ -71,7 +71,7 @@ export function commandCompletion(
     notice("No peaks found in this area");
   if (command === "open_calibration" && !result.cancelled)
     notice(
-      `Loaded calibration: ${result.state?.calibrationName ?? "PONI"}${result.state?.hasImage ? "" : " · Load a matching detector image"}`,
+      `Loaded calibration: ${result.state?.calibrationName ?? "PONI"}${result.calibrantNotice ? ` · ${result.calibrantNotice}` : ""}${result.state?.hasImage ? "" : " · Load a matching detector image"}`,
     );
   if (isScientificHistoryCommand(command))
     notice(
@@ -94,6 +94,7 @@ export function commandCompletion(
       "example",
       "image_transform",
       "open_project",
+      "open_calibration",
     ].includes(command)
   )
     effects.push({ kind: "clear-picks" });

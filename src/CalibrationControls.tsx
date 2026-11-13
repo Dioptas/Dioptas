@@ -1,5 +1,5 @@
-import { Button, Input, Select } from "./ui";
-import { FolderOpen } from "lucide-react";
+import { Input, Select } from "./ui";
+import { CalibrantPicker } from "./CalibrantPicker";
 import { useEffect, useState, type ReactNode } from "react";
 import type { Calibration, Response } from "./types";
 
@@ -128,35 +128,14 @@ export function CalibrationControls({
                 Calibrant
               </label>
               <div className="setup-calibrant-row">
-                <Select
+                <CalibrantPicker
+                  calibration={c}
+                  ready={ready}
+                  run={run}
+                  purpose="setup"
                   id="setup-calibrant"
-                  aria-label="Setup calibrant"
-                  value={c?.calibrant ?? "CeO2"}
-                  disabled={!ready}
-                  onChange={(e) =>
-                    run(
-                      "calibration_setup",
-                      { calibrant: e.target.value },
-                      "Loading calibrant…",
-                    )
-                  }
-                >
-                  {(c?.calibrants ?? ["CeO2"]).map((name) => (
-                    <option key={name}>{name}</option>
-                  ))}
-                </Select>
-                <Button
-                  type="button"
-                  className="icon-button"
-                  aria-label="Load custom setup calibrant…"
-                  title="Load custom calibrant spacings (.D)"
-                  disabled={!ready}
-                  onClick={() =>
-                    run("open_calibrant", {}, "Loading calibrant spacings…")
-                  }
-                >
-                  <FolderOpen size={14} />
-                </Button>
+                  iconSize={14}
+                />
               </div>
             </div>
           </div>
