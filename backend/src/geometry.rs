@@ -667,12 +667,11 @@ pub(crate) fn calibrant_header(calibrant: Option<&str>) -> String {
 /// The last `# Calibrant: <name>` comment, matching pyFAI's last-record rule.
 fn calibrant_comment(text: &str) -> Option<String> {
     text.lines()
-        .filter_map(|line| line.trim().strip_prefix('#'))
-        .filter_map(|comment| comment.split_once(':'))
+        .rev()
+        .filter_map(|line| line.trim().strip_prefix('#')?.split_once(':'))
         .filter(|(key, _)| key.trim().eq_ignore_ascii_case("calibrant"))
         .map(|(_, value)| value.trim())
-        .filter(|value| !value.is_empty())
-        .last()
+        .find(|value| !value.is_empty())
         .map(str::to_owned)
 }
 
