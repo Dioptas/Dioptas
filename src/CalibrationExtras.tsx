@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type { State } from "./types";
 import { CalibrationHelp, calibrationHelp } from "./CalibrationHelp";
+import { CalibrantPicker } from "./CalibrantPicker";
 
 import { ScientificNumberInput } from "./ScientificNumberInput";
 import { numericDraftError } from "./numericDraft";
@@ -201,35 +202,13 @@ export function CalibrationExtras({
             <h3 className="calibration-fit-heading">Starting values</h3>
             <div className="calibration-field-row calibration-calibrant-row">
               <label htmlFor="calibration-calibrant">Calibrant</label>
-              <Select
+              <CalibrantPicker
+                calibration={c}
+                ready={ready}
+                run={run}
+                purpose="fit"
                 id="calibration-calibrant"
-                aria-label="Calibration calibrant"
-                disabled={!ready}
-                value={c?.calibrant ?? "CeO2"}
-                onChange={(e) =>
-                  run(
-                    "calibration_setup",
-                    { calibrant: e.target.value },
-                    "Loading calibrant…",
-                  )
-                }
-              >
-                {(c?.calibrants ?? ["CeO2"]).map((name) => (
-                  <option key={name}>{name}</option>
-                ))}
-              </Select>
-              <Button
-                type="button"
-                className="icon-button"
-                aria-label="Load custom calibrant…"
-                title="Load custom calibrant spacings (.D)"
-                disabled={!ready}
-                onClick={() =>
-                  run("open_calibrant", {}, "Loading calibrant spacings…")
-                }
-              >
-                <FolderOpen size={16} />
-              </Button>
+              />
             </div>
             <div className="constraint-heading">
               <span>Parameter</span>

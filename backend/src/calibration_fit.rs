@@ -165,6 +165,7 @@ fn fit_once_in_pool(
     candidate.name = Some("current".into());
     candidate.data.rms = Some(fitted.rms_rad.to_degrees());
     candidate.data.source = "fitted".into();
+    candidate.data.reference_chosen = true;
     candidate.data.reference_wavelength = candidate.geometry.wavelength;
     candidate.data.saved = false;
     Ok(())

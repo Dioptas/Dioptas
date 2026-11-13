@@ -1,4 +1,5 @@
 import { Input, Select } from "./ui";
+import { CalibrantPicker } from "./CalibrantPicker";
 import { useEffect, useState, type ReactNode } from "react";
 import type { Calibration, Response } from "./types";
 
@@ -121,6 +122,21 @@ export function CalibrationControls({
                   <option key={name}>{name}</option>
                 ))}
               </Select>
+            </div>
+            <div>
+              <label className="field-label" htmlFor="setup-calibrant">
+                Calibrant
+              </label>
+              <div className="setup-calibrant-row">
+                <CalibrantPicker
+                  calibration={c}
+                  ready={ready}
+                  run={run}
+                  purpose="setup"
+                  id="setup-calibrant"
+                  iconSize={14}
+                />
+              </div>
             </div>
           </div>
           {c?.detectorAssignment && (

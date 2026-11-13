@@ -669,6 +669,7 @@ impl Session {
                 self.settings = settings;
                 self.calibration = Calibration::default();
                 self.calibration.reference = self.calibration.choose("CeO2")?;
+                self.calibration.reference_chosen = true;
                 self.calibration.start[6] = self.settings.geometry.wavelength;
                 self.calibration.reference_wavelength = self.settings.geometry.wavelength;
                 self.calibration.confirmed = true;
@@ -834,7 +835,7 @@ impl Session {
             "open_calibration" => {
                 check_keys(args, &["path", "defer_integration", "clear_image"])?;
                 let file = path(args)?;
-                let mut candidate = Geometry::load(file)?;
+                let (mut candidate, calibrant) = Geometry::load_with_calibrant(file)?;
                 let clear = args
                     .get("clear_image")
                     .map(|v| boolean(v, "Clear image"))
@@ -860,6 +861,30 @@ impl Session {
                     self.effective_mask = self.mask.clone();
                 }
                 self.settings.geometry = candidate;
+                // A calibrant recorded in the file wins when it is one we know;
+                // unknown names keep the current selection. Ring picks belong to
+                // the previous calibrant's reflections, so a switch drops them
+                // (loading is one undo step, picks included).
+                let mut calibrant_notice = None;
+                if let Some(name) = calibrant {
+                    match self.calibration.choose(&name) {
+                        Ok(reference) => {
+                            if reference.name != self.calibration.reference.name {
+                                calibrant_notice =
+                                    Some(format!("calibrant {} from file", reference.name));
+                                self.calibration.picks.clear();
+                            }
+                            self.calibration.reference = reference;
+                            self.calibration.reference_chosen = true;
+                        }
+                        Err(_) => {
+                            calibrant_notice = Some(format!(
+                                "recorded calibrant {name} is not available; kept {}",
+                                self.calibration.reference.name
+                            ))
+                        }
+                    }
+                }
                 self.settings.original_pixels = None;
                 self.settings.calibration_path = Some(file.to_string_lossy().into_owned());
                 self.settings.calibrated = true;
@@ -872,13 +897,16 @@ impl Session {
                 self.rebase_detector_reset()?;
                 self.loaded_geometry("loaded");
                 self.calculate(defer)?;
+                self.revision += 1;
+                let mut reply = self.snapshot(true);
                 if clear {
-                    self.revision += 1;
-                    let mut reply = self.snapshot(true);
                     reply.result["clearImage"] = json!(true);
                     reply.result["imageStateReset"] = json!(true);
-                    return Ok(reply);
                 }
+                if let Some(notice) = calibrant_notice {
+                    reply.result["calibrantNotice"] = json!(notice);
+                }
+                return Ok(reply);
             }
             "manual_geometry" => {
                 check_keys(args, &["convention", "values", "defer_integration"])?;
@@ -919,7 +947,12 @@ impl Session {
                     );
                 }
                 let file = path(args)?;
-                self.settings.geometry.save_to(file)?;
+                self.settings.geometry.save_to(
+                    file,
+                    self.calibration
+                        .reference_chosen
+                        .then(|| self.calibration.reference.recorded_name()),
+                )?;
                 self.calibration.saved = true;
                 self.settings.calibration_path = Some(file.to_string_lossy().into_owned());
                 self.settings.calibration_name = Some(
