@@ -20,12 +20,14 @@ import { describe, it } from "node:test";
 import {
   coverageRequested,
   gateSwitch,
+  inShard,
   markdownSummary,
   runPool,
   slowestFirst,
   textSummary,
   timingReport,
   uiJobs,
+  uiShard,
 } from "./native_gate_timings.mjs";
 
 const scripts = path.dirname(fileURLToPath(import.meta.url));
@@ -121,6 +123,32 @@ describe("timing report", () => {
     assert.equal(uiJobs("8", 2), 8);
     for (const value of ["0", "-1", "2.5", "many"])
       assert.throws(() => uiJobs(value, 4), /positive integer/);
+  });
+});
+
+describe("UI shards", () => {
+  it("reads a shard and rejects anything unclear", () => {
+    assert.equal(uiShard(undefined), undefined);
+    assert.equal(uiShard(""), undefined);
+    assert.deepEqual(uiShard("2/3"), { index: 2, count: 3 });
+    for (const value of ["0/3", "4/3", "2", "2/0", "a/b", "1/3/5"])
+      assert.throws(() => uiShard(value), /must look like 2\/3/);
+  });
+
+  it("deals every position to exactly one shard", () => {
+    const positions = [...Array(43).keys()];
+    assert.ok(positions.every((p) => inShard(undefined, p)));
+    const shares = [1, 2, 3].map((index) =>
+      positions.filter((p) => inShard({ index, count: 3 }, p)),
+    );
+    assert.deepEqual(
+      shares.flat().sort((a, b) => a - b),
+      positions,
+    );
+    assert.deepEqual(
+      shares.map((s) => s.length),
+      [15, 14, 14],
+    );
   });
 });
 
@@ -273,6 +301,8 @@ function scratchGate() {
             DIOPTAS_GATE_COVERAGE: "",
             DIOPTAS_GATE_CORE_TESTS: "",
             DIOPTAS_GATE_UI_JOBS: "",
+            DIOPTAS_GATE_UI_SHARD: "",
+            DIOPTAS_GATE_PREBUILT: "",
             ...env,
           },
         },
@@ -412,6 +442,51 @@ describe(
           assert.ok(names.includes(name), name);
         assert.ok(r.timings.steps.every((s) => s.status === "passed"));
       }
+    });
+
+    it("splits the UI checks over shards without losing or repeating one", () => {
+      const whole = gate
+        .run(["--ui"])
+        .timings.steps.map((s) => s.name)
+        .sort();
+      const parts = ["1/3", "2/3", "3/3"].map((shard) => {
+        const r = gate.run(["--ui"], { DIOPTAS_GATE_UI_SHARD: shard });
+        assert.equal(r.status, 0, r.stderr);
+        assert.match(r.stdout, new RegExp(`of 43 \\(shard ${shard}\\)`));
+        return r.timings.steps.map((s) => s.name);
+      });
+      // Every shard checks the boundary and builds the frontend it serves.
+      const perShard = [
+        "glib-security-backport",
+        "native-contract-generation",
+        "native-test-fixtures",
+        "frontend-build",
+      ];
+      const once = parts.flatMap((names) =>
+        names.filter((name) => !perShard.includes(name)),
+      );
+      assert.deepEqual([...once, ...perShard].sort(), whole);
+      for (const name of ["frontend-unit", "native-transport"]) {
+        assert.ok(parts[0].includes(name), name);
+        assert.ok(!parts[1].includes(name) && !parts[2].includes(name), name);
+      }
+    });
+
+    it("uses prebuilt binaries instead of compiling, and insists on them", () => {
+      const missing = gate.run(["--ui"], { DIOPTAS_GATE_PREBUILT: "1" });
+      assert.notEqual(missing.status, 0);
+      assert.match(missing.stderr, /dioptas-processor is missing/);
+      for (const file of ["dioptas-processor", "examples/test_fixtures"]) {
+        const target = path.join(gate.root, "target/debug", file);
+        mkdirSync(path.dirname(target), { recursive: true });
+        writeFileSync(target, "");
+      }
+      const r = gate.run(["--ui"], { DIOPTAS_GATE_PREBUILT: "1" });
+      assert.equal(r.status, 0, r.stderr);
+      assert.ok(!r.calls.some((c) => c.includes("cargo")));
+      assert.ok(
+        !r.timings.steps.some((s) => s.name === "native-test-fixtures"),
+      );
     });
 
     it("fails the UI gate when one check fails", () => {

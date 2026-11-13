@@ -113,6 +113,9 @@ On a machine with at least eight cores the UI gate runs several checks at a
 time (half the cores); `DIOPTAS_GATE_UI_JOBS=1` runs them one after another, which is easier to read when one fails. Pull requests set
 `DIOPTAS_GATE_CORE_TESTS=0` to skip the library tests of the build without
 features; local runs and `develop` keep them.
+CI tests on Linux runners only. It builds the processor once and spreads the
+UI checks over three jobs (`DIOPTAS_GATE_UI_SHARD=2/3` with
+`DIOPTAS_GATE_PREBUILT=1`), one check at a time within each.
 Native bulk transport/progress tests use the Rust `test_fixtures` example to
 create long test series; no Python environment or plugin installation is needed.
 `npm run test:map-window` exercises Chromium and WebKit. All routine GUI checks

@@ -1,19 +1,21 @@
 // Native gates are used locally and by CI; frozen independent reference data
 // is exercised by Rust tests without a Python environment.
 import { spawn, spawnSync } from "node:child_process";
-import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import {
   coverageRequested,
   gateSwitch,
+  inShard,
   markdownSummary,
   runPool,
   seconds,
   textSummary,
   timingReport,
   uiJobs,
+  uiShard,
 } from "./native_gate_timings.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -40,6 +42,15 @@ const coreTests = gateSwitch(
   process.env.DIOPTAS_GATE_CORE_TESTS,
   true,
 );
+// DIOPTAS_GATE_PREBUILT=1 (set by CI's UI jobs) takes the processor and the
+// test-fixture helper from target/debug as another job built them, instead of
+// compiling them here.
+const prebuilt = gateSwitch(
+  "DIOPTAS_GATE_PREBUILT",
+  process.env.DIOPTAS_GATE_PREBUILT,
+  false,
+);
+const shard = uiShard(process.env.DIOPTAS_GATE_UI_SHARD);
 const jobs = uiJobs(process.env.DIOPTAS_GATE_UI_JOBS, availableParallelism());
 mkdirSync(artifacts, { recursive: true });
 // Every step's wall time goes to the console, timings.json (latest run),
@@ -297,16 +308,29 @@ if (selected.has("--processor")) {
   ]);
 }
 if (selected.has("--ui")) {
-  run("native-test-fixtures", "cargo", [
-    "build",
-    "--locked",
-    "--manifest-path",
-    "backend/Cargo.toml",
-    "--example",
-    "test_fixtures",
-  ]);
-  node("functional-coverage-map", "functional_coverage.mjs");
-  run("frontend-unit", "npm", ["test"]);
+  if (prebuilt) {
+    const exe = process.platform === "win32" ? ".exe" : "";
+    for (const file of [
+      `target/debug/dioptas-processor${exe}`,
+      `target/debug/examples/test_fixtures${exe}`,
+    ])
+      if (!existsSync(path.join(root, file)))
+        throw Error(`DIOPTAS_GATE_PREBUILT=1 but ${file} is missing`);
+  } else
+    run("native-test-fixtures", "cargo", [
+      "build",
+      "--locked",
+      "--manifest-path",
+      "backend/Cargo.toml",
+      "--example",
+      "test_fixtures",
+    ]);
+  // Steps that are not UI checks run once, in the first shard.
+  const shared = !shard || shard.index === 1;
+  if (shared) {
+    node("functional-coverage-map", "functional_coverage.mjs");
+    run("frontend-unit", "npm", ["test"]);
+  }
   run("frontend-build", "npm", ["run", "build"]);
   // The UI checks run side by side (DIOPTAS_GATE_UI_JOBS at a time; by
   // default half the cores, and one at a time below eight cores). Each entry is a script name,
@@ -373,9 +397,12 @@ if (selected.has("--ui")) {
       locks: ["image-change"],
     },
   );
-  console.log(`\nUI checks: ${checks.length}, ${jobs} at a time`);
+  const mine = checks.filter((_, position) => inShard(shard, position));
+  console.log(
+    `\nUI checks: ${mine.length}${shard ? ` of ${checks.length} (shard ${shard.index}/${shard.count})` : ""}, ${jobs} at a time`,
+  );
   try {
-    await runPool(checks, jobs, (check) =>
+    await runPool(mine, jobs, (check) =>
       runAsync(check.name, process.execPath, check.args, {
         DIOPTAS_VITE_CACHE_DIR: `node_modules/.vite-gate/${check.name}`,
       }),
@@ -384,16 +411,17 @@ if (selected.has("--ui")) {
     report("failed");
     throw error;
   }
-  run("native-transport", process.execPath, [
-    "--test",
-    "scripts/native_calibration_transport.test.mjs",
-    "scripts/native_mask_transport.test.mjs",
-    "scripts/native_geometry_mask_transport.test.mjs",
-    "scripts/native_lacosmic_transport.test.mjs",
-    "scripts/native_integration_transport.test.mjs",
-    "scripts/native_project_transport.test.mjs",
-    "scripts/batch_background_transport.test.mjs",
-  ]);
+  if (shared)
+    run("native-transport", process.execPath, [
+      "--test",
+      "scripts/native_calibration_transport.test.mjs",
+      "scripts/native_mask_transport.test.mjs",
+      "scripts/native_geometry_mask_transport.test.mjs",
+      "scripts/native_lacosmic_transport.test.mjs",
+      "scripts/native_integration_transport.test.mjs",
+      "scripts/native_project_transport.test.mjs",
+      "scripts/batch_background_transport.test.mjs",
+    ]);
 }
 if (selected.has("--host")) {
   run("release-config", "npm", ["run", "test:release-config"]);

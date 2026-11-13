@@ -1,8 +1,8 @@
 name: Rust desktop
 
 on:
-  # Pull requests cover feature branches; a push run there would queue every
-  # macOS job a second time.
+  # Pull requests cover feature branches; a push run there would repeat every
+  # job.
   push:
     branches: [develop]
     tags: ['**']
@@ -22,17 +22,16 @@ env:
   CARGO_TERM_COLOR: always
   HDF5_PLUGIN_PRELOAD: '::'
 
+# Everything is tested on Linux runners. macOS and Windows runners only build
+# the installers (native_*_artifacts.yml).
+#
 # Rust caches are saved only from develop. Pull requests and other branches
 # restore develop's caches without saving their own, which keeps the shared
 # cache quota from evicting the develop entries every job falls back to.
 jobs:
   processor:
-    name: Native processor (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+    name: Native processor
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
@@ -40,8 +39,7 @@ jobs:
         with:
           node-version: '26'
       - name: Install Rust tools
-        # llvm-tools-preview is only used by the Linux coverage run.
-        run: rustup update stable && rustup component add clippy rustfmt ${{ runner.os == 'Linux' && 'llvm-tools-preview' || '' }}
+        run: rustup update stable && rustup component add clippy rustfmt llvm-tools-preview
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: . -> target
@@ -49,21 +47,20 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/develop' }}
       # A prebuilt, pinned binary instead of compiling the tool on every run.
       - name: Install cargo-llvm-cov
-        if: runner.os == 'Linux'
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-llvm-cov@0.9.1
       - name: Run native processor gate (no Python environment)
-        # On Linux the gate runs the all-features tests once, instrumented by
+        # The gate runs the all-features tests once, instrumented by
         # cargo-llvm-cov, and writes artifacts/coverage (lcov.info and
         # html/) instead of rebuilding and rerunning them for coverage
-        # afterwards. They therefore run uninstrumented only on macOS.
+        # afterwards.
         #
         # Pull requests skip the library tests of the build without features:
         # they cost a second full compile of the processor for a few seconds
         # of tests. That build is still linted, and develop runs the tests.
         env:
-          DIOPTAS_GATE_COVERAGE: ${{ runner.os == 'Linux' && '1' || '0' }}
+          DIOPTAS_GATE_COVERAGE: '1'
           DIOPTAS_GATE_CORE_TESTS: ${{ github.event_name == 'pull_request' && '0' || '1' }}
         run: node scripts/check_native_desktop.mjs --processor
       - uses: actions/upload-artifact@v7
@@ -72,45 +69,8 @@ jobs:
           name: native-processor-${{ runner.os }}
           path: artifacts/
 
-  desktop:
-    name: Headless desktop and Tauri host
-    runs-on: macos-latest
-    timeout-minutes: 45
-    env:
-      MACOSX_DEPLOYMENT_TARGET: '14.0'
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '26'
-          cache: npm
-          cache-dependency-path: package-lock.json
-      - name: Install Rust
-        run: rustup update stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: |
-            . -> target
-          key: desktop-macos
-          save-if: ${{ github.ref == 'refs/heads/develop' }}
-      - run: npm ci
-      - run: npx playwright install chromium webkit
-      - name: Prepare and test the native host (no application window)
-        run: node scripts/check_native_desktop.mjs --host
-      # One check at a time: three at a time on this 3-core runner made every
-      # check three to seven times slower and one time out.
-      - name: Run headless UI, data flow and stdio checks
-        env:
-          DIOPTAS_GATE_UI_JOBS: '1'
-        run: node scripts/check_native_desktop.mjs --ui
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: native-desktop-headless
-          path: artifacts/
-
-  linux-security:
-    name: Linux Tauri dependencies and GLib security
+  host:
+    name: Tauri host, Linux dependencies and GLib security
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -139,11 +99,64 @@ jobs:
       - name: Verify the exact reviewed GLib source backport
         run: node scripts/check_glib_backport.mjs
       - run: npm ci
-      - name: Stage the native processor and build the frontend
-        run: npm run backend:prepare -- --debug && npm run build
-      - name: Check the real Linux Tauri dependency graph
-        run: cargo check --locked --manifest-path src-tauri/Cargo.toml --jobs 2
+      # Builds the processor and the frontend, then compiles the host against
+      # the real Linux Tauri dependency graph and runs its tests.
+      - name: Prepare and test the native host (no application window)
+        run: node scripts/check_native_desktop.mjs --host
+      - name: Build the test-fixture helper for the UI checks
+        run: cargo build --locked --manifest-path backend/Cargo.toml --example test_fixtures
+      # The UI jobs run this processor and helper instead of compiling them.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ui-binaries
+          path: |
+            target/debug/dioptas-processor
+            target/debug/examples/test_fixtures
+          retention-days: 1
       - name: Exercise the optimized GLib security regression
         run: cargo test --release --locked --manifest-path security/glib-regression/Cargo.toml --jobs 2
       - name: Check live advisories for the original registry GLib version
         run: node scripts/check_glib_backport.mjs --advisories
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: native-host
+          path: artifacts/
+
+  ui:
+    name: Headless UI checks (${{ matrix.shard }}/3)
+    needs: host
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - uses: actions/download-artifact@v8
+        with:
+          name: ui-binaries
+          path: target/debug
+      # Artifacts do not keep the executable bit.
+      - run: chmod +x target/debug/dioptas-processor target/debug/examples/test_fixtures
+      # One check at a time within a job: checks that overlap on a hosted
+      # runner slow each other down until timing-sensitive ones fail.
+      - name: Run headless UI, data flow and stdio checks
+        env:
+          DIOPTAS_GATE_PREBUILT: '1'
+          DIOPTAS_GATE_UI_SHARD: ${{ matrix.shard }}/3
+          DIOPTAS_GATE_UI_JOBS: '1'
+        run: node scripts/check_native_desktop.mjs --ui
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: native-ui-${{ matrix.shard }}
+          path: artifacts/

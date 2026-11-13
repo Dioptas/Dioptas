@@ -28,6 +28,20 @@ export function uiJobs(value, cores) {
   return Number(value);
 }
 
+// DIOPTAS_GATE_UI_SHARD=2/3 runs the second of three equal shares of the UI
+// checks, so that CI can spread them over several runners.
+export function uiShard(value) {
+  if (value === undefined || value === "") return undefined;
+  const [, index, count] = /^([1-9]\d*)\/([1-9]\d*)$/.exec(value) ?? [];
+  if (!index || Number(index) > Number(count))
+    throw Error(`DIOPTAS_GATE_UI_SHARD must look like 2/3, not ${value}`);
+  return { index: Number(index), count: Number(count) };
+}
+
+// Checks are dealt out in list order, like cards.
+export const inShard = (shard, position) =>
+  !shard || position % shard.count === shard.index - 1;
+
 // Runs every task, at most `jobs` at a time, starting them in list order.
 // Tasks that share a lock never overlap. The first failure stops new starts
 // and rejects once the tasks already running have settled.
