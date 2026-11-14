@@ -588,6 +588,7 @@ describe(
       const r = gate.run(["--host"]);
       assert.equal(r.status, 0, r.stderr);
       assert.deepEqual(r.calls, [
+        ".: cargo fmt -p dioptas-desktop -- --check",
         ".: npm run test:release-config",
         ".: npm run backend:prepare -- --debug",
         ".: npm run build",

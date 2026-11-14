@@ -296,29 +296,31 @@ pub(crate) fn open_window<const K: u8>(
         .and_then(|saved| target_screen(saved, &screens, fallback));
     state.0.lock().unwrap().restoring = true;
     let opened = (|| -> Result<(), String> {
-        let map =
-            crate::smoke_storage::configure(
-                &app,
-                WebviewWindowBuilder::new(&app, label::<K>(), WebviewUrl::App("index.html".into())),
-            )
-                .title(crate::application_title(&app, if K == 0 {
-                    "Map"
-                } else if K == 1 {
-                    "Batch"
-                } else {
-                    "Detector"
-                }))
-                .inner_size(
-                    if K == 0 { DEFAULT_SIZE[0] } else { 900. },
-                    if K == 0 { DEFAULT_SIZE[1] } else { 600. },
-                )
-                .min_inner_size(MIN_SIZE[0], MIN_SIZE[1])
-                .visible(false)
-                .resizable(true)
-                .decorations(true)
-                .disable_drag_drop_handler()
-                .build()
-                .map_err(|e| e.to_string())?;
+        let map = crate::smoke_storage::configure(
+            &app,
+            WebviewWindowBuilder::new(&app, label::<K>(), WebviewUrl::App("index.html".into())),
+        )
+        .title(crate::application_title(
+            &app,
+            if K == 0 {
+                "Map"
+            } else if K == 1 {
+                "Batch"
+            } else {
+                "Detector"
+            },
+        ))
+        .inner_size(
+            if K == 0 { DEFAULT_SIZE[0] } else { 900. },
+            if K == 0 { DEFAULT_SIZE[1] } else { 600. },
+        )
+        .min_inner_size(MIN_SIZE[0], MIN_SIZE[1])
+        .visible(false)
+        .resizable(true)
+        .decorations(true)
+        .disable_drag_drop_handler()
+        .build()
+        .map_err(|e| e.to_string())?;
         if let (Some(saved), Some(index)) = (saved.as_ref(), target) {
             let screen = &screens[index];
             let size = restored_size(saved, screen);
