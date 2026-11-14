@@ -133,7 +133,15 @@ type CustomRequestCall =
       payload: { identifier: string },
       recordHistory?: boolean,
     ];
-export function useCustomCommands(invoke: Invoke, session: unknown) {
+/**
+ * Custom-action definitions live in a settings file, so they are listed once
+ * per session and after each save or delete. The inputs follow the session
+ * snapshot, which carries them, so browsing images sends no extra request.
+ */
+export function useCustomCommands(
+  invoke: Invoke,
+  session: { customCommandContext?: CommandContext } | null,
+) {
   const [commands, setCommands] = useState<CustomCommand[]>([]);
   const [runs, setRuns] = useState<Record<string, CustomCommandRun>>({});
   const [context, setContext] = useState<CommandContext>({});
@@ -317,9 +325,10 @@ export function useCustomCommands(invoke: Invoke, session: unknown) {
     },
     [invoke, recordChange],
   );
+  const hasSession = !!session;
   useEffect(() => {
-    if (session) void request();
-  }, [session, request]);
+    if (hasSession) void request();
+  }, [hasSession, request]);
   const polling = Object.values(runs).some(
     (run) => run.running || run.outputPending,
   );
@@ -456,7 +465,7 @@ export function useCustomCommands(invoke: Invoke, session: unknown) {
   return {
     commands,
     runs,
-    context,
+    context: session?.customCommandContext ?? context,
     error,
     pending: pending || restoring || !loaded,
     request,

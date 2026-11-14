@@ -115,6 +115,7 @@ export interface State {
   calibrationName: string | null;
   calibrated: boolean;
   projectName: string | null;
+  customCommandContext?: import("./customCommands").CommandContext;
   unit: Unit;
   bins: number | null;
   useMask: boolean;

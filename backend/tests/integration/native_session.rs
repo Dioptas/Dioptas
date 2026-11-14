@@ -707,3 +707,20 @@ fn real_stdio_processor_runs_with_python_and_path_unavailable() {
     assert_eq!(messages[&12]["ok"], false);
     assert_eq!(messages[&13]["ok"], true);
 }
+
+#[test]
+fn snapshots_carry_custom_action_inputs() {
+    let (_temp, path) = small_image();
+    let mut session = Session::new(root());
+    let empty = call(&mut session, "state", json!({}));
+    assert_eq!(
+        empty.result["state"]["customCommandContext"]["image_path"],
+        Value::Null
+    );
+    let opened = call(&mut session, "open_image", json!({"path":path}));
+    let context = &opened.result["state"]["customCommandContext"];
+    assert_eq!(context["image_path"], json!(path.canonicalize().unwrap()));
+    assert_eq!(context["image_name"], "counts.npy");
+    assert_eq!(context["frame_number"], 1);
+    assert_eq!(context["wavelength_angstrom"], Value::Null);
+}
