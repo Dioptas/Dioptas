@@ -489,6 +489,13 @@ if (selected.has("--ui")) {
     ]);
 }
 if (selected.has("--host")) {
+  run("host-format", "cargo", [
+    "fmt",
+    "-p",
+    "dioptas-desktop",
+    "--",
+    "--check",
+  ]);
   run("release-config", "npm", ["run", "test:release-config"]);
   run("host-prepare", "npm", ["run", "backend:prepare", "--", "--debug"]);
   run("host-frontend", "npm", ["run", "build"]);

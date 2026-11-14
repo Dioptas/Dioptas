@@ -89,7 +89,10 @@ pub async fn update_check(
     if let Some(update) = &update {
         // A package of an older announcement must not be installed as this one.
         let mut package = state.package.lock().unwrap();
-        if package.as_ref().is_some_and(|(version, _)| version != &update.version) {
+        if package
+            .as_ref()
+            .is_some_and(|(version, _)| version != &update.version)
+        {
             *package = None;
         }
     }
@@ -247,7 +250,11 @@ mod tests {
         .unwrap();
         assert_eq!(release.version.to_string(), "0.15.0");
         assert!(release.pub_date.is_some());
-        assert!(release.download_url("linux-x86_64-deb").unwrap().path().ends_with(".deb"));
+        assert!(release
+            .download_url("linux-x86_64-deb")
+            .unwrap()
+            .path()
+            .ends_with(".deb"));
         assert!(release.download_url("linux-x86_64").is_err());
         // A release candidate is offered the stable release of the same number.
         let candidate: tauri_plugin_updater::RemoteRelease = serde_json::from_value(json!({
