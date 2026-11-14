@@ -382,7 +382,6 @@ export interface CommandContracts {
     {
       customCommands?: Response["customCommands"];
       customCommandRuns?: Response["customCommandRuns"];
-      customCommandContext?: Response["customCommandContext"];
     }
   >;
   batch_load: Spec<P.BatchLoadPayload, BatchDelta>;

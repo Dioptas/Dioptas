@@ -1529,6 +1529,11 @@ export default function App() {
   );
   const customCommands = useCustomCommands(customInvoke, state);
   const customHistoryActive = settingsOpen && customActionsOpen;
+  const refreshCustomCommands = customCommands.request;
+  useEffect(() => {
+    // Pick up edits made to the settings file outside this window.
+    if (customHistoryActive) void refreshCustomCommands();
+  }, [customHistoryActive, refreshCustomCommands]);
   useLayoutEffect(() => {
     if (!customHistoryActive) return;
     const keyboard = (event: KeyboardEvent) => {

@@ -707,3 +707,62 @@ fn real_stdio_processor_runs_with_python_and_path_unavailable() {
     assert_eq!(messages[&12]["ok"], false);
     assert_eq!(messages[&13]["ok"], true);
 }
+
+#[test]
+fn snapshots_carry_custom_action_inputs() {
+    let (temp, path) = small_image();
+    let mut session = Session::new(root());
+    let empty = call(&mut session, "state", json!({}));
+    assert_eq!(
+        empty.result["state"]["customCommandContext"]["image_path"],
+        Value::Null
+    );
+    let opened = call(&mut session, "open_image", json!({"path":path}));
+    let context = &opened.result["state"]["customCommandContext"];
+    assert_eq!(context["image_path"], json!(path.canonicalize().unwrap()));
+    assert_eq!(context["image_name"], "counts.npy");
+    assert_eq!(context["frame_number"], 1);
+    assert_eq!(
+        context["image_directory"],
+        json!(path.canonicalize().unwrap().parent().unwrap())
+    );
+    assert_eq!(context["frame_index"], 0);
+    assert_eq!(context["wavelength_angstrom"], Value::Null);
+    assert_eq!(context["calibration_path"], Value::Null);
+    assert_eq!(context["project_path"], Value::Null);
+
+    let poni = root().join("tests/data/CeO2_Pilatus1M.poni");
+    let calibrated = call(&mut session, "open_calibration", json!({"path":poni}));
+    let state = &calibrated.result["state"];
+    let context = &state["customCommandContext"];
+    assert!(
+        context["calibration_path"]
+            .as_str()
+            .unwrap()
+            .ends_with("CeO2_Pilatus1M.poni")
+    );
+    let wavelength = state["geometry"]["wavelength"].as_f64().unwrap() * 1e10;
+    assert!((context["wavelength_angstrom"].as_f64().unwrap() - wavelength).abs() < 1e-12);
+
+    let saved = temp.path().join("saved.poni");
+    let context = call(&mut session, "save_calibration", json!({"path":saved})).result["state"]
+        ["customCommandContext"]
+        .clone();
+    assert!(
+        context["calibration_path"]
+            .as_str()
+            .unwrap()
+            .ends_with("saved.poni")
+    );
+
+    let project = temp.path().join("session.dio");
+    let context = call(&mut session, "save_project", json!({"path":project})).result["state"]
+        ["customCommandContext"]
+        .clone();
+    assert!(
+        context["project_path"]
+            .as_str()
+            .unwrap()
+            .ends_with("session.dio")
+    );
+}
