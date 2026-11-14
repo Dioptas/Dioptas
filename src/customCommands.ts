@@ -137,14 +137,14 @@ type CustomRequestCall =
  * Custom-action definitions live in a settings file, so they are listed once
  * per session and after each save or delete. The inputs follow the session
  * snapshot, which carries them, so browsing images sends no extra request.
+ * Edits made outside this window appear when Settings → Custom actions opens.
  */
 export function useCustomCommands(
   invoke: Invoke,
-  session: { customCommandContext?: CommandContext } | null,
+  session: { customCommandContext: CommandContext } | null,
 ) {
   const [commands, setCommands] = useState<CustomCommand[]>([]);
   const [runs, setRuns] = useState<Record<string, CustomCommandRun>>({});
-  const [context, setContext] = useState<CommandContext>({});
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -308,7 +308,6 @@ export function useCustomCommands(
             refreshHistory((value) => value + 1);
           }
           setRuns(result.customCommandRuns ?? {});
-          setContext(result.customCommandContext ?? {});
           setError(preferenceWarning);
         }
         return true;
@@ -325,10 +324,13 @@ export function useCustomCommands(
     },
     [invoke, recordChange],
   );
+  // List once per session. Until a list succeeds, retry on each state change,
+  // as the bridge may not answer the very first request.
   const hasSession = !!session;
+  const retryUntilLoaded = loaded ? null : session;
   useEffect(() => {
     if (hasSession) void request();
-  }, [hasSession, request]);
+  }, [hasSession, retryUntilLoaded, request]);
   const polling = Object.values(runs).some(
     (run) => run.running || run.outputPending,
   );
@@ -465,7 +467,7 @@ export function useCustomCommands(
   return {
     commands,
     runs,
-    context: session?.customCommandContext ?? context,
+    context: session?.customCommandContext ?? {},
     error,
     pending: pending || restoring || !loaded,
     request,

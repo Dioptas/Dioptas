@@ -115,7 +115,7 @@ export interface State {
   calibrationName: string | null;
   calibrated: boolean;
   projectName: string | null;
-  customCommandContext?: import("./customCommands").CommandContext;
+  customCommandContext: import("./customCommands").CommandContext;
   unit: Unit;
   bins: number | null;
   useMask: boolean;
@@ -272,7 +272,6 @@ export interface Response {
     string,
     import("./customCommands").CustomCommandRun
   >;
-  customCommandContext?: import("./customCommands").CommandContext;
   phaseRevision?: number;
   batch?: import("./batchDomain").BatchData | null;
   /** Phase references in d spacings (Å), independent of the batch display unit. */

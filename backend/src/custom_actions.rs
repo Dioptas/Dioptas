@@ -261,7 +261,7 @@ impl Actions {
             _ => return Err("Unknown custom-action operation.".into()),
         }
         Ok(
-            json!({"ok":true,"customCommands":commands,"customCommandRuns":self.runs.lock().unwrap().iter().map(|(id, run)| (id.clone(), run.lock().unwrap().clone())).collect::<BTreeMap<_,_>>(),"customCommandContext":context}),
+            json!({"ok":true,"customCommands":commands,"customCommandRuns":self.runs.lock().unwrap().iter().map(|(id, run)| (id.clone(), run.lock().unwrap().clone())).collect::<BTreeMap<_,_>>()}),
         )
     }
 }
