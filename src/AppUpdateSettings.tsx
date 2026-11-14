@@ -33,17 +33,7 @@ export function AppUpdateSettings({
         New versions are downloaded only when you choose to, and installed when
         you restart.
       </p>
-      <div className="settings-preference-row">
-        <div>
-          <label htmlFor="settings-update-automatic">
-            Check for updates automatically
-          </label>
-          <p id="settings-update-automatic-description">
-            Looks for a new release shortly after start and a few times per day.
-            Nothing else is sent. Switch off on computers without internet
-            access or with managed installations.
-          </p>
-        </div>
+      <div className="settings-preference-row settings-switch-row">
         <Input
           id="settings-update-automatic"
           type="checkbox"
@@ -54,6 +44,16 @@ export function AppUpdateSettings({
           onChange={(event) => controller.setAutomatic(event.target.checked)}
           aria-describedby="settings-update-automatic-description"
         />
+        <div>
+          <label htmlFor="settings-update-automatic">
+            Check for updates automatically
+          </label>
+          <p id="settings-update-automatic-description">
+            Looks for a new release shortly after start and a few times per day.
+            Nothing else is sent. Switch off on computers without internet
+            access or with managed installations.
+          </p>
+        </div>
       </div>
       <div className="app-update-settings-check">
         <Button
