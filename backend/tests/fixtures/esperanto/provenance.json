@@ -1,0 +1,55 @@
+{
+  "license": "CC0-1.0",
+  "fabio_version": "2026.6.0",
+  "files": {
+    "agi-extrema-cols18.esperanto": {
+      "sha256": "cfbf00545b1226d3530fe05626a957b81bd197382cf64fefa294824c2a322bda",
+      "shape": [
+        2,
+        18
+      ],
+      "encoding": "AGI_BITFIELD",
+      "native_sha256": "81930a3cf06f0b7d9287c0d9379de3e6b47f167a3a4f6da1816a9ad821064d5d",
+      "intermediate_dtype": "int64",
+      "intermediate_sha256": "d35856050c1fe8becd6604786c3ca2bfa2d82a02721244162592c57795033618"
+    },
+    "long32-extrema-cols18.esperanto": {
+      "sha256": "20d5e36a32631c902ec2d3f7bfa6a1dd50e615d8f2b12f3c752346059f9fa81e",
+      "shape": [
+        2,
+        18
+      ],
+      "encoding": "4BYTE_LONG",
+      "native_sha256": "81930a3cf06f0b7d9287c0d9379de3e6b47f167a3a4f6da1816a9ad821064d5d",
+      "intermediate_dtype": "int32",
+      "intermediate_sha256": "81930a3cf06f0b7d9287c0d9379de3e6b47f167a3a4f6da1816a9ad821064d5d"
+    },
+    "agi-extrema-cols18.esperanto.gz": {
+      "sha256": "368c8cad921e67a4a16208f8f074fd022b607808aa2d62a965fbdd84e3e1b03b",
+      "shape": [
+        2,
+        18
+      ],
+      "encoding": "AGI_BITFIELD",
+      "native_sha256": "81930a3cf06f0b7d9287c0d9379de3e6b47f167a3a4f6da1816a9ad821064d5d",
+      "intermediate_dtype": "int64",
+      "intermediate_sha256": "d35856050c1fe8becd6604786c3ca2bfa2d82a02721244162592c57795033618",
+      "derived_from": "agi-extrema-cols18.esperanto",
+      "outer_compression": "gzip"
+    },
+    "agi-extrema-cols18.esperanto.bz2": {
+      "sha256": "c2697307af722da6e4f0ad8e922a64e112c014269694605a99ef79824b1ed625",
+      "shape": [
+        2,
+        18
+      ],
+      "encoding": "AGI_BITFIELD",
+      "native_sha256": "81930a3cf06f0b7d9287c0d9379de3e6b47f167a3a4f6da1816a9ad821064d5d",
+      "intermediate_dtype": "int64",
+      "intermediate_sha256": "d35856050c1fe8becd6604786c3ca2bfa2d82a02721244162592c57795033618",
+      "derived_from": "agi-extrema-cols18.esperanto",
+      "outer_compression": "bzip2"
+    }
+  },
+  "source": "https://github.com/CPrescher/dioptrin-io/tree/8101935/tests/data/esperanto"
+}

@@ -57,15 +57,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "arbitrary"
-version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3bc62ac97cc33321f50863d514c3bc38a453947a8f9e781137e47c7401020aed"
-dependencies = [
- "derive_arbitrary",
-]
-
-[[package]]
 name = "arrayvec"
 version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -720,17 +711,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "derive_arbitrary"
-version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b034bd7d5f032402a2479444dcc6f74e36a03f31854d41680fb240ef682a1ac"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 3.0.9",
-]
-
-[[package]]
 name = "derive_more"
 version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -828,7 +808,7 @@ dependencies = [
 [[package]]
 name = "dioptrin"
 version = "0.12.0"
-source = "git+https://github.com/CPrescher/Dioptrin?rev=0c0d4fccc2b38a5f53b481ebf507c80cfb9a44c6#0c0d4fccc2b38a5f53b481ebf507c80cfb9a44c6"
+source = "git+https://github.com/CPrescher/Dioptrin?rev=07a5ccce2197d8a6e893969e7d084b03c6eef2e7#07a5ccce2197d8a6e893969e7d084b03c6eef2e7"
 dependencies = [
  "flate2",
  "rayon",
@@ -2925,24 +2905,24 @@ dependencies = [
 
 [[package]]
 name = "phasesmith-core"
-version = "0.8.1"
-source = "git+https://github.com/CPrescher/PhaseSmith?rev=e47507f4adf32ea2a137ddf6b735db88f8a67537#e47507f4adf32ea2a137ddf6b735db88f8a67537"
+version = "0.8.2"
+source = "git+https://github.com/CPrescher/PhaseSmith?rev=7e5f0731be6dd9ae2005aa2b4b34776071d78408#7e5f0731be6dd9ae2005aa2b4b34776071d78408"
 dependencies = [
  "phasesmith-execution",
 ]
 
 [[package]]
 name = "phasesmith-crystallography"
-version = "0.8.1"
-source = "git+https://github.com/CPrescher/PhaseSmith?rev=e47507f4adf32ea2a137ddf6b735db88f8a67537#e47507f4adf32ea2a137ddf6b735db88f8a67537"
+version = "0.8.2"
+source = "git+https://github.com/CPrescher/PhaseSmith?rev=7e5f0731be6dd9ae2005aa2b4b34776071d78408#7e5f0731be6dd9ae2005aa2b4b34776071d78408"
 dependencies = [
  "phasesmith-execution",
 ]
 
 [[package]]
 name = "phasesmith-engine"
-version = "0.8.1"
-source = "git+https://github.com/CPrescher/PhaseSmith?rev=e47507f4adf32ea2a137ddf6b735db88f8a67537#e47507f4adf32ea2a137ddf6b735db88f8a67537"
+version = "0.8.2"
+source = "git+https://github.com/CPrescher/PhaseSmith?rev=7e5f0731be6dd9ae2005aa2b4b34776071d78408#7e5f0731be6dd9ae2005aa2b4b34776071d78408"
 dependencies = [
  "phasesmith-core",
  "phasesmith-crystallography",
@@ -2951,16 +2931,16 @@ dependencies = [
 
 [[package]]
 name = "phasesmith-execution"
-version = "0.8.1"
-source = "git+https://github.com/CPrescher/PhaseSmith?rev=e47507f4adf32ea2a137ddf6b735db88f8a67537#e47507f4adf32ea2a137ddf6b735db88f8a67537"
+version = "0.8.2"
+source = "git+https://github.com/CPrescher/PhaseSmith?rev=7e5f0731be6dd9ae2005aa2b4b34776071d78408#7e5f0731be6dd9ae2005aa2b4b34776071d78408"
 dependencies = [
  "rayon",
 ]
 
 [[package]]
 name = "phasesmith-io"
-version = "0.8.1"
-source = "git+https://github.com/CPrescher/PhaseSmith?rev=e47507f4adf32ea2a137ddf6b735db88f8a67537#e47507f4adf32ea2a137ddf6b735db88f8a67537"
+version = "0.8.2"
+source = "git+https://github.com/CPrescher/PhaseSmith?rev=7e5f0731be6dd9ae2005aa2b4b34776071d78408#7e5f0731be6dd9ae2005aa2b4b34776071d78408"
 dependencies = [
  "moyo",
  "phasesmith-core",
@@ -2970,8 +2950,8 @@ dependencies = [
 
 [[package]]
 name = "phasesmith-model"
-version = "0.8.1"
-source = "git+https://github.com/CPrescher/PhaseSmith?rev=e47507f4adf32ea2a137ddf6b735db88f8a67537#e47507f4adf32ea2a137ddf6b735db88f8a67537"
+version = "0.8.2"
+source = "git+https://github.com/CPrescher/PhaseSmith?rev=7e5f0731be6dd9ae2005aa2b4b34776071d78408#7e5f0731be6dd9ae2005aa2b4b34776071d78408"
 dependencies = [
  "phasesmith-core",
  "phasesmith-engine",
@@ -2979,8 +2959,8 @@ dependencies = [
 
 [[package]]
 name = "phasesmith-persistence"
-version = "0.8.1"
-source = "git+https://github.com/CPrescher/PhaseSmith?rev=e47507f4adf32ea2a137ddf6b735db88f8a67537#e47507f4adf32ea2a137ddf6b735db88f8a67537"
+version = "0.8.2"
+source = "git+https://github.com/CPrescher/PhaseSmith?rev=7e5f0731be6dd9ae2005aa2b4b34776071d78408#7e5f0731be6dd9ae2005aa2b4b34776071d78408"
 dependencies = [
  "flate2",
  "phasesmith-core",
@@ -2992,13 +2972,13 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "zip 5.1.1",
+ "zip",
 ]
 
 [[package]]
 name = "phasesmith-single-crystal"
-version = "0.8.1"
-source = "git+https://github.com/CPrescher/PhaseSmith?rev=e47507f4adf32ea2a137ddf6b735db88f8a67537#e47507f4adf32ea2a137ddf6b735db88f8a67537"
+version = "0.8.2"
+source = "git+https://github.com/CPrescher/PhaseSmith?rev=7e5f0731be6dd9ae2005aa2b4b34776071d78408#7e5f0731be6dd9ae2005aa2b4b34776071d78408"
 dependencies = [
  "ndarray",
  "phasesmith-crystallography",
@@ -3010,8 +2990,8 @@ dependencies = [
 
 [[package]]
 name = "phasesmith-workflows"
-version = "0.8.1"
-source = "git+https://github.com/CPrescher/PhaseSmith?rev=e47507f4adf32ea2a137ddf6b735db88f8a67537#e47507f4adf32ea2a137ddf6b735db88f8a67537"
+version = "0.8.2"
+source = "git+https://github.com/CPrescher/PhaseSmith?rev=7e5f0731be6dd9ae2005aa2b4b34776071d78408#7e5f0731be6dd9ae2005aa2b4b34776071d78408"
 dependencies = [
  "nalgebra",
  "phasesmith-core",
@@ -3610,7 +3590,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4517,7 +4497,7 @@ dependencies = [
  "tokio",
  "url",
  "windows-sys 0.61.2",
- "zip 9.5.1",
+ "zip",
 ]
 
 [[package]]
@@ -4626,7 +4606,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix",
  "windows-sys 0.52.0",
@@ -5386,7 +5366,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -5944,25 +5924,13 @@ dependencies = [
 
 [[package]]
 name = "zip"
-version = "5.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f852905151ac8d4d06fdca66520a661c09730a74c6d4e2b0f27b436b382e532"
-dependencies = [
- "arbitrary",
- "crc32fast",
- "flate2",
- "indexmap 2.14.2",
- "memchr",
-]
-
-[[package]]
-name = "zip"
 version = "9.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3476fd497ac8af5b1ec7b51acab7bef380f7e8dd8e0487595bafd839417a302"
 dependencies = [
  "constant_time_eq 0.6.1",
  "crc32fast",
+ "flate2",
  "getrandom 0.4.3",
  "indexmap 2.14.2",
  "libc",

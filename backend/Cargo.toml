@@ -16,7 +16,7 @@ dioptrin = []
 [dependencies]
 dioptas-contract = { path = "../contract" }
 dioptrin-io = { git = "https://github.com/CPrescher/dioptrin-io", tag = "v0.3.0", features = ["wrappers", "hdf5", "containers", "bruker", "oxford", "raxis", "fixed", "fit2d", "kcd", "mpa", "esperanto", "mar345", "xsd"] }
-dioptrin = { git = "https://github.com/CPrescher/Dioptrin", rev = "0c0d4fccc2b38a5f53b481ebf507c80cfb9a44c6", default-features = false }
+dioptrin = { git = "https://github.com/CPrescher/Dioptrin", rev = "07a5ccce2197d8a6e893969e7d084b03c6eef2e7", default-features = false }
 half = "2"
 serde = { version = "1", features = ["derive", "rc"] }
 # Preserve the established ordering of plugin controls in embedded schemas.
@@ -24,13 +24,13 @@ serde_json = { version = "1", features = ["preserve_order"] }
 sha2 = "0.10"
 tempfile = "3"
 time = { version = "0.3", features = ["formatting"] }
-phasesmith-core = { git = "https://github.com/CPrescher/PhaseSmith", rev = "e47507f4adf32ea2a137ddf6b735db88f8a67537" }
-phasesmith-crystallography = { git = "https://github.com/CPrescher/PhaseSmith", rev = "e47507f4adf32ea2a137ddf6b735db88f8a67537" }
-phasesmith-io = { git = "https://github.com/CPrescher/PhaseSmith", rev = "e47507f4adf32ea2a137ddf6b735db88f8a67537" }
-phasesmith-model = { git = "https://github.com/CPrescher/PhaseSmith", rev = "e47507f4adf32ea2a137ddf6b735db88f8a67537" }
-phasesmith-single-crystal = { git = "https://github.com/CPrescher/PhaseSmith", rev = "e47507f4adf32ea2a137ddf6b735db88f8a67537", default-features = false, features = ["spots", "solution"] }
-phasesmith-persistence = { git = "https://github.com/CPrescher/PhaseSmith", rev = "e47507f4adf32ea2a137ddf6b735db88f8a67537" }
-phasesmith-workflows = { git = "https://github.com/CPrescher/PhaseSmith", rev = "e47507f4adf32ea2a137ddf6b735db88f8a67537", features = ["single-crystal"] }
+phasesmith-core = { git = "https://github.com/CPrescher/PhaseSmith", rev = "7e5f0731be6dd9ae2005aa2b4b34776071d78408" }
+phasesmith-crystallography = { git = "https://github.com/CPrescher/PhaseSmith", rev = "7e5f0731be6dd9ae2005aa2b4b34776071d78408" }
+phasesmith-io = { git = "https://github.com/CPrescher/PhaseSmith", rev = "7e5f0731be6dd9ae2005aa2b4b34776071d78408" }
+phasesmith-model = { git = "https://github.com/CPrescher/PhaseSmith", rev = "7e5f0731be6dd9ae2005aa2b4b34776071d78408" }
+phasesmith-single-crystal = { git = "https://github.com/CPrescher/PhaseSmith", rev = "7e5f0731be6dd9ae2005aa2b4b34776071d78408", default-features = false, features = ["spots", "solution"] }
+phasesmith-persistence = { git = "https://github.com/CPrescher/PhaseSmith", rev = "7e5f0731be6dd9ae2005aa2b4b34776071d78408" }
+phasesmith-workflows = { git = "https://github.com/CPrescher/PhaseSmith", rev = "7e5f0731be6dd9ae2005aa2b4b34776071d78408", features = ["single-crystal"] }
 peritheos = { git = "https://github.com/CPrescher/peritheos", rev = "3c79b1aedf28c348a49cc22d9f24d92895546283" }
 nalgebra = "0.35"
 tiff = "0.8"
