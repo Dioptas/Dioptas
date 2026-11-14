@@ -12,7 +12,8 @@
 .phase-dac-fields label {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  min-height: 30px;
 }
 .phase-dac-fields input[type="number"] {
   width: 84px;

@@ -232,7 +232,7 @@ export function SettingsWorkspace({
             hidden={section !== 1}
           >
             <section className="settings-card">
-              <div className="settings-preference-row settings-configuration-enable">
+              <div className="settings-preference-row settings-switch-row settings-configuration-enable">
                 <Input
                   id="settings-configuration-controls"
                   type="checkbox"

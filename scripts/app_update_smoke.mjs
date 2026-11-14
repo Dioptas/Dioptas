@@ -281,10 +281,18 @@ try {
       );
 
       // The automatic check can be switched off and stays off.
-      const automatic = page.getByRole("checkbox", {
+      const automatic = page.getByRole("switch", {
         name: "Check for updates automatically",
       });
       assert.equal(await automatic.isChecked(), true);
+      const switchBox = await automatic.boundingBox();
+      const automaticLabel = await page
+        .locator('label[for="settings-update-automatic"]')
+        .boundingBox();
+      assert.ok(
+        switchBox.x + switchBox.width <= automaticLabel.x,
+        "Settings switches lead their label",
+      );
       await automatic.uncheck();
       await page.reload();
       assert.equal(await automatic.isChecked(), false);
