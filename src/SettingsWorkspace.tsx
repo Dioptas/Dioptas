@@ -232,10 +232,12 @@ export function SettingsWorkspace({
             hidden={section !== 1}
           >
             <section className="settings-card">
-              <div className="settings-preference-row settings-configuration-enable">
+              <div className="settings-preference-row settings-switch-row settings-configuration-enable">
                 <Input
                   id="settings-configuration-controls"
                   type="checkbox"
+                  role="switch"
+                  className="ui-switch"
                   disabled={!ready || integrationDraft.dirty}
                   checked={showConfigurationControls}
                   onChange={(event) =>
@@ -256,11 +258,12 @@ export function SettingsWorkspace({
                 </div>
               </div>
             </section>
-            <ConfigurationBrowsingSettings
-              enabled={showConfigurationControls}
-              filename={state?.imageName}
-              directory={state?.imagePath?.replace(/[\\/][^\\/]*$/, "")}
-            />
+            {showConfigurationControls && (
+              <ConfigurationBrowsingSettings
+                filename={state?.imageName}
+                directory={state?.imagePath?.replace(/[\\/][^\\/]*$/, "")}
+              />
+            )}
           </div>
           <div
             id="settings-panel-2"

@@ -354,17 +354,25 @@
   width: 200px;
 }
 
-.settings-configuration-enable {
+/* A switch leads its setting: switch left, label and description right. */
+.settings-switch-row {
   justify-content: flex-start;
   align-items: flex-start;
   gap: 12px;
+}
+.settings-switch-row > input[type="checkbox"] {
+  flex-shrink: 0;
   margin-top: 0;
 }
-.settings-configuration-enable > input[type="checkbox"] {
-  flex-shrink: 0;
-  margin-top: 2px;
+.settings-switch-row label {
+  font-weight: 550;
+  line-height: 22px;
+  cursor: pointer;
 }
-.settings-configuration-enable > div {
+.settings-switch-row > div {
   flex: 1;
   min-width: 0;
+}
+.settings-configuration-enable {
+  margin-top: 0;
 }

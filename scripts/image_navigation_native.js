@@ -15,10 +15,10 @@
         }),
       );
     });
-  const wait = async (test, message) => {
+  const wait = async (test, message, timeout = 30000) => {
     const start = performance.now();
     while (!test()) {
-      if (performance.now() - start > 30000) throw Error(message);
+      if (performance.now() - start > timeout) throw Error(message);
       await delay(5);
     }
   };
@@ -34,6 +34,7 @@
   let active = null;
   let verification = null;
   const contexts = new Set();
+  const discardedSamples = [];
   try {
     const config = window.__dioptasNavigationConfig;
     if (!config?.root)
@@ -53,6 +54,26 @@
     const probe = window.__dioptasNavigationProbe;
     window.__dioptasNavigationTrace = (event) => {
       if (active) active.events.push(event);
+      if (
+        active &&
+        ["raster-submitted", "pattern-rendered", "batch-rendered"].includes(
+          event.stage,
+        )
+      ) {
+        const sample = active;
+        const generation = (sample.drawGeneration =
+          (sample.drawGeneration ?? 0) + 1);
+        // Register at the draw rather than two frames after polling detects it.
+        // The second callback bounds a paint opportunity after all matching draws.
+        requestAnimationFrame(() => {
+          for (const gl of contexts)
+            if (gl.canvas.isConnected && !gl.isContextLost()) gl.finish();
+          requestAnimationFrame(() => {
+            if (active === sample && sample.drawGeneration === generation)
+              sample.presentationAt = performance.now();
+          });
+        });
+      }
       if (
         verification &&
         ((event.stage === "raster-submitted" && event.kind === "detector") ||
@@ -80,6 +101,12 @@
           pixels,
         });
       }
+    };
+    const originalContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (...args) {
+      const context = originalContext.apply(this, args);
+      if (args[0] === "webgl2" && context) contexts.add(context);
+      return context;
     };
     for (const operation of ["texImage2D", "texSubImage2D"]) {
       const originalUpload = WebGL2RenderingContext.prototype[operation];
@@ -142,7 +169,20 @@
     const loading = [];
     const series = [];
     const rendered = [];
+    const integrationButton = () => {
+      const button =
+        document.querySelector('button[aria-label="Integration"]') ??
+        [...document.querySelectorAll("button")].find(
+          (button) => button.textContent.trim() === "Integration",
+        );
+      if (!button) throw Error("Integration mode button missing");
+      return button;
+    };
     const configure = async (image, calibration, reset = false) => {
+      // Open calibration while already in Integration/Image, so validation does
+      // not request a cake during the hidden-cake campaigns.
+      integrationButton().click();
+      await paint();
       const start = performance.now();
       await call("open_image", {
         path: image,
@@ -156,13 +196,7 @@
         calibrationToPaintMs: performance.now() - opened,
       });
       await call("integration_settings", { bins: 1000, cake_bins: 360 });
-      const integration =
-        document.querySelector('button[aria-label="Integration"]') ??
-        [...document.querySelectorAll("button")].find(
-          (button) => button.textContent.trim() === "Integration",
-        );
-      if (!integration) throw Error("Integration mode button missing");
-      integration.click();
+      integrationButton().click();
       await paint();
       await wait(
         () =>
@@ -172,19 +206,47 @@
       );
       await paint();
     };
-    const step = async (scenario, direction, boundary = false) => {
+    // options: {action, click, selected, complete, detached, index} time Batch
+    // and Map selections through the same draw/presentation path as arrows.
+    const step = async (
+      scenario,
+      direction,
+      boundary = false,
+      options = {},
+    ) => {
+      if (config.foreground && !options.detached && !document.hasFocus()) {
+        await invoke("native_smoke_report", {
+          report: { stage: "diagnostic", navigationPause: scenario },
+        });
+        await wait(
+          () => document.hasFocus() && document.visibilityState === "visible",
+          "Native timing paused waiting for its test window",
+          120000,
+        );
+      }
       const source = scenario.startsWith("eiger") ? "frame" : "image";
       const action =
-        source === "frame" ? "integration_navigation" : "next_image";
-      const button = document.querySelector(
-        `[aria-label="Integration ${direction > 0 ? "next" : "previous"} ${source}"]`,
-      );
-      if (!button || button.disabled)
+        options.action ??
+        (source === "frame" ? "integration_navigation" : "next_image");
+      const button = options.click
+        ? null
+        : document.querySelector(
+            `[aria-label="Integration ${direction > 0 ? "next" : "previous"} ${source}"]`,
+          );
+      if (!options.click && (!button || button.disabled))
         throw Error("Native image navigation is disabled");
       const before = probe.state();
       const beforeBuffer = probe.image()?.bufferId;
-      active = { start: performance.now(), events: [], uploads: [] };
-      button.click();
+      active = {
+        start: performance.now(),
+        startFocused: document.hasFocus(),
+        events: [],
+        uploads: [],
+      };
+      const started = options.click ? await options.click() : button.click();
+      if (started?.startAbs != null)
+        active.start = started.startAbs - performance.timeOrigin;
+      if (started?.focused != null) active.startFocused = started.focused;
       await wait(() => {
         const hydrated = active.events.find(
           (event) => event.stage === "ipc-hydrated" && event.action === action,
@@ -200,6 +262,7 @@
         );
         const id = probe.image()?.bufferId;
         return (
+          (!options.selected || options.selected()) &&
           id !== beforeBuffer &&
           active.events.some(
             (event) =>
@@ -222,11 +285,18 @@
       const gpuCompleteAt = performance.now();
       await paint();
       const end = performance.now();
+      if (!boundary)
+        await wait(
+          () => active.presentationAt != null,
+          "No presentation marker",
+        );
+      const companion = await options.complete?.();
       const trace = active;
       active = null;
       const after = probe.state();
       if (
         !boundary &&
+        !options.action &&
         before.imagePath === after.imagePath &&
         before.integration.frames > 1 &&
         after.integration.frame !== before.integration.frame + direction
@@ -236,17 +306,25 @@
         );
       if (document.querySelector('[role="dialog"]') || errors.length)
         throw Error(errors.join("\n") || "Native navigation opened a dialog");
-      if (
-        config.foreground &&
-        (!document.hasFocus() || document.visibilityState !== "visible")
-      )
-        throw Error("Native navigation lost its visible foreground window");
+      if (config.foreground && document.visibilityState !== "visible") {
+        discardedSamples.push({
+          scenario,
+          reason: "Focus/visibility changed during sample",
+        });
+        return null;
+      }
       const event = (stage) =>
         trace.events.find(
           (entry) =>
             entry.stage === stage && (!entry.action || entry.action === action),
         );
       const wire = event("ipc-hydrated");
+      if (hiddenCake && wire.cakeBufferId)
+        throw Error(`Hidden cake was calculated/transferred in ${scenario}`);
+      if (hiddenCake && wire.calibrationRingCount)
+        throw Error(
+          `Unused calibration contours were transferred in ${scenario}`,
+        );
       const raster = trace.events
         .filter(
           (entry) =>
@@ -257,7 +335,20 @@
         scenario,
         direction,
         boundary,
+        action,
         requestId: wire.requestId,
+        clickToPresentationMs: boundary
+          ? null
+          : Math.max(
+              trace.presentationAt,
+              companion?.presentationAbs != null
+                ? companion.presentationAbs - performance.timeOrigin
+                : 0,
+            ) - trace.start,
+        mainPresentationMs: boundary
+          ? null
+          : trace.presentationAt - trace.start,
+        companion,
         clickToGpuCompleteMs: gpuCompleteAt - trace.start,
         clickToPaintMs: end - trace.start,
         ipcMs: event("ipc-received").at - event("ipc-start").at,
@@ -268,8 +359,13 @@
         pollWaitAfterSubmitMs: submittedAt - (raster?.at ?? wire.at),
         pixelBytes: wire.pixelBytes,
         headerBytes: wire.headerBytes,
+        cakeBufferId: wire.cakeBufferId ?? null,
+        calibrationRingCount: wire.calibrationRingCount,
+        bufferId: probe.image()?.bufferId,
+        selectedIndex: options.index ?? null,
         sourceFrame: after.integration.frame,
         image: after.imageName,
+        startFocused: trace.startFocused,
         focused: document.hasFocus(),
         visibility: document.visibilityState,
         renderer: document.querySelector('[data-testid="detector-canvas"]')
@@ -287,6 +383,7 @@
           stage: "hmr",
           navigationProgress: {
             scenario,
+            clickToPresentationMs: row.clickToPresentationMs,
             clickToPaintMs: row.clickToPaintMs,
             ipcMs: row.ipcMs,
             pixelBytes: row.pixelBytes,
@@ -295,7 +392,11 @@
       });
       return row;
     };
-    if (!config.series && !config.eigerOnly) {
+    // Batch/Map selection campaigns keep the Cake hidden and assert that no
+    // cake or unused calibration contour is calculated or transferred.
+    const hiddenCake = !!(config.seriesNavigation || config.allViews);
+    const imageBrowsing = !config.seriesNavigation || config.allViews;
+    if (imageBrowsing && !config.series && !config.eigerOnly) {
       await configure(
         `${config.root}/tests/data/image_001.tif`,
         `${config.root}/tests/data/LaB6_40keV_MarCCD.poni`,
@@ -304,14 +405,14 @@
       await step("tiff-first-previous", -1);
       for (let i = 0; i < 12; i++)
         await step("tiff-cached", i % 2 === 0 ? 1 : -1);
-      await step("tiff-cached", 1);
+      await step(config.allViews ? "tiff-boundary-setup" : "tiff-cached", 1);
       await step("tiff-boundary", 1, true);
       await invoke("native_smoke_report", {
         report: { stage: "diagnostic", capture: "tiff-native-navigation" },
       });
       await delay(800);
     }
-    if (config.eiger) {
+    if (config.eiger && imageBrowsing) {
       await configure(
         config.eiger,
         config.eiger.replace(/\.h5$/, ".poni"),
@@ -494,6 +595,16 @@
               });
             }
           }
+        } else if (config.allViews) {
+          // Match the Batch/Map campaign's source frames 2–13 exactly
+          // (1-based frame payload 2 is source index 1).
+          await call("integration_navigation", { frame: 2 });
+          for (let i = 0; i < 12; i++) await step("eiger-new-frame", 1);
+          // Warm indices 0/1, then time the same alternating pair as Batch/Map.
+          await call("integration_navigation", { frame: 1 });
+          await step("eiger-cached-warmup", 1);
+          for (let i = 0; i < 12; i++)
+            await step("eiger-cached", i % 2 === 0 ? -1 : 1);
         } else {
           for (let i = 0; i < 12; i++) await step("eiger-new-frame", 1);
           await step("eiger-cached", -1);
@@ -506,11 +617,24 @@
       });
       await delay(800);
     }
+    if (config.seriesNavigation || config.allViews)
+      await window.__dioptasSeriesNavigation({
+        config,
+        call,
+        configure,
+        step,
+        wait,
+        paint,
+        delay,
+        invoke,
+      });
     const summaries = {};
     for (const scenario of new Set(reports.map((row) => row.scenario))) {
       const rows = reports.filter((row) => row.scenario === scenario);
       summaries[scenario] = Object.fromEntries(
         [
+          "clickToPresentationMs",
+          "mainPresentationMs",
           "clickToGpuCompleteMs",
           "clickToPaintMs",
           "ipcMs",
@@ -525,6 +649,24 @@
         ]),
       );
     }
+    const diagnosticsWire = await invoke("desktop_invoke", {
+      action: "integration_diagnostics",
+      payload: {},
+      cachedBuffers: [],
+    });
+    const diagnosticsLength = new DataView(diagnosticsWire).getUint32(0, true);
+    const diagnostics = JSON.parse(
+      new TextDecoder().decode(
+        new Uint8Array(diagnosticsWire, 4, diagnosticsLength),
+      ),
+    ).result.integrationDiagnostics;
+    if (
+      hiddenCake &&
+      (diagnostics.cakeIntegrations !== 0 || diagnostics.cakePlanBuilds !== 0)
+    )
+      throw Error(
+        `Hidden browsing performed ${diagnostics.cakeIntegrations} cake integrations`,
+      );
     await invoke("native_smoke_report", {
       report: {
         stage: "complete",
@@ -532,13 +674,15 @@
         processingPid: host.pid,
         scope: config.series
           ? "Actual React App Batch load action in Tauri WKWebView, production binary IPC, GUI processing and GPU renderers; complete command through GPU completion and paint opportunities; excludes OS file picker and initial image/calibration setup; physical LCD scanout unmeasured"
-          : "Actual React App in Tauri WKWebView, production binary IPC and GPU renderers; DOM button activation to GPU completion and two animation-frame presentation opportunity; physical LCD scanout unmeasured",
+          : "Actual React App in Tauri WKWebView, production binary IPC and GPU renderers; DOM activation to draw-anchored two-frame presentation opportunity (clickToPresentationMs); legacy poll-then-two-frame timing (clickToPaintMs) retained for comparison; physical LCD scanout unmeasured",
         viewport: [innerWidth, innerHeight],
         devicePixelRatio,
         summaries,
         loading,
         series,
         rendered,
+        diagnostics,
+        discardedSamples,
         reports,
         errors,
       },

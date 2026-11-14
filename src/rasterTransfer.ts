@@ -315,6 +315,8 @@ export class RasterTransfer {
       headerBytes: length,
       pixelBytes: frame.byteLength - 4 - length,
       bufferId: result.image?.bufferId,
+      cakeBufferId: result.cake?.bufferId,
+      calibrationRingCount: result.rings?.length ?? 0,
     });
     return result;
   }

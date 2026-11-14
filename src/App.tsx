@@ -490,6 +490,13 @@ export default function App() {
   const canPick = !!state?.hasImage && !setupDirty && !geometryDirty;
   const tool: Tool =
     mode === "calibration" && pickingEnabled && canPick ? "pick" : "pan";
+  // Calibration validation shows the image, cake and pattern together; clicks
+  // there mark the same linked green position as in Integration.
+  const linkedClicks =
+    mode === "integration" || (mode === "calibration" && calibrationStep === 3);
+  // With Pick peaks on, image clicks only pick, even while drafts block picking.
+  const detectorInspects =
+    linkedClicks && !(mode === "calibration" && pickingEnabled);
   const [logImage, setLogImage] = useState(false),
     [logPattern, setLogPattern] = useState(false);
   const [palette, setPalette] = useState<Palette>("grey");
@@ -874,13 +881,14 @@ export default function App() {
       }),
       state: () => currentState.current,
       image: () => imageSource.current,
+      series: () => ({ batch: batch ?? null, map: map ?? null }),
     };
     window.__dioptasNavigationProbe = probe;
     return () => {
       if (window.__dioptasNavigationProbe === probe)
         delete window.__dioptasNavigationProbe;
     };
-  }, [run]);
+  }, [run, batch, map]);
   useLayoutEffect(() => {
     navigationTrace("react-commit", {
       revision: state?.revision,
@@ -1434,6 +1442,7 @@ export default function App() {
     setLocalPatternClick(undefined);
   }, [positionContext]);
   useEffect(() => setLocalPatternClick(undefined), [state?.unit]);
+  const shownLinked = linkedClicks ? linked : undefined;
 
   const cakeClick = useMemo(() => {
     const view = displayedCake ?? cake;
@@ -1477,7 +1486,7 @@ export default function App() {
                     kind: "coordinate" as const,
                     value: coordinateValue(
                       linked.azimuth,
-                      mode === "integration" && cake
+                      linkedClicks && cake
                         ? (cakePixelResolution.y / cake.fullHeight) *
                             (cake.azimuthRange[1] - cake.azimuthRange[0])
                         : 0.1,
@@ -1628,7 +1637,7 @@ export default function App() {
     y: number;
     value: number | null;
   }) => {
-    if (!ready || (mode !== "integration" && mode !== "map") || !image) return;
+    if (!ready || (!detectorInspects && mode !== "map") || !image) return;
     setLocalImageClick(point);
     setClickedReading({
       source: "detector",
@@ -1648,7 +1657,7 @@ export default function App() {
       );
   };
   const inspectPattern = (point: PatternHover) => {
-    if (!ready || (mode !== "integration" && mode !== "map")) return;
+    if (!ready || (!linkedClicks && mode !== "map")) return;
     setLocalPatternClick({ x: point.x, unit: point.unit });
     setLocalImageClick(null);
     if (point.xResolution != null) setPatternResolution(point.xResolution);
@@ -1770,11 +1779,10 @@ export default function App() {
           mode === "integration" ? pattern?.phaseLines : undefined,
         legendCurves: pattern?.curves ?? [],
         showLegend: mode === "integration",
-        linked: mode === "integration" ? linked : undefined,
-        localPatternClick:
-          mode === "integration" ? localPatternClick : undefined,
+        linked: shownLinked,
+        localPatternClick: linkedClicks ? localPatternClick : undefined,
         wavelength: state?.geometry.wavelength,
-        onInspect: mode === "integration" && ready ? inspectPattern : undefined,
+        onInspect: linkedClicks && ready ? inspectPattern : undefined,
       })
     : null;
   // The subtracted pattern can be cropped to the fitted range. Keep the slice
@@ -1841,9 +1849,10 @@ export default function App() {
   const detectorRings = useMemo(
     () =>
       mode === "calibration"
-        ? showRings
-          ? (calibrationPreview?.rings ?? rings)
-          : []
+        ? [
+            ...(showRings ? (calibrationPreview?.rings ?? rings) : []),
+            ...(shownLinked?.contours ?? []),
+          ]
         : [
             ...(showImagePhases ? phaseGuides : []),
             ...(linked?.contours ?? []),
@@ -1856,6 +1865,7 @@ export default function App() {
       showImagePhases,
       phaseGuides,
       linked,
+      shownLinked,
     ],
   );
   const cakeCalibrantLines = useMemo(
@@ -2556,16 +2566,13 @@ export default function App() {
                                 mask,
                                 showMask:
                                   mode !== "integration" || state?.useMask,
-                                linked:
-                                  mode === "integration" ? linked : undefined,
-                                localImageClick:
-                                  mode === "integration"
-                                    ? localImageClick
-                                    : null,
-                                onInspect:
-                                  mode === "integration"
-                                    ? inspectDetector
-                                    : undefined,
+                                linked: shownLinked,
+                                localImageClick: linkedClicks
+                                  ? localImageClick
+                                  : null,
+                                onInspect: detectorInspects
+                                  ? inspectDetector
+                                  : undefined,
                               })}
                               limits={limits}
                               log={logImage}
@@ -2762,19 +2769,15 @@ export default function App() {
                                   )
                                 }
                                 linkedPosition={
-                                  mode === "integration"
-                                    ? linked
-                                      ? (radialValues(
-                                          linked.twoTheta,
-                                          "2th_deg",
-                                          state?.geometry.wavelength,
-                                        )[cake.unit] ?? undefined)
-                                      : undefined
+                                  shownLinked
+                                    ? (radialValues(
+                                        shownLinked.twoTheta,
+                                        "2th_deg",
+                                        state?.geometry.wavelength,
+                                      )[cake.unit] ?? undefined)
                                     : undefined
                                 }
-                                clickedPoint={
-                                  mode === "integration" ? cakeClick : null
-                                }
+                                clickedPoint={linkedClicks ? cakeClick : null}
                                 activeRing={
                                   mode === "calibration"
                                     ? displayedRing
@@ -2795,7 +2798,7 @@ export default function App() {
                                   mode === "calibration" && showNumbers
                                 }
                                 onInspect={(point) => {
-                                  if (mode !== "integration") return;
+                                  if (!linkedClicks) return;
                                   setLocalImageClick(null);
                                   setClickedReading({
                                     source: "cake",
@@ -3621,7 +3624,7 @@ export default function App() {
             </div>
             {!correctionPreview.map &&
               !settingsOpen &&
-              (mode === "integration" || mode === "map") && (
+              (linkedClicks || mode === "map") && (
                 <div className="plot-status-line clicked-position">
                   <span
                     className="plot-status-kind"

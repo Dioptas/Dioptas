@@ -753,7 +753,7 @@ try {
         .getByRole("tab", { name: "Configurations", exact: true })
         .click();
       await page
-        .getByRole("checkbox", { name: "Enable configurations", exact: true })
+        .getByRole("switch", { name: "Enable configurations", exact: true })
         .check();
       await button("Close settings").click();
       await idle();

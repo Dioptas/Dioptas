@@ -714,6 +714,10 @@ fn main() {
             Ok(())
         })
         .on_page_load(move |webview, payload| {
+            if navigation_benchmark && webview.label() == "batch-window" && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+                let _ = webview.eval(include_str!("../../scripts/series_navigation_child.js"));
+                return;
+            }
             if smoke && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
                 let _ = webview.eval(include_str!("../../scripts/field_appearance_check.js"));
                 let _ = webview.eval(include_str!("../../scripts/native_smoke_diagnostics.js"));
@@ -776,6 +780,7 @@ fn main() {
                             let _ = webview.eval(format!("window.__dioptasNavigationConfig = {value};"));
                         }
                     }
+                    let _ = webview.eval(include_str!("../../scripts/series_navigation_native.js"));
                     let _ = webview.eval(include_str!("../../scripts/image_navigation_native.js"));
                     return;
                 }

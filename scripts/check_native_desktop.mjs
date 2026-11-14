@@ -354,6 +354,7 @@ if (selected.has("--ui")) {
     ["native_backend_smoke"],
     ["native_custom_actions_smoke"],
     ["native_calibration_smoke"],
+    ["calibration_validation_click_smoke"],
     ["native_mask_smoke"],
     ["native_integration_workflow_smoke"],
     ["overlay_command_order_smoke"],

@@ -51,7 +51,10 @@ const capture = args.includes("--no-capture")
 const foreground = args.includes("--foreground");
 const config = {
   root: desktop,
+  output: outputDirectory,
   foreground,
+  seriesNavigation: args.includes("--series-navigation"),
+  allViews: args.includes("--all-views"),
   series: args.includes("--series"),
   seriesExtra: args.includes("--series-extra"),
   seriesMethod: value("--series-method", null),
@@ -133,10 +136,16 @@ for (const stream of [child.stdout, child.stderr])
       }
       if (report.navigationProgress)
         console.log(JSON.stringify(report.navigationProgress));
+      else if (report.navigationPause)
+        console.log(
+          `Paused for visible foreground test window: ${report.navigationPause}`,
+        );
       else if (report.stage === "diagnostic" && report.capture && capture)
         capturing = capturing.then(async () => {
           try {
-            captures.push(await capture(child.pid, "main", report.capture));
+            captures.push(
+              await capture(child.pid, report.window ?? "main", report.capture),
+            );
           } catch (error) {
             captures.push({ error: String(error) });
           }

@@ -6,13 +6,6 @@ candidate contains.
 
 ## New
 
-- **Single Crystal XRD mode.** A guided workflow (SCXRD in the sidebar) takes a
-  rotation scan from frames through peak finding, indexing, geometry refinement,
-  integration and scaling to an HKLF4 reflection file. Versioned PhaseSmith
-  protocols make a run reproducible and can be inspected and exported with their
-  effective settings. The mode is new; the manual describes what its output does
-  not establish.
-
 - **Restore the previous session.** After an unexpected exit, Dioptas offers
   **Restore** or **Start fresh** at the next launch. The recovery checkpoint
   includes the Undo and Redo history.

@@ -31,6 +31,17 @@ const modes = [
   },
 ] as const;
 
+/**
+ * Single Crystal XRD is being reworked on `feature/scxrd-rebuild` and is not
+ * part of the next release. Its code stays in place; only the mode button is
+ * withheld so users cannot enter it. Set to true to bring the mode back.
+ */
+export const SINGLE_CRYSTAL_MODE_ENABLED = false;
+
+const visibleModes = modes.filter(
+  (item) => SINGLE_CRYSTAL_MODE_ENABLED || item.value !== "scxrd",
+);
+
 /** Mode buttons keep one visual, naming and selection contract. */
 export function WorkspaceModeButtons({
   mode,
@@ -41,7 +52,7 @@ export function WorkspaceModeButtons({
 }) {
   return (
     <>
-      {modes.map((item) => (
+      {visibleModes.map((item) => (
         <Button
           key={item.value}
           className={`workspace-nav ${mode === item.value ? "workspace-active" : ""}`}

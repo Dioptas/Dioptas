@@ -36,25 +36,29 @@ export function DacThermalPressureControls({
         <label title="Predict heated volumes from cold/reference pressure with DAC confinement. Applies to all phases in every configuration.">
           <Input
             type="checkbox"
+            role="switch"
+            className="ui-switch"
             aria-label="DAC thermal pressure"
             checked={enabled}
             disabled={!ready}
             onChange={(e) => void set({ enabled: e.target.checked })}
           />
-          DAC thermal pressure
+          Enable
         </label>
-        <label title="Dimensionless fraction of the thermal-pressure increase retained by confinement. 0.25 retains 25%; 0 gives constant-pressure heating. Allowed range: 0 ≤ fraction < 1.">
-          <span>Fraction</span>
-          <PhaseNumber
-            label="DAC thermal-pressure fraction"
-            value={source.phaseDacThermalPressureFactor ?? 0.25}
-            disabled={!ready || !enabled}
-            min={0}
-            max={0.9999}
-            step={0.01}
-            onCommit={(factor) => set({ factor })}
-          />
-        </label>
+        {enabled && (
+          <label title="Dimensionless fraction of the thermal-pressure increase retained by confinement. 0.25 retains 25%; 0 gives constant-pressure heating. Allowed range: 0 ≤ fraction < 1.">
+            <span>Fraction</span>
+            <PhaseNumber
+              label="DAC thermal-pressure fraction"
+              value={source.phaseDacThermalPressureFactor ?? 0.25}
+              disabled={!ready}
+              min={0}
+              max={0.9999}
+              step={0.01}
+              onCommit={(factor) => set({ factor })}
+            />
+          </label>
+        )}
       </div>
       <p className="phase-dac-note">
         {enabled
