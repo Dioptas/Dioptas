@@ -1,11 +1,14 @@
 // Enabled only in benchmark builds. The explicit native benchmark observes the
 // real App, Tauri binary bridge and shared renderers without replacing them.
 import type { Raster, State } from "./types";
+import type { BatchData } from "./batchDomain";
+import type { MapData } from "./mapDomain";
 
 export type NavigationProbe = {
   run: import("./commandContracts").CommandAction;
   state: () => State | null;
   image: () => Raster | null;
+  series: () => { batch: BatchData | null; map: MapData | null };
 };
 declare global {
   interface Window {

@@ -866,13 +866,14 @@ export default function App() {
       }),
       state: () => currentState.current,
       image: () => imageSource.current,
+      series: () => ({ batch: batch ?? null, map: map ?? null }),
     };
     window.__dioptasNavigationProbe = probe;
     return () => {
       if (window.__dioptasNavigationProbe === probe)
         delete window.__dioptasNavigationProbe;
     };
-  }, [run]);
+  }, [run, batch, map]);
   useLayoutEffect(() => {
     navigationTrace("react-commit", {
       revision: state?.revision,
