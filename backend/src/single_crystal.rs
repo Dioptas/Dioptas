@@ -199,7 +199,9 @@ impl Config {
             || !self.diamond_tolerance.is_finite()
             || !(0.01..=20.).contains(&self.diamond_tolerance)
         {
-            return Err("Diamond mask size must be 1 px or more and its tolerance 0.01-20 %.".into());
+            return Err(
+                "Diamond mask size must be 1 px or more and its tolerance 0.01-20 %.".into(),
+            );
         }
 
         if [
