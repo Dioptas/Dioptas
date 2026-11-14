@@ -9,6 +9,7 @@ import { usePlotTypography } from "./usePlotTypography";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { BatchData } from "./batchDomain";
 import { decodeRaster } from "./rasterTransfer";
+import { navigationTrace } from "./navigationTiming";
 import { unitLabel, type Pattern } from "./types";
 import { batchNormalizationRegion } from "./batchDisplay";
 import { scientificValue } from "./ScientificNumberInput";
@@ -316,6 +317,7 @@ export function BatchHeatmap({
       ctx.fillText(String(i + 1), bounds.left - 9, py(i + 0.5) + 4);
     }
     c.dataset.frameTicks = JSON.stringify(frameTicks);
+    navigationTrace("batch-rendered", { selected: batch.selected });
   }, [
     typography.muted,
     typography.mono,

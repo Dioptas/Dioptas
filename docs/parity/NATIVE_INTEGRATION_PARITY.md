@@ -424,3 +424,117 @@ work on the Eiger qualification; calibrated file-opening latency remains near
 80 ms. Float64 outputs, display metadata and transported pixels remain bitwise
 identical, and actual detector/pattern GPU readbacks match at the same display
 resolution. See the [native GUI profile and verification](../performance/NATIVE_DISPLAY_TRANSFER_PERFORMANCE.md).
+
+## Native browsing, Batch and Map display timing (2026-11-14)
+
+This re-measures image browsing, Map and docked/floating Batch on `develop`
+(`3a61f731`, Dioptrin 0.12.0) after rc.1, the image-flicker fix, the Map
+detector change and the move to the repository root. The 9.11. Batch/Map probe
+was never merged and is now part of the benchmark:
+`scripts/series_navigation_native.js` drives real Batch heatmap rows and Map
+cells in the main window, and `scripts/series_navigation_child.js` drives the
+floating Batch window over its normal window channel. Both reuse the timing
+step of `scripts/image_navigation_native.js`. Hooks still exist only in builds
+with `VITE_DIOPTAS_NAVIGATION_BENCHMARK=1` and the `--navigation-benchmark` host
+flag. The response trace adds `cakeBufferId` and `calibrationRingCount`, so a
+hidden-cake campaign fails if a selection transfers a cake or unused contours.
+
+Metric: `clickToPresentationMs`, from DOM activation to the second animation
+frame registered at the last detector/pattern/Batch draw. For floating Batch,
+it is the later of the two windows. This is the 9.11. draw-anchored metric. The
+legacy poll-then-two-frames `clickToPaintMs` of 8.11. is kept in the receipts.
+Neither measures OS input dispatch or LCD scanout. Display frames quantize
+results to about 20 ms steps.
+
+Setup: Apple M4 Pro, local debug host and worker (`npm run backend:prepare --
+--debug`), private WebKit store and bundle, visible focused window, 1440 × 908
+CSS px main viewport, DPR 1, 600 × 680 floating Batch window, 1,000 radial bins,
+Cake hidden. Inputs are the 4 MP TIFFs `tests/data/image_001.tif` and
+`image_002.tif` with `LaB6_40keV_MarCCD.poni`, and the Eiger 9M
+`eiger_0000.h5` with its PONI from the Dioptrin test data. Eiger new frames are
+source indices 2–13 in every view. Cached selections alternate indices 0/1 (or
+the two TIFFs) 12 times. The workstation was not idle: other sessions' headless
+test runs kept the load average at 6–12.
+
+Four complete `--all-views` campaigns: 4 × 199 selections, all started focused
+and stayed visible, with no discarded samples, no GUI errors, no cake or unused
+contour transfer, and **zero cake integrations and cake-plan builds**. Window
+screenshots could not be taken (`screencapture` failed: "could not create image
+from window"; this session lacks screen-recording access). Rendering is instead
+evidenced by the selected source, detector GPU submission of the new buffer and
+pattern draw that each sample checks.
+
+Medians of 48 samples per cell (12 per campaign × 4), compared with the last
+9.11. value per cell (after the Batch redraw and floating-reuse changes):
+
+| Navigation | TIFF cached | Eiger new frame | Eiger cached |
+| --- | ---: | ---: | ---: |
+| Integration Next/Previous | 39 (39) | 59 (99) | 58 (88) |
+| Map, reintegrate selected | 39 (39) | 78 (119) | 59 (100) |
+| Map, stored profile | 40 (39) | 59 (99) | 59 (79) |
+| Docked Batch | 39 (40) | 78 (106) | 58 (92) |
+| Floating Batch (both windows) | 54 (39) | 76 (104) | 55 (89) |
+
+Values are in ms; 9.11. values are in parentheses. Per-campaign medians agree
+within one frame. The exceptions are run 1's Eiger Map reintegration at 97 ms
+(samples of 134–150 ms of worker time while the load average was 12) and one
+cached Eiger arrow run at 39 ms.
+
+Against the 8.11. legacy metric, Eiger arrows took 139 ms (new frame) and 117 ms
+(cached); TIFF took 79 ms for the first Next and 59 ms cached. Today the same
+legacy metric gives 59, 58, 60 (bimodal 39/60, four samples) and 39 ms. The new
+Eiger frames are now indices 2–13 instead of 1–12.
+
+Stage medians (pooled): native IPC is 10–14 ms for TIFF selections, 33–41 ms
+for new Eiger frames and 19–28 ms for cached ones. Click to completed GPU work
+is 20–30 ms (TIFF) and 41–58 ms (Eiger new). On 9.11. the corresponding Eiger IPC
+was 77–93 ms. The Eiger gains are worker and transfer time, consistent with the
+display/transfer profile of 10.11. ([details](../performance/NATIVE_DISPLAY_TRANSFER_PERFORMANCE.md)).
+They are not a presentation-metric change.
+
+Verdicts:
+
+- **Image browsing — fine.** TIFF is unchanged; Eiger is 34–40 % faster than
+  on 9.11. and about 2.4× faster than on 8.11.
+- **Map — fine.** Reintegrated and stored selections are equal or faster in
+  every cell. Reintegration is the slowest Eiger path (78 ms new frame). It is
+  also the most sensitive to CPU contention: its worker request varied from 33
+  to 150 ms under load, while stored selections stayed near 34 ms of IPC.
+- **Docked Batch — fine.** 25–37 % faster on Eiger, unchanged on TIFF.
+- **Floating Batch — fine; the TIFF cell is display quantization, not a
+  regression.** It is faster on Eiger, but TIFF reads 54 ms against 39 ms on
+  9.11. Neither `src/batchWindow.ts`, `batchWindowState.ts`,
+  `DetachedBatchWindow.tsx`, `BatchHeatmap.tsx` nor `BatchView.tsx` changed
+  functionally since the 9.11. forwarding change (only the directory move).
+  The added `renderAbs` child timestamp shows the child draws its heatmap at
+  27 ms, 4 ms after the main commit (docked Batch draws at 22 ms). With two
+  visible WebViews, though, the *main* window's own presentation marker also
+  moves from 39 to 53 ms with identical command, render and draw timings. The
+  extra frame is presentation cadence across two windows. The 9.11. 39 ms
+  result came from a single campaign; its earlier runs measured 57–59 ms.
+
+Observation, not a regression and not fixed here: `useCustomCommands(…, state)`
+(`src/customCommands.ts`) reloads the custom-action list whenever the `state`
+object changes, which is after every command response. Each campaign issued
+219 `custom_command` list requests for about 230 user commands. The request
+starts after the React commit (≈25 ms) and returns ≈6 ms later, so it is outside
+the measured click-to-presentation path. It has existed since 4.11., so the
+9.11. baseline included it too. It does occupy the worker queue right after
+every selection. Its response supplies the image/frame/calibration context
+for action arguments, and browsing, Batch and Map change that context on every
+selection. A narrower dependency would therefore not remove it on these paths;
+removing it needs that context derived in the frontend or sent only when the
+actions panel needs it.
+
+Reproduce from the repository root:
+
+```sh
+npm run backend:prepare -- --debug
+node scripts/image_navigation_native.mjs --all-views --foreground --eiger /absolute/path/to/eiger_0000.h5 --output artifacts/native-series/current
+```
+
+`--series-navigation` runs only the Batch/Map selections. Add `--no-build` to
+repeat with the built host. Keep the printed private window visible and focused;
+the runner closes only its own app and worker. Receipts with per-sample stage
+traces and native/worker traces are under ignored
+`artifacts/native-series/2026-11-14-all-views{,-2,-3,-4}/`.
