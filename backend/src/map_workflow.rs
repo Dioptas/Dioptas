@@ -769,7 +769,8 @@ fn image_name(path: &Path) -> Option<(&str, &str)> {
 fn sequence_key(path: &Path) -> Option<(String, String)> {
     let (stem, suffix) = image_name(path)?;
     Some((
-        stem.trim_end_matches(|c: char| c.is_ascii_digit()).to_string(),
+        stem.trim_end_matches(|c: char| c.is_ascii_digit())
+            .to_string(),
         suffix.to_string(),
     ))
 }
@@ -797,9 +798,21 @@ mod live_numbering_tests {
         assert_eq!(filename_number(&path("scan.edf.gz")), None);
         let sequence = sequence_key(&path("scan_0007.edf.gz")).unwrap();
         assert_eq!(sequence, ("scan_".into(), "edf.gz".into()));
-        assert_eq!(sequence_key(&path("scan_0008.edf.gz")), Some(sequence.clone()));
-        for other in ["scan_0008.edf", "scan_0008.cbf.gz", "other_0008.edf.gz", "scan_0008.txt.gz"] {
-            assert_ne!(sequence_key(&path(other)), Some(sequence.clone()), "{other}");
+        assert_eq!(
+            sequence_key(&path("scan_0008.edf.gz")),
+            Some(sequence.clone())
+        );
+        for other in [
+            "scan_0008.edf",
+            "scan_0008.cbf.gz",
+            "other_0008.edf.gz",
+            "scan_0008.txt.gz",
+        ] {
+            assert_ne!(
+                sequence_key(&path(other)),
+                Some(sequence.clone()),
+                "{other}"
+            );
         }
     }
 }

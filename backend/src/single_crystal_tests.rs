@@ -107,10 +107,19 @@ fn numerical_source_order_and_missing_frames_are_checked() {
 #[test]
 fn compressed_frame_names_number_without_the_wrapper() {
     let number = |name: &str| frame_number(&Path::new("/data").join(name));
-    assert_eq!(number("scan_0007.esper.gz"), Some(("/data/scan_.esper.gz".into(), 7)));
-    assert_eq!(number("scan_0007.EDF.bz2"), Some(("/data/scan_.EDF.bz2".into(), 7)));
+    assert_eq!(
+        number("scan_0007.esper.gz"),
+        Some(("/data/scan_.esper.gz".into(), 7))
+    );
+    assert_eq!(
+        number("scan_0007.EDF.bz2"),
+        Some(("/data/scan_.EDF.bz2".into(), 7))
+    );
     assert_eq!(number("scan_0007.tif"), Some(("/data/scan_.tif".into(), 7)));
-    assert_ne!(number("scan_0007.esper.gz").unwrap().0, number("scan_0007.esper").unwrap().0);
+    assert_ne!(
+        number("scan_0007.esper.gz").unwrap().0,
+        number("scan_0007.esper").unwrap().0
+    );
     assert_eq!(number("scan.esper.gz"), None);
 }
 #[test]
@@ -132,10 +141,17 @@ fn compressed_frames_are_ordered_numerically_and_gaps_are_rejected() {
     let order: Vec<_> = s.scxrd.sources.iter().map(|f| f.path.clone()).collect();
     let expected: Vec<_> = paths[..3].iter().map(PathBuf::from).collect();
     assert_eq!(order, expected);
-    let gap = call(&mut s, "scxrd_load", json!({"paths":[&paths[3], &paths[0], &paths[1]]}));
+    let gap = call(
+        &mut s,
+        "scxrd_load",
+        json!({"paths":[&paths[3], &paths[0], &paths[1]]}),
+    );
     assert_eq!(gap.result["ok"], false);
     assert!(
-        gap.result["error"].as_str().unwrap_or_default().contains("Missing or duplicate"),
+        gap.result["error"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("Missing or duplicate"),
         "{}",
         gap.result
     );
