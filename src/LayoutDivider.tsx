@@ -1,4 +1,5 @@
 import type { PointerEvent } from "react";
+import { flushSync } from "react-dom";
 
 /** Shared pointer/keyboard resizing without adding chrome around scientific plots. */
 export function LayoutDivider({
@@ -60,7 +61,11 @@ export function LayoutDivider({
       onPointerMove={(event) => {
         if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
         const next = pointerValue(event);
-        if (next !== null) update(next);
+        // Commit the drag inside the input event. A continuous-priority update
+        // left pending would otherwise be flushed by RasterView's synchronous
+        // ResizeObserver commit, resizing observed plots mid-delivery
+        // ("ResizeObserver loop completed with undelivered notifications").
+        if (next !== null) flushSync(() => update(next));
       }}
       onPointerUp={release}
       onPointerCancel={release}
