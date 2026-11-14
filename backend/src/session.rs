@@ -577,9 +577,9 @@ impl Session {
             return self.mask_file(args);
         }
         if action == "custom_command" {
-            let image = self.image.as_ref();
-            let context = json!({"image_path":image.map(|i|&i.path),"image_name":image.and_then(|i|i.path.file_name()).map(|n|n.to_string_lossy()),"image_directory":image.and_then(|i|i.path.parent()),"frame_index":image.map(|i|i.frame),"frame_number":image.map(|i|i.frame+1),"dataset":image.and_then(|i|i.options.get("dataset")),"calibration_path":self.settings.calibration_path,"project_path":self.project.path,"wavelength_angstrom":if self.settings.calibrated{Some(self.settings.geometry.wavelength*1e10)}else{None}});
-            return Ok(Reply::metadata(self.actions.invoke(args, context)?));
+            return Ok(Reply::metadata(
+                self.actions.invoke(args, self.custom_action_context())?,
+            ));
         }
         if action == "open_image" && args.get("paths").is_some() {
             let paths = batch_workflow::source_paths(args)?;
@@ -2289,6 +2289,25 @@ impl Session {
         };
         self.settings.geometry.automatic_bins(image.shape)
     }
+    /// Values a custom action can pass to its program. Snapshots carry them
+    /// so the frontend never refetches the action list to follow the image.
+    fn custom_action_context(&self) -> Value {
+        let image = self.image.as_ref();
+        json!({
+            "image_path": image.map(|i| &i.path),
+            "image_name": image.and_then(|i| i.path.file_name()).map(|n| n.to_string_lossy()),
+            "image_directory": image.and_then(|i| i.path.parent()),
+            "frame_index": image.map(|i| i.frame),
+            "frame_number": image.map(|i| i.frame + 1),
+            "dataset": image.and_then(|i| i.options.get("dataset")),
+            "calibration_path": self.settings.calibration_path,
+            "project_path": self.project.path,
+            "wavelength_angstrom": self
+                .settings
+                .calibrated
+                .then_some(self.settings.geometry.wavelength * 1e10),
+        })
+    }
     fn snapshot(&self, include_image: bool) -> Reply {
         self.snapshot_products(include_image, true)
     }
@@ -2346,7 +2365,7 @@ impl Session {
             "selectedImageSource":self.image.as_ref().and_then(|i|i.options.get("dataset")),
             "automaticImageSource":self.image.as_ref().is_some_and(|i|i.automatic_source),
             "imageSourceError":self.image.as_ref().and_then(|i|i.source_discovery_error.as_ref()),
-            "calibrationName": s.calibration_name, "calibrated": s.calibrated, "projectName": self.project.path.as_ref().and_then(|p|p.file_name()).map(|p|p.to_string_lossy()), "unit": s.unit,
+            "calibrationName": s.calibration_name, "calibrated": s.calibrated, "projectName": self.project.path.as_ref().and_then(|p|p.file_name()).map(|p|p.to_string_lossy()), "customCommandContext": self.custom_action_context(), "unit": s.unit,
             "bins": if s.automatic_binning {Value::Null}else{json!(s.bins)}, "useMask": s.use_mask, "transparentMask": s.transparent_mask,
             "maskedPixels": self.mask_raster.as_ref().and_then(|r|r.cached_mask_count(&self.effective_mask)).unwrap_or_else(||self.effective_mask.iter().filter(|&&v| v != 0).count()), "canUndoMask": !self.undo.is_empty(), "canRedoMask": !self.redo.is_empty(),
             "maskDetails": {"mode": self.mask_mode, "filename": null, "plugins": self.plugins.details()}, "exampleAvailable": self.example_path().is_file(),

@@ -133,10 +133,18 @@ type CustomRequestCall =
       payload: { identifier: string },
       recordHistory?: boolean,
     ];
-export function useCustomCommands(invoke: Invoke, session: unknown) {
+/**
+ * Custom-action definitions live in a settings file, so they are listed once
+ * per session and after each save or delete. The inputs follow the session
+ * snapshot, which carries them, so browsing images sends no extra request.
+ * Edits made outside this window appear when Settings → Custom actions opens.
+ */
+export function useCustomCommands(
+  invoke: Invoke,
+  session: { customCommandContext: CommandContext } | null,
+) {
   const [commands, setCommands] = useState<CustomCommand[]>([]);
   const [runs, setRuns] = useState<Record<string, CustomCommandRun>>({});
-  const [context, setContext] = useState<CommandContext>({});
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -300,7 +308,6 @@ export function useCustomCommands(invoke: Invoke, session: unknown) {
             refreshHistory((value) => value + 1);
           }
           setRuns(result.customCommandRuns ?? {});
-          setContext(result.customCommandContext ?? {});
           setError(preferenceWarning);
         }
         return true;
@@ -317,9 +324,13 @@ export function useCustomCommands(invoke: Invoke, session: unknown) {
     },
     [invoke, recordChange],
   );
+  // List once per session. Until a list succeeds, retry on each state change,
+  // as the bridge may not answer the very first request.
+  const hasSession = !!session;
+  const retryUntilLoaded = loaded ? null : session;
   useEffect(() => {
-    if (session) void request();
-  }, [session, request]);
+    if (hasSession) void request();
+  }, [hasSession, retryUntilLoaded, request]);
   const polling = Object.values(runs).some(
     (run) => run.running || run.outputPending,
   );
@@ -456,7 +467,7 @@ export function useCustomCommands(invoke: Invoke, session: unknown) {
   return {
     commands,
     runs,
-    context,
+    context: session?.customCommandContext ?? {},
     error,
     pending: pending || restoring || !loaded,
     request,
