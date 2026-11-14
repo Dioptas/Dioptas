@@ -32,11 +32,13 @@ const modes = [
 ] as const;
 
 /**
- * Single Crystal XRD is being reworked on `feature/scxrd-rebuild` and is not
- * part of the next release. Its code stays in place; only the mode button is
- * withheld so users cannot enter it. Set to true to bring the mode back.
+ * Single Crystal XRD is being reworked and is not part of the next release.
+ * Its code stays in place; only the mode button is withheld so users cannot
+ * enter it. A checkout that works on the mode sets
+ * `VITE_DIOPTAS_SINGLE_CRYSTAL=1` in its untracked `.env.local`.
  */
-export const SINGLE_CRYSTAL_MODE_ENABLED = false;
+export const SINGLE_CRYSTAL_MODE_ENABLED =
+  import.meta.env?.VITE_DIOPTAS_SINGLE_CRYSTAL === "1";
 
 const visibleModes = modes.filter(
   (item) => SINGLE_CRYSTAL_MODE_ENABLED || item.value !== "scxrd",
