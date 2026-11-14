@@ -20,9 +20,11 @@ try {
   page.setDefaultTimeout(45000);
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.exposeFunction("__nativeInvoke", async (action, payload = {}) =>
-    native.browserResult(await native.invoke(action, payload)),
-  );
+  const actions = [];
+  await page.exposeFunction("__nativeInvoke", async (action, payload = {}) => {
+    actions.push(action);
+    return native.browserResult(await native.invoke(action, payload));
+  });
   await page.addInitScript(() => {
     window.__pending = 0;
     window.pywebview = {
@@ -108,11 +110,50 @@ try {
     await page.getByTestId("click-readout").getAttribute("data-plot"),
     "pattern",
   );
+
+  // Image clicks mark the same position while picking is off.
+  const detector = page.getByTestId("detector-canvas");
+  const fromPattern = Number(await linked(cake));
+  await clickInside(detector, 0.3, 0.3);
+  await page.waitForFunction(
+    () =>
+      document.querySelector('[data-testid="click-readout"]')?.dataset.plot ===
+      "detector",
+  );
+  await page.waitForFunction(
+    (before) =>
+      Number(
+        document.querySelector('[data-testid="cake-canvas"]')?.dataset
+          .linkedPosition,
+      ) !== before,
+    fromPattern,
+  );
+
+  // With Pick peaks on, image clicks pick and leave the marker alone.
+  await picking.check();
+  const markerBefore = await linked(cake);
+  actions.length = 0;
+  await clickInside(detector, 0.3, 0.3);
+  assert.ok(actions.includes("pick_peak"), "Picking-mode clicks pick peaks");
+  assert.ok(
+    !actions.includes("validation_position"),
+    "Picking-mode clicks do not inspect",
+  );
+  assert.equal(
+    await page.getByTestId("click-readout").getAttribute("data-plot"),
+    "detector",
+  );
+  assert.equal(
+    await linked(cake),
+    markerBefore,
+    "Picking does not move the marker",
+  );
+
   assert.deepEqual(errors, []);
   console.log(
-    "Calibration validation: cake and pattern clicks mark linked green positions",
+    "Calibration validation: image, cake and pattern clicks mark linked green positions; picking still picks",
   );
 } finally {
   await browser.close();
-  native.close?.();
+  await native.close();
 }

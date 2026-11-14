@@ -479,6 +479,9 @@ export default function App() {
   // there mark the same linked green position as in Integration.
   const linkedClicks =
     mode === "integration" || (mode === "calibration" && calibrationStep === 3);
+  // With Pick peaks on, image clicks only pick, even while drafts block picking.
+  const detectorInspects =
+    linkedClicks && !(mode === "calibration" && pickingEnabled);
   const [logImage, setLogImage] = useState(false),
     [logPattern, setLogPattern] = useState(false);
   const [palette, setPalette] = useState<Palette>("grey");
@@ -1408,6 +1411,7 @@ export default function App() {
     setLocalPatternClick(undefined);
   }, [positionContext]);
   useEffect(() => setLocalPatternClick(undefined), [state?.unit]);
+  const shownLinked = linkedClicks ? linked : undefined;
 
   const cakeClick = useMemo(() => {
     const view = displayedCake ?? cake;
@@ -1451,7 +1455,7 @@ export default function App() {
                     kind: "coordinate" as const,
                     value: coordinateValue(
                       linked.azimuth,
-                      mode === "integration" && cake
+                      linkedClicks && cake
                         ? (cakePixelResolution.y / cake.fullHeight) *
                             (cake.azimuthRange[1] - cake.azimuthRange[0])
                         : 0.1,
@@ -1602,7 +1606,7 @@ export default function App() {
     y: number;
     value: number | null;
   }) => {
-    if (!ready || (!linkedClicks && mode !== "map") || !image) return;
+    if (!ready || (!detectorInspects && mode !== "map") || !image) return;
     setLocalImageClick(point);
     setClickedReading({
       source: "detector",
@@ -1744,7 +1748,7 @@ export default function App() {
           mode === "integration" ? pattern?.phaseLines : undefined,
         legendCurves: pattern?.curves ?? [],
         showLegend: mode === "integration",
-        linked: linkedClicks ? linked : undefined,
+        linked: shownLinked,
         localPatternClick: linkedClicks ? localPatternClick : undefined,
         wavelength: state?.geometry.wavelength,
         onInspect: linkedClicks && ready ? inspectPattern : undefined,
@@ -1816,7 +1820,7 @@ export default function App() {
       mode === "calibration"
         ? [
             ...(showRings ? (calibrationPreview?.rings ?? rings) : []),
-            ...(linkedClicks ? (linked?.contours ?? []) : []),
+            ...(shownLinked?.contours ?? []),
           ]
         : [
             ...(showImagePhases ? phaseGuides : []),
@@ -1830,7 +1834,7 @@ export default function App() {
       showImagePhases,
       phaseGuides,
       linked,
-      linkedClicks,
+      shownLinked,
     ],
   );
   const cakeCalibrantLines = useMemo(
@@ -2536,11 +2540,11 @@ export default function App() {
                                 mask,
                                 showMask:
                                   mode !== "integration" || state?.useMask,
-                                linked: linkedClicks ? linked : undefined,
+                                linked: shownLinked,
                                 localImageClick: linkedClicks
                                   ? localImageClick
                                   : null,
-                                onInspect: linkedClicks
+                                onInspect: detectorInspects
                                   ? inspectDetector
                                   : undefined,
                               })}
@@ -2739,14 +2743,12 @@ export default function App() {
                                   )
                                 }
                                 linkedPosition={
-                                  linkedClicks
-                                    ? linked
-                                      ? (radialValues(
-                                          linked.twoTheta,
-                                          "2th_deg",
-                                          state?.geometry.wavelength,
-                                        )[cake.unit] ?? undefined)
-                                      : undefined
+                                  shownLinked
+                                    ? (radialValues(
+                                        shownLinked.twoTheta,
+                                        "2th_deg",
+                                        state?.geometry.wavelength,
+                                      )[cake.unit] ?? undefined)
                                     : undefined
                                 }
                                 clickedPoint={linkedClicks ? cakeClick : null}
