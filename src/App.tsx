@@ -57,6 +57,15 @@ import { useCalibrationFitDraft } from "./useCalibrationFitDraft";
 import { IntegrationModeIcon } from "./ModeIcons";
 import { SingleCrystalHistory } from "./SingleCrystalHistory";
 import { SingleCrystalWorkspace } from "./SingleCrystalWorkspace";
+import {
+  refreshBackendSnapshots,
+  lostCrystalScanMessage,
+} from "./backendReloadSnapshot";
+import {
+  beginBackendUpdate,
+  isCurrentBackendUpdate,
+  publishBackendGuidance,
+} from "./backendUpdateStatus";
 import { WorkspaceModeButtons } from "./WorkspaceModeButtons";
 import { HistoryControls } from "./HistoryControls";
 import { useGeometryDraft } from "./geometryDraft";
@@ -73,7 +82,7 @@ import {
   useIntegrationSettingsAutoApply,
 } from "./IntegrationSettings";
 import { GeometryProvenance } from "./GeometryProvenance";
-import { StatusMessage } from "./StatusMessage";
+import { BackendStatusMessage } from "./BackendStatusMessage";
 import {
   layoutKeys,
   readLayoutFlag,
@@ -109,7 +118,11 @@ import { useProcessingWorkerPreference } from "./ProcessingWorkerSettings";
 import { useCustomCommands } from "./customCommands";
 import { CustomCommandButtons } from "./CustomCommandButtons";
 import "./sharedFooter.css";
-import { usePlotReadout, type PatternHover } from "./plotReadout";
+import {
+  usePlotReadout,
+  type PatternHover,
+  type PlotReading,
+} from "./plotReadout";
 import {
   ReadingFields,
   sourceLabel,
@@ -299,6 +312,8 @@ export default function App() {
   const [clickedReading, setClickedReading] = useState<SourcedReading | null>(
     null,
   );
+  // The single-crystal click has its own detector and geometry: not linked.
+  const [scxrdClick, setScxrdClick] = useState<PlotReading | null>(null);
   const [localImageClick, setLocalImageClick] = useState<{
     x: number;
     y: number;
@@ -880,13 +895,28 @@ export default function App() {
       bufferId: image?.bufferId,
     });
   }, [state?.revision, image?.bufferId]);
-  useBackendReload((message, restored) => {
+  useBackendReload((message, restored, failed) => {
     setNotice(message);
-    if (restored)
-      void bridge
-        .current?.("state")
-        .then((result) => apply(result, false, true))
-        .catch((error) => setError(String(error)));
+    const update = beginBackendUpdate(message, restored, failed);
+    if ((restored || failed) && bridge.current)
+      void refreshBackendSnapshots(
+        bridge.current,
+        (result) => {
+          if (isCurrentBackendUpdate(update)) apply(result, false, true);
+        },
+        !!scxrd?.frames,
+        restored,
+      )
+        .then((missingScan) => {
+          if (missingScan && isCurrentBackendUpdate(update))
+            publishBackendGuidance({
+              kind: "lost-scan",
+              message: lostCrystalScanMessage,
+            });
+        })
+        .catch((error) => {
+          if (isCurrentBackendUpdate(update)) setError(String(error));
+        });
   });
   useNativePhaseEditorSync(run, state?.revision);
   useEffect(() => {
@@ -1979,13 +2009,7 @@ export default function App() {
         notice ||
         scxrd?.error ||
         (scxrd?.notice ? `Last action: ${scxrd.notice}` : "") ||
-        (!scxrd?.frames
-          ? "Load a rotation scan to begin."
-          : !scxrd.config.confirmed
-            ? "Confirm acquisition settings in Frames."
-            : !scxrd.geometry
-              ? "Load a PONI calibration in Frames."
-              : "Inspect stages or run to the next decision.")
+        (!scxrd?.frames ? "Open a rotation series." : "")
       : powderStatusMessage;
   const batchWindow = useBatchWindow({
     batch,
@@ -2375,6 +2399,7 @@ export default function App() {
                 calibrated={!!state?.calibrated}
                 invoke={bridge.current}
                 reportPlot={reportPlot}
+                reportClick={setScxrdClick}
                 onDraftDirty={setScxrdDraftDirty}
               />
               {mode === "scxrd" ? null : mode === "map" ? (
@@ -3568,7 +3593,7 @@ export default function App() {
                   mask: "Mask",
                   integration: "Integration",
                   map: "Map",
-                  scxrd: "Single Crystal XRD",
+                  scxrd: "Single Crystal",
                 }[mode]
               }
             />
@@ -3630,6 +3655,26 @@ export default function App() {
                   </span>
                 </div>
               )}
+            {!settingsOpen && mode === "scxrd" && (
+              <div className="plot-status-line clicked-position">
+                <span
+                  className="plot-status-kind"
+                  title="Last selected detector position. It stays while you change frames; the reading is taken at the click."
+                >
+                  Click
+                </span>
+                <span
+                  data-testid="click-readout"
+                  data-plot={scxrdClick ? "detector" : undefined}
+                  className="plot-status-reading"
+                  title={
+                    scxrdClick?.text ?? "Click the image to mark a position"
+                  }
+                >
+                  {scxrdClick ? <ReadingFields reading={scxrdClick} /> : "—"}
+                </span>
+              </div>
+            )}
           </div>
           <div className="workflow-status">
             {busy ? (
@@ -3637,7 +3682,12 @@ export default function App() {
             ) : (
               <span className="ready-dot" />
             )}
-            <StatusMessage error={error} message={statusMessage} />
+            <BackendStatusMessage
+              error={error}
+              message={statusMessage}
+              crystalFrames={scxrd?.frames ?? 0}
+              processing={!!busy || !!progress?.running}
+            />
             {error && (
               <Button
                 variant="secondary"

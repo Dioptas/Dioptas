@@ -9,6 +9,7 @@ use std::{
     collections::BTreeMap,
     fs::File,
     io::{Read, Seek, SeekFrom, Write},
+    sync::OnceLock,
 };
 #[path = "single_crystal_files.rs"]
 mod files;
@@ -19,6 +20,9 @@ mod scaling;
 #[path = "single_crystal_shadows.rs"]
 mod shadows;
 use shadows::Shadows;
+#[path = "single_crystal_diamond.rs"]
+mod diamond;
+use diamond::Diamonds;
 #[path = "single_crystal_audit.rs"]
 mod audit;
 #[path = "single_crystal_profiles.rs"]
@@ -30,11 +34,12 @@ fn adapter_identity() -> &'static str {
     static ID: std::sync::OnceLock<String> = std::sync::OnceLock::new();
     ID.get_or_init(|| {
         let mut hash = Sha256::new();
-        let sources: [&[u8]; 14] = [
+        let sources: [&[u8]; 15] = [
             include_bytes!("single_crystal.rs"),
             include_bytes!("single_crystal_processing.rs"),
             include_bytes!("single_crystal_scaling.rs"),
             include_bytes!("single_crystal_shadows.rs"),
+            include_bytes!("single_crystal_diamond.rs"),
             include_bytes!("single_crystal_profiles.rs"),
             include_bytes!("single_crystal_protocol.rs"),
             include_bytes!("single_crystal_audit.rs"),
@@ -107,6 +112,11 @@ pub(super) struct Config {
     pub seat_enabled: bool,
     pub seat_threshold: f64,
     pub seat_guard: usize,
+    pub diamond_enabled: bool,
+    /// Smallest very bright seed area, pixels.
+    pub diamond_min_area: usize,
+    /// Allowed relative deviation from a diamond spacing, percent.
+    pub diamond_tolerance: f64,
 }
 fn legacy_integration_method() -> String {
     "summation".into()
@@ -150,6 +160,9 @@ impl Default for Config {
             seat_enabled: false,
             seat_threshold: 0.85,
             seat_guard: 32,
+            diamond_enabled: false,
+            diamond_min_area: 20,
+            diamond_tolerance: 3.,
         }
     }
 }
@@ -181,6 +194,14 @@ impl Config {
             || self.seat_guard > 4096
         {
             return Err("Invalid cell-shadow axis, opening, block, threshold or guard.".into());
+        }
+        if !(1..=1_000_000).contains(&self.diamond_min_area)
+            || !self.diamond_tolerance.is_finite()
+            || !(0.01..=20.).contains(&self.diamond_tolerance)
+        {
+            return Err(
+                "Diamond mask size must be 1 px or more and its tolerance 0.01-20 %.".into(),
+            );
         }
 
         if [
@@ -270,6 +291,9 @@ impl Config {
             || self.seat_enabled != n.seat_enabled
             || self.seat_threshold != n.seat_threshold
             || self.seat_guard != n.seat_guard
+            || self.diamond_enabled != n.diamond_enabled
+            || self.diamond_min_area != n.diamond_min_area
+            || self.diamond_tolerance != n.diamond_tolerance
             || self.axis != n.axis
             || self.omega_start != n.omega_start
             || self.omega_step != n.omega_step
@@ -319,7 +343,29 @@ impl Config {
 struct Source {
     path: PathBuf,
     frame: usize,
-    digest: String,
+    /// Hash of the decoded counts, recorded the first time processing reads the
+    /// frame so that opening a long scan does not decode every file.
+    #[serde(default, with = "lazy_digest")]
+    digest: Arc<OnceLock<String>>,
+}
+mod lazy_digest {
+    use super::*;
+    pub fn serialize<S: serde::Serializer>(
+        v: &Arc<OnceLock<String>>,
+        s: S,
+    ) -> Result<S::Ok, S::Error> {
+        s.serialize_str(v.get().map_or("", String::as_str))
+    }
+    pub fn deserialize<'de, D: serde::Deserializer<'de>>(
+        d: D,
+    ) -> Result<Arc<OnceLock<String>>, D::Error> {
+        let text = String::deserialize(d)?;
+        let cell = OnceLock::new();
+        if !text.is_empty() {
+            let _ = cell.set(text);
+        }
+        Ok(Arc::new(cell))
+    }
 }
 #[derive(Clone, Serialize, Deserialize)]
 struct Stage {
@@ -432,6 +478,7 @@ pub(super) struct Crystal {
     calibration_source: Option<PathBuf>,
     background: Option<Arc<tempfile::NamedTempFile>>,
     shadows: Option<Arc<Shadows>>,
+    diamonds: Option<Arc<Diamonds>>,
     peaks: Vec<Peak>,
     tracks: Vec<Track>,
     cells: Vec<Cell>,
@@ -451,6 +498,7 @@ pub(super) struct Crystal {
     error: Option<String>,
     notice: Option<String>,
     preview: Option<Raster>,
+    preview_mask: Option<Raster>,
     preview_values: Option<Arc<Vec<f64>>>,
     preview_kind: String,
     saved_exports: Vec<PathBuf>,
@@ -464,12 +512,19 @@ impl Crystal {
     pub(super) fn has_sources(&self) -> bool {
         !self.sources.is_empty()
     }
+    pub(super) fn needs_development_preservation(&self) -> bool {
+        self.has_sources()
+            || self.config != Config::default()
+            || self.geometry.is_some()
+            || self.revision != 0
+    }
     fn invalidate(&mut self, from: usize) {
         for s in &mut self.stages[from..] {
             *s = Stage::default();
         }
         if from == 0 {
             self.shadows = None;
+            self.diamonds = None;
             self.background = None;
         }
         if from <= 1 {
@@ -514,24 +569,35 @@ impl Crystal {
         }
         Ok(())
     }
-    fn read(&self, index: usize) -> Result<Vec<f64>, String> {
+    /// Decode one frame for display, without the count-identity check.
+    fn decode(&self, index: usize) -> Result<Vec<f64>, String> {
         let s = self
             .sources
             .get(index)
             .ok_or("Frame is outside the loaded series.")?;
         let i = Image::open(&s.path, &json!({"frame":s.frame}))?;
         if i.shape != self.shape {
-            return Err("Detector dimensions changed. Reload the scan.".into());
+            return Err(format!(
+                "{} has different detector dimensions than the first frame.",
+                s.path.display()
+            ));
         }
-        let data = i.values.as_ref();
-        if digest(data) != s.digest {
+        Ok(Arc::unwrap_or_clone(i.values))
+    }
+    /// Decode one frame for processing. Its counts must stay identical to the
+    /// first processing read of the same frame.
+    fn read(&self, index: usize) -> Result<Vec<f64>, String> {
+        let data = self.decode(index)?;
+        let s = &self.sources[index];
+        let found = digest(&data);
+        if s.digest.get_or_init(|| found.clone()) != &found {
             return Err(format!(
                 "Decoded source counts changed: {} frame {}. Reload the scan before processing.",
                 s.path.display(),
                 s.frame + 1
             ));
         }
-        Ok(data.clone())
+        Ok(data)
     }
     fn base_mask(&self, data: &[f64], frame: usize) -> Vec<bool> {
         let [h, w] = self.shape;
@@ -554,6 +620,11 @@ impl Crystal {
         if let Some(shadows) = &self.shadows {
             for (i, m) in mask.iter_mut().enumerate() {
                 *m |= shadows.excluded(frame, i, self.shape[1]);
+            }
+        }
+        if let Some(pixels) = self.diamonds.as_ref().and_then(|d| d.frames.get(frame)) {
+            for &i in pixels {
+                mask[i as usize] = true;
             }
         }
         mask
@@ -580,8 +651,19 @@ impl Crystal {
         if !["raw", "background", "corrected"].contains(&kind) {
             return Err("Unknown single-crystal image kind.".into());
         }
-        let mut raw = self.read(self.frame)?;
-        let mask = self.mask_for(&raw, self.frame);
+        let mut raw = self.decode(self.frame)?;
+        // Unusable pixels are hidden; prepared masks (shadows, diamond spots)
+        // keep their counts and are shown as an overlay.
+        let mask = self.base_mask(&raw, self.frame);
+        let prepared: Vec<u8> = self
+            .mask_for(&raw, self.frame)
+            .iter()
+            .zip(&mask)
+            .map(|(&all, &base)| u8::from(all && !base))
+            .collect();
+        self.preview_mask = prepared
+            .contains(&1)
+            .then(|| Raster::shared_mask(Arc::new(prepared), self.shape));
         if kind != "raw" {
             let b = self
                 .baseline(self.frame)?
@@ -673,10 +755,15 @@ impl Crystal {
         } else {
             (None, None)
         };
-        let state = json!({"engine":ENGINE,"adapter":adapter_identity(),"exported":!self.saved_exports.is_empty(),"revision":self.revision,"config":self.config,"protocolTemplate":protocol::builtin(),"effectiveProtocol":effective_protocol,"protocolInspectionError":protocol_error,"frames":self.sources.len(),"frame":self.frame,"firstSource":self.sources.first().map(|s|s.path.to_string_lossy()),"lastSource":self.sources.last().map(|s|s.path.to_string_lossy()),"filename":self.sources.get(self.frame).map(|s|s.path.file_name().unwrap_or_default().to_string_lossy()),"shape":self.shape,"stages":self.stages,"geometry":self.geometry,"geometryReport":self.geometry_report,"peaks":shown,"predictions":self.predicted_markers(),"peakCount":self.peaks.len(),"peakFrames":self.peak_frames(),"tracks":tracks,"trackOffset":self.track_offset,"reflectionOffset":self.reflection_offset,"trackCount":self.tracks.len(),"cells":self.cells,"selected":self.selected,"reflections":self.table_reflections().skip(self.reflection_offset).take(200).collect::<Vec<_>>(),"reflectionFilteredCount":self.table_reflections().count(),"reflectionFilter":if self.reflection_filter.is_empty(){"all"}else{&self.reflection_filter},"suppliedGroupSymbol":phasesmith_io::space_group_by_number(i32::from(self.config.group)).ok().map(|g|g.hm_symbol),"reflectionCount":self.reflections.len(),"usableReflections":self.reflections.iter().filter(|r|r.usable()).count(),"shadows":self.shadows.as_ref().map(|s|&s.report),"profileReport":self.profile_report,"scaling":self.scaling,"structure":self.structure,"mask":self.mask,"excludedFrames":self.excluded_frames,"error":self.error,"notice":self.notice,"previewKind":if self.preview_kind.is_empty(){"raw"}else{&self.preview_kind},"image":self.preview.as_ref().map(|r|&r.metadata)});
+        let state = json!({"engine":ENGINE,"adapter":adapter_identity(),"exported":!self.saved_exports.is_empty(),"revision":self.revision,"config":self.config,"protocolTemplate":protocol::builtin(),"effectiveProtocol":effective_protocol,"protocolInspectionError":protocol_error,"frames":self.sources.len(),"frame":self.frame,"firstSource":self.sources.first().map(|s|s.path.to_string_lossy()),"lastSource":self.sources.last().map(|s|s.path.to_string_lossy()),"filename":self.sources.get(self.frame).map(|s|s.path.file_name().unwrap_or_default().to_string_lossy()),"shape":self.shape,"stages":self.stages,"geometry":self.geometry,"geometryReport":self.geometry_report,"peaks":shown,"predictions":self.predicted_markers(),"peakCount":self.peaks.len(),"peakFrames":self.peak_frames(),"tracks":tracks,"trackOffset":self.track_offset,"reflectionOffset":self.reflection_offset,"trackCount":self.tracks.len(),"cells":self.cells,"selected":self.selected,"reflections":self.table_reflections().skip(self.reflection_offset).take(200).collect::<Vec<_>>(),"reflectionFilteredCount":self.table_reflections().count(),"reflectionFilter":if self.reflection_filter.is_empty(){"all"}else{&self.reflection_filter},"suppliedGroupSymbol":phasesmith_io::space_group_by_number(i32::from(self.config.group)).ok().map(|g|g.hm_symbol),"reflectionCount":self.reflections.len(),"usableReflections":self.reflections.iter().filter(|r|r.usable()).count(),"shadows":self.shadows.as_ref().map(|s|&s.report),"profileReport":self.profile_report,"scaling":self.scaling,"structure":self.structure,"mask":self.mask,"excludedFrames":self.excluded_frames,"error":self.error,"notice":self.notice,"previewKind":if self.preview_kind.is_empty(){"raw"}else{&self.preview_kind},"image":self.preview.as_ref().map(|r|&r.metadata),"maskImage":self.preview_mask.as_ref().map(|r|&r.metadata)});
         Reply {
             result: json!({"ok":true,"scxrd":state}),
-            buffers: self.preview.iter().map(|r| r.buffer.clone()).collect(),
+            buffers: self
+                .preview
+                .iter()
+                .chain(&self.preview_mask)
+                .map(|r| r.buffer.clone())
+                .collect(),
         }
     }
 }
@@ -826,7 +913,7 @@ impl Session {
             "scxrd_edit" => &["operation", "index", "bounds"],
             "scxrd_table" => &["kind", "offset", "filter"],
             "scxrd_levels" => &["mode", "percentile", "filter_gaps"],
-            "scxrd_pixel" => &["x", "y"],
+            "scxrd_pixel" => &["x", "y", "contour"],
             "scxrd_file" => &["operation", "path", "directory", "suggested_name"],
             _ => return Err("Unknown SCXRD command.".into()),
         };
@@ -902,25 +989,41 @@ impl Session {
                 let x = args["x"].as_u64().ok_or("Invalid pixel x.")? as usize;
                 let y = args["y"].as_u64().ok_or("Invalid pixel y.")? as usize;
                 let c = &self.scxrd;
-                if x >= c.shape[1] || y >= c.shape[0] {
-                    return Err("Pixel outside SCXRD detector.".into());
+                if !c.has_sources()
+                    || c.preview_values.is_none()
+                    || x >= c.shape[1]
+                    || y >= c.shape[0]
+                {
+                    return Ok(Reply::metadata(json!({"ok":true,"scxrdPixel":null})));
                 }
                 let value = c
                     .preview_values
                     .as_ref()
                     .and_then(|v| v.get(y * c.shape[1] + x))
                     .filter(|v| v.is_finite());
-                let two_theta = c.geometry.map(|g| {
-                    let ray: V3 = std::array::from_fn(|i| {
-                        g.origin[i] + x as f64 * g.fast[i] + y as f64 * g.slow[i]
-                    });
+                let angle = |g: &Geometry, x: f64, y: f64| {
+                    let ray: V3 =
+                        std::array::from_fn(|i| g.origin[i] + x * g.fast[i] + y * g.slow[i]);
                     let cosine = fft::dot(ray, g.beam)
                         / (fft::dot(ray, ray) * fft::dot(g.beam, g.beam)).sqrt();
                     cosine.clamp(-1., 1.).acos().to_degrees()
-                });
-                return Ok(Reply::metadata(
-                    json!({"ok":true,"scxrdPixel":{"x":x,"y":y,"value":value,"twoTheta":two_theta}}),
-                ));
+                };
+                let two_theta = c.geometry.as_ref().map(|g| angle(g, x as f64, y as f64));
+                // A click asks for the line of constant 2θ through the pixel,
+                // traced like the Integration image click (pixel centres).
+                let contour = match (&c.geometry, two_theta) {
+                    (Some(g), Some(target)) if args["contour"] == true => {
+                        let [h, w] = c.shape;
+                        let field: Vec<f64> = (0..h * w)
+                            .map(|i| angle(g, (i % w) as f64, (i / w) as f64))
+                            .collect();
+                        crate::contours::contours_at_step(&field, c.shape, &[(0, target)], 1)
+                    }
+                    _ => Value::Null,
+                };
+                return Ok(Reply::metadata(json!({"ok":true,"scxrdPixel":{
+                    "x":x,"y":y,"value":value,"twoTheta":two_theta,"contour":contour
+                }})));
             }
             "scxrd_snapshot" => {}
             "scxrd_load" => {
@@ -1079,21 +1182,41 @@ impl Session {
         if paths.is_empty() || paths.len() > MAX_FRAMES {
             return Err("Select between 1 and 10,000 source files.".into());
         }
-        if paths.len() > 1 {
-            let numbered: Option<Vec<_>> =
-                paths.iter().map(|p| frame_number(Path::new(p))).collect();
-            if let Some(mut numbers) = numbered
-                && numbers.iter().all(|p| p.0 == numbers[0].0)
-            {
-                numbers.sort_by_key(|p| p.1);
-                if numbers
-                    .windows(2)
-                    .any(|p| p[0].1.checked_add(1) != Some(p[1].1))
-                {
-                    return Err("Missing or duplicate numbered frames. Select a contiguous sequence; acquisition angles must not be compressed across gaps.".into());
-                }
-                paths.sort_by_key(|p| frame_number(Path::new(p)).unwrap().1);
+        // One numbered single-image file stands for its whole run: every file in
+        // the folder with the same name apart from that number.
+        if let [seed] = paths.as_slice()
+            && let seed = Path::new(seed)
+            && let Some((run, _)) = frame_number(seed)
+            && let Some(folder) = seed.parent()
+            && !seed.extension().is_some_and(|e| {
+                ["h5", "hdf5", "nxs"].contains(&e.to_string_lossy().to_lowercase().as_str())
+            })
+        {
+            let series: Vec<String> = std::fs::read_dir(folder)
+                .map_err(err)?
+                .filter_map(|entry| Some(entry.ok()?.path()))
+                .filter(|p| p.is_file() && frame_number(p).is_some_and(|n| n.0 == run))
+                .map(|p| p.to_string_lossy().into_owned())
+                .collect();
+            if series.len() > 1 {
+                paths = series;
             }
+        }
+        if paths.len() > MAX_FRAMES {
+            return Err("The selected scan exceeds 10,000 frames.".into());
+        }
+        // File dialogs return a multiple selection in no dependable order
+        // (macOS often reversed), so frames always follow the numbers in their
+        // names: scan_2 precedes scan_10.
+        paths.sort_by(|a, b| natural_order(a, b));
+        let numbered: Option<Vec<_>> = paths.iter().map(|p| frame_number(Path::new(p))).collect();
+        if let Some(numbers) = numbered
+            && numbers.iter().all(|p| p.0 == numbers[0].0)
+            && numbers
+                .windows(2)
+                .any(|p| p[0].1.checked_add(1) != Some(p[1].1))
+        {
+            return Err("Missing or duplicate numbered frames. Select a contiguous sequence; acquisition angles must not be compressed across gaps.".into());
         }
         let mut next = Crystal {
             config: self.scxrd.config.clone(),
@@ -1103,12 +1226,26 @@ impl Session {
             calibration_source: self.scxrd.calibration_source.clone(),
             ..Default::default()
         };
-        // Numbered series are ordered numerically with continuity checked above.
-        // Other names retain caller order and require acquisition confirmation.
-        for path in paths {
+        // Only the first file is decoded here;
+        // the others contribute their header (frame count and dimensions).
+        let total = paths.len();
+        for (index, path) in paths.into_iter().enumerate() {
             self.control.check()?;
             let path = PathBuf::from(path);
-            let mut image = Image::open(&path, &json!({}))?;
+            let image = if index == 0 {
+                let image = Image::open(&path, &json!({}))?;
+                next.shape = image.shape;
+                next.config.saturation = match image.source_dtype.to_lowercase().as_str() {
+                    "u8" => 255.,
+                    "u16" => 65535.,
+                    "i16" => 32767.,
+                    "i32" => f64::from(i32::MAX),
+                    _ => f64::from(u32::MAX - 1),
+                };
+                image
+            } else {
+                Image::prepare(&path, &json!({}))?
+            };
             let frames = image.frames;
             for (source, _) in image.source_fingerprint()? {
                 if !next.protected_sources.contains(&source) {
@@ -1118,37 +1255,20 @@ impl Session {
             if frames == 0 || frames + next.sources.len() > MAX_FRAMES {
                 return Err("The selected scan exceeds 10,000 frames.".into());
             }
-            if next.shape == [0, 0] {
-                next.shape = image.shape;
-                next.config.saturation = match image.source_dtype.to_lowercase().as_str() {
-                    "u8" => 255.,
-                    "u16" => 65535.,
-                    "i16" => 32767.,
-                    "i32" => f64::from(i32::MAX),
-                    _ => f64::from(u32::MAX - 1),
-                };
-            }
-            if next.shape != image.shape || image.values.len() > MAX_PIXELS {
+            if image.shape != next.shape || next.shape[0] * next.shape[1] > MAX_PIXELS {
                 return Err(
                     "All frames must share dimensions and contain at most 20 million pixels."
                         .into(),
                 );
             }
-            for frame in 0..frames {
-                self.control.check()?;
-                if frame > 0 {
-                    image.read(frame)?;
-                }
-                if image.shape != next.shape {
-                    return Err("Frame dimensions vary within the scan.".into());
-                }
-                next.sources.push(Source {
-                    path: path.clone(),
-                    frame,
-                    digest: digest(&image.values),
-                });
-                self.control.publish(json!({"running":true,"current":next.sources.len(),"total":null,"label":"Verifying original frames"}));
-            }
+            next.sources.extend((0..frames).map(|frame| Source {
+                path: path.clone(),
+                frame,
+                digest: Default::default(),
+            }));
+            self.control.publish(
+                json!({"running":true,"current":index+1,"total":total,"label":"Opening frames"}),
+            );
         }
         if next.sources.len() < 3 {
             return Err("A rotation scan needs at least three frames.".into());
@@ -1175,13 +1295,33 @@ impl Session {
                 .collect();
         }
         next.config.confirmed = false;
-        next.notice = Some(
-            "Confirm the file order, omega start, step and spindle axis before processing.".into(),
-        );
         next.preview("raw")?;
         self.scxrd = next;
         Ok(())
     }
+}
+
+/// Compare names chunk by chunk, digit runs by value and other text bytewise.
+fn natural_order(a: &str, b: &str) -> std::cmp::Ordering {
+    let (mut a, mut b) = (a.as_bytes(), b.as_bytes());
+    let run = |s: &[u8]| s.iter().take_while(|c| c.is_ascii_digit()).count();
+    while let (Some(&x), Some(&y)) = (a.first(), b.first()) {
+        let order = if x.is_ascii_digit() && y.is_ascii_digit() {
+            let (n, m) = (run(a), run(b));
+            let strip = |s: &[u8]| s.iter().take_while(|c| **c == b'0').count();
+            let (p, q) = (&a[strip(&a[..n])..n], &b[strip(&b[..m])..m]);
+            let order = p.len().cmp(&q.len()).then_with(|| p.cmp(q));
+            (a, b) = (&a[n..], &b[m..]);
+            order
+        } else {
+            (a, b) = (&a[1..], &b[1..]);
+            x.cmp(&y)
+        };
+        if order.is_ne() {
+            return order;
+        }
+    }
+    a.len().cmp(&b.len())
 }
 
 /// Series key and frame number. One outer `.gz`/`.bz2` belongs to the

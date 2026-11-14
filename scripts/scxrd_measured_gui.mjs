@@ -34,7 +34,7 @@ try {
   });
   await page.goto(pathToFileURL(path.join(root, "dist/index.html")).href);
   await page
-    .getByRole("button", { name: "Single Crystal XRD", exact: true })
+    .getByRole("button", { name: "Single Crystal", exact: true })
     .click();
   await page.getByTestId("sc-primary-action").waitFor();
   for (const tab of ["Cell", "Geometry", "Scaling"]) {

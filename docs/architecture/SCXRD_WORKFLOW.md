@@ -121,6 +121,29 @@ isotropic/anisotropic candidate search and export remain available. Its candidat
 CIF exports Ueq only. This path does not implement native profile/family scaling
 and must not be described as the complete PhaseSmith protocol.
 
+## Live preview updates
+
+React interface edits update the preview in place. Backend updates retain the
+running processor whenever a single-crystal scan, calibration or applied
+settings are present: private development checkpoints do not yet transfer those
+products. Save the SCXRD recipe before restarting to adopt a backend change.
+The first upgrade from an older checkpoint writer also requires one saved
+restart, including for powder sessions, because its transfer cannot be verified.
+
+After an update attempt, the interface refreshes the single-crystal snapshot
+from the processor that remains active. If an earlier update already lost a
+scan, the obsolete image clears and a message asks you to open the frames again.
+Original detector files are unaffected. Hover outside the detector or over an
+unavailable frame clears the readout instead of opening an error dialog.
+Recovery guidance stays in the footer with a Details button and explicit
+dismissal. Active processing and backend build status take priority; these
+messages do not block data processing. Loading frames clears scan-loss guidance.
+
+`npm run test:scxrd-hover` checks hover boundaries, coalescing, late replies,
+retained and lost scans, update generations and accessible recovery in headless
+Chromium and WebKit. The native suite separately checks checkpoint refusal,
+certification and valid powder handoffs.
+
 ## Validation boundary
 
 The matched MgSiO3 replay reproduces standalone masks through reduction; see the

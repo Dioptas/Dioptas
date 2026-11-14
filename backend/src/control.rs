@@ -13,7 +13,8 @@ pub struct Control {
     skip_cake: AtomicBool,
     skip_calibration_rings: AtomicBool,
     progress: Mutex<Value>,
-    map_preview: Mutex<Option<(Value, Buffer)>>,
+    /// Latest live preview: its key in the progress reply, metadata and pixels.
+    map_preview: Mutex<Option<(&'static str, Value, Buffer)>>,
 }
 impl Control {
     /// Frame workers share cancellation but leave operation progress to the
@@ -61,13 +62,16 @@ impl Control {
         self.progress.lock().unwrap().clone()
     }
     pub fn publish_map_preview(&self, metadata: Value, buffer: Buffer) {
-        *self.map_preview.lock().unwrap() = Some((metadata, buffer));
+        self.publish_preview("mapPreview", metadata, buffer);
+    }
+    pub fn publish_preview(&self, key: &'static str, metadata: Value, buffer: Buffer) {
+        *self.map_preview.lock().unwrap() = Some((key, metadata, buffer));
     }
     pub fn progress_reply(&self) -> Reply {
         let mut progress = self.progress();
         let mut buffers = vec![];
-        if let Some((metadata, buffer)) = self.map_preview.lock().unwrap().as_ref() {
-            progress["mapPreview"] = metadata.clone();
+        if let Some((key, metadata, buffer)) = self.map_preview.lock().unwrap().as_ref() {
+            progress[*key] = metadata.clone();
             buffers.push(buffer.clone());
         }
         Reply {

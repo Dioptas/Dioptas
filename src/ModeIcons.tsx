@@ -70,3 +70,31 @@ export function MapModeIcon({ size = 20 }: { size?: number }) {
     </svg>
   );
 }
+
+// An elongated hexagonal prism with pointed terminations, like the app's crystal mark.
+export function SingleCrystalModeIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <g fill="currentColor" stroke="none">
+        <path d="M12 2 18 7v10l-6 5-6-5V7Z" fillOpacity={0.12} />
+        <path d="M11 9.5 18 7v10l-7 2.5Z" fillOpacity={0.25} />
+      </g>
+      <path d="M12 2 18 7v10l-6 5-6-5V7Z" />
+      <path
+        d="M6 7l5 2.5L18 7M6 17l5 2.5L18 17M12 2l-1 7.5v10L12 22"
+        strokeWidth={1.5}
+      />
+    </svg>
+  );
+}

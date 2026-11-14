@@ -1,5 +1,11 @@
 import { Button, Portal, Tooltip } from "./ui";
-import { useId, useLayoutEffect, useRef, useState } from "react";
+import {
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { CircleHelp } from "lucide-react";
 import { isTauri } from "@tauri-apps/api/core";
@@ -21,9 +27,12 @@ export const calibrationHelp = {
 export function CalibrationHelp({
   label,
   text,
+  children,
 }: {
   label: string;
   text: string;
+  /** Optional figure shown above the text; such help stays inside the window. */
+  children?: ReactNode;
 }) {
   const id = useId();
   const button = useRef<HTMLButtonElement>(null);
@@ -33,7 +42,7 @@ export function CalibrationHelp({
   );
   const [open, setOpen] = useState(false);
   const [nativeFailed, setNativeFailed] = useState(false);
-  const native = isTauri() && !nativeFailed;
+  const native = isTauri() && !nativeFailed && !children;
   const [position, setPosition] = useState({ left: 0, top: 0 });
   const show = () => {
     clearTimeout(closeTimer.current);
@@ -135,6 +144,7 @@ export function CalibrationHelp({
             onMouseEnter={show}
             onMouseLeave={hide}
           >
+            {children}
             {text}
           </Tooltip>
         </Portal>

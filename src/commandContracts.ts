@@ -77,14 +77,16 @@ export interface CommandContracts {
     { scxrd: import("./singleCrystalDomain").CrystalData }
   >;
   scxrd_pixel: Spec<
-    { x: number; y: number },
+    { x: number; y: number; contour?: boolean },
     {
       scxrdPixel: {
         x: number;
         y: number;
         value: number | null;
         twoTheta: number | null;
-      };
+        /** Constant-2θ line through the pixel, only when asked for. */
+        contour?: import("./types").RingOverlay[] | null;
+      } | null;
     }
   >;
   scxrd_snapshot: Spec<

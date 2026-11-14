@@ -105,3 +105,35 @@ test("legacy peak-miss normalization replaces the response without mutating or r
   assert.deepEqual(original, copy);
   assert.equal(currentFailure(), null);
 });
+
+test("SC hover misses from older workers clear the readout without hiding other failures", async () => {
+  globalThis.window = new EventTarget();
+  dismissFailure();
+  const original = {
+    ok: false,
+    error: "Pixel outside SCXRD detector.",
+    errorContext: { stale: true },
+    state: { stale: true },
+  };
+  const copy = structuredClone(original);
+  const result = await withErrorReporting(async () => original)("scxrd_pixel", {
+    x: 2038,
+    y: 647,
+  });
+  assert.notEqual(result, original);
+  assert.deepEqual(result, { ok: true, scxrdPixel: null });
+  assert.deepEqual(original, copy);
+  assert.equal(currentFailure(), null);
+  await withErrorReporting(async () => ({
+    ok: false,
+    error: "Invalid pixel x.",
+  }))("scxrd_pixel", { x: -1, y: 0 });
+  assert.equal(currentFailure().details, "Invalid pixel x.");
+  dismissFailure();
+  await withErrorReporting(async () => ({ ok: false, error: original.error }))(
+    "scxrd_frame",
+    { frame: 0 },
+  );
+  assert.equal(currentFailure().details, original.error);
+  dismissFailure();
+});

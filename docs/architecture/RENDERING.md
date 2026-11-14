@@ -37,6 +37,14 @@ before the browser paints. Each display retains its own Auto preferences.
 `npm run test:detector-redraw -- --webkit` counts real draw/upload calls and
 checks delayed Auto responses; add `--canvas` to check the software fallback.
 
+Raster surfaces measure their mounted container and initialize the renderer
+before the first browser paint. No image is drawn at a provisional size, and
+retained surfaces remeasure before painting a mode/layout change. This applies
+to every `RasterView`, including detector, cake, Map and detached views.
+`npm run test:raster-first-frame` checks the first painted frames in Chromium
+and WebKit with GPU/software rendering, Retina scaling, remounts, retained
+layout changes and hidden-to-visible transitions.
+
 Detector and cake images use WebGL 2 (`src/WebGLRaster.ts`). Each mounted view
 retains one full-resolution R32F intensity texture, an R8 mask and the selected
 colour lookup table. Intensity limits, linear/log mapping and mask transparency

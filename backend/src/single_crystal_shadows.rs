@@ -24,6 +24,31 @@ impl Shadows {
         self.illumination.get(cell).copied().unwrap_or(false)
             || self.dac.get(cell).copied().unwrap_or(false)
     }
+    /// Share of the measured seat-shadow cells that the geometric DAC mask
+    /// also excludes. Both describe the same cell body, so a low share means
+    /// the declared rotation axis, angles or DAC axis disagree with the data.
+    /// Frames the DAC mask closes completely carry no information. None
+    /// without both masks or with too little measured shadow to judge.
+    pub fn dac_agreement(&self) -> Option<f64> {
+        if self.dac.is_empty() || self.illumination.is_empty() || self.cells == 0 {
+            return None;
+        }
+        let (mut both, mut seat) = (0, 0);
+        for (dac, measured) in self
+            .dac
+            .chunks(self.cells)
+            .zip(self.illumination.chunks(self.cells))
+        {
+            if dac.iter().all(|&v| v) {
+                continue;
+            }
+            for (&d, &m) in dac.iter().zip(measured) {
+                seat += usize::from(m);
+                both += usize::from(m && d);
+            }
+        }
+        (seat >= self.cells / 10).then(|| both as f64 / seat as f64)
+    }
 }
 pub(super) fn fingerprint(values: &[bool]) -> String {
     let mut hash = Sha256::new();

@@ -370,7 +370,7 @@ export function decodeRaster(raster: Raster): Float32Array | Uint8Array {
   return values;
 }
 
-/** Compatibility-only expected peak miss. Keep this normalization at the wire
+/** Compatibility-only expected misses from older workers. Keep normalization at the wire
  * boundary: the original error response is untouched and no stale fields leak
  * into the historical minimal success shape. */
 export function normalizeCompatibilityResult<C extends CommandName>(
@@ -384,6 +384,12 @@ export function normalizeCompatibilityResult<C extends CommandName>(
       "No peak found here. Click on a bright ring, or try single-peak mode."
   )
     return { ok: true, noPeakFound: true } as CommandResult<C>;
+  if (
+    action === "scxrd_pixel" &&
+    !response.ok &&
+    response.error === "Pixel outside SCXRD detector."
+  )
+    return { ok: true, scxrdPixel: null } as CommandResult<C>;
   return response;
 }
 

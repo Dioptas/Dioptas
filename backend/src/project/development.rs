@@ -103,6 +103,16 @@ impl RuntimeConfiguration {
 impl Session {
     pub(super) fn save_development_checkpoint(&self, args: &Value) -> Result<Reply, String> {
         check_keys(args, &["path"])?;
+        if self.scxrd.needs_development_preservation() {
+            let recovery = if self.scxrd.has_sources() {
+                "Save your SCXRD recipe, then restart to update the backend."
+            } else {
+                "Keep working here, or load frames and save an SCXRD recipe before restarting to update the backend."
+            };
+            return Err(format!(
+                "{recovery} The current processor is retained; single-crystal data or settings cannot yet be transferred."
+            ));
+        }
         let active = self.capture_configuration();
         let configurations: Vec<_> = self
             .project
@@ -138,58 +148,30 @@ impl Session {
         write_json_dataset(
             &file,
             "development_session",
-            &json!({"version":2,"worker_count":self.worker_count,"project_path":self.project.path,"history_generation":generation,"configuration_ids":configurations.iter().map(|c|c.runtime.id).collect::<Vec<_>>()}),
+            &json!({"version":2,"scxrd_pristine":true,"worker_count":self.worker_count,"project_path":self.project.path,"history_generation":generation,"configuration_ids":configurations.iter().map(|c|c.runtime.id).collect::<Vec<_>>()}),
         )?;
         file.flush().native()?;
         Ok(Reply::metadata(json!({"ok":true})))
     }
     pub(super) fn restore_development_checkpoint(&mut self, args: &Value) -> Result<Reply, String> {
         check_keys(args, &["path", "project_only"])?;
-        // One-time upgrade of an older live host, which can save projects but
-        // does not yet have the private development checkpoint command.
+        // Older writers can silently omit a loaded single-crystal scan. Refuse
+        // those transfers before mutating anything, including during the first
+        // upgrade from the buggy worker. The host retains the running worker.
         if args
             .get("project_only")
             .map(|v| boolean(v, "Project-only recovery"))
             .transpose()?
             .unwrap_or(false)
         {
-            self.open_native_project(path(args)?)?;
-            // Preserve automation preferences without replaying old inputs or
-            // writing outputs while restoring this older project checkpoint.
-            let selected = self.project.selected;
-            let docs = self.project.document["configurations"]
-                .as_array()
-                .unwrap()
-                .clone();
-            for (i, doc) in docs.iter().enumerate() {
-                let mut c = if i == selected {
-                    self.capture_configuration()
-                } else {
-                    self.project.configurations[i]
-                        .as_ref()
-                        .unwrap()
-                        .as_ref()
-                        .clone()
-                };
-                c.state.settings.auto_save = doc["params"]["auto_save_integrated_pattern"]
-                    .as_bool()
-                    .unwrap_or(false);
-                c.state.files.auto_process = doc["img"]["autoprocess"].as_bool().unwrap_or(false);
-                if c.state.files.auto_process {
-                    c.state.files.baseline()?;
-                }
-                if i == selected {
-                    self.restore_checkpoint(c.state);
-                } else {
-                    self.project.configurations[i] = Some(Rc::new(c));
-                }
-            }
-            self.project.path = None;
-            return Ok(self.configuration_reply());
+            return Err("Save your work, then restart Dioptas once to update the backend. The current processor is retained; the older processor cannot certify a safe session transfer.".into());
         }
         let file = hdf5::File::open(path(args)?).native()?;
         let metadata = read_json_dataset(&file, "development_session")?;
         drop(file);
+        if metadata["scxrd_pristine"] != true {
+            return Err("Save your work, then restart Dioptas once to update the backend. The current processor is retained; the older processor cannot certify a safe session transfer.".into());
+        }
         let histories: Option<Vec<ConfigurationHistory>> = match metadata["version"].as_u64() {
             Some(1) => None,
             Some(2) => {
@@ -307,7 +289,7 @@ impl Session {
 mod tests {
     use super::*;
     #[test]
-    fn version_one_checkpoints_remain_readable_during_the_one_time_worker_upgrade() {
+    fn uncertified_older_checkpoints_are_rejected_without_changing_the_session() {
         let t = tempfile::tempdir().unwrap();
         let p = t.path().join("legacy.dio");
         let mut old = Session::new(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".."));
@@ -329,10 +311,48 @@ mod tests {
         .unwrap();
         drop(file);
         let mut new = Session::new(old.root.clone());
+        new.settings.bins = 321;
+        let error = new
+            .restore_development_checkpoint(&json!({"path":p}))
+            .err()
+            .unwrap();
+        assert!(error.contains("cannot certify a safe session transfer"));
+        assert_eq!(new.settings.bins, 321);
+        let error = new
+            .restore_development_checkpoint(&json!({"path":p,"project_only":true}))
+            .err()
+            .unwrap();
+        assert!(error.contains("current processor is retained"));
+        assert_eq!(new.settings.bins, 321);
+    }
+    #[test]
+    fn certified_checkpoint_restores_powder_settings_and_rejects_older_writers() {
+        let t = tempfile::tempdir().unwrap();
+        let p = t.path().join("handoff.dio");
+        let mut old = Session::new(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".."));
+        old.settings.bins = 777;
+        old.settings.automatic_binning = false;
+        old.save_development_checkpoint(&json!({"path":p})).unwrap();
+        let mut new = Session::new(old.root.clone());
         new.restore_development_checkpoint(&json!({"path":p}))
             .unwrap();
         assert_eq!(new.settings.bins, 777);
         assert!(new.calibration_history.undo.is_empty());
         assert!(!new.integration_history.can_undo());
+        // Model the previous version-2 writer, which also claimed success when
+        // it had silently omitted a loaded SC scan. Test the real file boundary.
+        let file = hdf5::File::open_rw(&p).unwrap();
+        let mut metadata = read_json_dataset(&file, "development_session").unwrap();
+        metadata.as_object_mut().unwrap().remove("scxrd_pristine");
+        write_json_dataset(&file, "development_session", &metadata).unwrap();
+        drop(file);
+        let mut candidate = Session::new(old.root.clone());
+        candidate.settings.bins = 321;
+        let error = candidate
+            .restore_development_checkpoint(&json!({"path":p}))
+            .err()
+            .unwrap();
+        assert!(error.contains("cannot certify a safe session transfer"));
+        assert_eq!(candidate.settings.bins, 321);
     }
 }

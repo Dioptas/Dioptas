@@ -36,6 +36,9 @@ export interface CrystalConfig {
   seat_enabled: boolean;
   seat_threshold: number;
   seat_guard: number;
+  diamond_enabled: boolean;
+  diamond_min_area: number;
+  diamond_tolerance: number;
 }
 export const crystalDefaults: CrystalConfig = {
   omega_start: 0,
@@ -74,6 +77,9 @@ export const crystalDefaults: CrystalConfig = {
   seat_enabled: false,
   seat_threshold: 0.85,
   seat_guard: 32,
+  diamond_enabled: false,
+  diamond_min_area: 20,
+  diamond_tolerance: 3,
 };
 export type CrystalFileOperation =
   | "calibration"
@@ -249,6 +255,8 @@ export interface CrystalData {
   notice: string | null;
   previewKind: CrystalImageKind;
   image: Raster | null;
+  /** Prepared masks (shadows, diamond spots) on the shown frame. */
+  maskImage?: Raster | null;
 }
 export const crystalSteps = [
   "Frames",

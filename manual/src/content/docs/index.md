@@ -38,7 +38,7 @@ This manual describes the current Rust desktop edition (version 0.14). If you us
 | **Mask** | Mask | Drawing, thresholds, radial ranges and automatic masks |
 | **Integration** | Int | Image, cake and pattern with files, background, corrections, overlays and phases |
 | **Map** | Map | A scan arranged on a grid, with layers defined on the pattern |
-| **Single Crystal XRD** | SCXRD | A guided workflow from rotation frames to exported intensities |
+| **Single Crystal** | SC | A guided workflow from rotation frames to exported intensities |
 
 Calibration, Mask, Integration and Map work on the same image, calibration and mask. Single Crystal XRD keeps its own frames, geometry and history.
 

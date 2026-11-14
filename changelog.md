@@ -43,6 +43,10 @@ candidate contains.
 
 ## Fixes
 
+- Fixed brief image flicker when loading images or switching modes. Images now
+  appear at the correct size from the first frame across all modes, including
+  cake, Map and detached image views.
+
 - Removed the detector orientation select from the calibration image tab. It
   duplicated the rotate and flip buttons and caused confusion.
 

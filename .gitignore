@@ -210,3 +210,7 @@ __pycache__/
 
 # Generated Canvas reference for isolated pattern renderer benchmarks.
 /src/__CanvasBaseline.tsx
+
+# Per-checkout Vite settings (e.g. VITE_DIOPTAS_SINGLE_CRYSTAL=1)
+.env.local
+.env.*.local

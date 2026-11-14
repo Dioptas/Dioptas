@@ -19,7 +19,8 @@
   box-shadow: none;
 }
 .app .mode-navigation,
-.app .sidebar {
+.app .sidebar,
+.app .sc-workspace--lean > .sc-panel {
   background-color: var(--ui-panel);
   background-image:
     var(--surface-grain),
@@ -33,7 +34,8 @@
 .app .mode-navigation {
   border-right-color: rgb(202 210 218 / 8%);
 }
-.app .sidebar {
+.app .sidebar,
+.app .sc-workspace--lean > .sc-panel {
   border-left-color: rgb(202 210 218 / 10%);
   box-shadow: -6px 0 18px rgb(0 0 0 / 8%);
 }

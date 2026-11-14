@@ -307,7 +307,7 @@ export function MapView({
   const detectorPanel = (
     <section className="map-detector-panel" aria-label="Map detector image">
       {image && state?.hasImage ? (
-        <div className="detector-surface">
+        <div className="detector-workspace">
           <RasterView
             raster={image}
             resetKey={resetKey}

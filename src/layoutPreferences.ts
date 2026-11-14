@@ -4,6 +4,7 @@ export const layoutKeys = {
   imageShare: "dioptas-layout:image-share",
   spottinessShare: "dioptas-layout:spottiness-main-share",
   controlsShare: "dioptas-layout:controls-share",
+  scxrdPanelWidth: "dioptas-layout:scxrd-panel-width",
   configurationControls: "dioptas-layout:configuration-controls",
   batchOpen: "dioptas-batch:open",
   batchDocked: "dioptas-batch:docked",

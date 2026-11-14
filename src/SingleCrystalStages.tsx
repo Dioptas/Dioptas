@@ -95,6 +95,7 @@ export function SingleCrystalStages({
       | "dac_enabled"
       | "dac_axis"
       | "seat_enabled"
+      | "diamond_enabled"
     >,
     label: string,
     units = "",
@@ -573,7 +574,7 @@ export function SingleCrystalStages({
         <label className="sc-field">
           <span>Image</span>
           <Select
-            aria-label="SCXRD image source"
+            aria-label="Single crystal image source"
             disabled={!ready || !data?.frames}
             value={data?.previewKind ?? "raw"}
             onChange={(e) =>

@@ -1,6 +1,7 @@
-/* Shared Integration form rows: label / value / unit, grouped at the left. */
+/* Shared form rows (Integration, Settings, Single crystal): label / value / unit, grouped at the left. */
 .integration-controls .field-label.integration-number-field,
-.settings-integration .field-label.integration-number-field {
+.settings-integration .field-label.integration-number-field,
+.sc-angles .field-label.integration-number-field {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 82px;
   align-items: center;
@@ -16,7 +17,9 @@
   grid-template-columns: minmax(0, 1fr) 82px 24px;
 }
 .integration-controls .integration-number-field input[type="number"],
-.settings-integration .integration-number-field input[type="number"] {
+.settings-integration .integration-number-field input[type="number"],
+.sc-angles .integration-number-field input[type="number"],
+.sc-angles .integration-number-field select {
   width: 100%;
   min-width: 0;
   height: 28px;

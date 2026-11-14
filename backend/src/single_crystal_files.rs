@@ -286,6 +286,15 @@ impl Session {
                 {
                     return Err("Clear unsupported manual track exclusions or select summation before saving a profile recipe.".into());
                 }
+                // A recipe identifies every frame by its decoded counts; hash the
+                // frames that processing has not read yet.
+                for i in 0..self.scxrd.sources.len() {
+                    if self.scxrd.sources[i].digest.get().is_none() {
+                        self.control.check()?;
+                        self.scxrd.read(i)?;
+                        self.control.publish(json!({"running":true,"current":i+1,"total":self.scxrd.sources.len(),"label":"Hashing frames for the recipe"}));
+                    }
+                }
                 let c = &self.scxrd;
                 let recipe = Recipe {
                     schema: "dioptas.scxrd.rust".into(),

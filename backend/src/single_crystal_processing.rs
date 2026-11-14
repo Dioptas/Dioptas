@@ -1,6 +1,11 @@
 use super::*;
 use nalgebra::{Matrix3, Vector3};
 use phasesmith_crystallography::UnitCell;
+use rayon::prelude::*;
+use std::sync::{
+    Mutex,
+    atomic::{AtomicUsize, Ordering},
+};
 fn length(v: V3) -> f64 {
     fft::dot(v, v).sqrt()
 }
@@ -66,9 +71,11 @@ impl Crystal {
     }
     fn background(&mut self, control: &Control) -> Result<String, String> {
         self.prepare_shadows(control)?;
+        self.prepare_diamonds(control)?;
+        self.notice = self.dac_warning();
         if !self.config.background {
             self.background = None;
-            return Ok("Disabled: local background is still fitted during spot detection and original-count integration.".into());
+            return Ok(self.mask_summary());
         }
         let nf = self.sources.len();
         let pixels = self.shape[0] * self.shape[1];
@@ -158,56 +165,90 @@ impl Crystal {
         ))
     }
     fn detect(&mut self, control: &Control) -> Result<String, String> {
-        let mut peaks = Vec::new();
         let options = spots::Options {
             threshold_sigma: self.config.threshold,
             min_pixels: self.config.min_pixels,
             ..Default::default()
         };
         let n = self.sources.len();
-        for frame in 0..n {
-            control.check()?;
-            if self.excluded_frames.contains(&frame) {
-                continue;
-            }
-            let raw = self.read(frame)?;
-            let mut mask = self.mask_for(&raw, frame);
-            let variance: Vec<_> = raw
-                .iter()
-                .map(|v| (v.max(0.) / self.config.gain + self.config.read_noise.powi(2)).max(1.))
-                .collect();
-            let mut values = raw;
-            if let Some(bg) = self.baseline(frame)? {
-                for ((v, m), b) in values.iter_mut().zip(&mut mask).zip(bg) {
-                    if !b.is_finite() {
-                        *m = true;
-                    } else {
-                        *v -= b;
+        let frames: Vec<usize> = (0..n)
+            .filter(|frame| !self.excluded_frames.contains(frame))
+            .collect();
+        let (done, total) = (AtomicUsize::new(0), AtomicUsize::new(0));
+        // Live view: at most one worker at a time renders the frame it just
+        // finished, a few times per second and never stepping backwards.
+        let shown: Mutex<(Option<std::time::Instant>, usize)> = Mutex::new((None, 0));
+        // Frames are independent; results keep frame order, so the outcome is
+        // the same as a sequential search.
+        let found: Result<Vec<Vec<Peak>>, String> = crate::worker_pool::install(|| {
+            frames
+                .par_iter()
+                .map(|&frame| {
+                    control.check()?;
+                    let raw = self.read(frame)?;
+                    let mut mask = self.mask_for(&raw, frame);
+                    let variance: Vec<_> = raw
+                        .iter()
+                        .map(|v| {
+                            (v.max(0.) / self.config.gain + self.config.read_noise.powi(2)).max(1.)
+                        })
+                        .collect();
+                    let mut values = raw;
+                    if let Some(bg) = self.baseline(frame)? {
+                        for ((v, m), b) in values.iter_mut().zip(&mut mask).zip(bg) {
+                            if !b.is_finite() {
+                                *m = true;
+                            } else {
+                                *v -= b;
+                            }
+                        }
                     }
-                }
-            }
-            let found = spots::detect(
-                &image(&values, &mask, Some(&variance), self.shape, &self.config),
-                options,
-            )
-            .map_err(err)?;
-            for s in found.spots {
-                if s.values[..2].iter().all(|v| v.is_finite()) {
-                    peaks.push(Peak {
+                    let peaks: Vec<Peak> = spots::detect(
+                        &image(&values, &mask, Some(&variance), self.shape, &self.config),
+                        options,
+                    )
+                    .map_err(err)?
+                    .spots
+                    .into_iter()
+                    .filter(|s| s.values[..2].iter().all(|v| v.is_finite()))
+                    .map(|s| Peak {
                         frame,
                         xy: [s.values[0], s.values[1]],
                         intensity: s.values[2].max(0.),
                         flags: s.flags,
                         bounds: [s.bounds.x0, s.bounds.y0, s.bounds.x1, s.bounds.y1],
                         track: 0,
-                    });
-                }
-            }
-            if peaks.len() > 200000 {
-                return Err("More than 200,000 spot observations: raise the threshold or mask powder/diamond regions.".into());
-            }
-            control.publish(json!({"running":true,"current":frame+1,"total":n,"label":"Finding peaks in rotation frames"}));
-        }
+                    })
+                    .collect();
+                    let all = total.fetch_add(peaks.len(), Ordering::Relaxed) + peaks.len();
+                    if all > 200000 {
+                        return Err("More than 200,000 spot observations: raise the threshold or mask powder/diamond regions.".into());
+                    }
+                    let current = done.fetch_add(1, Ordering::Relaxed) + 1;
+                    if let Ok(mut shown) = shown.try_lock()
+                        && frame >= shown.1
+                        && shown.0.is_none_or(|t| t.elapsed().as_millis() >= 200)
+                    {
+                        for (v, m) in values.iter_mut().zip(&mask) {
+                            if *m {
+                                *v = f64::NAN;
+                            }
+                        }
+                        let raster = Raster::image(&values, self.shape);
+                        control.publish_preview(
+                            "scxrdPreview",
+                            json!({"raster":raster.metadata,"frame":frame,"spots":all,
+                                "peaks":peaks.iter().map(|p|json!({"x":p.xy[0],"y":p.xy[1],"flags":p.flags})).collect::<Vec<_>>()}),
+                            raster.buffer,
+                        );
+                        *shown = (Some(std::time::Instant::now()), frame);
+                    }
+                    control.publish(json!({"running":true,"current":current,"total":frames.len(),"label":"Finding spots"}));
+                    Ok(peaks)
+                })
+                .collect()
+        });
+        let mut peaks: Vec<Peak> = found?.into_iter().flatten().collect();
         if peaks.len() < 12 {
             return Err(format!(
                 "Only {} peaks found; at least 12 are required. Lower the threshold, check background and masks, or verify the scan.",
