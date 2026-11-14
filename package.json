@@ -85,6 +85,7 @@
     "test:pattern-figure-export": "node scripts/pattern_figure_export_smoke.mjs && node scripts/pattern_figure_save_smoke.mjs && node scripts/pattern_figure_editor_smoke.mjs",
     "test:spottiness": "node scripts/spottiness_smoke.mjs",
     "test:cake-profile": "node scripts/cake_profile_smoke.mjs",
+    "test:calibration-validation-click": "node scripts/calibration_validation_click_smoke.mjs",
     "test:correction-previews": "node scripts/correction_previews_smoke.mjs",
     "test:processing-drafts": "node scripts/processing_drafts_smoke.mjs",
     "test:metadata-products": "node scripts/metadata_products_smoke.mjs",
