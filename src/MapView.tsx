@@ -12,7 +12,6 @@ import {
 } from "react";
 import { ExternalLink, MoveHorizontal } from "lucide-react";
 import { RasterView } from "./RasterView";
-import { RegionBandIcon } from "./RegionIcons";
 import { PatternView } from "./PatternView";
 import { ImageIntensity } from "./ImageIntensity";
 import { MapControls } from "./MapControls";
@@ -562,7 +561,7 @@ export function MapView({
                   disabled={!pattern}
                   onClick={() => setShowRegions((v) => !v)}
                 >
-                  <RegionBandIcon size={15} />
+                  ROI
                 </Button>
                 <Button
                   className="plot-tool-button"

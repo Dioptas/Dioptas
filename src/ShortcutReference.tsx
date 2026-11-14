@@ -1,6 +1,4 @@
-import type { ReactNode } from "react";
 import { Dialog, DialogHeader } from "./Dialog";
-import { RegionBandIcon } from "./RegionIcons";
 
 // Keep the scope visible: a focused plot, Mask, Settings, and text editing own
 // different keys. The UI audit exercises these against real command handlers.
@@ -137,26 +135,20 @@ export function ShortcutHelp({ onClose }: { onClose: () => void }) {
         <ShortcutReference />
         <section className="settings-card">
           <h3>Plot toolbar symbols</h3>
-          {(
+          {[
+            ["bg", "Show or subtract background"],
+            ["|", "Show phase reflection markers"],
+            ["AA", "Antialias the pattern line"],
+            ["A", "Automatically fit the plot range"],
+            ["2θ / Q / d", "Scattering angle, momentum transfer, or d spacing"],
+            ["Log / √", "Logarithmic or square-root intensity display"],
             [
-              ["bg", "Show or subtract background"],
-              ["|", "Show phase reflection markers"],
-              ["AA", "Antialias the pattern line"],
-              ["A", "Automatically fit the plot range"],
-              [
-                "2θ / Q / d",
-                "Scattering angle, momentum transfer, or d spacing",
-              ],
-              ["Log / √", "Logarithmic or square-root intensity display"],
-              ["ROI", "Restrict detector integration to an image region"],
-              [
-                <RegionBandIcon key="band" size={13} aria-hidden="true" />,
-                "Show map pattern windows or the cake profile's radial window",
-              ],
-              ["↔", "Edit map pattern windows by dragging"],
-            ] as [ReactNode, string][]
-          ).map(([symbol, meaning]) => (
-            <div className="settings-shortcut" key={meaning}>
+              "ROI",
+              "Show map pattern windows; image ROI restricts detector integration",
+            ],
+            ["↔", "Edit map pattern windows by dragging"],
+          ].map(([symbol, meaning]) => (
+            <div className="settings-shortcut" key={symbol}>
               <kbd>{symbol}</kbd>
               <span>{meaning}</span>
             </div>

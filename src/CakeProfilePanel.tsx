@@ -1,9 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cakeSourcePixel } from "./cakeRadialAxis";
 import { previewProfileWindow } from "./useCakeProfileResize";
-import { Save } from "lucide-react";
+import { Columns2, Save } from "lucide-react";
 import { useCakeProfileWindow } from "./CakeProfileWorkspace";
-import { RegionBandIcon } from "./RegionIcons";
 import { Button } from "./ui";
 import { Field } from "./IntegrationFields";
 import { CakeProfileView } from "./CakeProfileView";
@@ -191,7 +190,7 @@ export function CakeProfilePanel({
           aria-pressed={window?.visible ?? false}
           onClick={() => window?.setVisible(!window.visible)}
         >
-          <RegionBandIcon size={15} />
+          <Columns2 size={15} />
         </Button>
         <Button
           className="plot-tool-button icon-button"
