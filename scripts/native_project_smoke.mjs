@@ -75,7 +75,7 @@ try {
         name: "Settings",
         exact: true,
       });
-      const toggle = page.getByRole("checkbox", {
+      const toggle = page.getByRole("switch", {
         name: "Enable configurations",
       });
       const closeSettings = page.getByRole("button", {
@@ -124,6 +124,13 @@ try {
       await assertBarHidden();
       await openConfigurations();
       assert.equal(await toggle.isChecked(), false);
+      assert.equal(
+        await page
+          .getByRole("group", { name: "Configuration browsing settings" })
+          .count(),
+        0,
+        "Browsing options stay hidden until configurations are enabled",
+      );
       await toggle.check();
       await page.screenshot({
         path: path.join(artifacts, `${name}-configuration-settings.png`),
@@ -636,6 +643,9 @@ try {
       });
       await openConfigurations();
       assert.equal(await toggle.isChecked(), false);
+      assert.equal(await browsingSettings.count(), 0);
+      // Browsing rules survive switching configurations off and on.
+      await toggle.check();
       for (const [label, value] of Object.entries(customRules)) {
         assert.equal(
           await browsingSettings
@@ -660,7 +670,7 @@ try {
         .boundingBox();
       assert.ok(
         toggleBounds.x + toggleBounds.width <= enableLabel.x,
-        "Configuration enable checkbox belongs on the left",
+        "Configuration enable switch belongs on the left",
       );
       assert.ok(toggleBounds.x >= bounds.x);
       assert.ok(toggleBounds.x + toggleBounds.width <= bounds.x + bounds.width);

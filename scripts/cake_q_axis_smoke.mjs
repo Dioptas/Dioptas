@@ -245,9 +245,7 @@ try {
       await page
         .getByRole("tab", { name: "Configurations", exact: true })
         .click();
-      await page
-        .getByRole("checkbox", { name: "Enable configurations" })
-        .check();
+      await page.getByRole("switch", { name: "Enable configurations" }).check();
       await button("Close settings").click();
       const group = page.getByRole("group", { name: "Project configurations" });
       await group
