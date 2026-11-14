@@ -21,7 +21,7 @@ use calibration_tooltip::{
 
 use processor::{Backend, Packet, wire_contract};
 use processor_reload::ProcessorHost;
-use dioptas_contract::image_formats::DETECTOR_IMAGE_EXTENSIONS;
+use dioptas_contract::image_formats::{COMPRESSED_IMAGE_EXTENSIONS, DETECTOR_IMAGE_EXTENSIONS};
 use serde_json::{json, Value};
 use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use tauri::{Manager, State};
@@ -71,6 +71,10 @@ fn begin_close(app: &tauri::AppHandle) {
 struct FileChoice {
     label: &'static str,
     extensions: &'static [&'static str],
+    /// Second filter shown after the main one. Detector images use it for
+    /// gzip/bzip2 files: native filters match only the final suffix, so `gz`
+    /// in the main filter would show every tarball.
+    compressed: Option<(&'static str, &'static [&'static str])>,
     name: &'static str,
     save: bool,
 }
@@ -147,7 +151,7 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
             "cif" => ("Structure candidate", &["cif"], "candidate.cif", true),
             _ => return None,
         };
-        return Some(FileChoice { label, extensions, name, save });
+        return Some(FileChoice { label, extensions, compressed: None, name, save });
     }
     let (label, extensions, name, save): (_, &[&str], _, _) = match action {
         "open_image" => (
@@ -263,9 +267,12 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
         "open_calibrant" => ("Calibrant d spacings", &["D", "d"], "", false),
         _ => return None,
     };
+    let compressed = (extensions == DETECTOR_IMAGE_EXTENSIONS)
+        .then_some(("Compressed detector images", COMPRESSED_IMAGE_EXTENSIONS));
     Some(FileChoice {
         label,
         extensions,
+        compressed,
         name,
         save,
     })
@@ -357,8 +364,11 @@ async fn desktop_invoke(
             let mut dialog = app
                 .dialog()
                 .file()
-                .add_filter(choice.label, choice.extensions)
-                .add_filter("All files", &["*"]);
+                .add_filter(choice.label, choice.extensions);
+            if let Some((label, extensions)) = choice.compressed {
+                dialog = dialog.add_filter(label, extensions);
+            }
+            dialog = dialog.add_filter("All files", &["*"]);
             if action == "integration_save_batch" {
                 dialog = dialog.set_title(if batch_export::multifile(&payload) { "Choose Batch export basename" } else { "Save Batch data" });
             }
@@ -763,7 +773,16 @@ mod tests {
             let choice = file_choice(action, &json!({})).unwrap();
             assert!(!choice.save, "{action}");
             assert_eq!(choice.extensions, DETECTOR_IMAGE_EXTENSIONS, "{action}");
+            assert!(!choice.extensions.iter().any(|e| COMPRESSED_IMAGE_EXTENSIONS.contains(e)), "{action}");
+            assert_eq!(
+                choice.compressed,
+                Some(("Compressed detector images", COMPRESSED_IMAGE_EXTENSIONS)),
+                "{action}"
+            );
         }
+        // Other choosers never offer the compressed filter.
+        assert_eq!(file_choice("detector_file", &json!({})).unwrap().compressed, None);
+        assert_eq!(file_choice("scxrd_file", &json!({"operation":"calibration"})).unwrap().compressed, None);
     }
 
     #[test]

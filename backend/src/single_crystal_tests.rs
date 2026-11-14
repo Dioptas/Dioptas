@@ -105,6 +105,43 @@ fn numerical_source_order_and_missing_frames_are_checked() {
     assert_eq!(s.scxrd.config.saturation, 65535.);
 }
 #[test]
+fn compressed_frame_names_number_without_the_wrapper() {
+    let number = |name: &str| frame_number(&Path::new("/data").join(name));
+    assert_eq!(number("scan_0007.esper.gz"), Some(("/data/scan_.esper.gz".into(), 7)));
+    assert_eq!(number("scan_0007.EDF.bz2"), Some(("/data/scan_.EDF.bz2".into(), 7)));
+    assert_eq!(number("scan_0007.tif"), Some(("/data/scan_.tif".into(), 7)));
+    assert_ne!(number("scan_0007.esper.gz").unwrap().0, number("scan_0007.esper").unwrap().0);
+    assert_eq!(number("scan.esper.gz"), None);
+}
+#[test]
+fn compressed_frames_are_ordered_numerically_and_gaps_are_rejected() {
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/esperanto/agi-extrema-cols18.esperanto.gz");
+    let dir = tempfile::tempdir().unwrap();
+    let paths: Vec<String> = (1..=4)
+        .map(|i| {
+            let path = dir.path().join(format!("scan_{i:04}.esper.gz"));
+            std::fs::copy(&fixture, &path).unwrap();
+            path.to_string_lossy().into_owned()
+        })
+        .collect();
+    let mut s = Session::new(PathBuf::new());
+    let shuffled = [&paths[2], &paths[0], &paths[1]];
+    let loaded = call(&mut s, "scxrd_load", json!({"paths":shuffled}));
+    assert_eq!(loaded.result["ok"], true, "{}", loaded.result);
+    let order: Vec<_> = s.scxrd.sources.iter().map(|f| f.path.clone()).collect();
+    let expected: Vec<_> = paths[..3].iter().map(PathBuf::from).collect();
+    assert_eq!(order, expected);
+    let gap = call(&mut s, "scxrd_load", json!({"paths":[&paths[3], &paths[0], &paths[1]]}));
+    assert_eq!(gap.result["ok"], false);
+    assert!(
+        gap.result["error"].as_str().unwrap_or_default().contains("Missing or duplicate"),
+        "{}",
+        gap.result
+    );
+    assert_eq!(s.scxrd.sources.len(), 3);
+}
+#[test]
 fn failed_edits_are_atomic_and_successful_decisions_have_private_history() {
     let (_dir, paths) = fixture();
     let mut s = Session::new(PathBuf::new());

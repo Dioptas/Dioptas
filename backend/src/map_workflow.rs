@@ -676,15 +676,7 @@ impl Session {
         let folder = Path::new(last)
             .parent()
             .ok_or("The live scan folder is unavailable.")?;
-        let last_path = Path::new(last);
-        let stem = last_path
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .ok_or("Live needs numbered scan files.")?;
-        let prefix = stem
-            .trim_end_matches(|c: char| c.is_ascii_digit())
-            .to_string();
-        let extension = last_path.extension().map(|e| e.to_os_string());
+        let sequence = sequence_key(Path::new(last)).ok_or("Live needs numbered scan files.")?;
         let highest = s
             .series
             .paths
@@ -696,11 +688,7 @@ impl Session {
         let mut ready = vec![];
         for p in batch_workflow::folder_paths(folder)? {
             let candidate = Path::new(&p);
-            let matches_sequence = candidate.extension().map(|e| e.to_os_string()) == extension
-                && candidate
-                    .file_stem()
-                    .and_then(|s| s.to_str())
-                    .is_some_and(|s| s.trim_end_matches(|c: char| c.is_ascii_digit()) == prefix);
+            let matches_sequence = sequence_key(candidate).as_ref() == Some(&sequence);
             if !matches_sequence
                 || s.series.paths.contains(&p)
                 || filename_number(Path::new(&p))
@@ -772,8 +760,21 @@ impl Session {
         Ok(reply)
     }
 }
+/// Stem and image suffix with one outer `.gz`/`.bz2` kept in the suffix, so
+/// `scan_0007.edf.gz` numbers as 7 rather than not at all.
+fn image_name(path: &Path) -> Option<(&str, &str)> {
+    dioptas_contract::image_formats::split_image_name(path.file_name()?.to_str()?)
+}
+/// Live appends files sharing the last file's non-numeric prefix and suffix.
+fn sequence_key(path: &Path) -> Option<(String, String)> {
+    let (stem, suffix) = image_name(path)?;
+    Some((
+        stem.trim_end_matches(|c: char| c.is_ascii_digit()).to_string(),
+        suffix.to_string(),
+    ))
+}
 fn filename_number(path: &Path) -> Option<u64> {
-    let stem = path.file_stem()?.to_str()?;
+    let (stem, _) = image_name(path)?;
     let end = stem.len();
     let start = stem
         .as_bytes()
@@ -781,6 +782,26 @@ fn filename_number(path: &Path) -> Option<u64> {
         .rposition(|c| !c.is_ascii_digit())
         .map_or(0, |i| i + 1);
     (start < end).then(|| stem[start..].parse().ok()).flatten()
+}
+
+#[cfg(test)]
+mod live_numbering_tests {
+    use super::*;
+
+    #[test]
+    fn compressed_scan_files_number_and_match_their_live_sequence() {
+        let path = |name: &str| PathBuf::from("/scan").join(name);
+        assert_eq!(filename_number(&path("scan_0007.edf.gz")), Some(7));
+        assert_eq!(filename_number(&path("scan_0012.cbf.bz2")), Some(12));
+        assert_eq!(filename_number(&path("scan_0003.tif")), Some(3));
+        assert_eq!(filename_number(&path("scan.edf.gz")), None);
+        let sequence = sequence_key(&path("scan_0007.edf.gz")).unwrap();
+        assert_eq!(sequence, ("scan_".into(), "edf.gz".into()));
+        assert_eq!(sequence_key(&path("scan_0008.edf.gz")), Some(sequence.clone()));
+        for other in ["scan_0008.edf", "scan_0008.cbf.gz", "other_0008.edf.gz", "scan_0008.txt.gz"] {
+            assert_ne!(sequence_key(&path(other)), Some(sequence.clone()), "{other}");
+        }
+    }
 }
 
 #[cfg(test)]
