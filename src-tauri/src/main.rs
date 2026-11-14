@@ -4,32 +4,39 @@ mod app_update;
 mod batch_export;
 mod calibration_tooltip;
 mod color_picker;
+mod detector_window;
+mod map_window;
+mod peritheos_manual;
+mod phase_editor;
 mod processor;
 mod processor_reload;
-mod phase_editor;
-mod peritheos_manual;
-mod map_window;
-mod detector_window;
-mod smoke_storage;
-mod smoke_dialog;
 mod recovery;
+mod smoke_dialog;
+mod smoke_storage;
 
 use calibration_tooltip::{
     calibration_tooltip_ready, hide_calibration_tooltip, present_calibration_tooltip,
     show_calibration_tooltip, TooltipState,
 };
 
-use processor::{Backend, Packet, wire_contract};
-use processor_reload::ProcessorHost;
 use dioptas_contract::image_formats::{COMPRESSED_IMAGE_EXTENSIONS, DETECTOR_IMAGE_EXTENSIONS};
+use processor::{wire_contract, Backend, Packet};
+use processor_reload::ProcessorHost;
 use serde_json::{json, Value};
-use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 use tauri::{Manager, State};
 use tauri_plugin_dialog::DialogExt;
 
 fn application_title(app: &tauri::AppHandle, context: &str) -> String {
     let base = format!("Dioptas {}", app.package_info().version);
-    if context.is_empty() { base } else { format!("{base} — {context}") }
+    if context.is_empty() {
+        base
+    } else {
+        format!("{base} — {context}")
+    }
 }
 
 struct Host {
@@ -43,7 +50,9 @@ struct Host {
 
 fn begin_close(app: &tauri::AppHandle) {
     let host = app.state::<Host>();
-    if host.closing.swap(true, Ordering::SeqCst) { return; }
+    if host.closing.swap(true, Ordering::SeqCst) {
+        return;
+    }
     host.active_commands.stop();
     let commands = host.active_commands.clone();
     let recovery = host.recovery.clone();
@@ -55,11 +64,20 @@ fn begin_close(app: &tauri::AppHandle) {
             use tauri::Emitter;
             let _ = app.emit_to("main", "dioptas-recovery-saving", json!(true));
             while let Err(error) = recovery.checkpoint(&processor, true) {
-                let retry = app.dialog().message(format!("The previous recovery file was preserved.\n\n{error}"))
+                let retry = app
+                    .dialog()
+                    .message(format!(
+                        "The previous recovery file was preserved.\n\n{error}"
+                    ))
                     .title("Could not save previous work")
-                    .buttons(tauri_plugin_dialog::MessageDialogButtons::OkCancelCustom("Retry".into(), "Close without saving".into()))
+                    .buttons(tauri_plugin_dialog::MessageDialogButtons::OkCancelCustom(
+                        "Retry".into(),
+                        "Close without saving".into(),
+                    ))
                     .blocking_show();
-                if !retry { break; }
+                if !retry {
+                    break;
+                }
             }
         }
         map_window::save(&app);
@@ -91,32 +109,50 @@ fn folder_choice(action: &str, payload: &Value) -> bool {
 }
 
 fn batch_image_output_choice(action: &str, payload: &Value) -> bool {
-    action == "open_image" && payload["batch_mode"] == "save"
-        && payload["paths"].as_array().is_some_and(|paths| paths.len() > 1)
+    action == "open_image"
+        && payload["batch_mode"] == "save"
+        && payload["paths"]
+            .as_array()
+            .is_some_and(|paths| paths.len() > 1)
         && payload["output_directory"].is_null()
 }
 
-fn choose_batch_image_output(app: &tauri::AppHandle, action: &str, payload: &mut Value) -> Result<bool, String> {
+fn choose_batch_image_output(
+    app: &tauri::AppHandle,
+    action: &str,
+    payload: &mut Value,
+) -> Result<bool, String> {
     if batch_image_output_choice(action, payload) {
-        let Some(folder) = app.dialog().file().blocking_pick_folder() else { return Ok(false); };
-        payload["output_directory"] = json!(folder.into_path().map_err(|e| e.to_string())?.to_string_lossy());
+        let Some(folder) = app.dialog().file().blocking_pick_folder() else {
+            return Ok(false);
+        };
+        payload["output_directory"] = json!(folder
+            .into_path()
+            .map_err(|e| e.to_string())?
+            .to_string_lossy());
     }
     Ok(true)
 }
 
 fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
-    if matches!(action, "integration_phase_files" | "integration_phase") && payload.get("paths").is_some_and(|v| !v.is_null()) {
+    if matches!(action, "integration_phase_files" | "integration_phase")
+        && payload.get("paths").is_some_and(|v| !v.is_null())
+    {
         return None;
     }
-    if matches!(action, "scxrd_load" | "map_load" | "batch_load" | "batch_load_data" | "open_image")
-        && (payload.get("paths").is_some_and(|v| !v.is_null()) || payload["reintegrate"] == true)
+    if matches!(
+        action,
+        "scxrd_load" | "map_load" | "batch_load" | "batch_load_data" | "open_image"
+    ) && (payload.get("paths").is_some_and(|v| !v.is_null()) || payload["reintegrate"] == true)
     {
         return None;
     }
     if action == "integration_overlay" && payload.get("paths").is_some_and(|v| !v.is_null()) {
         return None;
     }
-    if action == "integration_phase_export" && payload["save_current"] == true { return None; }
+    if action == "integration_phase_export" && payload["save_current"] == true {
+        return None;
+    }
     if payload.get("path").is_some_and(|v| !v.is_null()) || payload["reset"] == true {
         return None;
     }
@@ -130,42 +166,65 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
         return None;
     }
     if action == "integration_image_background"
-        && (!payload["scale"].is_null() || !payload["offset"].is_null() || !payload["poisson"].is_null())
+        && (!payload["scale"].is_null()
+            || !payload["offset"].is_null()
+            || !payload["poisson"].is_null())
     {
         return None;
     }
-    if ["integration_flat_field", "integration_transfer"].contains(&action) && !payload["enabled"].is_null() {
+    if ["integration_flat_field", "integration_transfer"].contains(&action)
+        && !payload["enabled"].is_null()
+    {
         return None;
     }
     if action == "scxrd_file" {
-        let (label, extensions, name, save): (_, &[&str], _, _) = match payload["operation"].as_str()? {
-            "use_calibration" | "protocol_builtin" => return None,
-            "protocol" => ("PhaseSmith analysis protocol", &["json"], "", false),
-            "audit" => ("Lossless stage audit", &["npz"], "single-crystal-stages.npz", true),
-            "protocol_save" => ("Effective PhaseSmith protocol", &["json"], "analysis-protocol.json", true),
-            "calibration" => ("PONI calibration", &["poni"], "", false),
-            "open" | "preset" => ("Single-crystal recipe", &["json"], "", false),
-            "save" => ("Single-crystal recipe", &["json"], "single-crystal.scxrd.json", true),
-            "reflections" => ("Unmerged reflection table", &["txt"], "reflections.txt", true),
-            "hkl" => ("HKLF4 intensities", &["hkl"], "reflections.hkl", true),
-            "cif" => ("Structure candidate", &["cif"], "candidate.cif", true),
-            _ => return None,
-        };
-        return Some(FileChoice { label, extensions, compressed: None, name, save });
+        let (label, extensions, name, save): (_, &[&str], _, _) =
+            match payload["operation"].as_str()? {
+                "use_calibration" | "protocol_builtin" => return None,
+                "protocol" => ("PhaseSmith analysis protocol", &["json"], "", false),
+                "audit" => (
+                    "Lossless stage audit",
+                    &["npz"],
+                    "single-crystal-stages.npz",
+                    true,
+                ),
+                "protocol_save" => (
+                    "Effective PhaseSmith protocol",
+                    &["json"],
+                    "analysis-protocol.json",
+                    true,
+                ),
+                "calibration" => ("PONI calibration", &["poni"], "", false),
+                "open" | "preset" => ("Single-crystal recipe", &["json"], "", false),
+                "save" => (
+                    "Single-crystal recipe",
+                    &["json"],
+                    "single-crystal.scxrd.json",
+                    true,
+                ),
+                "reflections" => (
+                    "Unmerged reflection table",
+                    &["txt"],
+                    "reflections.txt",
+                    true,
+                ),
+                "hkl" => ("HKLF4 intensities", &["hkl"], "reflections.hkl", true),
+                "cif" => ("Structure candidate", &["cif"], "candidate.cif", true),
+                _ => return None,
+            };
+        return Some(FileChoice {
+            label,
+            extensions,
+            compressed: None,
+            name,
+            save,
+        });
     }
     let (label, extensions, name, save): (_, &[&str], _, _) = match action {
-        "open_image" => (
-            "Detector images",
-            DETECTOR_IMAGE_EXTENSIONS,
-            "",
-            false,
-        ),
-        "scxrd_load" | "map_load" | "batch_load" | "batch_load_data" => (
-            "Detector images",
-            DETECTOR_IMAGE_EXTENSIONS,
-            "",
-            false,
-        ),
+        "open_image" => ("Detector images", DETECTOR_IMAGE_EXTENSIONS, "", false),
+        "scxrd_load" | "map_load" | "batch_load" | "batch_load_data" => {
+            ("Detector images", DETECTOR_IMAGE_EXTENSIONS, "", false)
+        }
         "batch_open" | "map_batch" => ("Processed batch", &["h5", "hdf5", "nxs"], "", false),
         "map_export" => (
             "Map data",
@@ -188,7 +247,12 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
         ),
         "open_project" => ("Dioptas project", &["dio"], "", false),
         "save_project" => ("Dioptas project", &["dio"], "experiment.dio", true),
-        "save_cake_profile" => ("Azimuthal profile (degrees, intensity)", &["xy", "dat", "txt", "csv"], "azimuthal-profile.xy", true),
+        "save_cake_profile" => (
+            "Azimuthal profile (degrees, intensity)",
+            &["xy", "dat", "txt", "csv"],
+            "azimuthal-profile.xy",
+            true,
+        ),
         "export_pattern" => ("XY pattern", &["xy"], "pattern.xy", true),
         "integration_save_image" => (
             "Image or data",
@@ -210,8 +274,12 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
             "combined.xy",
             true,
         ),
-        "integration_save_pattern" if payload["format"] == "png" => ("PNG pattern figure", &["png"], "pattern.png", true),
-        "integration_save_pattern" if payload["format"] == "svg" => ("SVG vector pattern figure", &["svg"], "pattern.svg", true),
+        "integration_save_pattern" if payload["format"] == "png" => {
+            ("PNG pattern figure", &["png"], "pattern.png", true)
+        }
+        "integration_save_pattern" if payload["format"] == "svg" => {
+            ("SVG vector pattern figure", &["svg"], "pattern.svg", true)
+        }
         "integration_save_pattern" => (
             "Diffraction pattern",
             &["xy", "xye", "chi", "dat", "fxye"],
@@ -231,22 +299,33 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
             "",
             false,
         ),
-        "integration_phase_list" => ("Phase List", &["txt"], "phase_list.txt", payload["save"] == true),
-        "integration_phase_export" if payload["format"] == "eosmat" => ("Material", &["eosmat"], "material.eosmat", true),
-        "integration_phase_export" if payload["format"] == "txt" => ("Reflection table", &["txt"], "reflections.txt", true),
-        "integration_phase_export" => ("Phase or material", &["eosmat", "jcpds", "txt"], "phase.eosmat", true),
+        "integration_phase_list" => (
+            "Phase List",
+            &["txt"],
+            "phase_list.txt",
+            payload["save"] == true,
+        ),
+        "integration_phase_export" if payload["format"] == "eosmat" => {
+            ("Material", &["eosmat"], "material.eosmat", true)
+        }
+        "integration_phase_export" if payload["format"] == "txt" => {
+            ("Reflection table", &["txt"], "reflections.txt", true)
+        }
+        "integration_phase_export" => (
+            "Phase or material",
+            &["eosmat", "jcpds", "txt"],
+            "phase.eosmat",
+            true,
+        ),
         "integration_phase" | "integration_phase_files" => (
             "Diffraction phase",
             &["jcpds", "cif", "eosmat", "json"],
             "",
             false,
         ),
-        "integration_image_background" | "integration_flat_field" | "integration_transfer" => (
-            "Detector image",
-            DETECTOR_IMAGE_EXTENSIONS,
-            "",
-            false,
-        ),
+        "integration_image_background" | "integration_flat_field" | "integration_transfer" => {
+            ("Detector image", DETECTOR_IMAGE_EXTENSIONS, "", false)
+        }
         "integration_save_batch" => batch_export::file_choice(payload),
         "mask_file" => (
             "Detector mask",
@@ -281,8 +360,14 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
 fn window_action_allowed(window: &str, action: &str) -> bool {
     match window {
         "main" => true,
-        "phase-editor" => matches!(action, "integration_phase_editor" | "integration_phase" | "integration_phase_export"),
-        "map-window" => matches!(action, "map_snapshot" | "map_display" | "map_levels" | "progress"),
+        "phase-editor" => matches!(
+            action,
+            "integration_phase_editor" | "integration_phase" | "integration_phase_export"
+        ),
+        "map-window" => matches!(
+            action,
+            "map_snapshot" | "map_display" | "map_levels" | "progress"
+        ),
         "batch-window" => matches!(action, "batch_snapshot" | "batch_levels"),
         _ => false,
     }
@@ -294,10 +379,7 @@ fn finish_packet(packet: Result<Packet, String>, action: &str) -> Result<Packet,
     if action == "integration_phase_documentation" {
         let result = packet.result_value()?;
         let metadata = wire_contract::response_metadata(&result)?;
-        if let Some(url) = result["documentationUrl"]
-            .as_str()
-            .filter(|_| metadata.ok)
-        {
+        if let Some(url) = result["documentationUrl"].as_str().filter(|_| metadata.ok) {
             peritheos_manual::open_system_browser(url)?;
         }
     }
@@ -317,12 +399,15 @@ async fn desktop_invoke(
     if !window_action_allowed(window.label(), &action) {
         return Err("This command is not available to this desktop window.".into());
     }
-    if host.closing.load(Ordering::SeqCst) && action != "cancel_refinement" && action != "progress" {
+    if host.closing.load(Ordering::SeqCst) && action != "cancel_refinement" && action != "progress"
+    {
         return Err("Saving the session before closing…".into());
     }
     let _admitted = if matches!(action.as_str(), "cancel_refinement" | "progress") {
         None
-    } else { Some(host.active_commands.enter()?) };
+    } else {
+        Some(host.active_commands.enter()?)
+    };
     let processor = host.processor.clone()?;
     let cached = cached_buffers.unwrap_or_default();
     if let Some(products) = &cached_products {
@@ -340,13 +425,20 @@ async fn desktop_invoke(
     }
     tauri::async_runtime::spawn_blocking(move || {
         if action == "choose_hdf5_companion" {
-            let mut dialog = app.dialog().file().set_title("Choose the declared HDF5 source file");
-            if let Some(directory) = payload["directory"].as_str() { dialog = dialog.set_directory(directory); }
+            let mut dialog = app
+                .dialog()
+                .file()
+                .set_title("Choose the declared HDF5 source file");
+            if let Some(directory) = payload["directory"].as_str() {
+                dialog = dialog.set_directory(directory);
+            }
             let Some(selected) = dialog.blocking_pick_file() else {
                 return Ok(Packet::cancelled());
             };
-            let selected = selected.into_path().map_err(|e|e.to_string())?;
-            return Ok(Packet::metadata(json!({"ok":true,"chosenPath":selected.to_string_lossy()})));
+            let selected = selected.into_path().map_err(|e| e.to_string())?;
+            return Ok(Packet::metadata(
+                json!({"ok":true,"chosenPath":selected.to_string_lossy()}),
+            ));
         }
         if folder_choice(&action, &payload) {
             let Some(selected) = app.dialog().file().blocking_pick_folder() else {
@@ -370,12 +462,25 @@ async fn desktop_invoke(
             }
             dialog = dialog.add_filter("All files", &["*"]);
             if action == "integration_save_batch" {
-                dialog = dialog.set_title(if batch_export::multifile(&payload) { "Choose Batch export basename" } else { "Save Batch data" });
+                dialog = dialog.set_title(if batch_export::multifile(&payload) {
+                    "Choose Batch export basename"
+                } else {
+                    "Save Batch data"
+                });
             }
             if let Some(directory) = payload["directory"].as_str() {
                 dialog = dialog.set_directory(directory);
             }
-            if matches!(action.as_str(), "scxrd_load" | "map_load" | "batch_load" | "batch_load_data" | "integration_overlay" | "integration_phase_files") || (action == "open_image" && payload["multiple"] == true) {
+            if matches!(
+                action.as_str(),
+                "scxrd_load"
+                    | "map_load"
+                    | "batch_load"
+                    | "batch_load_data"
+                    | "integration_overlay"
+                    | "integration_phase_files"
+            ) || (action == "open_image" && payload["multiple"] == true)
+            {
                 let Some(selected) = dialog.blocking_pick_files() else {
                     return Ok(Packet::cancelled());
                 };
@@ -405,7 +510,14 @@ async fn desktop_invoke(
             let selected = if choice.save {
                 let name = if action == "integration_save_batch" {
                     batch_export::suggested_name(&payload, choice.name)
-                } else if matches!(action.as_str(), "integration_save_image" | "integration_phase_export" | "save_cake_profile" | "integration_save_spottiness" | "integration_save_pattern") {
+                } else if matches!(
+                    action.as_str(),
+                    "integration_save_image"
+                        | "integration_phase_export"
+                        | "save_cake_profile"
+                        | "integration_save_spottiness"
+                        | "integration_save_pattern"
+                ) {
                     payload["suggested_name"].as_str().unwrap_or(choice.name)
                 } else {
                     choice.name
@@ -468,7 +580,11 @@ fn main() {
     let navigation_benchmark = args.iter().any(|a| a == "--navigation-benchmark");
     let tooltip_smoke = args.iter().any(|a| a == "--tooltip-smoke");
     let standalone_smoke = args.iter().any(|a| a == "--standalone-smoke");
-    let smoke = standalone_smoke || pattern_benchmark || navigation_benchmark || tooltip_smoke || args.iter().any(|a| a == "--smoke");
+    let smoke = standalone_smoke
+        || pattern_benchmark
+        || navigation_benchmark
+        || tooltip_smoke
+        || args.iter().any(|a| a == "--smoke");
     let batch_smoke = std::env::args().any(|arg| arg == "--batch-smoke");
     let detector_smoke = args.iter().any(|a| a == "--detector-smoke");
     let map_smoke = args.iter().any(|a| a == "--map-smoke");
@@ -476,7 +592,9 @@ fn main() {
     let mut context = tauri::generate_context!();
     let initial_title = format!("Dioptas {}", context.package_info().version);
     for window in &mut context.config_mut().app.windows {
-        if window.label == "main" { window.title = initial_title.clone(); }
+        if window.label == "main" {
+            window.title = initial_title.clone();
+        }
     }
     if smoke {
         // Create test windows with private WebKit storage. Production windows
@@ -738,8 +856,11 @@ fn main() {
     app.run(|handle, event| {
         #[cfg(any(target_os = "macos", target_os = "ios"))]
         if let tauri::RunEvent::Opened { urls } = &event {
-            let files: Vec<_> = urls.iter().filter_map(|url| url.to_file_path().ok())
-                .map(|path| path.to_string_lossy().into_owned()).collect();
+            let files: Vec<_> = urls
+                .iter()
+                .filter_map(|url| url.to_file_path().ok())
+                .map(|path| path.to_string_lossy().into_owned())
+                .collect();
             if !files.is_empty() {
                 use tauri::Emitter;
                 handle.state::<Host>().recovery.opened_files(files);
@@ -768,12 +889,26 @@ mod tests {
     use super::*;
     #[test]
     fn supported_formats_are_selectable_in_every_detector_image_chooser() {
-        for action in ["open_image", "scxrd_load", "map_load", "batch_load", "batch_load_data",
-            "integration_image_background", "integration_flat_field", "integration_transfer"] {
+        for action in [
+            "open_image",
+            "scxrd_load",
+            "map_load",
+            "batch_load",
+            "batch_load_data",
+            "integration_image_background",
+            "integration_flat_field",
+            "integration_transfer",
+        ] {
             let choice = file_choice(action, &json!({})).unwrap();
             assert!(!choice.save, "{action}");
             assert_eq!(choice.extensions, DETECTOR_IMAGE_EXTENSIONS, "{action}");
-            assert!(!choice.extensions.iter().any(|e| COMPRESSED_IMAGE_EXTENSIONS.contains(e)), "{action}");
+            assert!(
+                !choice
+                    .extensions
+                    .iter()
+                    .any(|e| COMPRESSED_IMAGE_EXTENSIONS.contains(e)),
+                "{action}"
+            );
             assert_eq!(
                 choice.compressed,
                 Some(("Compressed detector images", COMPRESSED_IMAGE_EXTENSIONS)),
@@ -781,8 +916,16 @@ mod tests {
             );
         }
         // Other choosers never offer the compressed filter.
-        assert_eq!(file_choice("detector_file", &json!({})).unwrap().compressed, None);
-        assert_eq!(file_choice("scxrd_file", &json!({"operation":"calibration"})).unwrap().compressed, None);
+        assert_eq!(
+            file_choice("detector_file", &json!({})).unwrap().compressed,
+            None
+        );
+        assert_eq!(
+            file_choice("scxrd_file", &json!({"operation":"calibration"}))
+                .unwrap()
+                .compressed,
+            None
+        );
     }
 
     #[test]
@@ -790,27 +933,47 @@ mod tests {
         assert!(file_choice("scxrd_load", &json!({})).is_some());
         assert!(file_choice("scxrd_load", &json!({"paths":["frame.tif"]})).is_none());
         assert!(file_choice("scxrd_file", &json!({"operation":"use_calibration"})).is_none());
-        assert!(!file_choice("scxrd_file", &json!({"operation":"calibration"})).unwrap().save);
-        for op in ["save","reflections","hkl","cif"] {
-            assert!(file_choice("scxrd_file", &json!({"operation":op})).unwrap().save);
+        assert!(
+            !file_choice("scxrd_file", &json!({"operation":"calibration"}))
+                .unwrap()
+                .save
+        );
+        for op in ["save", "reflections", "hkl", "cif"] {
+            assert!(
+                file_choice("scxrd_file", &json!({"operation":op}))
+                    .unwrap()
+                    .save
+            );
         }
     }
 
     #[test]
     fn pattern_save_chooser_separates_data_and_editor_figures() {
-        let choice = file_choice("integration_save_pattern", &json!({"png_data":"png", "svg_data":"svg"})).unwrap();
+        let choice = file_choice(
+            "integration_save_pattern",
+            &json!({"png_data":"png", "svg_data":"svg"}),
+        )
+        .unwrap();
         assert_eq!(choice.extensions, &["xy", "xye", "chi", "dat", "fxye"]);
         assert_eq!(choice.name, "pattern.xy");
         for format in ["png", "svg"] {
-            let figure = file_choice("integration_save_pattern", &json!({"format":format})).unwrap();
+            let figure =
+                file_choice("integration_save_pattern", &json!({"format":format})).unwrap();
             assert_eq!(figure.extensions, &[format]);
             assert_eq!(figure.name, format!("pattern.{format}"));
         }
         assert!(choice.save);
         for extension in choice.extensions {
-            assert!(file_choice("integration_save_pattern", &json!({"path":format!("/tmp/pattern.{extension}")})).is_none());
+            assert!(file_choice(
+                "integration_save_pattern",
+                &json!({"path":format!("/tmp/pattern.{extension}")})
+            )
+            .is_none());
         }
-        assert!(!file_choice("integration_open_pattern", &json!({})).unwrap().extensions.contains(&"svg"));
+        assert!(!file_choice("integration_open_pattern", &json!({}))
+            .unwrap()
+            .extensions
+            .contains(&"svg"));
     }
 
     #[test]
@@ -819,31 +982,60 @@ mod tests {
         assert!(choice.save);
         assert_eq!(choice.extensions, &["csv"]);
         assert_eq!(choice.name, "pattern_spottiness.csv");
-        assert!(file_choice("integration_save_spottiness", &json!({"path":"/tmp/spread.csv"})).is_none());
+        assert!(file_choice(
+            "integration_save_spottiness",
+            &json!({"path":"/tmp/spread.csv"})
+        )
+        .is_none());
     }
 
     #[test]
     fn companion_windows_read_only_and_unknown_windows_rejected() {
         assert!(window_action_allowed("batch-window", "batch_snapshot"));
         assert!(window_action_allowed("batch-window", "batch_levels"));
-        for action in ["batch_select", "batch_load", "state", "integration_save_batch", "open_image"] {
+        for action in [
+            "batch_select",
+            "batch_load",
+            "state",
+            "integration_save_batch",
+            "open_image",
+        ] {
             assert!(!window_action_allowed("batch-window", action));
         }
         assert!(!window_action_allowed("unknown", "batch_snapshot"));
         assert!(!window_action_allowed("map-window", "batch_snapshot"));
         assert!(window_action_allowed("map-window", "progress"));
         assert!(!window_action_allowed("map-window", "map_load"));
-        for action in ["state", "open_image", "image_levels", "pick_peak", "mask_edit", "integration_correction_preview"] {
+        for action in [
+            "state",
+            "open_image",
+            "image_levels",
+            "pick_peak",
+            "mask_edit",
+            "integration_correction_preview",
+        ] {
             assert!(!window_action_allowed("detector-window", action));
         }
         assert!(window_action_allowed("main", "batch_select"));
     }
     #[test]
     fn batch_dialogs_distinguish_sources_and_explicit_payloads() {
-        assert!(batch_image_output_choice("open_image", &json!({"batch_mode": "save", "paths": ["one.tif", "two.tif"]})));
-        assert!(!batch_image_output_choice("open_image", &json!({"batch_mode": "save", "paths": ["one.tif"]})));
-        assert!(!batch_image_output_choice("open_image", &json!({"batch_mode": "integrate", "paths": ["one.tif", "two.tif"]})));
-        assert!(!batch_image_output_choice("open_image", &json!({"batch_mode": "save", "paths": ["one.tif", "two.tif"], "output_directory": "/tmp"})));
+        assert!(batch_image_output_choice(
+            "open_image",
+            &json!({"batch_mode": "save", "paths": ["one.tif", "two.tif"]})
+        ));
+        assert!(!batch_image_output_choice(
+            "open_image",
+            &json!({"batch_mode": "save", "paths": ["one.tif"]})
+        ));
+        assert!(!batch_image_output_choice(
+            "open_image",
+            &json!({"batch_mode": "integrate", "paths": ["one.tif", "two.tif"]})
+        ));
+        assert!(!batch_image_output_choice(
+            "open_image",
+            &json!({"batch_mode": "save", "paths": ["one.tif", "two.tif"], "output_directory": "/tmp"})
+        ));
         assert!(file_choice("batch_load", &json!({})).is_some());
         assert!(file_choice("batch_load_data", &json!({})).is_some());
         assert!(file_choice("batch_load_data", &json!({"paths": ["series.h5"]})).is_none());
@@ -871,7 +1063,11 @@ mod tests {
         let choice = file_choice("save_combined_pattern", &json!({})).unwrap();
         assert!(choice.save);
         assert_eq!(choice.extensions, &["xy", "chi", "dat", "fxye"]);
-        assert!(file_choice("save_combined_pattern", &json!({"path": "/tmp/combined.xy"})).is_none());
+        assert!(file_choice(
+            "save_combined_pattern",
+            &json!({"path": "/tmp/combined.xy"})
+        )
+        .is_none());
     }
 
     #[test]
@@ -908,15 +1104,39 @@ mod tests {
         assert!(file_choice("integration_open_pattern", &json!({"direction": 1})).is_none());
         assert!(file_choice("integration_overlay", &json!({"operation": "load"})).is_some());
         assert!(file_choice("integration_overlay", &json!({"operation": "capture"})).is_none());
-        assert!(file_choice("integration_overlay", &json!({"operation": "load", "paths": ["a.xy", "b.xy"]})).is_none());
+        assert!(file_choice(
+            "integration_overlay",
+            &json!({"operation": "load", "paths": ["a.xy", "b.xy"]})
+        )
+        .is_none());
         assert!(file_choice("integration_phase", &json!({"operation": "update"})).is_none());
         assert!(file_choice("integration_phase", &json!({"operation": "load"})).is_some());
-        assert!(file_choice("integration_phase", &json!({"operation": "load", "paths": ["/tmp/phase.cif"]})).is_none());
+        assert!(file_choice(
+            "integration_phase",
+            &json!({"operation": "load", "paths": ["/tmp/phase.cif"]})
+        )
+        .is_none());
         assert!(file_choice("integration_phase_files", &json!({})).is_some());
-        assert!(file_choice("integration_phase_files", &json!({"paths": ["/tmp/phase.cif"]})).is_none());
-        assert!(file_choice("integration_phase_list", &json!({"save": true})).unwrap().save);
-        assert!(!file_choice("integration_phase_list", &json!({"save": false})).unwrap().save);
-        assert!(file_choice("integration_phase_export", &json!({"index": 0})).unwrap().save);
+        assert!(file_choice(
+            "integration_phase_files",
+            &json!({"paths": ["/tmp/phase.cif"]})
+        )
+        .is_none());
+        assert!(
+            file_choice("integration_phase_list", &json!({"save": true}))
+                .unwrap()
+                .save
+        );
+        assert!(
+            !file_choice("integration_phase_list", &json!({"save": false}))
+                .unwrap()
+                .save
+        );
+        assert!(
+            file_choice("integration_phase_export", &json!({"index": 0}))
+                .unwrap()
+                .save
+        );
         assert!(file_choice("integration_image_background", &json!({"scale": 2})).is_none());
         assert!(file_choice("integration_image_background", &json!({})).is_some());
         assert!(file_choice("integration_flat_field", &json!({"enabled": true})).is_none());
@@ -924,7 +1144,11 @@ mod tests {
         assert!(file_choice("integration_transfer", &json!({"source":"original"})).is_some());
         assert!(file_choice("integration_transfer", &json!({"source":"response"})).is_some());
         assert!(file_choice("integration_transfer", &json!({"enabled":true})).is_none());
-        assert!(file_choice("integration_transfer", &json!({"source":"original","reset":true})).is_none());
+        assert!(file_choice(
+            "integration_transfer",
+            &json!({"source":"original","reset":true})
+        )
+        .is_none());
         assert!(file_choice("integration_image_background", &json!({"poisson":true})).is_none());
         assert!(
             file_choice("integration_save_pattern", &json!({}))

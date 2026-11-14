@@ -110,24 +110,27 @@ pub async fn show_calibration_tooltip(
         popup.hide().map_err(|e| e.to_string())?;
         popup
     } else {
-        crate::smoke_storage::configure(&app, WebviewWindowBuilder::new(&app, LABEL, tauri::WebviewUrl::App("index.html".into())))
-            .title("Calibration help")
-            .parent(&window)
-            .map_err(|e| e.to_string())?
-            .decorations(false)
-            .resizable(false)
-            .maximizable(false)
-            .minimizable(false)
-            .closable(false)
-            .focused(false)
-            .focusable(false)
-            .visible(false)
-            .skip_taskbar(true)
-            .shadow(true)
-            .background_color(tauri::webview::Color(41, 45, 50, 255))
-            .disable_drag_drop_handler()
-            .build()
-            .map_err(|e| e.to_string())?
+        crate::smoke_storage::configure(
+            &app,
+            WebviewWindowBuilder::new(&app, LABEL, tauri::WebviewUrl::App("index.html".into())),
+        )
+        .title("Calibration help")
+        .parent(&window)
+        .map_err(|e| e.to_string())?
+        .decorations(false)
+        .resizable(false)
+        .maximizable(false)
+        .minimizable(false)
+        .closable(false)
+        .focused(false)
+        .focusable(false)
+        .visible(false)
+        .skip_taskbar(true)
+        .shadow(true)
+        .background_color(tauri::webview::Color(41, 45, 50, 255))
+        .disable_drag_drop_handler()
+        .build()
+        .map_err(|e| e.to_string())?
     };
     popup
         .set_ignore_cursor_events(true)
@@ -170,7 +173,8 @@ pub fn present_calibration_tooltip(
             // Tauri's show() calls makeKeyAndOrderFront on macOS even for a
             // non-focusable window. Help must only order forward, retaining
             // keyboard focus on the main window and its initiating control.
-            let _main = objc2::MainThreadMarker::new().ok_or("Calibration help must be presented on the UI thread")?;
+            let _main = objc2::MainThreadMarker::new()
+                .ok_or("Calibration help must be presented on the UI thread")?;
             let pointer = window.ns_window().map_err(|e| e.to_string())?;
             let popup = unsafe { &*pointer.cast::<objc2_app_kit::NSWindow>() };
             popup.orderFront(None);

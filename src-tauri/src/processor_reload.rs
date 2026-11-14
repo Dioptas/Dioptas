@@ -288,13 +288,7 @@ fn source_stamp(root: &Path) -> u64 {
         }
     }
     let mut hash = std::collections::hash_map::DefaultHasher::new();
-    for name in [
-        "src",
-        "data",
-        "resources",
-        "Cargo.toml",
-        "build.rs",
-    ] {
+    for name in ["src", "data", "resources", "Cargo.toml", "build.rs"] {
         visit(&root.join(name), &mut hash);
     }
     // The workspace manifest and lockfile, and the contract crate both crates
@@ -347,8 +341,7 @@ mod tests {
     #[test]
     fn automatic_rebuild_restores_session_and_keeps_it_running_through_failed_builds() {
         let host = ProcessorHost::start(false, Backend::Rust, None).unwrap();
-        let fixture =
-            Processor::source_root().join("backend/tests/fixtures/combined-counts.h5");
+        let fixture = Processor::source_root().join("backend/tests/fixtures/combined-counts.h5");
         call(
             &host,
             "open_image",
