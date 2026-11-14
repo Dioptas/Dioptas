@@ -1184,19 +1184,17 @@ impl Session {
     }
 }
 
+/// Series key and frame number. One outer `.gz`/`.bz2` belongs to the
+/// suffix, so `scan_0001.esper.gz` is frame 1 of `scan_*.esper.gz`.
 fn frame_number(path: &Path) -> Option<(String, u64)> {
-    let stem = path.file_stem()?.to_str()?;
+    let (stem, suffix) =
+        dioptas_contract::image_formats::split_image_name(path.file_name()?.to_str()?)?;
     let start = stem
         .rfind(|c: char| !c.is_ascii_digit())
         .map_or(0, |i| i + 1);
     let count = stem.get(start..)?.parse().ok()?;
     Some((
-        format!(
-            "{}/{}.{}",
-            path.parent()?.display(),
-            &stem[..start],
-            path.extension()?.to_str()?
-        ),
+        format!("{}/{}.{}", path.parent()?.display(), &stem[..start], suffix),
         count,
     ))
 }

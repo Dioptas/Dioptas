@@ -2,6 +2,24 @@
 
 > Moved from the former desktop README (now `DEVELOPMENT.md`). Source paths and commands are relative to the repository root.
 
+The image dialogs in Calibration, Integration, Map, Batch and Single Crystal XRD,
+including image background, flat-field and transfer correction selection, show
+the same supported image extensions. These include NumPy `.npy`, TIFF/MAR,
+EDF/CBF, HDF5, Oxford/R-AXIS/HiPiC/ADSC `.img`, Bruker, KCD/MPA/SPE,
+Esperanto `.esperanto`/`.esper`, MRC/DM3, FIT2D `.f2d`, grayscale PNM and XSD XML.
+Gzip (`.gz`) and bzip2 (`.bz2`) files are listed under a separate **Compressed
+detector images** filter, because native dialogs match only the last suffix.
+Folder scanning (Batch folder loading, Map Live and acquisition watching)
+requires a known image extension before the compression suffix, such as
+`.edf.gz` or `.esper.bz2`, and skips hidden files. It also skips the generic
+`.xml` (XSD) and `.map` (MRC/CCP4) suffixes, which beamline metadata and density
+maps share; choose such files in a dialog instead. Frame numbers in compressed
+names come before the image extension, so `scan_0001.esper.gz` is frame 1 for
+Single Crystal XRD ordering, Map Live and image navigation. File contents still determine the reader;
+an extension does not override format, shape or data validation. Select **All
+files** for supported detector files with other names. JPEG, JPEG 2000 and NumPy
+`.npz` archives are not enabled in this application.
+
 The development branch is `develop`, promoted from `codex/rust-desktop` on
 November 11, 2026. The former Qt `develop` is preserved on `legacy/qt`, and
 existing stable releases remain Qt applications. New desktop work targets

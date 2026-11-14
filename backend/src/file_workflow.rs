@@ -102,40 +102,16 @@ impl Files {
     }
 }
 pub(super) fn image_file(path: &Path) -> bool {
-    let name = path
-        .file_name()
-        .unwrap_or_default()
-        .to_string_lossy()
-        .to_lowercase();
-    !name.starts_with('.')
-        && [
-            "tif",
-            "tiff",
-            "edf",
-            "edf.gz",
-            "cbf",
-            "cbf.gz",
-            "h5",
-            "hdf5",
-            "nxs",
-            "npy",
-            "npz",
-            "img",
-            "mccd",
-            "mar3450",
-            "mar345",
-            "kcd",
-            "mpa",
-            "sfrm",
-            "osc",
-            "gfrm",
-            "cor",
-            "spe",
-            "dat",
-            "esperanto",
-        ]
-        .iter()
-        .any(|e| name.ends_with(&format!(".{e}")))
+    dioptas_contract::image_formats::scanned_image_filename(
+        &path.file_name().unwrap_or_default().to_string_lossy(),
+    )
+}
+/// Lowercase image suffix including one outer compression wrapper, so
+/// `scan.edf.gz` gives `edf.gz` rather than `gz`.
+fn image_suffix(path: &Path) -> Option<String> {
+    let name = path.file_name()?.to_string_lossy();
+    let (_, suffix) = dioptas_contract::image_formats::split_image_name(&name)?;
+    Some(suffix.to_ascii_lowercase())
 }
 pub(super) fn numbered(path: &Path, step: i64) -> Option<PathBuf> {
     let name = path.file_name()?.to_str()?;
@@ -180,6 +156,7 @@ pub(super) fn neighbor(path: &Path, mode: &str, step: i64) -> Result<Option<Path
         return Ok(numbered(path, step));
     }
     let mut entries = Vec::new();
+    let suffix = image_suffix(path);
     // Resolve the directory once. Regular entries then already have canonical
     // parents; resolving every earlier filename made late-acquisition browsing
     // pay thousands of redundant filesystem lookups on each click.
@@ -196,7 +173,7 @@ pub(super) fn neighbor(path: &Path, mode: &str, step: i64) -> Result<Option<Path
             .unwrap_or_default()
             .to_string_lossy()
             .starts_with('.')
-            && p.extension() == path.extension()
+            && image_suffix(&p) == suffix
         {
             let Ok(m) = std::fs::metadata(&p) else {
                 continue;
@@ -1199,6 +1176,83 @@ fn save_svg(file: &Path, value: &Value) -> Result<(), String> {
 #[cfg(test)]
 mod navigation_tests {
     use super::*;
+    #[test]
+    fn supported_image_aliases_and_wrappers_are_admitted_to_folder_navigation() {
+        for name in [
+            "frame_001.esperanto",
+            "frame_001.ESPER",
+            "frame_001.mar1200",
+            "frame_001.mrc",
+            "frame_001.dm3",
+            "frame_001.f2d",
+            "frame_001.pgm",
+            "frame_001.xsd",
+            "frame_001.edf.gz",
+            "frame_001.ESPER.BZ2",
+            "frame_001.npy.gz",
+        ] {
+            assert!(image_file(Path::new(name)), "{name}");
+        }
+        assert!(!image_file(Path::new(".hidden.esper")));
+        assert!(!image_file(Path::new("frame_001.esper.txt")));
+        assert!(!image_file(Path::new("unrelated.txt.gz")));
+        assert!(!image_file(Path::new("frame_001.npz")));
+        // Generic suffixes stay dialog-only so sidecars are not taken for frames.
+        assert!(!image_file(Path::new("scan_0001.xml")));
+        assert!(!image_file(Path::new("density.map")));
+    }
+
+    #[test]
+    fn every_listed_extension_has_an_enabled_reader() {
+        use dioptas_contract::image_formats::DETECTOR_IMAGE_EXTENSIONS;
+        use dioptrin_io::discovery::Codec;
+        // Readers are chosen by content; this only ties the filename list to
+        // the codecs compiled in through backend/Cargo.toml.
+        for extension in DETECTOR_IMAGE_EXTENSIONS {
+            let codecs: &[Codec] = match *extension {
+                "tif" | "tiff" | "mccd" => &[Codec::Tiff],
+                "edf" | "cor" => &[Codec::Edf],
+                "cbf" => &[Codec::Cbf],
+                "h5" | "hdf5" | "nxs" => &[Codec::Hdf5, Codec::Eiger, Codec::Lima, Codec::Lambda],
+                "npy" => &[Codec::Npy],
+                "img" => &[Codec::Oxford, Codec::Raxis, Codec::HiPic, Codec::Dtrek],
+                "osc" => &[Codec::Raxis],
+                "mar345" | "mar1200" | "mar1600" | "mar1800" | "mar2000" | "mar2300"
+                | "mar2400" | "mar3000" | "mar3450" => &[Codec::Mar345],
+                "kcd" => &[Codec::Kcd],
+                "mpa" => &[Codec::Mpa],
+                "sfrm" | "gfrm" => &[Codec::Bruker],
+                "spe" => &[Codec::Spe],
+                "dat" => &[Codec::Ge],
+                "esperanto" | "esper" => &[Codec::Esperanto],
+                "mrc" | "map" | "fei" => &[Codec::Mrc],
+                "dm3" => &[Codec::Dm3],
+                "f2d" => &[Codec::Fit2d],
+                "pnm" | "pgm" | "pbm" => &[Codec::Pnm],
+                "xsd" | "xml" => &[Codec::Xsd],
+                other => panic!("{other} has no reader mapping"),
+            };
+            for codec in codecs {
+                assert!(codec.available(), "{extension}: {codec:?} is not enabled");
+            }
+        }
+    }
+
+    #[test]
+    fn time_order_compares_the_full_compressed_image_suffix() {
+        let temp = tempfile::tempdir().unwrap();
+        let directory = temp.path().canonicalize().unwrap();
+        let first = directory.join("a.edf.gz");
+        let second = directory.join("b.EDF.gz");
+        std::fs::write(&first, b"first").unwrap();
+        // Sorts between the frames by name and time, but is not an EDF frame.
+        std::fs::write(directory.join("aa_notes.txt.gz"), b"notes").unwrap();
+        std::fs::write(directory.join("ab.cbf.gz"), b"other").unwrap();
+        std::fs::write(&second, b"second").unwrap();
+        assert_eq!(neighbor(&first, "time", 1).unwrap(), Some(second.clone()));
+        assert_eq!(neighbor(&second, "time", -1).unwrap(), Some(first));
+    }
+
     #[test]
     fn time_order_filters_entries_preserves_steps_and_finds_new_arrivals() {
         let temp = tempfile::tempdir().unwrap();
