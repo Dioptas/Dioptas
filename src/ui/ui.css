@@ -128,6 +128,47 @@ input[type="checkbox"]:disabled,
 input[type="radio"]:disabled {
   opacity: 0.45;
 }
+/* Switch: an on/off setting that reveals or hides further options. */
+input[type="checkbox"].ui-switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  border-color: var(--ui-choice-border);
+  background: var(--ui-choice-background);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+input[type="checkbox"].ui-switch::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #aeb4ba;
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease;
+}
+input[type="checkbox"].ui-switch:checked {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+input[type="checkbox"].ui-switch:checked::before {
+  background: #fff;
+  transform: translateX(18px);
+}
+input[type="checkbox"].ui-switch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+input[type="checkbox"].ui-switch:disabled {
+  cursor: default;
+}
 @media (forced-colors: active) {
   input[type="checkbox"],
   input[type="checkbox"]:is(:checked, :indeterminate),

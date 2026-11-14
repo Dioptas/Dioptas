@@ -94,11 +94,9 @@ function NumberPreview({
   );
 }
 export function ConfigurationBrowsingSettings({
-  enabled = true,
   filename,
   directory,
 }: {
-  enabled?: boolean;
   filename?: string | null;
   directory?: string | null;
 }) {
@@ -124,7 +122,6 @@ export function ConfigurationBrowsingSettings({
   const file = filename || "scan_007_det_002.tif";
   return (
     <fieldset
-      disabled={!enabled}
       className="settings-card configuration-browsing-settings"
       role="group"
       aria-label="Configuration browsing settings"
