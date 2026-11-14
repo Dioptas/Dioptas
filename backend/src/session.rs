@@ -2305,7 +2305,7 @@ impl Session {
             "wavelength_angstrom": self
                 .settings
                 .calibrated
-                .then(|| self.settings.geometry.wavelength * 1e10),
+                .then_some(self.settings.geometry.wavelength * 1e10),
         })
     }
     fn snapshot(&self, include_image: bool) -> Reply {
