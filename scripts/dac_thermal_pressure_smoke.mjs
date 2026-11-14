@@ -79,7 +79,7 @@ try {
       await ready();
       await page.getByRole("button", { name: "Settings", exact: true }).click();
       await page.getByRole("tab", { name: "Phase", exact: true }).click();
-      const enabled = page.getByRole("checkbox", {
+      const enabled = page.getByRole("switch", {
         name: "DAC thermal pressure",
         exact: true,
       });
@@ -87,8 +87,7 @@ try {
         name: "DAC thermal-pressure fraction",
       });
       assert.equal(await enabled.isChecked(), false);
-      assert.equal(await factor.isDisabled(), true);
-      assert.equal(await factor.inputValue(), "0.25");
+      assert.equal(await factor.count(), 0, "Fraction appears only when on");
       await enabled.click();
       await page.waitForFunction(
         () =>
@@ -96,6 +95,7 @@ try {
       );
       await ready();
       assert.equal(await enabled.isChecked(), true);
+      assert.equal(await factor.inputValue(), "0.25");
       assert.ok((await volume()) < initial);
       const quarter = await volume();
       await factor.fill("0.4");
@@ -117,8 +117,7 @@ try {
             .checked,
       );
       await ready();
-      assert.equal(await factor.isDisabled(), true);
-      assert.equal(await factor.inputValue(), "0.4");
+      assert.equal(await factor.count(), 0);
       assert.equal(await volume(), initial);
       await enabled.click();
       await page.waitForFunction(
@@ -126,6 +125,7 @@ try {
           document.querySelector('[aria-label="DAC thermal pressure"]').checked,
       );
       await ready();
+      assert.equal(await factor.inputValue(), "0.4");
       assert.ok((await volume()) < quarter);
       const group = page.getByRole("group", {
         name: "DAC thermal pressure settings",
@@ -164,7 +164,7 @@ try {
       await page.getByRole("tab", { name: "Phase", exact: true }).click();
       assert.equal(
         await page
-          .getByRole("checkbox", { name: "DAC thermal pressure", exact: true })
+          .getByRole("switch", { name: "DAC thermal pressure", exact: true })
           .count(),
         0,
         "Control belongs in Settings",

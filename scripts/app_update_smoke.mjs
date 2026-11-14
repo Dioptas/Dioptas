@@ -281,7 +281,7 @@ try {
       );
 
       // The automatic check can be switched off and stays off.
-      const automatic = page.getByRole("checkbox", {
+      const automatic = page.getByRole("switch", {
         name: "Check for updates automatically",
       });
       assert.equal(await automatic.isChecked(), true);

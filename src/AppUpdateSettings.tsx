@@ -47,6 +47,8 @@ export function AppUpdateSettings({
         <Input
           id="settings-update-automatic"
           type="checkbox"
+          role="switch"
+          className="ui-switch"
           disabled={supported === false}
           checked={controller.automatic && supported !== false}
           onChange={(event) => controller.setAutomatic(event.target.checked)}
