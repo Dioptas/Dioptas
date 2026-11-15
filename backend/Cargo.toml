@@ -21,6 +21,7 @@ half = "2"
 serde = { version = "1", features = ["derive", "rc"] }
 # Preserve the established ordering of plugin controls in embedded schemas.
 serde_json = { version = "1", features = ["preserve_order"] }
+dunce = "1.0.5"
 sha2 = "0.10"
 tempfile = "3"
 time = { version = "0.3", features = ["formatting"] }

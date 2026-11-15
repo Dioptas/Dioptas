@@ -118,12 +118,12 @@ fn target_path(parent: &str, target: &str, suffix: &str) -> String {
     format!("/{}", parts.join("/"))
 }
 fn declared_path(owner: &Path, name: &str, settings: &Value, printf: bool) -> Option<PathBuf> {
-    let physical_owner = owner.canonicalize().unwrap_or_else(|_| owner.to_path_buf());
+    let physical_owner = dunce::canonicalize(owner).unwrap_or_else(|_| owner.to_path_buf());
     if let Some(bindings) = settings["hdf5_bindings"].as_array() {
         for binding in bindings {
             if binding["stored_filename"] == name
                 && binding["owner"].as_str().is_some_and(|p| {
-                    Path::new(p).canonicalize().ok().as_ref() == Some(&physical_owner)
+                    dunce::canonicalize(Path::new(p)).ok().as_ref() == Some(&physical_owner)
                 })
             {
                 return binding["actual_file"].as_str().map(PathBuf::from);
@@ -151,7 +151,7 @@ pub(super) fn unavailable(
     settings: &Value,
 ) -> BTreeMap<PathBuf, Option<FileIdentity>> {
     let mut missing = BTreeMap::new();
-    let Ok(root) = path.canonicalize() else {
+    let Ok(root) = dunce::canonicalize(path) else {
         return missing;
     };
     let Ok(file) = hdf5::File::open(&root) else {
