@@ -1,6 +1,7 @@
-# Unreleased
+# 0.14.0-rc.2 (2026-11-15)
 
 Changes since 0.14.0-rc.1, the first release candidate of the Rust desktop. See
+[the rc.2 release notes](docs/release/RELEASE_0.14.0-rc.2.md) for downloads and
 [the rc.1 release notes](docs/release/RELEASE_0.14.0-rc.1.md) for what that
 candidate contains.
 
