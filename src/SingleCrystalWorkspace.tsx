@@ -40,6 +40,11 @@ import {
   mergeAngle,
   mergedNote,
   cellVolume,
+  bravaisName,
+  candidateCell,
+  deviationLabel,
+  refinedCellLines,
+  symmetryTolerance,
   latticeMethods,
   exploratoryCrystalConfig as exploratory,
   cellMasks,
@@ -55,6 +60,7 @@ import {
   type CrystalData,
   type LatticeMethod,
   type MaskKey,
+  type RefinedLattice,
 } from "./singleCrystalDomain";
 import "./integrationNumericFields.css";
 import "./singleCrystal.css";
@@ -64,7 +70,12 @@ const ROTATION_AXIS_HELP =
   "The axis the crystal turns about, as seen in the image. Rotation direction is the sense of that turn: if Find lattices finds nothing, try the other direction.";
 export const crystalNumber = (n: number, d = 3) =>
   Number.isFinite(n) ? n.toFixed(d) : "—";
-const steps = ["Prepare masks", "Find spots", "Find lattices"] as const;
+const steps = [
+  "Prepare masks",
+  "Find spots",
+  "Find lattices",
+  "Refine lattice",
+] as const;
 const MASK_NAMES: Record<MaskKey, { name: string; title?: string }> = {
   dac: { name: "DAC opening" },
   seat: { name: "Seat shadow" },
@@ -230,6 +241,8 @@ export function SingleCrystalWorkspace({
   const maskCounts = data?.stages[0]?.masks;
   /** The mask whose fields are shown (at most one). */
   const [openMask, setOpenMask] = useState<MaskKey | null>(null);
+  /** Refine lattice: lattices (rows in Find lattices) shown collapsed. */
+  const [closedSymmetry, setClosedSymmetry] = useState<number[]>([]);
   /**
    * Setup (rotation and calibration) stays open until a series and a
    * calibration are there; after that the user's choice is remembered.
@@ -435,6 +448,7 @@ export function SingleCrystalWorkspace({
   const stepSummary = (stage: number) => {
     if (!data) return "";
     const state = data.stages[stage];
+    if (stage === 3 && state.status !== "pending") return state.detail;
     if (stage === 2 && data.cells.length) {
       const kept = data.cells.filter((c) => c.kept).length;
       return `${data.cells.length} lattice${data.cells.length === 1 ? "" : "s"} · ${kept ? `${kept} kept` : "tick one"}`;
@@ -450,7 +464,7 @@ export function SingleCrystalWorkspace({
         ? `${data.trackCount} linked spots`
         : `${data.cells.length} lattice${data.cells.length === 1 ? "" : "s"}`;
   };
-  const lastStage = data?.geometry ? 2 : 1;
+  const lastStage = data?.geometry ? 3 : 1;
   const analysed = !!data?.stages
     .slice(0, lastStage + 1)
     .every((stage) => stage.status === "complete");
@@ -690,6 +704,99 @@ export function SingleCrystalWorkspace({
         {open && (
           <div id={`${maskIds}-${key}`} className="sc-mask-fields">
             {fields}
+          </div>
+        )}
+      </div>
+    );
+  };
+  /**
+   * Refine lattice, one kept lattice: a disclosure heading with the refined
+   * type, the candidate types (highest symmetry first, the refined one
+   * pressed) and the refined cell.
+   */
+  const symmetryGroup = (r: RefinedLattice) => {
+    const open = !closedSymmetry.includes(r.lattice);
+    const id = `${maskIds}-symmetry-${r.lattice}`;
+    const choose = (choice: number) =>
+      void run(
+        "scxrd_edit",
+        { operation: "symmetry", index: r.lattice, choice },
+        "Refining lattice…",
+      );
+    const lines = r.result && refinedCellLines(r.result);
+    return (
+      <div key={r.lattice} className="sc-symmetry-lattice">
+        <Button
+          variant="quiet"
+          className="sc-mask-toggle sc-symmetry-toggle"
+          aria-expanded={open}
+          aria-controls={id}
+          onClick={() =>
+            setClosedSymmetry(
+              open
+                ? [...closedSymmetry, r.lattice]
+                : closedSymmetry.filter((i) => i !== r.lattice),
+            )
+          }
+        >
+          <ChevronRight
+            size={13}
+            className="sc-mask-chevron"
+            aria-hidden="true"
+          />
+          <span className="sc-mask-name">Lattice {r.lattice + 1}</span>
+          <span className="sc-mask-result">
+            {r.result
+              ? `${r.result.bravais} · ${Math.round(r.result.volume)} Å³`
+              : "not refined"}
+          </span>
+        </Button>
+        {open && (
+          <div id={id} className="sc-symmetry-body">
+            <div
+              className="sc-symmetry-table"
+              role="radiogroup"
+              aria-label={`Lattice ${r.lattice + 1} type`}
+            >
+              {r.candidates.map((c, choice) => {
+                const cell = candidateCell(c);
+                const chosen = r.chosen === choice;
+                return (
+                  <Button
+                    key={c.bravais}
+                    variant="quiet"
+                    role="radio"
+                    aria-checked={chosen}
+                    className="sc-symmetry-row"
+                    title={`${bravaisName(c.bravais)}; deviation from its constraints`}
+                    disabled={!ready}
+                    onClick={() => !chosen && choose(choice)}
+                  >
+                    <span className="sc-symmetry-type">{c.bravais}</span>
+                    <span className="sc-lattice-cell">
+                      <span className="sc-mask-name">{cell.lengths}</span>
+                      {cell.angles && (
+                        <span className="sc-lattice-angles">
+                          {cell.angles}
+                        </span>
+                      )}
+                    </span>
+                    <span className="sc-mask-result">{deviationLabel(c)}</span>
+                  </Button>
+                );
+              })}
+            </div>
+            {lines ? (
+              <div className="sc-refined" aria-label="Refined cell">
+                <span>{lines.lengths}</span>
+                <small>
+                  {lines.angles} · {lines.volume}
+                </small>
+                <small>{lines.fit}</small>
+              </div>
+            ) : (
+              <small className="sc-refined sc-step-problem">{r.error}</small>
+            )}
           </div>
         )}
       </div>
@@ -1062,7 +1169,7 @@ export function SingleCrystalWorkspace({
                       variant="quiet"
                       aria-label={`Run ${name}`}
                       title="Run up to this step"
-                      disabled={!ready || (stage === 2 && !data.geometry)}
+                      disabled={!ready || (stage >= 2 && !data.geometry)}
                       onClick={() => runTo(stage, stage, false)}
                     >
                       {data.stages[stage].status === "complete" ? (
@@ -1084,7 +1191,7 @@ export function SingleCrystalWorkspace({
                       >
                         {stepSummary(stage) ||
                           (!data.geometry &&
-                          (stage === 2 ||
+                          (stage >= 2 ||
                             (stage === 0 &&
                               config!.cell_masks_enabled &&
                               (config!.dac_enabled || config!.diamond_enabled)))
@@ -1253,6 +1360,36 @@ export function SingleCrystalWorkspace({
                           />
                         </>
                       )}
+                      {stage === 3 && (
+                        <>
+                          <CommitNumberField
+                            label="Lengths within"
+                            unit="%"
+                            value={symmetryTolerance(
+                              data.config.symmetry_length_tolerance,
+                            )}
+                            onCommit={(v) =>
+                              setConfig({ symmetry_length_tolerance: v })
+                            }
+                            step={0.5}
+                            min={0.1}
+                            max={10}
+                          />
+                          <CommitNumberField
+                            label="Angles within"
+                            unit="°"
+                            value={symmetryTolerance(
+                              data.config.symmetry_angle_tolerance,
+                            )}
+                            onCommit={(v) =>
+                              setConfig({ symmetry_angle_tolerance: v })
+                            }
+                            step={0.5}
+                            min={0.1}
+                            max={10}
+                          />
+                        </>
+                      )}
                     </fieldset>
                   )}
                 </li>
@@ -1335,6 +1472,17 @@ export function SingleCrystalWorkspace({
                     </div>
                   );
                 })}
+              </section>
+            )}
+            {!!data.refinedLattices?.length && (
+              <section
+                className="sc-section sc-lattices sc-symmetry"
+                aria-label="Lattice symmetry"
+              >
+                <div className="sc-mask-heading">
+                  <span>Lattice symmetry</span>
+                </div>
+                {data.refinedLattices.map((r) => symmetryGroup(r))}
               </section>
             )}
           </>

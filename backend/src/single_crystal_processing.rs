@@ -61,7 +61,7 @@ impl Crystal {
             0 => self.background(control),
             1 => self.detect(control),
             2 => self.cells(control, automatic),
-            3 => self.geometry(control),
+            3 => self.refine_lattices(),
             4 => self.integrate(control),
             5 => self.scale(control),
             6 => self.solve(control),
@@ -452,7 +452,7 @@ impl Crystal {
     /// (`positions`) a masked pixel in the aperture does not matter: it biases
     /// the intensity, not the position, so those tracks take part. Geometry
     /// refinement keeps to fully unflagged tracks.
-    fn cloud(&self, positions: bool) -> Result<(Vec<usize>, Vec<V3>), String> {
+    pub(super) fn cloud(&self, positions: bool) -> Result<(Vec<usize>, Vec<V3>), String> {
         let allowed = if positions { spots::MASKED } else { 0 };
         let mut g = self
             .geometry
@@ -525,16 +525,21 @@ impl Crystal {
             .iter()
             .map(|&t| self.tracks.get(t).map_or([0.; 3], |t| t.observed))
             .collect();
-        let Ok(q) = g.convert(&xyz) else {
-            return none;
-        };
+        match g.convert(&xyz) {
+            Ok(q) => self.owners(&q),
+            Err(_) => none,
+        }
+    }
+    /// Lattice owning each reciprocal position (1-based; 0 none or
+    /// ambiguous); see [`Self::lattice_owners`].
+    pub(super) fn owners(&self, q: &[V3]) -> Vec<usize> {
         let models: Vec<(M3, M3)> = self
             .cells
             .iter()
             .filter_map(|c| Some((c.direct, fft::inverse_transpose(c.direct).ok()?)))
             .collect();
-        if models.len() != self.cells.len() {
-            return none;
+        if models.is_empty() || models.len() != self.cells.len() {
+            return vec![0; q.len()];
         }
         q.iter()
             .map(|&p| {
@@ -555,88 +560,6 @@ impl Crystal {
                 }
             })
             .collect()
-    }
-    fn geometry(&mut self, control: &Control) -> Result<String, String> {
-        let cell = &self.cells[self.selected.ok_or("Select a cell first.")?];
-        let direct = cell.direct;
-        let mut basis = fft::inverse_transpose(direct)?;
-        if let Some(metric) = self.config.metric {
-            if cell
-                .parameters
-                .iter()
-                .zip(metric)
-                .enumerate()
-                .any(|(i, (a, b))| {
-                    if i < 3 {
-                        (a - b).abs() > 0.05 * a
-                    } else {
-                        (a - b).abs() > 5.
-                    }
-                })
-            {
-                return Err("The supplied metric differs from the selected row setting by more than 5% in length or 5° in angle. Reorder the cell axes explicitly or choose the matching candidate.".into());
-            }
-            basis = fitting::reference_basis(basis, metric).map_err(err)?;
-        }
-        let (ids, q) = self.cloud(false)?;
-        let scores = fft::Engine::new(1)?.score(&q, direct, basis);
-        let mut hkl = Vec::new();
-        let mut observed = Vec::new();
-        for ((h, d), id) in scores.into_iter().zip(ids) {
-            if h != [0.; 3] && d < self.config.tolerance {
-                hkl.push(h.map(|x| x as i64));
-                observed.push(self.tracks[id].observed);
-            }
-        }
-        let mut g = self
-            .initial_geometry
-            .ok_or("Load a PONI calibration first.")?
-            .native();
-        g.axis = self.config.axis;
-        if !self.config.refine_geometry {
-            let predictions = spots::prediction::predict(
-                g,
-                basis,
-                &hkl,
-                &observed.iter().map(|v| v[2]).collect::<Vec<_>>(),
-                false,
-            )
-            .map_err(err)?;
-            let residuals: Vec<_> = predictions
-                .iter()
-                .zip(&observed)
-                .filter(|(p, _)| p.flags == 0)
-                .map(|(p, o)| (p.values[0] - o[0]).powi(2) + (p.values[1] - o[1]).powi(2))
-                .collect();
-            let rms = (residuals.iter().sum::<f64>() / residuals.len().max(1) as f64).sqrt();
-            if residuals.len() < 20 || rms > 5. {
-                return Err(format!(
-                    "Fixed-geometry prediction RMS {rms:.3} px is above 5 px or fewer than 20 predictions are valid. Check cell, calibration and acquisition, or enable geometry refinement."
-                ));
-            }
-            self.basis = Some(basis);
-            self.geometry = Some(g.into());
-            self.geometry_report =
-                json!({"refined":false,"rmsPixels":rms,"observations":residuals.len()});
-            return Ok(format!(
-                "Calibration held fixed; prediction RMS {rms:.3} px on {} tracks.",
-                residuals.len()
-            ));
-        }
-        let training: Vec<_> = (0..hkl.len()).map(|i| i % 5 != 0).collect();
-        let eligible = vec![true; hkl.len()];
-        let fit=fitting::fit(&fitting::Input{observed:&observed,hkl:&hkl,training:&training,eligible:&eligible,basis,geometry:g,image_shape:self.shape,reference_cell:None,refine_lengths:false},fitting::Options::default(),|current,total|{control.check().map_err(spots::SpotError)?;control.publish(json!({"running":true,"current":current,"total":total,"label":"Refining detector pose and crystal orientation"}));Ok(())}).map_err(err)?;
-        let report = json!({"refined":true,"converged":fit.converged,"atBounds":fit.at_bounds,"condition":fit.scaled_condition,"maximumCorrelation":fit.maximum_parameter_correlation,"rms":fit.rms,"counts":fit.counts,"evaluations":fit.evaluations,"parameters":fit.parameters,"accepted":fit.acceptable()});
-        self.geometry_report = report;
-        if !fit.acceptable() {
-            return Err("Geometry refinement did not pass convergence, identification and withheld-improvement gates. Review diagnostics; keep the calibration fixed or correct the acquisition settings.".into());
-        }
-        self.geometry = Some(fit.state.geometry.into());
-        self.basis = Some(fit.state.basis);
-        Ok(format!(
-            "Refined 9 pose/orientation parameters; withheld RMS {:.3} → {:.3} px. Wavelength and cell lengths held fixed.",
-            fit.rms[1][0][0], fit.rms[1][1][0]
-        ))
     }
     fn integrate(&mut self, control: &Control) -> Result<String, String> {
         let b = self.basis.ok_or("Run geometry validation first.")?;
@@ -1040,6 +963,13 @@ impl Crystal {
                     cell.kept = keep;
                     self.ticks_changed();
                 }
+            }
+            Some("symmetry") => {
+                let lattice = args["index"].as_u64().ok_or("Choose a lattice.")? as usize;
+                let choice = args["choice"]
+                    .as_u64()
+                    .ok_or("Choose a lattice type.")? as usize;
+                self.choose_symmetry(lattice, choice)?;
             }
             Some("show") => {
                 let index = args["index"].as_u64().map(|i| i as usize);

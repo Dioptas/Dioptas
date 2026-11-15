@@ -4,7 +4,7 @@ use super::*;
 use phasesmith_single_crystal::{solution, spots};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use spots::{fft, geometry_refinement as fitting, reciprocal};
+use spots::{fft, reciprocal};
 use std::{
     collections::BTreeMap,
     fs::File,
@@ -42,16 +42,19 @@ mod profiles;
 mod protocol;
 #[path = "single_crystal_raw.rs"]
 mod raw_frames;
+#[path = "single_crystal_refine.rs"]
+mod refine;
 const ENGINE: &str = "PhaseSmith 0.8.1 / e47507f4";
 fn adapter_identity() -> &'static str {
     static ID: std::sync::OnceLock<String> = std::sync::OnceLock::new();
     ID.get_or_init(|| {
         let mut hash = Sha256::new();
-        let sources: [&[u8]; 17] = [
+        let sources: [&[u8]; 18] = [
             include_bytes!("single_crystal.rs"),
             include_bytes!("single_crystal_dac_fit.rs"),
             include_bytes!("single_crystal_processing.rs"),
             include_bytes!("single_crystal_lattices.rs"),
+            include_bytes!("single_crystal_refine.rs"),
             include_bytes!("single_crystal_scaling.rs"),
             include_bytes!("single_crystal_shadows.rs"),
             include_bytes!("single_crystal_diamond.rs"),
@@ -76,7 +79,7 @@ const TITLES: [&str; 7] = [
     "Background",
     "Find peaks",
     "Find cell",
-    "Refine geometry",
+    "Refine lattice",
     "Integrate",
     "Scaling and symmetry",
     "Structure search",
@@ -164,6 +167,14 @@ pub(super) struct Config {
     /// by at most this (degrees; 0 never merges).
     #[serde(default = "lattices::default_merge_angle")]
     pub merge_angle: f64,
+    /// Refine lattice: largest mismatch of lengths a lattice type requires
+    /// to be equal, percent.
+    #[serde(default = "refine::default_length_tolerance")]
+    pub symmetry_length_tolerance: f64,
+    /// Refine lattice: largest deviation of an angle a lattice type fixes,
+    /// degrees.
+    #[serde(default = "refine::default_angle_tolerance")]
+    pub symmetry_angle_tolerance: f64,
 }
 fn default_diamond_margin() -> usize {
     10
@@ -223,6 +234,8 @@ impl Default for Config {
             lattice_method: lattices::default_method(),
             max_grains: lattices::default_grains(),
             merge_angle: lattices::default_merge_angle(),
+            symmetry_length_tolerance: refine::default_length_tolerance(),
+            symmetry_angle_tolerance: refine::default_angle_tolerance(),
         }
     }
 }
@@ -251,6 +264,16 @@ impl Config {
             return Err(format!(
                 "Merge within must be 0-{} degrees.",
                 lattices::MERGE_ANGLE_MAX
+            ));
+        }
+        if [self.symmetry_length_tolerance, self.symmetry_angle_tolerance]
+            .iter()
+            .any(|t| !(*t > 0. && *t <= refine::TOLERANCE_MAX))
+        {
+            return Err(format!(
+                "Symmetry tolerances must be above 0 and at most {} % and {}°.",
+                refine::TOLERANCE_MAX,
+                refine::TOLERANCE_MAX
             ));
         }
         if !["summation", "profile"].contains(&self.integration_method.as_str()) {
@@ -433,7 +456,11 @@ impl Config {
             || self.merge_angle != n.merge_angle
         {
             2
-        } else if self.metric != n.metric || self.refine_geometry != n.refine_geometry {
+        } else if self.metric != n.metric
+            || self.refine_geometry != n.refine_geometry
+            || self.symmetry_length_tolerance != n.symmetry_length_tolerance
+            || self.symmetry_angle_tolerance != n.symmetry_angle_tolerance
+        {
             3
         } else if self.keep_stage_audit != n.keep_stage_audit
             || self.aperture_radius != n.aperture_radius
@@ -618,6 +645,8 @@ pub(super) struct Crystal {
     /// the same lattices keeps the user's ticks.
     retired: Vec<Cell>,
     basis: Option<M3>,
+    /// Refine lattice product, one per kept lattice (see `refine`).
+    refined: Vec<refine::Refined>,
     geometry_report: Value,
     reflections: Vec<Reflection>,
     unscaled_reflections: Vec<Reflection>,
@@ -697,6 +726,7 @@ impl Crystal {
         }
         if from <= 3 {
             self.basis = None;
+            self.refined.clear();
             self.geometry = self.initial_geometry;
             self.geometry_report = Value::Null;
         }
@@ -952,7 +982,7 @@ impl Crystal {
         } else {
             (None, None)
         };
-        let state = json!({"engine":ENGINE,"adapter":adapter_identity(),"exported":!self.saved_exports.is_empty(),"revision":self.revision,"config":self.config,"protocolTemplate":protocol::builtin(),"effectiveProtocol":effective_protocol,"protocolInspectionError":protocol_error,"frames":self.sources.len(),"frame":self.frame,"firstSource":self.sources.first().map(|s|s.path.to_string_lossy()),"lastSource":self.sources.last().map(|s|s.path.to_string_lossy()),"filename":self.sources.get(self.frame).map(|s|s.path.file_name().unwrap_or_default().to_string_lossy()),"shape":self.shape,"stages":self.stages,"geometry":self.geometry,"geometryReport":self.geometry_report,"peaks":shown,"predictions":self.predicted_markers(),"peakCount":self.peaks.len(),"peakFrames":self.peak_frames(),"busyFrames":self.busy_frames(),"tracks":tracks,"trackOffset":self.track_offset,"reflectionOffset":self.reflection_offset,"trackCount":self.tracks.len(),"cells":self.cells,"selected":self.selected,"shownLattice":self.shown,"reflections":self.table_reflections().skip(self.reflection_offset).take(200).collect::<Vec<_>>(),"reflectionFilteredCount":self.table_reflections().count(),"reflectionFilter":if self.reflection_filter.is_empty(){"all"}else{&self.reflection_filter},"suppliedGroupSymbol":phasesmith_io::space_group_by_number(i32::from(self.config.group)).ok().map(|g|g.hm_symbol),"reflectionCount":self.reflections.len(),"usableReflections":self.reflections.iter().filter(|r|r.usable()).count(),"shadows":self.shadows.as_ref().map(|s|&s.report),"profileReport":self.profile_report,"scaling":self.scaling,"structure":self.structure,"mask":self.mask,"excludedFrames":self.excluded_frames,"error":self.error,"notice":self.notice,"previewKind":if self.preview_kind.is_empty(){"raw"}else{&self.preview_kind},"image":self.preview.as_ref().map(|r|&r.metadata),"maskImage":self.preview_mask.as_ref().map(|r|&r.metadata),"sharedMask":self.shared_status,"source":self.sources.get(self.frame).map(|s|json!({"path":s.path,"frame":s.frame}))});
+        let state = json!({"engine":ENGINE,"adapter":adapter_identity(),"exported":!self.saved_exports.is_empty(),"revision":self.revision,"config":self.config,"protocolTemplate":protocol::builtin(),"effectiveProtocol":effective_protocol,"protocolInspectionError":protocol_error,"frames":self.sources.len(),"frame":self.frame,"firstSource":self.sources.first().map(|s|s.path.to_string_lossy()),"lastSource":self.sources.last().map(|s|s.path.to_string_lossy()),"filename":self.sources.get(self.frame).map(|s|s.path.file_name().unwrap_or_default().to_string_lossy()),"shape":self.shape,"stages":self.stages,"geometry":self.geometry,"geometryReport":self.geometry_report,"peaks":shown,"predictions":self.predicted_markers(),"peakCount":self.peaks.len(),"peakFrames":self.peak_frames(),"busyFrames":self.busy_frames(),"tracks":tracks,"trackOffset":self.track_offset,"reflectionOffset":self.reflection_offset,"trackCount":self.tracks.len(),"cells":self.cells,"selected":self.selected,"shownLattice":self.shown,"refinedLattices":self.refined,"reflections":self.table_reflections().skip(self.reflection_offset).take(200).collect::<Vec<_>>(),"reflectionFilteredCount":self.table_reflections().count(),"reflectionFilter":if self.reflection_filter.is_empty(){"all"}else{&self.reflection_filter},"suppliedGroupSymbol":phasesmith_io::space_group_by_number(i32::from(self.config.group)).ok().map(|g|g.hm_symbol),"reflectionCount":self.reflections.len(),"usableReflections":self.reflections.iter().filter(|r|r.usable()).count(),"shadows":self.shadows.as_ref().map(|s|&s.report),"profileReport":self.profile_report,"scaling":self.scaling,"structure":self.structure,"mask":self.mask,"excludedFrames":self.excluded_frames,"error":self.error,"notice":self.notice,"previewKind":if self.preview_kind.is_empty(){"raw"}else{&self.preview_kind},"image":self.preview.as_ref().map(|r|&r.metadata),"maskImage":self.preview_mask.as_ref().map(|r|&r.metadata),"sharedMask":self.shared_status,"source":self.sources.get(self.frame).map(|s|json!({"path":s.path,"frame":s.frame}))});
         Reply {
             result: json!({"ok":true,"scxrd":state}),
             buffers: self
@@ -1066,7 +1096,7 @@ impl Session {
                             "background",
                             "peaks",
                             "cell",
-                            "geometry",
+                            "lattice refinement",
                             "intensities",
                             "scaling",
                             "structure",
@@ -1090,6 +1120,7 @@ impl Session {
                     }
                     "cell" => "select sample cell".into(),
                     "keep" => "keep or drop a lattice".into(),
+                    "symmetry" => "choose lattice symmetry".into(),
                     _ => "single-crystal decision".into(),
                 }
             };
@@ -1176,7 +1207,15 @@ impl Session {
             "scxrd_settings" => &["config"],
             "scxrd_frame" => &["frame", "kind"],
             "scxrd_run" => &["stage", "automatic"],
-            "scxrd_edit" => &["operation", "index", "bounds", "keep", "frames", "exclude"],
+            "scxrd_edit" => &[
+                "operation",
+                "index",
+                "bounds",
+                "keep",
+                "frames",
+                "exclude",
+                "choice",
+            ],
             "scxrd_table" => &["kind", "offset", "filter"],
             "scxrd_levels" => &["mode", "percentile", "filter_gaps"],
             "scxrd_pixel" => &["x", "y", "contour"],

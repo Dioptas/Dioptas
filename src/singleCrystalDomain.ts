@@ -62,6 +62,12 @@ export interface CrystalConfig {
   /** Find lattices merges lattices of one crystal whose orientations differ
    * by at most this (degrees, 0-5; 0 never merges); older configs load with 0.5. */
   merge_angle: number;
+  /** Refine lattice: largest mismatch of lengths a lattice type requires to
+   * be equal, percent (0-10); older configs load with 1. */
+  symmetry_length_tolerance: number;
+  /** Refine lattice: largest deviation of an angle a lattice type fixes,
+   * degrees (0-10); older configs load with 1. */
+  symmetry_angle_tolerance: number;
 }
 export type LatticeMethod = "both" | "fft" | "rows";
 /** Find lattices search choices; the first is the default. */
@@ -149,6 +155,8 @@ export const crystalDefaults: CrystalConfig = {
   lattice_method: "both",
   max_grains: 5,
   merge_angle: 0.5,
+  symmetry_length_tolerance: 1,
+  symmetry_angle_tolerance: 1,
 };
 /**
  * The flexible measured-track path; the fixed protocol and the omega
@@ -295,6 +303,8 @@ export type CrystalEdit =
       index: number;
     }
   | { operation: "keep"; index: number; keep: boolean }
+  /** Refine a lattice (row in Find lattices) as another listed type. */
+  | { operation: "symmetry"; index: number; choice: number }
   /** Marks a lattice's spots on the image (view only, no undo entry). */
   | { operation: "show"; index?: number }
   | { operation: "mask"; bounds: [number, number, number, number] }
@@ -405,6 +415,8 @@ export interface CrystalData {
     /** Merged from domains of one crystal (count, largest misorientation °). */
     merged?: { domains: number; angle: number };
   }[];
+  /** Refine lattice: one per kept lattice (older snapshots: absent). */
+  refinedLattices?: RefinedLattice[];
   /** First kept lattice, used by the following steps. */
   selected: number | null;
   /** Lattice whose spots are marked on the image. */
@@ -476,6 +488,121 @@ export interface CrystalData {
   sharedMask?: SharedMaskStatus;
   /** File and file frame of the shown frame. */
   source?: { path: string; frame: number } | null;
+}
+/** A lattice type the lattice fits, in PhaseSmith's standard setting. */
+export interface SymmetryCandidate {
+  /** Bravais symbol, aP … cF. */
+  bravais: string;
+  cell: number[];
+  constrained: number[];
+  /** Largest relative mismatch of lengths that must be equal (fraction). */
+  length_deviation: number;
+  /** Largest deviation of a fixed angle or obliquity (degrees). */
+  angle_deviation: number;
+}
+export interface LatticeRefinement {
+  bravais: string;
+  /** Refined conventional direct rows (Å). */
+  conventional: number[][];
+  cell: number[];
+  cell_su: number[];
+  volume: number;
+  volume_su: number;
+  /** RMS of |q_obs − q_calc| (Å⁻¹). */
+  rms: number;
+  used: number;
+  owned: number;
+  converged: boolean;
+}
+export interface RefinedLattice {
+  /** Row in Find lattices. */
+  lattice: number;
+  /** Highest symmetry first; triclinic last. */
+  candidates: SymmetryCandidate[];
+  chosen: number;
+  result?: LatticeRefinement;
+  error?: string;
+}
+/** A symmetry tolerance of a config that may predate the setting. */
+export const symmetryTolerance = (value: number | undefined) =>
+  Number.isFinite(value) && value! > 0 && value! <= 10 ? value! : 1;
+const BRAVAIS_NAMES: Record<string, string> = {
+  aP: "Triclinic",
+  mP: "Primitive monoclinic",
+  mC: "C-centred monoclinic",
+  oP: "Primitive orthorhombic",
+  oC: "C-centred orthorhombic",
+  oI: "Body-centred orthorhombic",
+  oF: "Face-centred orthorhombic",
+  tP: "Primitive tetragonal",
+  tI: "Body-centred tetragonal",
+  hP: "Hexagonal",
+  hR: "Rhombohedral (hexagonal axes)",
+  cP: "Primitive cubic",
+  cI: "Body-centred cubic",
+  cF: "Face-centred cubic",
+};
+export const bravaisName = (symbol: string) => BRAVAIS_NAMES[symbol] ?? symbol;
+/**
+ * A value with its standard uncertainty in crystallographic notation: the
+ * uncertainty in units of the last digit, two digits up to 19, otherwise one
+ * ("18.2301(12)", "18.230(4)", "833(12)", "830(30)"). Without an
+ * uncertainty the value is given with `fallback` decimals.
+ */
+export function withUncertainty(value: number, su: number, fallback = 2) {
+  if (!Number.isFinite(value)) return "—";
+  if (!(su > 0) || !Number.isFinite(su)) return value.toFixed(fallback);
+  let exponent = Math.floor(Math.log10(su));
+  // Two digits while they read 10-19, otherwise one.
+  let digits = Math.round(su / 10 ** (exponent - 1));
+  if (digits >= 100) {
+    exponent += 1;
+    digits = Math.round(su / 10 ** (exponent - 1));
+  }
+  let decimals = digits < 20 ? 1 - exponent : -exponent;
+  let units = Math.round(su * 10 ** decimals);
+  if (units >= 20 && decimals > -exponent) {
+    // 19.6 rounds to 20: one digit.
+    decimals -= 1;
+    units = Math.round(su * 10 ** decimals);
+  }
+  if (decimals >= 0) return `${value.toFixed(decimals)}(${units})`;
+  const scale = 10 ** -decimals;
+  return `${Math.round(value / scale) * scale}(${units * scale})`;
+}
+/** Deviations of a candidate from its constraints: "0.12 % · 0.08°". */
+export const deviationLabel = (c: SymmetryCandidate) =>
+  c.bravais === "aP"
+    ? "—"
+    : `${(100 * c.length_deviation).toFixed(2)} % · ${c.angle_deviation.toFixed(2)}°`;
+/** Angles a candidate's type leaves free (shown with the lengths). */
+const FREE_ANGLES: Record<string, number[]> = { aP: [3, 4, 5], mP: [4], mC: [4] };
+/** One line for a candidate: lengths and its free or non-90° angles. */
+export function candidateCell(c: SymmetryCandidate) {
+  const p = c.constrained;
+  const lengths = p.slice(0, 3).map((x) => x.toFixed(3)).join(" · ");
+  const names = ["α", "β", "γ"];
+  const angles = [3, 4, 5]
+    .filter((i) => (FREE_ANGLES[c.bravais] ?? []).includes(i) || Math.abs(p[i] - 90) > 1e-6)
+    .map((i) => `${names[i - 3]} ${p[i].toFixed(2)}°`);
+  return { lengths: `${lengths} Å`, angles: angles.join(" · ") };
+}
+/** The refined cell in crystallographic notation. */
+export function refinedCellLines(r: LatticeRefinement) {
+  const lengths = r.cell
+    .slice(0, 3)
+    .map((x, i) => withUncertainty(x, r.cell_su[i], 4))
+    .join(" · ");
+  const angles = r.cell
+    .slice(3)
+    .map((x, i) => withUncertainty(x, r.cell_su[i + 3], Math.abs(x - Math.round(x)) < 1e-9 ? 0 : 3))
+    .join(" · ");
+  return {
+    lengths: `${lengths} Å`,
+    angles: `${angles}°`,
+    volume: `${withUncertainty(r.volume, r.volume_su, 1)} Å³`,
+    fit: `${r.used} spots · rms ${r.rms.toFixed(4)} Å⁻¹${r.converged ? "" : " · not converged"}`,
+  };
 }
 export const crystalSteps = [
   "Frames",
@@ -583,6 +710,8 @@ export function crystalConfigError(c: CrystalConfig): string | null {
     [c.diamond_margin, 0, 200, "Diamond spot margin"],
     [c.diamond_level, 3, 50, "Diamond spot level"],
     [c.persistent_fraction, 20, 100, "Persistent pixel frame share"],
+    [c.symmetry_length_tolerance ?? 1, 0.01, 10, "Length tolerance"],
+    [c.symmetry_angle_tolerance ?? 1, 0.01, 10, "Angle tolerance"],
   ];
   for (const [v, min, max, name] of ranges)
     if (!Number.isFinite(v) || v < min || v > max)

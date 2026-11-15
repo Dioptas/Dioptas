@@ -594,3 +594,61 @@
 .sc-frames-note--excluded small {
   color: var(--ui-muted);
 }
+
+/* Refine lattice: per kept lattice a disclosure heading, the candidate
+   lattice types (symbol, constrained cell, deviation; the refined one in
+   orange) and the refined cell. */
+.sc-workspace--lean .sc-symmetry-toggle {
+  min-height: 28px;
+  padding: 2px 4px 2px 0;
+  border: 0;
+  font-size: var(--text-small);
+  font-weight: 400;
+  text-align: left;
+  color: inherit;
+}
+.sc-symmetry-body {
+  display: grid;
+  gap: 6px;
+  padding: 0 0 8px 17px;
+}
+.sc-symmetry-table {
+  display: grid;
+}
+.sc-workspace--lean .sc-symmetry-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 2px 4px 2px 0;
+  border: 0;
+  font-size: var(--text-small);
+  font-weight: 400;
+  text-align: left;
+  color: inherit;
+}
+.sc-symmetry-type {
+  flex-shrink: 0;
+  width: 2.2em;
+  color: var(--ui-muted);
+  font-weight: 650;
+}
+.sc-workspace--lean .sc-symmetry-row[aria-checked="true"] .sc-symmetry-type,
+.sc-workspace--lean .sc-symmetry-row[aria-checked="true"] .sc-mask-name {
+  color: var(--accent);
+}
+.sc-refined {
+  display: grid;
+  gap: 1px;
+  padding-left: calc(2.2em + 8px);
+  font-size: var(--text-small);
+  font-variant-numeric: tabular-nums;
+}
+.sc-refined > small {
+  color: var(--ui-muted);
+  font-size: var(--text-meta);
+}
+small.sc-refined {
+  font-size: var(--text-meta);
+  overflow-wrap: anywhere;
+}

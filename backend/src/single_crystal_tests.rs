@@ -2227,6 +2227,50 @@ fn development_reload_carries_the_series_calibration_settings_and_step_results()
 }
 #[test]
 #[cfg(debug_assertions)]
+fn development_reload_carries_the_refined_lattices() {
+    let (dir, mut s) = dac_session();
+    found_products(&mut s.scxrd);
+    let direct = s.scxrd.cells[0].direct;
+    let candidates = refine::candidates(direct, &s.scxrd.config).unwrap();
+    assert_eq!(candidates[0].bravais, "oP");
+    s.scxrd.refined = vec![refine::Refined {
+        lattice: 0,
+        candidates,
+        chosen: 0,
+        result: Some(refine::Refinement {
+            bravais: "oP".into(),
+            conventional: direct,
+            cell: [5., 6., 7., 90., 90., 90.],
+            cell_su: [1e-4, 2e-4, 3e-4, 0., 0., 0.],
+            volume: 210.,
+            volume_su: 0.01,
+            rms: 0.001,
+            used: 120,
+            owned: 130,
+            converged: true,
+        }),
+        error: None,
+    }];
+    s.scxrd.stages[3] = Stage {
+        status: "complete".into(),
+        detail: "oP 5.00 · 6.00 · 7.00 Å, 120 spots".into(),
+        seconds: 0.1,
+        masks: None,
+    };
+    let new = development_reload(&mut s, dir.path());
+    let (a, b) = (&s.scxrd, &new.scxrd);
+    assert_eq!(b.refined, a.refined);
+    assert_eq!(b.stages[3].status, "complete");
+    assert_eq!(b.stages[3].detail, a.stages[3].detail);
+    // Re-derived: the first kept lattice's refined cell as the basis.
+    let basis = b.basis.unwrap();
+    let back = fft::inverse_transpose(basis).unwrap();
+    assert!(back.iter().flatten().zip(direct.iter().flatten()).all(|(x, y)| (x - y).abs() < 1e-9));
+    let notice = b.notice.clone().unwrap_or_default();
+    assert!(!notice.contains("step results") && !notice.contains("intensities"), "{notice}");
+}
+#[test]
+#[cfg(debug_assertions)]
 fn development_reload_carries_measured_masks_and_drops_the_omega_background() {
     let (dir, mut s) = dac_session();
     confirm(&mut s);

@@ -64,7 +64,7 @@ struct Essentials {
     revision: u64,
     track_offset: usize,
     reflection_filter: String,
-    /// Results beyond Find lattices existed (not carried).
+    /// Results beyond Refine lattice existed (not carried).
     later_results: bool,
     /// Undo or redo steps existed (not carried).
     history: bool,
@@ -87,6 +87,9 @@ struct SavedProducts<'a> {
     cells: &'a [Cell],
     selected: Option<usize>,
     shown: Option<usize>,
+    /// Refine lattice stage and product (absent before the step existed).
+    refine_stage: &'a Stage,
+    refined: &'a [refine::Refined],
 }
 #[derive(Deserialize)]
 struct Products {
@@ -107,6 +110,10 @@ struct Products {
     selected: Option<usize>,
     #[serde(default)]
     shown: Option<usize>,
+    #[serde(default)]
+    refine_stage: Option<Stage>,
+    #[serde(default)]
+    refined: Vec<refine::Refined>,
 }
 
 fn encode(value: &impl Serialize) -> Result<Vec<u8>, String> {
@@ -188,7 +195,7 @@ impl Crystal {
             revision: self.revision,
             track_offset: self.track_offset,
             reflection_filter: self.reflection_filter.clone(),
-            later_results: self.stages[3..].iter().any(|s| s.status != "pending")
+            later_results: self.stages[4..].iter().any(|s| s.status != "pending")
                 || !self.reflections.is_empty()
                 || !self.structure.is_null(),
             history,
@@ -210,6 +217,8 @@ impl Crystal {
                 cells: &self.cells,
                 selected: self.selected,
                 shown: self.shown,
+                refine_stage: &self.stages[3],
+                refined: &self.refined,
             })?,
         })
     }
@@ -382,7 +391,7 @@ impl Crystal {
             Err(error) => dropped.push(format!("step results ({error})")),
         }
         if e.later_results {
-            dropped.push("refined geometry, intensities, scaling and structure".into());
+            dropped.push("intensities, scaling and structure".into());
         }
         if e.history {
             dropped.push("undo history".into());
@@ -480,6 +489,10 @@ impl Crystal {
             || p.tracks.iter().any(|t| t.first > t.last || t.last >= n)
             || p.selected.is_some_and(|s| s >= p.cells.len())
             || p.shown.is_some_and(|s| s >= p.cells.len())
+            || p.refined.iter().any(|r| {
+                !p.cells.get(r.lattice).is_some_and(|c| c.kept)
+                    || (r.result.is_some() && r.chosen >= r.candidates.len())
+            })
             || p.shadows
                 .as_ref()
                 .is_some_and(|s| s.block == 0 || s.first > s.last || s.last >= n || s.cells == 0)
@@ -516,6 +529,14 @@ impl Crystal {
         // Saved before lattices had ticks: the chosen one is the kept one.
         if let Some(s) = self.selected.filter(|_| !self.cells.iter().any(|c| c.kept)) {
             self.cells[s].kept = true;
+        }
+        // Refine lattice follows a complete Find lattices only.
+        if let Some(stage) = p.refine_stage.filter(|_| self.stages[2].status == "complete") {
+            self.stages[3] = stage;
+            self.refined = p.refined;
+            if self.stages[3].status != "pending" {
+                self.adopt_refinement();
+            }
         }
         Ok(())
     }

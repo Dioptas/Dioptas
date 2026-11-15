@@ -24,6 +24,12 @@ import {
   excludedFramesNote,
   mergeAngle,
   mergedNote,
+  bravaisName,
+  candidateCell,
+  deviationLabel,
+  refinedCellLines,
+  symmetryTolerance,
+  withUncertainty,
 } from "../src/singleCrystalDomain.ts";
 import { crystalPixelReading } from "../src/singleCrystalReadout.ts";
 import { stepNumber } from "../src/numericDraft.ts";
@@ -558,4 +564,101 @@ test("Find lattices: Merge within 0.5° by default, older configs load with it; 
   assert.match(view, /label="Merge within"\s*unit="°"\s*value=\{mergeAngle\(data\.config\)\}\s*onCommit=\{\(v\) => setConfig\(\{ merge_angle: v \}\)\}\s*step=\{0\.1\}\s*min=\{0\}\s*max=\{5\}/);
   // Only in the detail line that opens on click, not on the main row.
   assert.match(view, /sc-lattice-details[\s\S]{0,300}mergedNote\(cell\.merged\)/);
+});
+
+test("Refine lattice: values with standard uncertainties in crystallographic notation", () => {
+  assert.equal(withUncertainty(18.23014, 0.00123), "18.2301(12)");
+  assert.equal(withUncertainty(18.2301, 0.0035), "18.230(4)");
+  // Up to 19 in two digits, otherwise one; 19.6 rounds to one digit.
+  assert.equal(withUncertainty(104.123, 0.0149), "104.123(15)");
+  assert.equal(withUncertainty(5.18123, 0.000196), "5.1812(2)");
+  assert.equal(withUncertainty(833.21, 0.09), "833.21(9)");
+  // Uncertainties of 1 and more: the value rounded to them.
+  assert.equal(withUncertainty(833.2, 12), "833(12)");
+  assert.equal(withUncertainty(833.2, 25), "830(30)");
+  // A fixed value has none.
+  assert.equal(withUncertainty(90, 0, 0), "90");
+  assert.equal(withUncertainty(Number.NaN, 0.1), "—");
+});
+
+test("Refine lattice: candidate rows and the refined cell", () => {
+  const oP = {
+    bravais: "oP",
+    cell: [5.181, 8.812, 18.229, 90.03, 89.98, 90.01],
+    constrained: [5.181, 8.812, 18.229, 90, 90, 90],
+    length_deviation: 0,
+    angle_deviation: 0.034,
+  };
+  assert.deepEqual(candidateCell(oP), { lengths: "5.181 · 8.812 · 18.229 Å", angles: "" });
+  assert.equal(deviationLabel(oP), "0.00 % · 0.03°");
+  const mP = { ...oP, bravais: "mP", constrained: [5.181, 8.812, 18.229, 90, 90.02, 90] };
+  assert.equal(candidateCell(mP).angles, "β 90.02°");
+  const aP = { ...oP, bravais: "aP", constrained: oP.cell };
+  assert.equal(candidateCell(aP).angles, "α 90.03° · β 89.98° · γ 90.01°");
+  assert.equal(deviationLabel(aP), "—");
+  const hP = { ...oP, bravais: "hP", constrained: [3, 3, 5, 90, 90, 120], length_deviation: 0.0012 };
+  assert.equal(candidateCell(hP).angles, "γ 120.00°");
+  assert.equal(deviationLabel(hP), "0.12 % · 0.03°");
+  assert.equal(bravaisName("oP"), "Primitive orthorhombic");
+  assert.equal(bravaisName("hR"), "Rhombohedral (hexagonal axes)");
+  const lines = refinedCellLines({
+    bravais: "oP",
+    conventional: [],
+    cell: [5.18123, 8.8213, 18.23014, 90, 90, 90],
+    cell_su: [0.0003, 0.0005, 0.00123, 0, 0, 0],
+    volume: 833.21,
+    volume_su: 0.09,
+    rms: 0.00213,
+    used: 3412,
+    owned: 3460,
+    converged: true,
+  });
+  assert.deepEqual(lines, {
+    lengths: "5.1812(3) · 8.8213(5) · 18.2301(12) Å",
+    angles: "90 · 90 · 90°",
+    volume: "833.21(9) Å³",
+    fit: "3412 spots · rms 0.0021 Å⁻¹",
+  });
+  // Monoclinic beta carries its uncertainty; a fit that did not converge says so.
+  const m = refinedCellLines({
+    bravais: "mP",
+    conventional: [],
+    cell: [7.5, 9.2, 12.4, 90, 104.1234, 90],
+    cell_su: [0.001, 0.001, 0.001, 0, 0.0021, 0],
+    volume: 830,
+    volume_su: 0.2,
+    rms: 0.003,
+    used: 40,
+    owned: 50,
+    converged: false,
+  });
+  assert.equal(m.angles, "90 · 104.123(2) · 90°");
+  assert.match(m.fit, /not converged$/);
+});
+
+test("Refine lattice: tolerances default to PhaseSmith's 1 % and 1°, older configs load with them", () => {
+  assert.equal(crystalDefaults.symmetry_length_tolerance, 1);
+  assert.equal(crystalDefaults.symmetry_angle_tolerance, 1);
+  assert.equal(symmetryTolerance(undefined), 1);
+  assert.equal(symmetryTolerance(0), 1);
+  assert.equal(symmetryTolerance(12), 1);
+  assert.equal(symmetryTolerance(3), 3);
+  const lean = exploratoryCrystalConfig(crystalDefaults);
+  assert.equal(crystalConfigError(lean), null);
+  assert.match(crystalConfigError({ ...lean, symmetry_angle_tolerance: 11 }) ?? "", /Angle tolerance/);
+});
+
+test("Refine lattice is the fourth step: tolerances in its settings, one candidate table per kept lattice", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const view = await readFile(new URL("../src/SingleCrystalWorkspace.tsx", import.meta.url), "utf8");
+  assert.match(view, /"Find lattices",\s*"Refine lattice",\s*\] as const/);
+  assert.match(view, /const lastStage = data\?\.geometry \? 3 : 1/);
+  assert.match(view, /label="Lengths within"\s*unit="%"[\s\S]{0,600}step=\{0\.5\}\s*min=\{0\.1\}\s*max=\{10\}/);
+  assert.match(view, /label="Angles within"\s*unit="°"[\s\S]{0,600}step=\{0\.5\}\s*min=\{0\.1\}\s*max=\{10\}/);
+  // A row press refines the lattice as that type through the backend.
+  assert.match(view, /\{ operation: "symmetry", index: r\.lattice, choice \}/);
+  assert.match(view, /role="radio"\s*aria-checked=\{chosen\}/);
+  assert.match(view, /data\.refinedLattices\.map\(\(r\) => symmetryGroup\(r\)\)/);
+  // Each lattice is a disclosure group.
+  assert.match(view, /className="sc-mask-toggle sc-symmetry-toggle"\s*aria-expanded=\{open\}/);
 });
