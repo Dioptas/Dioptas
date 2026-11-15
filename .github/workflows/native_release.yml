@@ -78,7 +78,7 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: node scripts/updater_release.mjs --candidates ../candidates --output ../release
+        run: node scripts/updater_release.mjs --candidates candidates --output release
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
