@@ -442,25 +442,20 @@ fn two_domains(degrees: f64, rng: &mut Lcg) -> (Vec<V3>, M3, M3, usize) {
 /// The list after merging `models` (given in these settings) at `limit`.
 fn merged(q: &[V3], models: &[M3], limit: f64) -> Vec<(grains::Grain, Option<Merged>)> {
     let training: Vec<bool> = (0..q.len()).map(|i| i % 5 != 0).collect();
-    let o = options(&config("both"), 5);
+    let mut c = config("both");
+    c.merge_angle = limit;
+    let o = options(&c, 5);
     let controls = null_rotations();
     let found = grains::validate(q, &training, models, &controls, &o).unwrap();
     assert!(
         found.iter().all(|g| g.accepted),
         "both domains validate apart"
     );
-    merge_domains(
-        q,
-        &training,
-        found.into_iter().map(|g| (g, None)).collect(),
-        &controls,
-        &o,
-        limit,
-    )
-    .unwrap()
-    .into_iter()
-    .filter(|g| g.0.accepted)
-    .collect()
+    merge_and_validate(q, &training, models, &controls, &o)
+        .unwrap()
+        .into_iter()
+        .filter(|g| g.0.accepted)
+        .collect()
 }
 
 #[test]
@@ -475,15 +470,15 @@ fn misorientation_compares_lattices_in_any_setting() {
         std::array::from_fn(|j| b[2][j] + b[0][j]),
     ];
     for m in [b, other] {
-        let angle = misorientation(a, m).unwrap();
+        let angle = grains::misorientation(a, m).unwrap();
         assert!((angle - 0.26).abs() < 0.03, "{angle}");
     }
     // A lattice symmetry rotation (2-fold about c) maps the nodes onto themselves.
     let flipped = [a[0].map(|v| -v), a[1].map(|v| -v), a[2]];
-    assert!(misorientation(a, flipped).unwrap() < 1e-9);
+    assert!(grains::misorientation(a, flipped).unwrap() < 1e-9);
     // Other cells are not one crystal.
-    assert!(misorientation(a, cell(MONOCLINIC)).is_none());
-    assert!(misorientation(a, cell([5.18, 8.81, 18.5, 90., 90., 90.])).is_none());
+    assert!(grains::misorientation(a, cell(MONOCLINIC)).is_none());
+    assert!(grains::misorientation(a, cell([5.18, 8.81, 18.5, 90., 90., 90.])).is_none());
 }
 
 #[test]
