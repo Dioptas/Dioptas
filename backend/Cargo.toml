@@ -28,7 +28,7 @@ phasesmith-core = { git = "https://github.com/CPrescher/PhaseSmith", rev = "0e22
 phasesmith-crystallography = { git = "https://github.com/CPrescher/PhaseSmith", rev = "0e22d37b38093e4dad19beb3332e6019dccaf087" }
 phasesmith-io = { git = "https://github.com/CPrescher/PhaseSmith", rev = "0e22d37b38093e4dad19beb3332e6019dccaf087" }
 phasesmith-model = { git = "https://github.com/CPrescher/PhaseSmith", rev = "0e22d37b38093e4dad19beb3332e6019dccaf087" }
-phasesmith-single-crystal = { git = "https://github.com/CPrescher/PhaseSmith", rev = "0e22d37b38093e4dad19beb3332e6019dccaf087", default-features = false, features = ["spots", "solution", "row-search"] }
+phasesmith-single-crystal = { git = "https://github.com/CPrescher/PhaseSmith", rev = "0e22d37b38093e4dad19beb3332e6019dccaf087", default-features = false, features = ["spots", "solution", "row-search", "grains"] }
 phasesmith-persistence = { git = "https://github.com/CPrescher/PhaseSmith", rev = "0e22d37b38093e4dad19beb3332e6019dccaf087" }
 phasesmith-workflows = { git = "https://github.com/CPrescher/PhaseSmith", rev = "0e22d37b38093e4dad19beb3332e6019dccaf087", features = ["single-crystal"] }
 peritheos = { git = "https://github.com/CPrescher/peritheos", rev = "3c79b1aedf28c348a49cc22d9f24d92895546283" }

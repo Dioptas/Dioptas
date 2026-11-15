@@ -218,20 +218,6 @@ fn a_cancelled_search_stops() {
 }
 
 #[test]
-fn a_supercell_index_lattice_gives_its_primitive_basis() {
-    // PhaseSmith's own check of the sublattice step in `refine`.
-    let h = vec![[2., 0., 0.], [0., 3., 0.], [0., 0., 4.], [2., 3., 4.]];
-    let a = integer_basis(&h).unwrap();
-    assert!((det(a).abs() - 24.).abs() < 1e-12);
-    let mut primitive = h;
-    primitive.push([1., 1., 1.]);
-    let a = integer_basis(&primitive).unwrap();
-    assert!((det(a).abs() - 2.).abs() < 1e-12);
-    assert!(integer_basis(&[[1., 0., 0.], [0., 1., 0.]]).is_none());
-    assert!(integer_basis(&[[1e7, 0., 0.]]).is_none());
-}
-
-#[test]
 fn a_third_smaller_grain_is_found_in_the_spots_the_others_leave() {
     let rng = &mut Lcg(13);
     let mut q = grain(cell(ENSTATITE), rotation(0.4, 1.1, -0.7), QMAX, rng);
@@ -339,16 +325,6 @@ fn equivalent_settings_are_one_lattice_and_supercells_are_not() {
     let a = [[7., 0., 0.], [0., 9., 0.], [0., 0., 11.]];
     assert!(related(a, [[7., 9., 0.], [0., 9., 0.], [0., 0., 11.]]));
     assert!(!related(a, [[14., 0., 0.], [0., 9., 0.], [0., 0., 11.]]));
-}
-
-#[test]
-fn withheld_matches_must_sit_close_to_the_nodes() {
-    // Enstatite scan: all 429 withheld matches within half the tolerance.
-    assert!(tight(429, 429));
-    // Multi-grain set 4: a loose cell, 40 of 59.
-    assert!(!tight(59, 40));
-    assert!(tight(49, 40));
-    assert!(!tight(50, 2));
 }
 
 #[test]
