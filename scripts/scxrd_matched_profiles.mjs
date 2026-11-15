@@ -75,7 +75,7 @@ try {
       });
     }
   }
-  const result = await call("scxrd_run", { stage: 5 });
+  const result = await call("scxrd_run", { stage: 6 });
   assert.equal(result.scxrd.error, null, result.scxrd.error);
   const rows = [];
   for (let offset = 0; offset < result.scxrd.reflectionCount; offset += 200)

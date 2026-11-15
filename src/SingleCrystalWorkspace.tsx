@@ -43,6 +43,7 @@ import {
   bravaisName,
   candidateCell,
   deviationLabel,
+  poseLines,
   refinedCellLines,
   symmetryTolerance,
   latticeMethods,
@@ -75,6 +76,7 @@ const steps = [
   "Find spots",
   "Find lattices",
   "Refine lattice",
+  "Refine geometry",
 ] as const;
 const MASK_NAMES: Record<MaskKey, { name: string; title?: string }> = {
   dac: { name: "DAC opening" },
@@ -448,7 +450,7 @@ export function SingleCrystalWorkspace({
   const stepSummary = (stage: number) => {
     if (!data) return "";
     const state = data.stages[stage];
-    if (stage === 3 && state.status !== "pending") return state.detail;
+    if (stage >= 3 && state.status !== "pending") return state.detail;
     if (stage === 2 && data.cells.length) {
       const kept = data.cells.filter((c) => c.kept).length;
       return `${data.cells.length} lattice${data.cells.length === 1 ? "" : "s"} · ${kept ? `${kept} kept` : "tick one"}`;
@@ -464,7 +466,10 @@ export function SingleCrystalWorkspace({
         ? `${data.trackCount} linked spots`
         : `${data.cells.length} lattice${data.cells.length === 1 ? "" : "s"}`;
   };
-  const lastStage = data?.geometry ? 3 : 1;
+  const lastStage = data?.geometry ? 4 : 1;
+  const pose =
+    data?.poseFit &&
+    poseLines(data.poseFit, data.refinedLattices?.length ?? 1);
   const analysed = !!data?.stages
     .slice(0, lastStage + 1)
     .every((stage) => stage.status === "complete");
@@ -1390,6 +1395,23 @@ export function SingleCrystalWorkspace({
                           />
                         </>
                       )}
+                      {stage === 4 && (
+                        <label
+                          className="sc-mask-row sc-mask-row--plain"
+                          title="Off: the calibration stays fixed"
+                        >
+                          <Input
+                            type="checkbox"
+                            checked={data.config.refine_geometry}
+                            onChange={(e) =>
+                              setConfig({ refine_geometry: e.target.checked })
+                            }
+                          />
+                          <span className="sc-mask-name">
+                            Refine detector pose
+                          </span>
+                        </label>
+                      )}
                     </fieldset>
                   )}
                 </li>
@@ -1483,6 +1505,29 @@ export function SingleCrystalWorkspace({
                   <span>Lattice symmetry</span>
                 </div>
                 {data.refinedLattices.map((r) => symmetryGroup(r))}
+              </section>
+            )}
+            {pose && (
+              <section
+                className="sc-section sc-lattices sc-pose"
+                aria-label="Detector pose"
+              >
+                <div className="sc-mask-heading">
+                  <span>Detector pose</span>
+                </div>
+                {"kept" in pose ? (
+                  <small className="sc-refined sc-step-problem">
+                    {pose.kept}
+                  </small>
+                ) : (
+                  <div className="sc-refined" aria-label="Refined pose">
+                    <span>{pose.rms}</span>
+                    <small>{pose.training}</small>
+                    <small>{pose.moved}</small>
+                    <small>{pose.turned}</small>
+                    {pose.before && <small>{pose.before}</small>}
+                  </div>
+                )}
               </section>
             )}
           </>

@@ -27,6 +27,7 @@ import {
   bravaisName,
   candidateCell,
   deviationLabel,
+  poseLines,
   refinedCellLines,
   symmetryTolerance,
   withUncertainty,
@@ -651,8 +652,7 @@ test("Refine lattice: tolerances default to PhaseSmith's 1 % and 1°, older conf
 test("Refine lattice is the fourth step: tolerances in its settings, one candidate table per kept lattice", async () => {
   const { readFile } = await import("node:fs/promises");
   const view = await readFile(new URL("../src/SingleCrystalWorkspace.tsx", import.meta.url), "utf8");
-  assert.match(view, /"Find lattices",\s*"Refine lattice",\s*\] as const/);
-  assert.match(view, /const lastStage = data\?\.geometry \? 3 : 1/);
+  assert.match(view, /"Find lattices",\s*"Refine lattice",/);
   assert.match(view, /label="Lengths within"\s*unit="%"[\s\S]{0,600}step=\{0\.5\}\s*min=\{0\.1\}\s*max=\{10\}/);
   assert.match(view, /label="Angles within"\s*unit="°"[\s\S]{0,600}step=\{0\.5\}\s*min=\{0\.1\}\s*max=\{10\}/);
   // A row press refines the lattice as that type through the backend.
@@ -661,4 +661,77 @@ test("Refine lattice is the fourth step: tolerances in its settings, one candida
   assert.match(view, /data\.refinedLattices\.map\(\(r\) => symmetryGroup\(r\)\)/);
   // Each lattice is a disclosure group.
   assert.match(view, /className="sc-mask-toggle sc-symmetry-toggle"\s*aria-expanded=\{open\}/);
+});
+
+const refinement = (a) => ({
+  bravais: "oP",
+  conventional: [],
+  cell: [a, 8.81234, 18.23673, 90, 90, 90],
+  cell_su: [0.00052, 0.00031, 0.00056, 0, 0, 0],
+  volume: 832.79,
+  volume_su: 0.09,
+  rms: 0.00272,
+  used: 2843,
+  owned: 2843,
+  converged: true,
+});
+const pose = {
+  lattice: 0,
+  passed: true,
+  cycles: 2,
+  rms: [
+    [0.6622, 0.3245],
+    [0.6773, 0.3257],
+  ],
+  counts: [2173, 543],
+  shift: [0.00253, -0.0062, -0.00091],
+  pixel: [0.075, 0.075],
+  tilt: 0.1605,
+  turn: 0.0997,
+  converged: true,
+  at_bounds: false,
+  condition: 15.2,
+  before: [{ lattice: 0, candidates: [], chosen: 0, result: refinement(5.182) }],
+  before_detail: "oP 5.18 · 8.81 · 18.24 Å, 2843 spots",
+};
+test("Refine geometry: RMS before → after, the pose change, spots and the cell on the calibration", () => {
+  const lines = poseLines(pose);
+  assert.equal(lines.rms, "0.68 → 0.33 px withheld");
+  assert.equal(lines.training, "0.66 → 0.32 px training · 2716 spots");
+  // Shifts along fast and slow in pixels, the distance in mm (signed).
+  assert.equal(lines.moved, "Centre +0.03, −0.08 px · distance −0.001 mm");
+  assert.equal(lines.turned, "Tilt 0.161° · crystal 0.100° · 2 cycles");
+  assert.equal(lines.before, "Calibration: 5.1820(5) · 8.8123(3) · 18.2367(6) Å");
+  // Several lattices: the one the pose was fitted on; one cycle unsaid.
+  const two = poseLines({ ...pose, lattice: 1, cycles: 1, before: [] }, 2);
+  assert.equal(two.training, "0.66 → 0.32 px training · 2716 spots of lattice 2");
+  assert.equal(two.turned, "Tilt 0.161° · crystal 0.100°");
+  assert.equal(two.before, "");
+  // No signed zero.
+  assert.match(poseLines({ ...pose, shift: [0, 0, -0.00001] }).moved, /^Centre 0\.00, 0\.00 px · distance 0\.000 mm/);
+});
+test("Refine geometry: a kept calibration is one line", () => {
+  const kept = poseLines({ ...pose, passed: false, reason: "The fit did not pass its gates." });
+  assert.deepEqual(kept, { kept: "Calibration kept: The fit did not pass its gates." });
+  assert.equal(poseLines({ ...pose, passed: false }).kept, "Calibration kept: the fit failed its gates.");
+});
+test("Refine geometry is on by default in the lean settings and for summation", () => {
+  assert.equal(crystalDefaults.refine_geometry, true);
+  assert.equal(exploratoryCrystalConfig(crystalDefaults).refine_geometry, true);
+  assert.equal(workflowDefaults("summation").refine_geometry, true);
+  // The user's choice is kept once lean.
+  const off = { ...exploratoryCrystalConfig(crystalDefaults), refine_geometry: false };
+  assert.equal(exploratoryCrystalConfig(off).refine_geometry, false);
+});
+test("Refine geometry is the fifth step: a switch in its settings, the pose under the lattices", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const view = await readFile(new URL("../src/SingleCrystalWorkspace.tsx", import.meta.url), "utf8");
+  assert.match(view, /"Refine lattice",\s*"Refine geometry",\s*\] as const/);
+  assert.match(view, /const lastStage = data\?\.geometry \? 4 : 1/);
+  assert.match(view, /stage === 4 && \([\s\S]{0,300}type="checkbox"\s*checked=\{data\.config\.refine_geometry\}/);
+  assert.match(view, /setConfig\(\{ refine_geometry: e\.target\.checked \}\)/);
+  assert.match(view, /aria-label="Detector pose"/);
+  assert.match(view, /poseLines\(data\.poseFit, data\.refinedLattices\?\.length \?\? 1\)/);
+  // The step line shows the backend's detail once it ran.
+  assert.match(view, /if \(stage >= 3 && state\.status !== "pending"\) return state\.detail;/);
 });

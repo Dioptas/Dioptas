@@ -64,7 +64,7 @@ struct Essentials {
     revision: u64,
     track_offset: usize,
     reflection_filter: String,
-    /// Results beyond Refine lattice existed (not carried).
+    /// Results beyond Refine geometry existed (not carried).
     later_results: bool,
     /// Undo or redo steps existed (not carried).
     history: bool,
@@ -90,6 +90,9 @@ struct SavedProducts<'a> {
     /// Refine lattice stage and product (absent before the step existed).
     refine_stage: &'a Stage,
     refined: &'a [refine::Refined],
+    /// Refine geometry stage and product (absent before the step existed).
+    pose_stage: &'a Stage,
+    pose: Option<&'a pose::PoseFit>,
 }
 #[derive(Deserialize)]
 struct Products {
@@ -114,6 +117,10 @@ struct Products {
     refine_stage: Option<Stage>,
     #[serde(default)]
     refined: Vec<refine::Refined>,
+    #[serde(default)]
+    pose_stage: Option<Stage>,
+    #[serde(default)]
+    pose: Option<pose::PoseFit>,
 }
 
 fn encode(value: &impl Serialize) -> Result<Vec<u8>, String> {
@@ -195,7 +202,7 @@ impl Crystal {
             revision: self.revision,
             track_offset: self.track_offset,
             reflection_filter: self.reflection_filter.clone(),
-            later_results: self.stages[4..].iter().any(|s| s.status != "pending")
+            later_results: self.stages[5..].iter().any(|s| s.status != "pending")
                 || !self.reflections.is_empty()
                 || !self.structure.is_null(),
             history,
@@ -219,6 +226,8 @@ impl Crystal {
                 shown: self.shown,
                 refine_stage: &self.stages[3],
                 refined: &self.refined,
+                pose_stage: &self.stages[4],
+                pose: self.pose.as_ref(),
             })?,
         })
     }
@@ -489,10 +498,16 @@ impl Crystal {
             || p.tracks.iter().any(|t| t.first > t.last || t.last >= n)
             || p.selected.is_some_and(|s| s >= p.cells.len())
             || p.shown.is_some_and(|s| s >= p.cells.len())
-            || p.refined.iter().any(|r| {
-                !p.cells.get(r.lattice).is_some_and(|c| c.kept)
-                    || (r.result.is_some() && r.chosen >= r.candidates.len())
-            })
+            || p.refined
+                .iter()
+                .chain(p.pose.iter().flat_map(|f| &f.before))
+                .any(|r| {
+                    !p.cells.get(r.lattice).is_some_and(|c| c.kept)
+                        || (r.result.is_some() && r.chosen >= r.candidates.len())
+                })
+            || p.pose
+                .as_ref()
+                .is_some_and(|f| !p.refined.iter().any(|r| r.lattice == f.lattice))
             || p.shadows
                 .as_ref()
                 .is_some_and(|s| s.block == 0 || s.first > s.last || s.last >= n || s.cells == 0)
@@ -535,6 +550,11 @@ impl Crystal {
             self.stages[3] = stage;
             self.refined = p.refined;
             if self.stages[3].status != "pending" {
+                // Refine geometry follows a done Refine lattice only.
+                if let Some(stage) = p.pose_stage.filter(|s| s.status != "pending") {
+                    self.stages[4] = stage;
+                    self.pose = p.pose;
+                }
                 self.adopt_refinement();
             }
         }

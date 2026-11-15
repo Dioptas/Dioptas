@@ -648,6 +648,10 @@
   color: var(--ui-muted);
   font-size: var(--text-meta);
 }
+/* Refine geometry: no candidate rows to line up with. */
+.sc-pose .sc-refined {
+  padding-left: 0;
+}
 small.sc-refined {
   font-size: var(--text-meta);
   overflow-wrap: anywhere;

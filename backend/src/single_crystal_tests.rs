@@ -37,23 +37,26 @@ fn settings_invalidate_the_first_affected_scientific_product() {
     b.threshold = 6.;
     assert_eq!(a.first_changed(&b), 1);
     b = a.clone();
-    b.polarization = 0.5;
+    b.refine_geometry = !a.refine_geometry;
     assert_eq!(a.first_changed(&b), 4);
     b = a.clone();
-    b.group = 61;
+    b.polarization = 0.5;
     assert_eq!(a.first_changed(&b), 5);
     b = a.clone();
-    b.adp = "anisotropic".into();
+    b.group = 61;
     assert_eq!(a.first_changed(&b), 6);
     b = a.clone();
-    b.confirmed = !a.confirmed;
+    b.adp = "anisotropic".into();
     assert_eq!(a.first_changed(&b), 7);
+    b = a.clone();
+    b.confirmed = !a.confirmed;
+    assert_eq!(a.first_changed(&b), 8);
     let mut crystal = Crystal {
         structure: json!({"r1":0.1}),
         cif: Some("candidate".into()),
         ..Default::default()
     };
-    crystal.invalidate(7);
+    crystal.invalidate(8);
     assert_eq!(crystal.structure["r1"], 0.1);
     assert!(crystal.cif.is_some());
 }
@@ -527,7 +530,7 @@ fn matched_mgsio3_mask_ablation() {
         true
     );
     assert_eq!(
-        call(&mut session, "scxrd_run", json!({"stage":5})).result["ok"],
+        call(&mut session, "scxrd_run", json!({"stage":6})).result["ok"],
         true
     );
     assert!(session.scxrd.error.is_none(), "{:?}", session.scxrd.error);
@@ -549,8 +552,8 @@ fn matched_mgsio3_mask_ablation() {
         case.config.seat_guard = 32;
         case.shadows = None;
         case.prepare_shadows(&session.control).unwrap();
-        case.process(4, &session.control, false).unwrap();
         case.process(5, &session.control, false).unwrap();
+        case.process(6, &session.control, false).unwrap();
         results.push(json!({"case":name,"config":case.config,"geometry":case.geometry,"basis":case.basis,"shadows":case.shadows.as_ref().map(|s|&s.report),"scaling":case.scaling,"reflections":case.reflections,"tracks":case.tracks.iter().map(|t|t.observed).collect::<Vec<_>>() }));
         eprintln!("{name}: {}", case.scaling);
     }
@@ -2268,6 +2271,76 @@ fn development_reload_carries_the_refined_lattices() {
     assert!(back.iter().flatten().zip(direct.iter().flatten()).all(|(x, y)| (x - y).abs() < 1e-9));
     let notice = b.notice.clone().unwrap_or_default();
     assert!(!notice.contains("step results") && !notice.contains("intensities"), "{notice}");
+}
+#[test]
+#[cfg(debug_assertions)]
+fn development_reload_carries_the_refined_geometry() {
+    let (dir, mut s) = dac_session();
+    found_products(&mut s.scxrd);
+    let direct = s.scxrd.cells[0].direct;
+    let candidates = refine::candidates(direct, &s.scxrd.config).unwrap();
+    let refined = |a: f64| refine::Refined {
+        lattice: 0,
+        candidates: candidates.clone(),
+        chosen: 0,
+        result: Some(refine::Refinement {
+            bravais: "oP".into(),
+            conventional: direct,
+            cell: [a, 6., 7., 90., 90., 90.],
+            cell_su: [1e-4, 2e-4, 3e-4, 0., 0., 0.],
+            volume: 210.,
+            volume_su: 0.01,
+            rms: 0.001,
+            used: 120,
+            owned: 130,
+            converged: true,
+        }),
+        error: None,
+    };
+    let mut moved = s.scxrd.initial_geometry.unwrap();
+    moved.origin[2] += 1e-4;
+    s.scxrd.refined = vec![refined(5.001)];
+    s.scxrd.pose = Some(pose::PoseFit {
+        lattice: 0,
+        passed: true,
+        reason: None,
+        cycles: 2,
+        rms: [[0.66, 0.32], [0.68, 0.33]],
+        counts: [96, 24],
+        shift: [0.0025, 0.006, 0.1],
+        pixel: [0.075, 0.075],
+        tilt: 0.16,
+        turn: 0.1,
+        converged: true,
+        at_bounds: false,
+        condition: 15.,
+        geometry: Some(moved),
+        before: vec![refined(5.)],
+        before_detail: "oP 5.00 · 6.00 · 7.00 Å, 120 spots".into(),
+    });
+    for (i, detail) in [(3, "oP 5.00 · 6.00 · 7.00 Å, 120 spots"), (4, "Withheld 0.68 → 0.33 px, 120 spots")] {
+        s.scxrd.stages[i] = Stage {
+            status: "complete".into(),
+            detail: detail.into(),
+            seconds: 0.1,
+            masks: None,
+        };
+    }
+    let new = development_reload(&mut s, dir.path());
+    let b = &new.scxrd;
+    assert_eq!(b.stages[4].status, "complete");
+    assert_eq!(b.stages[4].detail, s.scxrd.stages[4].detail);
+    let p = b.pose.as_ref().unwrap();
+    assert_eq!(p.before, s.scxrd.pose.as_ref().unwrap().before);
+    assert_eq!((p.cycles, p.rms, p.counts), (2, [[0.66, 0.32], [0.68, 0.33]], [96, 24]));
+    // The refined pose is the detector in use again.
+    assert_eq!(b.geometry.unwrap().origin, moved.origin);
+    assert_eq!(b.refined, s.scxrd.refined);
+    // Clearing it brings the calibration and the cells on it back.
+    let mut b = new.scxrd.clone();
+    b.invalidate(4);
+    assert_eq!(b.refined[0].result.as_ref().unwrap().cell[0], 5.);
+    assert_eq!(b.geometry.unwrap().origin, s.scxrd.initial_geometry.unwrap().origin);
 }
 #[test]
 #[cfg(debug_assertions)]

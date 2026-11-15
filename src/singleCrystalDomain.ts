@@ -189,7 +189,8 @@ export const exploratoryCrystalConfig = (c: CrystalConfig): CrystalConfig =>
         // indexed share; 1 px admits flickering hot pixels.
         min_pixels: 2,
         link_radius: 3,
-        refine_geometry: false,
+        // Refine geometry on: its gates fall back to the calibration.
+        refine_geometry: true,
         scan_scaling: false,
       };
 /** Settings that follow the workflow choice: the fixed profile protocol's
@@ -218,7 +219,7 @@ export const workflowDefaults = (
         polarization: 0.99,
         link_radius: 3,
         min_pixels: 2,
-        refine_geometry: false,
+        refine_geometry: true,
         scan_scaling: false,
       };
 const frameList = (frames: number[]) => frames.map((f) => f + 1).join(", ");
@@ -417,6 +418,8 @@ export interface CrystalData {
   }[];
   /** Refine lattice: one per kept lattice (older snapshots: absent). */
   refinedLattices?: RefinedLattice[];
+  /** Refine geometry product (absent until it ran or when it was off). */
+  poseFit?: PoseFit | null;
   /** First kept lattice, used by the following steps. */
   selected: number | null;
   /** Lattice whose spots are marked on the image. */
@@ -522,6 +525,64 @@ export interface RefinedLattice {
   chosen: number;
   result?: LatticeRefinement;
   error?: string;
+}
+/** Refine geometry: detector pose and crystal orientation, cell fixed. */
+export interface PoseFit {
+  /** Lattice row the pose was fitted on. */
+  lattice: number;
+  /** Passed PhaseSmith's gates; its pose is in use. */
+  passed: boolean;
+  /** Why the calibration was kept. */
+  reason?: string;
+  cycles: number;
+  /** Position RMS in px, [training, withheld] × [before, after]. */
+  rms: number[][];
+  /** Spots in the fit, [training, withheld]. */
+  counts: number[];
+  /** Detector centre shift in mm along fast, slow and the normal (away
+   * from the sample). */
+  shift: number[];
+  /** Pixel size along fast and slow, mm. */
+  pixel: number[];
+  /** Detector rotation (°). */
+  tilt: number;
+  /** Largest turn of a crystal axis (°). */
+  turn: number;
+  converged: boolean;
+  at_bounds: boolean;
+  condition: number;
+  /** Refine lattice product on the calibration. */
+  before: RefinedLattice[];
+  before_detail: string;
+}
+const signed = (x: number, decimals: number) => {
+  const text = Math.abs(x).toFixed(decimals);
+  return Number(text) === 0 ? text : `${x < 0 ? "−" : "+"}${text}`;
+};
+/**
+ * Refine geometry in a few lines: the position RMS before → after, how the
+ * detector and the crystal moved, the spots used and the cell on the
+ * calibration (for comparison with the refined one above). A kept
+ * calibration is one line.
+ */
+export function poseLines(p: PoseFit, lattices = 1) {
+  if (!p.passed)
+    return { kept: `Calibration kept: ${p.reason ?? "the fit failed its gates."}` };
+  const [training, withheld] = p.rms;
+  const [fast, slow, normal] = p.shift;
+  const before = p.before.find((r) => r.lattice === p.lattice)?.result;
+  const px = (pair: number[]) => `${pair[0].toFixed(2)} → ${pair[1].toFixed(2)} px`;
+  return {
+    rms: `${px(withheld)} withheld`,
+    training: `${px(training)} training · ${p.counts[0] + p.counts[1]} spots${lattices > 1 ? ` of lattice ${p.lattice + 1}` : ""}`,
+    moved: `Centre ${signed(fast / p.pixel[0], 2)}, ${signed(slow / p.pixel[1], 2)} px · distance ${signed(normal, 3)} mm`,
+    turned: [
+      `Tilt ${p.tilt.toFixed(3)}°`,
+      `crystal ${p.turn.toFixed(3)}°`,
+      ...(p.cycles > 1 ? [`${p.cycles} cycles`] : []),
+    ].join(" · "),
+    before: before ? `Calibration: ${refinedCellLines(before).lengths}` : "",
+  };
 }
 /** A symmetry tolerance of a config that may predate the setting. */
 export const symmetryTolerance = (value: number | undefined) =>

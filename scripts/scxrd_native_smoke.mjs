@@ -81,7 +81,7 @@ try {
     confirmed: true,
   };
   await invoke("scxrd_settings", { config });
-  r = await invoke("scxrd_run", { stage: 4, automatic: true });
+  r = await invoke("scxrd_run", { stage: 5, automatic: true });
   console.log(
     "first pass",
     r.scxrd.stages.map((s) => s.status),
@@ -100,7 +100,7 @@ try {
   );
   assert.ok(cell >= 0, "Known 7×9×11 Å cell recovered");
   await invoke("scxrd_edit", { operation: "cell", index: cell });
-  r = await invoke("scxrd_run", { stage: 5 });
+  r = await invoke("scxrd_run", { stage: 6 });
   assert.equal(r.scxrd.error, null);
   assert.ok(r.scxrd.usableReflections > 25);
   r.scxrd = await allData(r.scxrd);
@@ -129,7 +129,7 @@ try {
     path: path.join(artifacts, "synthetic.txt"),
   });
   r = await invoke("scxrd_file", { operation: "open", path: recipe });
-  r = await invoke("scxrd_run", { stage: 5 });
+  r = await invoke("scxrd_run", { stage: 6 });
   r.scxrd = await allData(r.scxrd);
   assert.equal(
     JSON.stringify(r.scxrd.reflections),
@@ -155,9 +155,9 @@ try {
   await invoke("scxrd_settings", { config: { ...config, adp: "anisotropic" } });
   r = await invoke("scxrd_snapshot");
   assert.equal(r.scxrd.peakCount, peakCount);
-  assert.equal(r.scxrd.stages[4].status, "complete");
+  assert.equal(r.scxrd.stages[5].status, "complete");
   await invoke("scxrd_settings", { config: { ...config, background: false } });
-  r = await invoke("scxrd_run", { stage: 5, automatic: true });
+  r = await invoke("scxrd_run", { stage: 6, automatic: true });
   assert.equal(r.scxrd.error, null);
   const withoutBackground = await allData(r.scxrd);
   let compared = 0,
@@ -196,13 +196,13 @@ try {
     ),
   );
   await invoke("scxrd_file", { operation: "open", path: recipe });
-  await invoke("scxrd_run", { stage: 5 });
+  await invoke("scxrd_run", { stage: 6 });
   r = await invoke("scxrd_snapshot");
   await invoke("scxrd_settings", {
     config: { ...r.scxrd.config, elements: "Si", search_seconds: 2 },
   });
-  const search = await invoke("scxrd_run", { stage: 6 });
-  assert.equal(search.scxrd.stages[6].status, "complete", search.scxrd.error);
+  const search = await invoke("scxrd_run", { stage: 7 });
+  assert.equal(search.scxrd.stages[7].status, "complete", search.scxrd.error);
   assert.ok(Number.isFinite(search.scxrd.structure.r1));
   await invoke("scxrd_file", {
     operation: "cif",

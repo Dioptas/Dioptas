@@ -44,17 +44,20 @@ mod protocol;
 mod raw_frames;
 #[path = "single_crystal_refine.rs"]
 mod refine;
+#[path = "single_crystal_pose.rs"]
+mod pose;
 const ENGINE: &str = "PhaseSmith 0.8.1 / e47507f4";
 fn adapter_identity() -> &'static str {
     static ID: std::sync::OnceLock<String> = std::sync::OnceLock::new();
     ID.get_or_init(|| {
         let mut hash = Sha256::new();
-        let sources: [&[u8]; 18] = [
+        let sources: [&[u8]; 19] = [
             include_bytes!("single_crystal.rs"),
             include_bytes!("single_crystal_dac_fit.rs"),
             include_bytes!("single_crystal_processing.rs"),
             include_bytes!("single_crystal_lattices.rs"),
             include_bytes!("single_crystal_refine.rs"),
+            include_bytes!("single_crystal_pose.rs"),
             include_bytes!("single_crystal_scaling.rs"),
             include_bytes!("single_crystal_shadows.rs"),
             include_bytes!("single_crystal_diamond.rs"),
@@ -75,11 +78,12 @@ fn adapter_identity() -> &'static str {
         format!("{:x}", hash.finalize())
     })
 }
-const TITLES: [&str; 7] = [
+const TITLES: [&str; 8] = [
     "Background",
     "Find peaks",
     "Find cell",
     "Refine lattice",
+    "Refine geometry",
     "Integrate",
     "Scaling and symmetry",
     "Structure search",
@@ -457,26 +461,27 @@ impl Config {
         {
             2
         } else if self.metric != n.metric
-            || self.refine_geometry != n.refine_geometry
             || self.symmetry_length_tolerance != n.symmetry_length_tolerance
             || self.symmetry_angle_tolerance != n.symmetry_angle_tolerance
         {
             3
+        } else if self.refine_geometry != n.refine_geometry {
+            4
         } else if self.keep_stage_audit != n.keep_stage_audit
             || self.aperture_radius != n.aperture_radius
             || self.omega_radius != n.omega_radius
             || self.polarization != n.polarization
         {
-            4
-        } else if self.group != n.group || self.scan_scaling != n.scan_scaling {
             5
+        } else if self.group != n.group || self.scan_scaling != n.scan_scaling {
+            6
         } else if self.elements != n.elements
             || self.adp != n.adp
             || self.search_seconds != n.search_seconds
         {
-            6
-        } else {
             7
+        } else {
+            8
         }
     }
 }
@@ -625,7 +630,7 @@ pub(super) struct Crystal {
     protected_sources: Vec<PathBuf>,
     shape: [usize; 2],
     frame: usize,
-    stages: [Stage; 7],
+    stages: [Stage; 8],
     geometry: Option<Geometry>,
     initial_geometry: Option<Geometry>,
     poni: Option<crate::geometry::Geometry>,
@@ -647,6 +652,8 @@ pub(super) struct Crystal {
     basis: Option<M3>,
     /// Refine lattice product, one per kept lattice (see `refine`).
     refined: Vec<refine::Refined>,
+    /// Refine geometry product (see `pose`).
+    pose: Option<pose::PoseFit>,
     geometry_report: Value,
     reflections: Vec<Reflection>,
     unscaled_reflections: Vec<Reflection>,
@@ -727,23 +734,26 @@ impl Crystal {
         if from <= 3 {
             self.basis = None;
             self.refined.clear();
+            self.pose = None;
             self.geometry = self.initial_geometry;
             self.geometry_report = Value::Null;
+        } else if from == 4 {
+            self.drop_pose();
         }
-        if from <= 4 {
+        if from <= 5 {
             self.profile_report = Value::Null;
             self.profile_audit = None;
             self.profile_options = None;
             self.reflections.clear();
             self.unscaled_reflections.clear();
             self.reflection_offset = 0;
-        } else if from == 5 {
+        } else if from == 6 {
             self.reflections = self.unscaled_reflections.clone();
         }
-        if from <= 5 {
+        if from <= 6 {
             self.scaling = Value::Null;
         }
-        if from <= 6 {
+        if from <= 7 {
             self.structure = Value::Null;
             self.cif = None;
         }
@@ -982,7 +992,7 @@ impl Crystal {
         } else {
             (None, None)
         };
-        let state = json!({"engine":ENGINE,"adapter":adapter_identity(),"exported":!self.saved_exports.is_empty(),"revision":self.revision,"config":self.config,"protocolTemplate":protocol::builtin(),"effectiveProtocol":effective_protocol,"protocolInspectionError":protocol_error,"frames":self.sources.len(),"frame":self.frame,"firstSource":self.sources.first().map(|s|s.path.to_string_lossy()),"lastSource":self.sources.last().map(|s|s.path.to_string_lossy()),"filename":self.sources.get(self.frame).map(|s|s.path.file_name().unwrap_or_default().to_string_lossy()),"shape":self.shape,"stages":self.stages,"geometry":self.geometry,"geometryReport":self.geometry_report,"peaks":shown,"predictions":self.predicted_markers(),"peakCount":self.peaks.len(),"peakFrames":self.peak_frames(),"busyFrames":self.busy_frames(),"tracks":tracks,"trackOffset":self.track_offset,"reflectionOffset":self.reflection_offset,"trackCount":self.tracks.len(),"cells":self.cells,"selected":self.selected,"shownLattice":self.shown,"refinedLattices":self.refined,"reflections":self.table_reflections().skip(self.reflection_offset).take(200).collect::<Vec<_>>(),"reflectionFilteredCount":self.table_reflections().count(),"reflectionFilter":if self.reflection_filter.is_empty(){"all"}else{&self.reflection_filter},"suppliedGroupSymbol":phasesmith_io::space_group_by_number(i32::from(self.config.group)).ok().map(|g|g.hm_symbol),"reflectionCount":self.reflections.len(),"usableReflections":self.reflections.iter().filter(|r|r.usable()).count(),"shadows":self.shadows.as_ref().map(|s|&s.report),"profileReport":self.profile_report,"scaling":self.scaling,"structure":self.structure,"mask":self.mask,"excludedFrames":self.excluded_frames,"error":self.error,"notice":self.notice,"previewKind":if self.preview_kind.is_empty(){"raw"}else{&self.preview_kind},"image":self.preview.as_ref().map(|r|&r.metadata),"maskImage":self.preview_mask.as_ref().map(|r|&r.metadata),"sharedMask":self.shared_status,"source":self.sources.get(self.frame).map(|s|json!({"path":s.path,"frame":s.frame}))});
+        let state = json!({"engine":ENGINE,"adapter":adapter_identity(),"exported":!self.saved_exports.is_empty(),"revision":self.revision,"config":self.config,"protocolTemplate":protocol::builtin(),"effectiveProtocol":effective_protocol,"protocolInspectionError":protocol_error,"frames":self.sources.len(),"frame":self.frame,"firstSource":self.sources.first().map(|s|s.path.to_string_lossy()),"lastSource":self.sources.last().map(|s|s.path.to_string_lossy()),"filename":self.sources.get(self.frame).map(|s|s.path.file_name().unwrap_or_default().to_string_lossy()),"shape":self.shape,"stages":self.stages,"geometry":self.geometry,"geometryReport":self.geometry_report,"peaks":shown,"predictions":self.predicted_markers(),"peakCount":self.peaks.len(),"peakFrames":self.peak_frames(),"busyFrames":self.busy_frames(),"tracks":tracks,"trackOffset":self.track_offset,"reflectionOffset":self.reflection_offset,"trackCount":self.tracks.len(),"cells":self.cells,"selected":self.selected,"shownLattice":self.shown,"refinedLattices":self.refined,"poseFit":self.pose,"reflections":self.table_reflections().skip(self.reflection_offset).take(200).collect::<Vec<_>>(),"reflectionFilteredCount":self.table_reflections().count(),"reflectionFilter":if self.reflection_filter.is_empty(){"all"}else{&self.reflection_filter},"suppliedGroupSymbol":phasesmith_io::space_group_by_number(i32::from(self.config.group)).ok().map(|g|g.hm_symbol),"reflectionCount":self.reflections.len(),"usableReflections":self.reflections.iter().filter(|r|r.usable()).count(),"shadows":self.shadows.as_ref().map(|s|&s.report),"profileReport":self.profile_report,"scaling":self.scaling,"structure":self.structure,"mask":self.mask,"excludedFrames":self.excluded_frames,"error":self.error,"notice":self.notice,"previewKind":if self.preview_kind.is_empty(){"raw"}else{&self.preview_kind},"image":self.preview.as_ref().map(|r|&r.metadata),"maskImage":self.preview_mask.as_ref().map(|r|&r.metadata),"sharedMask":self.shared_status,"source":self.sources.get(self.frame).map(|s|json!({"path":s.path,"frame":s.frame}))});
         Reply {
             result: json!({"ok":true,"scxrd":state}),
             buffers: self
@@ -1097,6 +1107,7 @@ impl Session {
                             "peaks",
                             "cell",
                             "lattice refinement",
+                            "geometry refinement",
                             "intensities",
                             "scaling",
                             "structure",
@@ -1399,7 +1410,7 @@ impl Session {
             "scxrd_run" => {
                 let target = args["stage"]
                     .as_u64()
-                    .filter(|v| *v < 7)
+                    .filter(|v| *v < 8)
                     .ok_or("Unknown processing stage.")? as usize;
                 let automatic = args["automatic"].as_bool().unwrap_or(false);
                 self.scxrd.sources_check()?;
@@ -1421,7 +1432,7 @@ impl Session {
                 for (stage, title) in TITLES.iter().enumerate().take(target + 1) {
                     // This versioned recipe owns these prerequisites itself and
                     // commits their actual native products atomically at reduction.
-                    let checkpoint = if target < 4 { target } else { 4 };
+                    let checkpoint = if target < 5 { target } else { 5 };
                     if self.scxrd.config.integration_method == "profile" && stage < checkpoint {
                         continue;
                     }

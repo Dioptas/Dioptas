@@ -13,7 +13,8 @@
 //!
 //! The product per lattice, the refined conventional basis and its Bravais
 //! type, is what prediction and integration of all reflections will use. It is
-//! cleared with everything from Find lattices on.
+//! cleared with everything from Find lattices on. Refine geometry refines it
+//! again on the corrected detector pose (see `pose`).
 use super::*;
 use phasesmith_single_crystal::lattice_symmetry::{
     self as symmetry, Bravais, CellRefinement, Convergence, RefineOptions, SearchOptions,
@@ -247,8 +248,21 @@ impl Crystal {
         self.adopt_refinement();
         self.refine_detail()
     }
+    /// Refine every lattice again in its chosen setting, on the geometry in
+    /// use (after Refine geometry moved the detector).
+    pub(super) fn rerun_refinements(&mut self) -> Result<(), String> {
+        let spots = self.owned_spots()?;
+        let tolerance = self.config.tolerance;
+        for r in &mut self.refined {
+            if !r.candidates.is_empty() {
+                r.run(&spots[r.lattice], tolerance);
+            }
+        }
+        self.adopt_refinement();
+        Ok(())
+    }
     /// The step line, or why no lattice could be refined.
-    fn refine_detail(&self) -> Result<String, String> {
+    pub(super) fn refine_detail(&self) -> Result<String, String> {
         let done: Vec<&Refinement> = self
             .refined
             .iter()
@@ -269,7 +283,8 @@ impl Crystal {
         })
     }
     /// The first kept lattice's refined cell is the basis the older later
-    /// stages (and the predicted markers) use; the calibration stays fixed.
+    /// stages (and the predicted markers) use, with the refined detector pose
+    /// once Refine geometry has one, else the calibration.
     pub(super) fn adopt_refinement(&mut self) {
         let first = self
             .refined
@@ -277,14 +292,11 @@ impl Crystal {
             .find(|r| Some(r.lattice) == self.selected)
             .and_then(|r| r.result.as_ref());
         self.basis = first.and_then(|r| fft::inverse_transpose(r.conventional).ok());
-        self.geometry = self.initial_geometry.map(|mut g| {
-            g.axis = self.config.axis;
-            g
-        });
+        self.geometry = self.pose_geometry();
         self.geometry_report = Value::Null;
     }
-    /// Refine one lattice in another of its candidate settings; the
-    /// following steps start again.
+    /// Refine one lattice in another of its candidate settings, on the
+    /// calibration; Refine geometry and the following steps start again.
     pub(super) fn choose_symmetry(&mut self, lattice: usize, choice: usize) -> Result<(), String> {
         if self.stages[3].status == "pending" {
             return Err("Run Refine lattice first.".into());
@@ -300,12 +312,18 @@ impl Crystal {
         if self.refined[at].chosen == choice && self.refined[at].result.is_some() {
             return Ok(());
         }
+        // Back to the calibration and the other lattices' cells on it.
+        self.invalidate(4);
+        let at = self
+            .refined
+            .iter()
+            .position(|r| r.lattice == lattice)
+            .ok_or("Lattice is not refined.")?;
         let spots = self.owned_spots()?;
         let tolerance = self.config.tolerance;
         let r = &mut self.refined[at];
         r.chosen = choice;
         r.run(&spots[lattice], tolerance);
-        self.invalidate(4);
         self.adopt_refinement();
         let (status, detail) = match self.refine_detail() {
             Ok(detail) => ("complete", detail),
@@ -319,4 +337,4 @@ impl Crystal {
 
 #[cfg(test)]
 #[path = "single_crystal_refine_tests.rs"]
-mod tests;
+pub(super) mod tests;

@@ -87,7 +87,7 @@ try {
         group: 61,
       },
     });
-    r = await call("scxrd_run", { stage: 5 });
+    r = await call("scxrd_run", { stage: 6 });
     await fs.writeFile(
       path.join(folder, "processed.json"),
       JSON.stringify(r.scxrd, null, 2),

@@ -51,7 +51,7 @@ try {
       operation: "audit",
       path: path.join(folder, "stages.npz"),
     });
-    const search = await invoke("scxrd_run", { stage: 6 });
+    const search = await invoke("scxrd_run", { stage: 7 });
     assert.equal(search.scxrd.error, null, search.scxrd.error);
     await fs.writeFile(
       path.join(folder, "search.json"),
@@ -73,7 +73,7 @@ try {
   }
   if (!fresh) {
     await invoke("scxrd_file", { operation: "open", path: recipe });
-    replay = await invoke("scxrd_run", { stage: 5 });
+    replay = await invoke("scxrd_run", { stage: 6 });
     await archive(replay);
     await invoke("scxrd_frame", { frame: 60 });
   }
@@ -413,8 +413,8 @@ try {
     .click();
   await page.getByTestId("sc-primary-action").waitFor();
   const stopped = (await invoke("scxrd_snapshot")).scxrd;
-  assert.equal(stopped.stages[4].status, "paused");
-  assert.notEqual(stopped.stages[5].status, "complete");
+  assert.equal(stopped.stages[5].status, "paused");
+  assert.notEqual(stopped.stages[6].status, "complete");
   assert.equal(stopped.usableReflections, 0);
   assert.equal(stopped.frames, 144);
   assert.equal(stopped.config.integration_method, "profile");

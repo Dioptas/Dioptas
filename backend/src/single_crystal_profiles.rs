@@ -527,7 +527,7 @@ impl Crystal {
             stop_after: match target {
                 0 => "shadow_masks",
                 1 => "detection_linking",
-                2 | 3 => "indexing_geometry",
+                2..=4 => "indexing_geometry",
                 _ => "profile_fitting_scaling",
             },
             ..Default::default()
@@ -554,7 +554,7 @@ impl Crystal {
         control.check()?;
         match result {
             Err(e) if e.0 == CHECKPOINT && capture.checkpoint_complete => {
-                if target < 4 && !capture.rows.is_empty() {
+                if target < 5 && !capture.rows.is_empty() {
                     return Err("Native checkpoint name changed; refusing to mark a full reduction as an early checkpoint.".into());
                 }
             }
@@ -565,7 +565,7 @@ impl Crystal {
                 );
             }
         }
-        if target < 4
+        if target < 5
             && let Some(a) = capture.audit.take()
         {
             capture.audit_directory = Some(a.finish()?);
@@ -573,8 +573,8 @@ impl Crystal {
         let completed = match target {
             0 => 0,
             1 => 1,
-            2 | 3 => 3,
-            _ => 5,
+            2..=4 => 4,
+            _ => 6,
         };
         // Commit checkpoint products only after assessment and cancellation checks.
         let mut next = self.clone();
@@ -585,7 +585,7 @@ impl Crystal {
             next.tracks = capture.tracks;
             next.track_offset = 0;
         }
-        if completed >= 3 {
+        if completed >= 4 {
             next.cells = vec![
                 capture
                     .cell
@@ -597,14 +597,14 @@ impl Crystal {
             next.geometry_report = capture.geometry_report;
         }
         let used = capture.rows.iter().filter(|r| r.usable()).count();
-        if completed >= 4 {
+        if completed >= 5 {
             next.reflections = capture.rows;
             next.unscaled_reflections = next.reflections.clone();
             next.reflection_offset = 0;
         }
         next.profile_options = Some(Arc::new(options));
         next.profile_audit = capture.audit_directory;
-        next.profile_report = if completed >= 4 {
+        next.profile_report = if completed >= 5 {
             capture.report
         } else {
             json!({"recipe":"PhaseSmith orthorhombic-v1","checkpoint":completed})
@@ -626,6 +626,7 @@ impl Crystal {
             "Standalone shared cell-seat/DAC masks; omega baseline disabled",
             "Standalone original-count peak detection/linking",
             "Supplied metric indexed with native position gates",
+            "Cell held at the supplied metric",
             "Native pose/orientation refinement with family holdout",
             "Native predicted-crossing integration and learned profiles",
             "Native per-frame/detector/ray family scaling and equivalent-error model",
@@ -641,13 +642,13 @@ impl Crystal {
                 masks: None,
             };
         }
-        if completed >= 4 {
+        if completed >= 5 {
             let detail = next.scale(control)?;
-            next.stages[5].detail = detail;
+            next.stages[6].detail = detail;
         }
         control.check()?;
         *self = next;
-        Ok(if completed >= 4 {
+        Ok(if completed >= 5 {
             format!(
                 "{used} signed observations retained by the same native profile/visibility/scaling policy as standalone PhaseSmith. MISMATCH warnings preserved; no absorption correction."
             )

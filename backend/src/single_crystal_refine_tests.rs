@@ -3,7 +3,7 @@
 //! indexing and constrained refinement.
 use super::*;
 
-fn call(s: &mut Session, action: &str, payload: Value) -> Reply {
+pub(crate) fn call(s: &mut Session, action: &str, payload: Value) -> Reply {
     s.invoke(&Request {
         id: 1,
         action: action.into(),
@@ -12,9 +12,9 @@ fn call(s: &mut Session, action: &str, payload: Value) -> Reply {
     })
 }
 /// Deterministic uniform numbers in [0, 1).
-struct Lcg(u64);
+pub(crate) struct Lcg(pub(crate) u64);
 impl Lcg {
-    fn next(&mut self) -> f64 {
+    pub(crate) fn next(&mut self) -> f64 {
         self.0 = self
             .0
             .wrapping_mul(6364136223846793005)
@@ -22,7 +22,7 @@ impl Lcg {
         (self.0 >> 11) as f64 / (1u64 << 53) as f64
     }
 }
-fn rotation(x: f64, y: f64, z: f64) -> M3 {
+pub(crate) fn rotation(x: f64, y: f64, z: f64) -> M3 {
     let (sx, cx, sy, cy, sz, cz) = (x.sin(), x.cos(), y.sin(), y.cos(), z.sin(), z.cos());
     [
         [cy * cz, sx * sy * cz - cx * sz, cx * sy * cz + sx * sz],
@@ -31,22 +31,23 @@ fn rotation(x: f64, y: f64, z: f64) -> M3 {
     ]
 }
 /// Direct rows of a cell (Å, degrees), rotated.
-fn lattice(p: [f64; 6], r: M3) -> M3 {
+pub(crate) fn lattice(p: [f64; 6], r: M3) -> M3 {
     let basis = symmetry::cell_basis(p).unwrap();
     basis.map(|row| r.map(|q| fft::dot(q, row)))
 }
 /// A primitive but not conventional basis of the same lattice (a, b, a + c),
 /// as Find lattices might report it.
-fn sheared(d: M3) -> M3 {
+pub(crate) fn sheared(d: M3) -> M3 {
     [d[0], d[1], std::array::from_fn(|j| d[0][j] + d[2][j])]
 }
-const ENSTATITE: [f64; 6] = [18.23, 8.81, 5.18, 90., 90., 90.];
-const AXIS: V3 = [1., 0., 0.];
-fn detector() -> Geometry {
+pub(crate) const ENSTATITE: [f64; 6] = [18.23, 8.81, 5.18, 90., 90., 90.];
+pub(crate) const AXIS: V3 = [1., 0., 0.];
+/// A flat detector 200 mm downstream (metres, like a loaded calibration).
+pub(crate) fn detector() -> Geometry {
     Geometry {
-        origin: [-150., -150., 200.],
-        fast: [0.075, 0., 0.],
-        slow: [0., 0.075, 0.],
+        origin: [-0.15, -0.15, 0.2],
+        fast: [75e-6, 0., 0.],
+        slow: [0., 75e-6, 0.],
         beam: [0., 0., 1.],
         axis: AXIS,
         wavelength: 0.2846,
@@ -55,6 +56,16 @@ fn detector() -> Geometry {
 /// Observed tracks (x, y px, omega °) of the nodes of `direct` within `qmax`
 /// that cross the sphere within ±40°, at most `limit`, with small scatter.
 fn tracks(direct: M3, qmax: f64, limit: usize, rng: &mut Lcg) -> Vec<Track> {
+    tracks_on(detector(), direct, qmax, limit, rng)
+}
+/// The same, measured on detector `g`.
+pub(crate) fn tracks_on(
+    g: Geometry,
+    direct: M3,
+    qmax: f64,
+    limit: usize,
+    rng: &mut Lcg,
+) -> Vec<Track> {
     let b = fft::inverse_transpose(direct).unwrap();
     let span = direct.map(|r| (qmax * fft::dot(r, r).sqrt()).ceil() as i64);
     let mut hkl = vec![];
@@ -74,7 +85,7 @@ fn tracks(direct: M3, qmax: f64, limit: usize, rng: &mut Lcg) -> Vec<Track> {
     let mut out = vec![];
     for other in [false, true] {
         let hints = vec![0.; hkl.len()];
-        let p = spots::prediction::predict(detector().native(), b, &hkl, &hints, other).unwrap();
+        let p = spots::prediction::predict(g.native(), b, &hkl, &hints, other).unwrap();
         for p in p {
             let [x, y, omega] = p.values;
             if p.flags == 0
@@ -101,7 +112,7 @@ fn tracks(direct: M3, qmax: f64, limit: usize, rng: &mut Lcg) -> Vec<Track> {
     out.truncate(limit);
     out
 }
-fn found(direct: M3) -> Cell {
+pub(crate) fn found(direct: M3) -> Cell {
     Cell {
         direct,
         parameters: processing::parameters(direct),
@@ -115,7 +126,7 @@ fn found(direct: M3) -> Cell {
     }
 }
 /// A crystal after Find lattices with these (cell given, spots) lattices.
-fn crystal(lattices: Vec<(M3, Vec<Track>)>) -> Crystal {
+pub(crate) fn crystal(lattices: Vec<(M3, Vec<Track>)>) -> Crystal {
     let mut c = Crystal {
         config: Config {
             integration_method: "summation".into(),
@@ -152,9 +163,14 @@ fn symbols(r: &Refined) -> Vec<&str> {
     r.candidates.iter().map(|c| c.bravais.as_str()).collect()
 }
 /// Stage 3 as the run command runs it (status set from the result).
-fn run(c: &mut Crystal) -> Result<String, String> {
+pub(crate) fn run(c: &mut Crystal) -> Result<String, String> {
     let result = c.process(3, &Control::default(), false);
-    c.stages[3].status = if result.is_ok() { "complete" } else { "attention" }.into();
+    c.stages[3].status = if result.is_ok() {
+        "complete"
+    } else {
+        "attention"
+    }
+    .into();
     result
 }
 

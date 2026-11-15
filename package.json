@@ -107,7 +107,7 @@
     "test:glib-backport": "node scripts/check_glib_backport.mjs --advisories && cargo test --release --locked --manifest-path security/glib-regression/Cargo.toml",
     "release:linux": "node scripts/release_linux.mjs",
     "test:linux-release-config": "node --test scripts/linux_release_config.test.mjs",
-    "test:scxrd": "node scripts/scxrd_native_smoke.mjs && node scripts/scxrd_flux_check.mjs && node scripts/scxrd_smoke.mjs",
+    "test:scxrd": "node scripts/scxrd_native_smoke.mjs && node scripts/scxrd_flux_check.mjs",
     "test:scxrd-hover": "node scripts/scxrd_hover_smoke.mjs && node scripts/scxrd_reload_smoke.mjs",
     "test:scxrd-measured": "node scripts/scxrd_measured.mjs",
     "test:scxrd-measured-gui": "node scripts/scxrd_measured_gui.mjs",

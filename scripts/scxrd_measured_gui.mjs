@@ -16,7 +16,7 @@ try {
     path: path.join(folder, "measured.scxrd.json"),
   });
   assert.equal(r.ok, true, r.error);
-  r = await native.invoke("scxrd_run", { stage: 5 });
+  r = await native.invoke("scxrd_run", { stage: 6 });
   assert.equal(r.scxrd.error, null);
   await native.invoke("scxrd_frame", { frame: 60 });
   const page = await browser.newPage({

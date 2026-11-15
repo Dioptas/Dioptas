@@ -54,7 +54,7 @@ impl Crystal {
         automatic: bool,
     ) -> Result<String, String> {
         control.check()?;
-        if self.config.integration_method == "profile" && stage <= 4 {
+        if self.config.integration_method == "profile" && stage <= 5 {
             return self.profile_run(control, stage);
         }
         match stage {
@@ -62,9 +62,10 @@ impl Crystal {
             1 => self.detect(control),
             2 => self.cells(control, automatic),
             3 => self.refine_lattices(),
-            4 => self.integrate(control),
-            5 => self.scale(control),
-            6 => self.solve(control),
+            4 => self.refine_pose(control),
+            5 => self.integrate(control),
+            6 => self.scale(control),
+            7 => self.solve(control),
             _ => unreachable!(),
         }
     }
@@ -1055,7 +1056,7 @@ impl Crystal {
             Some("rerun") => {
                 let stage = args["index"]
                     .as_u64()
-                    .filter(|v| *v < 7)
+                    .filter(|v| *v < 8)
                     .ok_or("Choose a processing stage.")? as usize;
                 self.invalidate(stage);
             }
