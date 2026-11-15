@@ -160,11 +160,8 @@ pub(super) fn neighbor(path: &Path, mode: &str, step: i64) -> Result<Option<Path
     // Resolve the directory once. Regular entries then already have canonical
     // parents; resolving every earlier filename made late-acquisition browsing
     // pay thousands of redundant filesystem lookups on each click.
-    let directory = path
-        .parent()
-        .unwrap_or(Path::new("."))
-        .canonicalize()
-        .map_err(|e| e.to_string())?;
+    let directory =
+        dunce::canonicalize(path.parent().unwrap_or(Path::new("."))).map_err(|e| e.to_string())?;
     for entry in std::fs::read_dir(directory).map_err(|e| e.to_string())? {
         let entry = entry.map_err(|e| e.to_string())?;
         let p = entry.path();
@@ -191,11 +188,11 @@ pub(super) fn neighbor(path: &Path, mode: &str, step: i64) -> Result<Option<Path
         }
     }
     entries.sort();
-    let current = path.canonicalize().map_err(|e| e.to_string())?;
+    let current = dunce::canonicalize(path).map_err(|e| e.to_string())?;
     let i = entries
         .iter()
         .position(|(_, p, symlink)| {
-            p == &current || (*symlink && p.canonicalize().ok().as_ref() == Some(&current))
+            p == &current || (*symlink && dunce::canonicalize(p).ok().as_ref() == Some(&current))
         })
         .ok_or("Current file is not in its source directory.")?;
     let target = i as i64 + step;
@@ -432,7 +429,7 @@ impl Files {
         if !image_file(path) {
             return;
         }
-        if let Ok(path) = path.canonicalize()
+        if let Ok(path) = dunce::canonicalize(path)
             && let Ok(identity) = crate::image::FileIdentity::read(&path)
         {
             Arc::make_mut(&mut self.generated).insert(path, identity);
@@ -441,7 +438,7 @@ impl Files {
 }
 
 fn directory(args: &Value) -> Result<String, String> {
-    let p = path(args)?.canonicalize().map_err(|e| e.to_string())?;
+    let p = dunce::canonicalize(path(args)?).map_err(|e| e.to_string())?;
     if !p.is_dir() {
         return Err("Choose an existing directory.".into());
     }
@@ -1057,21 +1054,19 @@ impl Session {
             PathBuf::from(&self.files.output_directory)
         };
         if self.root.join("RESOURCE_MANIFEST.json").is_file()
-            && directory
-                .canonicalize()
+            && dunce::canonicalize(&directory)
                 .map_err(|e| e.to_string())?
-                .starts_with(self.root.canonicalize().map_err(|e| e.to_string())?)
+                .starts_with(dunce::canonicalize(&self.root).map_err(|e| e.to_string())?)
         {
             return Err("Choose an output folder outside the application before automatically saving patterns from its bundled examples.".into());
         }
         for format in &self.settings.formats {
             let file = directory.join(format!("{}{}", self.patterns.name, format));
-            let normalized = directory
-                .canonicalize()
+            let normalized = dunce::canonicalize(&directory)
                 .map_err(|e| e.to_string())?
                 .join(file.file_name().unwrap());
             if self.image.as_ref().is_some_and(|i| {
-                i.path == normalized || file.canonicalize().ok().as_ref() == Some(&i.path)
+                i.path == normalized || dunce::canonicalize(&file).ok().as_ref() == Some(&i.path)
             }) || self
                 .files
                 .generated
@@ -1241,7 +1236,7 @@ mod navigation_tests {
     #[test]
     fn time_order_compares_the_full_compressed_image_suffix() {
         let temp = tempfile::tempdir().unwrap();
-        let directory = temp.path().canonicalize().unwrap();
+        let directory = dunce::canonicalize(temp.path()).unwrap();
         let first = directory.join("a.edf.gz");
         let second = directory.join("b.EDF.gz");
         std::fs::write(&first, b"first").unwrap();
@@ -1256,7 +1251,7 @@ mod navigation_tests {
     #[test]
     fn time_order_filters_entries_preserves_steps_and_finds_new_arrivals() {
         let temp = tempfile::tempdir().unwrap();
-        let directory = temp.path().canonicalize().unwrap();
+        let directory = dunce::canonicalize(temp.path()).unwrap();
         let first = directory.join("a.tif");
         let second = directory.join("b.tif");
         std::fs::write(&first, b"first").unwrap();
@@ -1275,7 +1270,7 @@ mod navigation_tests {
     fn time_order_resolves_directory_and_file_symlinks() {
         use std::os::unix::fs::symlink;
         let temp = tempfile::tempdir().unwrap();
-        let directory = temp.path().canonicalize().unwrap();
+        let directory = dunce::canonicalize(temp.path()).unwrap();
         let source = directory.join("source");
         std::fs::create_dir(&source).unwrap();
         let target = directory.join("outside.tif");
