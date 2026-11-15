@@ -2905,24 +2905,24 @@ dependencies = [
 
 [[package]]
 name = "phasesmith-core"
-version = "0.8.2"
-source = "git+https://github.com/CPrescher/PhaseSmith?rev=0e22d37b38093e4dad19beb3332e6019dccaf087#0e22d37b38093e4dad19beb3332e6019dccaf087"
+version = "0.8.3"
+source = "git+https://github.com/CPrescher/PhaseSmith?rev=607941b68eda7034f2920c51f44c1e8a67467850#607941b68eda7034f2920c51f44c1e8a67467850"
 dependencies = [
  "phasesmith-execution",
 ]
 
 [[package]]
 name = "phasesmith-crystallography"
-version = "0.8.2"
-source = "git+https://github.com/CPrescher/PhaseSmith?rev=0e22d37b38093e4dad19beb3332e6019dccaf087#0e22d37b38093e4dad19beb3332e6019dccaf087"
+version = "0.8.3"
+source = "git+https://github.com/CPrescher/PhaseSmith?rev=607941b68eda7034f2920c51f44c1e8a67467850#607941b68eda7034f2920c51f44c1e8a67467850"
 dependencies = [
  "phasesmith-execution",
 ]
 
 [[package]]
 name = "phasesmith-engine"
-version = "0.8.2"
-source = "git+https://github.com/CPrescher/PhaseSmith?rev=0e22d37b38093e4dad19beb3332e6019dccaf087#0e22d37b38093e4dad19beb3332e6019dccaf087"
+version = "0.8.3"
+source = "git+https://github.com/CPrescher/PhaseSmith?rev=607941b68eda7034f2920c51f44c1e8a67467850#607941b68eda7034f2920c51f44c1e8a67467850"
 dependencies = [
  "phasesmith-core",
  "phasesmith-crystallography",
@@ -2931,16 +2931,16 @@ dependencies = [
 
 [[package]]
 name = "phasesmith-execution"
-version = "0.8.2"
-source = "git+https://github.com/CPrescher/PhaseSmith?rev=0e22d37b38093e4dad19beb3332e6019dccaf087#0e22d37b38093e4dad19beb3332e6019dccaf087"
+version = "0.8.3"
+source = "git+https://github.com/CPrescher/PhaseSmith?rev=607941b68eda7034f2920c51f44c1e8a67467850#607941b68eda7034f2920c51f44c1e8a67467850"
 dependencies = [
  "rayon",
 ]
 
 [[package]]
 name = "phasesmith-io"
-version = "0.8.2"
-source = "git+https://github.com/CPrescher/PhaseSmith?rev=0e22d37b38093e4dad19beb3332e6019dccaf087#0e22d37b38093e4dad19beb3332e6019dccaf087"
+version = "0.8.3"
+source = "git+https://github.com/CPrescher/PhaseSmith?rev=607941b68eda7034f2920c51f44c1e8a67467850#607941b68eda7034f2920c51f44c1e8a67467850"
 dependencies = [
  "moyo",
  "phasesmith-core",
@@ -2950,8 +2950,8 @@ dependencies = [
 
 [[package]]
 name = "phasesmith-model"
-version = "0.8.2"
-source = "git+https://github.com/CPrescher/PhaseSmith?rev=0e22d37b38093e4dad19beb3332e6019dccaf087#0e22d37b38093e4dad19beb3332e6019dccaf087"
+version = "0.8.3"
+source = "git+https://github.com/CPrescher/PhaseSmith?rev=607941b68eda7034f2920c51f44c1e8a67467850#607941b68eda7034f2920c51f44c1e8a67467850"
 dependencies = [
  "phasesmith-core",
  "phasesmith-engine",
@@ -2959,8 +2959,8 @@ dependencies = [
 
 [[package]]
 name = "phasesmith-persistence"
-version = "0.8.2"
-source = "git+https://github.com/CPrescher/PhaseSmith?rev=0e22d37b38093e4dad19beb3332e6019dccaf087#0e22d37b38093e4dad19beb3332e6019dccaf087"
+version = "0.8.3"
+source = "git+https://github.com/CPrescher/PhaseSmith?rev=607941b68eda7034f2920c51f44c1e8a67467850#607941b68eda7034f2920c51f44c1e8a67467850"
 dependencies = [
  "flate2",
  "phasesmith-core",
@@ -2977,8 +2977,8 @@ dependencies = [
 
 [[package]]
 name = "phasesmith-single-crystal"
-version = "0.8.2"
-source = "git+https://github.com/CPrescher/PhaseSmith?rev=0e22d37b38093e4dad19beb3332e6019dccaf087#0e22d37b38093e4dad19beb3332e6019dccaf087"
+version = "0.8.3"
+source = "git+https://github.com/CPrescher/PhaseSmith?rev=607941b68eda7034f2920c51f44c1e8a67467850#607941b68eda7034f2920c51f44c1e8a67467850"
 dependencies = [
  "nalgebra",
  "ndarray",
@@ -2993,8 +2993,8 @@ dependencies = [
 
 [[package]]
 name = "phasesmith-workflows"
-version = "0.8.2"
-source = "git+https://github.com/CPrescher/PhaseSmith?rev=0e22d37b38093e4dad19beb3332e6019dccaf087#0e22d37b38093e4dad19beb3332e6019dccaf087"
+version = "0.8.3"
+source = "git+https://github.com/CPrescher/PhaseSmith?rev=607941b68eda7034f2920c51f44c1e8a67467850#607941b68eda7034f2920c51f44c1e8a67467850"
 dependencies = [
  "nalgebra",
  "phasesmith-core",
