@@ -111,7 +111,11 @@ export interface CommandContracts {
   >;
   scxrd_edit: Spec<
     import("./singleCrystalDomain").CrystalEdit,
-    { scxrd: import("./singleCrystalDomain").CrystalData }
+    {
+      scxrd: import("./singleCrystalDomain").CrystalData;
+      /** Only for `estimate_dac`. */
+      dacEstimate?: import("./singleCrystalDomain").DacEstimate;
+    }
   >;
   scxrd_file: Spec<
     P.FilePayload & {

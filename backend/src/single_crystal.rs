@@ -25,18 +25,33 @@ mod diamond;
 use diamond::Diamonds;
 #[path = "single_crystal_audit.rs"]
 mod audit;
+#[path = "single_crystal_dac_fit.rs"]
+pub(super) mod dac_fit;
+#[path = "single_crystal_development.rs"]
+mod development;
+pub(super) use development::Transfer;
+#[path = "single_crystal_lattices.rs"]
+mod lattices;
+#[path = "single_crystal_masks.rs"]
+mod masks;
+#[path = "single_crystal_persistent.rs"]
+mod persistent;
 #[path = "single_crystal_profiles.rs"]
 mod profiles;
 #[path = "single_crystal_protocol.rs"]
 mod protocol;
+#[path = "single_crystal_raw.rs"]
+mod raw_frames;
 const ENGINE: &str = "PhaseSmith 0.8.1 / e47507f4";
 fn adapter_identity() -> &'static str {
     static ID: std::sync::OnceLock<String> = std::sync::OnceLock::new();
     ID.get_or_init(|| {
         let mut hash = Sha256::new();
-        let sources: [&[u8]; 15] = [
+        let sources: [&[u8]; 17] = [
             include_bytes!("single_crystal.rs"),
+            include_bytes!("single_crystal_dac_fit.rs"),
             include_bytes!("single_crystal_processing.rs"),
+            include_bytes!("single_crystal_lattices.rs"),
             include_bytes!("single_crystal_scaling.rs"),
             include_bytes!("single_crystal_shadows.rs"),
             include_bytes!("single_crystal_diamond.rs"),
@@ -105,6 +120,12 @@ pub(super) struct Config {
     #[serde(default)]
     pub protocol: Option<Value>,
     pub keep_stage_audit: bool,
+    /// The diamond anvil cell masks (DAC opening, seat shadow, diamond
+    /// spots); off for data not taken in a cell. The per-mask choices are kept
+    /// while it is off; the detector masks (persistent pixels, Mask mode mask)
+    /// do not depend on it. Read as `masks_enabled` from older files.
+    #[serde(alias = "masks_enabled")]
+    pub cell_masks_enabled: bool,
     pub dac_enabled: bool,
     pub dac_axis: V3,
     pub dac_half_opening: f64,
@@ -113,10 +134,35 @@ pub(super) struct Config {
     pub seat_threshold: f64,
     pub seat_guard: usize,
     pub diamond_enabled: bool,
-    /// Smallest very bright seed area, pixels.
+    /// Former seed-area setting of the diamond spots; read from older
+    /// recipes and recovery files, no longer used (see `diamond_min_size`).
     pub diamond_min_area: usize,
+    /// Smallest area of a diamond spot (significant excess region), pixels.
+    pub diamond_min_size: usize,
     /// Allowed relative deviation from a diamond spacing, percent.
     pub diamond_tolerance: f64,
+    /// Diamond spot detection level: bin excess in Poisson deviations of the
+    /// local background.
+    pub diamond_level: f64,
+    /// Round border around each diamond spot (seed and halo), pixels.
+    #[serde(default = "default_diamond_margin")]
+    pub diamond_margin: usize,
+    /// Apply the Mask mode mask (when its shape matches) to every frame.
+    pub shared_mask_enabled: bool,
+    /// Mask pixels that stand out on most frames (detector flaws).
+    pub persistent_enabled: bool,
+    /// Share of the frames a pixel must stand out on, percent.
+    pub persistent_fraction: f64,
+    /// Find lattices search: "both" (FFT + row search), "fft" or "rows".
+    #[serde(default = "lattices::default_method")]
+    pub lattice_method: String,
+    /// Find lattices stops after this many accepted lattices (grains);
+    /// 1 is a single crystal.
+    #[serde(default = "lattices::default_grains")]
+    pub max_grains: usize,
+}
+fn default_diamond_margin() -> usize {
+    10
 }
 fn legacy_integration_method() -> String {
     "summation".into()
@@ -124,9 +170,9 @@ fn legacy_integration_method() -> String {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            omega_start: 0.,
-            omega_step: 0.1,
-            exposure: 0.1,
+            omega_start: -34.,
+            omega_step: 0.5,
+            exposure: 0.5,
             axis: [1., 0., 0.],
             background: false,
             smoothness: 1e4,
@@ -162,7 +208,16 @@ impl Default for Config {
             seat_guard: 32,
             diamond_enabled: false,
             diamond_min_area: 20,
+            diamond_min_size: 120,
+            cell_masks_enabled: true,
+            diamond_level: 10.,
             diamond_tolerance: 3.,
+            diamond_margin: default_diamond_margin(),
+            shared_mask_enabled: true,
+            persistent_enabled: false,
+            persistent_fraction: 50.,
+            lattice_method: lattices::default_method(),
+            max_grains: lattices::default_grains(),
         }
     }
 }
@@ -181,6 +236,12 @@ impl Config {
                 return Err("Search budget exceeds protocol hard_seconds. Reduce it or load a protocol with a larger declared hard budget.".into());
             }
         }
+        if !lattices::METHODS.contains(&self.lattice_method.as_str()) {
+            return Err("Unknown lattice search method.".into());
+        }
+        if !(1..=lattices::MAX_GRAINS).contains(&self.max_grains) {
+            return Err(format!("Max. grains must be 1-{}.", lattices::MAX_GRAINS));
+        }
         if !["summation", "profile"].contains(&self.integration_method.as_str()) {
             return Err("Unknown integration method.".into());
         }
@@ -198,10 +259,20 @@ impl Config {
         if !(1..=1_000_000).contains(&self.diamond_min_area)
             || !self.diamond_tolerance.is_finite()
             || !(0.01..=20.).contains(&self.diamond_tolerance)
+            || self.diamond_margin > 200
+            || !self.diamond_level.is_finite()
+            || !(3.0..=50.).contains(&self.diamond_level)
+            || !(1..=1_000_000).contains(&self.diamond_min_size)
         {
             return Err(
                 "Diamond mask size must be 1 px or more and its tolerance 0.01-20 %.".into(),
             );
+        }
+        // Below 20 % a diamond reflection (about 15 of 144 frames) could pass.
+        if !self.persistent_fraction.is_finite()
+            || !(20.0..=100.).contains(&self.persistent_fraction)
+        {
+            return Err("Persistent pixels need a frame share of 20-100 %.".into());
         }
 
         if [
@@ -279,21 +350,50 @@ impl Config {
         }
         Ok(())
     }
+    /// Profile recipes and the omega background keep one joint stage-0
+    /// product; otherwise each mask is its own part (`masks.rs`) and a change
+    /// of mask settings is handled by `Crystal::refresh_masks`.
+    fn joint_masks(&self, n: &Self) -> bool {
+        [self, n]
+            .iter()
+            .any(|c| c.integration_method == "profile" || c.background)
+    }
+    /// Masks in effect: the cell masks under the cell switch, the detector
+    /// masks on their own.
+    pub(super) fn dac_on(&self) -> bool {
+        self.cell_masks_enabled && self.dac_enabled
+    }
+    pub(super) fn seat_on(&self) -> bool {
+        self.cell_masks_enabled && self.seat_enabled
+    }
+    pub(super) fn diamond_on(&self) -> bool {
+        self.cell_masks_enabled && self.diamond_enabled
+    }
+    pub(super) fn shared_on(&self) -> bool {
+        self.shared_mask_enabled
+    }
+    pub(super) fn persistent_on(&self) -> bool {
+        self.persistent_enabled
+    }
     fn first_changed(&self, n: &Self) -> usize {
         if match (&self.protocol, &n.protocol) {
             (Some(a), Some(b)) => !protocol::same_json(a, b),
             (None, None) => false,
             _ => true,
-        } || self.dac_enabled != n.dac_enabled
-            || self.dac_axis != n.dac_axis
-            || self.dac_half_opening != n.dac_half_opening
-            || self.shadow_block != n.shadow_block
-            || self.seat_enabled != n.seat_enabled
-            || self.seat_threshold != n.seat_threshold
-            || self.seat_guard != n.seat_guard
-            || self.diamond_enabled != n.diamond_enabled
-            || self.diamond_min_area != n.diamond_min_area
-            || self.diamond_tolerance != n.diamond_tolerance
+        } || (self.joint_masks(n)
+            && (self.cell_masks_enabled != n.cell_masks_enabled
+                || self.dac_enabled != n.dac_enabled
+                || self.dac_axis != n.dac_axis
+                || self.dac_half_opening != n.dac_half_opening
+                || self.shadow_block != n.shadow_block
+                || self.seat_enabled != n.seat_enabled
+                || self.seat_threshold != n.seat_threshold
+                || self.seat_guard != n.seat_guard
+                || self.diamond_enabled != n.diamond_enabled
+                || self.diamond_min_size != n.diamond_min_size
+                || self.diamond_tolerance != n.diamond_tolerance
+                || self.diamond_margin != n.diamond_margin
+                || self.diamond_level != n.diamond_level))
             || self.axis != n.axis
             || self.omega_start != n.omega_start
             || self.omega_step != n.omega_step
@@ -317,6 +417,8 @@ impl Config {
             || self.min_cell != n.min_cell
             || self.max_cell != n.max_cell
             || self.tolerance != n.tolerance
+            || self.lattice_method != n.lattice_method
+            || self.max_grains != n.max_grains
         {
             2
         } else if self.metric != n.metric || self.refine_geometry != n.refine_geometry {
@@ -372,6 +474,9 @@ struct Stage {
     status: String,
     detail: String,
     seconds: f64,
+    /// Prepare masks only: the numbers of each mask in use (`mask_counts`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    masks: Option<Value>,
 }
 impl Default for Stage {
     fn default() -> Self {
@@ -379,6 +484,7 @@ impl Default for Stage {
             status: "pending".into(),
             detail: String::new(),
             seconds: 0.,
+            masks: None,
         }
     }
 }
@@ -410,6 +516,12 @@ struct Cell {
     total: usize,
     rms: f64,
     validation: usize,
+    /// Which search found it (FFT, row search or both).
+    #[serde(default)]
+    found: lattices::Found,
+    /// Kept for the following steps (the lattice row's tick).
+    #[serde(default)]
+    kept: bool,
 }
 #[derive(Clone, Serialize, Deserialize)]
 struct Reflection {
@@ -482,7 +594,14 @@ pub(super) struct Crystal {
     peaks: Vec<Peak>,
     tracks: Vec<Track>,
     cells: Vec<Cell>,
+    /// First kept lattice: the one the following steps use until they run
+    /// per kept lattice.
     selected: Option<usize>,
+    /// Lattice row whose spots are marked on the image (view only).
+    shown: Option<usize>,
+    /// Lattices of the run before the last invalidation: a rerun that finds
+    /// the same lattices keeps the user's ticks.
+    retired: Vec<Cell>,
     basis: Option<M3>,
     geometry_report: Value,
     reflections: Vec<Reflection>,
@@ -507,6 +626,18 @@ pub(super) struct Crystal {
     track_offset: usize,
     reflection_offset: usize,
     reflection_filter: String,
+    raw_frames: raw_frames::RawFrames,
+    parts: masks::MaskParts,
+    /// The Mask mode mask in use (see `masks::PixelRuns`).
+    shared: Option<Arc<masks::PixelRuns>>,
+    /// Persistent pixels in use (see `persistent`).
+    persistent: Option<Arc<masks::PixelRuns>>,
+    shared_status: masks::SharedStatus,
+    /// The session mask and view last taken over, to skip unchanged syncs.
+    shared_source: Option<(Arc<Vec<u8>>, Value)>,
+    /// Find spots observations before linking (session only, about 80 bytes
+    /// per observation); kept across a Link radius change.
+    detections: Option<Arc<processing::Detections>>,
 }
 impl Crystal {
     pub(super) fn has_sources(&self) -> bool {
@@ -518,6 +649,13 @@ impl Crystal {
             || self.geometry.is_some()
             || self.revision != 0
     }
+    /// The DAC opening alone is pure geometry and takes no time, so its mask
+    /// follows the settings and the calibration at once and the shown frame
+    /// never lacks it. The measured masks (seat shadow, diamond spots) and the
+    /// omega background wait for their step. Stage 0 ends exactly as after an
+    /// explicit run of it; a failure (or a cancel) leaves it pending for that
+    /// run to report, it never fails the command that asked for the remake.
+    /// Returns whether stage 0 was remade.
     fn invalidate(&mut self, from: usize) {
         for s in &mut self.stages[from..] {
             *s = Stage::default();
@@ -525,7 +663,10 @@ impl Crystal {
         if from == 0 {
             self.shadows = None;
             self.diamonds = None;
+            self.shared = None;
+            self.persistent = None;
             self.background = None;
+            self.detections = None;
         }
         if from <= 1 {
             self.peaks.clear();
@@ -533,8 +674,11 @@ impl Crystal {
             self.track_offset = 0;
         }
         if from <= 2 {
-            self.cells.clear();
+            if !self.cells.is_empty() {
+                self.retired = std::mem::take(&mut self.cells);
+            }
             self.selected = None;
+            self.shown = None;
         }
         if from <= 3 {
             self.basis = None;
@@ -575,6 +719,9 @@ impl Crystal {
             .sources
             .get(index)
             .ok_or("Frame is outside the loaded series.")?;
+        if let Some(values) = self.decode_raw(index) {
+            return Ok(values);
+        }
         let i = Image::open(&s.path, &json!({"frame":s.frame}))?;
         if i.shape != self.shape {
             return Err(format!(
@@ -585,11 +732,38 @@ impl Crystal {
         Ok(Arc::unwrap_or_clone(i.values))
     }
     /// Decode one frame for processing. Its counts must stay identical to the
-    /// first processing read of the same frame.
+    /// first processing read of the same frame: their digest is recorded with
+    /// the source (and saved with it) and every read is compared with it.
+    /// Through the raw-chunk reader, a frame is hashed on its first read
+    /// through each reader snapshot only; the snapshot refuses reads once the
+    /// file changed, so later reads through it give the same counts (see
+    /// `raw_frames::Raw`).
     fn read(&self, index: usize) -> Result<Vec<f64>, String> {
+        let s = self
+            .sources
+            .get(index)
+            .ok_or("Frame is outside the loaded series.")?;
+        if let Some((data, raw)) = self.decode_raw_snapshot(index) {
+            let seen = raw.verified(s.frame);
+            if let (Some(a), Some(b)) = (seen.and_then(OnceLock::get), s.digest.get())
+                && a == b
+            {
+                return Ok(data);
+            }
+            let found = self.check_counts(s, &data)?;
+            if let Some(seen) = seen {
+                let _ = seen.set(found);
+            }
+            return Ok(data);
+        }
         let data = self.decode(index)?;
-        let s = &self.sources[index];
-        let found = digest(&data);
+        self.check_counts(s, &data)?;
+        Ok(data)
+    }
+    /// Compare decoded counts with the digest the source records (recording
+    /// it on the first read); returns the digest.
+    fn check_counts(&self, s: &Source, data: &[f64]) -> Result<String, String> {
+        let found = digest(data);
         if s.digest.get_or_init(|| found.clone()) != &found {
             return Err(format!(
                 "Decoded source counts changed: {} frame {}. Reload the scan before processing.",
@@ -597,14 +771,14 @@ impl Crystal {
                 s.frame + 1
             ));
         }
-        Ok(data)
+        Ok(found)
     }
     fn base_mask(&self, data: &[f64], frame: usize) -> Vec<bool> {
         let [h, w] = self.shape;
-        let mut mask: Vec<_> = data
-            .iter()
-            .map(|&v| !v.is_finite() || v < 0. || v >= self.config.saturation)
-            .collect();
+        // Unusable: not finite, negative or saturated. Written as one
+        // comparison pair (NaN and both infinities fail it) so it vectorises.
+        let saturation = self.config.saturation;
+        let mut mask: Vec<_> = data.iter().map(|&v| !(v >= 0. && v < saturation)).collect();
         if self.excluded_frames.contains(&frame) {
             mask.fill(true);
         }
@@ -618,14 +792,15 @@ impl Crystal {
     fn mask_for(&self, data: &[f64], frame: usize) -> Vec<bool> {
         let mut mask = self.base_mask(data, frame);
         if let Some(shadows) = &self.shadows {
-            for (i, m) in mask.iter_mut().enumerate() {
-                *m |= shadows.excluded(frame, i, self.shape[1]);
-            }
+            shadows.fill(frame, &mut mask, self.shape[1]);
         }
         if let Some(pixels) = self.diamonds.as_ref().and_then(|d| d.frames.get(frame)) {
             for &i in pixels {
                 mask[i as usize] = true;
             }
+        }
+        for fixed in self.shared.iter().chain(&self.persistent) {
+            fixed.fill(&mut mask);
         }
         mask
     }
@@ -742,7 +917,14 @@ impl Crystal {
             })
     }
     fn reply(&self) -> Reply {
-        let shown:Vec<_>=self.peaks.iter().filter(|p|p.frame==self.frame).take(10000).map(|p|json!({"x":p.xy[0],"y":p.xy[1],"track":p.track,"flags":p.flags,"excluded":self.tracks.get(p.track).is_some_and(|t|t.excluded)})).collect();
+        let frame_peaks: Vec<_> = self
+            .peaks
+            .iter()
+            .filter(|p| p.frame == self.frame)
+            .take(10000)
+            .collect();
+        let owners = self.lattice_owners(&frame_peaks.iter().map(|p| p.track).collect::<Vec<_>>());
+        let shown:Vec<_>=frame_peaks.iter().zip(&owners).map(|(p,&lattice)|json!({"x":p.xy[0],"y":p.xy[1],"track":p.track,"flags":p.flags,"excluded":self.tracks.get(p.track).is_some_and(|t|t.excluded),"lattice":lattice})).collect();
         let tracks:Vec<_>=self.tracks.iter().enumerate().skip(self.track_offset).take(200).map(|(id,t)|json!({"id":id,"observed":t.observed,"first":t.first,"last":t.last,"flags":t.flags,"excluded":t.excluded,"native":t.native})).collect();
         let effective = self
             .protocol_range()
@@ -755,7 +937,7 @@ impl Crystal {
         } else {
             (None, None)
         };
-        let state = json!({"engine":ENGINE,"adapter":adapter_identity(),"exported":!self.saved_exports.is_empty(),"revision":self.revision,"config":self.config,"protocolTemplate":protocol::builtin(),"effectiveProtocol":effective_protocol,"protocolInspectionError":protocol_error,"frames":self.sources.len(),"frame":self.frame,"firstSource":self.sources.first().map(|s|s.path.to_string_lossy()),"lastSource":self.sources.last().map(|s|s.path.to_string_lossy()),"filename":self.sources.get(self.frame).map(|s|s.path.file_name().unwrap_or_default().to_string_lossy()),"shape":self.shape,"stages":self.stages,"geometry":self.geometry,"geometryReport":self.geometry_report,"peaks":shown,"predictions":self.predicted_markers(),"peakCount":self.peaks.len(),"peakFrames":self.peak_frames(),"tracks":tracks,"trackOffset":self.track_offset,"reflectionOffset":self.reflection_offset,"trackCount":self.tracks.len(),"cells":self.cells,"selected":self.selected,"reflections":self.table_reflections().skip(self.reflection_offset).take(200).collect::<Vec<_>>(),"reflectionFilteredCount":self.table_reflections().count(),"reflectionFilter":if self.reflection_filter.is_empty(){"all"}else{&self.reflection_filter},"suppliedGroupSymbol":phasesmith_io::space_group_by_number(i32::from(self.config.group)).ok().map(|g|g.hm_symbol),"reflectionCount":self.reflections.len(),"usableReflections":self.reflections.iter().filter(|r|r.usable()).count(),"shadows":self.shadows.as_ref().map(|s|&s.report),"profileReport":self.profile_report,"scaling":self.scaling,"structure":self.structure,"mask":self.mask,"excludedFrames":self.excluded_frames,"error":self.error,"notice":self.notice,"previewKind":if self.preview_kind.is_empty(){"raw"}else{&self.preview_kind},"image":self.preview.as_ref().map(|r|&r.metadata),"maskImage":self.preview_mask.as_ref().map(|r|&r.metadata)});
+        let state = json!({"engine":ENGINE,"adapter":adapter_identity(),"exported":!self.saved_exports.is_empty(),"revision":self.revision,"config":self.config,"protocolTemplate":protocol::builtin(),"effectiveProtocol":effective_protocol,"protocolInspectionError":protocol_error,"frames":self.sources.len(),"frame":self.frame,"firstSource":self.sources.first().map(|s|s.path.to_string_lossy()),"lastSource":self.sources.last().map(|s|s.path.to_string_lossy()),"filename":self.sources.get(self.frame).map(|s|s.path.file_name().unwrap_or_default().to_string_lossy()),"shape":self.shape,"stages":self.stages,"geometry":self.geometry,"geometryReport":self.geometry_report,"peaks":shown,"predictions":self.predicted_markers(),"peakCount":self.peaks.len(),"peakFrames":self.peak_frames(),"tracks":tracks,"trackOffset":self.track_offset,"reflectionOffset":self.reflection_offset,"trackCount":self.tracks.len(),"cells":self.cells,"selected":self.selected,"shownLattice":self.shown,"reflections":self.table_reflections().skip(self.reflection_offset).take(200).collect::<Vec<_>>(),"reflectionFilteredCount":self.table_reflections().count(),"reflectionFilter":if self.reflection_filter.is_empty(){"all"}else{&self.reflection_filter},"suppliedGroupSymbol":phasesmith_io::space_group_by_number(i32::from(self.config.group)).ok().map(|g|g.hm_symbol),"reflectionCount":self.reflections.len(),"usableReflections":self.reflections.iter().filter(|r|r.usable()).count(),"shadows":self.shadows.as_ref().map(|s|&s.report),"profileReport":self.profile_report,"scaling":self.scaling,"structure":self.structure,"mask":self.mask,"excludedFrames":self.excluded_frames,"error":self.error,"notice":self.notice,"previewKind":if self.preview_kind.is_empty(){"raw"}else{&self.preview_kind},"image":self.preview.as_ref().map(|r|&r.metadata),"maskImage":self.preview_mask.as_ref().map(|r|&r.metadata),"sharedMask":self.shared_status,"source":self.sources.get(self.frame).map(|s|json!({"path":s.path,"frame":s.frame}))});
         Reply {
             result: json!({"ok":true,"scxrd":state}),
             buffers: self
@@ -767,10 +949,15 @@ impl Crystal {
         }
     }
 }
+/// SHA-256 of the counts as little-endian f64 bytes (the recorded format;
+/// hashed in blocks rather than value by value).
 fn digest(data: &[f64]) -> String {
     let mut hash = Sha256::new();
-    for v in data {
-        hash.update(v.to_le_bytes());
+    let mut bytes = Vec::with_capacity(8 * 8192);
+    for block in data.chunks(8192) {
+        bytes.clear();
+        bytes.extend(block.iter().flat_map(|v| v.to_le_bytes()));
+        hash.update(&bytes);
     }
     format!("{:x}", hash.finalize())
 }
@@ -778,7 +965,61 @@ fn err(e: impl std::fmt::Display) -> String {
     e.to_string()
 }
 impl Session {
+    /// Take the Mask mode mask over into the single-crystal masks when it
+    /// changed since the last command (cheap pointer check otherwise), so the
+    /// mask shown and used is current whenever the mode is shown again. The
+    /// user mask (drawn shapes, thresholds, loaded and imprinted masks) is
+    /// used; live plugin masks are left out, they follow the shared image.
+    pub(super) fn sync_scxrd_shared_mask(&mut self) -> Result<(), String> {
+        let image = self.image.as_ref();
+        let view = json!({
+            "shape": image.map(|i| i.shape),
+            "source": image.map(|i| i.source_shape),
+            "transformations": self.settings.transformations,
+            "series": self.scxrd.shape,
+        });
+        if let Some((mask, seen)) = &self.scxrd.shared_source
+            && Arc::ptr_eq(mask, &self.mask)
+            && *seen == view
+        {
+            return Ok(());
+        }
+        let (found, status) = match image {
+            Some(i) if self.mask.len() == i.shape[0] * i.shape[1] && self.mask.contains(&1) => {
+                if i.source_shape != self.scxrd.shape {
+                    (None, masks::SharedStatus::Shape)
+                } else {
+                    // The scan frames are read in source orientation.
+                    let source = if self.settings.transformations.is_empty() {
+                        self.mask.clone()
+                    } else {
+                        crate::transform::apply(
+                            &self.mask,
+                            i.shape,
+                            &crate::transform::inverse(&self.settings.transformations),
+                            &self.control,
+                        )?
+                    };
+                    (
+                        masks::PixelRuns::from_mask(&source),
+                        masks::SharedStatus::Ready,
+                    )
+                }
+            }
+            _ => (None, masks::SharedStatus::None),
+        };
+        self.scxrd.shared_source = Some((self.mask.clone(), view));
+        if self.scxrd.set_shared_mask(found, status, &self.control) && self.scxrd.has_sources() {
+            let kind = match self.scxrd.preview_kind.as_str() {
+                "" => "raw".to_owned(),
+                k => k.to_owned(),
+            };
+            self.scxrd.preview(&kind)?;
+        }
+        Ok(())
+    }
     pub(super) fn scxrd_command(&mut self, action: &str, args: &Value) -> Result<Reply, String> {
+        self.sync_scxrd_shared_mask()?;
         let history = (matches!(action, "scxrd_settings" | "scxrd_edit")
             || (action == "scxrd_file"
                 && matches!(
@@ -791,7 +1032,7 @@ impl Session {
                             | "protocol_builtin"
                     )
                 )))
-            && !matches!(args["operation"].as_str(), Some("undo" | "redo"));
+            && !matches!(args["operation"].as_str(), Some("undo" | "redo" | "show"));
         if action == "scxrd_run" {
             self.scxrd_redo.clear();
         }
@@ -826,6 +1067,7 @@ impl Session {
                     "track" => "change track exclusion".into(),
                     "frame" => "change selected frames".into(),
                     "cell" => "select sample cell".into(),
+                    "keep" => "keep or drop a lattice".into(),
                     _ => "single-crystal decision".into(),
                 }
             };
@@ -848,6 +1090,7 @@ impl Session {
                 self.scxrd.notice = Some(format!(
                     "Undid: {label}. Applied results restored; up to three edits retained."
                 ));
+                self.sync_scxrd_shared_mask()?;
             }
         } else if action == "scxrd_edit" && args["operation"] == "redo" {
             if let Some(mut next) = self.scxrd_redo.last().cloned() {
@@ -861,6 +1104,7 @@ impl Session {
                 current.history_label = label.clone();
                 self.scxrd_undo.push(current);
                 self.scxrd.notice = Some(format!("Redid: {label}. Applied results restored."));
+                self.sync_scxrd_shared_mask()?;
             }
         } else {
             let result = self.scxrd_dispatch(action, args);
@@ -910,7 +1154,7 @@ impl Session {
             "scxrd_settings" => &["config"],
             "scxrd_frame" => &["frame", "kind"],
             "scxrd_run" => &["stage", "automatic"],
-            "scxrd_edit" => &["operation", "index", "bounds"],
+            "scxrd_edit" => &["operation", "index", "bounds", "keep"],
             "scxrd_table" => &["kind", "offset", "filter"],
             "scxrd_levels" => &["mode", "percentile", "filter_gaps"],
             "scxrd_pixel" => &["x", "y", "contour"],
@@ -1028,6 +1272,7 @@ impl Session {
             "scxrd_snapshot" => {}
             "scxrd_load" => {
                 self.scxrd_load(args)?;
+                self.sync_scxrd_shared_mask()?;
             }
             "scxrd_settings" => {
                 let c: Config = serde_json::from_value(args["config"].clone()).map_err(err)?;
@@ -1067,7 +1312,10 @@ impl Session {
                     }
                     self.scxrd.config = c;
                     self.scxrd.invalidate(at);
-                    if at == 0 && !self.scxrd.sources.is_empty() {
+                    // Remake the fast masks and show them; also when only the
+                    // confirmation changed (a freshly opened series).
+                    let remade = self.scxrd.refresh_masks(&self.control);
+                    if (at == 0 || remade) && !self.scxrd.sources.is_empty() {
                         self.scxrd.preview("raw")?;
                     }
                 }
@@ -1130,6 +1378,7 @@ impl Session {
                                 status: "complete".into(),
                                 detail,
                                 seconds: start.elapsed().as_secs_f64(),
+                                masks: (stage == 0).then(|| self.scxrd.mask_counts().1),
                             };
                             self.scxrd.revision += 1;
                         }
@@ -1146,6 +1395,7 @@ impl Session {
                                 status: if cancelled { "paused" } else { "attention" }.into(),
                                 detail: e.clone(),
                                 seconds: start.elapsed().as_secs_f64(),
+                                masks: None,
                             };
                             self.scxrd.error = Some(e);
                             self.scxrd.revision += 1;
@@ -1161,6 +1411,13 @@ impl Session {
                 if let Err(e) = self.scxrd.preview(&kind) {
                     self.scxrd.error = Some(e);
                 }
+            }
+            // Only measures and reports; the GUI applies the values as settings.
+            "scxrd_edit" if args["operation"] == "estimate_dac" => {
+                let estimate = self.scxrd.estimate_dac(&self.control)?;
+                let mut reply = self.scxrd.reply();
+                reply.result["dacEstimate"] = estimate;
+                return Ok(reply);
             }
             "scxrd_edit" => self.scxrd.edit(args)?,
             "scxrd_file" => return self.scxrd_file(args),
@@ -1338,6 +1595,9 @@ fn frame_number(path: &Path) -> Option<(String, u64)> {
         count,
     ))
 }
+#[cfg(test)]
+#[path = "single_crystal_spots_tests.rs"]
+mod spots_tests;
 #[cfg(test)]
 #[path = "single_crystal_tests.rs"]
 mod tests;

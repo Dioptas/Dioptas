@@ -89,6 +89,7 @@ impl sc::Observer for Capture<'_> {
             cells: rows * columns,
             illumination,
             dac,
+            seat: vec![],
             report,
         }));
         Ok(())
@@ -222,6 +223,8 @@ impl sc::Observer for Capture<'_> {
             total: self.tracks.len(),
             rms: (withheld.iter().map(|d| d * d).sum::<f64>() / withheld.len() as f64).sqrt(),
             validation: withheld.len(),
+            found: Default::default(),
+            kept: true,
         });
         self.basis = Some(i.fit.state.basis);
         self.geometry = Some(i.fit.state.geometry.into());
@@ -634,6 +637,7 @@ impl Crystal {
                 status: "complete".into(),
                 detail: detail.into(),
                 seconds: 0.,
+                masks: None,
             };
         }
         if completed >= 4 {

@@ -77,9 +77,12 @@ export function submitWorkspaceCommand(
   canDefer: boolean,
 ): Promise<Response> {
   const invocation = commandInvocation(call);
+  // Single-crystal commands never integrate. One can still leave while Mask
+  // mode looks current: the SC view's effect on returning runs before App's.
   if (
     mode === "mask" &&
     canDefer &&
+    !invocation[0].startsWith("scxrd_") &&
     ![
       "configuration",
       "configuration_select",

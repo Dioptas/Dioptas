@@ -967,7 +967,7 @@ fn metadata_dataset(file: &hdf5::File, path: &str) -> Option<hdf5::Dataset> {
 
 // Cast each source row directly into its final bottom-up position. Large planes
 // use disjoint row ranges, avoiding the old separate full-plane swapping pass.
-fn oriented_values(pixels: &PixelBuffer, shape: [usize; 2]) -> Result<Vec<f64>, String> {
+pub(crate) fn oriented_values(pixels: &PixelBuffer, shape: [usize; 2]) -> Result<Vec<f64>, String> {
     fn convert<T: Copy + Sync>(
         data: &[T],
         [h, w]: [usize; 2],

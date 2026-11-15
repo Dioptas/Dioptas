@@ -1,5 +1,4 @@
 use super::*;
-use nalgebra::{Matrix3, Vector3};
 use phasesmith_crystallography::UnitCell;
 use rayon::prelude::*;
 use std::sync::{
@@ -16,7 +15,7 @@ fn cross(a: V3, b: V3) -> V3 {
         a[0] * b[1] - a[1] * b[0],
     ]
 }
-fn det(b: M3) -> f64 {
+pub(super) fn det(b: M3) -> f64 {
     fft::dot(b[0], cross(b[1], b[2]))
 }
 pub(super) fn parameters(b: M3) -> [f64; 6] {
@@ -165,90 +164,29 @@ impl Crystal {
         ))
     }
     fn detect(&mut self, control: &Control) -> Result<String, String> {
-        let options = spots::Options {
-            threshold_sigma: self.config.threshold,
-            min_pixels: self.config.min_pixels,
-            ..Default::default()
-        };
         let n = self.sources.len();
-        let frames: Vec<usize> = (0..n)
-            .filter(|frame| !self.excluded_frames.contains(frame))
-            .collect();
-        let (done, total) = (AtomicUsize::new(0), AtomicUsize::new(0));
-        // Live view: at most one worker at a time renders the frame it just
-        // finished, a few times per second and never stepping backwards.
-        let shown: Mutex<(Option<std::time::Instant>, usize)> = Mutex::new((None, 0));
-        // Frames are independent; results keep frame order, so the outcome is
-        // the same as a sequential search.
-        let found: Result<Vec<Vec<Peak>>, String> = crate::worker_pool::install(|| {
-            frames
-                .par_iter()
-                .map(|&frame| {
-                    control.check()?;
-                    let raw = self.read(frame)?;
-                    let mut mask = self.mask_for(&raw, frame);
-                    let variance: Vec<_> = raw
-                        .iter()
-                        .map(|v| {
-                            (v.max(0.) / self.config.gain + self.config.read_noise.powi(2)).max(1.)
-                        })
-                        .collect();
-                    let mut values = raw;
-                    if let Some(bg) = self.baseline(frame)? {
-                        for ((v, m), b) in values.iter_mut().zip(&mut mask).zip(bg) {
-                            if !b.is_finite() {
-                                *m = true;
-                            } else {
-                                *v -= b;
-                            }
-                        }
-                    }
-                    let peaks: Vec<Peak> = spots::detect(
-                        &image(&values, &mask, Some(&variance), self.shape, &self.config),
-                        options,
-                    )
-                    .map_err(err)?
-                    .spots
-                    .into_iter()
-                    .filter(|s| s.values[..2].iter().all(|v| v.is_finite()))
-                    .map(|s| Peak {
-                        frame,
-                        xy: [s.values[0], s.values[1]],
-                        intensity: s.values[2].max(0.),
-                        flags: s.flags,
-                        bounds: [s.bounds.x0, s.bounds.y0, s.bounds.x1, s.bounds.y1],
-                        track: 0,
-                    })
-                    .collect();
-                    let all = total.fetch_add(peaks.len(), Ordering::Relaxed) + peaks.len();
-                    if all > 200000 {
-                        return Err("More than 200,000 spot observations: raise the threshold or mask powder/diamond regions.".into());
-                    }
-                    let current = done.fetch_add(1, Ordering::Relaxed) + 1;
-                    if let Ok(mut shown) = shown.try_lock()
-                        && frame >= shown.1
-                        && shown.0.is_none_or(|t| t.elapsed().as_millis() >= 200)
-                    {
-                        for (v, m) in values.iter_mut().zip(&mask) {
-                            if *m {
-                                *v = f64::NAN;
-                            }
-                        }
-                        let raster = Raster::image(&values, self.shape);
-                        control.publish_preview(
-                            "scxrdPreview",
-                            json!({"raster":raster.metadata,"frame":frame,"spots":all,
-                                "peaks":peaks.iter().map(|p|json!({"x":p.xy[0],"y":p.xy[1],"flags":p.flags})).collect::<Vec<_>>()}),
-                            raster.buffer,
-                        );
-                        *shown = (Some(std::time::Instant::now()), frame);
-                    }
-                    control.publish(json!({"running":true,"current":current,"total":frames.len(),"label":"Finding spots"}));
-                    Ok(peaks)
-                })
-                .collect()
-        });
-        let mut peaks: Vec<Peak> = found?.into_iter().flatten().collect();
+        // The observations depend on fewer settings than the tracks: a Link
+        // radius change links the kept observations again, and a Minimum
+        // area change measures the kept components again.
+        let key = self.detection_key();
+        let min_pixels = self.config.min_pixels;
+        let kept = self.detections.clone().filter(|d| d.key == key);
+        let observed = match kept {
+            Some(d) if d.min_pixels == min_pixels => d.peaks.clone(),
+            kept => {
+                let cached = kept.and_then(|d| d.components.clone());
+                let (peaks, found) = self.observe(control, cached.as_deref().map(Vec::as_slice))?;
+                let peaks = Arc::new(peaks);
+                self.detections = Some(Arc::new(Detections {
+                    key,
+                    components: cached.or_else(|| found.map(Arc::new)),
+                    min_pixels,
+                    peaks: peaks.clone(),
+                }));
+                peaks
+            }
+        };
+        let mut peaks: Vec<Peak> = observed.as_ref().clone();
         if peaks.len() < 12 {
             return Err(format!(
                 "Only {} peaks found; at least 12 are required. Lower the threshold, check background and masks, or verify the scan.",
@@ -326,6 +264,184 @@ impl Crystal {
         self.tracks = tracks;
         Ok(description)
     }
+    /// What Find spots observations depend on, besides the frames' counts.
+    fn detection_key(&self) -> DetectionKey {
+        let c = &self.config;
+        DetectionKey {
+            settings: [c.threshold, c.gain, c.read_noise, c.saturation],
+            shape: self.shape,
+            sources: self
+                .sources
+                .iter()
+                .map(|s| (s.path.clone(), s.frame, s.digest.clone()))
+                .collect(),
+            excluded: self.excluded_frames.clone(),
+            mask: self.mask.clone(),
+            shadows: self.shadows.clone(),
+            diamonds: self.diamonds.clone(),
+            shared: self.shared.clone(),
+            persistent: self.persistent.clone(),
+            background: self.background.clone(),
+        }
+    }
+    /// Spots of every frame that is not excluded, in frame order (not linked),
+    /// and the components they were measured from, per frame. With
+    /// `cached` components (of the same frames, detection settings and
+    /// masks) only the measurement runs; it equals a fresh detection.
+    /// Components are not returned when they would take more than
+    /// [`COMPONENTS_KEPT`] entries.
+    fn observe(
+        &self,
+        control: &Control,
+        cached: Option<&[Vec<spots::Component>]>,
+    ) -> Result<(Vec<Peak>, Option<FrameComponents>), String> {
+        let options = spots::Options {
+            threshold_sigma: self.config.threshold,
+            min_pixels: self.config.min_pixels,
+            ..Default::default()
+        };
+        let n = self.sources.len();
+        let frames: Vec<usize> = (0..n)
+            .filter(|frame| !self.excluded_frames.contains(frame))
+            .collect();
+        let (done, total) = (AtomicUsize::new(0), AtomicUsize::new(0));
+        // Live view: the shown frame as soon as it is done; then at most one
+        // worker at a time renders the frame it just finished, a few times
+        // per second and never stepping backwards.
+        let shown: Mutex<(Option<std::time::Instant>, usize)> = Mutex::new((None, 0));
+        let found_components = AtomicUsize::new(0);
+        // Frame position i among `frames`.
+        let one = |i: usize, first: bool| -> Result<(Vec<Peak>, Vec<spots::Component>), String> {
+            let frame = frames[i];
+            control.check()?;
+            let raw = self.read(frame)?;
+            let mut mask = self.mask_for(&raw, frame);
+            // Count variance of the original counts. Without a background
+            // the counts are the values, and the detector's own default
+            // (the same expression) saves a frame-sized array per worker.
+            let baseline = self.baseline(frame)?;
+            let variance: Option<Vec<_>> = baseline.as_ref().map(|_| {
+                raw.iter()
+                    .map(|v| {
+                        (v.max(0.) / self.config.gain + self.config.read_noise.powi(2)).max(1.)
+                    })
+                    .collect()
+            });
+            let mut values = raw;
+            if let Some(bg) = baseline {
+                for ((v, m), b) in values.iter_mut().zip(&mut mask).zip(bg) {
+                    if !b.is_finite() {
+                        *m = true;
+                    } else {
+                        *v -= b;
+                    }
+                }
+            }
+            let image = image(
+                &values,
+                &mask,
+                variance.as_deref(),
+                self.shape,
+                &self.config,
+            );
+            // `detect` is exactly these two steps.
+            let (measured, components) = match cached {
+                Some(c) => (
+                    spots::measure_components(&image, &c[i], options),
+                    Vec::new(),
+                ),
+                None => {
+                    let found = spots::detect_components(&image, options).map_err(err)?;
+                    let n =
+                        found_components.fetch_add(found.len(), Ordering::Relaxed) + found.len();
+                    let measured = spots::measure_components(&image, &found, options);
+                    (
+                        measured,
+                        if n <= COMPONENTS_KEPT {
+                            found
+                        } else {
+                            Vec::new()
+                        },
+                    )
+                }
+            };
+            let peaks: Vec<Peak> = measured
+                .map_err(err)?
+                .spots
+                .into_iter()
+                .filter(|s| s.values[..2].iter().all(|v| v.is_finite()))
+                .map(|s| Peak {
+                    frame,
+                    xy: [s.values[0], s.values[1]],
+                    intensity: s.values[2].max(0.),
+                    flags: s.flags,
+                    bounds: [s.bounds.x0, s.bounds.y0, s.bounds.x1, s.bounds.y1],
+                    track: 0,
+                })
+                .collect();
+            let all = total.fetch_add(peaks.len(), Ordering::Relaxed) + peaks.len();
+            if all > 200000 {
+                return Err("More than 200,000 spot observations: raise the threshold or mask powder/diamond regions.".into());
+            }
+            let current = done.fetch_add(1, Ordering::Relaxed) + 1;
+            let lock = if first {
+                shown.lock().ok()
+            } else {
+                shown.try_lock().ok()
+            };
+            if let Some(mut shown) = lock
+                && (first
+                    || frame >= shown.1 && shown.0.is_none_or(|t| t.elapsed().as_millis() >= 200))
+            {
+                for (v, m) in values.iter_mut().zip(&mask) {
+                    if *m {
+                        *v = f64::NAN;
+                    }
+                }
+                let raster = Raster::image(&values, self.shape);
+                control.publish_preview(
+                    "scxrdPreview",
+                    json!({"raster":raster.metadata,"frame":frame,"spots":all,
+                        "peaks":peaks.iter().map(|p|json!({"x":p.xy[0],"y":p.xy[1],"flags":p.flags})).collect::<Vec<_>>()}),
+                    raster.buffer,
+                );
+                *shown = (Some(std::time::Instant::now()), frame);
+            }
+            control.publish(json!({"running":true,"current":current,"total":frames.len(),"label":"Finding spots"}));
+            Ok((peaks, components))
+        };
+        // The shown frame first, so its spots appear at once; the other
+        // frames run in parallel meanwhile. Frames are independent and the
+        // results keep frame order, so the outcome is that of a sequential
+        // search.
+        let first = frames.iter().position(|&f| f == self.frame);
+        let rest = |skip: Option<usize>| {
+            frames
+                .par_iter()
+                .enumerate()
+                .filter(|&(i, _)| Some(i) != skip)
+                .map(|(i, _)| one(i, false))
+                .collect::<Result<Vec<_>, String>>()
+        };
+        type Found = Vec<(Vec<Peak>, Vec<spots::Component>)>;
+        let found = crate::worker_pool::install(|| -> Result<Found, String> {
+            match first {
+                Some(i) => {
+                    let (shown, others) = rayon::join(|| one(i, true), || rest(Some(i)));
+                    let (shown, mut others) = (shown?, others?);
+                    others.insert(i, shown);
+                    Ok(others)
+                }
+                None => rest(None),
+            }
+        })?;
+        let (peaks, components): (Vec<_>, Vec<_>) = found.into_iter().unzip();
+        let kept = cached.is_none() && found_components.load(Ordering::Relaxed) <= COMPONENTS_KEPT;
+        Ok((
+            peaks.into_iter().flatten().collect(),
+            kept.then_some(components),
+        ))
+    }
     fn cloud(&self) -> Result<(Vec<usize>, Vec<V3>), String> {
         let mut g = self
             .geometry
@@ -354,154 +470,80 @@ impl Crystal {
         }
         Ok((ids, q))
     }
-    fn cells(&mut self, control: &Control, automatic: bool) -> Result<String, String> {
+    fn cells(&mut self, control: &Control, _automatic: bool) -> Result<String, String> {
         if self.cells.is_empty() {
             let (_, q) = self.cloud()?;
-            let train: Vec<_> = q
-                .iter()
-                .enumerate()
-                .filter(|(i, _)| i % 5 != 0)
-                .map(|(_, v)| *v)
-                .collect();
-            let test: Vec<_> = q
-                .iter()
-                .enumerate()
-                .filter(|(i, _)| i % 5 == 0)
-                .map(|(_, v)| *v)
-                .collect();
-            let engine = fft::Engine::new(2)?;
-            let qmax = q.iter().flatten().copied().map(f64::abs).fold(0., f64::max);
-            let n = 256;
-            let step = (2. * qmax / 252.).min(1. / (2.1 * self.config.max_cell));
-            control.publish(json!({"running":true,"current":0,"total":1,"label":"Searching position-only FFT lattice candidates"}));
-            let (vectors, _, _) = engine.windowed_maxima(
-                &train,
-                n,
-                step,
-                self.config.min_cell,
-                self.config.max_cell,
-                96,
-            )?;
-            control.check()?;
-            let refined = engine
-                .refine_fourier(&train, &vectors, (1. / (n as f64 * step)) * 1.5)
-                .map_err(err)?;
-            let vectors: Vec<_> = refined.into_iter().map(|r| r.0).collect();
-            let mut candidates: Vec<Cell> = Vec::new();
-            for i in 0..vectors.len() {
-                control.check()?;
-                for j in i + 1..vectors.len() {
-                    for k in j + 1..vectors.len() {
-                        let mut a = [vectors[i], vectors[j], vectors[k]];
-                        if det(a).abs() < 15. || det(a).abs() > 100000. {
-                            continue;
-                        }
-                        if det(a) < 0. {
-                            a.swap(0, 1);
-                        }
-                        let Ok(b) = fft::inverse_transpose(a) else {
-                            continue;
-                        };
-                        let support = engine.score(&train, a, b);
-                        let count = support
-                            .iter()
-                            .filter(|(h, d)| *h != [0.; 3] && *d < self.config.tolerance)
-                            .count();
-                        if count < 20 || count * 2 < train.len() {
-                            continue;
-                        }
-                        let Ok(reduced) = spots::reduction::reduce(a, 1e-10, 1000) else {
-                            continue;
-                        };
-                        a = reduced.basis;
-                        let b = fft::inverse_transpose(a)?;
-                        let a = refine_basis(&train, a, b, self.config.tolerance)?;
-                        let b = fft::inverse_transpose(a)?;
-                        let score = engine.score(&test, a, b);
-                        let selected: Vec<_> = score
-                            .iter()
-                            .filter(|(h, d)| *h != [0.; 3] && *d < self.config.tolerance)
-                            .collect();
-                        if selected.len() < 5 || selected.len() * 2 < test.len() {
-                            continue;
-                        }
-                        let params = parameters(a);
-                        if params[..3]
-                            .iter()
-                            .any(|&l| l < self.config.min_cell || l > self.config.max_cell)
-                        {
-                            continue;
-                        }
-                        let all_scores = engine.score(&q, a, b);
-                        if !primitive_indices(&all_scores, self.config.tolerance) {
-                            continue;
-                        }
-                        let all = all_scores
-                            .iter()
-                            .filter(|(h, d)| *h != [0.; 3] && *d < self.config.tolerance)
-                            .count();
-                        let rms = (selected.iter().map(|(_, d)| d * d).sum::<f64>()
-                            / selected.len() as f64)
-                            .sqrt();
-                        if candidates.iter().any(|c| same_lattice(c.direct, a)) {
-                            continue;
-                        }
-                        candidates.push(Cell {
-                            direct: a,
-                            parameters: params,
-                            indexed: all,
-                            total: q.len(),
-                            rms,
-                            validation: selected.len(),
-                        });
-                        candidates.sort_by(|a, b| {
-                            cell_score(b, self.config.tolerance)
-                                .total_cmp(&cell_score(a, self.config.tolerance))
-                                .then(det(a.direct).total_cmp(&det(b.direct)))
-                                .then(a.rms.total_cmp(&b.rms))
-                        });
-                        candidates.truncate(12);
-                    }
-                }
+            self.cells = lattices::find(&q, &self.config, control)?;
+            let retired = std::mem::take(&mut self.retired);
+            if !carry_ticks(&retired, &mut self.cells) {
+                pretick(&mut self.cells);
             }
-            self.cells = candidates;
+            self.selected = None;
         }
         if self.cells.is_empty() {
             return Err("No lattice passed independent withheld-position gates. Check geometry, spindle axis and omega sign, lower the peak threshold, or exclude diamond/powder regions.".into());
         }
-        if self.selected.is_none() {
-            let best = &self.cells[0];
-            let diamond = diamond_like(best.parameters);
-            if automatic
-                && !diamond
-                && best.indexed * 100 >= best.total * 70
-                && (self.cells.len() == 1 || best.indexed > self.cells[1].indexed + best.total / 10)
-            {
-                self.selected = Some(0);
-            } else {
-                return Err(format!(
-                    "{}. Inspect indexed coverage and withheld RMS, then use the sample cell.{}",
-                    if self.cells.len() == 1 {
-                        "One plausible cell found; confirm it before continuing".to_owned()
-                    } else {
-                        format!(
-                            "{} plausible cells; choose the sample lattice",
-                            self.cells.len()
-                        )
-                    },
-                    if diamond {
-                        " The leading cell is diamond-like."
-                    } else {
-                        ""
-                    }
-                ));
-            }
-        }
-        let cell = &self.cells[self.selected.unwrap()];
+        self.selected = self.cells.iter().position(|c| c.kept);
+        let Some(first) = self.selected else {
+            return Err(format!(
+                "{} found; none explains a clear share of the spots. Tick the lattices to keep.",
+                lattice_count(self.cells.len())
+            ));
+        };
+        let kept = self.cells.iter().filter(|c| c.kept).count();
+        let cell = &self.cells[first];
         Ok(format!(
-            "Selected reduced primitive cell: {}/{} tracks indexed; withheld reciprocal RMS {:.5} Å⁻¹. Confirm the conventional setting before symmetry analysis.",
-            cell.indexed, cell.total, cell.rms
+            "{} found, {kept} kept. First kept: {}/{} tracks indexed; withheld reciprocal RMS {:.5} Å⁻¹.",
+            lattice_count(self.cells.len()),
+            cell.indexed,
+            cell.total,
+            cell.rms
         ))
+    }
+    /// Lattice owning each track (1-based; 0 none or ambiguous), as Find
+    /// lattices assigns spots: nearest node within tolerance, clearly nearer
+    /// than any other lattice's.
+    pub(super) fn lattice_owners(&self, tracks: &[usize]) -> Vec<usize> {
+        let none = vec![0; tracks.len()];
+        let Some(geometry) = self.geometry.filter(|_| !self.cells.is_empty()) else {
+            return none;
+        };
+        let mut g = geometry.native();
+        g.axis = self.config.axis;
+        let xyz: Vec<_> = tracks
+            .iter()
+            .map(|&t| self.tracks.get(t).map_or([0.; 3], |t| t.observed))
+            .collect();
+        let Ok(q) = g.convert(&xyz) else {
+            return none;
+        };
+        let models: Vec<(M3, M3)> = self
+            .cells
+            .iter()
+            .filter_map(|c| Some((c.direct, fft::inverse_transpose(c.direct).ok()?)))
+            .collect();
+        if models.len() != self.cells.len() {
+            return none;
+        }
+        q.iter()
+            .map(|&p| {
+                let (mut best, mut second, mut owner) = (f64::INFINITY, f64::INFINITY, 0);
+                for (i, &(a, b)) in models.iter().enumerate() {
+                    let (h, d) = fft::indexed(p, a, b);
+                    let d = if h == [0.; 3] { f64::INFINITY } else { d };
+                    if d < best {
+                        (second, best, owner) = (best, d, i + 1);
+                    } else if d < second {
+                        second = d;
+                    }
+                }
+                if best < self.config.tolerance && best <= lattices::AMBIGUITY * second {
+                    owner
+                } else {
+                    0
+                }
+            })
+            .collect()
     }
     fn geometry(&mut self, control: &Control) -> Result<String, String> {
         let cell = &self.cells[self.selected.ok_or("Select a cell first.")?];
@@ -943,18 +985,57 @@ impl Crystal {
             Ok(c)
         }
     }
+    /// Kept lattices changed: the following steps start again from the
+    /// first kept one; Find lattices is done while one is kept.
+    fn ticks_changed(&mut self) {
+        self.invalidate(3);
+        self.selected = self.cells.iter().position(|c| c.kept);
+        let kept = self.cells.iter().filter(|c| c.kept).count();
+        let stage = &mut self.stages[2];
+        if kept == 0 {
+            stage.status = "attention".into();
+            stage.detail = "No lattice kept. Tick the lattices to keep.".into();
+        } else {
+            stage.status = "complete".into();
+            stage.detail = format!(
+                "{} found, {kept} kept by the user.",
+                lattice_count(self.cells.len())
+            );
+        }
+    }
     pub(super) fn edit(&mut self, args: &Value) -> Result<(), String> {
         match args["operation"].as_str() {
             Some("cell") => {
+                // Keep exactly this lattice.
                 let index = args["index"].as_u64().ok_or("Choose a cell candidate.")? as usize;
                 if index >= self.cells.len() {
                     return Err("Cell candidate no longer exists.".into());
                 }
-                self.invalidate(3);
-                self.selected = Some(index);
-                self.stages[2].status = "complete".into();
-                self.stages[2].detail =
-                    format!("Cell {} explicitly selected by the user.", index + 1);
+                for (i, c) in self.cells.iter_mut().enumerate() {
+                    c.kept = i == index;
+                }
+                self.ticks_changed();
+            }
+            Some("keep") => {
+                let index = args["index"].as_u64().ok_or("Choose a lattice.")? as usize;
+                let keep = args["keep"]
+                    .as_bool()
+                    .ok_or("Say whether to keep the lattice.")?;
+                let cell = self
+                    .cells
+                    .get_mut(index)
+                    .ok_or("Lattice no longer exists.")?;
+                if cell.kept != keep {
+                    cell.kept = keep;
+                    self.ticks_changed();
+                }
+            }
+            Some("show") => {
+                let index = args["index"].as_u64().map(|i| i as usize);
+                if index.is_some_and(|i| i >= self.cells.len()) {
+                    return Err("Lattice no longer exists.".into());
+                }
+                self.shown = index;
             }
             Some("track") => {
                 let id = args["index"].as_u64().ok_or("Choose a track.")? as usize;
@@ -1015,66 +1096,103 @@ impl Crystal {
         Ok(())
     }
 }
-fn refine_basis(q: &[V3], a: M3, b: M3, tolerance: f64) -> Result<M3, String> {
-    let mut hh = Matrix3::zeros();
-    let mut hq = Matrix3::zeros();
-    for &point in q {
-        let (h, d) = fft::indexed(point, a, b);
-        if h == [0.; 3] || d >= tolerance {
-            continue;
+fn lattice_count(n: usize) -> String {
+    format!("{n} lattice{}", if n == 1 { "" } else { "s" })
+}
+/// Share of all spots, and of the strongest lattice's spots, a lattice must
+/// index to be ticked after a search; a diamond-like cell (the anvils) never is.
+pub(super) const KEEP_SHARE_OF_ALL: f64 = 0.05;
+pub(super) const KEEP_SHARE_OF_BEST: f64 = 0.1;
+/// A rerun that finds the same lattices as before keeps the user's ticks.
+/// Returns whether it did.
+pub(super) fn carry_ticks(retired: &[Cell], cells: &mut [Cell]) -> bool {
+    let same = !retired.is_empty()
+        && retired.len() == cells.len()
+        && retired
+            .iter()
+            .zip(cells.iter())
+            .all(|(old, new)| lattices::related(old.direct, new.direct));
+    if same {
+        for (new, old) in cells.iter_mut().zip(retired) {
+            new.kept = old.kept;
         }
-        let h = Vector3::from(h);
-        let q = Vector3::from(point);
-        hh += h * h.transpose();
-        hq += h * q.transpose();
     }
-    let Some(solved) = hh.lu().solve(&hq) else {
-        return Ok(a);
-    };
-    let rows = std::array::from_fn(|i| std::array::from_fn(|j| solved[(i, j)]));
-    fft::inverse_transpose(rows)
+    same
 }
-
-// Equivalence gate: exact integer, unimodular row changes preserve a lattice.
-fn same_lattice(a: M3, b: M3) -> bool {
-    let Ok(inverse) = fft::inverse_transpose(b) else {
-        return false;
-    };
-    let transform = a.map(|row| inverse.map(|dual| fft::dot(row, dual)));
-    transform
-        .iter()
-        .flatten()
-        .all(|v| (v - v.round()).abs() < 0.002)
-        && ((det(transform).abs() - 1.).abs() < 0.002)
+/// Tick the lattices that explain a clear share of the spots. Weaker ones
+/// (twins, supercells, few spots) stay listed, unticked.
+pub(super) fn pretick(cells: &mut [Cell]) {
+    let best = cells.iter().map(|c| c.indexed).max().unwrap_or(0) as f64;
+    for c in cells {
+        let n = c.indexed as f64;
+        c.kept = n >= KEEP_SHARE_OF_ALL * c.total as f64
+            && n >= KEEP_SHARE_OF_BEST * best
+            && !diamond_like(c.parameters);
+    }
 }
-// A primitive observed index lattice spans Z³. GCD of its integer 3×3 minors
-// rejects harmonics/supercells. This is a support gate, not a cell reducer.
-fn primitive_indices(scores: &[(V3, f64)], tolerance: f64) -> bool {
-    let h: Vec<_> = scores
-        .iter()
-        .filter(|(h, d)| *h != [0.; 3] && *d < tolerance)
-        .take(32)
-        .map(|(h, _)| *h)
-        .collect();
-    let mut divisor = 0i64;
-    for i in 0..h.len() {
-        for j in i + 1..h.len() {
-            for k in j + 1..h.len() {
-                let mut value = det([h[i], h[j], h[k]]).round().abs() as i64;
-                while value != 0 {
-                    let next = divisor % value;
-                    divisor = value;
-                    value = next;
-                }
-                if divisor == 1 {
-                    return true;
-                }
+/// Components per detected frame, in frame order.
+type FrameComponents = Vec<Vec<spots::Component>>;
+/// At most this many components (40 bytes each, so 80 MB) are kept for
+/// Minimum area changes; a detection with more measures anew on such a change.
+const COMPONENTS_KEPT: usize = 2_000_000;
+/// Find spots observations before linking, the components they were
+/// measured from and what they were found with.
+pub(super) struct Detections {
+    key: DetectionKey,
+    /// Every component per detected frame, before the Minimum area rule;
+    /// None when there were more than [`COMPONENTS_KEPT`].
+    pub(super) components: Option<Arc<FrameComponents>>,
+    min_pixels: usize,
+    peaks: Arc<Vec<Peak>>,
+}
+/// Everything Find spots components depend on besides the counts: the
+/// detection settings but Minimum area, the frames and the masks in use (by identity; the key
+/// holds them, so an identical pointer is the same mask; the combined cell
+/// shadows by content).
+pub(super) struct DetectionKey {
+    settings: [f64; 4],
+    shape: [usize; 2],
+    sources: Vec<(PathBuf, usize, Arc<OnceLock<String>>)>,
+    excluded: Vec<usize>,
+    mask: Vec<[usize; 4]>,
+    shadows: Option<Arc<Shadows>>,
+    diamonds: Option<Arc<Diamonds>>,
+    shared: Option<Arc<masks::PixelRuns>>,
+    persistent: Option<Arc<masks::PixelRuns>>,
+    background: Option<Arc<tempfile::NamedTempFile>>,
+}
+impl PartialEq for DetectionKey {
+    fn eq(&self, o: &Self) -> bool {
+        fn same<T>(a: &Option<Arc<T>>, b: &Option<Arc<T>>) -> bool {
+            match (a, b) {
+                (Some(a), Some(b)) => Arc::ptr_eq(a, b),
+                (None, None) => true,
+                _ => false,
             }
         }
+        self.settings.map(f64::to_bits) == o.settings.map(f64::to_bits)
+            && self.shape == o.shape
+            && self.sources.len() == o.sources.len()
+            && self
+                .sources
+                .iter()
+                .zip(&o.sources)
+                .all(|(a, b)| a.0 == b.0 && a.1 == b.1 && Arc::ptr_eq(&a.2, &b.2))
+            && self.excluded == o.excluded
+            && self.mask == o.mask
+            // Remade from the same parts on every settings command: equal
+            // when its mask fields are.
+            && match (&self.shadows, &o.shadows) {
+                (Some(a), Some(b)) => Arc::ptr_eq(a, b) || a.same_mask(b),
+                (None, None) => true,
+                _ => false,
+            }
+            && same(&self.diamonds, &o.diamonds)
+            && same(&self.shared, &o.shared)
+            && same(&self.persistent, &o.persistent)
+            && same(&self.background, &o.background)
     }
-    false
 }
-
 fn diamond_like(p: [f64; 6]) -> bool {
     (p[..3].iter().all(|l| (*l - 3.567).abs() < 0.15)
         && p[3..].iter().all(|a| (*a - 90.).abs() < 3.))
@@ -1084,12 +1202,6 @@ fn diamond_like(p: [f64; 6]) -> bool {
             && p[3..]
                 .iter()
                 .all(|a| (*a - 60.).abs() < 3. || (*a - 120.).abs() < 3.))
-}
-fn cell_score(cell: &Cell, tolerance: f64) -> f64 {
-    // Expected support of uniform reciprocal background: N × V × 4πr³/3.
-    cell.indexed as f64
-        - cell.total as f64 * det(cell.direct).abs() * 4. * std::f64::consts::PI / 3.
-            * tolerance.powi(3)
 }
 
 pub(super) struct SearchCompletion(pub(super) Arc<std::sync::atomic::AtomicBool>);
@@ -1103,27 +1215,9 @@ impl Drop for SearchCompletion {
 mod tests {
     use super::*;
     #[test]
-    fn primitive_diamond_and_supercell_gates() {
+    fn diamond_cells_are_recognised() {
         assert!(diamond_like([2.522, 2.522, 2.522, 60., 60., 60.]));
         assert!(diamond_like([3.567, 3.567, 3.567, 90., 90., 90.]));
         assert!(!diamond_like([7., 9., 11., 90., 90., 90.]));
-        assert!(primitive_indices(
-            &[([1., 0., 0.], 0.), ([0., 1., 0.], 0.), ([0., 0., 1.], 0.)],
-            0.01
-        ));
-        assert!(!primitive_indices(
-            &[([2., 0., 0.], 0.), ([0., 2., 0.], 0.), ([0., 0., 2.], 0.)],
-            0.01
-        ));
-    }
-    #[test]
-    fn equivalent_row_settings_are_not_reported_as_competing_cells() {
-        let a = [[7., 0., 0.], [0., 9., 0.], [0., 0., 11.]];
-        let b = [[7., 9., 0.], [0., 9., 0.], [0., 0., 11.]];
-        assert!(same_lattice(a, b));
-        assert!(!same_lattice(
-            a,
-            [[14., 0., 0.], [0., 9., 0.], [0., 0., 11.]]
-        ));
     }
 }

@@ -719,7 +719,6 @@ input[aria-invalid="true"] {
 .scientific-number-input:focus-within .scientific-number-preview {
   display: none;
 }
-
 .ui-field-error {
   color: var(--ui-danger);
   font-size: var(--text-meta);

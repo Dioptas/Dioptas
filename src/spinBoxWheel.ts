@@ -54,7 +54,11 @@ export function installSpinBoxWheel() {
         input.type !== "number" ||
         !input.closest(".app") ||
         input.matches(":disabled") ||
-        input.readOnly
+        input.readOnly ||
+        // Fields that step themselves, and workspaces whose plain number
+        // boxes must not change with the wheel.
+        input.dataset.ownWheel !== undefined ||
+        input.closest("[data-no-wheel-steps]")
       )
         return;
       const current = input.valueAsNumber;

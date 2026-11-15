@@ -7,7 +7,7 @@ import type { ImageDisplayPreferences } from "./types";
 import "./sessionRecovery.css";
 
 export interface RecoveryUi {
-  mode: "calibration" | "integration" | "mask" | "map";
+  mode: "calibration" | "integration" | "mask" | "map" | "scxrd";
   calibrationStep: number;
   validationConvention: "pyfai" | "fit2d";
   integrationDisplay: string;
@@ -61,7 +61,7 @@ export function checkedRecoveryUi(value: unknown): Partial<RecoveryUi> {
   const input = value as Record<string, unknown>;
   const result: Record<string, unknown> = {};
   const enums: Record<string, string[]> = {
-    mode: ["calibration", "integration", "mask", "map"],
+    mode: ["calibration", "integration", "mask", "map", "scxrd"],
     validationConvention: ["pyfai", "fit2d"],
     integrationDisplay: ["image", "cake"],
     palette: Object.keys(colorMaps),

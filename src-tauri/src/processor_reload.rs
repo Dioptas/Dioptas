@@ -425,6 +425,95 @@ mod tests {
         );
         host.shutdown();
     }
+    /// The real host swap with a loaded single-crystal series. External data:
+    /// DIOPTAS_SC_RELOAD_SCAN (first frame or HDF5 file) and
+    /// DIOPTAS_SC_RELOAD_PONI. Run with `-- --ignored --nocapture`.
+    #[test]
+    #[ignore]
+    fn development_restart_carries_a_loaded_single_crystal_series() {
+        let (Ok(scan), Ok(poni)) = (
+            std::env::var("DIOPTAS_SC_RELOAD_SCAN"),
+            std::env::var("DIOPTAS_SC_RELOAD_PONI"),
+        ) else {
+            panic!("Set DIOPTAS_SC_RELOAD_SCAN and DIOPTAS_SC_RELOAD_PONI.");
+        };
+        let host = ProcessorHost::start(false, Backend::Rust, None).unwrap();
+        let loaded = call(&host, "scxrd_load", json!({"path":scan}))["scxrd"].clone();
+        call(
+            &host,
+            "scxrd_file",
+            json!({"operation":"calibration","path":poni}),
+        );
+        let mut config = loaded["config"].clone();
+        config["confirmed"] = json!(true);
+        config["integration_method"] = json!("summation");
+        config["dac_enabled"] = json!(true);
+        config["threshold"] = json!(7.5);
+        call(&host, "scxrd_settings", json!({"config":config}));
+        let frame = loaded["frames"].as_u64().unwrap() / 2;
+        let before = call(&host, "scxrd_frame", json!({"frame":frame}))["scxrd"].clone();
+        let pid = call(&host, "__host__", json!({}))["pid"].clone();
+        let started = std::time::Instant::now();
+        host.restart(&binary()).unwrap();
+        let elapsed = started.elapsed();
+        assert_ne!(call(&host, "__host__", json!({}))["pid"], pid);
+        let after = call(&host, "scxrd_snapshot", json!({}))["scxrd"].clone();
+        for key in [
+            "frames",
+            "frame",
+            "shape",
+            "config",
+            "geometry",
+            "excludedFrames",
+            "firstSource",
+            "filename",
+        ] {
+            assert_eq!(after[key], before[key], "{key}");
+        }
+        for stage in 0..7 {
+            let status = |s: &Value| s["stages"][stage]["status"].clone();
+            assert_eq!(status(&after), status(&before), "stage {stage}");
+        }
+        assert_eq!(after["stages"][0]["status"], "complete");
+        assert_eq!(
+            after["shadows"]["dacSha256"],
+            before["shadows"]["dacSha256"]
+        );
+        assert_eq!(after["image"]["shape"], before["image"]["shape"]);
+        println!(
+            "development restart with {} frames: {:.2} s",
+            after["frames"],
+            elapsed.as_secs_f64()
+        );
+        // Quit and start again through the automatic recovery checkpoint.
+        let directory = tempfile::tempdir().unwrap();
+        let checkpoint = directory.path().join("native-session-v1.dio");
+        let started = std::time::Instant::now();
+        call(
+            &host,
+            "recovery_checkpoint",
+            json!({"path":checkpoint,"ui":{}}),
+        );
+        let saved = started.elapsed();
+        host.shutdown();
+        let host = ProcessorHost::start(false, Backend::Rust, None).unwrap();
+        let started = std::time::Instant::now();
+        let restored = call(&host, "recovery_restore", json!({"path":checkpoint}));
+        let elapsed = started.elapsed();
+        assert!(restored["recoveryNotice"].is_null(), "{restored}");
+        let again = call(&host, "scxrd_snapshot", json!({}))["scxrd"].clone();
+        for key in ["frames", "frame", "shape", "config", "excludedFrames"] {
+            assert_eq!(again[key], before[key], "{key}");
+        }
+        assert_eq!(again["stages"][0]["status"], "complete");
+        println!(
+            "recovery save {:.2} s ({} bytes), restore {:.2} s",
+            saved.as_secs_f64(),
+            std::fs::metadata(&checkpoint).unwrap().len(),
+            elapsed.as_secs_f64()
+        );
+        host.shutdown();
+    }
     #[test]
     fn queued_restart_allows_progress_and_cancel_and_failed_candidate_keeps_the_old_worker() {
         let host = ProcessorHost::start(false, Backend::Rust, None).unwrap();

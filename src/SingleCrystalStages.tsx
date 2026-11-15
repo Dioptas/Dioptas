@@ -96,6 +96,10 @@ export function SingleCrystalStages({
       | "dac_axis"
       | "seat_enabled"
       | "diamond_enabled"
+      | "cell_masks_enabled"
+      | "shared_mask_enabled"
+      | "persistent_enabled"
+      | "lattice_method"
     >,
     label: string,
     units = "",

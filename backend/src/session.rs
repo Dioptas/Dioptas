@@ -142,6 +142,8 @@ pub struct Session {
     scxrd: single_crystal::Crystal,
     scxrd_undo: Vec<single_crystal::Crystal>,
     scxrd_redo: Vec<single_crystal::Crystal>,
+    /// Single-crystal commands since start; part of the recovery revision.
+    scxrd_changes: u64,
     root: PathBuf,
     worker_count: Option<usize>,
     worker_pool: Option<Arc<rayon::ThreadPool>>,
@@ -225,6 +227,7 @@ impl Session {
             scxrd: Default::default(),
             scxrd_undo: Vec::new(),
             scxrd_redo: Vec::new(),
+            scxrd_changes: 0,
             root,
             worker_count: crate::worker_pool::initial(),
             worker_pool: None,
@@ -495,6 +498,12 @@ impl Session {
     }
     fn dispatch(&mut self, action: &str, args: &Value) -> Result<Reply, String> {
         if action.starts_with("scxrd_") {
+            if !matches!(
+                action,
+                "scxrd_snapshot" | "scxrd_pixel" | "scxrd_levels" | "scxrd_table"
+            ) {
+                self.scxrd_changes += 1;
+            }
             return self.scxrd_command(action, args);
         }
         if action == "integration_correction_preload" {

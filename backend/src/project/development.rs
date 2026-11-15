@@ -103,16 +103,6 @@ impl RuntimeConfiguration {
 impl Session {
     pub(super) fn save_development_checkpoint(&self, args: &Value) -> Result<Reply, String> {
         check_keys(args, &["path"])?;
-        if self.scxrd.needs_development_preservation() {
-            let recovery = if self.scxrd.has_sources() {
-                "Save your SCXRD recipe, then restart to update the backend."
-            } else {
-                "Keep working here, or load frames and save an SCXRD recipe before restarting to update the backend."
-            };
-            return Err(format!(
-                "{recovery} The current processor is retained; single-crystal data or settings cannot yet be transferred."
-            ));
-        }
         let active = self.capture_configuration();
         let configurations: Vec<_> = self
             .project
@@ -143,12 +133,21 @@ impl Session {
         history.flush().native()?;
         drop(history);
         pending.commit_checked(&destination, || self.control.check())?;
+        // Single-crystal state travels beside the archive (never in user saves).
+        let scxrd = self.scxrd.needs_development_preservation();
+        if scxrd {
+            self.scxrd.save_development(
+                path(args)?,
+                &generation,
+                !self.scxrd_undo.is_empty() || !self.scxrd_redo.is_empty(),
+            )?;
+        }
         self.save_native_project(path(args)?)?;
         let file = hdf5::File::open_rw(path(args)?).native()?;
         write_json_dataset(
             &file,
             "development_session",
-            &json!({"version":2,"scxrd_pristine":true,"worker_count":self.worker_count,"project_path":self.project.path,"history_generation":generation,"configuration_ids":configurations.iter().map(|c|c.runtime.id).collect::<Vec<_>>()}),
+            &json!({"version":2,"scxrd_pristine":!scxrd,"scxrd_transfer":u8::from(scxrd),"worker_count":self.worker_count,"project_path":self.project.path,"history_generation":generation,"configuration_ids":configurations.iter().map(|c|c.runtime.id).collect::<Vec<_>>()}),
         )?;
         file.flush().native()?;
         Ok(Reply::metadata(json!({"ok":true})))
@@ -169,7 +168,14 @@ impl Session {
         let file = hdf5::File::open(path(args)?).native()?;
         let metadata = read_json_dataset(&file, "development_session")?;
         drop(file);
-        if metadata["scxrd_pristine"] != true {
+        // Writers that predate the SC transfer certify only an empty SC
+        // workspace; older readers refuse a transfer they cannot carry.
+        let scxrd_transfer = metadata["scxrd_transfer"] == 1;
+        let scxrd_generation = metadata["history_generation"]
+            .as_str()
+            .unwrap_or_default()
+            .to_owned();
+        if metadata["scxrd_pristine"] != true && !scxrd_transfer {
             return Err("Save your work, then restart Dioptas once to update the backend. The current processor is retained; the older processor cannot certify a safe session transfer.".into());
         }
         let histories: Option<Vec<ConfigurationHistory>> = match metadata["version"].as_u64() {
@@ -262,6 +268,17 @@ impl Session {
             std::sync::atomic::Ordering::Relaxed,
         );
         self.project.path = handoff.project_path;
+        self.scxrd_undo.clear();
+        self.scxrd_redo.clear();
+        self.scxrd = if scxrd_transfer {
+            single_crystal::Crystal::restore_development(
+                path(args)?,
+                &scxrd_generation,
+                &self.control,
+            )
+        } else {
+            Default::default()
+        };
         // Keep the retained archive read-only (and valid after path cleanup).
         // The writer omits this owned handoff record from future user saves.
         self.project.omit_development_session = true;
@@ -333,10 +350,31 @@ mod tests {
         old.settings.bins = 777;
         old.settings.automatic_binning = false;
         old.save_development_checkpoint(&json!({"path":p})).unwrap();
+        // Without single-crystal state nothing changes: no SC transfer files,
+        // and the checkpoint stays acceptable to readers before the transfer.
+        assert!(!p.with_extension("scxrd.msgpack").exists());
+        assert!(!p.with_extension("scxrd-products.msgpack").exists());
+        let file = hdf5::File::open(&p).unwrap();
+        let metadata = read_json_dataset(&file, "development_session").unwrap();
+        drop(file);
+        assert_eq!(metadata["scxrd_pristine"], true);
+        assert_eq!(metadata["scxrd_transfer"], 0);
         let mut new = Session::new(old.root.clone());
         new.restore_development_checkpoint(&json!({"path":p}))
             .unwrap();
         assert_eq!(new.settings.bins, 777);
+        // With SC settings the transfer files are written, and readers that
+        // predate the transfer (which check only scxrd_pristine) refuse.
+        let q = t.path().join("scxrd.dio");
+        old.scxrd_command("scxrd_settings", &json!({"config":{"threshold":8.0}}))
+            .unwrap();
+        old.save_development_checkpoint(&json!({"path":q})).unwrap();
+        assert!(q.with_extension("scxrd.msgpack").exists());
+        let file = hdf5::File::open(&q).unwrap();
+        let metadata = read_json_dataset(&file, "development_session").unwrap();
+        drop(file);
+        assert_eq!(metadata["scxrd_pristine"], false);
+        assert_eq!(metadata["scxrd_transfer"], 1);
         assert!(new.calibration_history.undo.is_empty());
         assert!(!new.integration_history.can_undo());
         // Model the previous version-2 writer, which also claimed success when

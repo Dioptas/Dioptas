@@ -1,6 +1,24 @@
 //! Automatic recovery is an owned native project, never the user's project.
 use super::*;
 
+/// Single-crystal session in the recovery checkpoint (see `single_crystal_development.rs`).
+pub(super) const SCXRD_ESSENTIALS: &str = "single_crystal_recovery";
+pub(super) const SCXRD_PRODUCTS: &str = "single_crystal_recovery_products";
+pub(super) const SCXRD_GENERATION: &str = "recovery";
+
+fn scxrd_bytes(file: &hdf5::File, name: &str) -> Result<Vec<u8>, String> {
+    file.dataset(name)
+        .and_then(|d| d.read_raw::<u8>())
+        .map_err(|e| e.to_string())
+}
+
+impl Session {
+    /// Changes the recovery timer must save: powder state and SC commands.
+    pub(super) fn recovery_revision(&self) -> u64 {
+        self.revision.wrapping_add(self.scxrd_changes)
+    }
+}
+
 impl Session {
     pub(super) fn save_recovery_checkpoint(&self, args: &Value) -> Result<Reply, String> {
         check_keys(args, &["path", "ui"])?;
@@ -29,7 +47,9 @@ impl Session {
                 previous.display()
             );
         }
-        Ok(Reply::metadata(json!({"ok":true,"revision":self.revision})))
+        Ok(Reply::metadata(
+            json!({"ok":true,"revision":self.recovery_revision()}),
+        ))
     }
 
     pub(super) fn restore_recovery_checkpoint(&mut self, args: &Value) -> Result<Reply, String> {
@@ -62,6 +82,13 @@ impl Session {
                 missing.insert(source.to_owned());
             }
         }
+        // Read the SC session before the swap; restoring it never fails.
+        let scxrd = file.link_exists(SCXRD_ESSENTIALS).then(|| {
+            (
+                scxrd_bytes(file, SCXRD_ESSENTIALS),
+                scxrd_bytes(file, SCXRD_PRODUCTS),
+            )
+        });
         candidate.project.path = project_path;
         let history_notice = recovery_history::restore(&mut candidate, path(args)?, &metadata)?;
         // The normal project loader leaves file watchers and automatic exports
@@ -71,10 +98,28 @@ impl Session {
         self.restore_checkpoint(candidate.checkpoint());
         #[cfg(feature = "dioptrin")]
         std::mem::swap(&mut self.engine, &mut candidate.engine);
+        self.scxrd_undo.clear();
+        self.scxrd_redo.clear();
+        let mut scxrd_notice = None;
+        self.scxrd = match scxrd {
+            Some((essentials, products)) => {
+                let (crystal, summary) = single_crystal::Crystal::restore(
+                    essentials,
+                    products,
+                    SCXRD_GENERATION,
+                    single_crystal::Transfer::Recovery,
+                    &self.control,
+                );
+                scxrd_notice = summary;
+                crystal
+            }
+            None => Default::default(),
+        };
         let mut reply = self.configuration_reply();
         reply.result["recoveryUi"] = metadata["ui"].clone();
         reply.result["missingSources"] = json!(missing);
-        reply.result["recoveryNotice"] = json!(history_notice);
+        let notices: Vec<_> = history_notice.into_iter().chain(scxrd_notice).collect();
+        reply.result["recoveryNotice"] = json!((!notices.is_empty()).then(|| notices.join("\n\n")));
         Ok(reply)
     }
 }

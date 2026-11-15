@@ -73,6 +73,7 @@ impl Session {
             if let Some(p) = &self.scxrd.calibration_source {
                 self.scxrd.protected_sources.push(p.clone());
             }
+            self.scxrd.show_calibrated_masks(&self.control);
             return Ok(self.scxrd.reply());
         }
         let path = PathBuf::from(
@@ -152,6 +153,7 @@ impl Session {
                 self.scxrd.set_poni(&g)?;
                 self.scxrd.calibration_source = Some(path.clone());
                 self.scxrd.protected_sources.push(path.clone());
+                self.scxrd.show_calibrated_masks(&self.control);
             }
             "open" | "preset" => {
                 let file = File::open(&path).map_err(err)?;
@@ -235,6 +237,7 @@ impl Session {
                             status: "complete".into(),
                             detail,
                             seconds: start.elapsed().as_secs_f64(),
+                            masks: (stage == 0).then(|| candidate.mask_counts().1),
                         };
                     }
                     for index in recipe.excluded_tracks {
@@ -263,6 +266,7 @@ impl Session {
                             status: "complete".into(),
                             detail: "Reproduced and restored the user-selected cell.".into(),
                             seconds: 0.,
+                            masks: None,
                         };
                     }
                 }
@@ -425,6 +429,17 @@ impl Session {
     }
 }
 impl Crystal {
+    /// A new calibration cleared the prepared masks: remake the fast ones
+    /// and show the current frame with them.
+    /// An unreadable frame does not undo the calibration; it is reported.
+    fn show_calibrated_masks(&mut self, control: &Control) {
+        if self.has_sources() {
+            self.refresh_masks(control);
+            if let Err(e) = self.preview("raw") {
+                self.error = Some(e);
+            }
+        }
+    }
     pub(super) fn set_poni(&mut self, g: &crate::geometry::Geometry) -> Result<(), String> {
         let mut g = g.clone();
         if !self.shape.contains(&0) {

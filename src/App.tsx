@@ -66,7 +66,10 @@ import {
   isCurrentBackendUpdate,
   publishBackendGuidance,
 } from "./backendUpdateStatus";
-import { WorkspaceModeButtons } from "./WorkspaceModeButtons";
+import {
+  SINGLE_CRYSTAL_MODE_ENABLED,
+  WorkspaceModeButtons,
+} from "./WorkspaceModeButtons";
 import { HistoryControls } from "./HistoryControls";
 import { useGeometryDraft } from "./geometryDraft";
 import { useWorkflowNotice } from "./useWorkflowNotice";
@@ -993,8 +996,8 @@ export default function App() {
   ]);
   const recovery = useSessionRecovery({
     ui: {
-      // Single-crystal recipes have separate persistence from powder projects.
-      mode: mode === "scxrd" ? "calibration" : mode,
+      // The recovery checkpoint also carries the single-crystal session.
+      mode,
       calibrationStep,
       validationConvention,
       integrationDisplay,
@@ -1051,7 +1054,13 @@ export default function App() {
         await run("open_image", { path }, "Opening requested image…");
     },
     restoreUi: (ui) => {
-      if (ui.mode !== undefined) setMode(ui.mode);
+      // Builds without the Single Crystal mode open Calibration instead.
+      if (ui.mode !== undefined)
+        setMode(
+          ui.mode === "scxrd" && !SINGLE_CRYSTAL_MODE_ENABLED
+            ? "calibration"
+            : ui.mode,
+        );
       if (ui.calibrationStep !== undefined)
         setCalibrationStep(ui.calibrationStep);
       if (ui.validationConvention !== undefined)

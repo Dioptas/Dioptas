@@ -29,6 +29,9 @@ export interface CrystalConfig {
   integration_method: "summation" | "profile";
   protocol: Record<string, unknown> | null;
   keep_stage_audit: boolean;
+  /** The diamond anvil cell masks (DAC opening, seat shadow, diamond spots);
+   * their choices are kept while off. Detector masks do not depend on it. */
+  cell_masks_enabled: boolean;
   dac_enabled: boolean;
   dac_axis: [number, number, number];
   dac_half_opening: number;
@@ -37,13 +40,58 @@ export interface CrystalConfig {
   seat_threshold: number;
   seat_guard: number;
   diamond_enabled: boolean;
+  /** Former seed-area setting, kept for older files; not used. */
   diamond_min_area: number;
+  /** Smallest diamond spot area (significant excess region), pixels. */
+  diamond_min_size: number;
   diamond_tolerance: number;
+  /** Round border around each diamond spot, pixels. */
+  diamond_margin: number;
+  /** Diamond spot detection level, sigma above the local background. */
+  diamond_level: number;
+  /** Apply the Mask mode mask to every frame when its shape matches. */
+  shared_mask_enabled: boolean;
+  /** Mask pixels that stand out on most frames (detector flaws). */
+  persistent_enabled: boolean;
+  /** Share of the frames a pixel must stand out on, percent (20-100). */
+  persistent_fraction: number;
+  /** Find lattices search; older configs load with "both". */
+  lattice_method: LatticeMethod;
+  /** Find lattices stops after this many grains (1-20); older configs load with 5. */
+  max_grains: number;
 }
+export type LatticeMethod = "both" | "fft" | "rows";
+/** Find lattices search choices; the first is the default. */
+export const latticeMethods: { value: LatticeMethod; label: string }[] = [
+  { value: "both", label: "FFT + row search" },
+  { value: "fft", label: "FFT" },
+  { value: "rows", label: "Row search" },
+];
+/** Which search found a candidate (older results: FFT). */
+export type LatticeFound = "fft" | "rows" | "both";
+export const latticeFoundLabel = (found: LatticeFound | undefined) =>
+  ({ fft: "FFT", rows: "Rows", both: "FFT · Rows" })[found ?? "fft"];
+/** The method of a config that may predate the setting. */
+export const latticeMethod = (c: Partial<CrystalConfig>): LatticeMethod =>
+  latticeMethods.some((m) => m.value === c.lattice_method)
+    ? c.lattice_method!
+    : "both";
+/** The grain cap of a config that may predate the setting. */
+export const maxGrains = (c: Partial<CrystalConfig>): number =>
+  Number.isInteger(c.max_grains) && c.max_grains! >= 1 && c.max_grains! <= 20
+    ? c.max_grains!
+    : 5;
+/** Unit-cell volume (Å³) from a, b, c, α, β, γ. */
+export const cellVolume = (p: number[]) => {
+  const [ca, cb, cg] = p.slice(3, 6).map((x) => Math.cos((x * Math.PI) / 180));
+  return (
+    p[0] * p[1] * p[2] * Math.sqrt(Math.max(0, 1 - ca * ca - cb * cb - cg * cg + 2 * ca * cb * cg))
+  );
+};
 export const crystalDefaults: CrystalConfig = {
-  omega_start: 0,
-  omega_step: 0.1,
-  exposure: 0.1,
+  omega_start: -34,
+  omega_step: 0.5,
+  exposure: 0.5,
   axis: [1, 0, 0],
   background: false,
   smoothness: 1e4,
@@ -79,8 +127,98 @@ export const crystalDefaults: CrystalConfig = {
   seat_guard: 32,
   diamond_enabled: false,
   diamond_min_area: 20,
+  diamond_min_size: 120,
+  cell_masks_enabled: true,
   diamond_tolerance: 3,
+  diamond_margin: 10,
+  diamond_level: 10,
+  shared_mask_enabled: true,
+  persistent_enabled: false,
+  persistent_fraction: 50,
+  lattice_method: "both",
+  max_grains: 5,
 };
+/**
+ * The flexible measured-track path; the fixed protocol and the omega
+ * background are not offered here. Only the geometric DAC opening mask starts
+ * on; the measured seat shadow and the diamond spots are opt-in.
+ */
+export const exploratoryCrystalConfig = (c: CrystalConfig): CrystalConfig =>
+  c.integration_method === "summation"
+    ? { ...c, confirmed: true, background: false }
+    : {
+        ...c,
+        confirmed: true,
+        integration_method: "summation",
+        protocol: null,
+        background: false,
+        dac_enabled: true,
+        dac_axis: [0, 0, 1],
+        seat_enabled: false,
+        // Measured on the ID11 Eiger scan: below 0.6 of each block's own lit
+        // level plus a 20 px margin covers the umbra and the dim penumbra; 0.7
+        // already follows noise at the soft edge. The margin steps by 20 px.
+        seat_threshold: 0.6,
+        seat_guard: 20,
+        diamond_enabled: false,
+        aperture_radius: 6,
+        omega_radius: 1.5,
+        polarization: 0.99,
+        link_radius: 3,
+        refine_geometry: false,
+        scan_scaling: false,
+      };
+/** `scxrd_edit {operation:"estimate_dac"}`: start and DAC half-opening fitted
+ * to the measured cell shadow. Null values were not determined. */
+export interface DacEstimate {
+  status: "both" | "opening_only" | "no_shadow" | "undetermined";
+  omegaStart: number | null;
+  halfOpening: number | null;
+  /** Overlap of measured shadow and mask (0-1) at the old and new values. */
+  before: number;
+  after: number;
+  startRange: [number, number] | null;
+  openingRange: [number, number] | null;
+  darkShare: number;
+  /** Frames read (0-based). */
+  frames: number[];
+  block: number;
+  seconds: number;
+}
+/** The settings an estimate determines (none without a usable shadow). */
+export const dacEstimatePatch = (e: DacEstimate): Partial<CrystalConfig> => ({
+  ...(e.omegaStart != null && { omega_start: e.omegaStart }),
+  ...(e.halfOpening != null && { dac_half_opening: e.halfOpening }),
+});
+/** One line for the panel. */
+export const dacEstimateSummary = (e: DacEstimate) => {
+  const angle = (v: number | null) => `${v?.toFixed(2)}°`;
+  const fit = `fit ${Math.round(e.before * 100)} → ${Math.round(e.after * 100)} %`;
+  switch (e.status) {
+    case "both":
+      return `Start ${angle(e.omegaStart)}, opening ${angle(e.halfOpening)} · ${fit}`;
+    case "opening_only":
+      return `Shadow at one end only: start kept, opening ${angle(e.halfOpening)} · ${fit}`;
+    case "no_shadow":
+      return "No cell shadow in the frames; nothing changed";
+    default:
+      return "The shadow does not fix the opening; nothing changed";
+  }
+};
+/** Settings whose change clears the prepared masks. */
+const maskInputs: (keyof CrystalConfig)[] = [
+  "axis",
+  "omega_start",
+  "omega_step",
+  "exposure",
+  "dac_enabled",
+  "dac_half_opening",
+  "seat_enabled",
+  "diamond_enabled",
+  "cell_masks_enabled",
+  "shared_mask_enabled",
+  "persistent_enabled",
+];
 export type CrystalFileOperation =
   | "calibration"
   | "protocol"
@@ -100,8 +238,12 @@ export type CrystalEdit =
       operation: "cell" | "track" | "frame" | "rerun" | "remove_mask";
       index: number;
     }
+  | { operation: "keep"; index: number; keep: boolean }
+  /** Marks a lattice's spots on the image (view only, no undo entry). */
+  | { operation: "show"; index?: number }
   | { operation: "mask"; bounds: [number, number, number, number] }
-  | { operation: "clear_mask" };
+  | { operation: "clear_mask" }
+  | { operation: "estimate_dac" };
 export type CrystalImageKind = "raw" | "background" | "corrected";
 export interface CrystalData {
   protocolTemplate: Record<string, unknown>;
@@ -144,6 +286,8 @@ export interface CrystalData {
     status: "pending" | "complete" | "attention" | "paused";
     detail: string;
     seconds: number;
+    /** Prepare masks: the numbers of each mask in use. */
+    masks?: MaskCounts;
   }[];
   geometry: {
     origin: number[];
@@ -175,6 +319,8 @@ export interface CrystalData {
     track: number;
     flags: number;
     excluded: boolean;
+    /** Owning lattice, 1-based; 0 none (older snapshots: absent). */
+    lattice?: number;
   }[];
   peakCount: number;
   peakFrames: number[];
@@ -195,8 +341,14 @@ export interface CrystalData {
     total: number;
     rms: number;
     validation: number;
+    found?: LatticeFound;
+    /** Kept for the following steps (the row's tick). */
+    kept?: boolean;
   }[];
+  /** First kept lattice, used by the following steps. */
   selected: number | null;
+  /** Lattice whose spots are marked on the image. */
+  shownLattice?: number | null;
   reflections: {
     hkl: number[];
     native_use: boolean | null;
@@ -257,6 +409,10 @@ export interface CrystalData {
   image: Raster | null;
   /** Prepared masks (shadows, diamond spots) on the shown frame. */
   maskImage?: Raster | null;
+  /** Mask mode mask for this series: ready, another detector shape, or none. */
+  sharedMask?: SharedMaskStatus;
+  /** File and file frame of the shown frame. */
+  source?: { path: string; frame: number } | null;
 }
 export const crystalSteps = [
   "Frames",
@@ -360,6 +516,10 @@ export function crystalConfigError(c: CrystalConfig): string | null {
     [c.shadow_block, 1, 1024, "Shadow block"],
     [c.seat_threshold, 0.01, 0.999, "Illumination threshold"],
     [c.seat_guard, 0, 4096, "Illumination guard"],
+    [c.diamond_min_size, 1, 1000000, "Diamond spot size"],
+    [c.diamond_margin, 0, 200, "Diamond spot margin"],
+    [c.diamond_level, 3, 50, "Diamond spot level"],
+    [c.persistent_fraction, 20, 100, "Persistent pixel frame share"],
   ];
   for (const [v, min, max, name] of ranges)
     if (!Number.isFinite(v) || v < min || v > max)
@@ -423,3 +583,113 @@ export const crystalTermination = (value: string) =>
       trial_budget: "Phase-start budget reached",
     }) as Record<string, string>
   )[value] ?? value.replaceAll("_", " ");
+
+export type SharedMaskStatus = "none" | "shape" | "ready";
+/** Short note beside the Mask mode mask switch; null when it applies. */
+export const sharedMaskNote = (status: SharedMaskStatus | undefined) =>
+  status === "shape" ? "other shape" : status === "ready" ? null : "empty";
+/**
+ * `open_image` arguments that make the shown frame the shared detector image
+ * (Mask, Calibration, Integration); the shared calibration is left alone.
+ */
+export const sharedImageRequest = (data: Pick<CrystalData, "source">) =>
+  data.source ? { path: data.source.path, frame: data.source.frame } : null;
+
+/** Prepare masks numbers (backend `mask_counts`): percentages of all scan
+ * pixels (`total` counts overlaps once) and counts. Absent keys: not in use. */
+export interface MaskCounts {
+  total: number;
+  dac?: number;
+  seat?: number;
+  diamonds?: number;
+  persistent?: number;
+  shared?: number;
+  /** The DAC mask misses the measured shadow (check the rotation axis). */
+  warning?: string;
+}
+export type MaskKey = "dac" | "seat" | "diamond" | "persistent" | "shared";
+const MASK_SWITCHES: Record<MaskKey, keyof CrystalConfig> = {
+  dac: "dac_enabled",
+  seat: "seat_enabled",
+  diamond: "diamond_enabled",
+  persistent: "persistent_enabled",
+  shared: "shared_mask_enabled",
+};
+export const maskSwitch = (key: MaskKey) => MASK_SWITCHES[key];
+/** The two mask groups: the cell masks follow `cell_masks_enabled`. */
+export const cellMasks: MaskKey[] = ["dac", "seat", "diamond"];
+export const detectorMasks: MaskKey[] = ["persistent", "shared"];
+const trim = (v: number, digits: number) => String(+v.toFixed(digits));
+const percent = (v: number) =>
+  `${v < 0.1 && v > 0 ? "< 0.1" : v.toFixed(1)}\u00a0%`;
+/** Each mask row's result, right of its name; null shows nothing. */
+export function maskResult(
+  key: MaskKey,
+  config: CrystalConfig,
+  counts: MaskCounts | undefined,
+  shared: SharedMaskStatus | undefined,
+): string | null {
+  const on =
+    !!config[MASK_SWITCHES[key]] &&
+    (!cellMasks.includes(key) || config.cell_masks_enabled);
+  if (key === "shared" && on && shared !== "ready")
+    return sharedMaskNote(shared);
+  if (!on) return null;
+  if (key === "dac") return `${trim(config.dac_half_opening, 2)}°`;
+  if (!counts) return null;
+  const n =
+    key === "seat"
+      ? counts.seat
+      : key === "diamond"
+        ? counts.diamonds
+        : key === "persistent"
+          ? counts.persistent
+          : counts.shared;
+  if (n == null) return null;
+  if (key === "seat") return percent(n);
+  if (key === "diamond") return `${n} spot${n === 1 ? "" : "s"}`;
+  return `${n}\u00a0px`;
+}
+/** Total masked share for the Prepare masks row; null before it is made. */
+export const maskTotal = (counts: MaskCounts | undefined) =>
+  counts ? `${percent(counts.total)} masked` : null;
+/**
+ * The collapsed Setup line: start, step (and width when it differs), axis
+ * with its sense, wavelength. Negative numbers use a true minus sign.
+ */
+export function setupSummary(
+  config: Pick<
+    CrystalConfig,
+    "omega_start" | "omega_step" | "exposure" | "axis"
+  >,
+  wavelength: number | null | undefined,
+) {
+  const n = (v: number, d = 3) => trim(v, d).replace("-", "\u2212");
+  const vertical = !!config.axis[0];
+  const sign = (config.axis[0] || config.axis[1] || 1) < 0 ? -1 : 1;
+  const parts = [
+    `${n(config.omega_start)}°`,
+    `step ${n(config.omega_step, 4)}°` +
+      (config.exposure !== config.omega_step
+        ? ` / ${n(config.exposure, 4)}°`
+        : ""),
+    `${vertical ? "vertical" : "horizontal"} ${sign > 0 ? "\u21ba" : "\u21bb"}`,
+    wavelength ? `λ ${n(wavelength, 4)} Å` : "no calibration",
+  ];
+  return parts.join(" · ");
+}
+/** Width per frame follows Step unless the user chose to set it, or an
+ * existing configuration already holds a different width. */
+export const widthFollowsStep = (
+  config: Pick<CrystalConfig, "omega_step" | "exposure">,
+  separate: boolean,
+) => !separate && config.exposure === config.omega_step;
+/** A new Step, with the width in the same settings command when it follows. */
+export const stepPatch = (
+  config: Pick<CrystalConfig, "omega_step" | "exposure">,
+  step: number,
+  separate: boolean,
+): Partial<CrystalConfig> =>
+  widthFollowsStep(config, separate)
+    ? { omega_step: step, exposure: step }
+    : { omega_step: step };

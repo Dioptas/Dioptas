@@ -78,6 +78,9 @@ test("workspace submission adds only transport metadata and Map view context wit
     true,
   );
   assert.equal("defer_integration" in calls.at(-1)[1], false);
+  // Single-crystal commands are never deferred (their payloads are strict).
+  await submitWorkspaceCommand(invoke, ["scxrd_snapshot", {}], "mask", true);
+  assert.deepEqual(calls.at(-1), ["scxrd_snapshot", {}]);
   const map = ["map_select", { index: 4, reintegrate: true }];
   await submitWorkspaceCommand(invoke, map, "integration", false);
   assert.deepEqual(calls.at(-1), [

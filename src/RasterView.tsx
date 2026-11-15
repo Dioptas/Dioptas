@@ -57,7 +57,8 @@ export interface RasterExport {
 export interface RasterMarker {
   x: number;
   y: number;
-  kind: "observed" | "predicted" | "rejected" | "selected";
+  /** `lattice`: a spot of the lattice shown in Find lattices. */
+  kind: "observed" | "predicted" | "rejected" | "selected" | "lattice";
 }
 export interface RasterRegion {
   bounds: [number, number, number, number];
@@ -660,8 +661,11 @@ export function RasterView({
                 ? "#69baff"
                 : marker.kind === "selected"
                   ? "#ffffff"
-                  : "#ff9500";
-          context.lineWidth = marker.kind === "selected" ? 2 : 1.25;
+                  : marker.kind === "lattice"
+                    ? "#30d158"
+                    : "#ff9500";
+          context.lineWidth =
+            marker.kind === "selected" || marker.kind === "lattice" ? 2 : 1.25;
           context.beginPath();
           if (marker.kind === "predicted") {
             context.moveTo(x - 5, y);

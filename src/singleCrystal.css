@@ -123,51 +123,6 @@
     gap: 4px;
   }
 }
-.sc-cell-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin: 16px 0;
-}
-.sc-cell-card {
-  border: 1px solid var(--ui-border);
-  padding: 10px;
-  border-radius: 6px;
-}
-.sc-cell-chosen {
-  border-color: #bb7a37;
-  background: #322b24;
-}
-.sc-cell-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: var(--text-meta);
-}
-.sc-cell-card-head span {
-  text-align: right;
-}
-.sc-cell-card dl {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
-  gap: 8px;
-  font-size: var(--text-meta);
-  margin: 12px 0 0;
-}
-.sc-cell-card dt {
-  color: var(--ui-muted);
-}
-.sc-cell-card dd {
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
-}
-.sc-cell-card-head .ui-button {
-  min-height: 30px;
-  padding: 4px 8px;
-  border: 1px solid #65717b;
-}
 
 /* Lean workspace: slider-driven frame bar and a task panel on the shared
    sidebar surface (surfaces.css), wider than other modes for crystal results. */
@@ -261,18 +216,26 @@
   margin: 0 0 2px;
   padding: 0;
 }
-/* Rows reuse the shared integration-number-field parts, laid out like the
-   Calibration geometry rows: name left, box, unit right. */
+/* Rows use the shared Integration / Settings layout (integrationNumericFields.css):
+   label right-aligned next to its box, unit after the box, rows grouped at the
+   left with every box in one column. The unit column is wide enough for "× lit". */
 .sc-panel .sc-angles .field-label.integration-number-field {
-  grid-template-columns: minmax(0, 1fr) 96px 30px;
-  justify-self: stretch;
-  width: 100%;
-  text-align: left;
+  grid-template-columns: minmax(0, 1fr) 82px 34px;
   font-size: var(--text-small);
   color: var(--ui-muted);
 }
+/* Step settings are indented; narrower rows keep their boxes in the same
+   column as the Rotation boxes. */
+.sc-step-list .sc-angles .field-label.integration-number-field {
+  width: min(100%, 228px);
+}
 .sc-panel .sc-angles .integration-number-field > .ui-field-error {
   grid-column: 1 / -1;
+}
+/* A choice with longer words (Find lattices search): the label keeps its
+   width, the select takes the rest of the row and ends with the boxes. */
+.sc-panel .sc-angles .field-label.integration-number-field.sc-wide-choice {
+  grid-template-columns: auto minmax(0, 1fr);
 }
 /* The axis choice is a word, not a number: let it span box and unit columns. */
 .sc-panel .sc-angles .integration-number-field > select {
@@ -307,6 +270,7 @@
 .sc-angles .sc-help-label {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 2px;
 }
 .sc-axis-diagram {
@@ -399,28 +363,215 @@
   font-size: var(--text-small);
 }
 
-/* Lattice candidates follow the step list as the last panel section. */
-.sc-workspace--lean .sc-cell-list {
+/* Setup: rotation and calibration in the shared compact disclosure
+   (style.css .compact-section). Collapsed, its one line tells it all. */
+.sc-workspace--lean .sc-setup > summary {
+  font-size: var(--text-small);
+  line-height: 1.6;
+}
+.sc-workspace--lean .sc-setup > summary[aria-disabled] {
+  cursor: default;
+}
+.sc-setup-line > span > span {
+  white-space: nowrap;
+}
+.sc-setup-line {
+  margin-left: 10px;
+  color: var(--ui-muted);
+  font-size: var(--text-meta);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.sc-workspace--lean .sc-setup > .sc-actions {
+  margin-top: 10px;
+}
+/* Step with the width link after its unit; the field keeps its own width,
+   so its box stays in the column of the other boxes. */
+.sc-field-tool {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.sc-field-tool > .field-label {
+  flex: 0 1 260px;
+}
+.sc-workspace--lean .sc-section .sc-link-button,
+.sc-workspace--lean .sc-link-button {
+  flex-shrink: 0;
+  /* Into the unit column, right after the unit. */
+  margin-left: -20px;
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
+  padding: 3px;
+  color: var(--ui-muted);
+}
+
+/* Prepare masks: two small groups, one row per mask (switch, name, result);
+   only the open mask shows its fields. */
+.sc-mask-group {
+  display: grid;
+  gap: 0;
+  margin-bottom: 4px;
+}
+.sc-mask-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-right: 4px;
+  min-height: 26px;
+  color: #83919f;
+  font-size: var(--text-meta);
+  font-weight: 650;
+  letter-spacing: 0.5px;
+}
+/* Mask rows under both headings share one left edge, a step in. */
+.sc-mask-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding-left: 12px;
+  font-size: var(--text-small);
+}
+.sc-mask-row > .ui-input {
+  flex-shrink: 0;
+  margin: 0;
+}
+.sc-workspace--lean .sc-mask-toggle,
+.sc-mask-row--plain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.sc-workspace--lean .sc-step-list .sc-mask-toggle {
+  min-height: 26px;
+  padding: 2px 4px 2px 0;
+  border: 0;
+  font-size: var(--text-small);
+  font-weight: 400;
+  text-align: left;
+  color: inherit;
+}
+.sc-workspace--lean .sc-mask-toggle[aria-expanded="true"] .sc-mask-name {
+  color: var(--accent);
+}
+.sc-mask-row--plain {
+  padding-right: 4px;
+}
+.sc-mask-toggle > .sc-mask-name,
+.sc-mask-row--plain > .sc-mask-name {
+  flex: 1;
+}
+/* Disclosure mark of a mask with fields: right closed, down open. */
+.sc-mask-chevron {
+  flex-shrink: 0;
+  width: 13px;
+  margin-right: -4px;
+  color: var(--ui-muted);
+  transition: transform 0.12s;
+}
+.sc-mask-toggle[aria-expanded="true"] .sc-mask-chevron {
+  transform: rotate(90deg);
+  color: var(--accent);
+}
+.sc-mask-row--plain > .sc-mask-chevron {
+  display: inline-block;
+}
+.sc-mask-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sc-mask-result {
+  flex-shrink: 0;
+  color: var(--ui-muted);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+/* Fields of the open mask: the same rows as the other step settings, so
+   every box shares one column (labels end at their box). */
+.sc-mask-fields {
+  display: grid;
+  gap: 6px;
+  padding: 4px 0 8px;
+}
+/* Estimate sits under the half-opening box; its result line below. */
+.sc-estimate-line {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  padding-left: min(106px, 40%);
+}
+.sc-workspace--lean .sc-estimate-button {
+  min-height: 26px;
+  padding: 2px 10px;
+  font-size: var(--text-small);
+}
+.sc-estimate-note {
+  color: var(--ui-muted);
+  font-size: var(--text-meta);
+  overflow-wrap: anywhere;
+}
+
+/* Lattices: one row per grain after the step list (tick, cell, spots);
+   the shown row marks its spots on the image and opens one detail line. */
+.sc-workspace--lean .sc-lattices {
   margin: 4px 0 0;
+  padding-top: 6px;
   border-top: 1px solid var(--border);
   border-bottom: 0;
 }
-.sc-workspace--lean .sc-cell-card {
-  border: 1px solid var(--border);
-  border-radius: var(--ui-radius);
-  padding: 8px 10px;
+.sc-workspace--lean .sc-lattices .sc-mask-row {
+  padding-left: 0;
 }
-.sc-workspace--lean .sc-cell-chosen {
-  border-color: #ff950066;
-  background: #ff95000c;
-}
-.sc-workspace--lean .sc-cell-card-head .ui-button {
-  min-height: 28px;
-  padding: 3px 10px;
+.sc-workspace--lean .sc-lattice-toggle {
+  min-height: 34px;
+  padding: 3px 4px 3px 0;
   border: 0;
+  font-size: var(--text-small);
+  font-weight: 400;
+  text-align: left;
+  color: inherit;
 }
-.sc-workspace--lean .sc-cell-card dl {
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: 4px 12px;
-  margin: 8px 0 0;
+.sc-workspace--lean .sc-lattice-toggle[aria-pressed="true"] .sc-mask-name {
+  color: #30d158;
+}
+.sc-lattice-cell {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  font-variant-numeric: tabular-nums;
+}
+.sc-lattice-angles,
+.sc-lattice-spots > span,
+.sc-lattice-details {
+  color: var(--ui-muted);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+.sc-lattice-angles {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sc-lattice-spots {
+  display: grid;
+  justify-items: end;
+}
+.sc-lattice-details {
+  padding: 0 4px 6px 24px;
+}
+/* Spin arrows always shown, as in the overlay controls and data table. */
+.sc-panel input.numeric-stepper::-webkit-inner-spin-button {
+  opacity: 1;
+}
+.sc-framebar .sc-share-frame {
+  margin-left: 4px;
 }

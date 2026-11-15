@@ -166,7 +166,7 @@ impl Session {
             "recovery_status" => {
                 check_keys(args, &[])?;
                 Ok(Some(Reply::metadata(
-                    json!({"ok":true,"revision":self.revision}),
+                    json!({"ok":true,"revision":self.recovery_revision()}),
                 )))
             }
             "recovery_checkpoint" => self.save_recovery_checkpoint(args).map(Some),
@@ -540,8 +540,20 @@ impl Session {
         // Recovery metadata belongs to the automatic checkpoint only. A user
         // project saved after recovery must never retain its private identity.
         replace(&file, "native_recovery")?;
+        replace(&file, recovery::SCXRD_ESSENTIALS)?;
+        replace(&file, recovery::SCXRD_PRODUCTS)?;
         if let Some(recovery) = recovery {
             write_json_dataset(&file, "native_recovery", recovery)?;
+            // The single-crystal session restarts with the recovery only.
+            if self.scxrd.needs_development_preservation() {
+                let saved = self.scxrd.transfer(recovery::SCXRD_GENERATION, false)?;
+                for (name, bytes) in [
+                    (recovery::SCXRD_ESSENTIALS, saved.essentials),
+                    (recovery::SCXRD_PRODUCTS, saved.products),
+                ] {
+                    write_array(&file, name, &[bytes.len()], &bytes)?;
+                }
+            }
         }
         let mut metadata = read_json_attr(&file, "react_desktop")?.unwrap_or(json!({}));
         merge(&mut metadata, &config::desktop_metadata(self));
