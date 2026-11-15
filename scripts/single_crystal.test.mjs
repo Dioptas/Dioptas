@@ -19,6 +19,11 @@ import {
   sharedMaskNote,
   stepPatch,
   widthFollowsStep,
+  workflowDefaults,
+  busyFramesNote,
+  excludedFramesNote,
+  mergeAngle,
+  mergedNote,
 } from "../src/singleCrystalDomain.ts";
 import { crystalPixelReading } from "../src/singleCrystalReadout.ts";
 import { stepNumber } from "../src/numericDraft.ts";
@@ -496,4 +501,61 @@ test("Find lattices search: FFT + row search by default, older configs load with
   assert.equal(latticeFoundLabel("rows"), "Rows");
   assert.equal(latticeFoundLabel("both"), "FFT · Rows");
   assert.equal(latticeFoundLabel(undefined), "FFT");
+});
+
+test("Minimum area: 2 px in the summation workflow, 3 px in the fixed profile protocol", () => {
+  const lean = exploratoryCrystalConfig(crystalDefaults);
+  assert.equal(lean.min_pixels, 2);
+  assert.equal(crystalConfigError(lean), null);
+  // Switching the workflow sets it; switching back restores it.
+  const profile = {
+    ...lean,
+    integration_method: "profile",
+    ...workflowDefaults("profile"),
+  };
+  assert.equal(profile.min_pixels, 3);
+  assert.equal(profile.threshold, 5);
+  const back = {
+    ...profile,
+    integration_method: "summation",
+    ...workflowDefaults("summation"),
+  };
+  assert.equal(back.min_pixels, 2);
+  // An existing summation config keeps its value.
+  assert.equal(exploratoryCrystalConfig({ ...lean, min_pixels: 3 }).min_pixels, 3);
+  assert.equal(exploratoryCrystalConfig({ ...lean, min_pixels: 7 }).min_pixels, 7);
+});
+
+test("Find spots names busy frames in one line and offers to exclude them, or to take excluded frames back", async () => {
+  assert.equal(busyFramesNote([]), "");
+  assert.equal(busyFramesNote([0]), "1 frame with unusually many spots: 1");
+  assert.equal(busyFramesNote([0, 4]), "2 frames with unusually many spots: 1, 5");
+  assert.equal(excludedFramesNote([]), "");
+  assert.equal(excludedFramesNote([4, 0]), "Excluded frames: 1, 5");
+  assert.equal(excludedFramesNote([0]), "Excluded frame: 1");
+  const { readFile } = await import("node:fs/promises");
+  const view = await readFile(new URL("../src/SingleCrystalWorkspace.tsx", import.meta.url), "utf8");
+  // Under the Find spots row, in the summation workflow only.
+  assert.match(view, /\{stage === 1 && framesNotes\(data\)\}/);
+  assert.match(view, /integration_method !== "summation"\) return null/);
+  // One click excludes (or includes) through the backend and finds the spots again.
+  assert.match(view, /\{ operation: "exclude_frames", frames, exclude \}/);
+  assert.match(view, /busyFramesNote\(busy\),\s*"Exclude",\s*\(\) => excludeFrames\(busy, true\)/);
+  assert.match(view, /"Include",\s*\(\) => excludeFrames\(d\.excludedFrames, false\)/);
+  assert.match(view, /run\(\s*"scxrd_run",\s*\{ stage, automatic: false \}/);
+});
+
+test("Find lattices: Merge within 0.5° by default, older configs load with it; merged rows say so in their detail line", async () => {
+  assert.equal(crystalDefaults.merge_angle, 0.5);
+  assert.equal(mergeAngle({}), 0.5);
+  assert.equal(mergeAngle({ merge_angle: 0 }), 0);
+  assert.equal(mergeAngle({ merge_angle: 2.5 }), 2.5);
+  assert.equal(mergeAngle({ merge_angle: 9 }), 0.5);
+  assert.equal(mergedNote(undefined), "");
+  assert.equal(mergedNote({ domains: 2, angle: 0.2612 }), "2 domains, 0.26°");
+  const { readFile } = await import("node:fs/promises");
+  const view = await readFile(new URL("../src/SingleCrystalWorkspace.tsx", import.meta.url), "utf8");
+  assert.match(view, /label="Merge within"\s*unit="°"\s*value=\{mergeAngle\(data\.config\)\}\s*onCommit=\{\(v\) => setConfig\(\{ merge_angle: v \}\)\}\s*step=\{0\.1\}\s*min=\{0\}\s*max=\{5\}/);
+  // Only in the detail line that opens on click, not on the main row.
+  assert.match(view, /sc-lattice-details[\s\S]{0,300}mergedNote\(cell\.merged\)/);
 });

@@ -268,6 +268,7 @@ fn older_configs_and_results_load_with_the_defaults() {
         rms: 0.003,
         validation: 3,
         found: Found::Rows,
+        merged: None,
         kept: true,
     };
     let mut json = serde_json::to_value(&cell).unwrap();
@@ -380,6 +381,7 @@ fn listed(indexed: usize, total: usize, parameters: [f64; 6]) -> Cell {
         rms: 0.003,
         validation: indexed / 5,
         found: Found::Fft,
+        merged: None,
         kept: false,
     }
 }
@@ -420,4 +422,118 @@ fn only_lattices_with_a_clear_share_of_the_spots_are_ticked() {
     let mut other = vec![listed(1990, 2737, ENSTATITE)];
     assert!(!carry_ticks(&old, &mut other));
     assert!(!carry_ticks(&[], &mut new));
+}
+
+/// Two domains of one enstatite crystal, the second turned by `degrees`
+/// about a general axis; spots to 2 Å⁻¹ like the Eiger scan.
+fn two_domains(degrees: f64, rng: &mut Lcg) -> (Vec<V3>, M3, M3, usize) {
+    let r = rotation(0.4, 1.1, -0.7);
+    let t = degrees.to_radians() / 3f64.sqrt();
+    let turn = rotation(t, t, t);
+    let a = cell(ENSTATITE);
+    let b = a.map(|row| rotate(&turn, row));
+    let mut q = grain(a, r, 2.0, rng);
+    q.extend(grain(b, r, 2.0, rng));
+    let measured = q.len();
+    q.extend(noise(300, 2.0, rng));
+    let place = |d: M3| d.map(|row| rotate(&r, row));
+    (shuffle(q, rng), place(a), place(b), measured)
+}
+/// The list after merging `models` (given in these settings) at `limit`.
+fn merged(q: &[V3], models: &[M3], limit: f64) -> Vec<(grains::Grain, Option<Merged>)> {
+    let training: Vec<bool> = (0..q.len()).map(|i| i % 5 != 0).collect();
+    let o = options(&config("both"), 5);
+    let controls = null_rotations();
+    let found = grains::validate(q, &training, models, &controls, &o).unwrap();
+    assert!(
+        found.iter().all(|g| g.accepted),
+        "both domains validate apart"
+    );
+    merge_domains(
+        q,
+        &training,
+        found.into_iter().map(|g| (g, None)).collect(),
+        &controls,
+        &o,
+        limit,
+    )
+    .unwrap()
+    .into_iter()
+    .filter(|g| g.0.accepted)
+    .collect()
+}
+
+#[test]
+fn misorientation_compares_lattices_in_any_setting() {
+    let a = cell(ENSTATITE);
+    let t = 0.26f64.to_radians() / 3f64.sqrt();
+    let b = a.map(|row| rotate(&rotation(t, t, t), row));
+    // Another setting of b: axes permuted and combined, right-handed.
+    let other = [
+        b[1],
+        b[0].map(|v| -v),
+        std::array::from_fn(|j| b[2][j] + b[0][j]),
+    ];
+    for m in [b, other] {
+        let angle = misorientation(a, m).unwrap();
+        assert!((angle - 0.26).abs() < 0.03, "{angle}");
+    }
+    // A lattice symmetry rotation (2-fold about c) maps the nodes onto themselves.
+    let flipped = [a[0].map(|v| -v), a[1].map(|v| -v), a[2]];
+    assert!(misorientation(a, flipped).unwrap() < 1e-9);
+    // Other cells are not one crystal.
+    assert!(misorientation(a, cell(MONOCLINIC)).is_none());
+    assert!(misorientation(a, cell([5.18, 8.81, 18.5, 90., 90., 90.])).is_none());
+}
+
+#[test]
+fn domains_a_quarter_degree_apart_merge_into_one_lattice() {
+    let rng = &mut Lcg(21);
+    let (q, a, b, measured) = two_domains(0.26, rng);
+    let setting = [b[1], b[0].map(|v| -v), b[2]];
+    let list = merged(&q, &[a, setting], default_merge_angle());
+    assert_eq!(list.len(), 1);
+    let (g, info) = &list[0];
+    let info = info.unwrap();
+    assert_eq!(info.domains, 2);
+    assert!((info.angle - 0.26).abs() < 0.03, "{}", info.angle);
+    let indexed = g.training + g.withheld;
+    assert!(indexed * 100 >= measured * 95, "{indexed} of {measured}");
+    // The whole Find lattices step gives one lattice too.
+    let cells = run(&q, "both");
+    assert_eq!(
+        cells.len(),
+        1,
+        "{:?}",
+        cells.iter().map(|c| c.indexed).collect::<Vec<_>>()
+    );
+    assert!(
+        cells[0].indexed * 100 >= measured * 95,
+        "{} of {measured}",
+        cells[0].indexed
+    );
+    assert!(matching(&cells, ENSTATITE).is_some());
+}
+
+#[test]
+fn domains_two_degrees_apart_or_merging_off_stay_apart() {
+    let rng = &mut Lcg(23);
+    let (q, a, b, _) = two_domains(2., rng);
+    let list = merged(&q, &[a, b], default_merge_angle());
+    assert_eq!(list.len(), 2);
+    assert!(list.iter().all(|g| g.1.is_none()));
+    let rng = &mut Lcg(21);
+    let (q, a, b, _) = two_domains(0.26, rng);
+    assert_eq!(merged(&q, &[a, b], 0.).len(), 2);
+}
+
+#[test]
+fn a_merge_that_loses_spots_is_refused() {
+    // Within a 3° limit, but one lattice between domains 2° apart misses
+    // most spots beyond about 0.9 Å⁻¹.
+    let rng = &mut Lcg(23);
+    let (q, a, b, _) = two_domains(2., rng);
+    let list = merged(&q, &[a, b], 3.);
+    assert_eq!(list.len(), 2);
+    assert!(list.iter().all(|g| g.1.is_none()));
 }

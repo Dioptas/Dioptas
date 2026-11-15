@@ -71,6 +71,12 @@ impl Crystal {
     fn background(&mut self, control: &Control) -> Result<String, String> {
         self.prepare_shadows(control)?;
         self.prepare_diamonds(control)?;
+        // Persistent pixels are otherwise made only by a settings reply; a
+        // run straight after an edit (frames, rectangles) needs them too.
+        if self.independent_masks() && self.config.persistent_on() {
+            self.ensure_persistent(control, true)?;
+            self.activate_masks();
+        }
         self.notice = self.dac_warning();
         if !self.config.background {
             self.background = None;
@@ -442,7 +448,12 @@ impl Crystal {
             kept.then_some(components),
         ))
     }
-    fn cloud(&self) -> Result<(Vec<usize>, Vec<V3>), String> {
+    /// Reciprocal positions of the usable tracks. For lattice finding
+    /// (`positions`) a masked pixel in the aperture does not matter: it biases
+    /// the intensity, not the position, so those tracks take part. Geometry
+    /// refinement keeps to fully unflagged tracks.
+    fn cloud(&self, positions: bool) -> Result<(Vec<usize>, Vec<V3>), String> {
+        let allowed = if positions { spots::MASKED } else { 0 };
         let mut g = self
             .geometry
             .ok_or("Load a PONI calibration in Frames before cell finding.")?
@@ -452,7 +463,7 @@ impl Crystal {
             .tracks
             .iter()
             .enumerate()
-            .filter(|(_, t)| !t.excluded && t.flags == 0)
+            .filter(|(_, t)| !t.excluded && t.flags & !allowed == 0)
             .map(|(i, _)| i)
             .collect();
         let ids: Vec<_> = available
@@ -472,7 +483,7 @@ impl Crystal {
     }
     fn cells(&mut self, control: &Control, _automatic: bool) -> Result<String, String> {
         if self.cells.is_empty() {
-            let (_, q) = self.cloud()?;
+            let (_, q) = self.cloud(true)?;
             self.cells = lattices::find(&q, &self.config, control)?;
             let retired = std::mem::take(&mut self.retired);
             if !carry_ticks(&retired, &mut self.cells) {
@@ -567,7 +578,7 @@ impl Crystal {
             }
             basis = fitting::reference_basis(basis, metric).map_err(err)?;
         }
-        let (ids, q) = self.cloud()?;
+        let (ids, q) = self.cloud(false)?;
         let scores = fft::Engine::new(1)?.score(&q, direct, basis);
         let mut hkl = Vec::new();
         let mut observed = Vec::new();
@@ -1061,6 +1072,33 @@ impl Crystal {
                 self.invalidate(0);
                 self.preview("raw")?;
             }
+            Some("exclude_frames") => {
+                // Frames to leave out of every step (the busy-frame notice's
+                // action) or to take back. Prepare masks counts frames too
+                // (persistent pixels), so everything is made again.
+                if self.config.integration_method == "profile" {
+                    return Err("Edit the contiguous protocol first/last frame in Frames; individual frame toggles are available in exploratory summation.".into());
+                }
+                let frames: Vec<usize> = serde_json::from_value(args["frames"].clone())
+                    .map_err(|_| "Choose the frames to exclude.")?;
+                let exclude = args["exclude"]
+                    .as_bool()
+                    .ok_or("Say whether to exclude the frames.")?;
+                if frames.iter().any(|&f| f >= self.sources.len()) {
+                    return Err("Frame no longer exists.".into());
+                }
+                let before = self.excluded_frames.clone();
+                self.excluded_frames.retain(|f| !frames.contains(f));
+                if exclude {
+                    self.excluded_frames.extend(&frames);
+                    self.excluded_frames.sort_unstable();
+                    self.excluded_frames.dedup();
+                }
+                if self.excluded_frames != before {
+                    self.invalidate(0);
+                    self.preview("raw")?;
+                }
+            }
             Some("mask") => {
                 let b: [usize; 4] = serde_json::from_value(args["bounds"].clone()).map_err(err)?;
                 if b[0] >= b[2] || b[1] >= b[3] || b[2] > self.shape[1] || b[3] > self.shape[0] {
@@ -1095,6 +1133,64 @@ impl Crystal {
         }
         Ok(())
     }
+}
+impl Crystal {
+    /// Frames with far more spots than the scan's typical frame (see
+    /// [`unusual_frames`]), once Find spots is complete; excluded frames do
+    /// not count.
+    pub(super) fn busy_frames(&self) -> Vec<usize> {
+        if self.stages[1].status != "complete" {
+            return vec![];
+        }
+        let mut counts = vec![0usize; self.sources.len()];
+        for p in &self.peaks {
+            if let Some(n) = counts.get_mut(p.frame) {
+                *n += 1;
+            }
+        }
+        let frames: Vec<(usize, usize)> = counts
+            .into_iter()
+            .enumerate()
+            .filter(|(f, _)| !self.excluded_frames.contains(f))
+            .collect();
+        unusual_frames(&frames)
+    }
+}
+/// Fewest frames for a typical spot count.
+pub(super) const BUSY_MIN_FRAMES: usize = 8;
+/// A busy frame has more than this many times the median count ...
+pub(super) const BUSY_FACTOR: f64 = 10.;
+/// ... more than the median plus this many robust standard deviations ...
+pub(super) const BUSY_SPREAD: f64 = 10.;
+/// ... and at least this many spots.
+pub(super) const BUSY_MIN_SPOTS: usize = 50;
+/// Frames (`(frame, spots)`) whose spot count is far above the scan's
+/// typical frame: more than `BUSY_FACTOR` × the median, more than the median
+/// plus `BUSY_SPREAD` robust standard deviations (1.4826 × median absolute
+/// deviation), and at least `BUSY_MIN_SPOTS`. Needs `BUSY_MIN_FRAMES` frames.
+pub(super) fn unusual_frames(counts: &[(usize, usize)]) -> Vec<usize> {
+    if counts.len() < BUSY_MIN_FRAMES {
+        return vec![];
+    }
+    let median = |mut v: Vec<f64>| {
+        v.sort_by(f64::total_cmp);
+        let n = v.len();
+        if n % 2 == 1 {
+            v[n / 2]
+        } else {
+            (v[n / 2 - 1] + v[n / 2]) / 2.
+        }
+    };
+    let m = median(counts.iter().map(|c| c.1 as f64).collect());
+    let mad = 1.4826 * median(counts.iter().map(|c| (c.1 as f64 - m).abs()).collect());
+    let limit = (BUSY_FACTOR * m)
+        .max(m + BUSY_SPREAD * mad)
+        .max(BUSY_MIN_SPOTS as f64);
+    counts
+        .iter()
+        .filter(|c| c.1 as f64 > limit)
+        .map(|c| c.0)
+        .collect()
 }
 fn lattice_count(n: usize) -> String {
     format!("{n} lattice{}", if n == 1 { "" } else { "s" })
@@ -1219,5 +1315,54 @@ mod tests {
         assert!(diamond_like([2.522, 2.522, 2.522, 60., 60., 60.]));
         assert!(diamond_like([3.567, 3.567, 3.567, 90., 90., 90.]));
         assert!(!diamond_like([7., 9., 11., 90., 90., 90.]));
+    }
+    /// Find lattices takes tracks whose only flag is a masked pixel in the
+    /// aperture (their position is sound); geometry refinement and every
+    /// other flag keep them out.
+    #[test]
+    fn lattice_positions_include_masked_aperture_tracks() {
+        let mut c = Crystal {
+            geometry: Some(Geometry {
+                origin: [-0.01, -0.01, 0.1],
+                fast: [1e-4, 0., 0.],
+                slow: [0., 1e-4, 0.],
+                beam: [0., 0., 1.],
+                axis: [1., 0., 0.],
+                wavelength: 0.3,
+            }),
+            ..Default::default()
+        };
+        let flags = [
+            (0, 30),
+            (spots::MASKED, 5),
+            (spots::MASKED | spots::OVERLAP, 4),
+            (spots::OVERLAP, 3),
+            (spots::MASKED | 1024, 2),
+            (spots::BACKGROUND | spots::NO_CENTROID, 2),
+        ];
+        for (flag, n) in flags {
+            for i in 0..n {
+                c.tracks.push(Track {
+                    native: false,
+                    observed: [10. + 3. * i as f64, 20. + flag as f64, i as f64],
+                    first: 0,
+                    last: 0,
+                    bounds: [0; 4],
+                    flags: flag,
+                    excluded: false,
+                });
+            }
+        }
+        c.tracks[1].excluded = true;
+        c.tracks[30].excluded = true;
+        assert_eq!(c.cloud(true).unwrap().0.len(), 29 + 4);
+        assert_eq!(c.cloud(false).unwrap().0.len(), 29);
+        assert!(
+            c.cloud(true)
+                .unwrap()
+                .0
+                .iter()
+                .all(|&i| c.tracks[i].flags & !spots::MASKED == 0)
+        );
     }
 }

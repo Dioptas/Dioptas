@@ -487,3 +487,173 @@ fn count_digest_keeps_the_recorded_format() {
         assert_eq!(digest(&data[..n]), format!("{:x}", hash.finalize()), "{n}");
     }
 }
+
+/// 96×96, 12 frames, two reflections per frame and a 2×2 hot pixel on every
+/// frame; frame 5 also holds a grid of 64 spots (a frame that looks into the
+/// cell body).
+fn busy_session() -> (tempfile::TempDir, Session) {
+    let dir = tempfile::tempdir().unwrap();
+    let (h, w) = (96usize, 96usize);
+    let mut seed = 99u64;
+    let mut normal = move || {
+        let mut u = || {
+            seed = seed
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            ((seed >> 11) as f64 + 0.5) / (1u64 << 53) as f64
+        };
+        let (a, b) = (u(), u());
+        (-2. * a.ln()).sqrt() * (std::f64::consts::TAU * b).cos()
+    };
+    let mut paths = vec![];
+    for f in 0..12usize {
+        let mut counts = vec![0u16; h * w];
+        for y in 0..h {
+            for x in 0..w {
+                let mut b: f64 = 20.;
+                if y.abs_diff(12) <= 1 && x.abs_diff(12 + 5 * f) <= 1 {
+                    b += 300.;
+                }
+                if y.abs_diff(84) <= 1 && x.abs_diff(80 - 5 * f) <= 1 {
+                    b += 300.;
+                }
+                if (50..52).contains(&y) && (6..8).contains(&x) {
+                    b += 400.;
+                }
+                if f == 5
+                    && (22..86).contains(&y)
+                    && (16..80).contains(&x)
+                    && (y - 22) % 8 <= 1
+                    && (x - 16) % 8 <= 1
+                {
+                    b += 300.;
+                }
+                counts[y * w + x] = (b + normal() * b.sqrt()).round().max(0.) as u16;
+            }
+        }
+        let path = dir.path().join(format!("busy_{f:04}.tif"));
+        tiff::encoder::TiffEncoder::new(File::create(&path).unwrap())
+            .unwrap()
+            .write_image::<tiff::encoder::colortype::Gray16>(w as u32, h as u32, &counts)
+            .unwrap();
+        paths.push(path.to_string_lossy().into_owned());
+    }
+    let mut s = Session::new(PathBuf::new());
+    let r = call(&mut s, "scxrd_load", json!({"paths":paths}));
+    assert_eq!(r.result["ok"], true, "{:?}", r.result);
+    let c = Config {
+        persistent_enabled: true,
+        ..spot_config(&s)
+    };
+    settings(&mut s, &c);
+    (dir, s)
+}
+fn spots_on(c: &Crystal, frame: usize) -> usize {
+    c.peaks.iter().filter(|p| p.frame == frame).count()
+}
+
+/// Busy frames: far above the scan's typical count by both the ratio and the
+/// robust spread, and never on a few frames or a handful of spots.
+#[test]
+fn busy_frames_are_outliers_of_the_spot_count() {
+    let frames =
+        |counts: &[usize]| -> Vec<(usize, usize)> { counts.iter().copied().enumerate().collect() };
+    // The enstatite scan: frame 0 looks into the cell body (1225 vs median 22).
+    let mut ens = vec![1225, 57];
+    ens.extend((0..142).map(|i| 10 + (i * 7) % 30));
+    assert_eq!(processing::unusual_frames(&frames(&ens)), vec![0]);
+    // Genuinely variable counts (a multi-grain scan ramping 200 → 700 → 200).
+    let ramp: Vec<usize> = (0..144)
+        .map(|i| 200 + (500. * (i as f64 / 143. * std::f64::consts::PI).sin()) as usize)
+        .collect();
+    assert!(processing::unusual_frames(&frames(&ramp)).is_empty());
+    // A few frames, or very few spots: nothing to judge against.
+    assert!(processing::unusual_frames(&frames(&[3, 2, 900, 4, 3])).is_empty());
+    assert!(processing::unusual_frames(&frames(&[0, 1, 0, 1, 40, 0, 1, 0, 1, 0])).is_empty());
+    assert!(processing::unusual_frames(&[]).is_empty());
+    // Ten times the median but within the robust spread is not busy.
+    let spread: Vec<usize> = (0..40)
+        .map(|i| if i % 2 == 0 { 5 } else { 60 })
+        .chain([70])
+        .collect();
+    assert!(processing::unusual_frames(&frames(&spread)).is_empty());
+}
+
+/// Find spots names the busy frame; excluding it leaves its spots out of
+/// every step, says so in the snapshot, is undoable, and taking it back gives
+/// the first result again. A run straight after the edit (no settings reply
+/// in between) still masks the persistent hot pixel.
+#[test]
+fn a_busy_frame_is_named_and_can_be_excluded_and_taken_back() {
+    masks::DIAMOND_REPLY_LIMIT.set(0);
+    let (_dir, mut s) = busy_session();
+    run(&mut s);
+    let first = record(&s.scxrd);
+    assert!(spots_on(&s.scxrd, 5) >= 60, "{}", spots_on(&s.scxrd, 5));
+    assert!(
+        s.scxrd.peaks.iter().all(|p| p.xy[0] > 9.),
+        "hot pixel masked"
+    );
+    let snap = call(&mut s, "scxrd_snapshot", json!({})).result;
+    assert_eq!(snap["scxrd"]["busyFrames"], json!([5]));
+
+    let r = call(
+        &mut s,
+        "scxrd_edit",
+        json!({"operation":"exclude_frames","frames":[5],"exclude":true}),
+    );
+    assert_eq!(r.result["ok"], true, "{:?}", r.result);
+    assert_eq!(r.result["scxrd"]["excludedFrames"], json!([5]));
+    assert_eq!(r.result["scxrd"]["busyFrames"], json!([]));
+    assert!(s.scxrd.peaks.is_empty() && s.scxrd.stages[0].status == "pending");
+    run(&mut s);
+    assert_eq!(spots_on(&s.scxrd, 5), 0);
+    assert!(s.scxrd.peaks.len() + 60 <= first["peaks"].as_array().unwrap().len());
+    assert!(
+        s.scxrd.peaks.iter().all(|p| p.xy[0] > 9.),
+        "hot pixel masked after the edit"
+    );
+    assert_eq!(s.scxrd.busy_frames(), Vec::<usize>::new());
+    // Excluding again changes nothing.
+    let revision = s.scxrd.revision;
+    call(
+        &mut s,
+        "scxrd_edit",
+        json!({"operation":"exclude_frames","frames":[5],"exclude":true}),
+    );
+    assert_eq!(
+        (s.scxrd.revision, s.scxrd.stages[1].status.as_str()),
+        (revision, "complete")
+    );
+
+    // Undo (one entry: the no-op above records none) restores the run
+    // before the exclusion.
+    let r = call(&mut s, "scxrd_edit", json!({"operation":"undo"}));
+    assert_eq!(r.result["ok"], true, "{:?}", r.result);
+    assert_eq!(r.result["scxrd"]["redoLabel"], "exclude frames");
+    assert!(s.scxrd.excluded_frames.is_empty());
+    assert_eq!(record(&s.scxrd), first);
+
+    // Exclude and take back: the same result as before.
+    call(
+        &mut s,
+        "scxrd_edit",
+        json!({"operation":"exclude_frames","frames":[5],"exclude":true}),
+    );
+    run(&mut s);
+    let r = call(
+        &mut s,
+        "scxrd_edit",
+        json!({"operation":"exclude_frames","frames":[5],"exclude":false}),
+    );
+    assert_eq!(r.result["scxrd"]["excludedFrames"], json!([]));
+    run(&mut s);
+    assert_eq!(record(&s.scxrd), first);
+    // Out-of-range frames and the fixed protocol are refused.
+    let r = call(
+        &mut s,
+        "scxrd_edit",
+        json!({"operation":"exclude_frames","frames":[12],"exclude":true}),
+    );
+    assert_eq!(r.result["ok"], false);
+}

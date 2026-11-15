@@ -48,6 +48,30 @@ pub(super) fn default_method() -> String {
     METHODS[0].into()
 }
 
+/// `Config::merge_angle`: default and upper limit (degrees).
+pub(super) const MERGE_ANGLE_MAX: f64 = 5.;
+pub(super) fn default_merge_angle() -> f64 {
+    0.5
+}
+/// Cells of one crystal agree within this relative length and angle
+/// (degrees) once one basis is mapped onto the other. Refinement scatter of
+/// one grain is about 0.02 % and 0.02° (enstatite split: 0.03 %, 0.02°).
+const MERGE_LENGTH: f64 = 0.005;
+const MERGE_ANGLES: f64 = 0.5;
+/// A merged lattice must index this share of the spots its parts indexed;
+/// otherwise the parts are separate grains and stay apart.
+pub(super) const MERGE_KEEP: f64 = 0.85;
+/// Least-squares cycles of the merged refit, at twice and at the tolerance.
+const REFIT_CYCLES: usize = 4;
+
+/// A lattice merged from domains of one crystal: how many lattices it
+/// replaces and the largest misorientation among them (degrees).
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub(super) struct Merged {
+    pub domains: usize,
+    pub angle: f64,
+}
+
 /// PhaseSmith's ownership ambiguity ratio (`grains::Options::default`).
 pub(super) const AMBIGUITY: f64 = 0.8;
 /// Rotated copies ranking each round's cells (`grains::Options::round_controls`).
@@ -125,6 +149,146 @@ fn shortest_basis(a: M3) -> M3 {
         }
     }
     a
+}
+
+/// Misorientation (degrees) of two lattices of one crystal: an integer
+/// unimodular change of basis maps `b` onto `a` (so symmetry-equivalent
+/// settings compare as one), the mapped cell agrees with `a` within
+/// `MERGE_LENGTH` and `MERGE_ANGLES`, and the angle is that of the rotation
+/// taking one onto the other. None for different lattices.
+pub(super) fn misorientation(a: M3, b: M3) -> Option<f64> {
+    let dual = inv(b)?;
+    let t: M3 = a.map(|r| dual.map(|d| fft::dot(r, d)));
+    if t.iter().flatten().any(|v| (v - v.round()).abs() > 0.25) {
+        return None;
+    }
+    let t = t.map(|r| r.map(f64::round));
+    if (det(t).abs() - 1.).abs() > 1e-6 {
+        return None;
+    }
+    let mapped: M3 = t.map(|r| row(r, b));
+    let (p, m) = (parameters(a), parameters(mapped));
+    if (0..3).any(|i| (p[i] - m[i]).abs() > MERGE_LENGTH * p[i])
+        || (3..6).any(|i| (p[i] - m[i]).abs() > MERGE_ANGLES)
+    {
+        return None;
+    }
+    // Rows: a = mapped · M. The rotation is the orthogonal factor of M
+    // (polar decomposition), so the cells' small strain does not count;
+    // ± alike, since the lattice is centrosymmetric.
+    let matrix = |m: M3| nalgebra::Matrix3::from_fn(|r, c| m[r][c]);
+    let mut m = matrix(mapped).try_inverse()? * matrix(a);
+    if m.determinant() < 0. {
+        m = -m;
+    }
+    let svd = m.svd(true, true);
+    let rotation = svd.u? * svd.v_t?;
+    Some(
+        ((rotation.trace() - 1.) / 2.)
+            .clamp(-1., 1.)
+            .acos()
+            .to_degrees(),
+    )
+}
+/// Least squares of the reciprocal basis on the `use_spot` positions, each
+/// indexed by the current basis within twice and then once the tolerance;
+/// the result reduced. None with too few spots or a singular fit.
+fn refit(q: &[V3], use_spot: &[bool], start: M3, tolerance: f64) -> Option<M3> {
+    let mut a = start;
+    for factor in [2., 1.] {
+        for _ in 0..REFIT_CYCLES {
+            let b = inv(a)?;
+            let (mut hh, mut hq, mut n) = ([[0.; 3]; 3], [[0.; 3]; 3], 0);
+            for (p, _) in q.iter().zip(use_spot).filter(|(_, u)| **u) {
+                let (h, d) = fft::indexed(*p, a, b);
+                if h == [0.; 3] || d >= factor * tolerance {
+                    continue;
+                }
+                n += 1;
+                for r in 0..3 {
+                    for c in 0..3 {
+                        hh[r][c] += h[r] * h[c];
+                        hq[r][c] += h[r] * p[c];
+                    }
+                }
+            }
+            if n < MIN_TRAIN {
+                return None;
+            }
+            // (HᵀH)⁻¹ = transpose of the inverse transpose; HᵀH is symmetric.
+            let hinv = inv(hh)?;
+            let reciprocal: M3 = std::array::from_fn(|r| {
+                std::array::from_fn(|c| (0..3).map(|k| hinv[r][k] * hq[k][c]).sum())
+            });
+            a = inv(reciprocal)?;
+        }
+    }
+    Some(grains::reduce(a))
+}
+/// Merge accepted lattices of one crystal (misorientation within
+/// `Config::merge_angle`, largest lattices first): refit on the training
+/// spots both index, then validate the whole list again. A merge stands when
+/// the merged lattice passes validation and indexes at least `MERGE_KEEP` of
+/// the spots its parts indexed; otherwise the parts stay apart.
+fn merge_domains(
+    q: &[V3],
+    training: &[bool],
+    mut found: Vec<(grains::Grain, Option<Merged>)>,
+    controls: &[M3],
+    options: &grains::Options,
+    limit: f64,
+) -> Result<Vec<(grains::Grain, Option<Merged>)>, String> {
+    if limit <= 0. {
+        return Ok(found);
+    }
+    let mut refused: Vec<(M3, M3)> = Vec::new();
+    loop {
+        found.sort_by_key(|g| std::cmp::Reverse(g.0.training));
+        let pair = (0..found.len()).find_map(|i| {
+            (i + 1..found.len()).find_map(|j| {
+                let (a, b) = (&found[i].0, &found[j].0);
+                if !a.accepted || !b.accepted || refused.contains(&(a.direct, b.direct)) {
+                    return None;
+                }
+                misorientation(a.direct, b.direct)
+                    .filter(|&angle| angle <= limit)
+                    .map(|angle| (i, j, angle))
+            })
+        });
+        let Some((i, j, angle)) = pair else {
+            return Ok(found);
+        };
+        let (a, b) = (&found[i].0, &found[j].0);
+        let both: Vec<bool> = (0..q.len())
+            .map(|k| training[k] && (a.indexed[k] || b.indexed[k]))
+            .collect();
+        let parts = a.training + a.withheld + b.training + b.withheld;
+        let merged = refit(q, &both, a.direct, options.reciprocal_tolerance);
+        let mut models: Vec<M3> = found.iter().map(|g| g.0.direct).collect();
+        let accepted = merged.and_then(|m| {
+            models[i] = m;
+            models.remove(j);
+            let grains = grains::validate(q, training, &models, controls, options).ok()?;
+            let g = &grains[i];
+            (g.accepted && (g.training + g.withheld) as f64 >= MERGE_KEEP * parts as f64)
+                .then_some(grains)
+        });
+        let Some(grains) = accepted else {
+            refused.push((a.direct, b.direct));
+            continue;
+        };
+        let info: Vec<Option<Merged>> = found.iter().map(|g| g.1).collect();
+        let joined = |k: usize| info[k].map_or((1, 0.), |m| (m.domains, m.angle));
+        let ((di, ai), (dj, aj)) = (joined(i), joined(j));
+        let mut info = info;
+        info[i] = Some(Merged {
+            domains: di + dj,
+            angle: angle.max(ai).max(aj),
+        });
+        info.remove(j);
+        found = grains.into_iter().zip(info).collect();
+        refused.clear();
+    }
 }
 
 /// Diamond (a = 3.567 Å): its reciprocal primitive vectors (body-centred
@@ -212,10 +376,19 @@ pub(super) fn find(q: &[V3], config: &Config, control: &Control) -> Result<Vec<C
     )
     .map_err(|e| e.0)?;
     control.check()?;
+    let found_grains = merge_domains(
+        q,
+        &training,
+        found_grains.into_iter().map(|g| (g, None)).collect(),
+        &null_rotations(),
+        &options(config, cap),
+        config.merge_angle,
+    )?;
+    control.check()?;
     let cells = found_grains
         .into_iter()
-        .filter(|g| g.accepted)
-        .filter_map(|g| {
+        .filter(|g| g.0.accepted)
+        .filter_map(|(g, merged)| {
             let b = inv(g.direct)?;
             let withheld: Vec<f64> = (0..q.len())
                 .filter(|&i| g.indexed[i] && !training[i])
@@ -234,6 +407,7 @@ pub(super) fn find(q: &[V3], config: &Config, control: &Control) -> Result<Vec<C
                     validation: g.withheld,
                     found,
                     kept: false,
+                    merged,
                 },
                 g.training,
             ))

@@ -575,3 +575,22 @@
 .sc-framebar .sc-share-frame {
   margin-left: 4px;
 }
+
+/* Find spots: frames with unusually many spots, or frames left out; one
+   line with its action. */
+.sc-frames-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 4px 32px;
+}
+.sc-frames-note small {
+  flex: 1;
+  min-width: 0;
+  color: #f0b36a;
+  font-size: var(--text-meta);
+  overflow-wrap: anywhere;
+}
+.sc-frames-note--excluded small {
+  color: var(--ui-muted);
+}

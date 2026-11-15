@@ -59,6 +59,9 @@ export interface CrystalConfig {
   lattice_method: LatticeMethod;
   /** Find lattices stops after this many grains (1-20); older configs load with 5. */
   max_grains: number;
+  /** Find lattices merges lattices of one crystal whose orientations differ
+   * by at most this (degrees, 0-5; 0 never merges); older configs load with 0.5. */
+  merge_angle: number;
 }
 export type LatticeMethod = "both" | "fft" | "rows";
 /** Find lattices search choices; the first is the default. */
@@ -81,6 +84,14 @@ export const maxGrains = (c: Partial<CrystalConfig>): number =>
   Number.isInteger(c.max_grains) && c.max_grains! >= 1 && c.max_grains! <= 20
     ? c.max_grains!
     : 5;
+/** The merge angle of a config that may predate the setting. */
+export const mergeAngle = (c: Partial<CrystalConfig>): number =>
+  Number.isFinite(c.merge_angle) && c.merge_angle! >= 0 && c.merge_angle! <= 5
+    ? c.merge_angle!
+    : 0.5;
+/** A merged lattice's detail: "2 domains, 0.26°". */
+export const mergedNote = (merged?: { domains: number; angle: number }) =>
+  merged ? `${merged.domains} domains, ${merged.angle.toFixed(2)}°` : "";
 /** Unit-cell volume (Å³) from a, b, c, α, β, γ. */
 export const cellVolume = (p: number[]) => {
   const [ca, cb, cg] = p.slice(3, 6).map((x) => Math.cos((x * Math.PI) / 180));
@@ -137,6 +148,7 @@ export const crystalDefaults: CrystalConfig = {
   persistent_fraction: 50,
   lattice_method: "both",
   max_grains: 5,
+  merge_angle: 0.5,
 };
 /**
  * The flexible measured-track path; the fixed protocol and the omega
@@ -164,10 +176,54 @@ export const exploratoryCrystalConfig = (c: CrystalConfig): CrystalConfig =>
         aperture_radius: 6,
         omega_radius: 1.5,
         polarization: 0.99,
+        // Measured on the ID11 enstatite scan: 2 px keeps sharp 2-pixel
+        // reflections (+24 % found, 202 of 219 missed ≥10σ ones) at the same
+        // indexed share; 1 px admits flickering hot pixels.
+        min_pixels: 2,
         link_radius: 3,
         refine_geometry: false,
         scan_scaling: false,
       };
+/** Settings that follow the workflow choice: the fixed profile protocol's
+ * frozen controls, or the lean summation defaults. */
+export const workflowDefaults = (
+  method: "summation" | "profile",
+): Partial<CrystalConfig> =>
+  method === "profile"
+    ? {
+        background: false,
+        aperture_radius: 7,
+        omega_radius: 4.5,
+        polarization: 0.98,
+        link_radius: 5,
+        min_pixels: 3,
+        refine_geometry: true,
+        scan_scaling: false,
+        gain: 1,
+        read_noise: 0,
+        threshold: 5,
+      }
+    : {
+        background: true,
+        aperture_radius: 6,
+        omega_radius: 1.5,
+        polarization: 0.99,
+        link_radius: 3,
+        min_pixels: 2,
+        refine_geometry: false,
+        scan_scaling: false,
+      };
+const frameList = (frames: number[]) => frames.map((f) => f + 1).join(", ");
+/** One line under Find spots: frames with unusually many spots (1-based). */
+export const busyFramesNote = (frames: number[]) =>
+  frames.length
+    ? `${frames.length} frame${frames.length === 1 ? "" : "s"} with unusually many spots: ${frameList(frames)}`
+    : "";
+/** One line under Find spots while frames are left out (1-based). */
+export const excludedFramesNote = (frames: number[]) =>
+  frames.length
+    ? `Excluded frame${frames.length === 1 ? "" : "s"}: ${frameList([...frames].sort((a, b) => a - b))}`
+    : "";
 /** `scxrd_edit {operation:"estimate_dac"}`: start and DAC half-opening fitted
  * to the measured cell shadow. Null values were not determined. */
 export interface DacEstimate {
@@ -243,7 +299,9 @@ export type CrystalEdit =
   | { operation: "show"; index?: number }
   | { operation: "mask"; bounds: [number, number, number, number] }
   | { operation: "clear_mask" }
-  | { operation: "estimate_dac" };
+  | { operation: "estimate_dac" }
+  /** Leave frames out of every step, or take them back. */
+  | { operation: "exclude_frames"; frames: number[]; exclude: boolean };
 export type CrystalImageKind = "raw" | "background" | "corrected";
 export interface CrystalData {
   protocolTemplate: Record<string, unknown>;
@@ -344,6 +402,8 @@ export interface CrystalData {
     found?: LatticeFound;
     /** Kept for the following steps (the row's tick). */
     kept?: boolean;
+    /** Merged from domains of one crystal (count, largest misorientation °). */
+    merged?: { domains: number; angle: number };
   }[];
   /** First kept lattice, used by the following steps. */
   selected: number | null;
@@ -403,6 +463,9 @@ export interface CrystalData {
   } | null;
   mask: [number, number, number, number][];
   excludedFrames: number[];
+  /** Frames (0-based) with far more spots than the scan's typical frame,
+   * once Find spots is complete (e.g. looking into the cell body). */
+  busyFrames?: number[];
   error: string | null;
   notice: string | null;
   previewKind: CrystalImageKind;

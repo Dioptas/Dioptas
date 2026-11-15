@@ -32,9 +32,13 @@ import type { Response } from "./types";
 import {
   dacEstimatePatch,
   dacEstimateSummary,
+  busyFramesNote,
+  excludedFramesNote,
   latticeFoundLabel,
   latticeMethod,
   maxGrains,
+  mergeAngle,
+  mergedNote,
   cellVolume,
   latticeMethods,
   exploratoryCrystalConfig as exploratory,
@@ -345,6 +349,67 @@ export function SingleCrystalWorkspace({
           afterCommand.current = () => latestSetConfig.current(patch);
       },
     );
+  /**
+   * Leave frames out of every step (or take them back), then find the spots
+   * again, and the lattices too when they had been found.
+   */
+  const excludeFrames = (frames: number[], exclude: boolean) => {
+    if (!data) return;
+    const stage = data.stages[2].status === "complete" ? 2 : 1;
+    void run(
+      "scxrd_edit",
+      { operation: "exclude_frames", frames, exclude },
+      exclude ? "Excluding frames…" : "Including frames…",
+      (r) => {
+        if (r.ok)
+          afterCommand.current = () =>
+            void run(
+              "scxrd_run",
+              { stage, automatic: false },
+              `${steps[stage]}…`,
+            );
+      },
+    );
+  };
+  /** Under Find spots: busy frames to exclude, excluded frames to take back. */
+  const framesNotes = (d: CrystalData) => {
+    if (d.config.integration_method !== "summation") return null;
+    const busy = d.busyFrames ?? [];
+    const lines: [string, string, () => void][] = [];
+    if (busy.length)
+      lines.push([
+        busyFramesNote(busy),
+        "Exclude",
+        () => excludeFrames(busy, true),
+      ]);
+    if (d.excludedFrames.length)
+      lines.push([
+        excludedFramesNote(d.excludedFrames),
+        "Include",
+        () => excludeFrames(d.excludedFrames, false),
+      ]);
+    return lines.map(([text, action, act]) => (
+      <div
+        key={action}
+        className={`sc-frames-note${action === "Include" ? " sc-frames-note--excluded" : ""}`}
+        role="status"
+      >
+        <small>{text}</small>
+        <Button
+          className="sc-estimate-button"
+          disabled={!ready}
+          title={
+            action === "Exclude"
+              ? "Leave these frames out of every step and find the spots again"
+              : "Use these frames again and find the spots again"
+          }
+          onClick={act}
+        >
+          {action}
+        </Button>
+      </div>
+    ));
+  };
   /** Run through `stage`; a finished step is cleared first so it runs again. */
   const runTo = (stage: number, from: number, automatic: boolean) => {
     if (!data) return;
@@ -1053,6 +1118,7 @@ export function SingleCrystalWorkspace({
                       <Settings2 size={14} />
                     </Button>
                   </div>
+                  {stage === 1 && framesNotes(data)}
                   {openStep === stage && (
                     <fieldset
                       className="sc-angles"
@@ -1156,6 +1222,15 @@ export function SingleCrystalWorkspace({
                             max={20}
                           />
                           <CommitNumberField
+                            label="Merge within"
+                            unit="°"
+                            value={mergeAngle(data.config)}
+                            onCommit={(v) => setConfig({ merge_angle: v })}
+                            step={0.1}
+                            min={0}
+                            max={5}
+                          />
+                          <CommitNumberField
                             label="Shortest vector"
                             unit="Å"
                             value={data.config.min_cell}
@@ -1254,6 +1329,7 @@ export function SingleCrystalWorkspace({
                         <div className="sc-lattice-details">
                           {cell.indexed}/{cell.total} spots · withheld{" "}
                           {cell.validation}, rms {cell.rms.toFixed(4)} Å⁻¹
+                          {cell.merged && ` · ${mergedNote(cell.merged)}`}
                         </div>
                       )}
                     </div>

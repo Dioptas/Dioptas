@@ -7,6 +7,7 @@ import type { Run } from "./commandContracts";
 import {
   crystalFlags,
   crystalTermination,
+  workflowDefaults,
   type CrystalConfig,
   type CrystalData,
   type CrystalFileOperation,
@@ -156,24 +157,12 @@ export function SingleCrystalStages({
   };
   const chooseWorkflow = (method: "summation" | "profile") => {
     update("integration_method", method);
-    const profile = method === "profile";
-    update("background", !profile);
-    update("aperture_radius", profile ? 7 : 6);
-    update("omega_radius", profile ? 4.5 : 1.5);
-    update("polarization", profile ? 0.98 : 0.99);
-    update("link_radius", profile ? 5 : 3);
-    update("refine_geometry", profile);
-    update("scan_scaling", false);
-    if (profile) {
-      // Enter the displayed protocol interval explicitly, replacing old manual
-      // omissions instead of leaving two competing frame selections.
-      if (!draft.protocol && protocolDocument)
-        update("protocol", protocolDocument);
-      update("gain", 1);
-      update("read_noise", 0);
-      update("threshold", 5);
-      update("min_pixels", 3);
-    }
+    for (const [key, value] of Object.entries(workflowDefaults(method)))
+      update(key as keyof CrystalConfig, value as never);
+    // Enter the displayed protocol interval explicitly, replacing old manual
+    // omissions instead of leaving two competing frame selections.
+    if (method === "profile" && !draft.protocol && protocolDocument)
+      update("protocol", protocolDocument);
   };
   const pagination = (kind: "tracks" | "reflections") => {
     if (!data) return null;

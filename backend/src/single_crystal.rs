@@ -160,6 +160,10 @@ pub(super) struct Config {
     /// 1 is a single crystal.
     #[serde(default = "lattices::default_grains")]
     pub max_grains: usize,
+    /// Find lattices merges lattices of one crystal whose orientations differ
+    /// by at most this (degrees; 0 never merges).
+    #[serde(default = "lattices::default_merge_angle")]
+    pub merge_angle: f64,
 }
 fn default_diamond_margin() -> usize {
     10
@@ -218,6 +222,7 @@ impl Default for Config {
             persistent_fraction: 50.,
             lattice_method: lattices::default_method(),
             max_grains: lattices::default_grains(),
+            merge_angle: lattices::default_merge_angle(),
         }
     }
 }
@@ -241,6 +246,12 @@ impl Config {
         }
         if !(1..=lattices::MAX_GRAINS).contains(&self.max_grains) {
             return Err(format!("Max. grains must be 1-{}.", lattices::MAX_GRAINS));
+        }
+        if !(0.0..=lattices::MERGE_ANGLE_MAX).contains(&self.merge_angle) {
+            return Err(format!(
+                "Merge within must be 0-{} degrees.",
+                lattices::MERGE_ANGLE_MAX
+            ));
         }
         if !["summation", "profile"].contains(&self.integration_method.as_str()) {
             return Err("Unknown integration method.".into());
@@ -419,6 +430,7 @@ impl Config {
             || self.tolerance != n.tolerance
             || self.lattice_method != n.lattice_method
             || self.max_grains != n.max_grains
+            || self.merge_angle != n.merge_angle
         {
             2
         } else if self.metric != n.metric || self.refine_geometry != n.refine_geometry {
@@ -522,6 +534,9 @@ struct Cell {
     /// Kept for the following steps (the lattice row's tick).
     #[serde(default)]
     kept: bool,
+    /// Merged from lattices of one crystal a little apart (domains).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    merged: Option<lattices::Merged>,
 }
 #[derive(Clone, Serialize, Deserialize)]
 struct Reflection {
@@ -937,7 +952,7 @@ impl Crystal {
         } else {
             (None, None)
         };
-        let state = json!({"engine":ENGINE,"adapter":adapter_identity(),"exported":!self.saved_exports.is_empty(),"revision":self.revision,"config":self.config,"protocolTemplate":protocol::builtin(),"effectiveProtocol":effective_protocol,"protocolInspectionError":protocol_error,"frames":self.sources.len(),"frame":self.frame,"firstSource":self.sources.first().map(|s|s.path.to_string_lossy()),"lastSource":self.sources.last().map(|s|s.path.to_string_lossy()),"filename":self.sources.get(self.frame).map(|s|s.path.file_name().unwrap_or_default().to_string_lossy()),"shape":self.shape,"stages":self.stages,"geometry":self.geometry,"geometryReport":self.geometry_report,"peaks":shown,"predictions":self.predicted_markers(),"peakCount":self.peaks.len(),"peakFrames":self.peak_frames(),"tracks":tracks,"trackOffset":self.track_offset,"reflectionOffset":self.reflection_offset,"trackCount":self.tracks.len(),"cells":self.cells,"selected":self.selected,"shownLattice":self.shown,"reflections":self.table_reflections().skip(self.reflection_offset).take(200).collect::<Vec<_>>(),"reflectionFilteredCount":self.table_reflections().count(),"reflectionFilter":if self.reflection_filter.is_empty(){"all"}else{&self.reflection_filter},"suppliedGroupSymbol":phasesmith_io::space_group_by_number(i32::from(self.config.group)).ok().map(|g|g.hm_symbol),"reflectionCount":self.reflections.len(),"usableReflections":self.reflections.iter().filter(|r|r.usable()).count(),"shadows":self.shadows.as_ref().map(|s|&s.report),"profileReport":self.profile_report,"scaling":self.scaling,"structure":self.structure,"mask":self.mask,"excludedFrames":self.excluded_frames,"error":self.error,"notice":self.notice,"previewKind":if self.preview_kind.is_empty(){"raw"}else{&self.preview_kind},"image":self.preview.as_ref().map(|r|&r.metadata),"maskImage":self.preview_mask.as_ref().map(|r|&r.metadata),"sharedMask":self.shared_status,"source":self.sources.get(self.frame).map(|s|json!({"path":s.path,"frame":s.frame}))});
+        let state = json!({"engine":ENGINE,"adapter":adapter_identity(),"exported":!self.saved_exports.is_empty(),"revision":self.revision,"config":self.config,"protocolTemplate":protocol::builtin(),"effectiveProtocol":effective_protocol,"protocolInspectionError":protocol_error,"frames":self.sources.len(),"frame":self.frame,"firstSource":self.sources.first().map(|s|s.path.to_string_lossy()),"lastSource":self.sources.last().map(|s|s.path.to_string_lossy()),"filename":self.sources.get(self.frame).map(|s|s.path.file_name().unwrap_or_default().to_string_lossy()),"shape":self.shape,"stages":self.stages,"geometry":self.geometry,"geometryReport":self.geometry_report,"peaks":shown,"predictions":self.predicted_markers(),"peakCount":self.peaks.len(),"peakFrames":self.peak_frames(),"busyFrames":self.busy_frames(),"tracks":tracks,"trackOffset":self.track_offset,"reflectionOffset":self.reflection_offset,"trackCount":self.tracks.len(),"cells":self.cells,"selected":self.selected,"shownLattice":self.shown,"reflections":self.table_reflections().skip(self.reflection_offset).take(200).collect::<Vec<_>>(),"reflectionFilteredCount":self.table_reflections().count(),"reflectionFilter":if self.reflection_filter.is_empty(){"all"}else{&self.reflection_filter},"suppliedGroupSymbol":phasesmith_io::space_group_by_number(i32::from(self.config.group)).ok().map(|g|g.hm_symbol),"reflectionCount":self.reflections.len(),"usableReflections":self.reflections.iter().filter(|r|r.usable()).count(),"shadows":self.shadows.as_ref().map(|s|&s.report),"profileReport":self.profile_report,"scaling":self.scaling,"structure":self.structure,"mask":self.mask,"excludedFrames":self.excluded_frames,"error":self.error,"notice":self.notice,"previewKind":if self.preview_kind.is_empty(){"raw"}else{&self.preview_kind},"image":self.preview.as_ref().map(|r|&r.metadata),"maskImage":self.preview_mask.as_ref().map(|r|&r.metadata),"sharedMask":self.shared_status,"source":self.sources.get(self.frame).map(|s|json!({"path":s.path,"frame":s.frame}))});
         Reply {
             result: json!({"ok":true,"scxrd":state}),
             buffers: self
@@ -1066,6 +1081,13 @@ impl Session {
                     "mask" | "remove_mask" | "clear_mask" => "change detector exclusions".into(),
                     "track" => "change track exclusion".into(),
                     "frame" => "change selected frames".into(),
+                    "exclude_frames" => {
+                        if args["exclude"] == false {
+                            "include frames again".into()
+                        } else {
+                            "exclude frames".into()
+                        }
+                    }
                     "cell" => "select sample cell".into(),
                     "keep" => "keep or drop a lattice".into(),
                     _ => "single-crystal decision".into(),
@@ -1154,7 +1176,7 @@ impl Session {
             "scxrd_settings" => &["config"],
             "scxrd_frame" => &["frame", "kind"],
             "scxrd_run" => &["stage", "automatic"],
-            "scxrd_edit" => &["operation", "index", "bounds", "keep"],
+            "scxrd_edit" => &["operation", "index", "bounds", "keep", "frames", "exclude"],
             "scxrd_table" => &["kind", "offset", "filter"],
             "scxrd_levels" => &["mode", "percentile", "filter_gaps"],
             "scxrd_pixel" => &["x", "y", "contour"],

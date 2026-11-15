@@ -2104,6 +2104,7 @@ fn found_products(c: &mut Crystal) {
         rms: 0.01,
         validation: 1,
         found: lattices::Found::Rows,
+        merged: None,
         kept: true,
     }];
     c.selected = Some(0);

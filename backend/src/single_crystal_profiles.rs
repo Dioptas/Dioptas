@@ -224,6 +224,7 @@ impl sc::Observer for Capture<'_> {
             rms: (withheld.iter().map(|d| d * d).sum::<f64>() / withheld.len() as f64).sqrt(),
             validation: withheld.len(),
             found: Default::default(),
+            merged: None,
             kept: true,
         });
         self.basis = Some(i.fit.state.basis);
