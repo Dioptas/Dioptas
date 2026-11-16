@@ -174,7 +174,7 @@ impl Image {
     }
     /// Discover authoritative metadata and freeze sources without decoding pixels.
     pub fn prepare(path: &Path, options: &Value) -> Result<Self, String> {
-        let path = path.canonicalize().map_err(|e| e.to_string())?;
+        let path = dunce::canonicalize(path).map_err(|e| e.to_string())?;
         crate::hdf5_loading::check_snapshot(&path, options)?;
         let mut settings = options.clone();
         settings["path"] = serde_json::json!(path);
@@ -203,7 +203,7 @@ impl Image {
             .flat_map(|p| {
                 [
                     p.to_path_buf(),
-                    p.canonicalize().unwrap_or_else(|_| p.into()),
+                    dunce::canonicalize(p).unwrap_or_else(|_| p.into()),
                 ]
             })
             .collect();
@@ -388,7 +388,7 @@ impl Image {
             discovery::Codec,
             hdf5::typed::{self, Selection},
         };
-        let path = path.canonicalize().map_err(|e| e.to_string())?;
+        let path = dunce::canonicalize(path).map_err(|e| e.to_string())?;
         crate::hdf5_loading::check_snapshot(&path, options)?;
         let mut settings = options.clone();
         settings["path"] = serde_json::json!(path);

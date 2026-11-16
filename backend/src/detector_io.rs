@@ -58,7 +58,7 @@ impl Geometry {
             let pending = crate::output::StagedOutput::new(&temp)?;
             write_nexus(d, pending.path())?;
             pending.commit(&temp)?;
-            config = json!({"filename":temp.canonicalize().map_err(error)?.to_string_lossy(),"orientation":config["orientation"]});
+            config = json!({"filename":dunce::canonicalize(&temp).map_err(error)?.to_string_lossy(),"orientation":config["orientation"]});
             resources.push(temp);
         }
         if let Some(s) = &d.spline {
@@ -68,7 +68,8 @@ impl Geometry {
             let mut pending = crate::output::StagedOutput::new(&temp)?;
             pending.write_all(s.content.as_bytes()).map_err(error)?;
             pending.commit(&temp)?;
-            config["splineFile"] = json!(temp.canonicalize().map_err(error)?.to_string_lossy());
+            config["splineFile"] =
+                json!(dunce::canonicalize(&temp).map_err(error)?.to_string_lossy());
             resources.push(temp);
         }
         let text = format!(

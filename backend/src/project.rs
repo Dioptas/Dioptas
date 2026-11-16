@@ -332,7 +332,7 @@ impl Session {
         }
     }
     fn open_native_project(&mut self, path: &Path) -> Result<(), String> {
-        let path = path.canonicalize().map_err(|e| e.to_string())?;
+        let path = dunce::canonicalize(path).map_err(|e| e.to_string())?;
         let source_identity = crate::image::FileIdentity::read(&path)?;
         let mut archive = snapshot_file(&path, &self.control)?;
         let file = archive.file.clone();

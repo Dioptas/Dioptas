@@ -751,6 +751,7 @@ dependencies = [
  "dioptas-contract",
  "dioptrin",
  "dioptrin-io",
+ "dunce",
  "flate2",
  "half",
  "hdf5-metno",
@@ -789,7 +790,7 @@ dependencies = [
 
 [[package]]
 name = "dioptas-desktop"
-version = "0.14.0-rc.1"
+version = "0.14.0-rc.2"
 dependencies = [
  "block2",
  "dioptas-contract",
@@ -807,8 +808,8 @@ dependencies = [
 
 [[package]]
 name = "dioptrin"
-version = "0.12.0"
-source = "git+https://github.com/CPrescher/Dioptrin?rev=07a5ccce2197d8a6e893969e7d084b03c6eef2e7#07a5ccce2197d8a6e893969e7d084b03c6eef2e7"
+version = "0.14.0"
+source = "git+https://github.com/CPrescher/Dioptrin?tag=v0.14.0#7340d59feb8bb7e8b8a243ac3a4b73044413a1dc"
 dependencies = [
  "flate2",
  "rayon",

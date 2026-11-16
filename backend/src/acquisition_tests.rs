@@ -273,7 +273,7 @@ fn companion_recovery_selected(raw: bool, incomplete: bool, selected: Option<&st
         image(&path, 230.);
         path
     };
-    let later = later.canonicalize().unwrap();
+    let later = dunce::canonicalize(later).unwrap();
     polls_until(&mut s, |s| s.image.as_ref().unwrap().path == later);
     if raw {
         let bytes: Vec<_> = (0..768u16).flat_map(|v| v.to_le_bytes()).collect();
@@ -292,7 +292,7 @@ fn companion_recovery_selected(raw: bool, incomplete: bool, selected: Option<&st
     assert_eq!(s.files.stamp(&master), stamp);
     assert_eq!(
         s.image.as_ref().unwrap().path,
-        master.canonicalize().unwrap()
+        dunce::canonicalize(master).unwrap()
     );
     assert!(s.files.auto_error.is_empty());
 }
@@ -426,7 +426,7 @@ fn acquisition_partial_output_failure_keeps_generated_paths_out_of_the_source_qu
     assert!(
         s.files
             .generated
-            .contains_key(&d.join("scan.dat").canonicalize().unwrap())
+            .contains_key(&dunce::canonicalize(d.join("scan.dat")).unwrap())
     );
     assert!(s.files.failed.is_empty());
     assert_eq!(s.files.retry.len(), 1);
@@ -460,7 +460,7 @@ fn acquisition_output_alias_cannot_replace_the_active_source() {
 #[cfg(unix)]
 fn acquisition_replaced_output_is_not_hidden_when_size_and_mtime_are_preserved() {
     let temp = tempfile::tempdir().unwrap();
-    let d = temp.path().canonicalize().unwrap();
+    let d = dunce::canonicalize(temp.path()).unwrap();
     let output = d.join("scan.dat");
     fs::write(&output, b"generated").unwrap();
     let mut files = Files {
@@ -630,7 +630,7 @@ fn acquisition_output_retry_becoming_corrupt_is_failed_without_retry_or_redecode
 fn acquisition_generated_identity_work_is_bounded_deleted_names_pruned_and_inplace_replacement_found()
  {
     let temp = tempfile::tempdir().unwrap();
-    let d = temp.path().canonicalize().unwrap();
+    let d = dunce::canonicalize(temp.path()).unwrap();
     let mut files = Files {
         image_directory: d.to_string_lossy().into_owned(),
         ..Default::default()
@@ -700,7 +700,7 @@ fn acquisition_autosave_checks_replaced_generated_identity_before_rotating_scan(
 #[test]
 fn acquisition_old_retry_checkpoints_reclassify_and_never_override_failed_sources() {
     let temp = tempfile::tempdir().unwrap();
-    let d = temp.path().canonicalize().unwrap();
+    let d = dunce::canonicalize(temp.path()).unwrap();
     let path = d.join("broken.npy");
     fs::write(&path, b"corrupt").unwrap();
     let mut files = Files {
@@ -772,7 +772,7 @@ fn acquisition_missing_vds_companion_recovers_without_master_change() {
     assert_eq!(fs::read(&master).unwrap(), original);
     assert_eq!(
         s.image.as_ref().unwrap().path,
-        master.canonicalize().unwrap()
+        dunce::canonicalize(master).unwrap()
     );
 }
 #[test]
@@ -858,7 +858,7 @@ fn acquisition_declared_binding_matches_canonical_subordinate_owner() {
     file.link_external("../nested.h5", "/images", "counts")
         .unwrap();
     drop(file);
-    let settings = json!({"dataset":"/counts","hdf5_bindings":[{"owner":nested.canonicalize().unwrap(), "stored_filename":"stored.raw", "actual_file":data}]});
+    let settings = json!({"dataset":"/counts","hdf5_bindings":[{"owner":dunce::canonicalize(&nested).unwrap(), "stored_filename":"stored.raw", "actual_file":data}]});
     assert_eq!(
         sources::unavailable(&master, &settings)
             .keys()

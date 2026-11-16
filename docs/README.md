@@ -34,6 +34,7 @@ Setup and running instructions are in the
 - [Linux installer candidates](release/NATIVE_LINUX_RELEASE.md)
 - [Native installer candidates](release/NATIVE_RELEASE.md)
 - [Windows installer candidates](release/NATIVE_WINDOWS_RELEASE.md)
+- [Dioptas 0.14.0-rc.2 — Rust desktop](release/RELEASE_0.14.0-rc.2.md)
 - [Dioptas 0.14.0-rc.1 — Rust desktop](release/RELEASE_0.14.0-rc.1.md)
 
 ## Qt parity and qualification

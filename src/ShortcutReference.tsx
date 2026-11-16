@@ -1,101 +1,12 @@
 import { Dialog, DialogHeader } from "./Dialog";
-
-// Keep the scope visible: a focused plot, Mask, Settings, and text editing own
-// different keys. The UI audit exercises these against real command handlers.
-export const shortcutGroups = [
-  {
-    title: "Files & history",
-    rows: [
-      [
-        "Open image(s) · uses the selected batch mode in Integration",
-        "⌘ / Ctrl + O",
-      ],
-      ["Save project · save mask file in Mask mode", "⌘ / Ctrl + S"],
-      [
-        "Previous / next image file · Calibration and Integration; uses File step in Integration",
-        "Page Up / Page Down · Mac: Fn + ↑ / ↓",
-      ],
-      ["Undo the latest scientific edit · shared across modes", "⌘ / Ctrl + Z"],
-      ["Redo the latest scientific edit", "⌘ / Ctrl + Shift + Z · Ctrl + Y"],
-      ["Delete selected calibration peak groups", "Delete / Backspace"],
-      [
-        "Undo / redo custom actions · in Custom actions settings",
-        "⌘ / Ctrl + Z / Shift + Z",
-      ],
-    ],
-  },
-  {
-    title: "Workspace & mask tools",
-    rows: [
-      ["Open / close Settings · also while editing fields", "⌘ / Ctrl + ,"],
-      ["Enable / disable configurations", "Shift + C"],
-      [
-        "Enable picking / switch to Calibration · valid image setup; outside Mask mode",
-        "P",
-      ],
-      ["Switch to Mask brush / eraser", "B / E"],
-      ["Navigate · in Mask mode", "V"],
-      [
-        "Increase / decrease diameter · active point brush in Mask mode",
-        "Q / W",
-      ],
-      ["Finish a mask polygon · outside text fields and buttons", "Enter"],
-      ["Cancel the current mask polygon", "Esc"],
-      ["Integrate a calibrated image · outside Mask mode", "Enter"],
-      ["Restore detector view · when no plot has focus", "F"],
-      ["Return from Settings · close the active dialog", "Esc"],
-    ],
-  },
-  {
-    title: "Focused image, cake & pattern",
-    rows: [
-      ["Focus a plot", "Tab"],
-      ["Pan the view", "Arrow keys"],
-      ["Zoom in / out around the view center", "+ / −"],
-      ["Restore the fitted view", "F / Home"],
-      ["Inspect previous / next visible pattern sample", "Alt + ← / →"],
-      ["Inspect first / last visible pattern sample", "Alt + Home / End"],
-    ],
-  },
-  {
-    title: "Focused pane dividers",
-    rows: [
-      ["Resize the adjacent panes", "Arrow keys"],
-      ["Resize in larger steps", "Shift + Arrow keys"],
-      ["Restore the default split", "Home · double-click"],
-      ["Expand to the allowed maximum", "End"],
-    ],
-  },
-  {
-    title: "Focused pattern & phase legends",
-    rows: [
-      ["Move the legend inside the plot", "Arrow keys"],
-      ["Move the legend faster", "Shift + Arrow keys"],
-      ["Restore the legend position", "Home / Esc"],
-    ],
-  },
-  {
-    title: "Batch overview",
-    rows: [
-      ["Select next / previous frame", "↑ / ↓"],
-      ["Select first / last frame", "Home / End"],
-      ["Restore the fitted overview", "F"],
-    ],
-  },
-  {
-    title: "Mouse & trackpad",
-    rows: [
-      ["Zoom under the pointer", "Scroll"],
-      ["Zoom a selection", "Left drag"],
-      ["Pan", "Right drag · Ctrl + left drag"],
-      ["Zoom out one step", "Right click"],
-      ["Restore the fitted view", "Right double-click"],
-      ["Paint with the point brush · in Mask mode", "Shift + left drag"],
-    ],
-  },
-] as const;
+import {
+  isMacPlatform,
+  shortcutGroups,
+  shortcutKeyLabel,
+} from "./shortcutKeys";
 
 export function ShortcutReference() {
+  const mac = isMacPlatform();
   return (
     <>
       <p className="shortcut-scope-note">
@@ -110,7 +21,7 @@ export function ShortcutReference() {
           {rows.map(([label, key]) => (
             <div className="settings-shortcut" key={label}>
               <span>{label}</span>
-              <kbd>{key}</kbd>
+              <kbd>{shortcutKeyLabel(key, mac)}</kbd>
             </div>
           ))}
         </section>

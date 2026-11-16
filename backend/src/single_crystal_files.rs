@@ -85,7 +85,7 @@ impl Session {
             op,
             "save" | "reflections" | "hkl" | "cif" | "protocol_save" | "audit"
         ) {
-            let canonical = std::fs::canonicalize(&path).ok();
+            let canonical = dunce::canonicalize(&path).ok();
             if self
                 .scxrd
                 .sources
@@ -95,7 +95,7 @@ impl Session {
                 .any(|source| {
                     source == &path
                         || canonical.as_ref().is_some_and(|target| {
-                            std::fs::canonicalize(source).ok().as_ref() == Some(target)
+                            dunce::canonicalize(source).ok().as_ref() == Some(target)
                         })
                 })
             {

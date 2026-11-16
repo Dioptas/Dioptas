@@ -46,7 +46,7 @@ fn resolve(
         .into_iter()
         .map(|b| FileChoice {
             owner: if settings["path"].as_str().is_some_and(|root| {
-                Path::new(root).canonicalize().ok() == b.owner.canonicalize().ok()
+                dunce::canonicalize(Path::new(root)).ok() == dunce::canonicalize(&b.owner).ok()
             }) {
                 path.into()
             } else {
@@ -61,7 +61,7 @@ fn resolve(
         .map(|p| typed::PrintfMapping {
             source_file: Some(
                 if settings["path"].as_str().is_some_and(|root| {
-                    Path::new(root).canonicalize().ok() == p.owner.canonicalize().ok()
+                    dunce::canonicalize(Path::new(root)).ok() == dunce::canonicalize(&p.owner).ok()
                 }) {
                     path.into()
                 } else {
@@ -155,7 +155,7 @@ pub(crate) fn request(
         .as_str()
         .map(PathBuf::from)
         .unwrap_or_else(|| path.into());
-    let physical_root = path.canonicalize().map_err(|e| e.to_string())?;
+    let physical_root = dunce::canonicalize(path).map_err(|e| e.to_string())?;
     let requirements: Vec<_> = requirements
         .into_iter()
         .map(|mut r| {
