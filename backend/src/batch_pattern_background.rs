@@ -201,3 +201,105 @@ impl RowFit<'_> {
         Ok(indices)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{pattern::Overlay, series::Entry};
+
+    #[test]
+    fn grouped_batch_backgrounds_match_scalar_rows_bit_for_bit() {
+        let control = Control::default();
+        let bins = 97;
+        let count = 13;
+        for (source_unit, fit_unit) in [("d_A", "d_A"), ("2th_deg", "q_A^-1"), ("q_A^-1", "q_A^-1")]
+        {
+            let x: Vec<_> = (0..bins)
+                .map(|i| {
+                    crate::pattern::convert_coordinate(
+                        1. + i as f64 * 0.1,
+                        "q_A^-1",
+                        source_unit,
+                        4e-11,
+                    )
+                })
+                .collect();
+            let data: Vec<_> = (0..count * bins)
+                .map(|i| 100. + (i / bins) as f64 * 7. + (i as f64 * 0.13).sin().abs() * 50.)
+                .collect();
+            let mut series = Series::new(
+                x,
+                data,
+                source_unit.into(),
+                Some(4e-11),
+                (0..count)
+                    .map(|frame| Entry {
+                        path: String::new(),
+                        frame,
+                    })
+                    .collect(),
+                vec![],
+                count,
+            )
+            .unwrap();
+            let source = series.raw.clone();
+            let axis = series.profile(0, fit_unit).unwrap().x;
+            let columns = axis
+                .iter()
+                .enumerate()
+                .map(|(i, x)| (x.to_bits(), i))
+                .collect();
+            let mut patterns = Patterns::default();
+            patterns.unit = fit_unit.into();
+            patterns.background.enabled = true;
+            patterns.background.order = 5;
+            patterns.background.iterations = 11;
+            let mut range = [axis[10], axis[85]];
+            range.sort_by(f64::total_cmp);
+            patterns.background.range = Some(range);
+            patterns.background_uid = Some("reference".into());
+            patterns.overlays.push(Overlay {
+                uid: "reference".into(),
+                name: "Background".into(),
+                visible: false,
+                color: "#ffffff".into(),
+                scale: 1.7,
+                offset: 0.3,
+                data: Arc::new(Curve {
+                    x: axis,
+                    y: Arc::new(vec![2.5; bins]),
+                    sigma: None,
+                    spread: None,
+                }),
+                batch_source: None,
+            });
+            let mut expected = vec![0.; count * bins];
+            let reference = RowFit {
+                series: &series,
+                unit: fit_unit,
+                columns: &columns,
+                control: &control,
+            };
+            let mut fit = patterns.clone();
+            let mut prepared = None;
+            for (row, values) in expected.chunks_exact_mut(bins).enumerate() {
+                reference
+                    .apply(row, values, &mut fit, &mut prepared)
+                    .unwrap();
+            }
+            series
+                .apply_pattern_background(&patterns, &control)
+                .unwrap();
+            assert!(
+                series
+                    .raw_background
+                    .as_ref()
+                    .unwrap()
+                    .iter()
+                    .zip(expected)
+                    .all(|(a, b)| a.to_bits() == b.to_bits())
+            );
+            assert!(Arc::ptr_eq(&source, &series.raw));
+        }
+    }
+}
