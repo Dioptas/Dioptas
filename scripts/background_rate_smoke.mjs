@@ -53,12 +53,29 @@ for (const [name, browserType] of [
     page.setDefaultTimeout(30000);
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
-    await page.exposeFunction("__nativeInvoke", async (action, payload) =>
-      native.browserResult(await call(action, payload)),
-    );
+    await page.exposeFunction("__nativeInvoke", async (action, payload) => {
+      const result = await call(action, payload);
+      if (action === "map_roi")
+        await new Promise((resolve) => setTimeout(resolve, 120));
+      return native.browserResult(result);
+    });
     await page.addInitScript(() => {
       window.__pending = 0;
       window.__updates = [];
+      window.addEventListener(
+        "pointerdown",
+        (event) => {
+          window.__dragDownX = event.clientX;
+        },
+        true,
+      );
+      window.addEventListener(
+        "pointerup",
+        (event) => {
+          window.__dragUpX = event.clientX;
+        },
+        true,
+      );
       window.pywebview = {
         api: {
           invoke: async (action, payload) => {
@@ -97,7 +114,7 @@ for (const [name, browserType] of [
             .regionUpdating !== "true",
       );
     };
-    const drag = async (fromFraction, toFraction, steps) => {
+    const drag = async (fromFraction, toFraction, steps, leave = false) => {
       const canvas = page.getByTestId("pattern-canvas");
       const coordinates = await canvas.evaluate(
         (element, [from, to]) => {
@@ -111,6 +128,8 @@ for (const [name, browserType] of [
               +d.plotWidth;
           const width = region.max - region.min;
           return {
+            min: region.min,
+            scale: (+d.viewXMax - +d.viewXMin) / +d.plotWidth,
             x0: position(region.min + from * width),
             x1: position(region.min + to * width),
             y: box.top + +d.plotTop + +d.plotHeight * 0.6,
@@ -120,9 +139,31 @@ for (const [name, browserType] of [
       );
       await page.mouse.move(coordinates.x0, coordinates.y);
       await page.mouse.down();
-      await page.mouse.move(coordinates.x1, coordinates.y, { steps });
+      for (let phase = 1; phase <= 4; phase++) {
+        await page.mouse.move(
+          coordinates.x0 + ((coordinates.x1 - coordinates.x0) * phase) / 4,
+          coordinates.y,
+          { steps: Math.ceil(steps / 4) },
+        );
+        await page.waitForTimeout(160); // Exercise multiple cadence intervals while holding the pointer.
+      }
+      const during = await page.evaluate(() => [...window.__updates]);
       await page.mouse.up();
+      const delta = await page.evaluate(
+        () => window.__dragUpX - window.__dragDownX,
+      );
+      const expectedMin = coordinates.min + delta * coordinates.scale;
+      if (leave)
+        await page
+          .getByRole("button", { name: "Integration", exact: true })
+          .click();
+      if (leave)
+        await page.waitForFunction(async (expected) => {
+          const snapshot = await window.__nativeInvoke("map_snapshot", {});
+          return Math.abs(snapshot.map.rois[0].min - expected) < 1e-9;
+        }, expectedMin);
       await settled();
+      return { during, expectedMin };
     };
     await settled();
     await page
@@ -184,23 +225,26 @@ for (const [name, browserType] of [
     await page.evaluate(() => {
       window.__updates = [];
     });
-    await drag(0.5, 0.65, 120);
+    const duringMap = await drag(0.5, 0.65, 120, true);
     const mapUpdates = await page.evaluate(() =>
       window.__updates.filter((x) => x.action === "map_roi"),
     );
     assert.ok(mapUpdates.length >= 2, "The map should update while dragging");
-    for (let i = 1; i < mapUpdates.length; i++)
+    const liveMapUpdates = duringMap.during.filter(
+      (x) => x.action === "map_roi",
+    );
+    assert.ok(liveMapUpdates.length >= 2);
+    for (let i = 1; i < liveMapUpdates.length; i++)
       assert.ok(
-        mapUpdates[i].time - mapUpdates[i - 1].time >= 490,
+        liveMapUpdates[i].time - liveMapUpdates[i - 1].time >= 490,
         "Whole-map reductions exceed 2 Hz",
       );
     const final = await call("state");
-    const window = await page
-      .getByTestId("pattern-canvas")
-      .evaluate((el) => JSON.parse(el.dataset.regions)[0]);
+    const lastRequest = mapUpdates.at(-1).payload;
     assert.ok(
-      Math.abs(final.map.rois[0].min - window.min) < 1e-9,
-      "Release position was lost",
+      Math.abs(final.map.rois[0].min - duringMap.expectedMin) < 1e-9 &&
+        Math.abs(lastRequest.minimum - duringMap.expectedMin) < 1e-9,
+      "Release position was lost after leaving Map",
     );
     assert.deepEqual(errors, []);
     receipts.push({
@@ -213,9 +257,12 @@ for (const [name, browserType] of [
           .map((x, i) => x.time - patternUpdates[i].time),
       ),
       mapMinIntervalMs: Math.min(
-        ...mapUpdates.slice(1).map((x, i) => x.time - mapUpdates[i].time),
+        ...liveMapUpdates
+          .slice(1)
+          .map((x, i) => x.time - liveMapUpdates[i].time),
       ),
       finalPositionCommitted: true,
+      finalPositionCommittedAfterLeavingMap: true,
     });
   } finally {
     await browser.close();
