@@ -141,13 +141,15 @@ impl Session {
             self.inspection = None;
         }
         self.rebuild_pattern()?;
-        if shared_overlays_changed
-            && let Some(scan) = self
-                .scan
-                .as_mut()
-                .filter(|s| s.expressions.iter().any(|(_, e)| e.contains("ovl")))
-        {
-            scan.rebuild(false, &self.patterns)?;
+        if shared_overlays_changed && let Some(scan) = &mut self.scan {
+            let refit =
+                crate::batch_pattern_background::changed(&target.state.patterns, &self.patterns);
+            if refit {
+                scan.refresh_background(&self.patterns, &self.control)?;
+            }
+            if refit || scan.expressions.iter().any(|(_, e)| e.contains("ovl")) {
+                scan.rebuild(refit, &self.patterns)?;
+            }
         }
         Ok(())
     }

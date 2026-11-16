@@ -1,7 +1,7 @@
 //! Existing Qt map layout and optional React Batch/normalization extensions.
 use super::*;
 use crate::{
-    scan::{Roi, Scan},
+    scan::{CorrectedProfiles, Roi, Scan},
     series::{Entry, Series},
 };
 fn save_embedded(
@@ -69,8 +69,32 @@ pub(super) fn save_configuration(
         write_text_attr(&params, "data", &p.to_string())?;
         save_embedded(&scan.series, &g, "native_series", arrays)?;
         let native = g.group("native_series").native()?;
-        link_array(&g, "pattern_x", &native, "result/binning")?;
-        link_array(&g, "pattern_intensities", &native, "result/data")?;
+        if let Some(rows) = &scan.corrected {
+            replace(&g, "pattern_x")?;
+            replace(&g, "pattern_intensities")?;
+            arrays.write(
+                &g,
+                "pattern_x",
+                &[rows.x.len()],
+                &rows.x,
+                Some(&scan.series.unit),
+            )?;
+            arrays.write(
+                &g,
+                "pattern_intensities",
+                &[scan.series.count(), rows.x.len()],
+                &rows.data,
+                None,
+            )?;
+        } else {
+            link_array(&g, "pattern_x", &native, "result/binning")?;
+            link_array(&g, "pattern_intensities", &native, "result/data")?;
+        }
+        write_scalar_attr(
+            &g,
+            "native_pattern_background",
+            u8::from(scan.corrected.is_some()),
+        )?;
         write_text_attr(&g, "pattern_unit", &scan.series.unit)?;
         let roi = scan
             .rois
@@ -180,7 +204,33 @@ fn read_map(
         }
         series
     };
-    let mut scan = Scan::new(series, &s.patterns)?;
+    let corrected = if g
+        .attr_names()
+        .native()?
+        .iter()
+        .any(|name| name == "native_pattern_background")
+        && g.attr("native_pattern_background")
+            .native()?
+            .read_scalar::<u8>()
+            .native()?
+            == 1
+    {
+        let x = g.dataset("pattern_x").native()?;
+        let data = g.dataset("pattern_intensities").native()?;
+        if x.ndim() != 1 || x.size() == 0 || data.shape() != [series.count(), x.size()] {
+            return Err("Invalid corrected map dimensions.".into());
+        }
+        let rows = CorrectedProfiles {
+            x: Arc::new(read_array(&x)?),
+            data: Arc::new(read_array(&data)?),
+        };
+        origins.record(&x, &rows.x);
+        origins.record(&data, &rows.data);
+        Some(rows)
+    } else {
+        None
+    };
+    let mut scan = Scan::new_with_analysis(series, &s.patterns, None, corrected)?;
     let mut p = with_defaults("map", p);
     if let Ok(group) = g.group("params")
         && let Some(params) = read_json_attr(&group, "data")?

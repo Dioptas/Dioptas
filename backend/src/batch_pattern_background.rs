@@ -1,11 +1,7 @@
 //! Apply the actual Integration pattern pipeline to every Batch row. The
 //! unmodified series remains the source; fitted and loaded backgrounds share
 //! the same subtraction, ROI, interpolation and axis rules as the pattern view.
-use crate::{
-    control::Control,
-    pattern::{Curve, Patterns},
-    series::Series,
-};
+use crate::{control::Control, pattern::Patterns, series::Series};
 use std::{collections::HashMap, sync::Arc};
 
 pub(crate) fn active(patterns: &Patterns) -> bool {
@@ -159,10 +155,7 @@ impl RowFit<'_> {
             None,
             false,
         );
-        let value = fit
-            .build_background_row(self.control, prepared)?
-            .ok_or("Pattern background produced no curve.")?;
-        let corrected = Curve::from_json(&value)?;
+        let corrected = fit.build_background_row(self.control, prepared)?;
         let mut indices = Vec::with_capacity(corrected.x.len());
         for (&x, &y) in corrected.x.iter().zip(corrected.y.iter()) {
             let col = *self
