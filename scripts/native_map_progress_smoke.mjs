@@ -52,6 +52,9 @@ try {
         method: process.env.DIOPTAS_MAP_TEST_METHOD ?? "polygon",
       });
       await call("open_image", { path: source, dataset: "frames" });
+      await call("integration_background", {
+        enabled: true, smoothing: 0.1, iterations: 3, order: 2,
+      });
       // Seed a finished map and a non-default layer before loading again.
       await call("map_load", { paths: [source] });
       await call("map_roi", {
@@ -189,6 +192,9 @@ try {
       const snapshot = observed.find(
         (p) => p.completed > 0 && p.completed < p.total,
       );
+      const selected = await call("map_select", { index: snapshot.completed - 1 });
+      assert.deepEqual(snapshot.pattern.x, selected.pattern.x);
+      assert.deepEqual(snapshot.pattern.y, selected.pattern.y);
       const raw = native.buffers.get(snapshot.raster.bufferId);
       const pixels = new Float32Array(
         raw.buffer,

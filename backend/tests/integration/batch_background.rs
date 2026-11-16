@@ -637,3 +637,188 @@ fn failed_automatic_batch_refit_restores_pattern_settings_and_previous_batch() {
     assert!(result.result["error"].as_str().unwrap().contains("finite"));
     assert_eq!(call(&mut s, "state", json!({})).result, before);
 }
+
+#[test]
+fn map_load_reduces_each_background_corrected_pattern_before_selection() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    let temp = tempfile::tempdir().unwrap();
+    let mut s = session();
+    call(
+        &mut s,
+        "open_calibration",
+        json!({"path":root.join("tests/data/LaB6_40keV_MarCCD.poni")}),
+    );
+    call(
+        &mut s,
+        "integration_settings",
+        json!({"bins":97,"cake_bins":12,"trim_zeros":false}),
+    );
+    let paths = ["001", "002"].map(|i| {
+        let name = format!("image_{i}.tif");
+        let copied = temp.path().join(&name);
+        std::fs::copy(root.join("tests/data").join(name), &copied).unwrap();
+        copied
+    });
+    let image = call(&mut s, "open_image", json!({"path":paths[0]}));
+    let x = image.result["pattern"]["x"].as_array().unwrap();
+    let crop = [x[15].clone(), x[80].clone()];
+    let raw = call(&mut s, "map_load", json!({"paths":paths})).result["map"].clone();
+    call(
+        &mut s,
+        "integration_background",
+        json!({"enabled":true,"smoothing":0.1,"iterations":7,"order":5,"range":crop}),
+    );
+    let corrected = call(&mut s, "map_load", json!({"paths":paths})).result["map"].clone();
+    assert_ne!(corrected["values"], raw["values"]);
+    let roi = &corrected["rois"][0];
+    for (row, indices) in corrected["indices"].as_array().unwrap().iter().enumerate() {
+        for (col, index) in indices.as_array().unwrap().iter().enumerate() {
+            let selected = call(&mut s, "map_select", json!({"index":index}));
+            let curve = &selected.result["pattern"];
+            let xs = curve["x"].as_array().unwrap();
+            assert!(xs.len() < x.len());
+            let expected: f64 = xs
+                .iter()
+                .zip(curve["y"].as_array().unwrap())
+                .filter(|(x, _)| {
+                    x.as_f64() > roi["min"].as_f64() && x.as_f64() < roi["max"].as_f64()
+                })
+                .map(|(_, y)| y.as_f64().unwrap())
+                .sum();
+            assert!((corrected["values"][row][col].as_f64().unwrap() - expected).abs() < 1e-8);
+        }
+    }
+    let rebuilt = call(&mut s, "map_load", json!({"reintegrate":true}));
+    assert_eq!(rebuilt.result["map"]["values"], corrected["values"]);
+    let path = temp.path().join("map.dio");
+    call(&mut s, "save_project", json!({"path":path}));
+    let mut reopened = session();
+    let restored = call(&mut reopened, "open_project", json!({"path":path}));
+    assert_eq!(restored.result["map"]["values"], corrected["values"]);
+    std::fs::copy(&paths[1], temp.path().join("image_003.tif")).unwrap();
+    call(&mut reopened, "map_poll", json!({"check_only":true}));
+    let appended = call(&mut reopened, "map_poll", json!({}));
+    assert_eq!(appended.result["map"]["points"], 3);
+    let values = &appended.result["map"]["values"];
+    assert_eq!(values[0], corrected["values"][0]);
+    assert_eq!(values[1][0], corrected["values"][0][1]);
+    call(&mut reopened, "map_load", json!({"paths":paths}));
+    let disabled = call(
+        &mut reopened,
+        "integration_background",
+        json!({"enabled":false}),
+    );
+    assert_eq!(disabled.result["map"]["values"], raw["values"]);
+    let rebuilt = call(&mut reopened, "map_load", json!({"reintegrate":true}));
+    assert_eq!(rebuilt.result["map"]["values"], raw["values"]);
+}
+
+#[test]
+fn stored_angle_map_uses_q_background_for_selection_and_normalization() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    let temp = tempfile::tempdir().unwrap();
+    let mut s = session();
+    call(
+        &mut s,
+        "open_calibration",
+        json!({"path":root.join("tests/data/LaB6_40keV_MarCCD.poni")}),
+    );
+    call(
+        &mut s,
+        "integration_settings",
+        json!({"unit":"2th_deg","bins":97,"cake_bins":12,"trim_zeros":false}),
+    );
+    let paths = ["001", "002"].map(|i| root.join(format!("tests/data/image_{i}.tif")));
+    call(&mut s, "open_image", json!({"path":paths[0]}));
+    call(&mut s, "batch_load", json!({"paths":paths}));
+    let file = temp.path().join("angles.h5");
+    call(&mut s, "integration_save_batch", json!({"path":file}));
+    let q = call(&mut s, "integration_settings", json!({"unit":"q_A^-1"}));
+    let x = q.result["pattern"]["x"].as_array().unwrap();
+    let lambda = q.result["state"]["geometry"]["wavelength"]
+        .as_f64()
+        .unwrap();
+    let overlay = temp.path().join("q-background.xy");
+    std::fs::write(
+        &overlay,
+        x.iter()
+            .map(|v| format!("{:.17e} 5\n", v.as_f64().unwrap()))
+            .collect::<String>(),
+    )
+    .unwrap();
+    call(
+        &mut s,
+        "integration_overlay",
+        json!({"operation":"load","path":overlay}),
+    );
+    call(
+        &mut s,
+        "integration_overlay",
+        json!({"operation":"background","index":0}),
+    );
+    let range = [&x[10], &x[70]];
+    call(
+        &mut s,
+        "integration_background",
+        json!({"enabled":true,"range":range,"order":3,"iterations":5,"smoothing":0.1}),
+    );
+    let loaded = call(&mut s, "map_batch", json!({"path":file}));
+    assert_eq!(loaded.result["map"]["unit"], "2th_deg");
+    // Keep boundaries between samples so rounding in the independent axis conversion
+    // cannot change which endpoints belong to the strict map window.
+    let min = loaded.result["map"]["rois"][0]["min"].as_f64().unwrap() + 0.011;
+    let max = loaded.result["map"]["rois"][0]["max"].as_f64().unwrap() + 0.011;
+    let window = call(
+        &mut s,
+        "map_roi",
+        json!({"op":"update","name":"A","minimum":min,"maximum":max}),
+    );
+    for normalized in [false, true] {
+        let map = if normalized {
+            call(
+                &mut s,
+                "map_normalize",
+                json!({"enabled":true,"start":15,"stop":45,"reference":0}),
+            )
+            .result["map"]
+                .clone()
+        } else {
+            window.result["map"].clone()
+        };
+        let min = map["rois"][0]["min"].as_f64().unwrap();
+        let max = map["rois"][0]["max"].as_f64().unwrap();
+        for reintegrate in [false, true].into_iter().filter(|&r| !r || !normalized) {
+            let selected = call(
+                &mut s,
+                "map_select",
+                json!({"index":1,"reintegrate":reintegrate}),
+            );
+            let curve = &selected.result["pattern"];
+            assert_eq!(curve["unit"], "q_A^-1");
+            let mut count = 0;
+            let expected: f64 = curve["x"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .zip(curve["y"].as_array().unwrap())
+                .filter(|(q, _)| {
+                    let angle = 2.
+                        * (q.as_f64().unwrap() * (lambda * 1e10) / (4. * std::f64::consts::PI))
+                            .asin()
+                            .to_degrees();
+                    angle > min && angle < max
+                })
+                .map(|(_, y)| {
+                    count += 1;
+                    y.as_f64().unwrap()
+                })
+                .sum();
+            assert!(count > 0);
+            let value = map["values"][0][1].as_f64().unwrap();
+            assert!(
+                (value - expected).abs() < 1e-7,
+                "{value} vs {expected}, normalized={normalized}, reintegrate={reintegrate}"
+            );
+        }
+    }
+}

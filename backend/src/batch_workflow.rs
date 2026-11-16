@@ -129,6 +129,8 @@ struct SeriesRows {
     entries: Vec<Entry>,
     preview: Option<MapProgress>,
     preview_enabled: bool,
+    map_background: Option<crate::scan::MapBackground>,
+    corrected: Option<crate::scan::CorrectedProfiles>,
     count: usize,
 }
 #[cfg(feature = "dioptrin")]
@@ -150,10 +152,25 @@ impl SeriesRows {
     ) -> Result<(), String> {
         context.control.check()?;
         let curve = crate::pattern::Curve::from_json(pattern)?;
+        let corrected;
+        let preview_curve = if let Some(fit) = &mut self.map_background {
+            corrected = fit.apply(
+                curve.clone(),
+                &context.settings.unit,
+                Some(context.settings.geometry.wavelength),
+                context.control,
+            )?;
+            self.corrected
+                .get_or_insert_with(Default::default)
+                .push(&corrected)?;
+            &corrected
+        } else {
+            &curve
+        };
         if self.preview_enabled {
             if self.preview.is_none() {
                 self.preview = Some(MapProgress::new(
-                    &curve.x,
+                    &preview_curve.x,
                     self.count,
                     &context.settings.unit,
                     context.settings.geometry.wavelength,
@@ -162,7 +179,7 @@ impl SeriesRows {
             }
             self.preview.as_mut().unwrap().push(
                 self.entries.len(),
-                &curve,
+                preview_curve,
                 &context.settings.unit,
                 context.control,
                 context.patterns,
@@ -283,13 +300,14 @@ impl Session {
         &mut self,
         paths: Vec<String>,
         args: &Value,
-    ) -> Result<Series, String> {
+        build_map: bool,
+    ) -> Result<(Series, Option<crate::scan::CorrectedProfiles>), String> {
         if !self.settings.calibrated {
             return Err("Load a PONI calibration before integrating a series.".into());
         }
         #[cfg(not(feature = "dioptrin"))]
         {
-            let _ = (paths, args);
+            let _ = (paths, args, build_map);
             Err("Batch integration requires the optional Dioptrin engine.".into())
         }
         #[cfg(feature = "dioptrin")]
@@ -372,7 +390,13 @@ impl Session {
                     spread: None,
                     entries: vec![],
                     preview: None,
-                    preview_enabled: args["preview_map"] == true,
+                    map_background: if build_map {
+                        crate::scan::MapBackground::new(&self.patterns)
+                    } else {
+                        None
+                    },
+                    corrected: None,
+                    preview_enabled: build_map,
                     count,
                 };
                 rows.publish_progress(&self.control);
@@ -663,7 +687,7 @@ impl Session {
                 series.raw_spread = series.spread.clone();
                 series.calibration = self.settings.calibration_name.clone().unwrap_or_default();
                 series.mask = self.mask_filename.clone().unwrap_or_default();
-                Ok(series)
+                Ok((series, rows.corrected))
             })();
             self.restore_checkpoint(checkpoint);
             outcome
@@ -1078,7 +1102,8 @@ mod map_progress_tests {
                         12,
                     )
                     .unwrap();
-                    let mut old = Scan::new(series.clone(), &patterns).unwrap();
+                    let mut old =
+                        Scan::new(series.clone(), &patterns, &Default::default()).unwrap();
                     old.rois[0].min = 6.5;
                     old.rois[0].max = 24.5;
                     old.rois[0].reduction = kind.into();
@@ -1116,7 +1141,8 @@ mod map_progress_tests {
                             assert_eq!(r.result["progress"]["mapPreview"]["active"], old.active);
                         }
                     }
-                    let finished = Scan::new_with_analysis(series, &patterns, Some(&old)).unwrap();
+                    let finished =
+                        Scan::new_with_analysis(series, &patterns, Some(&old), None).unwrap();
                     assert_eq!(
                         control.progress_reply().buffers[0].bytes,
                         finished.raster.buffer.bytes,

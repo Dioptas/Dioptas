@@ -390,6 +390,17 @@ impl Session {
                 {
                     self.attach_batch(&mut reply);
                 }
+                if let Some(before) = &background_before
+                    && crate::batch_pattern_background::changed(before, &self.patterns)
+                    && let Some(scan) = &mut self.scan
+                {
+                    scan.refresh_background(&self.patterns, &self.control)?;
+                    scan.rebuild(true, &self.patterns)?;
+                    if let Some(id) = reply.result["map"]["raster"]["bufferId"].as_str() {
+                        reply.buffers.retain(|b| b.id != id);
+                    }
+                    self.attach_map(&mut reply);
+                }
                 self.update_combination_reply(&mut reply, &request.action, &payload)?;
                 Ok(reply)
             });

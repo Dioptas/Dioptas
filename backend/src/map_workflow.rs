@@ -116,19 +116,60 @@ impl Session {
             // Rebuild on the Map's actual radial grid. Converting the axis of
             // a Q-binned curve afterward does not reproduce 2theta-bin counts.
             let integration_unit = self.settings.unit.clone();
+            let trim_zeros = self.settings.trim_zeros;
             if reintegrate && !integration {
+                self.settings.trim_zeros = false;
                 self.settings.unit = series.unit.clone();
+            }
+            let active_background = crate::batch_pattern_background::active(&self.patterns);
+            let fit_unit = if active_background {
+                self.patterns.unit.clone()
+            } else {
+                series.unit.clone()
+            };
+            let cross_unit_reintegration = reintegrate && !integration && fit_unit != series.unit;
+            let previous_patterns = cross_unit_reintegration.then(|| self.patterns.clone());
+            if cross_unit_reintegration {
+                self.patterns.background.enabled = false;
+                self.patterns.background_uid = None;
+                self.patterns.anonymous_background = None;
             }
             let selection = self.select_series_mode(
                 &series,
                 index,
                 !integration && !reintegrate,
                 !integration && !reintegrate,
-                Some(&series.unit),
+                Some(&fit_unit),
                 !integration,
             );
             self.settings.unit = integration_unit;
+            self.settings.trim_zeros = trim_zeros;
+            if let Some(mut patterns) = previous_patterns {
+                let integrated = std::mem::replace(&mut self.patterns, patterns.clone());
+                if selection.is_ok()
+                    && self.image.is_some()
+                    && let Some(raw) = integrated.raw
+                {
+                    let mut curve = raw.as_ref().clone();
+                    curve.x = crate::pattern::convert_axis(
+                        &curve.x,
+                        &series.unit,
+                        &fit_unit,
+                        Some(self.settings.geometry.wavelength),
+                    )?;
+                    patterns.ingest(curve, &fit_unit, &integrated.name, integrated.path, false);
+                    self.patterns = patterns;
+                    self.rebuild_pattern()?;
+                }
+            }
             let mut reply = selection?;
+            if cross_unit_reintegration {
+                reply.result["pattern"] = json!(self.pattern);
+                for (key, value) in self.patterns.details().as_object().unwrap() {
+                    reply.result["state"]["integration"][key] = value.clone();
+                }
+            }
+            reply.result["state"]["integration"]["trimZeros"] = json!(trim_zeros);
             reply.result["state"]["unit"] = json!(self.settings.unit);
             reply.result["linked"] = self.linked_snapshot();
             if reintegrate && !integration {
@@ -190,25 +231,32 @@ impl Session {
                 } else {
                     batch_workflow::source_paths(args)?
                 };
-                let mut options = json!({"preview_map":true});
+                let mut options = json!({});
                 if args["reintegrate"] == true {
                     options["reader_options"] =
                         json!(self.scan.as_ref().unwrap().series.reader_options);
                 }
-                let series = self.integrate_series(paths, &options)?;
+                let (series, corrected) = self.integrate_series(paths, &options, true)?;
                 self.scan = Some(Scan::new_with_analysis(
                     series,
                     &self.patterns,
                     self.scan.as_ref(),
+                    corrected,
                 )?);
                 return self.map_selection(&json!({"index":0})).map(Some);
             }
             "map_batch" => {
                 let series = Series::load(path(args)?)?;
+                let corrected = crate::scan::CorrectedProfiles::from_series(
+                    &series,
+                    &self.patterns,
+                    &self.control,
+                )?;
                 self.scan = Some(Scan::new_with_analysis(
                     series,
                     &self.patterns,
                     self.scan.as_ref(),
+                    corrected,
                 )?);
                 return self.map_selection(&json!({"index":0})).map(Some);
             }
@@ -572,6 +620,7 @@ impl Session {
                     s.normalization_coordinates = Value::Null;
                 }
                 s.series.normalize(enabled, [start, stop], reference)?;
+                s.refresh_background(&self.patterns, &self.control)?;
                 reduce = true;
             }
             _ => unreachable!(),
@@ -717,8 +766,8 @@ impl Session {
         let mut added = false;
         for path in ready {
             match self
-                .integrate_series(vec![path], &json!({}))
-                .and_then(|incoming| appended.append(&incoming))
+                .integrate_series(vec![path], &json!({}), false)
+                .and_then(|(incoming, _)| appended.append(&incoming))
             {
                 Ok(series) => {
                     appended = series;
@@ -742,6 +791,11 @@ impl Session {
         let append: Vec<_> = (old..s.series.count()).map(Some).collect();
         Arc::make_mut(&mut s.slots).extend(append);
         s.dimension[0] = s.slots.len().max(s.series.count()).div_ceil(s.dimension[1]);
+        if let Some(rows) = &mut s.corrected
+            && let Some(mut fit) = crate::scan::MapBackground::new(&self.patterns)
+        {
+            rows.append_series(&s.series, old, &mut fit, &self.control)?;
+        }
         s.rebuild(true, &self.patterns)?;
         let index = if args
             .get("follow")
@@ -845,7 +899,7 @@ mod checkpoint_sharing_tests {
         )
         .unwrap();
         session.batch = Some(series.clone());
-        session.scan = Some(Scan::new(series, &session.patterns).unwrap());
+        session.scan = Some(Scan::new(series, &session.patterns, &session.control).unwrap());
         let before = session.scan.as_ref().unwrap().metadata();
         let checkpoint = session.checkpoint();
         let original = checkpoint.scan.as_ref().unwrap();

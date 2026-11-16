@@ -1,9 +1,9 @@
 # HDF5 master files and explicit source contracts
 
-The HDF5 implementation lives in **dioptrin-io 0.3.0**, consumed through the
-released `v0.3.0` tag at `dc6e30394e4374350020f8e1335f805f19e8364e`.
-The [Rust source release](https://github.com/CPrescher/dioptrin-io/releases/tag/v0.3.0)
-includes the source-contract APIs; Dioptas needs no private library branch or
+The HDF5 implementation lives in **dioptrin-io 0.4.1**, consumed through the
+released `v0.4.1` tag at `2e771541310c685a5b9172d268b5f8a47add19e5`.
+The source-contract APIs arrived in the
+[0.3.0 Rust source release](https://github.com/CPrescher/dioptrin-io/releases/tag/v0.3.0); Dioptas needs no private library branch or
 local dependency override. Its source-contract resolver shares the typed
 reader's actual dataset/convention selection and native link resolver. The
 library also owns image-candidate enumeration and wrapped VDS/raw storage APIs.
@@ -144,6 +144,29 @@ application restored saving, after which all exports and revisit checks passed.
 This test required no scientific/application code changes. The isolated test
 application and processor were closed afterward; other work was preserved.
 
+## Batch and Map throughput
+
+Batch and Map read Bitshuffle/LZ4 Eiger data with the parallel raw reader:
+eight frame workers each decode and integrate whole frames. A master whose
+virtual dataset maps every frame of one source dataset one-to-one (the Bliss
+layout, e.g. `/1.1/instrument/eiger/data` → `scan0001/eiger_0000.h5`) now uses
+that path on the source file directly (`Image::combined_source`). Any other VDS
+keeps the general reader, which decodes through HDF5 one frame at a time:
+several source files, frame offsets, fill regions or nested masters.
+
+On a 2500-frame 2162 × 2068 uint32 Eiger scan (10.5 GB, Apple M4 Pro, polygon
+integration, 1000 bins), Map integration through the master went from 110–122
+to 283–293 images/s with dioptrin-io 0.3.0, and to 500–550 images/s with 0.4.1
+and its native LZ4 default. The source file read directly gives 540–580
+images/s. Stored Map rows through the master are bit-for-bit identical to the
+source file; against the general reader they differ only by float rounding
+(maximum relative difference 8e-15), as for any directly loaded file.
+
+dioptrin-io 0.4.1 also stopped refusing unwrapped HDF5 files above its 8 GiB
+`source_bytes` transport bound, which before then made such a scan reachable
+only through its master. `tests/integration/vds_series_fast_path.rs` covers
+admission of whole-frame masters and rejection of an offset mapping.
+
 ## Limits
 
 Support follows the native typed reader's qualified finite/nested/irregular,
@@ -192,3 +215,9 @@ including Windows x64/ARM64 SIMD benchmarks, plus the six Python compatibility
 jobs. The Python distribution remains independently versioned at 0.2.0. The
 Windows-specific source-path assertion was corrected for native path semantics;
 production reader code is identical to the initially qualified implementation.
+
+On November 16, 2026 the desktop moved to `v0.4.1` (`2e771541`). It adds the
+0.4.0 native LZ4 default and admits unwrapped HDF5 files larger than the
+transport's `source_bytes` bound through `wrapped::Input`. Stored Map rows on
+the 625-frame Eiger reference and the 2500-frame scan above are bit-for-bit
+identical to 0.3.0.
