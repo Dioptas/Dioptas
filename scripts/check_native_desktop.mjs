@@ -383,6 +383,7 @@ if (selected.has("--ui")) {
     ["native_lacosmic_smoke"],
     ["native_file_errors_smoke"],
     ["native_map_progress_smoke"],
+    ["background_rate_smoke"],
     ["image_change_smoke", "image-change"],
     ["hdf5_sources_smoke"],
     ["hdf5_master_vds_smoke"],

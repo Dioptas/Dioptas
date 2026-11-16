@@ -56,6 +56,10 @@ choosers cover pattern/background/phase files and output/input folders. See
 [Integration parity and limitations](../parity/INTEGRATION_PARITY.md) for the implemented
 controls, scientific qualifications, tests and shared contracts.
 
+Dragging the pattern background range coalesces pointer movement and current-pattern
+refits to at most 30 updates per second. The final release position is retained.
+The loaded map stays pending until its separate update is requested or Map is opened.
+
 Overlay uses the same 64 px, table-height fields for Scale and Offset steps,
 with padding around their borders. Below 600 px of Overlay-panel width, controls
 wrap above the table and Waterfall uses a stacked-trace icon. Its 64 px manual
