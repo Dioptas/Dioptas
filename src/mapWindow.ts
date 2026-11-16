@@ -11,7 +11,7 @@ const reads = new Set([
   "map_levels",
   "progress",
 ]);
-const edits = new Set(["map_select", "map_layer", "map_export"]);
+const edits = new Set(["map_select", "map_layer", "map_export", "map_refresh"]);
 
 export function useMapWindow({
   run,
@@ -77,7 +77,7 @@ export function useMapWindow({
             await runWindowCommand(
               message,
               latest.current.run,
-              command === "map_select" ? "" : "Processing map…",
+              command === "map_select" ? "" : command === "map_refresh" ? "Updating map background…" : "Processing map…",
               (response) => {
                 result = {
                   ok: response.ok,

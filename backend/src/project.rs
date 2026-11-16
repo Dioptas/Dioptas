@@ -145,10 +145,10 @@ impl Session {
             let refit =
                 crate::batch_pattern_background::changed(&target.state.patterns, &self.patterns);
             if refit {
-                scan.refresh_background(&self.patterns, &self.control)?;
+                scan.background_pending = true;
             }
             if refit || scan.expressions.iter().any(|(_, e)| e.contains("ovl")) {
-                scan.rebuild(refit, &self.patterns)?;
+                scan.rebuild(false, &self.patterns)?;
             }
         }
         Ok(())

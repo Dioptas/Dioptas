@@ -211,7 +211,19 @@ impl Session {
         action: &str,
         args: &Value,
     ) -> Result<Option<Reply>, String> {
+        if action == "map_refresh" && self.scan.as_ref().is_some_and(|s| s.background_pending) {
+            let scan = self.scan.as_mut().unwrap();
+            scan.refresh_background(&self.patterns, &self.control)?;
+            scan.rebuild(true, &self.patterns)?;
+        }
         match action {
+            "map_refresh" => {
+                return if let Some(index) = self.scan.as_ref().and_then(|s| s.selected) {
+                    self.map_selection(&json!({"index":index})).map(Some)
+                } else {
+                    Ok(Some(self.map_response()))
+                };
+            }
             "map_snapshot" => {
                 let mut r = Reply::metadata(json!({"ok":true}));
                 self.attach_map(&mut r);
@@ -791,7 +803,9 @@ impl Session {
         let append: Vec<_> = (old..s.series.count()).map(Some).collect();
         Arc::make_mut(&mut s.slots).extend(append);
         s.dimension[0] = s.slots.len().max(s.series.count()).div_ceil(s.dimension[1]);
-        if let Some(rows) = &mut s.corrected
+        if s.background_pending {
+            s.refresh_background(&self.patterns, &self.control)?;
+        } else if let Some(rows) = &mut s.corrected
             && let Some(mut fit) = crate::scan::MapBackground::new(&self.patterns)
         {
             rows.append_series(&s.series, old, &mut fit, &self.control)?;

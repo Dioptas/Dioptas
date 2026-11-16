@@ -65,16 +65,23 @@ try {
         reduction: "mean",
         background: false,
       });
-      const before = await call("map_expression", {
+      let before = await call("map_expression", {
         name: "Signal",
         expression: "A*2+3",
       });
+      const pending = await call("integration_background", {
+        enabled: true, smoothing: 0.12, iterations: 4, order: 3,
+      });
+      assert.equal(pending.map.backgroundPending, true);
+      assert.deepEqual(pending.map.values, before.map.values);
+      const commands = [];
       const page = await browser.newPage({
         viewport: { width: 1440, height: 1000 },
       });
       page.setDefaultTimeout(45000);
       page.on("pageerror", (e) => errors.push(e.message));
       await page.exposeFunction("__nativeInvoke", async (a, p) => {
+        commands.push(a);
         const r = await call(
           a,
           a === "map_load" ? { ...p, paths: [source] } : p,
@@ -99,7 +106,10 @@ try {
               const track = !["progress", "pixel"].includes(a);
               if (track) window.__pending++;
               try {
-                return await window.__nativeInvoke(a, p);
+                const result = await window.__nativeInvoke(a, p);
+                if (a === "map_refresh" && result.ok)
+                  window.__mapRefreshComplete = true;
+                return result;
               } finally {
                 if (track) window.__pending--;
               }
@@ -114,8 +124,17 @@ try {
           () => window.__pending === 0 && !document.querySelector(".spin"),
         );
       await ready();
+      await page.getByRole("button", { name: "Integration", exact: true }).click();
+      await ready();
+      assert.equal(commands.includes("map_refresh"), false);
       await page.getByRole("button", { name: "Map", exact: true }).click();
       await page.getByTestId("scan-map").waitFor();
+      await ready();
+      await page.waitForFunction(() => window.__mapRefreshComplete === true);
+      before = await call("state");
+      assert.equal(before.map.backgroundPending, false);
+      assert.equal(commands.filter((a) => a === "map_refresh").length, 1);
+
       // Fresh detector views filter gaps; the map heatmap keeps its separate
       // default. An intentional change must survive a page/app restart.
       const detectorSettings = () =>
@@ -235,6 +254,17 @@ try {
       });
       await ready();
       await detached.getByTestId("scan-map").waitFor();
+      await page.getByRole("button", { name: "Integration", exact: true }).click();
+      const refreshes = commands.filter((a) => a === "map_refresh").length;
+      await page.getByRole("button", { name: "Subtract pattern background", exact: true }).click();
+      await detached.getByRole("button", { name: "Update map", exact: true }).waitFor();
+      const pendingDetached = await call("state");
+      assert.equal(pendingDetached.map.backgroundPending, true);
+      assert.equal(commands.filter((a) => a === "map_refresh").length, refreshes);
+      await detached.getByRole("button", { name: "Update map", exact: true }).click();
+      await ready();
+      await detached.getByRole("button", { name: "Update map", exact: true }).waitFor({ state: "hidden" });
+      assert.equal((await call("state")).map.backgroundPending, false);
       assert.deepEqual(errors, []);
       receipts.push({
         browser: name,
