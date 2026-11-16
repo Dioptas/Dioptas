@@ -100,7 +100,12 @@ export function MapView({
   requestRef.current = request;
   const runRef = useRef(run);
   runRef.current = run;
-  const liveRegion = useLiveMapRegion(map, run);
+  const mapIdentity = JSON.stringify([
+    state?.projectName,
+    state?.configurationContext ?? state?.configurationIndex,
+    map?.labels[0],
+  ]);
+  const liveRegion = useLiveMapRegion(map, run, mapIdentity);
   const detector = useMapDisplay(image, "map-detector");
   useEffect(() => {
     if (error) setLive(false);
@@ -145,11 +150,6 @@ export function MapView({
       setLive(false);
     await forwardRunner(run, call);
   };
-  const mapIdentity = JSON.stringify([
-    state?.projectName,
-    state?.configurationContext ?? state?.configurationIndex,
-    map?.labels[0],
-  ]);
   useEffect(() => {
     setLive(false);
   }, [mapIdentity]);
@@ -495,6 +495,7 @@ export function MapView({
                     : undefined
                 }
                 regions={regions}
+                regionsUpdating={!!liveRegion.draft}
                 editRegions={editRegions && ready && showRegions}
                 onRegionChange={changeRegion}
                 onRegionDragStart={liveRegion.begin}

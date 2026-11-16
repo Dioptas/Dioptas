@@ -851,12 +851,14 @@ fn map_background_edits_wait_for_refresh_and_reopen_retains_pending_work() {
                 "enabled":true,"order":order,"smoothing":0.1,"iterations":7,"range":[2.,8.]
             }),
         );
-        assert_eq!(edit.result["map"]["backgroundPending"], true);
-        assert_eq!(edit.result["map"]["values"], original);
-        assert_eq!(
-            call(&mut s, "map_snapshot", json!({})).result["map"]["values"],
-            original
-        );
+        assert_eq!(edit.result["patternOnly"], true);
+        if order > 2 {
+            assert!(edit.result.get("map").is_none());
+            assert!(edit.buffers.is_empty());
+        }
+        let map = call(&mut s, "map_snapshot", json!({})).result["map"].clone();
+        assert_eq!(map["backgroundPending"], true);
+        assert_eq!(map["values"], original);
     }
     let selected = call(
         &mut s,

@@ -1,3 +1,4 @@
+import { PATTERN_UPDATE_INTERVAL_MS } from "./updateRateLimit";
 import { useEffect, useRef, useState } from "react";
 import type { IntegrationState } from "./integration";
 
@@ -42,18 +43,35 @@ export function useLiveBackground(
     context: string;
     pending: { settings: BackgroundSettings } | null;
     running: boolean;
+    lastStarted: number;
     timer?: ReturnType<typeof setTimeout>;
     sent?: { settings: BackgroundSettings };
-  }>({ context, pending: null, running: false });
+  }>({ context, pending: null, running: false, lastStarted: -Infinity });
   const beforeDrag = useRef<BackgroundRange>(value.range);
   const mounted = useRef(true);
 
   function currentQueue() {
     if (queue.current.context !== context) {
       clearTimeout(queue.current.timer);
-      queue.current = { context, pending: null, running: false };
+      queue.current = {
+        context,
+        pending: null,
+        running: false,
+        lastStarted: -Infinity,
+      };
     }
     return queue.current;
+  }
+  function schedule(q: ReturnType<typeof currentQueue>) {
+    q.timer = setTimeout(
+      () => void pump(q),
+      Math.max(
+        0,
+        Math.ceil(
+          PATTERN_UPDATE_INTERVAL_MS - (performance.now() - q.lastStarted),
+        ),
+      ),
+    );
   }
   async function pump(q: ReturnType<typeof currentQueue>) {
     q.timer = undefined;
@@ -63,6 +81,7 @@ export function useLiveBackground(
     q.pending = null;
     q.sent = next;
     q.running = true;
+    q.lastStarted = performance.now();
     try {
       await latest.current.commit(
         next.settings,
@@ -76,7 +95,7 @@ export function useLiveBackground(
         !mounted.current
       )
         return;
-      if (q.pending) void pump(q);
+      if (q.pending) schedule(q);
       else {
         desired.current = {
           context: q.context,
@@ -105,7 +124,7 @@ export function useLiveBackground(
     desired.current = { context, settings };
     q.pending = { settings };
     setPreview({ context, settings });
-    if (!q.running && !q.timer) q.timer = setTimeout(() => void pump(q), 60);
+    if (!q.running && q.timer === undefined) schedule(q);
   }
   useEffect(() => {
     mounted.current = true;
