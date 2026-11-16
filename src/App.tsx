@@ -2455,7 +2455,7 @@ export default function App() {
                   pattern={pattern}
                   state={state}
                   ready={ready}
-                  run={run}
+                  run={withScheduling(run, { queueIfBusy: true })}
                   request={requestMap}
                   error={error}
                   reportPlot={reportPlot}

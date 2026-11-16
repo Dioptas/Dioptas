@@ -19,7 +19,7 @@ export function useLiveMapRegion(
     context,
     pending: null as Region | null,
     sent: null as Region | null,
-    running: false,
+    running: 0,
     timer: undefined as ReturnType<typeof setTimeout> | undefined,
     lastStarted: -Infinity,
   });
@@ -33,7 +33,7 @@ export function useLiveMapRegion(
         context,
         pending: null,
         sent: null,
-        running: false,
+        running: 0,
         timer: undefined,
         lastStarted: -Infinity,
       };
@@ -49,11 +49,11 @@ export function useLiveMapRegion(
       ),
     );
   }
-  async function pump(q: ReturnType<typeof currentQueue>) {
+  async function pump(q: ReturnType<typeof currentQueue>, final = false) {
     q.timer = undefined;
     if (
       !mounted.current ||
-      q.running ||
+      (q.running > 0 && !final) ||
       !q.pending ||
       queue.current !== q ||
       latest.current.context !== q.context
@@ -62,7 +62,7 @@ export function useLiveMapRegion(
     const next = q.pending;
     q.pending = null;
     q.sent = next;
-    q.running = true;
+    q.running++;
     q.lastStarted = performance.now();
     try {
       await latest.current.run(
@@ -75,9 +75,10 @@ export function useLiveMapRegion(
         "",
       );
     } finally {
-      q.running = false;
+      q.running--;
       if (
         mounted.current &&
+        q.running === 0 &&
         queue.current === q &&
         latest.current.context === q.context
       ) {
@@ -102,7 +103,8 @@ export function useLiveMapRegion(
       clearTimeout(q.timer);
       q.timer = undefined;
     }
-    if (!q.running && q.pending && q.timer === undefined) schedule(q);
+    if (flush && q.pending) void pump(q, true);
+    else if (!q.running && q.pending && q.timer === undefined) schedule(q);
   }
 
   useEffect(() => {

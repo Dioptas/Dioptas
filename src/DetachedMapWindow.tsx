@@ -64,7 +64,8 @@ export function DetachedMapWindow() {
       refreshing = false,
       queued = false;
     let requestedMapRevision: number | undefined,
-      fetchedMapRevision: number | undefined;
+      fetchedMapRevision: number | undefined,
+      inFlightMapRevision: number | undefined;
     const transport = mapWindowChannel(
       true,
       new URLSearchParams(location.search).get("map_window") ?? "native",
@@ -78,6 +79,7 @@ export function DetachedMapWindow() {
         while (queued && !disposed) {
           queued = false;
           const revision = requestedMapRevision;
+          inFlightMapRevision = revision;
           const result = await request("map_snapshot");
           if (!disposed && result?.ok && "map" in result) {
             setMap(result.map ?? null);
@@ -96,7 +98,9 @@ export function DetachedMapWindow() {
         if (
           message.status.ready &&
           (message.status.mapRevision === undefined ||
-            message.status.mapRevision !== fetchedMapRevision)
+            (message.status.mapRevision !== fetchedMapRevision &&
+              (!refreshing ||
+                message.status.mapRevision !== inFlightMapRevision)))
         ) {
           requestedMapRevision = message.status.mapRevision;
           void refresh();

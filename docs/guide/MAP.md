@@ -76,7 +76,7 @@ in Settings. A detached map offers **Update map** so background edits in Integra
 During window drags in the pattern plot, the window follows the pointer at up to
 30 updates per second. Reductions across the complete map run at up to two
 updates per second, using the latest window position. Releasing the pointer
-retains the exact final position for the next calculation.
+commits the exact final position immediately.
 
 Live watches the loaded scan folder for completed numbered continuation files.
 Follow selects the latest point; turn it off to retain the selected image.
