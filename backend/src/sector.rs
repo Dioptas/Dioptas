@@ -118,7 +118,7 @@ pub fn build_on_range(
     let da = (angles[1] - angles[0]) / azimuth_bins as f64;
     let mut buckets = vec![Vec::<(usize, f64)>::new(); bins * azimuth_bins];
     let centers = g.calc_azimuth_all();
-    let [h, w] = [g.dim1, g.dim2];
+    let [h, w] = [g.dim1(), g.dim2()];
     let mut entries = 0usize;
     let mut sample_radial = Vec::new();
     let mut sample_azimuth = Vec::new();
