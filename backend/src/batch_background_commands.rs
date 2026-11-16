@@ -29,6 +29,19 @@ impl Session {
         {
             return Ok(false);
         }
+        let series = self.batch.as_ref().unwrap();
+        let changed = crate::pattern::convert_axis(
+            &series.x,
+            &series.unit,
+            &self.patterns.unit,
+            series.wavelength,
+        )
+        .map_or(true, |axis| {
+            crate::batch_pattern_background::changed_on_axis(before, &self.patterns, &axis)
+        });
+        if !changed {
+            return Ok(false);
+        }
         let b = self.batch.as_mut().unwrap();
         if crate::batch_pattern_background::active(&self.patterns) {
             b.apply_pattern_background(&self.patterns, &self.control)?;

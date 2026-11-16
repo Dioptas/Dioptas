@@ -391,12 +391,27 @@ impl Session {
                     && crate::batch_pattern_background::changed(before, &self.patterns)
                     && let Some(scan) = &mut self.scan
                 {
-                    let was_pending = scan.background_pending;
-                    scan.background_pending = true;
-                    if reply.result["map"].is_object() {
-                        reply.result["map"]["backgroundPending"] = json!(true);
-                    } else if !was_pending {
-                        self.attach_map(&mut reply);
+                    let changed = crate::pattern::convert_axis(
+                        &scan.series.x,
+                        &scan.series.unit,
+                        &self.patterns.unit,
+                        scan.series.wavelength,
+                    )
+                    .map_or(true, |axis| {
+                        crate::batch_pattern_background::changed_on_axis(
+                            before,
+                            &self.patterns,
+                            &axis,
+                        )
+                    });
+                    if changed {
+                        let was_pending = scan.background_pending;
+                        scan.background_pending = true;
+                        if reply.result["map"].is_object() {
+                            reply.result["map"]["backgroundPending"] = json!(true);
+                        } else if !was_pending {
+                            self.attach_map(&mut reply);
+                        }
                     }
                 }
                 self.update_combination_reply(&mut reply, &request.action, &payload)?;

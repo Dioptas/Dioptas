@@ -890,3 +890,48 @@ fn map_background_edits_wait_for_refresh_and_reopen_retains_pending_work() {
         refreshed.result["map"]["values"]
     );
 }
+
+#[test]
+fn crop_movement_within_the_same_samples_keeps_the_loaded_map_current() {
+    let temp = tempfile::tempdir().unwrap();
+    let input = temp.path().join("source.h5");
+    let reference = fixture(&input, 0);
+    let x: Vec<f64> = serde_json::from_value(reference["x"].clone()).unwrap();
+    let step = x[11] - x[10];
+    let low = (x[10] + x[11]) / 2.;
+    let high = (x[80] + x[81]) / 2.;
+    let mut s = session();
+    call(&mut s, "map_batch", json!({"path":input}));
+    call(
+        &mut s,
+        "integration_background",
+        json!({"enabled":true,"smoothing":0.1,"iterations":7,"order":4,"range":[low,high]}),
+    );
+    let original = call(&mut s, "map_refresh", json!({}));
+    let moved = call(
+        &mut s,
+        "integration_background",
+        json!({"enabled":true,"smoothing":0.1,"iterations":7,"order":4,"range":[low+0.1*step,high-0.1*step]}),
+    );
+    assert!(moved.result.get("map").is_none());
+    assert_eq!(
+        moved.result["pattern"]["x"],
+        original.result["pattern"]["x"]
+    );
+    assert_eq!(
+        moved.result["pattern"]["y"],
+        original.result["pattern"]["y"]
+    );
+    let current = call(&mut s, "map_snapshot", json!({}));
+    assert_eq!(current.result["map"]["backgroundPending"], false);
+    assert_eq!(
+        current.result["map"]["values"],
+        original.result["map"]["values"]
+    );
+    let crossed = call(
+        &mut s,
+        "integration_background",
+        json!({"enabled":true,"smoothing":0.1,"iterations":7,"order":4,"range":[x[11]+0.1*step,high]}),
+    );
+    assert_eq!(crossed.result["map"]["backgroundPending"], true);
+}

@@ -213,6 +213,22 @@ pub(crate) struct Background {
     pub range: Option<[f64; 2]>,
 }
 impl Background {
+    /// Moving a crop edge between samples leaves the numerical input unchanged.
+    pub(crate) fn equivalent_on_axis(&self, other: &Self, x: &[f64]) -> bool {
+        self == other
+            || (self.enabled
+                && other.enabled
+                && self.smoothing == other.smoothing
+                && self.iterations == other.iterations
+                && self.order == other.order
+                && x.iter().all(|&value| {
+                    self.range
+                        .is_none_or(|[low, high]| value > low && value < high)
+                        == other
+                            .range
+                            .is_none_or(|[low, high]| value > low && value < high)
+                }))
+    }
     /// One typed validation boundary for live edits and persisted projects.
     /// Order zero and the wider smoothing interval retain legacy project support.
     pub(crate) fn from_value(value: Value) -> Result<Self, String> {
@@ -483,6 +499,12 @@ impl Patterns {
         if enabled && self.raw.is_none() {
             return Err("Load or integrate a pattern first.".into());
         }
+        let keep_extracted = self.raw.as_ref().is_some_and(|raw| {
+            raw.x
+                .windows(2)
+                .all(|pair| !pair[0].total_cmp(&pair[1]).is_gt())
+                && self.background.equivalent_on_axis(&b, &raw.x)
+        });
         if let Some(raw) = &self.raw
             && raw.x.len() > 1
         {
@@ -511,7 +533,9 @@ impl Patterns {
             }
         }
         self.background = b;
-        self.extracted = None;
+        if !keep_extracted {
+            self.extracted = None;
+        }
         Ok(())
     }
     pub fn build(&mut self, control: &Control) -> Result<Option<Value>, String> {
@@ -980,4 +1004,127 @@ impl Patterns {
 }
 pub(crate) fn chebyshev(x: &[f64], y: &[f64], degree: usize) -> Result<Vec<f64>, String> {
     ChebyshevFit::new(x, degree)?.fit(y)
+}
+
+#[cfg(test)]
+mod crop_tests {
+    use super::*;
+
+    fn settings(range: [f64; 2]) -> Value {
+        json!({"enabled":true,"smoothing":3.,"iterations":11,"order":5,"range":range})
+    }
+
+    #[test]
+    fn crop_moves_between_samples_reuse_the_exact_fit_but_crossing_a_sample_invalidates_it() {
+        let mut patterns = Patterns::default();
+        patterns.ingest(
+            Curve {
+                x: Arc::new((0..97).map(|i| i as f64).collect()),
+                y: Arc::new(
+                    (0..97)
+                        .map(|i| 100. + (i as f64 * 0.13).sin().abs() * 50.)
+                        .collect(),
+                ),
+                sigma: None,
+                spread: None,
+            },
+            "q_A^-1",
+            "Test",
+            None,
+            false,
+        );
+        patterns
+            .configure_background(&settings([5.2, 90.2]))
+            .unwrap();
+        let first = patterns.build(&Control::default()).unwrap().unwrap();
+        let cached = patterns.extracted.clone().unwrap();
+        patterns
+            .configure_background(&settings([5.8, 90.7]))
+            .unwrap();
+        let second = patterns.build(&Control::default()).unwrap().unwrap();
+        assert!(Arc::ptr_eq(&cached, patterns.extracted.as_ref().unwrap()));
+        assert_eq!(first["x"], second["x"]);
+        assert_eq!(first["y"], second["y"]);
+        let mut fresh = patterns.clone();
+        fresh.extracted = None;
+        assert_eq!(fresh.build(&Control::default()).unwrap().unwrap(), second);
+        patterns
+            .configure_background(&settings([6.1, 90.7]))
+            .unwrap();
+        assert!(patterns.extracted.is_none());
+        let third = patterns.build(&Control::default()).unwrap().unwrap();
+        assert_ne!(third["x"], first["x"]);
+    }
+
+    #[test]
+    fn sorting_an_imported_axis_invalidates_a_previously_extracted_fit() {
+        let mut patterns = Patterns::default();
+        patterns.background.enabled = true;
+        patterns.background.order = 1;
+        patterns.background.iterations = 3;
+        patterns.ingest(
+            Curve {
+                x: Arc::new(vec![1., 3., 0., 2.]),
+                y: Arc::new(vec![5., 9., 2., 4.]),
+                sigma: None,
+                spread: None,
+            },
+            "q_A^-1",
+            "Unsorted",
+            None,
+            true,
+        );
+        patterns.build(&Control::default()).unwrap();
+        assert!(patterns.extracted.is_some());
+        patterns
+            .configure_background(&json!({"enabled":true,"order":1,"iterations":3}))
+            .unwrap();
+        assert!(patterns.extracted.is_none());
+    }
+    #[test]
+    #[ignore]
+    fn profile_crop_cache() {
+        let mut patterns = Patterns::default();
+        let x: Vec<_> = (0..2048).map(|i| 1. + i as f64 * 0.005).collect();
+        let y: Vec<_> = (0..2048)
+            .map(|i| 100. + i as f64 * 0.1 + (i as f64 * 0.03).sin().abs() * 50.)
+            .collect();
+        patterns.ingest(
+            Curve {
+                x: Arc::new(x.clone()),
+                y: Arc::new(y),
+                sigma: None,
+                spread: None,
+            },
+            "q_A^-1",
+            "Profile",
+            None,
+            false,
+        );
+        let control = Control::default();
+        let configure = |offset: f64| {
+            json!({"enabled":true,"smoothing":0.1,"iterations":150,"order":50,
+            "range":[x[100]+offset*0.005,x[1900]+offset*0.005]})
+        };
+        patterns.configure_background(&configure(0.2)).unwrap();
+        let expected = patterns.build(&control).unwrap().unwrap();
+        for repeat in 0..3 {
+            for cached in [false, true] {
+                let mut fit = patterns.clone();
+                let started = std::time::Instant::now();
+                for i in 0..100 {
+                    fit.configure_background(&configure(if i % 2 == 0 { 0.2 } else { 0.8 }))
+                        .unwrap();
+                    if !cached {
+                        fit.extracted = None;
+                    }
+                    assert_eq!(fit.build(&control).unwrap().unwrap(), expected);
+                }
+                eprintln!(
+                    "CROP {}",
+                    json!({"repeat":repeat,"cached":cached,"edits":100,"bins":2048,"elapsed_ms":started.elapsed().as_secs_f64()*1000.})
+                );
+            }
+        }
+    }
 }

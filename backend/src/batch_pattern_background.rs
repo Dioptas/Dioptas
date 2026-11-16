@@ -40,6 +40,22 @@ pub(crate) fn changed(before: &Patterns, after: &Patterns) -> bool {
         || !same_overlay
         || (before.unit != after.unit && (active(before) || active(after)))
 }
+/// Compare crop changes on the actual shared series grid.
+pub(crate) fn changed_on_axis(before: &Patterns, after: &Patterns, axis: &[f64]) -> bool {
+    if !changed(before, after) {
+        return false;
+    }
+    if before.unit == after.unit
+        && before
+            .background
+            .equivalent_on_axis(&after.background, axis)
+    {
+        let mut previous = before.clone();
+        previous.background = after.background.clone();
+        return changed(&previous, after);
+    }
+    true
+}
 impl Series {
     pub(crate) fn apply_pattern_background(
         &mut self,
@@ -301,5 +317,31 @@ mod tests {
             );
             assert!(Arc::ptr_eq(&source, &series.raw));
         }
+    }
+    #[test]
+    fn crop_equivalence_uses_the_actual_series_axis_and_retains_other_invalidations() {
+        let mut before = Patterns::default();
+        before.background.enabled = true;
+        before.background.range = Some([5.2, 90.2]);
+        let mut after = before.clone();
+        after.background.range = Some([5.8, 90.7]);
+        let axis: Vec<_> = (0..97).map(|i| i as f64).collect();
+        assert!(changed(&before, &after));
+        assert!(!changed_on_axis(&before, &after, &axis));
+        let shifted: Vec<_> = axis.iter().map(|x| x + 0.5).collect();
+        assert!(changed_on_axis(&before, &after, &shifted));
+        after.background.iterations += 1;
+        assert!(changed_on_axis(&before, &after, &axis));
+        after = before.clone();
+        after.unit = "d_A".into();
+        assert!(changed_on_axis(&before, &after, &axis));
+        after = before.clone();
+        after.anonymous_background = Some(Arc::new(Curve {
+            x: Arc::new(axis.clone()),
+            y: Arc::new(vec![1.; axis.len()]),
+            sigma: None,
+            spread: None,
+        }));
+        assert!(changed_on_axis(&before, &after, &axis));
     }
 }
