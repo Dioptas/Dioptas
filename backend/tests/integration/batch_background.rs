@@ -637,3 +637,62 @@ fn failed_automatic_batch_refit_restores_pattern_settings_and_previous_batch() {
     assert!(result.result["error"].as_str().unwrap().contains("finite"));
     assert_eq!(call(&mut s, "state", json!({})).result, before);
 }
+
+#[test]
+fn map_load_reduces_each_background_corrected_pattern_before_selection() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    let temp = tempfile::tempdir().unwrap();
+    let mut s = session();
+    call(
+        &mut s,
+        "open_calibration",
+        json!({"path":root.join("tests/data/LaB6_40keV_MarCCD.poni")}),
+    );
+    call(
+        &mut s,
+        "integration_settings",
+        json!({"bins":97,"cake_bins":12,"trim_zeros":false}),
+    );
+    let paths: Vec<_> = ["001", "002"]
+        .map(|i| root.join(format!("tests/data/image_{i}.tif")))
+        .into();
+    let image = call(&mut s, "open_image", json!({"path":paths[0]}));
+    let x = image.result["pattern"]["x"].as_array().unwrap();
+    let crop = [x[15].clone(), x[80].clone()];
+    let raw = call(&mut s, "map_load", json!({"paths":paths})).result["map"].clone();
+    call(
+        &mut s,
+        "integration_background",
+        json!({"enabled":true,"smoothing":0.1,"iterations":7,"order":5,"range":crop}),
+    );
+    let corrected = call(&mut s, "map_load", json!({"paths":paths})).result["map"].clone();
+    assert_ne!(corrected["values"], raw["values"]);
+    let roi = &corrected["rois"][0];
+    for (row, indices) in corrected["indices"].as_array().unwrap().iter().enumerate() {
+        for (col, index) in indices.as_array().unwrap().iter().enumerate() {
+            let selected = call(&mut s, "map_select", json!({"index":index}));
+            let curve = &selected.result["pattern"];
+            let xs = curve["x"].as_array().unwrap();
+            assert!(xs.len() < x.len());
+            let expected: f64 = xs
+                .iter()
+                .zip(curve["y"].as_array().unwrap())
+                .filter(|(x, _)| {
+                    x.as_f64() > roi["min"].as_f64() && x.as_f64() < roi["max"].as_f64()
+                })
+                .map(|(_, y)| y.as_f64().unwrap())
+                .sum();
+            assert!((corrected["values"][row][col].as_f64().unwrap() - expected).abs() < 1e-8);
+        }
+    }
+    let rebuilt = call(&mut s, "map_load", json!({"reintegrate":true}));
+    assert_eq!(rebuilt.result["map"]["values"], corrected["values"]);
+    call(&mut s, "integration_background", json!({"enabled":false}));
+    let path = temp.path().join("map.dio");
+    call(&mut s, "save_project", json!({"path":path}));
+    let mut reopened = session();
+    let restored = call(&mut reopened, "open_project", json!({"path":path}));
+    assert_eq!(restored.result["map"]["values"], corrected["values"]);
+    let rebuilt = call(&mut reopened, "map_load", json!({"reintegrate":true}));
+    assert_eq!(rebuilt.result["map"]["values"], raw["values"]);
+}

@@ -42,7 +42,7 @@ impl Session {
         paths: Vec<String>,
         args: &Value,
     ) -> Result<crate::series::Series, String> {
-        let mut series = self.integrate_series(paths, args)?;
+        let (mut series, _) = self.integrate_series(paths, args)?;
         if crate::batch_pattern_background::active(&self.patterns) {
             series.apply_pattern_background(&self.patterns, &self.control)?;
         }

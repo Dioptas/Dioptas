@@ -471,21 +471,6 @@ impl Patterns {
         Ok(())
     }
     pub fn build(&mut self, control: &Control) -> Result<Option<Value>, String> {
-        self.build_with_progress(control, true, None)
-    }
-    pub(crate) fn build_background_row(
-        &mut self,
-        control: &Control,
-        prepared: &mut Option<Arc<ChebyshevFit>>,
-    ) -> Result<Option<Value>, String> {
-        self.build_with_progress(control, false, Some(prepared))
-    }
-    fn build_with_progress(
-        &mut self,
-        control: &Control,
-        progress: bool,
-        prepared: Option<&mut Option<Arc<ChebyshevFit>>>,
-    ) -> Result<Option<Value>, String> {
         let mut curves = vec![];
         for o in &self.overlays {
             if o.visible {
@@ -498,10 +483,43 @@ impl Patterns {
                 curves.push(v);
             }
         }
-        let Some(raw) = &self.raw else {
+        let Some(raw) = self.raw.clone() else {
             return Ok((!curves.is_empty())
                 .then(|| json!({"x":[],"y":[],"unit":self.unit,"curves":curves,"phaseLines":[]})));
         };
+        let curve = self.correct_background(&raw, control, None)?;
+        let mut inspection = vec![];
+        if self.background.enabled
+            && let Some(background) = &self.extracted
+        {
+            inspection
+                .push(json!({"name":"Original pattern","color":"#8196a6","x":raw.x,"y":raw.y}));
+            inspection.push(json!({"name":"Fitted background","color":"#73bba6","x":background.x,"y":background.y}));
+        }
+        Ok(Some(
+            json!({"x":curve.x,"y":curve.y,"unit":self.unit,"curves":curves,"phaseLines":[],"backgroundCurves":inspection,"sigma":curve.sigma,"azimuthalStd":curve.spread,"spottiness":crate::spottiness::diagnostic(&raw)}),
+        ))
+    }
+
+    pub(crate) fn build_background_row(
+        &mut self,
+        control: &Control,
+        prepared: &mut Option<Arc<ChebyshevFit>>,
+    ) -> Result<Curve, String> {
+        let raw = self
+            .raw
+            .clone()
+            .ok_or("No source pattern for background subtraction.")?;
+        self.correct_background(&raw, control, Some(prepared))
+    }
+
+    fn correct_background(
+        &mut self,
+        raw: &Curve,
+        control: &Control,
+        prepared: Option<&mut Option<Arc<ChebyshevFit>>>,
+    ) -> Result<Curve, String> {
+        let progress = prepared.is_none();
         let mut x = raw.x.as_ref().clone();
         let mut y = raw.y.as_ref().clone();
         let mut indices: Vec<_> = (0..x.len()).collect();
@@ -534,7 +552,6 @@ impl Patterns {
             y = yy;
             indices = ii;
         }
-        let mut inspection = vec![];
         if self.background.enabled {
             if let Some([low, high]) = self.background.range {
                 let ids: Vec<_> = x
@@ -598,9 +615,6 @@ impl Patterns {
             for (v, b) in y.iter_mut().zip(background.y.iter()) {
                 *v -= b;
             }
-            inspection
-                .push(json!({"name":"Original pattern","color":"#8196a6","x":raw.x,"y":raw.y}));
-            inspection.push(json!({"name":"Fitted background","color":"#73bba6","x":background.x,"y":background.y}));
         }
         control.check()?;
         let errors = raw
@@ -611,9 +625,12 @@ impl Patterns {
             .spread
             .as_ref()
             .map(|s| indices.iter().map(|&i| s[i]).collect::<Vec<_>>());
-        Ok(Some(
-            json!({"x":x,"y":y,"unit":self.unit,"curves":curves,"phaseLines":[],"backgroundCurves":inspection,"sigma":errors,"azimuthalStd":spread,"spottiness":crate::spottiness::diagnostic(raw)}),
-        ))
+        Ok(Curve {
+            x: Arc::new(x),
+            y: Arc::new(y),
+            sigma: errors.map(Arc::new),
+            spread: spread.map(Arc::new),
+        })
     }
     fn set_background(&mut self, uid: Option<String>) {
         self.anonymous_background = None;

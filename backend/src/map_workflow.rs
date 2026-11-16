@@ -195,20 +195,27 @@ impl Session {
                     options["reader_options"] =
                         json!(self.scan.as_ref().unwrap().series.reader_options);
                 }
-                let series = self.integrate_series(paths, &options)?;
+                let (series, corrected) = self.integrate_series(paths, &options)?;
                 self.scan = Some(Scan::new_with_analysis(
                     series,
                     &self.patterns,
                     self.scan.as_ref(),
+                    corrected,
                 )?);
                 return self.map_selection(&json!({"index":0})).map(Some);
             }
             "map_batch" => {
                 let series = Series::load(path(args)?)?;
+                let corrected = crate::scan::CorrectedProfiles::from_series(
+                    &series,
+                    &self.patterns,
+                    &self.control,
+                )?;
                 self.scan = Some(Scan::new_with_analysis(
                     series,
                     &self.patterns,
                     self.scan.as_ref(),
+                    corrected,
                 )?);
                 return self.map_selection(&json!({"index":0})).map(Some);
             }
@@ -572,6 +579,7 @@ impl Session {
                     s.normalization_coordinates = Value::Null;
                 }
                 s.series.normalize(enabled, [start, stop], reference)?;
+                s.refresh_background(&self.patterns, &self.control)?;
                 reduce = true;
             }
             _ => unreachable!(),
@@ -718,7 +726,7 @@ impl Session {
         for path in ready {
             match self
                 .integrate_series(vec![path], &json!({}))
-                .and_then(|incoming| appended.append(&incoming))
+                .and_then(|(incoming, _)| appended.append(&incoming))
             {
                 Ok(series) => {
                     appended = series;
@@ -742,6 +750,7 @@ impl Session {
         let append: Vec<_> = (old..s.series.count()).map(Some).collect();
         Arc::make_mut(&mut s.slots).extend(append);
         s.dimension[0] = s.slots.len().max(s.series.count()).div_ceil(s.dimension[1]);
+        s.refresh_background(&self.patterns, &self.control)?;
         s.rebuild(true, &self.patterns)?;
         let index = if args
             .get("follow")
@@ -845,7 +854,7 @@ mod checkpoint_sharing_tests {
         )
         .unwrap();
         session.batch = Some(series.clone());
-        session.scan = Some(Scan::new(series, &session.patterns).unwrap());
+        session.scan = Some(Scan::new(series, &session.patterns, &session.control).unwrap());
         let before = session.scan.as_ref().unwrap().metadata();
         let checkpoint = session.checkpoint();
         let original = checkpoint.scan.as_ref().unwrap();

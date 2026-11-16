@@ -19,6 +19,7 @@ pub(crate) struct Roi {
 #[derive(Clone)]
 pub(crate) struct Scan {
     pub series: Series,
+    pub corrected: Option<CorrectedProfiles>,
     pub dimension: [usize; 2],
     pub snake: bool,
     pub transpose: bool,
@@ -57,6 +58,65 @@ pub(crate) struct Analysis {
     pub rois: Vec<Roi>,
     pub expressions: Vec<(String, String)>,
     pub active: String,
+}
+/// Map reductions use the fitted rows while selection retains the source series.
+#[derive(Clone, Default)]
+pub(crate) struct CorrectedProfiles {
+    pub x: Arc<Vec<f64>>,
+    pub data: Arc<Vec<f64>>,
+}
+
+pub(crate) struct MapBackground {
+    patterns: Patterns,
+    prepared: Option<Arc<crate::background_fit::ChebyshevFit>>,
+}
+impl MapBackground {
+    pub fn new(patterns: &Patterns) -> Option<Self> {
+        if !crate::batch_pattern_background::active(patterns) {
+            return None;
+        }
+        Some(Self {
+            patterns: patterns.clone(),
+            prepared: None,
+        })
+    }
+    pub fn apply(
+        &mut self,
+        curve: crate::pattern::Curve,
+        unit: &str,
+        control: &crate::control::Control,
+    ) -> Result<crate::pattern::Curve, String> {
+        self.patterns
+            .ingest(curve, unit, "Map pattern", None, false);
+        self.patterns
+            .build_background_row(control, &mut self.prepared)
+    }
+}
+impl CorrectedProfiles {
+    pub fn push(&mut self, curve: &crate::pattern::Curve) -> Result<(), String> {
+        if self.data.is_empty() {
+            self.x = curve.x.clone();
+        } else if self.x != curve.x {
+            return Err("Map background coverage differs between frames.".into());
+        }
+        Arc::make_mut(&mut self.data).extend_from_slice(&curve.y);
+        Ok(())
+    }
+    pub fn from_series(
+        series: &Series,
+        patterns: &Patterns,
+        control: &crate::control::Control,
+    ) -> Result<Option<Self>, String> {
+        let Some(mut fit) = MapBackground::new(patterns) else {
+            return Ok(None);
+        };
+        let mut corrected = Self::default();
+        for i in 0..series.count() {
+            let curve = fit.apply(series.profile(i, &series.unit)?, &series.unit, control)?;
+            corrected.push(&curve)?;
+        }
+        Ok(Some(corrected))
+    }
 }
 impl Scan {
     pub fn analysis(
@@ -122,13 +182,20 @@ impl Scan {
             color: "#ff9800".into(),
         }
     }
-    pub fn new(series: Series, patterns: &Patterns) -> Result<Self, String> {
-        Self::new_with_analysis(series, patterns, None)
+    #[cfg(test)]
+    pub fn new(
+        series: Series,
+        patterns: &Patterns,
+        control: &crate::control::Control,
+    ) -> Result<Self, String> {
+        let corrected = CorrectedProfiles::from_series(&series, patterns, control)?;
+        Self::new_with_analysis(series, patterns, None, corrected)
     }
     pub fn new_with_analysis(
         mut series: Series,
         patterns: &Patterns,
         previous: Option<&Self>,
+        corrected: Option<CorrectedProfiles>,
     ) -> Result<Self, String> {
         // Qt Map consumes Batch data, not its separately extracted background.
         series.background = None;
@@ -163,9 +230,18 @@ impl Scan {
             normalization_coordinates: Value::Null,
             pending: BTreeMap::new(),
             series,
+            corrected,
         };
         s.rebuild(true, patterns)?;
         Ok(s)
+    }
+    pub fn refresh_background(
+        &mut self,
+        patterns: &Patterns,
+        control: &crate::control::Control,
+    ) -> Result<(), String> {
+        self.corrected = CorrectedProfiles::from_series(&self.series, patterns, control)?;
+        Ok(())
     }
     pub fn shape(&self) -> [usize; 2] {
         if self.transpose {
@@ -251,14 +327,17 @@ impl Scan {
         }
         if reduction {
             let mut layers = BTreeMap::new();
+            let (x, data) = self
+                .corrected
+                .as_ref()
+                .map_or((&self.series.x, &self.series.data), |rows| {
+                    (&rows.x, &rows.data)
+                });
             for r in &self.rois {
-                let window =
-                    map_math::Window::new(&self.series.x, r.min, r.max, &r.reduction, r.background);
+                let window = map_math::Window::new(x, r.min, r.max, &r.reduction, r.background);
                 layers.insert(
                     r.name.clone(),
-                    self.series
-                        .data
-                        .chunks_exact(self.series.x.len())
+                    data.chunks_exact(x.len())
                         .map(|y| window.reduce(y))
                         .collect(),
                 );
