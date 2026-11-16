@@ -1,7 +1,11 @@
 //! Apply the actual Integration pattern pipeline to every Batch row. The
 //! unmodified series remains the source; fitted and loaded backgrounds share
 //! the same subtraction, ROI, interpolation and axis rules as the pattern view.
-use crate::{control::Control, pattern::Patterns, series::Series};
+use crate::{
+    control::Control,
+    pattern::{Curve, Patterns},
+    series::Series,
+};
 use std::{collections::HashMap, sync::Arc};
 
 pub(crate) fn active(patterns: &Patterns) -> bool {
@@ -35,6 +39,22 @@ pub(crate) fn changed(before: &Patterns, after: &Patterns) -> bool {
         || before.anonymous_background != after.anonymous_background
         || !same_overlay
         || (before.unit != after.unit && (active(before) || active(after)))
+}
+/// Compare crop changes on the actual shared series grid.
+pub(crate) fn changed_on_axis(before: &Patterns, after: &Patterns, axis: &[f64]) -> bool {
+    if !changed(before, after) {
+        return false;
+    }
+    if before.unit == after.unit
+        && before
+            .background
+            .equivalent_on_axis(&after.background, axis)
+    {
+        let mut previous = before.clone();
+        previous.background = after.background.clone();
+        return changed(&previous, after);
+    }
+    true
 }
 impl Series {
     pub(crate) fn apply_pattern_background(
@@ -84,7 +104,7 @@ impl Series {
         // All workers share this immutable decomposition, never a fitted curve.
         control.publish(serde_json::json!({"running":true,"current":0,"total":self.count(),"label":"Applying pattern background to batch"}));
         let coverage = row_fit.apply(0, &mut background[..n], &mut fit, &mut prepared)?;
-        crate::background_workers::rows(
+        crate::background_workers::groups::<4, _, _, _>(
             &mut background[n..],
             n,
             1,
@@ -92,8 +112,20 @@ impl Series {
             "Applying pattern background to batch",
             || (fit.clone(), prepared.clone()),
             |row, output, (fit, prepared)| {
-                if row_fit.apply(row, output, fit, prepared)? != coverage {
-                    return Err("Pattern background coverage differs between Batch frames.".into());
+                let mut raw = Vec::with_capacity(output.len() / n);
+                for i in row..row + output.len() / n {
+                    fit.ingest(self.profile(i, unit)?, unit, "Batch pattern", None, false);
+                    raw.push(fit.raw.as_ref().unwrap().as_ref().clone());
+                }
+                let curves = fit.build_background_group(&raw, control, prepared)?;
+                for (i, (curve, values)) in
+                    curves.iter().zip(output.chunks_exact_mut(n)).enumerate()
+                {
+                    if row_fit.store(row + i, values, curve)? != coverage {
+                        return Err(
+                            "Pattern background coverage differs between Batch frames.".into()
+                        );
+                    }
                 }
                 Ok(())
             },
@@ -156,6 +188,14 @@ impl RowFit<'_> {
             false,
         );
         let corrected = fit.build_background_row(self.control, prepared)?;
+        self.store(row, output, &corrected)
+    }
+    fn store(
+        &self,
+        row: usize,
+        output: &mut [f64],
+        corrected: &Curve,
+    ) -> Result<Vec<usize>, String> {
         let mut indices = Vec::with_capacity(corrected.x.len());
         for (&x, &y) in corrected.x.iter().zip(corrected.y.iter()) {
             let col = *self
@@ -175,5 +215,133 @@ impl RowFit<'_> {
             );
         }
         Ok(indices)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{pattern::Overlay, series::Entry};
+
+    #[test]
+    fn grouped_batch_backgrounds_match_scalar_rows_bit_for_bit() {
+        let control = Control::default();
+        let bins = 97;
+        let count = 13;
+        for (source_unit, fit_unit) in [("d_A", "d_A"), ("2th_deg", "q_A^-1"), ("q_A^-1", "q_A^-1")]
+        {
+            let x: Vec<_> = (0..bins)
+                .map(|i| {
+                    crate::pattern::convert_coordinate(
+                        1. + i as f64 * 0.1,
+                        "q_A^-1",
+                        source_unit,
+                        4e-11,
+                    )
+                })
+                .collect();
+            let data: Vec<_> = (0..count * bins)
+                .map(|i| 100. + (i / bins) as f64 * 7. + (i as f64 * 0.13).sin().abs() * 50.)
+                .collect();
+            let mut series = Series::new(
+                x,
+                data,
+                source_unit.into(),
+                Some(4e-11),
+                (0..count)
+                    .map(|frame| Entry {
+                        path: String::new(),
+                        frame,
+                    })
+                    .collect(),
+                vec![],
+                count,
+            )
+            .unwrap();
+            let source = series.raw.clone();
+            let axis = series.profile(0, fit_unit).unwrap().x;
+            let columns = axis
+                .iter()
+                .enumerate()
+                .map(|(i, x)| (x.to_bits(), i))
+                .collect();
+            let mut patterns = Patterns::default();
+            patterns.unit = fit_unit.into();
+            patterns.background.enabled = true;
+            patterns.background.order = 5;
+            patterns.background.iterations = 11;
+            let mut range = [axis[10], axis[85]];
+            range.sort_by(f64::total_cmp);
+            patterns.background.range = Some(range);
+            patterns.background_uid = Some("reference".into());
+            patterns.overlays.push(Overlay {
+                uid: "reference".into(),
+                name: "Background".into(),
+                visible: false,
+                color: "#ffffff".into(),
+                scale: 1.7,
+                offset: 0.3,
+                data: Arc::new(Curve {
+                    x: axis,
+                    y: Arc::new(vec![2.5; bins]),
+                    sigma: None,
+                    spread: None,
+                }),
+                batch_source: None,
+            });
+            let mut expected = vec![0.; count * bins];
+            let reference = RowFit {
+                series: &series,
+                unit: fit_unit,
+                columns: &columns,
+                control: &control,
+            };
+            let mut fit = patterns.clone();
+            let mut prepared = None;
+            for (row, values) in expected.chunks_exact_mut(bins).enumerate() {
+                reference
+                    .apply(row, values, &mut fit, &mut prepared)
+                    .unwrap();
+            }
+            series
+                .apply_pattern_background(&patterns, &control)
+                .unwrap();
+            assert!(
+                series
+                    .raw_background
+                    .as_ref()
+                    .unwrap()
+                    .iter()
+                    .zip(expected)
+                    .all(|(a, b)| a.to_bits() == b.to_bits())
+            );
+            assert!(Arc::ptr_eq(&source, &series.raw));
+        }
+    }
+    #[test]
+    fn crop_equivalence_uses_the_actual_series_axis_and_retains_other_invalidations() {
+        let mut before = Patterns::default();
+        before.background.enabled = true;
+        before.background.range = Some([5.2, 90.2]);
+        let mut after = before.clone();
+        after.background.range = Some([5.8, 90.7]);
+        let axis: Vec<_> = (0..97).map(|i| i as f64).collect();
+        assert!(changed(&before, &after));
+        assert!(!changed_on_axis(&before, &after, &axis));
+        let shifted: Vec<_> = axis.iter().map(|x| x + 0.5).collect();
+        assert!(changed_on_axis(&before, &after, &shifted));
+        after.background.iterations += 1;
+        assert!(changed_on_axis(&before, &after, &axis));
+        after = before.clone();
+        after.unit = "d_A".into();
+        assert!(changed_on_axis(&before, &after, &axis));
+        after = before.clone();
+        after.anonymous_background = Some(Arc::new(Curve {
+            x: Arc::new(axis.clone()),
+            y: Arc::new(vec![1.; axis.len()]),
+            sigma: None,
+            spread: None,
+        }));
+        assert!(changed_on_axis(&before, &after, &axis));
     }
 }

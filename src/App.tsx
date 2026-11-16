@@ -167,6 +167,7 @@ import type { PatternFigureSource } from "./patternFigure";
 import type { PlotFigureExport } from "./plotFigureExport";
 import { SpottinessPattern } from "./SpottinessPattern";
 import { ORIGINAL_PATTERN_UID } from "./integration";
+import { MAP_UPDATE_INTERVAL_MS } from "./updateRateLimit";
 import { useLiveBackground, DEFAULT_BACKGROUND } from "./useLiveBackground";
 import { BACKGROUND_RANGE_COLOR } from "./drawRangeSelection";
 import { CalibrantPicker } from "./CalibrantPicker";
@@ -1563,6 +1564,13 @@ export default function App() {
     customCommands.undo,
     customCommands.redo,
   ]);
+  const mapWindowRevision = useRef({ value: map, revision: 0 });
+  if (mapWindowRevision.current.value !== map) {
+    mapWindowRevision.current = {
+      value: map,
+      revision: mapWindowRevision.current.revision + 1,
+    };
+  }
   const mapWindow = useMapWindow({
     run: withScheduling(run, { queueIfBusy: true }),
     // Like native child reads, browser popup reads use the processing worker's
@@ -1577,6 +1585,7 @@ export default function App() {
       largeText,
       error,
       revision: state?.revision,
+      mapRevision: mapWindowRevision.current.revision,
       progress: progress
         ? {
             running: progress.running,
@@ -1599,14 +1608,28 @@ export default function App() {
     onError: setError,
   });
   const mapRefreshAttempted = useRef(false);
+  const lastMapRefresh = useRef(-Infinity);
   useEffect(() => {
     if (mode !== "map" || !map?.backgroundPending) {
       mapRefreshAttempted.current = false;
       return;
     }
     if (ready && !error && !mapRefreshAttempted.current) {
-      mapRefreshAttempted.current = true;
-      void run("map_refresh", {}, "Updating map background…");
+      const timer = setTimeout(
+        () => {
+          mapRefreshAttempted.current = true;
+          lastMapRefresh.current = performance.now();
+          void run("map_refresh", {}, "Updating map background…");
+        },
+        Math.max(
+          0,
+          Math.ceil(
+            MAP_UPDATE_INTERVAL_MS -
+              (performance.now() - lastMapRefresh.current),
+          ),
+        ),
+      );
+      return () => clearTimeout(timer);
     }
   }, [mode, map?.backgroundPending, ready, error, run]);
   const detectorWindow = useDetectorWindow(
@@ -2432,7 +2455,7 @@ export default function App() {
                   pattern={pattern}
                   state={state}
                   ready={ready}
-                  run={run}
+                  run={withScheduling(run, { queueIfBusy: true })}
                   request={requestMap}
                   error={error}
                   reportPlot={reportPlot}
@@ -3705,7 +3728,9 @@ export default function App() {
               <Button
                 variant="secondary"
                 className="status-action"
-                onClick={() => void run("map_refresh", {}, "Updating map background…")}
+                onClick={() =>
+                  void run("map_refresh", {}, "Updating map background…")
+                }
               >
                 Update map
               </Button>

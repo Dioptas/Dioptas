@@ -9,7 +9,25 @@ use std::sync::{
 };
 use std::time::{Duration, Instant};
 
+#[cfg(test)]
 pub(crate) fn rows<S, I, F>(
+    output: &mut [f64],
+    bins: usize,
+    start: usize,
+    control: &Control,
+    label: &str,
+    initialize: I,
+    work: F,
+) -> Result<(), String>
+where
+    I: Fn() -> S + Sync,
+    F: Fn(usize, &mut [f64], &mut S) -> Result<(), String> + Sync,
+{
+    groups::<1, _, _, _>(output, bins, start, control, label, initialize, work)
+}
+
+/// Group a few independent rows inside each worker without changing progress units.
+pub(crate) fn groups<const ROWS: usize, S, I, F>(
     output: &mut [f64],
     bins: usize,
     start: usize,
@@ -27,25 +45,25 @@ where
     }
     let pool = crate::worker_pool::current();
     let count = output.len() / bins;
-    let workers = pool.current_num_threads().min(count);
-    let chunk_rows = count.div_ceil(workers);
+    let workers = pool.current_num_threads().min(count.div_ceil(ROWS));
+    let chunk_rows = count.div_ceil(workers).div_ceil(ROWS) * ROWS;
     let progress = Mutex::new((start, Instant::now()));
     let failed = AtomicBool::new(false);
     control.publish(json!({"running":true,"current":start,"total":start+count,"label":label}));
     let chunk = |(index, data): (usize, &mut [f64])| -> Result<(), String> {
         // Exactly one state per chunk, sharing the prepared SVD through Arc.
         let mut state = initialize();
-        for (local, row) in data.chunks_exact_mut(bins).enumerate() {
+        for (local, row) in data.chunks_mut(bins * ROWS).enumerate() {
             if failed.load(Ordering::Relaxed) {
                 return Ok(());
             }
             control.check()?;
-            if let Err(error) = work(start + index * chunk_rows + local, row, &mut state) {
+            if let Err(error) = work(start + index * chunk_rows + local * ROWS, row, &mut state) {
                 failed.store(true, Ordering::Relaxed);
                 return Err(error);
             }
             let mut progress = progress.lock().unwrap();
-            progress.0 += 1;
+            progress.0 += row.len() / bins;
             if progress.0 == start + count || progress.1.elapsed() >= Duration::from_millis(40) {
                 control.publish(
                     json!({"running":true,"current":progress.0,"total":start+count,"label":label}),
@@ -106,5 +124,38 @@ mod tests {
         );
         assert_eq!(control.progress()["current"], 37);
         assert_eq!(control.progress()["total"], 37);
+    }
+    #[test]
+    fn grouped_workers_keep_uneven_row_indices_and_progress_in_source_units() {
+        let bins = 3;
+        let start = 7;
+        for workers in [1, crate::worker_pool::available().min(4)] {
+            for count in [1, 2, 3, 4, 5, 17, 37, 65] {
+                let control = Control::default();
+                let mut output = vec![0.; bins * count];
+                crate::worker_pool::enter(crate::worker_pool::pool(Some(workers)).unwrap(), || {
+                    groups::<4, _, _, _>(
+                        &mut output,
+                        bins,
+                        start,
+                        &control,
+                        "Test",
+                        || (),
+                        |index, rows, _| {
+                            for (offset, row) in rows.chunks_exact_mut(bins).enumerate() {
+                                row.fill((index + offset) as f64);
+                            }
+                            Ok(())
+                        },
+                    )
+                    .unwrap();
+                });
+                for (offset, row) in output.chunks_exact(bins).enumerate() {
+                    assert_eq!(row, &[(start + offset) as f64; 3]);
+                }
+                assert_eq!(control.progress()["current"], start + count);
+                assert_eq!(control.progress()["total"], start + count);
+            }
+        }
     }
 }

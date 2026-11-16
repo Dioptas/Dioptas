@@ -77,7 +77,11 @@ export function useMapWindow({
             await runWindowCommand(
               message,
               latest.current.run,
-              command === "map_select" ? "" : command === "map_refresh" ? "Updating map background…" : "Processing map…",
+              command === "map_select"
+                ? ""
+                : command === "map_refresh"
+                  ? "Updating map background…"
+                  : "Processing map…",
               (response) => {
                 result = {
                   ok: response.ok,
@@ -126,6 +130,7 @@ export function useMapWindow({
     status.largeText,
     status.error,
     status.revision,
+    status.mapRevision,
     clickReadoutKey,
     status.progress,
   ]);
