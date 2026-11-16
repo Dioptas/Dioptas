@@ -454,11 +454,12 @@ describe(
       for (const jobs of ["3", "1"]) {
         const r = gate.run(["--ui"], { DIOPTAS_GATE_UI_JOBS: jobs });
         assert.equal(r.status, 0, r.stderr);
-        assert.match(r.stdout, new RegExp(`UI checks: 44, ${jobs} at a time`));
+        assert.match(r.stdout, new RegExp(`UI checks: 45, ${jobs} at a time`));
         const names = r.timings.steps.map((s) => s.name);
         assert.equal(new Set(names).size, names.length);
         for (const name of [
           "hook_refresh_smoke",
+          "background_rate_smoke",
           "companion_windows_smoke",
           "batch_background_export",
           "image_change_webkit",
@@ -479,8 +480,8 @@ describe(
       const checks = r.timings.steps.filter((s) =>
         /_smoke|ui_components|_export|_webkit/.test(s.name),
       );
-      assert.equal(checks.length, 44);
-      assert.equal(checks.filter((s) => s.status === "passed").length, 43);
+      assert.equal(checks.length, 45);
+      assert.equal(checks.filter((s) => s.status === "passed").length, 44);
     });
 
     it("splits the UI checks over shards without losing or repeating one", () => {
@@ -491,7 +492,7 @@ describe(
       const parts = ["1/3", "2/3", "3/3"].map((shard) => {
         const r = gate.run(["--ui"], { DIOPTAS_GATE_UI_SHARD: shard });
         assert.equal(r.status, 0, r.stderr);
-        assert.match(r.stdout, new RegExp(`of 44 \\(shard ${shard}\\)`));
+        assert.match(r.stdout, new RegExp(`of 45 \\(shard ${shard}\\)`));
         return r.timings.steps.map((s) => s.name);
       });
       // Every shard checks the boundary and builds the frontend it serves.

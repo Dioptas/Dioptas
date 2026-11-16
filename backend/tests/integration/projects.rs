@@ -38,6 +38,9 @@ fn configurations_and_owned_project_pixels_survive_without_sources() {
     image(&source);
     let mut s = Session::new(root());
     let first = call(&mut s, "open_image", json!({"path":source}));
+    // With the default beam center at the origin, the 12 × 8 image spans
+    // 2 × hypot(12, 8) radial bins (rounded down).
+    assert_eq!(first.result["state"]["integration"]["actualBins"], 28);
     call(
         &mut s,
         "configuration",
@@ -68,7 +71,7 @@ fn configurations_and_owned_project_pixels_survive_without_sources() {
         r.result["state"]["configurationContext"],
         first.result["state"]["configurationContext"]
     );
-    assert_eq!(r.result["state"]["bins"], 1000);
+    assert_eq!(r.result["state"]["bins"], Value::Null);
     assert_eq!(
         r.result["rawImage"]["bufferId"],
         first.result["rawImage"]["bufferId"]
@@ -78,6 +81,7 @@ fn configurations_and_owned_project_pixels_survive_without_sources() {
     std::fs::remove_file(source).unwrap();
     let mut restored = Session::new(root());
     let r = call(&mut restored, "open_project", json!({"path":path}));
+    assert_eq!(r.result["state"]["bins"], Value::Null);
     assert_eq!(
         r.result["state"]["configurationLabels"],
         json!(["Reference", "Sample"])

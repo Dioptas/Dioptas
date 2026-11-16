@@ -1,4 +1,8 @@
 import {
+  createRateLimitedInput,
+  PATTERN_UPDATE_INTERVAL_MS,
+} from "./updateRateLimit";
+import {
   SvgRecording,
   drawFigureLegends,
   type PlotFigureExport,
@@ -271,6 +275,16 @@ export function PatternView<U extends PlotUnit = Unit>({
     minWidth?: number;
     next: { name: string; min: number; max: number } | null;
   } | null>(null);
+  const latestRegionInput = useRef<(point: { x: number; y: number }) => void>(
+    () => {},
+  );
+  const [regionDragInput] = useState(() =>
+    createRateLimitedInput(
+      PATTERN_UPDATE_INTERVAL_MS,
+      (point: { x: number; y: number }) => latestRegionInput.current(point),
+    ),
+  );
+  useEffect(() => () => regionDragInput.cancel(), [regionDragInput]);
   const [regionDraft, setRegionDraft] = useState<{
     name: string;
     min: number;
@@ -302,6 +316,7 @@ export function PatternView<U extends PlotUnit = Unit>({
 
   const regionKey = JSON.stringify(regions);
   const cancelRegionDrag = (restore = false) => {
+    regionDragInput.cancel();
     const dragging = !!regionDrag.current;
     regionDrag.current = null;
     setRegionDraft(null);
@@ -510,6 +525,7 @@ export function PatternView<U extends PlotUnit = Unit>({
       if (changed && moved) onRegionInput?.(drag.name, min, max);
     }
   };
+  latestRegionInput.current = updateRegionDrag;
   const hoveredRegion =
     editRegions && hover !== null
       ? regionAt(xmin + ((hover - left) / w) * (xmax - xmin))
@@ -1396,7 +1412,7 @@ export function PatternView<U extends PlotUnit = Unit>({
           if (keyboardSample) setKeyboardSample(null);
           const drag = regionDrag.current;
           if (drag) {
-            updateRegionDrag(navigation.screen(e));
+            regionDragInput.push(navigation.screen(e));
             return;
           }
           const point = navigation.screen(e);
@@ -1413,7 +1429,7 @@ export function PatternView<U extends PlotUnit = Unit>({
         }}
         onPointerUp={(e) => {
           if (regionDrag.current) {
-            updateRegionDrag(navigation.screen(e));
+            regionDragInput.flush(navigation.screen(e));
             const { name, next, min, max } = regionDrag.current;
             if (next && (next.min !== min || next.max !== max))
               onRegionChange?.(next.name, next.min, next.max);

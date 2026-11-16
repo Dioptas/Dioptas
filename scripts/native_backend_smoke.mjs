@@ -85,8 +85,10 @@ for (const [name, type] of [
     let snapshot = await native.invoke("state");
     assert.equal(snapshot.state.calibrated, true);
     assert.equal(snapshot.state.integration.trimZeros, true);
+    assert.equal(snapshot.state.integration.automaticBinning, true);
     assert.ok(
-      snapshot.pattern.x.length > 0 && snapshot.pattern.x.length <= 1000,
+      snapshot.pattern.x.length > 0 &&
+        snapshot.pattern.x.length <= snapshot.state.integration.actualBins,
     );
     assert.notEqual(snapshot.pattern.y[0], 0);
     assert.notEqual(snapshot.pattern.y.at(-1), 0);
@@ -106,7 +108,7 @@ for (const [name, type] of [
     await selectIntegrationDisplay(page, "cake");
     await page.getByTestId("cake-canvas").waitFor({ state: "visible" });
     snapshot = await native.invoke("state");
-    assert.equal(snapshot.cake.width, 1000);
+    assert.equal(snapshot.cake.fullWidth, snapshot.state.integration.actualBins);
     assert.equal(snapshot.cake.height, 360);
     assert.equal(
       (await native.invoke("integration_diagnostics")).integrationDiagnostics

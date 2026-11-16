@@ -263,7 +263,6 @@ impl Session {
                             fresh.calibration.custom = self.calibration.custom.clone();
                             fresh.calibration.reference_wavelength =
                                 self.calibration.reference_wavelength;
-                            fresh.settings.automatic_binning = true;
                             fresh.settings.trim_zeros = true;
                             fresh.settings.use_mask = false;
                             fresh.patterns.background.iterations =

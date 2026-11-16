@@ -119,7 +119,7 @@ impl Default for Settings {
             transparent_mask: false,
             polarization: 0.99,
             errors: false,
-            automatic_binning: false,
+            automatic_binning: true,
             supersampling: 1,
             pyfai_splitting: false,
             solid_angle: true,
@@ -394,11 +394,28 @@ impl Session {
                     && crate::batch_pattern_background::changed(before, &self.patterns)
                     && let Some(scan) = &mut self.scan
                 {
-                    scan.background_pending = true;
-                    if let Some(id) = reply.result["map"]["raster"]["bufferId"].as_str() {
-                        reply.buffers.retain(|b| b.id != id);
+                    let changed = crate::pattern::convert_axis(
+                        &scan.series.x,
+                        &scan.series.unit,
+                        &self.patterns.unit,
+                        scan.series.wavelength,
+                    )
+                    .map_or(true, |axis| {
+                        crate::batch_pattern_background::changed_on_axis(
+                            before,
+                            &self.patterns,
+                            &axis,
+                        )
+                    });
+                    if changed {
+                        let was_pending = scan.background_pending;
+                        scan.background_pending = true;
+                        if reply.result["map"].is_object() {
+                            reply.result["map"]["backgroundPending"] = json!(true);
+                        } else if !was_pending {
+                            self.attach_map(&mut reply);
+                        }
                     }
-                    self.attach_map(&mut reply);
                 }
                 self.update_combination_reply(&mut reply, &request.action, &payload)?;
                 Ok(reply)
@@ -1291,25 +1308,21 @@ impl Session {
                 )?;
                 self.patterns.configure_background(args)?;
                 self.rebuild_pattern()?;
+                self.revision += 1;
+                return Ok(self.pattern_reply(true));
             }
             "validation_position" => return self.validation_position(args),
             "integration_clear_background" => {
                 self.patterns.clear_background();
                 self.rebuild_pattern()?;
+                self.revision += 1;
+                return Ok(self.pattern_reply(true));
             }
             "integration_overlay" => {
                 self.patterns.edit_overlay(args, self.pattern.as_deref())?;
                 self.rebuild_pattern()?;
                 self.revision += 1;
-                let mut reply = self.snapshot(false);
-                reply.buffers.clear();
-                for key in [
-                    "image", "rawImage", "mask", "cake", "rings", "linked", "batch", "map",
-                ] {
-                    reply.result.as_object_mut().unwrap().remove(key);
-                }
-                reply.result["patternOnly"] = json!(true);
-                return Ok(reply);
+                return Ok(self.pattern_reply(false));
             }
             "integration_open_pattern" => {
                 check_keys(args, &["path", "direction", "step", "directory"])?;
@@ -2327,7 +2340,27 @@ impl Session {
     fn snapshot(&self, include_image: bool) -> Reply {
         self.snapshot_products(include_image, true)
     }
+    fn pattern_reply(&self, include_linked: bool) -> Reply {
+        let mut reply = self.snapshot_with_series(false, false, false);
+        reply.buffers.clear();
+        for key in ["image", "rawImage", "mask", "cake", "rings", "batch", "map"] {
+            reply.result.as_object_mut().unwrap().remove(key);
+        }
+        if !include_linked {
+            reply.result.as_object_mut().unwrap().remove("linked");
+        }
+        reply.result["patternOnly"] = json!(true);
+        reply
+    }
     fn snapshot_products(&self, include_image: bool, include_rings: bool) -> Reply {
+        self.snapshot_with_series(include_image, include_rings, true)
+    }
+    fn snapshot_with_series(
+        &self,
+        include_image: bool,
+        include_rings: bool,
+        include_series: bool,
+    ) -> Reply {
         let mut trace = crate::frame_trace::FrameTrace::new(
             "snapshot",
             self.image.as_ref().map_or(0, |i| i.frame as u64),
@@ -2471,8 +2504,10 @@ impl Session {
             buffers.push(raster.buffer.clone());
         }
         let mut reply = Reply { result, buffers };
-        self.attach_batch(&mut reply);
-        self.attach_map(&mut reply);
+        if include_series {
+            self.attach_batch(&mut reply);
+            self.attach_map(&mut reply);
+        }
         trace.mark("display buffers and series metadata");
         reply
     }
