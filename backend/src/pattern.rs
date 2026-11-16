@@ -58,6 +58,27 @@ pub(crate) struct Curve {
     #[serde(with = "crate::history_transfer::optional_arc")]
     pub spread: Option<Arc<Vec<f64>>>,
 }
+struct BackgroundInput {
+    x: Vec<f64>,
+    y: Vec<f64>,
+    indices: Vec<usize>,
+}
+impl BackgroundInput {
+    fn finish(self, raw: &Curve) -> Curve {
+        Curve {
+            x: Arc::new(self.x),
+            y: Arc::new(self.y),
+            sigma: raw
+                .sigma
+                .as_ref()
+                .map(|s| Arc::new(self.indices.iter().map(|&i| s[i]).collect())),
+            spread: raw
+                .spread
+                .as_ref()
+                .map(|s| Arc::new(self.indices.iter().map(|&i| s[i]).collect())),
+        }
+    }
+}
 impl Curve {
     pub fn from_json(v: &Value) -> Result<Self, String> {
         let parse = |key| {
@@ -543,61 +564,9 @@ impl Patterns {
         prepared: Option<&mut Option<Arc<ChebyshevFit>>>,
     ) -> Result<Curve, String> {
         let progress = prepared.is_none();
-        let mut x = raw.x.as_ref().clone();
-        let mut y = raw.y.as_ref().clone();
-        let mut indices: Vec<_> = (0..x.len()).collect();
-        if let Some(curve) = self
-            .overlays
-            .iter()
-            .find(|o| Some(&o.uid) == self.background_uid.as_ref())
-            .map(|o| o.curve(&self.unit))
-            .transpose()?
-            .or_else(|| {
-                self.anonymous_background
-                    .as_ref()
-                    .map(|c| c.as_ref().clone())
-            })
-        {
-            let mut xx = vec![];
-            let mut yy = vec![];
-            let mut ii = vec![];
-            for (i, (&a, &b)) in x.iter().zip(&y).enumerate() {
-                if let Some(v) = interpolate(&curve.x, &curve.y, a) {
-                    xx.push(a);
-                    yy.push(b - v);
-                    ii.push(i);
-                }
-            }
-            if xx.is_empty() {
-                return Err("The background and pattern do not overlap.".into());
-            }
-            x = xx;
-            y = yy;
-            indices = ii;
-        }
+        let BackgroundInput { x, mut y, indices } =
+            self.prepare_background(raw, prepared.is_some())?;
         if self.background.enabled {
-            if let Some([low, high]) = self.background.range {
-                let ids: Vec<_> = x
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(i, &v)| (v > low && v < high).then_some(i))
-                    .collect();
-                x = ids.iter().map(|&i| x[i]).collect();
-                y = ids.iter().map(|&i| y[i]).collect();
-                indices = ids.iter().map(|&i| indices[i]).collect();
-            }
-            if x.len() < 2 {
-                return Err(
-                    "Background range must include at least two distinct pattern samples.".into(),
-                );
-            }
-            if prepared.is_some()
-                && x.len()
-                    .checked_mul((self.background.order + 1).pow(2))
-                    .is_none_or(|n| n > 200_000_000)
-            {
-                return Err("Background polynomial exceeds the interactive fitting limit; reduce order or bin count.".into());
-            }
             let background = if let Some(cached) = &self.extracted {
                 cached.clone()
             } else {
@@ -647,21 +616,126 @@ impl Patterns {
             }
         }
         control.check()?;
-        let errors = raw
-            .sigma
-            .as_ref()
-            .map(|s| indices.iter().map(|&i| s[i]).collect::<Vec<_>>());
-        let spread = raw
-            .spread
-            .as_ref()
-            .map(|s| indices.iter().map(|&i| s[i]).collect::<Vec<_>>());
-        Ok(Curve {
-            x: Arc::new(x),
-            y: Arc::new(y),
-            sigma: errors.map(Arc::new),
-            spread: spread.map(Arc::new),
-        })
+        Ok(BackgroundInput { x, y, indices }.finish(raw))
     }
+
+    fn prepare_background(&self, raw: &Curve, bounded: bool) -> Result<BackgroundInput, String> {
+        let mut x = raw.x.as_ref().clone();
+        let mut y = raw.y.as_ref().clone();
+        let mut indices: Vec<_> = (0..x.len()).collect();
+        if let Some(curve) = self
+            .overlays
+            .iter()
+            .find(|o| Some(&o.uid) == self.background_uid.as_ref())
+            .map(|o| o.curve(&self.unit))
+            .transpose()?
+            .or_else(|| {
+                self.anonymous_background
+                    .as_ref()
+                    .map(|c| c.as_ref().clone())
+            })
+        {
+            let mut xx = vec![];
+            let mut yy = vec![];
+            let mut ii = vec![];
+            for (i, (&a, &b)) in x.iter().zip(&y).enumerate() {
+                if let Some(v) = interpolate(&curve.x, &curve.y, a) {
+                    xx.push(a);
+                    yy.push(b - v);
+                    ii.push(i);
+                }
+            }
+            if xx.is_empty() {
+                return Err("The background and pattern do not overlap.".into());
+            }
+            x = xx;
+            y = yy;
+            indices = ii;
+        }
+        if self.background.enabled {
+            if let Some([low, high]) = self.background.range {
+                let ids: Vec<_> = x
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(i, &v)| (v > low && v < high).then_some(i))
+                    .collect();
+                x = ids.iter().map(|&i| x[i]).collect();
+                y = ids.iter().map(|&i| y[i]).collect();
+                indices = ids.iter().map(|&i| indices[i]).collect();
+            }
+            if x.len() < 2 {
+                return Err(
+                    "Background range must include at least two distinct pattern samples.".into(),
+                );
+            }
+            if bounded
+                && x.len()
+                    .checked_mul((self.background.order + 1).pow(2))
+                    .is_none_or(|n| n > 200_000_000)
+            {
+                return Err("Background polynomial exceeds the interactive fitting limit; reduce order or bin count.".into());
+            }
+        }
+        Ok(BackgroundInput { x, y, indices })
+    }
+
+    /// Smooth independent curves together while preserving the scalar scan in each lane.
+    pub(crate) fn build_background_group(
+        &mut self,
+        raw: &[Curve],
+        control: &Control,
+        prepared: &mut Option<Arc<ChebyshevFit>>,
+    ) -> Result<Vec<Curve>, String> {
+        if raw.len() < 2 || !self.background.enabled {
+            return raw
+                .iter()
+                .map(|curve| {
+                    self.extracted = None;
+                    self.correct_background(curve, control, Some(&mut *prepared))
+                })
+                .collect();
+        }
+        let mut inputs = raw
+            .iter()
+            .map(|curve| self.prepare_background(curve, true))
+            .collect::<Result<Vec<_>, _>>()?;
+        let x = &inputs[0].x;
+        if inputs.iter().any(|input| input.x != *x) {
+            return Err("Pattern background coverage differs between frames.".into());
+        }
+        let points = (self.background.smoothing / (x[1] - x[0])).abs() as usize;
+        if points > 2_000_000 {
+            return Err(
+                "Background smoothing window exceeds the bounded working allocation.".into(),
+            );
+        }
+        let rows: Vec<_> = inputs.iter().map(|input| input.y.as_slice()).collect();
+        let smoothed = crate::batch_background::smooth_group_cancellable(
+            &rows,
+            points,
+            self.background.iterations,
+            control,
+        )?;
+        if prepared
+            .as_ref()
+            .is_none_or(|p| !p.matches(x, self.background.order))
+        {
+            *prepared = Some(Arc::new(ChebyshevFit::new(x, self.background.order)?));
+        }
+        for (input, smooth) in inputs.iter_mut().zip(smoothed) {
+            control.check()?;
+            let background = prepared.as_ref().unwrap().fit(&smooth)?;
+            for (value, background) in input.y.iter_mut().zip(background) {
+                *value -= background;
+            }
+        }
+        Ok(inputs
+            .into_iter()
+            .zip(raw)
+            .map(|(input, raw)| input.finish(raw))
+            .collect())
+    }
+
     fn set_background(&mut self, uid: Option<String>) {
         self.anonymous_background = None;
         if let Some(previous) = &self.background_uid

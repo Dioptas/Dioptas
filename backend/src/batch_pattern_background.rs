@@ -1,7 +1,11 @@
 //! Apply the actual Integration pattern pipeline to every Batch row. The
 //! unmodified series remains the source; fitted and loaded backgrounds share
 //! the same subtraction, ROI, interpolation and axis rules as the pattern view.
-use crate::{control::Control, pattern::Patterns, series::Series};
+use crate::{
+    control::Control,
+    pattern::{Curve, Patterns},
+    series::Series,
+};
 use std::{collections::HashMap, sync::Arc};
 
 pub(crate) fn active(patterns: &Patterns) -> bool {
@@ -84,7 +88,7 @@ impl Series {
         // All workers share this immutable decomposition, never a fitted curve.
         control.publish(serde_json::json!({"running":true,"current":0,"total":self.count(),"label":"Applying pattern background to batch"}));
         let coverage = row_fit.apply(0, &mut background[..n], &mut fit, &mut prepared)?;
-        crate::background_workers::rows(
+        crate::background_workers::groups::<4, _, _, _>(
             &mut background[n..],
             n,
             1,
@@ -92,8 +96,20 @@ impl Series {
             "Applying pattern background to batch",
             || (fit.clone(), prepared.clone()),
             |row, output, (fit, prepared)| {
-                if row_fit.apply(row, output, fit, prepared)? != coverage {
-                    return Err("Pattern background coverage differs between Batch frames.".into());
+                let mut raw = Vec::with_capacity(output.len() / n);
+                for i in row..row + output.len() / n {
+                    fit.ingest(self.profile(i, unit)?, unit, "Batch pattern", None, false);
+                    raw.push(fit.raw.as_ref().unwrap().as_ref().clone());
+                }
+                let curves = fit.build_background_group(&raw, control, prepared)?;
+                for (i, (curve, values)) in
+                    curves.iter().zip(output.chunks_exact_mut(n)).enumerate()
+                {
+                    if row_fit.store(row + i, values, curve)? != coverage {
+                        return Err(
+                            "Pattern background coverage differs between Batch frames.".into()
+                        );
+                    }
                 }
                 Ok(())
             },
@@ -156,6 +172,14 @@ impl RowFit<'_> {
             false,
         );
         let corrected = fit.build_background_row(self.control, prepared)?;
+        self.store(row, output, &corrected)
+    }
+    fn store(
+        &self,
+        row: usize,
+        output: &mut [f64],
+        corrected: &Curve,
+    ) -> Result<Vec<usize>, String> {
         let mut indices = Vec::with_capacity(corrected.x.len());
         for (&x, &y) in corrected.x.iter().zip(corrected.y.iter()) {
             let col = *self
