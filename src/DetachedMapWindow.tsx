@@ -63,6 +63,9 @@ export function DetachedMapWindow() {
     let disposed = false,
       refreshing = false,
       queued = false;
+    let requestedMapRevision: number | undefined,
+      fetchedMapRevision: number | undefined,
+      inFlightMapRevision: number | undefined;
     const transport = mapWindowChannel(
       true,
       new URLSearchParams(location.search).get("map_window") ?? "native",
@@ -75,9 +78,13 @@ export function DetachedMapWindow() {
       try {
         while (queued && !disposed) {
           queued = false;
+          const revision = requestedMapRevision;
+          inFlightMapRevision = revision;
           const result = await request("map_snapshot");
-          if (!disposed && result?.ok && "map" in result)
+          if (!disposed && result?.ok && "map" in result) {
             setMap(result.map ?? null);
+            fetchedMapRevision = revision;
+          }
         }
       } catch (error) {
         if (!disposed) setError(String(error));
@@ -88,7 +95,14 @@ export function DetachedMapWindow() {
     const subscription = transport.listen((message) => {
       if (message.type === "refresh") {
         setStatus(message.status);
-        if (message.status.ready) {
+        if (
+          message.status.ready &&
+          (message.status.mapRevision === undefined ||
+            (message.status.mapRevision !== fetchedMapRevision &&
+              (!refreshing ||
+                message.status.mapRevision !== inFlightMapRevision)))
+        ) {
+          requestedMapRevision = message.status.mapRevision;
           void refresh();
         }
       } else if (message.type === "response") {
@@ -192,7 +206,12 @@ export function DetachedMapWindow() {
           }
         />
         {map?.backgroundPending && status.ready && (
-          <Button variant="secondary" onClick={() => void run("map_refresh", {}, "Updating map background…")}>
+          <Button
+            variant="secondary"
+            onClick={() =>
+              void run("map_refresh", {}, "Updating map background…")
+            }
+          >
             Update map
           </Button>
         )}

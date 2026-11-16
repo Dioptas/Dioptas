@@ -53,7 +53,10 @@ try {
       });
       await call("open_image", { path: source, dataset: "frames" });
       await call("integration_background", {
-        enabled: true, smoothing: 0.1, iterations: 3, order: 2,
+        enabled: true,
+        smoothing: 0.1,
+        iterations: 3,
+        order: 2,
       });
       // Seed a finished map and a non-default layer before loading again.
       await call("map_load", { paths: [source] });
@@ -70,7 +73,10 @@ try {
         expression: "A*2+3",
       });
       const pending = await call("integration_background", {
-        enabled: true, smoothing: 0.12, iterations: 4, order: 3,
+        enabled: true,
+        smoothing: 0.12,
+        iterations: 4,
+        order: 3,
       });
       assert.equal(pending.map.backgroundPending, true);
       assert.deepEqual(pending.map.values, before.map.values);
@@ -100,11 +106,13 @@ try {
       });
       await page.addInitScript(() => {
         window.__pending = 0;
+        window.__backgroundEdits = 0;
         window.pywebview = {
           api: {
             invoke: async (a, p) => {
               const track = !["progress", "pixel"].includes(a);
               if (track) window.__pending++;
+              if (a === "integration_background") window.__backgroundEdits++;
               try {
                 const result = await window.__nativeInvoke(a, p);
                 if (a === "map_refresh" && result.ok)
@@ -124,7 +132,9 @@ try {
           () => window.__pending === 0 && !document.querySelector(".spin"),
         );
       await ready();
-      await page.getByRole("button", { name: "Integration", exact: true }).click();
+      await page
+        .getByRole("button", { name: "Integration", exact: true })
+        .click();
       await ready();
       assert.equal(commands.includes("map_refresh"), false);
       await page.getByRole("button", { name: "Map", exact: true }).click();
@@ -211,7 +221,9 @@ try {
       const snapshot = observed.find(
         (p) => p.completed > 0 && p.completed < p.total,
       );
-      const selected = await call("map_select", { index: snapshot.completed - 1 });
+      const selected = await call("map_select", {
+        index: snapshot.completed - 1,
+      });
       assert.deepEqual(snapshot.pattern.x, selected.pattern.x);
       assert.deepEqual(snapshot.pattern.y, selected.pattern.y);
       const raw = native.buffers.get(snapshot.raster.bufferId);
@@ -254,16 +266,63 @@ try {
       });
       await ready();
       await detached.getByTestId("scan-map").waitFor();
-      await page.getByRole("button", { name: "Integration", exact: true }).click();
+      await page
+        .getByRole("button", { name: "Integration", exact: true })
+        .click();
       const refreshes = commands.filter((a) => a === "map_refresh").length;
-      await page.getByRole("button", { name: "Subtract pattern background", exact: true }).click();
-      await detached.getByRole("button", { name: "Update map", exact: true }).waitFor();
+      await page
+        .getByRole("button", {
+          name: "Subtract pattern background",
+          exact: true,
+        })
+        .click();
+      await detached
+        .getByRole("button", { name: "Update map", exact: true })
+        .waitFor();
       const pendingDetached = await call("state");
       assert.equal(pendingDetached.map.backgroundPending, true);
-      assert.equal(commands.filter((a) => a === "map_refresh").length, refreshes);
-      await detached.getByRole("button", { name: "Update map", exact: true }).click();
+      assert.equal(
+        commands.filter((a) => a === "map_refresh").length,
+        refreshes,
+      );
+      const snapshots = commands.filter((a) => a === "map_snapshot").length;
+      const backgroundEdits = commands.filter(
+        (a) => a === "integration_background",
+      ).length;
+      const browserEdits = await page.evaluate(() => window.__backgroundEdits);
+      await page
+        .getByRole("button", {
+          name: "Subtract pattern background",
+          exact: true,
+        })
+        .click();
+      await page.waitForFunction(
+        (previous) => window.__backgroundEdits > previous,
+        browserEdits,
+      );
       await ready();
-      await detached.getByRole("button", { name: "Update map", exact: true }).waitFor({ state: "hidden" });
+      assert.equal(
+        commands.filter((a) => a === "integration_background").length,
+        backgroundEdits + 1,
+      );
+      await detached.evaluate(
+        () =>
+          new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve)),
+          ),
+      );
+      assert.equal(
+        commands.filter((a) => a === "map_snapshot").length,
+        snapshots,
+        "Current-pattern edits must not resend an unchanged pending map",
+      );
+      await detached
+        .getByRole("button", { name: "Update map", exact: true })
+        .click();
+      await ready();
+      await detached
+        .getByRole("button", { name: "Update map", exact: true })
+        .waitFor({ state: "hidden" });
       assert.equal((await call("state")).map.backgroundPending, false);
       assert.deepEqual(errors, []);
       receipts.push({

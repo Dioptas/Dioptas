@@ -105,6 +105,85 @@ pub(crate) fn smooth_cancellable(
     }
     Ok(extended[points..points + y.len()].to_vec())
 }
+/// Interleave independent rows so the CPU can overlap their dependent scans.
+/// Each lane retains the scalar operation order and fixed edge padding.
+pub(crate) fn smooth_group_cancellable(
+    rows: &[&[f64]],
+    points: usize,
+    iterations: usize,
+    control: &Control,
+) -> Result<Vec<Vec<f64>>, String> {
+    control.check()?;
+    let Some(first) = rows.first() else {
+        return Ok(vec![]);
+    };
+    let bins = first.len();
+    if rows.len() > 4
+        || rows
+            .iter()
+            .any(|row| row.len() != bins || row.iter().any(|v| !v.is_finite()))
+    {
+        return Err("Background input samples must be finite and share a radial grid.".into());
+    }
+    if rows.len() == 1 {
+        return Ok(vec![smooth_cancellable(
+            rows[0], points, iterations, control,
+        )?]);
+    }
+    let end = bins.saturating_sub(points.saturating_add(2));
+    if points >= end {
+        return Ok(rows.iter().map(|row| row.to_vec()).collect());
+    }
+    let window = points * 2 + 1;
+    let mut extended = Vec::new();
+    extended
+        .try_reserve_exact(bins + points * 2)
+        .map_err(|_| "Cannot allocate the background smoothing buffer.")?;
+    extended.resize(bins + points * 2, [0.; 4]);
+    for (lane, row) in rows.iter().enumerate() {
+        for (i, column) in extended.iter_mut().enumerate() {
+            column[lane] = row[i.saturating_sub(points).min(bins - 1)];
+        }
+    }
+    for _ in 0..iterations {
+        control.check()?;
+        let mut average = [0.; 4];
+        for column in &extended[..window] {
+            for lane in 0..4 {
+                average[lane] += column[lane];
+            }
+        }
+        for value in &mut average {
+            *value /= window as f64;
+        }
+        for i in points..end {
+            if i.is_multiple_of(4096) {
+                control.check()?;
+            }
+            let outgoing = extended[i - points];
+            let incoming = extended[i + points + 1];
+            for lane in 0..4 {
+                let old = extended[i][lane];
+                if old > average[lane] {
+                    extended[i][lane] = average[lane];
+                    average[lane] +=
+                        ((average[lane] - old) + (incoming[lane] - outgoing[lane])) / window as f64;
+                } else {
+                    average[lane] += (incoming[lane] - outgoing[lane]) / window as f64;
+                }
+            }
+        }
+    }
+    Ok((0..rows.len())
+        .map(|lane| {
+            extended[points..points + bins]
+                .iter()
+                .map(|column| column[lane])
+                .collect()
+        })
+        .collect())
+}
+
 impl Series {
     pub fn background_metadata(&self) -> Value {
         json!({"parameters":self.batch_background.parameters,"extracted":self.batch_background.extracted,
@@ -228,7 +307,7 @@ impl Series {
         control.check()?;
         let prepared = crate::background_fit::ChebyshevFit::new(x, parameters.order)?;
         let mut background = vec![0.0; self.data.len()];
-        crate::background_workers::rows(
+        crate::background_workers::groups::<4, _, _, _>(
             &mut background,
             x.len(),
             0,
@@ -236,10 +315,15 @@ impl Series {
             "Extracting batch background",
             || (),
             |index, output, _| {
-                let row = &self.data[index * x.len()..(index + 1) * x.len()];
-                let smoothed = smooth_cancellable(row, points, parameters.iterations, control)?;
-                control.check()?;
-                output.copy_from_slice(&prepared.fit(&smoothed)?);
+                let rows: Vec<_> = self.data[index * x.len()..index * x.len() + output.len()]
+                    .chunks_exact(x.len())
+                    .collect();
+                let smoothed =
+                    smooth_group_cancellable(&rows, points, parameters.iterations, control)?;
+                for (smooth, row) in smoothed.iter().zip(output.chunks_exact_mut(x.len())) {
+                    control.check()?;
+                    row.copy_from_slice(&prepared.fit(smooth)?);
+                }
                 Ok(())
             },
         )?;
@@ -479,5 +563,74 @@ mod tests {
         Arc::make_mut(&mut s.data)[200] = f64::NAN;
         assert!(s.extract_batch_background(&Control::default()).is_err());
         assert_eq!(s.raw_background, background);
+    }
+}
+
+#[cfg(test)]
+mod smoothing_group_tests {
+    use super::*;
+
+    #[test]
+    fn grouped_smoothing_preserves_every_scalar_bit_and_lane_boundary() {
+        let control = Control::default();
+        for bins in [0, 1, 2, 9, 97, 4099] {
+            let data: Vec<Vec<_>> = (0..4)
+                .map(|lane| {
+                    (0..bins)
+                        .map(|i| match lane {
+                            0 => 100. + (i as f64 * 0.13).sin().abs() * 50.,
+                            1 => -23. + (i as f64 * 0.04).cos() * 3.,
+                            2 => {
+                                if i % 2 == 0 {
+                                    -0.
+                                } else {
+                                    0.
+                                }
+                            }
+                            _ => {
+                                if i % 7 == 0 {
+                                    1e200
+                                } else {
+                                    1e-200
+                                }
+                            }
+                        })
+                        .collect()
+                })
+                .collect();
+            for count in 1..=4 {
+                let rows: Vec<_> = data[..count].iter().map(Vec::as_slice).collect();
+                for points in [0, 1, 3, 17, bins, bins + 20] {
+                    for iterations in [0, 1, 7, 150] {
+                        let grouped =
+                            smooth_group_cancellable(&rows, points, iterations, &control).unwrap();
+                        for (row, output) in rows.iter().zip(grouped) {
+                            let reference =
+                                smooth_cancellable(row, points, iterations, &control).unwrap();
+                            assert!(
+                                output
+                                    .iter()
+                                    .zip(reference)
+                                    .all(|(a, b)| a.to_bits() == b.to_bits()),
+                                "bins={bins}, rows={count}, points={points}, iterations={iterations}"
+                            );
+                        }
+                    }
+                }
+            }
+        }
+        assert!(
+            smooth_group_cancellable(&[], 1, 1, &control)
+                .unwrap()
+                .is_empty()
+        );
+        assert!(smooth_group_cancellable(&[&[f64::NAN]], 1, 1, &control).is_err());
+        assert!(smooth_group_cancellable(&[&[1., 2.], &[3.]], 1, 1, &control).is_err());
+        control.cancel();
+        assert!(
+            smooth_group_cancellable(&[&[1., 2.]], 0, 150, &control)
+                .unwrap_err()
+                .contains("cancelled")
+        );
     }
 }

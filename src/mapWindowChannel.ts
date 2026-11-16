@@ -10,6 +10,7 @@ export type MapWindowStatus = {
   error: string | null;
   clicked?: import("./plotReadout").PlotReading | null;
   revision?: number;
+  mapRevision?: number;
   progress?: {
     running: boolean;
     current: number;
