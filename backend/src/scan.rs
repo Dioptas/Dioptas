@@ -20,6 +20,7 @@ pub(crate) struct Roi {
 pub(crate) struct Scan {
     pub series: Series,
     pub corrected: Option<CorrectedProfiles>,
+    pub background_pending: bool,
     pub dimension: [usize; 2],
     pub snake: bool,
     pub transpose: bool,
@@ -66,6 +67,7 @@ pub(crate) struct CorrectedProfiles {
     pub data: Arc<Vec<f64>>,
 }
 
+#[derive(Clone)]
 pub(crate) struct MapBackground {
     patterns: Patterns,
     prepared: Option<Arc<crate::background_fit::ChebyshevFit>>,
@@ -114,6 +116,7 @@ impl MapBackground {
     }
 }
 impl CorrectedProfiles {
+    #[cfg(any(feature = "dioptrin", test))]
     pub fn push(&mut self, curve: &crate::pattern::Curve) -> Result<(), String> {
         if self.data.is_empty() {
             self.x = curve.x.clone();
@@ -142,14 +145,48 @@ impl CorrectedProfiles {
         fit: &mut MapBackground,
         control: &crate::control::Control,
     ) -> Result<(), String> {
-        for i in start..series.count() {
-            let curve = fit.apply(
-                series.profile(i, &series.unit)?,
-                &series.unit,
-                series.wavelength,
-                control,
-            )?;
-            self.push(&curve)?;
+        if start == series.count() {
+            return control.check();
+        }
+        // Prepare the decomposition once and share it across independent row fits.
+        let first = fit.apply(
+            series.profile(start, &series.unit)?,
+            &series.unit,
+            series.wavelength,
+            control,
+        )?;
+        let bins = first.x.len();
+        if bins == 0 || (!self.data.is_empty() && self.x != first.x) {
+            return Err("Map background coverage differs between frames.".into());
+        }
+        let mut data = vec![0.0; (series.count() - start) * bins];
+        data[..bins].copy_from_slice(&first.y);
+        crate::background_workers::rows(
+            &mut data[bins..],
+            bins,
+            start + 1,
+            control,
+            "Updating map background",
+            || fit.clone(),
+            |index, output, fit| {
+                let curve = fit.apply(
+                    series.profile(index, &series.unit)?,
+                    &series.unit,
+                    series.wavelength,
+                    control,
+                )?;
+                if curve.x != first.x {
+                    return Err("Map background coverage differs between frames.".into());
+                }
+                output.copy_from_slice(&curve.y);
+                Ok(())
+            },
+        )?;
+        self.x = first.x;
+        if self.data.is_empty() {
+            self.data = Arc::new(data);
+        } else {
+            Arc::make_mut(&mut self.data).extend(data);
         }
         Ok(())
     }
@@ -267,6 +304,7 @@ impl Scan {
             pending: BTreeMap::new(),
             series,
             corrected,
+            background_pending: false,
         };
         s.rebuild(true, patterns)?;
         Ok(s)
@@ -277,6 +315,7 @@ impl Scan {
         control: &crate::control::Control,
     ) -> Result<(), String> {
         self.corrected = CorrectedProfiles::from_series(&self.series, patterns, control)?;
+        self.background_pending = false;
         Ok(())
     }
     pub fn shape(&self) -> [usize; 2] {
@@ -470,10 +509,124 @@ impl Scan {
             .iter()
             .map(|(n, e)| (n.clone(), json!(e)))
             .collect();
-        json!({"raster":self.raster.metadata,"unit":self.series.unit,"points":self.series.count(),"canRebuild":!self.series.paths.is_empty(),"dimension":self.dimension,"presets":dimensions(self.series.count()),"snake":self.snake,"transpose":self.transpose,"flip_horizontal":self.flip_horizontal,"flip_vertical":self.flip_vertical,"active":self.active,"rois":self.rois,"expressions":expressions,"selected":self.selected,"selectedCell":cell,"selectedSlot":self.selected.and_then(|i|slots.iter().position(|&p|p==Some(i))).or(self.selected_slot),"normalized":self.series.normalized,"normalizationRange":self.series.normalization,"normalizationReference":self.series.reference,"normalizationCoordinates":self.normalization_coordinates,"slots":slots,"labels":labels,"excluded":self.excluded,"indices":matrix(&self.indices),"slotIndices":matrix(&self.slot_indices),"values":self.values.chunks_exact(cols).map(|r|r.to_vec()).collect::<Vec<_>>(),"displayShape":[rows,cols]})
+        json!({"raster":self.raster.metadata,"unit":self.series.unit,"points":self.series.count(),"canRebuild":!self.series.paths.is_empty(),"backgroundPending":self.background_pending,"dimension":self.dimension,"presets":dimensions(self.series.count()),"snake":self.snake,"transpose":self.transpose,"flip_horizontal":self.flip_horizontal,"flip_vertical":self.flip_vertical,"active":self.active,"rois":self.rois,"expressions":expressions,"selected":self.selected,"selectedCell":cell,"selectedSlot":self.selected.and_then(|i|slots.iter().position(|&p|p==Some(i))).or(self.selected_slot),"normalized":self.series.normalized,"normalizationRange":self.series.normalization,"normalizationReference":self.series.reference,"normalizationCoordinates":self.normalization_coordinates,"slots":slots,"labels":labels,"excluded":self.excluded,"indices":matrix(&self.indices),"slotIndices":matrix(&self.slot_indices),"values":self.values.chunks_exact(cols).map(|r|r.to_vec()).collect::<Vec<_>>(),"displayShape":[rows,cols]})
     }
     pub fn name_available(&self, name: &str) -> bool {
         !self.rois.iter().any(|r| r.name == name)
             && !self.expressions.iter().any(|(n, _)| n == name)
+    }
+}
+
+#[cfg(test)]
+mod background_tests {
+    use super::*;
+    use crate::{
+        control::Control,
+        pattern::{Curve, Overlay},
+        series::Entry,
+    };
+
+    #[test]
+    fn parallel_map_refits_match_serial_rows_across_units_and_cropped_backgrounds() {
+        let count = 513;
+        let bins = 1024;
+        let x: Vec<_> = (0..bins).map(|i| 1. + i as f64 * 0.01).collect();
+        let data: Vec<_> = (0..count)
+            .flat_map(|frame| {
+                (0..bins).map(move |bin| {
+                    100. + bin as f64 * 0.1 + (frame + 1) as f64 * (bin as f64 * 0.03).sin().abs()
+                })
+            })
+            .collect();
+        let series = Series::new(
+            x.clone(),
+            data,
+            "q_A^-1".into(),
+            Some(4e-11),
+            (0..count)
+                .map(|frame| Entry {
+                    path: String::new(),
+                    frame,
+                })
+                .collect(),
+            vec![],
+            count,
+        )
+        .unwrap();
+        for unit in ["q_A^-1", "2th_deg", "d_A"] {
+            let mut patterns = Patterns::default();
+            patterns.unit = unit.into();
+            patterns.background.enabled = true;
+            patterns.background.order = 9;
+            patterns.background.iterations = 15;
+            let axis = series.profile(0, unit).unwrap().x;
+            let mut range = [axis[100], axis[900]];
+            range.sort_by(f64::total_cmp);
+            patterns.background.range = Some(range);
+            patterns.background_uid = Some("background".into());
+            patterns.overlays.push(Overlay {
+                uid: "background".into(),
+                name: "Background".into(),
+                visible: false,
+                color: "#ffffff".into(),
+                scale: 2.,
+                offset: 3.,
+                data: Arc::new(Curve {
+                    x: axis,
+                    y: Arc::new(vec![5.; bins]),
+                    sigma: None,
+                    spread: None,
+                }),
+                batch_source: None,
+            });
+            let control = Control::default();
+            let mut serial = CorrectedProfiles::default();
+            let mut fit = MapBackground::new(&patterns).unwrap();
+            let started = std::time::Instant::now();
+            for i in 0..count {
+                let curve = fit
+                    .apply(
+                        series.profile(i, &series.unit).unwrap(),
+                        &series.unit,
+                        series.wavelength,
+                        &control,
+                    )
+                    .unwrap();
+                serial.push(&curve).unwrap();
+            }
+            let serial_elapsed = started.elapsed();
+            let workers = crate::worker_pool::available().min(4);
+            let pool = crate::worker_pool::pool(Some(workers)).unwrap();
+            let started = std::time::Instant::now();
+            let parallel = crate::worker_pool::enter(pool, || {
+                CorrectedProfiles::from_series(&series, &patterns, &control)
+            })
+            .unwrap()
+            .unwrap();
+            eprintln!(
+                "{unit}, {count} x {bins}, {workers} workers: serial {serial_elapsed:?}, parallel {:?}",
+                started.elapsed()
+            );
+            assert_eq!(parallel.x, serial.x);
+            assert!(
+                parallel
+                    .data
+                    .iter()
+                    .zip(serial.data.iter())
+                    .all(|(a, b)| a.to_bits() == b.to_bits())
+            );
+            assert_eq!(control.progress()["current"], count);
+            assert_eq!(control.progress()["total"], count);
+            let before = parallel.data.clone();
+            let mut cancelled = parallel;
+            control.cancel();
+            assert!(
+                cancelled
+                    .append_series(&series, 0, &mut fit, &control)
+                    .unwrap_err()
+                    .contains("cancelled")
+            );
+            assert!(Arc::ptr_eq(&before, &cancelled.data));
+        }
     }
 }

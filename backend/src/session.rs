@@ -391,8 +391,7 @@ impl Session {
                     && crate::batch_pattern_background::changed(before, &self.patterns)
                     && let Some(scan) = &mut self.scan
                 {
-                    scan.refresh_background(&self.patterns, &self.control)?;
-                    scan.rebuild(true, &self.patterns)?;
+                    scan.background_pending = true;
                     if let Some(id) = reply.result["map"]["raster"]["bufferId"].as_str() {
                         reply.buffers.retain(|b| b.id != id);
                     }

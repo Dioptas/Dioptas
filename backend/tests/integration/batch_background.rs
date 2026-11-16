@@ -529,7 +529,8 @@ fn pattern_edits_automatically_update_batch_and_history_without_touching_sources
     );
     assert_eq!(disabled.result["batch"]["backgroundState"]["cut"], false);
     assert_eq!(saved(&mut s, &output, "processed/result/data"), source);
-    assert_eq!(call(&mut s, "state", json!({})).result["map"], map);
+    let current_map = call(&mut s, "state", json!({})).result["map"].clone();
+    assert_eq!(current_map["values"], map["values"]);
     call(
         &mut s,
         "integration_background",
@@ -708,7 +709,11 @@ fn map_load_reduces_each_background_corrected_pattern_before_selection() {
         "integration_background",
         json!({"enabled":false}),
     );
-    assert_eq!(disabled.result["map"]["values"], raw["values"]);
+    assert_eq!(disabled.result["map"]["values"], corrected["values"]);
+    assert_eq!(disabled.result["map"]["backgroundPending"], true);
+    let refreshed = call(&mut reopened, "map_refresh", json!({}));
+    assert_eq!(refreshed.result["map"]["backgroundPending"], false);
+    assert_eq!(refreshed.result["map"]["values"], raw["values"]);
     let rebuilt = call(&mut reopened, "map_load", json!({"reintegrate":true}));
     assert_eq!(rebuilt.result["map"]["values"], raw["values"]);
 }
@@ -821,4 +826,49 @@ fn stored_angle_map_uses_q_background_for_selection_and_normalization() {
             );
         }
     }
+}
+
+#[test]
+fn map_background_edits_wait_for_refresh_and_reopen_retains_pending_work() {
+    let temp = tempfile::tempdir().unwrap();
+    let input = temp.path().join("source.h5");
+    fixture(&input, 0);
+    let mut s = session();
+    let loaded = call(&mut s, "map_batch", json!({"path":input}));
+    let original = loaded.result["map"]["values"].clone();
+    // Three edits must leave the existing map intact until the explicit refresh.
+    for order in [2, 3, 4] {
+        let edit = call(
+            &mut s,
+            "integration_background",
+            json!({
+                "enabled":true,"order":order,"smoothing":0.1,"iterations":7,"range":[2.,8.]
+            }),
+        );
+        assert_eq!(edit.result["map"]["backgroundPending"], true);
+        assert_eq!(edit.result["map"]["values"], original);
+        assert_eq!(
+            call(&mut s, "map_snapshot", json!({})).result["map"]["values"],
+            original
+        );
+    }
+    let project = temp.path().join("pending.dio");
+    call(&mut s, "save_project", json!({"path":project}));
+    let mut restored = session();
+    let opened = call(&mut restored, "open_project", json!({"path":project}));
+    assert_eq!(opened.result["map"]["backgroundPending"], true);
+    assert_eq!(opened.result["map"]["values"], original);
+    let refreshed = call(&mut restored, "map_refresh", json!({}));
+    assert_eq!(refreshed.result["map"]["backgroundPending"], false);
+    assert_ne!(refreshed.result["map"]["values"], original);
+    let repeated = call(&mut restored, "map_refresh", json!({}));
+    assert_eq!(
+        repeated.result["map"]["values"],
+        refreshed.result["map"]["values"]
+    );
+    let rebuilt = call(&mut restored, "map_batch", json!({"path":input}));
+    assert_eq!(
+        rebuilt.result["map"]["values"],
+        refreshed.result["map"]["values"]
+    );
 }

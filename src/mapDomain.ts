@@ -12,6 +12,7 @@ export interface MapData {
   unit: Unit;
   points: number;
   canRebuild: boolean;
+  backgroundPending?: boolean;
   dimension: [number, number];
   presets: [number, number][];
   snake: boolean;

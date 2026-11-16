@@ -211,7 +211,31 @@ impl Session {
         action: &str,
         args: &Value,
     ) -> Result<Option<Reply>, String> {
+        if matches!(
+            action,
+            "map_refresh"
+                | "map_select"
+                | "map_poll"
+                | "map_export"
+                | "map_grid"
+                | "map_roi"
+                | "map_expression"
+                | "map_layer"
+                | "map_arrange"
+        ) && self.scan.as_ref().is_some_and(|s| s.background_pending)
+        {
+            let scan = self.scan.as_mut().unwrap();
+            scan.refresh_background(&self.patterns, &self.control)?;
+            scan.rebuild(true, &self.patterns)?;
+        }
         match action {
+            "map_refresh" => {
+                return if let Some(index) = self.scan.as_ref().and_then(|s| s.selected) {
+                    self.map_selection(&json!({"index":index})).map(Some)
+                } else {
+                    Ok(Some(self.map_response()))
+                };
+            }
             "map_snapshot" => {
                 let mut r = Reply::metadata(json!({"ok":true}));
                 self.attach_map(&mut r);

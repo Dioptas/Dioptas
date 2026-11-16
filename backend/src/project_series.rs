@@ -126,7 +126,7 @@ pub(super) fn save_configuration(
                 .map(|e| e.frame as i64)
                 .collect::<Vec<_>>(),
         )?;
-        write_text_attr(&g,"native_selection",&json!({"index":scan.selected,"slot":scan.selected_slot,"normalization_coordinates":scan.normalization_coordinates}).to_string())?;
+        write_text_attr(&g,"native_selection",&json!({"index":scan.selected,"slot":scan.selected_slot,"normalization_coordinates":scan.normalization_coordinates,"background_pending":scan.background_pending}).to_string())?;
     } else {
         replace(group, "map")?;
     }
@@ -352,6 +352,7 @@ fn read_map(
         return Err("Map layer names must be unique.".into());
     }
     if let Some(meta) = read_json_attr(g, "native_selection")? {
+        scan.background_pending = meta["background_pending"].as_bool().unwrap_or(false);
         scan.selected = meta["index"].as_u64().map(|i| i as usize);
         scan.selected_slot = meta["slot"].as_u64().map(|i| i as usize);
         if scan.selected.is_some_and(|i| i >= scan.series.count()) {

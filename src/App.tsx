@@ -1598,6 +1598,17 @@ export default function App() {
     },
     onError: setError,
   });
+  const mapRefreshAttempted = useRef(false);
+  useEffect(() => {
+    if (!(mode === "map" || mapWindow.detached) || !map?.backgroundPending) {
+      mapRefreshAttempted.current = false;
+      return;
+    }
+    if (ready && !error && !mapRefreshAttempted.current) {
+      mapRefreshAttempted.current = true;
+      void run("map_refresh", {}, "Updating map background…");
+    }
+  }, [mode, mapWindow.detached, map?.backgroundPending, ready, error, run]);
   const detectorWindow = useDetectorWindow(
     {
       largeText,
@@ -3688,6 +3699,15 @@ export default function App() {
               crystalFrames={scxrd?.frames ?? 0}
               processing={!!busy || !!progress?.running}
             />
+            {mode === "map" && map?.backgroundPending && ready && (
+              <Button
+                variant="secondary"
+                className="status-action"
+                onClick={() => void run("map_refresh", {}, "Updating map background…")}
+              >
+                Update map
+              </Button>
+            )}
             {error && (
               <Button
                 variant="secondary"
@@ -3718,7 +3738,7 @@ export default function App() {
                 {mode === "scxrd"
                   ? "Stop processing"
                   : mode === "map"
-                    ? "Cancel map integration"
+                    ? "Cancel map processing"
                     : mode === "integration"
                       ? "Cancel processing"
                       : mode === "mask"

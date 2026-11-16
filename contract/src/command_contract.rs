@@ -78,6 +78,14 @@ pub fn execution(action: &str) -> CommandExecution {
         | "map_load"
         | "map_folder"
         | "map_batch"
+        | "map_refresh"
+        | "map_normalize"
+        | "map_export"
+        | "map_grid"
+        | "map_roi"
+        | "map_expression"
+        | "map_layer"
+        | "map_arrange"
         | "map_select"
         | "map_mask"
         | "map_poll"
@@ -113,6 +121,7 @@ mod tests {
             "combination_settings",
             "mask_stroke",
             "map_select",
+            "map_refresh",
             "batch_select",
         ] {
             assert_eq!(execution(action), CommandExecution::Cancellable, "{action}");
