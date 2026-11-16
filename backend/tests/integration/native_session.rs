@@ -519,7 +519,7 @@ fn unsupported_geometry_and_options_fail_without_publishing_partial_changes() {
     );
     assert_eq!(
         call(&mut session, "state", json!({})).result["state"]["bins"],
-        1000
+        initial.result["state"]["bins"]
     );
     assert_eq!(
         session

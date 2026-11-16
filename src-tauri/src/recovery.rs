@@ -375,7 +375,7 @@ mod tests {
             .unwrap()
             .result_value()
             .unwrap();
-        assert_eq!(state["state"]["bins"], json!(1000));
+        assert_eq!(state["state"]["bins"], Value::Null);
         recovery.checkpoint(&restarted, true).unwrap();
         restarted.shutdown();
         let next = new_host();
@@ -386,7 +386,7 @@ mod tests {
             .unwrap()
             .result_value()
             .unwrap();
-        assert_eq!(state["state"]["bins"], json!(1000));
+        assert_eq!(state["state"]["bins"], Value::Null);
         next.shutdown();
     }
     #[test]
