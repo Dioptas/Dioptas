@@ -429,6 +429,7 @@ export interface CommandContracts {
   map_load: Spec<P.BatchLoadPayload, MapDelta>;
   map_folder: Spec<P.BatchLoadPayload, MapDelta>;
   map_batch: Spec<P.FilePayload, MapDelta>;
+  map_refresh: Spec<P.EmptyPayload, MapDelta>;
   map_snapshot: Spec<P.EmptyPayload, { map: Response["map"] }>;
   map_select: Spec<
     {
