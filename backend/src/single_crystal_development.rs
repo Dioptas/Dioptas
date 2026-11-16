@@ -93,6 +93,9 @@ struct SavedProducts<'a> {
     /// Refine geometry stage and product (absent before the step existed).
     pose_stage: &'a Stage,
     pose: Option<&'a pose::PoseFit>,
+    integrate_stage: &'a Stage,
+    integration: Option<&'a integrate::Integration>,
+    integration_shape: Option<&'a integrate::Shape>,
 }
 #[derive(Deserialize)]
 struct Products {
@@ -121,6 +124,12 @@ struct Products {
     pose_stage: Option<Stage>,
     #[serde(default)]
     pose: Option<pose::PoseFit>,
+    #[serde(default)]
+    integrate_stage: Option<Stage>,
+    #[serde(default)]
+    integration: Option<integrate::Integration>,
+    #[serde(default)]
+    integration_shape: Option<integrate::Shape>,
 }
 
 fn encode(value: &impl Serialize) -> Result<Vec<u8>, String> {
@@ -202,8 +211,9 @@ impl Crystal {
             revision: self.revision,
             track_offset: self.track_offset,
             reflection_filter: self.reflection_filter.clone(),
-            later_results: self.stages[5..].iter().any(|s| s.status != "pending")
-                || !self.reflections.is_empty()
+            // Integrate is carried; scaling and structure search are not.
+            later_results: self.stages[6..].iter().any(|s| s.status != "pending")
+                || (self.integration.is_none() && !self.reflections.is_empty())
                 || !self.structure.is_null(),
             history,
         };
@@ -228,6 +238,9 @@ impl Crystal {
                 refined: &self.refined,
                 pose_stage: &self.stages[4],
                 pose: self.pose.as_ref(),
+                integrate_stage: &self.stages[5],
+                integration: self.integration.as_ref(),
+                integration_shape: self.integration_shape.as_ref(),
             })?,
         })
     }
@@ -400,7 +413,7 @@ impl Crystal {
             Err(error) => dropped.push(format!("step results ({error})")),
         }
         if e.later_results {
-            dropped.push("intensities, scaling and structure".into());
+            dropped.push("scaling and structure".into());
         }
         if e.history {
             dropped.push("undo history".into());
@@ -554,8 +567,22 @@ impl Crystal {
                 if let Some(stage) = p.pose_stage.filter(|s| s.status != "pending") {
                     self.stages[4] = stage;
                     self.pose = p.pose;
+                    self.integration_shape = p.integration_shape;
+                    // Integrate follows a done Refine geometry only.
+                    if let Some(stage) = p.integrate_stage.filter(|s| s.status == "complete")
+                        && let Some(i) = p.integration.filter(|i| {
+                            i.lattices.iter().all(|l| {
+                                self.refined.iter().any(|r| r.lattice == l.lattice)
+                                    && l.rows.iter().all(|r| r.frames[1] < n)
+                            })
+                        })
+                    {
+                        self.stages[5] = stage;
+                        self.integration = Some(i);
+                    }
                 }
                 self.adopt_refinement();
+                self.adopt_integration();
             }
         }
         Ok(())

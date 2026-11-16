@@ -503,6 +503,9 @@
   padding: 4px 0 8px;
 }
 /* Estimate sits under the half-opening box; its result line below. */
+.sc-profile-check {
+  padding-left: min(106px, 40%);
+}
 .sc-estimate-line {
   display: grid;
   justify-items: start;
@@ -655,4 +658,98 @@
 small.sc-refined {
   font-size: var(--text-meta);
   overflow-wrap: anywhere;
+}
+
+/* Integrate: per lattice a disclosure heading (cross in the lattice's
+   colour), a few label/value rows, a muted line and the export. The
+   reflection table below is collapsed at first. */
+.sc-lattice-swatch {
+  flex-shrink: 0;
+  width: 1em;
+  font-weight: 700;
+  text-align: center;
+}
+.sc-integration-body {
+  gap: 4px;
+}
+.sc-integration-grid {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  font-size: var(--text-small);
+  font-variant-numeric: tabular-nums;
+}
+.sc-integration-grid > div {
+  display: grid;
+  grid-template-columns: minmax(84px, 40%) 1fr;
+  gap: 8px;
+}
+.sc-integration-grid dt {
+  color: var(--ui-muted);
+  text-align: right;
+}
+.sc-integration-grid dd {
+  margin: 0;
+}
+.sc-integration-note {
+  color: var(--ui-muted);
+  font-size: var(--text-meta);
+  overflow-wrap: anywhere;
+}
+.sc-integration-actions {
+  padding-left: 0;
+}
+.sc-reflection-body {
+  gap: 6px;
+}
+.sc-reflection-tools {
+  display: flex;
+  gap: 6px;
+}
+.sc-reflection-scroll {
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.sc-reflection-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+.sc-reflection-table th {
+  position: sticky;
+  top: 0;
+  background: var(--panel, #232323);
+  color: var(--ui-muted);
+  font-weight: 600;
+}
+.sc-reflection-table th,
+.sc-reflection-table td {
+  padding: 1px 6px;
+  text-align: right;
+  white-space: nowrap;
+}
+.sc-reflection-table th:last-child,
+.sc-reflection-table td:last-child {
+  text-align: left;
+}
+.sc-reflection-table tr.sc-row-flagged td {
+  color: var(--ui-muted);
+}
+/* The intensity in use (summed or profile-fitted). */
+.sc-reflection-table td.sc-used {
+  font-weight: 600;
+}
+.sc-reflection-pages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.sc-reflection-pages small {
+  color: var(--ui-muted);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
 }

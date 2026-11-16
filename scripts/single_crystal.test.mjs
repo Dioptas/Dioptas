@@ -31,6 +31,14 @@ import {
   refinedCellLines,
   symmetryTolerance,
   withUncertainty,
+  integrationSetting,
+  integrationAuto,
+  profileFitting,
+  integrationLines,
+  flagCounts,
+  latticeTone,
+  LATTICE_TONES,
+  intensityText,
 } from "../src/singleCrystalDomain.ts";
 import { crystalPixelReading } from "../src/singleCrystalReadout.ts";
 import { stepNumber } from "../src/numericDraft.ts";
@@ -726,12 +734,142 @@ test("Refine geometry is on by default in the lean settings and for summation", 
 test("Refine geometry is the fifth step: a switch in its settings, the pose under the lattices", async () => {
   const { readFile } = await import("node:fs/promises");
   const view = await readFile(new URL("../src/SingleCrystalWorkspace.tsx", import.meta.url), "utf8");
-  assert.match(view, /"Refine lattice",\s*"Refine geometry",\s*\] as const/);
-  assert.match(view, /const lastStage = data\?\.geometry \? 4 : 1/);
+  assert.match(view, /"Refine lattice",\s*"Refine geometry",\s*"Integrate",\s*\] as const/);
   assert.match(view, /stage === 4 && \([\s\S]{0,300}type="checkbox"\s*checked=\{data\.config\.refine_geometry\}/);
   assert.match(view, /setConfig\(\{ refine_geometry: e\.target\.checked \}\)/);
   assert.match(view, /aria-label="Detector pose"/);
   assert.match(view, /poseLines\(data\.poseFit, data\.refinedLattices\?\.length \?\? 1\)/);
   // The step line shows the backend's detail once it ran.
   assert.match(view, /if \(stage >= 3 && state\.status !== "pending"\) return state\.detail;/);
+});
+
+const integrationStats = {
+  predicted: 6253,
+  hidden: 2360,
+  measured: 6204,
+  usable: 5635,
+  strong: 2540,
+  d_range: [9.118, 0.4506],
+  laue: "mmm",
+  r_int: 0.1451,
+  redundancy: 2.865,
+  completeness: 0.3642,
+  unique: 1967,
+  possible: 5401,
+  flags: [63, 426, 0, 0, 49, 28, 39, 0, 97, 7, 0],
+  detected: 2560,
+  offset: 0.2388,
+  shells: [],
+  bins: [],
+};
+test("Integrate settings follow the data until set, and From data clears them", () => {
+  const summary = {
+    defaults: { d_min: 0.45, box_size: 9, rocking: 0.5, profiles: true },
+    settings: null,
+    lattices: [],
+    flagNames: [],
+  };
+  assert.deepEqual(crystalDefaults.integration_d_min, null);
+  assert.deepEqual(
+    integrationSetting(crystalDefaults, summary, "integration_d_min"),
+    { value: 0.45, auto: true },
+  );
+  assert.deepEqual(
+    integrationSetting({ ...crystalDefaults, integration_box: 11 }, summary, "integration_box"),
+    { value: 11, auto: false },
+  );
+  assert.deepEqual(
+    integrationSetting(crystalDefaults, summary, "rocking_width"),
+    { value: 0.5, auto: true },
+  );
+  // Before a calibration there is no derived value: a neutral number.
+  assert.equal(integrationSetting(crystalDefaults, undefined, "integration_box").value, 9);
+  // Profile fitting follows the default until chosen.
+  assert.deepEqual(profileFitting(crystalDefaults, summary), { value: true, auto: true });
+  assert.deepEqual(
+    profileFitting({ ...crystalDefaults, profile_fitting: false }, summary),
+    { value: false, auto: false },
+  );
+  assert.deepEqual(integrationAuto, {
+    integration_d_min: null,
+    integration_box: null,
+    rocking_width: null,
+    profile_fitting: null,
+  });
+  const valid = exploratoryCrystalConfig({ ...crystalDefaults, confirmed: true });
+  assert.equal(crystalConfigError(valid), null);
+  assert.match(crystalConfigError({ ...valid, integration_box: 1 }), /Peak box/);
+  assert.match(crystalConfigError({ ...valid, integration_box: 10 }), /odd/);
+  assert.equal(crystalConfigError({ ...valid, integration_box: 11 }), null);
+  assert.match(crystalConfigError({ ...valid, integration_d_min: 0.1 }), /Resolution limit/);
+  assert.match(crystalConfigError({ ...valid, rocking_width: 30 }), /Rocking width/);
+});
+test("Integrate shows a few short rows per lattice and a muted line", () => {
+  const { rows, note } = integrationLines(integrationStats);
+  assert.deepEqual(rows, [
+    ["Reflections", "5635 usable of 6253"],
+    ["I/σ > 3", "45 %"],
+    ["Resolution", "9.12–0.45 Å"],
+    ["R_int (mmm)", "14.5 %"],
+    ["Redundancy", "2.9 · 36 % complete"],
+  ]);
+  assert.equal(
+    note,
+    "6204 measured · 2360 under masks · 3075 without a found spot · offset 0.24 px",
+  );
+  const none = integrationLines({
+    ...integrationStats,
+    usable: 0,
+    strong: 0,
+    hidden: 0,
+    r_int: null,
+    detected: 0,
+    offset: null,
+    completeness: 0.05,
+  });
+  assert.deepEqual(none.rows[1], ["I/σ > 3", "—"]);
+  assert.deepEqual(none.rows[3], ["R_int (mmm)", "—"]);
+  assert.equal(none.rows[4][1], "2.9 · 5.0 % complete");
+  assert.equal(none.note, "6204 measured · 0 without a found spot");
+  // With profiles: how many use the fitted intensity; a failed fit is said.
+  const fitted = integrationLines({ ...integrationStats, profiled: 4100 });
+  assert.deepEqual(fitted.rows[1], ["Profile fitted", "4100 of 5635"]);
+  const failed = integrationLines({ ...integrationStats, profile: "failed: too few teachers" });
+  assert.match(failed.note, /profiles failed, summation used$/);
+  const names = ["edge", "masked", "saturated", "overlap", "background", "axial", "partial", "no data", "boundary", "model", "large"];
+  assert.equal(flagCounts(integrationStats, names), "masked 426 · boundary 97 · edge 63");
+  assert.equal(flagCounts({ ...integrationStats, flags: names.map(() => 0) }, names), "");
+  // The same tally for why fitted profiles were not used.
+  const profileNames = ["edge", "masked", "saturated", "overlap", "background", "partial", "model", "low profile mass", "failed", "no profile", "mismatch"];
+  const profileFlags = [0, 12, 0, 40, 0, 0, 0, 7, 0, 0, 824];
+  assert.equal(
+    flagCounts(integrationStats, profileNames, 3, profileFlags),
+    "mismatch 824 · overlap 40 · masked 12",
+  );
+});
+test("predicted crosses take one colour per integrated lattice; table numbers stay short", () => {
+  assert.equal(latticeTone(0, [0, 2]), LATTICE_TONES[0]);
+  assert.equal(latticeTone(2, [0, 2]), LATTICE_TONES[1]);
+  assert.equal(latticeTone(7, [0, 2]), LATTICE_TONES[0], "unknown row: first colour");
+  assert.ok(!LATTICE_TONES.includes("#ff9500") && !LATTICE_TONES.includes("#30d158"));
+  assert.equal(intensityText(12345.6), "12346");
+  assert.equal(intensityText(-23.456), "-23.5");
+  assert.equal(intensityText(3.14159), "3.14");
+  assert.equal(intensityText(Number.NaN), "—");
+});
+test("Integrate is the sixth step: analysis runs through it, its settings and results in the panel", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const view = await readFile(new URL("../src/SingleCrystalWorkspace.tsx", import.meta.url), "utf8");
+  assert.match(view, /const lastStage = data\?\.geometry \? 5 : 1/);
+  assert.match(view, /\{stage === 5 && integrateFields\(\)\}/);
+  assert.match(view, /aria-label="Intensities"/);
+  assert.match(view, /operation: "hkl",\s*lattice: l\.lattice/);
+  assert.match(view, /kind: "integrated"/);
+  // Predicted crosses are drawn under the detected spots' circles.
+  assert.match(view, /predicted\.concat\(/);
+  // Profile fitting is an Integrate setting; the table shows both values.
+  assert.match(view, /setConfig\(\{ profile_fitting: e\.target\.checked \}\)/);
+  assert.match(view, /r\.profiled \? "sc-used" : undefined/);
+  assert.match(view, /title=\{r\.profileWhy \|\| undefined\}/);
+  assert.match(view, /rocking width at one frame/);
 });

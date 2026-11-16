@@ -101,6 +101,10 @@ export function SingleCrystalStages({
       | "shared_mask_enabled"
       | "persistent_enabled"
       | "lattice_method"
+      | "integration_d_min"
+      | "integration_box"
+      | "rocking_width"
+      | "profile_fitting"
     >,
     label: string,
     units = "",

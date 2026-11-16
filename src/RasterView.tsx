@@ -59,6 +59,9 @@ export interface RasterMarker {
   y: number;
   /** `lattice`: a spot of the lattice shown in Find lattices. */
   kind: "observed" | "predicted" | "rejected" | "selected" | "lattice";
+  /** Predicted crosses: colour (per lattice) and faint when flagged. */
+  tone?: string;
+  faint?: boolean;
 }
 export interface RasterRegion {
   bounds: [number, number, number, number];
@@ -654,11 +657,12 @@ export function RasterView({
         for (const marker of markers) {
           const x = ox + (marker.x + 0.5) * sx,
             y = oy + (raster.fullHeight - marker.y - 0.5) * sy;
+          context.globalAlpha = marker.faint ? 0.45 : 1;
           context.strokeStyle =
             marker.kind === "rejected"
               ? "#a3a8ad"
               : marker.kind === "predicted"
-                ? "#69baff"
+                ? (marker.tone ?? "#69baff")
                 : marker.kind === "selected"
                   ? "#ffffff"
                   : marker.kind === "lattice"
@@ -675,6 +679,7 @@ export function RasterView({
           } else context.arc(x, y, 5, 0, Math.PI * 2);
           context.stroke();
         }
+        context.globalAlpha = 1;
         // Start with Qt's 7/9 px dots at fit, then grow gently with zoom so
         // picked points remain visible without covering the enlarged peaks.
         // Orange for the current ring, red otherwise, white selection outline.

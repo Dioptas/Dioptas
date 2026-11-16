@@ -517,6 +517,7 @@ async fn desktop_invoke(
                         | "save_cake_profile"
                         | "integration_save_spottiness"
                         | "integration_save_pattern"
+                        | "scxrd_file"
                 ) {
                     payload["suggested_name"].as_str().unwrap_or(choice.name)
                 } else {

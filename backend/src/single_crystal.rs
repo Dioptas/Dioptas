@@ -30,6 +30,8 @@ pub(super) mod dac_fit;
 #[path = "single_crystal_development.rs"]
 mod development;
 pub(super) use development::Transfer;
+#[path = "single_crystal_integrate.rs"]
+mod integrate;
 #[path = "single_crystal_lattices.rs"]
 mod lattices;
 #[path = "single_crystal_masks.rs"]
@@ -46,18 +48,21 @@ mod raw_frames;
 mod refine;
 #[path = "single_crystal_pose.rs"]
 mod pose;
-const ENGINE: &str = "PhaseSmith 0.8.1 / e47507f4";
+/// The linked PhaseSmith ("PhaseSmith <version> / <commit>"), from Cargo.lock
+/// (see build.rs).
+const ENGINE: &str = env!("PHASESMITH_ENGINE");
 fn adapter_identity() -> &'static str {
     static ID: std::sync::OnceLock<String> = std::sync::OnceLock::new();
     ID.get_or_init(|| {
         let mut hash = Sha256::new();
-        let sources: [&[u8]; 19] = [
+        let sources: [&[u8]; 20] = [
             include_bytes!("single_crystal.rs"),
             include_bytes!("single_crystal_dac_fit.rs"),
             include_bytes!("single_crystal_processing.rs"),
             include_bytes!("single_crystal_lattices.rs"),
             include_bytes!("single_crystal_refine.rs"),
             include_bytes!("single_crystal_pose.rs"),
+            include_bytes!("single_crystal_integrate.rs"),
             include_bytes!("single_crystal_scaling.rs"),
             include_bytes!("single_crystal_shadows.rs"),
             include_bytes!("single_crystal_diamond.rs"),
@@ -179,6 +184,17 @@ pub(super) struct Config {
     /// degrees.
     #[serde(default = "refine::default_angle_tolerance")]
     pub symmetry_angle_tolerance: f64,
+    /// Integrate: resolution limit, Å (None: the detector corner).
+    pub integration_d_min: Option<f64>,
+    /// Integrate: side of the square peak box, pixels (None: from the spots).
+    pub integration_box: Option<usize>,
+    /// Integrate: full rocking width in ω for |ζ| = 1, degrees (None: from
+    /// the spots' spread in ω).
+    pub rocking_width: Option<f64>,
+    /// Integrate: profile intensity where the fit is usable (None: the
+    /// default).
+    #[serde(default)]
+    pub profile_fitting: Option<bool>,
 }
 fn default_diamond_margin() -> usize {
     10
@@ -240,6 +256,10 @@ impl Default for Config {
             merge_angle: lattices::default_merge_angle(),
             symmetry_length_tolerance: refine::default_length_tolerance(),
             symmetry_angle_tolerance: refine::default_angle_tolerance(),
+            integration_d_min: None,
+            integration_box: None,
+            rocking_width: None,
+            profile_fitting: None,
         }
     }
 }
@@ -278,6 +298,29 @@ impl Config {
                 "Symmetry tolerances must be above 0 and at most {} % and {}°.",
                 refine::TOLERANCE_MAX,
                 refine::TOLERANCE_MAX
+            ));
+        }
+        if self
+            .integration_d_min
+            .is_some_and(|d| !(integrate::D_MIN_RANGE.0..=integrate::D_MIN_RANGE.1).contains(&d))
+            || self
+                .integration_box
+                .is_some_and(|b| {
+                    !(integrate::BOX_RANGE.0..=integrate::BOX_RANGE.1).contains(&b)
+                        || b.is_multiple_of(2)
+                })
+            || self.rocking_width.is_some_and(|r| {
+                !(integrate::ROCKING_RANGE.0..=integrate::ROCKING_RANGE.1).contains(&r)
+            })
+        {
+            return Err(format!(
+                "Integrate needs a resolution limit of {}-{} Å, an odd peak box of {}-{} px and a rocking width of {}-{}°.",
+                integrate::D_MIN_RANGE.0,
+                integrate::D_MIN_RANGE.1,
+                integrate::BOX_RANGE.0,
+                integrate::BOX_RANGE.1,
+                integrate::ROCKING_RANGE.0,
+                integrate::ROCKING_RANGE.1
             ));
         }
         if !["summation", "profile"].contains(&self.integration_method.as_str()) {
@@ -471,6 +514,10 @@ impl Config {
             || self.aperture_radius != n.aperture_radius
             || self.omega_radius != n.omega_radius
             || self.polarization != n.polarization
+            || self.integration_d_min != n.integration_d_min
+            || self.integration_box != n.integration_box
+            || self.rocking_width != n.rocking_width
+            || self.profile_fitting != n.profile_fitting
         {
             5
         } else if self.group != n.group || self.scan_scaling != n.scan_scaling {
@@ -654,6 +701,13 @@ pub(super) struct Crystal {
     refined: Vec<refine::Refined>,
     /// Refine geometry product (see `pose`).
     pose: Option<pose::PoseFit>,
+    /// Integrate product (see `integrate`).
+    integration: Option<integrate::Integration>,
+    /// Rocking width and spot size estimated from the frames (Integrate);
+    /// kept until the lattices or the pose change.
+    integration_shape: Option<integrate::Shape>,
+    /// Integrate reflection table position (view only).
+    integrated_table: integrate::Table,
     geometry_report: Value,
     reflections: Vec<Reflection>,
     unscaled_reflections: Vec<Reflection>,
@@ -740,7 +794,12 @@ impl Crystal {
         } else if from == 4 {
             self.drop_pose();
         }
+        if from <= 4 {
+            self.integration_shape = None;
+        }
         if from <= 5 {
+            self.integration = None;
+            self.integrated_table = Default::default();
             self.profile_report = Value::Null;
             self.profile_audit = None;
             self.profile_options = None;
@@ -992,7 +1051,7 @@ impl Crystal {
         } else {
             (None, None)
         };
-        let state = json!({"engine":ENGINE,"adapter":adapter_identity(),"exported":!self.saved_exports.is_empty(),"revision":self.revision,"config":self.config,"protocolTemplate":protocol::builtin(),"effectiveProtocol":effective_protocol,"protocolInspectionError":protocol_error,"frames":self.sources.len(),"frame":self.frame,"firstSource":self.sources.first().map(|s|s.path.to_string_lossy()),"lastSource":self.sources.last().map(|s|s.path.to_string_lossy()),"filename":self.sources.get(self.frame).map(|s|s.path.file_name().unwrap_or_default().to_string_lossy()),"shape":self.shape,"stages":self.stages,"geometry":self.geometry,"geometryReport":self.geometry_report,"peaks":shown,"predictions":self.predicted_markers(),"peakCount":self.peaks.len(),"peakFrames":self.peak_frames(),"busyFrames":self.busy_frames(),"tracks":tracks,"trackOffset":self.track_offset,"reflectionOffset":self.reflection_offset,"trackCount":self.tracks.len(),"cells":self.cells,"selected":self.selected,"shownLattice":self.shown,"refinedLattices":self.refined,"poseFit":self.pose,"reflections":self.table_reflections().skip(self.reflection_offset).take(200).collect::<Vec<_>>(),"reflectionFilteredCount":self.table_reflections().count(),"reflectionFilter":if self.reflection_filter.is_empty(){"all"}else{&self.reflection_filter},"suppliedGroupSymbol":phasesmith_io::space_group_by_number(i32::from(self.config.group)).ok().map(|g|g.hm_symbol),"reflectionCount":self.reflections.len(),"usableReflections":self.reflections.iter().filter(|r|r.usable()).count(),"shadows":self.shadows.as_ref().map(|s|&s.report),"profileReport":self.profile_report,"scaling":self.scaling,"structure":self.structure,"mask":self.mask,"excludedFrames":self.excluded_frames,"error":self.error,"notice":self.notice,"previewKind":if self.preview_kind.is_empty(){"raw"}else{&self.preview_kind},"image":self.preview.as_ref().map(|r|&r.metadata),"maskImage":self.preview_mask.as_ref().map(|r|&r.metadata),"sharedMask":self.shared_status,"source":self.sources.get(self.frame).map(|s|json!({"path":s.path,"frame":s.frame}))});
+        let state = json!({"engine":ENGINE,"adapter":adapter_identity(),"exported":!self.saved_exports.is_empty(),"revision":self.revision,"config":self.config,"protocolTemplate":protocol::builtin(),"effectiveProtocol":effective_protocol,"protocolInspectionError":protocol_error,"frames":self.sources.len(),"frame":self.frame,"firstSource":self.sources.first().map(|s|s.path.to_string_lossy()),"lastSource":self.sources.last().map(|s|s.path.to_string_lossy()),"filename":self.sources.get(self.frame).map(|s|s.path.file_name().unwrap_or_default().to_string_lossy()),"shape":self.shape,"stages":self.stages,"geometry":self.geometry,"geometryReport":self.geometry_report,"peaks":shown,"predictions":self.predicted_markers(),"peakCount":self.peaks.len(),"peakFrames":self.peak_frames(),"busyFrames":self.busy_frames(),"tracks":tracks,"trackOffset":self.track_offset,"reflectionOffset":self.reflection_offset,"trackCount":self.tracks.len(),"cells":self.cells,"selected":self.selected,"shownLattice":self.shown,"refinedLattices":self.refined,"poseFit":self.pose,"integration":self.integration_summary(),"integratedMarkers":self.integrated_markers(),"integratedTable":self.integrated_page(),"reflections":self.table_reflections().skip(self.reflection_offset).take(200).collect::<Vec<_>>(),"reflectionFilteredCount":self.table_reflections().count(),"reflectionFilter":if self.reflection_filter.is_empty(){"all"}else{&self.reflection_filter},"suppliedGroupSymbol":phasesmith_io::space_group_by_number(i32::from(self.config.group)).ok().map(|g|g.hm_symbol),"reflectionCount":self.reflections.len(),"usableReflections":self.reflections.iter().filter(|r|r.usable()).count(),"shadows":self.shadows.as_ref().map(|s|&s.report),"profileReport":self.profile_report,"scaling":self.scaling,"structure":self.structure,"mask":self.mask,"excludedFrames":self.excluded_frames,"error":self.error,"notice":self.notice,"previewKind":if self.preview_kind.is_empty(){"raw"}else{&self.preview_kind},"image":self.preview.as_ref().map(|r|&r.metadata),"maskImage":self.preview_mask.as_ref().map(|r|&r.metadata),"sharedMask":self.shared_status,"source":self.sources.get(self.frame).map(|s|json!({"path":s.path,"frame":s.frame}))});
         Reply {
             result: json!({"ok":true,"scxrd":state}),
             buffers: self
@@ -1227,10 +1286,16 @@ impl Session {
                 "exclude",
                 "choice",
             ],
-            "scxrd_table" => &["kind", "offset", "filter"],
+            "scxrd_table" => &["kind", "offset", "filter", "lattice"],
             "scxrd_levels" => &["mode", "percentile", "filter_gaps"],
             "scxrd_pixel" => &["x", "y", "contour"],
-            "scxrd_file" => &["operation", "path", "directory", "suggested_name"],
+            "scxrd_file" => &[
+                "operation",
+                "path",
+                "directory",
+                "suggested_name",
+                "lattice",
+            ],
             _ => return Err("Unknown SCXRD command.".into()),
         };
         check_keys(args, allowed)?;
@@ -1241,6 +1306,7 @@ impl Session {
                     .ok_or("Table offset must be an integer.")?
                     as usize;
                 match args["kind"].as_str() {
+                    Some("integrated") => self.scxrd.set_integrated_table(args)?,
                     Some("tracks") => {
                         if offset >= self.scxrd.tracks.len() && offset != 0 {
                             return Err("Track page is out of range.".into());

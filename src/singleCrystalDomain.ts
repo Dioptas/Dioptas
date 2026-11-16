@@ -68,6 +68,16 @@ export interface CrystalConfig {
   /** Refine lattice: largest deviation of an angle a lattice type fixes,
    * degrees (0-10); older configs load with 1. */
   symmetry_angle_tolerance: number;
+  /** Integrate: resolution limit (Å); null follows the detector corner. */
+  integration_d_min: number | null;
+  /** Integrate: side of the square peak box (px); null follows the spots. */
+  integration_box: number | null;
+  /** Integrate: rocking width in ω for |ζ| = 1 (°); null follows the
+   * spots' spread in ω. */
+  rocking_width: number | null;
+  /** Integrate: profile intensity where the fit is usable; null follows the
+   * default. */
+  profile_fitting?: boolean | null;
 }
 export type LatticeMethod = "both" | "fft" | "rows";
 /** Find lattices search choices; the first is the default. */
@@ -157,6 +167,10 @@ export const crystalDefaults: CrystalConfig = {
   merge_angle: 0.5,
   symmetry_length_tolerance: 1,
   symmetry_angle_tolerance: 1,
+  integration_d_min: null,
+  integration_box: null,
+  rocking_width: null,
+  profile_fitting: null,
 };
 /**
  * The flexible measured-track path; the fixed protocol and the omega
@@ -420,6 +434,12 @@ export interface CrystalData {
   refinedLattices?: RefinedLattice[];
   /** Refine geometry product (absent until it ran or when it was off). */
   poseFit?: PoseFit | null;
+  /** Integrate: defaults, settings and per-lattice statistics. */
+  integration?: IntegrationSummary;
+  /** Integrate: predicted positions on the shown frame. */
+  integratedMarkers?: IntegratedMarker[];
+  /** Integrate: one page of the reflection table. */
+  integratedTable?: IntegratedTable;
   /** First kept lattice, used by the following steps. */
   selected: number | null;
   /** Lattice whose spots are marked on the image. */
@@ -584,6 +604,211 @@ export function poseLines(p: PoseFit, lattices = 1) {
     before: before ? `Calibration: ${refinedCellLines(before).lengths}` : "",
   };
 }
+/** Integrate settings in effect (or derived from the data). */
+export interface IntegrationSettings {
+  d_min: number;
+  box_size: number;
+  rocking: number;
+  /** Profile intensity where the fit is usable, summation elsewhere. */
+  profiles?: boolean;
+  /** The derived rocking width is the step floor, not a measured spread. */
+  rocking_floor?: boolean;
+}
+/** R_int of a resolution shell (limits d, Å) or I/σ bin. */
+export interface IntegrationBin {
+  limits: [number | null, number | null];
+  r_int: number | null;
+  reflections: number;
+}
+export interface IntegrationStats {
+  /** Crossings in the scan and on the detector, not hidden by masks. */
+  predicted: number;
+  /** Crossings whose centre is masked or on an excluded frame. */
+  hidden: number;
+  measured: number;
+  /** Measured and unflagged. */
+  usable: number;
+  /** Usable with I/σ > 3. */
+  strong: number;
+  /** Usable reflections whose intensity is the profile-fitted one. */
+  profiled?: number;
+  /** Profile fitting: "fitted (N teachers)" or "failed: why". */
+  profile?: string | null;
+  /** Largest and smallest d of the usable reflections (Å). */
+  d_range: [number, number];
+  /** Laue class of the holohedry used for equivalents. */
+  laue: string;
+  r_int: number | null;
+  redundancy: number;
+  completeness: number;
+  unique: number;
+  possible: number;
+  /** Count per flag, in `flagNames` order. */
+  flags: number[];
+  /** Why a fitted profile was not used: count per profile flag, in
+   * `profileFlagNames` order. */
+  profile_flags?: number[];
+  /** Usable reflections a detected spot lies on. */
+  detected: number;
+  /** Of those, the ones with I/σ > 3. */
+  detected_strong?: number;
+  /** Median predicted − centroid distance of strong reflections (px). */
+  offset: number | null;
+  shells: IntegrationBin[];
+  bins: IntegrationBin[];
+}
+export interface IntegratedLattice {
+  lattice: number;
+  bravais: string;
+  cell: number[];
+  stats: IntegrationStats;
+}
+export interface IntegrationSummary {
+  defaults: IntegrationSettings | null;
+  settings: IntegrationSettings | null;
+  lattices: IntegratedLattice[];
+  flagNames: string[];
+  profileFlagNames?: string[];
+}
+export interface IntegratedMarker {
+  x: number;
+  y: number;
+  /** Row in Find lattices. */
+  lattice: number;
+  usable: boolean;
+}
+export type IntegratedFilter = "all" | "usable" | "flagged";
+export interface IntegratedTable {
+  lattice: number;
+  offset: number;
+  filter: IntegratedFilter;
+  count: number;
+  rows: {
+    hkl: number[];
+    i: number;
+    sigma: number;
+    d: number;
+    omega: number;
+    flags: number;
+    /** Short flag letters (E edge, M masked, S saturated, O overlap,
+     * B background, W wider than the box, A axial, P partial, N no data). */
+    letters: string;
+    usable?: boolean;
+    /** Summation intensity and σ (corrected). */
+    summed?: [number, number];
+    /** Profile-fitted intensity and σ, when profiles were fitted. */
+    profile?: [number, number] | null;
+    profileFlags?: number | null;
+    /** The intensity in use (`i`, `sigma`) is the profile one. */
+    profiled?: boolean;
+    /** Names of the profile flags (why the profile value is not used). */
+    profileWhy?: string | null;
+  }[];
+}
+/** Rows per page of the reflection table (as the processor sends them). */
+export const INTEGRATED_PAGE = 100;
+type IntegrationKey = "integration_d_min" | "integration_box" | "rocking_width";
+const DEFAULT_KEYS: Record<IntegrationKey, "d_min" | "box_size" | "rocking"> = {
+  integration_d_min: "d_min",
+  integration_box: "box_size",
+  rocking_width: "rocking",
+};
+/**
+ * One Integrate setting: the user's value, or the value derived from the
+ * data while none is set (`auto`). Without a derived value (no calibration
+ * yet) the box shows a neutral placeholder number.
+ */
+export function integrationSetting(
+  config: Partial<CrystalConfig>,
+  summary: IntegrationSummary | undefined,
+  key: IntegrationKey,
+) {
+  const own = config[key];
+  const derived = summary?.defaults?.[DEFAULT_KEYS[key]];
+  const fallback = { integration_d_min: 0.8, integration_box: 9, rocking_width: 0.5 }[key];
+  return {
+    value: own ?? derived ?? fallback,
+    auto: own == null,
+  };
+}
+/** Clear the user's Integrate settings: all follow the data again. */
+export const integrationAuto: Partial<CrystalConfig> = {
+  integration_d_min: null,
+  integration_box: null,
+  rocking_width: null,
+  profile_fitting: null,
+};
+/** Profile fitting in effect: the user's choice, or the default. */
+export function profileFitting(
+  config: Partial<CrystalConfig>,
+  summary: IntegrationSummary | undefined,
+) {
+  const own = config.profile_fitting;
+  return { value: own ?? summary?.defaults?.profiles ?? true, auto: own == null };
+}
+const share = (x: number) => `${(100 * x).toFixed(x < 0.1 ? 1 : 0)} %`;
+/**
+ * One lattice's Integrate result as label/value rows, few and short, and
+ * one muted line with the rest.
+ */
+export function integrationLines(s: IntegrationStats) {
+  const rows: [string, string][] = [
+    ["Reflections", `${s.usable} usable of ${s.predicted}`],
+    ...(s.profiled
+      ? ([["Profile fitted", `${s.profiled} of ${s.usable}`]] as [string, string][])
+      : []),
+    ["I/σ > 3", s.usable ? share(s.strong / s.usable) : "—"],
+    [
+      "Resolution",
+      s.usable ? `${s.d_range[0].toFixed(2)}–${s.d_range[1].toFixed(2)} Å` : "—",
+    ],
+    [`R_int (${s.laue})`, s.r_int == null ? "—" : `${(100 * s.r_int).toFixed(1)} %`],
+    [
+      "Redundancy",
+      `${s.redundancy.toFixed(1)} · ${share(s.completeness)} complete`,
+    ],
+  ];
+  const note = [
+    `${s.measured} measured`,
+    ...(s.hidden ? [`${s.hidden} under masks`] : []),
+    `${s.usable - s.detected} without a found spot`,
+    ...(s.offset == null ? [] : [`offset ${s.offset.toFixed(2)} px`]),
+    ...(s.profile?.startsWith("failed") ? ["profiles failed, summation used"] : []),
+  ].join(" · ");
+  return { rows, note };
+}
+/** The most frequent flags of a lattice, e.g. "masked 426 · boundary 97";
+ * `counts` picks another tally (the profile flags). */
+export function flagCounts(
+  s: IntegrationStats,
+  names: string[],
+  most = 3,
+  counts: number[] = s.flags,
+) {
+  return counts
+    .map((n, i) => [names[i] ?? `bit ${i}`, n] as const)
+    .filter(([, n]) => n > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, most)
+    .map(([name, n]) => `${name} ${n}`)
+    .join(" · ");
+}
+/** Cross colours of predicted positions, one per integrated lattice;
+ * apart from the orange detected spots and the green shown lattice. */
+export const LATTICE_TONES = ["#69baff", "#ff6ad5", "#ffd60a", "#64d2ff", "#bf5af2"];
+export function latticeTone(lattice: number, lattices: number[]) {
+  const i = Math.max(0, lattices.indexOf(lattice));
+  return LATTICE_TONES[i % LATTICE_TONES.length];
+}
+/** A table intensity: few decimals, signed. */
+export const intensityText = (v: number) =>
+  !Number.isFinite(v)
+    ? "—"
+    : Math.abs(v) >= 1000
+      ? v.toFixed(0)
+      : Math.abs(v) >= 10
+        ? v.toFixed(1)
+        : v.toFixed(2);
 /** A symmetry tolerance of a config that may predate the setting. */
 export const symmetryTolerance = (value: number | undefined) =>
   Number.isFinite(value) && value! > 0 && value! <= 10 ? value! : 1;
@@ -773,10 +998,15 @@ export function crystalConfigError(c: CrystalConfig): string | null {
     [c.persistent_fraction, 20, 100, "Persistent pixel frame share"],
     [c.symmetry_length_tolerance ?? 1, 0.01, 10, "Length tolerance"],
     [c.symmetry_angle_tolerance ?? 1, 0.01, 10, "Angle tolerance"],
+    [c.integration_d_min ?? 1, 0.2, 50, "Resolution limit"],
+    [c.integration_box ?? 9, 3, 41, "Peak box"],
+    [c.rocking_width ?? 0.5, 0.01, 20, "Rocking width"],
   ];
   for (const [v, min, max, name] of ranges)
     if (!Number.isFinite(v) || v < min || v > max)
       return `${name} must be between ${min} and ${max}.`;
+  if (c.integration_box != null && c.integration_box % 2 === 0)
+    return "Peak box must be an odd number of pixels.";
   if (
     !Number.isFinite(c.exposure) ||
     c.exposure <= 0 ||

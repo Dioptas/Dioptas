@@ -336,8 +336,15 @@ impl Session {
                 if self.scxrd.reflections.is_empty() {
                     return Err("Integrate the scan before exporting reflections.".into());
                 }
+                let method = match &self.scxrd.integration {
+                    Some(i) if i.settings.profiles => {
+                        "profile fitting where usable, summation elsewhere"
+                    }
+                    Some(_) => "summation",
+                    None => self.scxrd.config.integration_method.as_str(),
+                };
                 atomic(&path, |w| {
-                    writeln!(w,"# Dioptas SCXRD · {ENGINE}\n# Integration: {}. Signed observations and original quality flags retained. No absorption correction. Missing identity = -1; eligibility is the usable column, not flags == 0.\n# h k l I sigma_I omega_deg flags detected_track predicted_crossing correction usable",self.scxrd.config.integration_method).map_err(err)?;
+                    writeln!(w,"# Dioptas SCXRD · {ENGINE}\n# Integration: {}. Signed observations and original quality flags retained. No absorption correction. Missing identity = -1; eligibility is the usable column, not flags == 0.\n# h k l I sigma_I omega_deg flags detected_track predicted_crossing correction usable",method).map_err(err)?;
                     for r in &self.scxrd.reflections {
                         writeln!(
                             w,
@@ -359,6 +366,22 @@ impl Session {
                     Ok(())
                 })?;
             }
+            "hkl" if !args["lattice"].is_null() => {
+                // One integrated lattice, unmerged, with its cell beside it.
+                let lattice = args["lattice"].as_u64().ok_or("Choose a lattice.")? as usize;
+                let integration = self
+                    .scxrd
+                    .integration
+                    .as_ref()
+                    .ok_or("Run Integrate before exporting reflections.")?;
+                let wavelength = self.scxrd.geometry.map_or(0., |g| g.wavelength);
+                atomic(&path, |w| integration.hklf4(lattice, w).map(|_| ()))?;
+                let header = path.with_extension("p4p");
+                atomic(&header, |w| integration.p4p(lattice, wavelength, w))?;
+                if !self.scxrd.saved_exports.contains(&header) {
+                    self.scxrd.saved_exports.push(header);
+                }
+            }
             "hkl" => {
                 let usable: Vec<_> = self
                     .scxrd
@@ -369,37 +392,10 @@ impl Session {
                 if usable.is_empty() {
                     return Err("Integrate usable reflections before exporting HKLF4.".into());
                 }
-                if usable.iter().any(|r| r.hkl.iter().any(|h| h.abs() > 999)) {
-                    return Err("Miller indices exceed the HKLF4 field width; export the complete observation table instead.".into());
-                }
-                let max = usable
-                    .iter()
-                    .map(|r| r.intensity.abs().max(r.sigma))
-                    .fold(1., f64::max);
-                let scale = (9999. / max).min(1.);
-                if usable.iter().any(|r| {
-                    format!("{:.2}", r.sigma * scale)
-                        .parse::<f64>()
-                        .map_or(true, |v| v <= 0.)
-                }) {
-                    return Err("HKLF4 cannot preserve positive uncertainties at this dynamic range. Export the full-precision observation table instead.".into());
-                }
-                atomic(&path, |w| {
-                    for r in usable {
-                        writeln!(
-                            w,
-                            "{:4}{:4}{:4}{:8.2}{:8.2}",
-                            r.hkl[0],
-                            r.hkl[1],
-                            r.hkl[2],
-                            r.intensity * scale,
-                            r.sigma * scale
-                        )
-                        .map_err(err)?;
-                    }
-                    writeln!(w, "{:4}{:4}{:4}{:8.2}{:8.2}", 0, 0, 0, 0., 0.).map_err(err)?;
-                    Ok(())
-                })?;
+                let rows = usable.iter().map(|r| (r.hkl, r.intensity, r.sigma));
+                let mut text = Vec::new();
+                integrate::write_hklf4(rows, &mut text)?;
+                atomic(&path, |w| w.write_all(&text).map_err(err))?;
             }
             "cif" => {
                 let cif = self

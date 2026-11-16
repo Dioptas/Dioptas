@@ -45,6 +45,16 @@ import {
   deviationLabel,
   poseLines,
   refinedCellLines,
+  integrationSetting,
+  integrationAuto,
+  profileFitting,
+  integrationLines,
+  flagCounts,
+  latticeTone,
+  intensityText,
+  INTEGRATED_PAGE,
+  type IntegratedFilter,
+  type IntegratedLattice,
   symmetryTolerance,
   latticeMethods,
   exploratoryCrystalConfig as exploratory,
@@ -77,6 +87,7 @@ const steps = [
   "Find lattices",
   "Refine lattice",
   "Refine geometry",
+  "Integrate",
 ] as const;
 const MASK_NAMES: Record<MaskKey, { name: string; title?: string }> = {
   dac: { name: "DAC opening" },
@@ -245,6 +256,9 @@ export function SingleCrystalWorkspace({
   const [openMask, setOpenMask] = useState<MaskKey | null>(null);
   /** Refine lattice: lattices (rows in Find lattices) shown collapsed. */
   const [closedSymmetry, setClosedSymmetry] = useState<number[]>([]);
+  /** Integrate: lattices shown collapsed, and the reflection table open. */
+  const [closedIntegration, setClosedIntegration] = useState<number[]>([]);
+  const [tableOpen, setTableOpen] = useState(false);
   /**
    * Setup (rotation and calibration) stays open until a series and a
    * calibration are there; after that the user's choice is remembered.
@@ -466,7 +480,7 @@ export function SingleCrystalWorkspace({
         ? `${data.trackCount} linked spots`
         : `${data.cells.length} lattice${data.cells.length === 1 ? "" : "s"}`;
   };
-  const lastStage = data?.geometry ? 4 : 1;
+  const lastStage = data?.geometry ? 5 : 1;
   const pose =
     data?.poseFit &&
     poseLines(data.poseFit, data.refinedLattices?.length ?? 1);
@@ -475,8 +489,27 @@ export function SingleCrystalWorkspace({
     .every((stage) => stage.status === "complete");
   // Spots of the shown lattice are marked apart and drawn last (on top).
   const shownLattice = data?.shownLattice ?? null;
+  const integrated = data?.integration?.lattices ?? [];
+  const integratedRows = integrated.map((l) => l.lattice);
+  // Predicted positions (Integrate): a cross per reflection on the frame of
+  // its predicted ω, coloured per lattice, faint when flagged; under the
+  // detected spots' circles.
+  const predicted = useMemo<RasterMarker[]>(
+    () =>
+      live
+        ? []
+        : (data?.integratedMarkers ?? []).map((m) => ({
+            x: m.x,
+            y: m.y,
+            kind: "predicted",
+            tone: latticeTone(m.lattice, integratedRows),
+            faint: !m.usable,
+          })),
+    [data?.integratedMarkers, live, integratedRows.join()],
+  );
   const markers = useMemo<RasterMarker[]>(
     () =>
+      predicted.concat(
       (live?.peaks ?? data?.peaks ?? [])
         .map((p): RasterMarker => ({
           x: p.x,
@@ -493,7 +526,8 @@ export function SingleCrystalWorkspace({
         .sort(
           (a, b) => Number(a.kind === "lattice") - Number(b.kind === "lattice"),
         ),
-    [data?.peaks, live?.peaks, shownLattice],
+      ),
+    [data?.peaks, live?.peaks, shownLattice, predicted],
   );
   useEffect(() => {
     if (!active) return;
@@ -801,6 +835,314 @@ export function SingleCrystalWorkspace({
               </div>
             ) : (
               <small className="sc-refined sc-step-problem">{r.error}</small>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+  /** Integrate settings: resolution, peak box, rocking width; each shows the
+   * value derived from the data until set. */
+  const integrateFields = () => {
+    if (!data) return null;
+    const field = (
+      key: "integration_d_min" | "integration_box" | "rocking_width",
+    ) => integrationSetting(data.config, data.integration, key);
+    const d = field("integration_d_min");
+    const box = field("integration_box");
+    const rocking = field("rocking_width");
+    const profiles = profileFitting(data.config, data.integration);
+    const own = !d.auto || !box.auto || !rocking.auto || !profiles.auto;
+    return (
+      <>
+        <CommitNumberField
+          label="Resolution"
+          unit="Å"
+          value={d.value}
+          onCommit={(v) => setConfig({ integration_d_min: v })}
+          step={0.05}
+          min={0.2}
+          max={50}
+        />
+        <CommitNumberField
+          label="Peak box"
+          unit="px"
+          value={box.value}
+          onCommit={(v) => setConfig({ integration_box: v })}
+          step={2}
+          integer
+          min={3}
+          max={41}
+        />
+        <CommitNumberField
+          label="Rocking width"
+          unit="°"
+          value={rocking.value}
+          onCommit={(v) => setConfig({ rocking_width: v })}
+          step={0.1}
+          min={0.01}
+          max={20}
+        />
+        <label
+          className="sc-check sc-profile-check"
+          title="Profile-fitted intensity where the fit is usable, summation elsewhere"
+        >
+          <Input
+            type="checkbox"
+            checked={profiles.value}
+            disabled={!ready}
+            onChange={(e) => setConfig({ profile_fitting: e.target.checked })}
+          />
+          <span>Profile fitting</span>
+        </label>
+        <div className="sc-estimate-line">
+          {own ? (
+            <Button
+              className="sc-estimate-button"
+              disabled={!ready}
+              title="Derive resolution, peak box and rocking width from the data again and use the default fitting"
+              onClick={() => setConfig(integrationAuto)}
+            >
+              From data
+            </Button>
+          ) : (
+            <small className="sc-estimate-note">
+              From the data
+              {rocking.auto && data.integration?.defaults?.rocking_floor
+                ? " · rocking width at one frame"
+                : ""}
+            </small>
+          )}
+        </div>
+      </>
+    );
+  };
+  /** One integrated lattice: a disclosure heading with its type and Laue
+   * class, then a few numbers and the HKL export. */
+  const integrationGroup = (l: IntegratedLattice) => {
+    const open = !closedIntegration.includes(l.lattice);
+    const id = `${maskIds}-integration-${l.lattice}`;
+    const { rows, note } = integrationLines(l.stats);
+    const flags = flagCounts(l.stats, data?.integration?.flagNames ?? []);
+    const summedFor = flagCounts(
+      l.stats,
+      data?.integration?.profileFlagNames ?? [],
+      3,
+      l.stats.profile_flags ?? [],
+    );
+    return (
+      <div key={l.lattice} className="sc-symmetry-lattice">
+        <Button
+          variant="quiet"
+          className="sc-mask-toggle sc-symmetry-toggle"
+          aria-expanded={open}
+          aria-controls={id}
+          onClick={() =>
+            setClosedIntegration(
+              open
+                ? [...closedIntegration, l.lattice]
+                : closedIntegration.filter((i) => i !== l.lattice),
+            )
+          }
+        >
+          <ChevronRight
+            size={13}
+            className="sc-mask-chevron"
+            aria-hidden="true"
+          />
+          <span
+            className="sc-lattice-swatch"
+            style={{ color: latticeTone(l.lattice, integratedRows) }}
+            aria-hidden="true"
+          >
+            +
+          </span>
+          <span className="sc-mask-name">Lattice {l.lattice + 1}</span>
+          <span className="sc-mask-result">
+            {l.bravais} · {l.stats.usable} usable
+          </span>
+        </Button>
+        {open && (
+          <div id={id} className="sc-symmetry-body sc-integration-body">
+            <dl className="sc-integration-grid">
+              {rows.map(([label, value]) => (
+                <div key={label}>
+                  <dt>{label}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
+            <small className="sc-integration-note">{note}</small>
+            {flags && (
+              <small className="sc-integration-note" title="Most frequent flags">
+                Flagged: {flags}
+              </small>
+            )}
+            {summedFor && (
+              <small
+                className="sc-integration-note"
+                title="Why the summed intensity was used where a profile was fitted"
+              >
+                Summed for: {summedFor}
+              </small>
+            )}
+            <div className="sc-estimate-line sc-integration-actions">
+              <Button
+                className="sc-estimate-button"
+                disabled={!ready || !l.stats.usable}
+                title="Unmerged usable reflections as SHELX HKLF 4, with the cell in a .p4p file beside it"
+                onClick={() =>
+                  void run(
+                    "scxrd_file",
+                    {
+                      operation: "hkl",
+                      lattice: l.lattice,
+                      suggested_name: `lattice-${l.lattice + 1}.hkl`,
+                    },
+                    "Exporting reflections…",
+                  )
+                }
+              >
+                Export .hkl…
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+  /** The reflections of one lattice, a page at a time (collapsed at first). */
+  const reflectionTable = () => {
+    const t = data?.integratedTable;
+    if (!data || !t) return null;
+    const page = (patch: {
+      lattice?: number;
+      offset?: number;
+      filter?: IntegratedFilter;
+    }) =>
+      void run(
+        "scxrd_table",
+        {
+          kind: "integrated",
+          lattice: patch.lattice ?? t.lattice,
+          offset: patch.offset ?? 0,
+          filter: patch.filter ?? t.filter,
+        },
+        "",
+      );
+    const id = `${maskIds}-reflections`;
+    const last = Math.min(t.offset + INTEGRATED_PAGE, t.count);
+    return (
+      <div className="sc-symmetry-lattice">
+        <Button
+          variant="quiet"
+          className="sc-mask-toggle sc-symmetry-toggle"
+          aria-expanded={tableOpen}
+          aria-controls={id}
+          onClick={() => setTableOpen(!tableOpen)}
+        >
+          <ChevronRight
+            size={13}
+            className="sc-mask-chevron"
+            aria-hidden="true"
+          />
+          <span className="sc-mask-name">Reflections</span>
+          <span className="sc-mask-result">{t.count}</span>
+        </Button>
+        {tableOpen && (
+          <div id={id} className="sc-symmetry-body sc-reflection-body">
+            <div className="sc-reflection-tools">
+              {integrated.length > 1 && (
+                <Select
+                  aria-label="Lattice"
+                  value={String(t.lattice)}
+                  disabled={!ready}
+                  onChange={(e) => page({ lattice: Number(e.target.value) })}
+                >
+                  {integrated.map((l) => (
+                    <option key={l.lattice} value={l.lattice}>
+                      Lattice {l.lattice + 1}
+                    </option>
+                  ))}
+                </Select>
+              )}
+              <Select
+                aria-label="Reflections shown"
+                value={t.filter}
+                disabled={!ready}
+                onChange={(e) =>
+                  page({ filter: e.target.value as IntegratedFilter })
+                }
+              >
+                <option value="all">all</option>
+                <option value="usable">usable</option>
+                <option value="flagged">flagged</option>
+              </Select>
+            </div>
+            <div className="sc-reflection-scroll">
+              <table className="sc-reflection-table">
+                <thead>
+                  <tr>
+                    <th>h</th>
+                    <th>k</th>
+                    <th>l</th>
+                    <th title="Summed intensity">I sum</th>
+                    <th title="Profile-fitted intensity">I prf</th>
+                    <th title="σ of the intensity in use">σ</th>
+                    <th title="E edge · M masked · S saturated · O overlap · B background · W wider than the box · A near the axis · P partial · N no data">
+                      Flags
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {t.rows.map((r, i) => (
+                    <tr
+                      key={i}
+                      className={(r.usable ?? !r.flags) ? undefined : "sc-row-flagged"}
+                    >
+                      <td>{r.hkl[0]}</td>
+                      <td>{r.hkl[1]}</td>
+                      <td>{r.hkl[2]}</td>
+                      <td className={r.profiled ? undefined : "sc-used"}>
+                        {intensityText(r.summed?.[0] ?? r.i)}
+                      </td>
+                      <td
+                        className={r.profiled ? "sc-used" : undefined}
+                        title={r.profileWhy || undefined}
+                      >
+                        {r.profile ? intensityText(r.profile[0]) : "—"}
+                      </td>
+                      <td>{intensityText(r.sigma)}</td>
+                      <td>{r.letters}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {t.count > INTEGRATED_PAGE && (
+              <div className="sc-reflection-pages">
+                <Button
+                  variant="quiet"
+                  aria-label="Previous reflections"
+                  disabled={!ready || t.offset === 0}
+                  onClick={() =>
+                    page({ offset: Math.max(0, t.offset - INTEGRATED_PAGE) })
+                  }
+                >
+                  <ChevronLeft size={15} />
+                </Button>
+                <small>
+                  {t.count ? t.offset + 1 : 0}–{last} of {t.count}
+                </small>
+                <Button
+                  variant="quiet"
+                  aria-label="Next reflections"
+                  disabled={!ready || last >= t.count}
+                  onClick={() => page({ offset: t.offset + INTEGRATED_PAGE })}
+                >
+                  <ChevronRight size={15} />
+                </Button>
+              </div>
             )}
           </div>
         )}
@@ -1412,6 +1754,7 @@ export function SingleCrystalWorkspace({
                           </span>
                         </label>
                       )}
+                      {stage === 5 && integrateFields()}
                     </fieldset>
                   )}
                 </li>
@@ -1528,6 +1871,18 @@ export function SingleCrystalWorkspace({
                     {pose.before && <small>{pose.before}</small>}
                   </div>
                 )}
+              </section>
+            )}
+            {integrated.length > 0 && (
+              <section
+                className="sc-section sc-lattices sc-intensities"
+                aria-label="Intensities"
+              >
+                <div className="sc-mask-heading">
+                  <span>Intensities</span>
+                </div>
+                {integrated.map((l) => integrationGroup(l))}
+                {reflectionTable()}
               </section>
             )}
           </>

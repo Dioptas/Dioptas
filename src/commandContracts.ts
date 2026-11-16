@@ -66,9 +66,11 @@ type Spec<Payload, Success> = { payload: Payload; success: Success };
 export interface CommandContracts {
   scxrd_table: Spec<
     {
-      kind: "tracks" | "reflections";
+      kind: "tracks" | "reflections" | "integrated";
       offset: number;
-      filter?: "all" | "usable" | "excluded";
+      filter?: "all" | "usable" | "excluded" | "flagged";
+      /** Integrate table: the lattice (row in Find lattices). */
+      lattice?: number;
     },
     { scxrd: import("./singleCrystalDomain").CrystalData }
   >;
@@ -120,6 +122,8 @@ export interface CommandContracts {
   scxrd_file: Spec<
     P.FilePayload & {
       operation: import("./singleCrystalDomain").CrystalFileOperation;
+      /** HKL export of one integrated lattice (row in Find lattices). */
+      lattice?: number;
     },
     { scxrd: import("./singleCrystalDomain").CrystalData; savedPath?: string }
   >;
