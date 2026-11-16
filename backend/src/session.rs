@@ -119,7 +119,7 @@ impl Default for Settings {
             transparent_mask: false,
             polarization: 0.99,
             errors: false,
-            automatic_binning: false,
+            automatic_binning: true,
             supersampling: 1,
             pyfai_splitting: false,
             solid_angle: true,
