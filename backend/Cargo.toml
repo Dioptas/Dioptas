@@ -15,7 +15,7 @@ dioptrin = []
 
 [dependencies]
 dioptas-contract = { path = "../contract" }
-dioptrin-io = { git = "https://github.com/CPrescher/dioptrin-io", tag = "v0.3.0", features = ["wrappers", "hdf5", "containers", "bruker", "oxford", "raxis", "fixed", "fit2d", "kcd", "mpa", "esperanto", "mar345", "xsd"] }
+dioptrin-io = { git = "https://github.com/CPrescher/dioptrin-io", tag = "v0.4.1", features = ["wrappers", "hdf5", "containers", "bruker", "oxford", "raxis", "fixed", "fit2d", "kcd", "mpa", "esperanto", "mar345", "xsd"] }
 dioptrin = { git = "https://github.com/CPrescher/Dioptrin", tag = "v0.14.0", default-features = false }
 half = "2"
 serde = { version = "1", features = ["derive", "rc"] }

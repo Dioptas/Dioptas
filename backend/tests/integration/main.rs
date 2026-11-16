@@ -44,4 +44,5 @@ mod recovery;
 mod requested_products;
 mod review_backend_regressions;
 mod spottiness;
+mod vds_series_fast_path;
 mod zero_trimming;
