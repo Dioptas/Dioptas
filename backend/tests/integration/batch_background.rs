@@ -711,7 +711,9 @@ fn map_load_reduces_each_background_corrected_pattern_before_selection() {
     );
     assert_eq!(disabled.result["map"]["values"], corrected["values"]);
     assert_eq!(disabled.result["map"]["backgroundPending"], true);
+    std::fs::remove_file(temp.path().join("image_003.tif")).unwrap();
     call(&mut reopened, "map_poll", json!({"check_only":true}));
+    call(&mut reopened, "map_poll", json!({}));
     let checked = call(&mut reopened, "map_snapshot", json!({}));
     assert_eq!(checked.result["map"]["backgroundPending"], true);
     assert_eq!(checked.result["map"]["values"], corrected["values"]);
