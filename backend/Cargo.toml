@@ -24,13 +24,13 @@ serde_json = { version = "1", features = ["preserve_order"] }
 sha2 = "0.10"
 tempfile = "3"
 time = { version = "0.3", features = ["formatting"] }
-phasesmith-core = { git = "https://github.com/CPrescher/PhaseSmith", rev = "7a418462685c8e5b83f0000e8c74eb93573b7f7c" }
-phasesmith-crystallography = { git = "https://github.com/CPrescher/PhaseSmith", rev = "7a418462685c8e5b83f0000e8c74eb93573b7f7c" }
-phasesmith-io = { git = "https://github.com/CPrescher/PhaseSmith", rev = "7a418462685c8e5b83f0000e8c74eb93573b7f7c" }
-phasesmith-model = { git = "https://github.com/CPrescher/PhaseSmith", rev = "7a418462685c8e5b83f0000e8c74eb93573b7f7c" }
-phasesmith-single-crystal = { git = "https://github.com/CPrescher/PhaseSmith", rev = "7a418462685c8e5b83f0000e8c74eb93573b7f7c", default-features = false, features = ["spots", "solution", "row-search", "grains"] }
-phasesmith-persistence = { git = "https://github.com/CPrescher/PhaseSmith", rev = "7a418462685c8e5b83f0000e8c74eb93573b7f7c" }
-phasesmith-workflows = { git = "https://github.com/CPrescher/PhaseSmith", rev = "7a418462685c8e5b83f0000e8c74eb93573b7f7c", features = ["single-crystal"] }
+phasesmith-core = { git = "https://github.com/CPrescher/PhaseSmith", rev = "9ab7e24fc4df36eee8efb22234dc10af9e5315bb" }
+phasesmith-crystallography = { git = "https://github.com/CPrescher/PhaseSmith", rev = "9ab7e24fc4df36eee8efb22234dc10af9e5315bb" }
+phasesmith-io = { git = "https://github.com/CPrescher/PhaseSmith", rev = "9ab7e24fc4df36eee8efb22234dc10af9e5315bb" }
+phasesmith-model = { git = "https://github.com/CPrescher/PhaseSmith", rev = "9ab7e24fc4df36eee8efb22234dc10af9e5315bb" }
+phasesmith-single-crystal = { git = "https://github.com/CPrescher/PhaseSmith", rev = "9ab7e24fc4df36eee8efb22234dc10af9e5315bb", default-features = false, features = ["spots", "solution", "row-search", "grains"] }
+phasesmith-persistence = { git = "https://github.com/CPrescher/PhaseSmith", rev = "9ab7e24fc4df36eee8efb22234dc10af9e5315bb" }
+phasesmith-workflows = { git = "https://github.com/CPrescher/PhaseSmith", rev = "9ab7e24fc4df36eee8efb22234dc10af9e5315bb", features = ["single-crystal"] }
 peritheos = { git = "https://github.com/CPrescher/peritheos", rev = "3c79b1aedf28c348a49cc22d9f24d92895546283" }
 nalgebra = "0.35"
 tiff = "0.8"
