@@ -711,6 +711,10 @@ fn map_load_reduces_each_background_corrected_pattern_before_selection() {
     );
     assert_eq!(disabled.result["map"]["values"], corrected["values"]);
     assert_eq!(disabled.result["map"]["backgroundPending"], true);
+    call(&mut reopened, "map_poll", json!({"check_only":true}));
+    let checked = call(&mut reopened, "map_snapshot", json!({}));
+    assert_eq!(checked.result["map"]["backgroundPending"], true);
+    assert_eq!(checked.result["map"]["values"], corrected["values"]);
     let refreshed = call(&mut reopened, "map_refresh", json!({}));
     assert_eq!(refreshed.result["map"]["backgroundPending"], false);
     assert_eq!(refreshed.result["map"]["values"], raw["values"]);
@@ -852,6 +856,16 @@ fn map_background_edits_wait_for_refresh_and_reopen_retains_pending_work() {
             original
         );
     }
+    let selected = call(
+        &mut s,
+        "map_select",
+        json!({"index":1,"integration_view":true}),
+    );
+    assert_eq!(selected.result["map"]["backgroundPending"], true);
+    assert_eq!(selected.result["map"]["values"], original);
+    let selected = call(&mut s, "map_select", json!({"index":0}));
+    assert_eq!(selected.result["map"]["backgroundPending"], true);
+    assert_eq!(selected.result["map"]["values"], original);
     let project = temp.path().join("pending.dio");
     call(&mut s, "save_project", json!({"path":project}));
     let mut restored = session();

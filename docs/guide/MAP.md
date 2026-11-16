@@ -68,10 +68,10 @@ inspect inside editable ROIs; ROI drags continue to edit only the window. The
 shared footer reports the clicked 2θ, Q, d and azimuth when available.
 
 Changing the pattern background in Integration marks an existing map for an
-update. When Map is visible, the map recalculates once using the latest background
+update. When the main Map view is visible, the map recalculates once using the latest background
 settings. The footer shows progress and offers cancellation. A cancelled update
 can be retried with **Update map**. Row fits use the processing workers selected
-in Settings. An open detached map also updates when the main window becomes ready.
+in Settings. A detached map offers **Update map** so background edits in Integration can be completed before recalculating it.
 
 Live watches the loaded scan folder for completed numbered continuation files.
 Follow selects the latest point; turn it off to retain the selected image.

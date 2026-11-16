@@ -211,18 +211,8 @@ impl Session {
         action: &str,
         args: &Value,
     ) -> Result<Option<Reply>, String> {
-        if matches!(
-            action,
-            "map_refresh"
-                | "map_select"
-                | "map_poll"
-                | "map_export"
-                | "map_grid"
-                | "map_roi"
-                | "map_expression"
-                | "map_layer"
-                | "map_arrange"
-        ) && self.scan.as_ref().is_some_and(|s| s.background_pending)
+        if (action == "map_refresh" || action == "map_poll" && args["check_only"] != true)
+            && self.scan.as_ref().is_some_and(|s| s.background_pending)
         {
             let scan = self.scan.as_mut().unwrap();
             scan.refresh_background(&self.patterns, &self.control)?;

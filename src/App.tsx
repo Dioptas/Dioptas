@@ -1600,7 +1600,7 @@ export default function App() {
   });
   const mapRefreshAttempted = useRef(false);
   useEffect(() => {
-    if (!(mode === "map" || mapWindow.detached) || !map?.backgroundPending) {
+    if (mode !== "map" || !map?.backgroundPending) {
       mapRefreshAttempted.current = false;
       return;
     }
@@ -1608,7 +1608,7 @@ export default function App() {
       mapRefreshAttempted.current = true;
       void run("map_refresh", {}, "Updating map background…");
     }
-  }, [mode, mapWindow.detached, map?.backgroundPending, ready, error, run]);
+  }, [mode, map?.backgroundPending, ready, error, run]);
   const detectorWindow = useDetectorWindow(
     {
       largeText,
@@ -1999,7 +1999,9 @@ export default function App() {
               ][calibrationStep]
           : mode === "map"
             ? map
-              ? "Select a map cell to inspect its detector image and pattern."
+              ? map.backgroundPending
+                ? "Map background update pending."
+                : "Select a map cell to inspect its detector image and pattern."
               : state?.calibrated
                 ? "Build a map from detector images or a folder."
                 : "Load a calibration to build a map."

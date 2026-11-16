@@ -148,6 +148,7 @@ impl CorrectedProfiles {
         if start == series.count() {
             return control.check();
         }
+        control.publish(json!({"running":true,"current":start,"total":series.count(),"label":"Updating map background"}));
         // Prepare the decomposition once and share it across independent row fits.
         let first = fit.apply(
             series.profile(start, &series.unit)?,
