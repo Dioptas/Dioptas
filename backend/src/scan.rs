@@ -114,6 +114,41 @@ impl MapBackground {
         }
         Ok(corrected)
     }
+    fn apply_group(
+        &mut self,
+        series: &Series,
+        start: usize,
+        count: usize,
+        control: &crate::control::Control,
+    ) -> Result<Vec<crate::pattern::Curve>, String> {
+        let mut raw = Vec::with_capacity(count);
+        let fit_unit = self.patterns.unit.clone();
+        let fit_x =
+            crate::pattern::convert_axis(&series.x, &series.unit, &fit_unit, series.wavelength)?;
+        for row in start..start + count {
+            let mut curve = series.profile(row, &series.unit)?;
+            curve.x = fit_x.clone();
+            self.patterns
+                .ingest(curve, &fit_unit, "Map pattern", None, false);
+            raw.push(self.patterns.raw.as_ref().unwrap().as_ref().clone());
+        }
+        let mut curves = self
+            .patterns
+            .build_background_group(&raw, control, &mut self.prepared)?;
+        if fit_unit != series.unit {
+            let centers: std::collections::HashMap<_, _> = fit_x
+                .iter()
+                .zip(series.x.iter())
+                .map(|(a, b)| (a.to_bits(), *b))
+                .collect();
+            let x: Arc<Vec<f64>> =
+                Arc::new(curves[0].x.iter().map(|x| centers[&x.to_bits()]).collect());
+            for curve in &mut curves {
+                curve.x = x.clone();
+            }
+        }
+        Ok(curves)
+    }
 }
 impl CorrectedProfiles {
     #[cfg(any(feature = "dioptrin", test))]
@@ -162,7 +197,7 @@ impl CorrectedProfiles {
         }
         let mut data = vec![0.0; (series.count() - start) * bins];
         data[..bins].copy_from_slice(&first.y);
-        crate::background_workers::rows(
+        crate::background_workers::groups::<4, _, _, _>(
             &mut data[bins..],
             bins,
             start + 1,
@@ -170,16 +205,13 @@ impl CorrectedProfiles {
             "Updating map background",
             || fit.clone(),
             |index, output, fit| {
-                let curve = fit.apply(
-                    series.profile(index, &series.unit)?,
-                    &series.unit,
-                    series.wavelength,
-                    control,
-                )?;
-                if curve.x != first.x {
-                    return Err("Map background coverage differs between frames.".into());
+                let curves = fit.apply_group(series, index, output.len() / bins, control)?;
+                for (curve, row) in curves.iter().zip(output.chunks_exact_mut(bins)) {
+                    if curve.x != first.x {
+                        return Err("Map background coverage differs between frames.".into());
+                    }
+                    row.copy_from_slice(&curve.y);
                 }
-                output.copy_from_slice(&curve.y);
                 Ok(())
             },
         )?;
@@ -628,6 +660,219 @@ mod background_tests {
                     .contains("cancelled")
             );
             assert!(Arc::ptr_eq(&before, &cancelled.data));
+        }
+    }
+    fn scalar_worker_reference(
+        series: &Series,
+        patterns: &Patterns,
+        control: &Control,
+    ) -> CorrectedProfiles {
+        let mut fit = MapBackground::new(patterns).unwrap();
+        let first = fit
+            .apply(
+                series.profile(0, &series.unit).unwrap(),
+                &series.unit,
+                series.wavelength,
+                control,
+            )
+            .unwrap();
+        let bins = first.x.len();
+        let mut data = vec![0.; bins * series.count()];
+        data[..bins].copy_from_slice(&first.y);
+        crate::background_workers::rows(
+            &mut data[bins..],
+            bins,
+            1,
+            control,
+            "Scalar reference",
+            || fit.clone(),
+            |row, output, fit| {
+                let curve = fit.apply(
+                    series.profile(row, &series.unit)?,
+                    &series.unit,
+                    series.wavelength,
+                    control,
+                )?;
+                assert_eq!(curve.x, first.x);
+                output.copy_from_slice(&curve.y);
+                Ok(())
+            },
+        )
+        .unwrap();
+        CorrectedProfiles {
+            x: first.x,
+            data: Arc::new(data),
+        }
+    }
+
+    /// Reproducible stage timings, excluded from routine correctness checks.
+    #[test]
+    #[ignore]
+    fn profile_background_subtraction() {
+        use sha2::{Digest, Sha256};
+        use std::time::{Duration, Instant};
+        let count = 1024;
+        let bins = 2048;
+        let x: Vec<_> = (0..bins).map(|i| 1. + i as f64 * 0.005).collect();
+        let data: Vec<_> = (0..count)
+            .flat_map(|frame| {
+                (0..bins).map(move |bin| {
+                    let t = (bin as f64 - 900.) / 15.;
+                    100. + bin as f64 * 0.1
+                        + (frame + 1) as f64 * 0.1
+                        + 500. * (-t * t).exp()
+                        + (bin as f64 * 0.03).sin().abs()
+                })
+            })
+            .collect();
+        let series = Series::new(
+            x.clone(),
+            data,
+            "q_A^-1".into(),
+            Some(4e-11),
+            (0..count)
+                .map(|frame| Entry {
+                    path: String::new(),
+                    frame,
+                })
+                .collect(),
+            vec![],
+            count,
+        )
+        .unwrap();
+        let control = Control::default();
+        let started = Instant::now();
+        let prepared = crate::background_fit::ChebyshevFit::new(&x, 50).unwrap();
+        let setup = started.elapsed();
+        let mut smoothing = Duration::ZERO;
+        let mut polynomial = Duration::ZERO;
+        for row in series.data.chunks_exact(bins) {
+            let started = Instant::now();
+            let smooth = crate::batch_background::smooth_cancellable(
+                row,
+                (0.1 / (x[1] - x[0])) as usize,
+                150,
+                &control,
+            )
+            .unwrap();
+            smoothing += started.elapsed();
+            let started = Instant::now();
+            std::hint::black_box(prepared.fit(&smooth).unwrap());
+            polynomial += started.elapsed();
+        }
+        let mut grouped_smoothing = Duration::ZERO;
+        for group in series.data.chunks(bins * 4) {
+            let rows: Vec<_> = group.chunks_exact(bins).collect();
+            let started = Instant::now();
+            let output = crate::batch_background::smooth_group_cancellable(
+                &rows,
+                (0.1 / (x[1] - x[0])) as usize,
+                150,
+                &control,
+            )
+            .unwrap();
+            grouped_smoothing += started.elapsed();
+            for (row, result) in rows.iter().zip(output) {
+                let reference = crate::batch_background::smooth_cancellable(
+                    row,
+                    (0.1 / (x[1] - x[0])) as usize,
+                    150,
+                    &control,
+                )
+                .unwrap();
+                assert!(
+                    result
+                        .iter()
+                        .zip(reference)
+                        .all(|(a, b)| a.to_bits() == b.to_bits())
+                );
+            }
+        }
+        eprintln!(
+            "GROUPED_SMOOTHING_MS {}",
+            grouped_smoothing.as_secs_f64() * 1000.
+        );
+        eprintln!(
+            "STAGES {}",
+            json!({"rows":count,"bins":bins,"order":50,"iterations":150,"setup_ms":setup.as_secs_f64()*1000.,"smoothing_ms":smoothing.as_secs_f64()*1000.,"polynomial_ms":polynomial.as_secs_f64()*1000.})
+        );
+        for (unit, overlay) in [("q_A^-1", false), ("q_A^-1", true), ("2th_deg", true)] {
+            let mut patterns = Patterns::default();
+            patterns.unit = unit.into();
+            patterns.background.enabled = true;
+            let axis = series.profile(0, unit).unwrap().x;
+            if overlay {
+                patterns.background_uid = Some("background".into());
+                patterns.overlays.push(Overlay {
+                    uid: "background".into(),
+                    name: "Background".into(),
+                    visible: false,
+                    color: "#ffffff".into(),
+                    scale: 1.7,
+                    offset: 0.3,
+                    data: Arc::new(Curve {
+                        x: axis.clone(),
+                        y: Arc::new(vec![2.5; bins]),
+                        sigma: None,
+                        spread: None,
+                    }),
+                    batch_source: None,
+                });
+                patterns.background.range = Some([axis[100], axis[1900]]);
+            }
+            for repeat in 0..3 {
+                let mut fit = MapBackground::new(&patterns).unwrap();
+                let started = Instant::now();
+                let mut hash = Sha256::new();
+                for i in 0..count {
+                    let curve = fit
+                        .apply(
+                            series.profile(i, &series.unit).unwrap(),
+                            &series.unit,
+                            series.wavelength,
+                            &control,
+                        )
+                        .unwrap();
+                    for value in curve.x.iter().chain(curve.y.iter()) {
+                        hash.update(value.to_bits().to_le_bytes());
+                    }
+                }
+                let serial = started.elapsed();
+                let workers = crate::worker_pool::available().min(4);
+                let pool = crate::worker_pool::pool(Some(workers)).unwrap();
+                let started = Instant::now();
+                let before = crate::worker_pool::enter(pool.clone(), || {
+                    scalar_worker_reference(&series, &patterns, &control)
+                });
+                let before_parallel = started.elapsed();
+                let started = Instant::now();
+                let result = crate::worker_pool::enter(pool, || {
+                    CorrectedProfiles::from_series(&series, &patterns, &control)
+                })
+                .unwrap()
+                .unwrap();
+                let parallel_elapsed = started.elapsed();
+                assert_eq!(before.x, result.x);
+                assert!(
+                    before
+                        .data
+                        .iter()
+                        .zip(result.data.iter())
+                        .all(|(a, b)| a.to_bits() == b.to_bits())
+                );
+                let mut parallel_hash = Sha256::new();
+                for row in result.data.chunks_exact(result.x.len()) {
+                    for value in result.x.iter().chain(row) {
+                        parallel_hash.update(value.to_bits().to_le_bytes());
+                    }
+                }
+                let digest = format!("{:x}", hash.finalize());
+                assert_eq!(format!("{:x}", parallel_hash.finalize()), digest);
+                eprintln!(
+                    "PROFILE {}",
+                    json!({"unit":unit,"overlay":overlay,"repeat":repeat,"serial_ms":serial.as_secs_f64()*1000.,"before_parallel_ms":before_parallel.as_secs_f64()*1000.,"parallel_ms":parallel_elapsed.as_secs_f64()*1000.,"workers":workers,"sha256":digest})
+                );
+            }
         }
     }
 }
