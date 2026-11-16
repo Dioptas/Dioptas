@@ -883,7 +883,11 @@ impl Engine {
     /// otherwise replace it. A multi-file master moves it between its files.
     /// Returns false when the dataset cannot be opened as raw chunks.
     fn ensure_raw(&mut self, source: &CombinedSource) -> bool {
-        if self.raw.as_ref().is_some_and(|raw| raw.source == *source) {
+        if self
+            .raw
+            .as_ref()
+            .is_some_and(|raw| raw.source.same_dataset(source))
+        {
             return true;
         }
         let Ok(reader) = RawReader::open_snapshot(&source.path, &source.dataset, Limits::default())
@@ -905,9 +909,7 @@ impl Engine {
         planned: &CombinedSource,
         segment: &RawSegment,
     ) -> Result<(), String> {
-        if segment.source.shape != planned.shape
-            || (segment.source.path == planned.path && segment.source != *planned)
-        {
+        if segment.source.shape != planned.shape || segment.source.changed_from(planned) {
             return Err("A series source changed after plan preparation.".into());
         }
         if !self.ensure_raw(&segment.source) {
@@ -1071,9 +1073,7 @@ impl Engine {
         source.frame = 0;
         // The fixed plan depends on geometry and shape only, so a frame in
         // another file of the same master just moves the raw reader there.
-        if source.shape != context.source.shape
-            || (source.path == context.source.path && source != context.source)
-        {
+        if source.shape != context.source.shape || source.changed_from(&context.source) {
             return Err("A combined source changed after plan preparation.".into());
         }
         if !self.ensure_raw(&source) {

@@ -323,3 +323,72 @@ fn multi_file_master_runs_one_parallel_segment_per_source_file() {
         [direct[1].clone(), direct[3].clone(), direct[5].clone()]
     );
 }
+
+fn close_rows(actual: &[f64], expected: &[f64]) {
+    assert_eq!(actual.len(), expected.len());
+    for (a, b) in actual.iter().zip(expected) {
+        assert!((a - b).abs() <= 1e-9 * b.abs().max(1.), "{a} vs {b}");
+    }
+}
+
+/// Two blocks of one source file share its raw reader; the second block is
+/// neither a changed source nor a reason to reopen the file.
+#[test]
+fn two_blocks_from_one_source_file_use_the_fast_path() {
+    let temp = tempfile::tempdir().unwrap();
+    std::fs::create_dir(temp.path().join("scan0001")).unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/combined-counts.h5");
+    let first = temp.path().join("scan0001/eiger_0000.h5");
+    std::fs::copy(&fixture, &first).unwrap();
+    let split = temp.path().join("split.h5");
+    master_over(
+        &split,
+        3,
+        &[
+            ("scan0001/eiger_0000.h5", 0..2, 0),
+            ("scan0001/eiger_0000.h5", 2..3, 2),
+        ],
+    );
+
+    let mut session = Session::new(root());
+    let geometry = json!({"dist":0.2,"poni1":0.0032,"poni2":0.004,"rot1":0.,"rot2":0.,"rot3":0.,"pixel1":0.0001,"pixel2":0.0001,"wavelength":4e-11,"polarization_factor":0.99});
+    call(
+        &mut session,
+        "manual_geometry",
+        json!({"convention":"pyfai","values":geometry}),
+    );
+    call(
+        &mut session,
+        "integration_settings",
+        json!({"bins":48,"cake_bins":12,"trim_zeros":false}),
+    );
+    for (method, processed) in [("polygon", 0), ("pyfai", 3)] {
+        call(
+            &mut session,
+            "integration_settings",
+            json!({"method":method}),
+        );
+        let (direct, _) = map_rows(&mut session, &first);
+        let (through_master, path) = map_rows(&mut session, &split);
+        assert_eq!(
+            path,
+            json!({"pipelineRuns":2,"frameParallel":3,"processed":processed}),
+            "{method}"
+        );
+        assert_eq!(through_master, direct, "{method}");
+
+        // Selecting the second block's frame reintegrates it alone.
+        let selected = call(
+            &mut session,
+            "map_select",
+            json!({"index":2,"reintegrate":true}),
+        );
+        let y: Vec<f64> = selected.result["pattern"]["y"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_f64().unwrap())
+            .collect();
+        close_rows(&y, &direct[2]);
+    }
+}

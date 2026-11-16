@@ -962,6 +962,22 @@ pub struct CombinedSource {
     pub bindings: Vec<dioptrin_io::SourceBinding>,
     pub identity: FileIdentity,
 }
+impl CombinedSource {
+    /// Both read one dataset of one unchanged file through the same master
+    /// bindings: one raw reader serves both, whatever master frames each
+    /// block carries.
+    pub fn same_dataset(&self, other: &Self) -> bool {
+        self.path == other.path
+            && self.dataset == other.dataset
+            && self.identity == other.identity
+            && self.shape == other.shape
+            && self.bindings == other.bindings
+    }
+    /// The same file on disk, rewritten since `planned` was read.
+    pub fn changed_from(&self, planned: &Self) -> bool {
+        self.path == planned.path && self.identity != planned.identity
+    }
+}
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FileIdentity {
     length: u64,
