@@ -186,9 +186,16 @@ export function DetachedMapWindow() {
               ? processingProgressText(status.progress)
               : !status.ready
                 ? "Processing…"
-                : ""
+                : map?.backgroundPending
+                  ? "Map background update pending."
+                  : ""
           }
         />
+        {map?.backgroundPending && status.ready && (
+          <Button variant="secondary" onClick={() => void run("map_refresh", {}, "Updating map background…")}>
+            Update map
+          </Button>
+        )}
       </footer>
     </div>
   );

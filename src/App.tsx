@@ -1607,6 +1607,17 @@ export default function App() {
     },
     onError: setError,
   });
+  const mapRefreshAttempted = useRef(false);
+  useEffect(() => {
+    if (mode !== "map" || !map?.backgroundPending) {
+      mapRefreshAttempted.current = false;
+      return;
+    }
+    if (ready && !error && !mapRefreshAttempted.current) {
+      mapRefreshAttempted.current = true;
+      void run("map_refresh", {}, "Updating map background…");
+    }
+  }, [mode, map?.backgroundPending, ready, error, run]);
   const detectorWindow = useDetectorWindow(
     {
       largeText,
@@ -1997,7 +2008,9 @@ export default function App() {
               ][calibrationStep]
           : mode === "map"
             ? map
-              ? "Select a map cell to inspect its detector image and pattern."
+              ? map.backgroundPending
+                ? "Map background update pending."
+                : "Select a map cell to inspect its detector image and pattern."
               : state?.calibrated
                 ? "Build a map from detector images or a folder."
                 : "Load a calibration to build a map."
@@ -3697,6 +3710,15 @@ export default function App() {
               crystalFrames={scxrd?.frames ?? 0}
               processing={!!busy || !!progress?.running}
             />
+            {mode === "map" && map?.backgroundPending && ready && (
+              <Button
+                variant="secondary"
+                className="status-action"
+                onClick={() => void run("map_refresh", {}, "Updating map background…")}
+              >
+                Update map
+              </Button>
+            )}
             {error && (
               <Button
                 variant="secondary"
@@ -3727,7 +3749,7 @@ export default function App() {
                 {mode === "scxrd"
                   ? "Stop processing"
                   : mode === "map"
-                    ? "Cancel map integration"
+                    ? "Cancel map processing"
                     : mode === "integration"
                       ? "Cancel processing"
                       : mode === "mask"
