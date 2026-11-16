@@ -633,27 +633,52 @@ impl Image {
             return Ok(None);
         };
         // Same narrow admission as Qt; RawReader repeats layout and codec checks.
-        if m.virtual_dataset.is_some()
-            || m.external_raw.is_some()
-            || m.source_file != self.path
-            || m.source_shape.len() != 3
-            || m.little_endian != cfg!(target_endian = "little")
-            || m.filters.len() != 1
-            || m.filters[0].id != 32008
-            || m.filters[0].parameters.get(4) != Some(&2)
+        // A Bliss-style master whose virtual dataset maps every frame of one
+        // source dataset one-to-one is read from that source directly.
+        let (path, dataset, filters, little_endian, pixel_type) =
+            match (&m.virtual_dataset, &m.external_raw) {
+                (None, None) if m.source_file == self.path => (
+                    self.path.clone(),
+                    m.dataset.clone(),
+                    &m.filters,
+                    m.little_endian,
+                    m.pixel_type,
+                ),
+                (Some(vds), None) => {
+                    let Some(mapping) = whole_frame_mapping(vds, self.frames, m.shape) else {
+                        return Ok(None);
+                    };
+                    if mapping.source_pixel_type != m.pixel_type {
+                        return Ok(None);
+                    }
+                    (
+                        mapping.source_file.clone(),
+                        mapping.resolved_dataset.clone(),
+                        &mapping.filters,
+                        mapping.source_little_endian,
+                        mapping.source_pixel_type,
+                    )
+                }
+                _ => return Ok(None),
+            };
+        if m.source_shape.len() != 3
+            || little_endian != cfg!(target_endian = "little")
+            || filters.len() != 1
+            || filters[0].id != 32008
+            || filters[0].parameters.get(4) != Some(&2)
             || !matches!(
-                m.pixel_type,
+                pixel_type,
                 dioptrin_io::PixelType::U16 | dioptrin_io::PixelType::U32
             )
         {
             return Ok(None);
         }
         Ok(Some(CombinedSource {
-            path: self.path.clone(),
-            dataset: m.dataset.clone(),
+            identity: FileIdentity::read(&path)?,
+            path,
+            dataset,
             shape: m.shape,
             frame: index - m.first_frame,
-            identity: FileIdentity::read(&self.path)?,
             bindings: reader.source_bindings().map_err(|e| e.to_string())?,
         }))
     }
@@ -847,6 +872,39 @@ impl Image {
         }
         text
     }
+}
+
+/// The single VDS mapping that carries frame `i` of the master from frame `i`
+/// of one concrete source dataset, with nothing filled, nested or offset.
+/// Anything else stays on the general virtual-dataset reader.
+fn whole_frame_mapping(
+    vds: &dioptrin_io::hdf5::typed::VdsMetadata,
+    frames: usize,
+    shape: [usize; 2],
+) -> Option<&dioptrin_io::hdf5::typed::VdsMapping> {
+    let [mapping] = vds.mappings.as_slice() else {
+        return None;
+    };
+    let mapped = [frames, shape[0], shape[1]];
+    let unmapped = vds.unmapped_pixels_per_frame.unwrap_or(0) != 0
+        || vds.unmapped_pixels_by_frame.iter().any(|&n| n != 0);
+    (frames > 0
+        && !unmapped
+        && vds.nested_nodes.is_empty()
+        && vds.effective_fill_regions.is_empty()
+        && vds.frozen_shape == mapped
+        && mapping.nested_node.is_none()
+        && mapping.selection_layout
+            == dioptrin_io::hdf5::typed::SelectionLayout::ContiguousRectangle
+        && mapping.virtual_origin == [0; 3]
+        && mapping.source_origin == [0; 3]
+        && mapping.mapped_shape == mapped
+        && mapping.virtual_bounding_shape == mapped
+        && mapping.source_bounding_shape == mapped
+        && mapping.selected_elements == mapped.iter().map(|&n| n as u64).product::<u64>()
+        && mapping.source_shape[1..] == mapped[1..]
+        && mapping.source_shape[0] >= frames)
+        .then_some(mapping)
 }
 
 #[derive(Clone, PartialEq)]
