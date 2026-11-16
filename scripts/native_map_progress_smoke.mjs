@@ -254,6 +254,17 @@ try {
       });
       await ready();
       await detached.getByTestId("scan-map").waitFor();
+      await page.getByRole("button", { name: "Integration", exact: true }).click();
+      const refreshes = commands.filter((a) => a === "map_refresh").length;
+      await page.getByRole("button", { name: "Subtract pattern background", exact: true }).click();
+      await detached.getByRole("button", { name: "Update map", exact: true }).waitFor();
+      const pendingDetached = await call("state");
+      assert.equal(pendingDetached.map.backgroundPending, true);
+      assert.equal(commands.filter((a) => a === "map_refresh").length, refreshes);
+      await detached.getByRole("button", { name: "Update map", exact: true }).click();
+      await ready();
+      await detached.getByRole("button", { name: "Update map", exact: true }).waitFor({ state: "hidden" });
+      assert.equal((await call("state")).map.backgroundPending, false);
       assert.deepEqual(errors, []);
       receipts.push({
         browser: name,
