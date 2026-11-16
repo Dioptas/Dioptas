@@ -75,21 +75,42 @@ impl MapBackground {
         if !crate::batch_pattern_background::active(patterns) {
             return None;
         }
+        let mut patterns = patterns.clone();
+        patterns
+            .overlays
+            .retain(|o| Some(&o.uid) == patterns.background_uid.as_ref());
         Some(Self {
-            patterns: patterns.clone(),
+            patterns,
             prepared: None,
         })
     }
     pub fn apply(
         &mut self,
-        curve: crate::pattern::Curve,
+        mut curve: crate::pattern::Curve,
         unit: &str,
+        wavelength: Option<f64>,
         control: &crate::control::Control,
     ) -> Result<crate::pattern::Curve, String> {
+        let source_x = curve.x.clone();
+        let fit_unit = self.patterns.unit.clone();
+        let fit_x = crate::pattern::convert_axis(&source_x, unit, &fit_unit, wavelength)?;
+        curve.x = fit_x.clone();
         self.patterns
-            .ingest(curve, unit, "Map pattern", None, false);
-        self.patterns
-            .build_background_row(control, &mut self.prepared)
+            .ingest(curve, &fit_unit, "Map pattern", None, false);
+        let mut corrected = self
+            .patterns
+            .build_background_row(control, &mut self.prepared)?;
+        if fit_unit != unit {
+            // Cropping and d-spacing reversal can change both length and order.
+            // Keep the original bin centers exactly for strict ROI boundaries.
+            let centers: std::collections::HashMap<_, _> = fit_x
+                .iter()
+                .zip(source_x.iter())
+                .map(|(a, b)| (a.to_bits(), *b))
+                .collect();
+            corrected.x = Arc::new(corrected.x.iter().map(|x| centers[&x.to_bits()]).collect());
+        }
+        Ok(corrected)
     }
 }
 impl CorrectedProfiles {
@@ -111,11 +132,26 @@ impl CorrectedProfiles {
             return Ok(None);
         };
         let mut corrected = Self::default();
-        for i in 0..series.count() {
-            let curve = fit.apply(series.profile(i, &series.unit)?, &series.unit, control)?;
-            corrected.push(&curve)?;
-        }
+        corrected.append_series(series, 0, &mut fit, control)?;
         Ok(Some(corrected))
+    }
+    pub fn append_series(
+        &mut self,
+        series: &Series,
+        start: usize,
+        fit: &mut MapBackground,
+        control: &crate::control::Control,
+    ) -> Result<(), String> {
+        for i in start..series.count() {
+            let curve = fit.apply(
+                series.profile(i, &series.unit)?,
+                &series.unit,
+                series.wavelength,
+                control,
+            )?;
+            self.push(&curve)?;
+        }
+        Ok(())
     }
 }
 impl Scan {
@@ -204,7 +240,7 @@ impl Scan {
         let dims = dimensions(series.count());
         let dimension = dims[0];
         let analysis = Self::analysis(
-            &series.x,
+            corrected.as_ref().map_or(&series.x, |rows| &rows.x),
             &series.unit,
             series.wavelength.unwrap_or(1e-10),
             previous,

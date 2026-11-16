@@ -24,6 +24,29 @@ pub(crate) fn convert_coordinate(value: f64, from: &str, to: &str, wavelength: f
         _ => f64::NAN,
     }
 }
+pub(crate) fn convert_axis(
+    x: &Arc<Vec<f64>>,
+    from: &str,
+    to: &str,
+    wavelength: Option<f64>,
+) -> Result<Arc<Vec<f64>>, String> {
+    if from == to {
+        return Ok(x.clone());
+    }
+    if [from, to].contains(&"2th_deg") && wavelength.is_none() {
+        return Err("This stored batch has no recorded wavelength for angular conversion.".into());
+    }
+    let converted: Vec<_> = x
+        .iter()
+        .map(|&v| convert_coordinate(v, from, to, wavelength.unwrap_or(1e-10)))
+        .collect();
+    if converted.iter().any(|v| !v.is_finite()) {
+        return Err(
+            "The requested series axis cannot be converted at the recorded wavelength.".into(),
+        );
+    }
+    Ok(Arc::new(converted))
+}
 #[derive(Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Curve {
     #[serde(with = "crate::history_transfer::arc")]
@@ -567,6 +590,13 @@ impl Patterns {
                 return Err(
                     "Background range must include at least two distinct pattern samples.".into(),
                 );
+            }
+            if prepared.is_some()
+                && x.len()
+                    .checked_mul((self.background.order + 1).pow(2))
+                    .is_none_or(|n| n > 200_000_000)
+            {
+                return Err("Background polynomial exceeds the interactive fitting limit; reduce order or bin count.".into());
             }
             let background = if let Some(cached) = &self.extracted {
                 cached.clone()

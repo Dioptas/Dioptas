@@ -16,7 +16,6 @@ struct MapProgress {
 impl MapProgress {
     fn new(
         x: &[f64],
-        reduced_x: &[f64],
         count: usize,
         unit: &str,
         wavelength: f64,
@@ -35,7 +34,7 @@ impl MapProgress {
                 .into_iter()
                 .map(|roi| {
                     let window = crate::map_math::Window::new(
-                        reduced_x,
+                        x,
                         roi.min,
                         roi.max,
                         &roi.reduction,
@@ -153,20 +152,24 @@ impl SeriesRows {
     ) -> Result<(), String> {
         context.control.check()?;
         let curve = crate::pattern::Curve::from_json(pattern)?;
+        let corrected;
+        let preview_curve = if let Some(fit) = &mut self.map_background {
+            corrected = fit.apply(
+                curve.clone(),
+                &context.settings.unit,
+                Some(context.settings.geometry.wavelength),
+                context.control,
+            )?;
+            self.corrected
+                .get_or_insert_with(Default::default)
+                .push(&corrected)?;
+            &corrected
+        } else {
+            &curve
+        };
         if self.preview_enabled {
-            let corrected;
-            let preview_curve = if let Some(fit) = &mut self.map_background {
-                corrected = fit.apply(curve.clone(), &context.settings.unit, context.control)?;
-                self.corrected
-                    .get_or_insert_with(Default::default)
-                    .push(&corrected)?;
-                &corrected
-            } else {
-                &curve
-            };
             if self.preview.is_none() {
                 self.preview = Some(MapProgress::new(
-                    &curve.x,
                     &preview_curve.x,
                     self.count,
                     &context.settings.unit,
@@ -297,13 +300,14 @@ impl Session {
         &mut self,
         paths: Vec<String>,
         args: &Value,
+        build_map: bool,
     ) -> Result<(Series, Option<crate::scan::CorrectedProfiles>), String> {
         if !self.settings.calibrated {
             return Err("Load a PONI calibration before integrating a series.".into());
         }
         #[cfg(not(feature = "dioptrin"))]
         {
-            let _ = (paths, args);
+            let _ = (paths, args, build_map);
             Err("Batch integration requires the optional Dioptrin engine.".into())
         }
         #[cfg(feature = "dioptrin")]
@@ -386,9 +390,13 @@ impl Session {
                     spread: None,
                     entries: vec![],
                     preview: None,
-                    map_background: crate::scan::MapBackground::new(&self.patterns),
+                    map_background: if build_map {
+                        crate::scan::MapBackground::new(&self.patterns)
+                    } else {
+                        None
+                    },
                     corrected: None,
-                    preview_enabled: args["preview_map"] == true,
+                    preview_enabled: build_map,
                     count,
                 };
                 rows.publish_progress(&self.control);
@@ -1106,7 +1114,7 @@ mod map_progress_tests {
                     }
                     old.rebuild(true, &patterns).unwrap();
                     let mut preview =
-                        MapProgress::new(&x, &x, 12, "q_A^-1", 4e-11, Some(&old)).unwrap();
+                        MapProgress::new(&x, 12, "q_A^-1", 4e-11, Some(&old)).unwrap();
                     let control = crate::control::Control::default();
                     control.publish(json!({"running":true,"current":0,"total":12}));
                     for frame in 0..12 {

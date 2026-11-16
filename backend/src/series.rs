@@ -241,34 +241,7 @@ impl Series {
         if index >= self.count() {
             return Err("Choose a frame within the series.".into());
         }
-        let x = if unit == self.unit {
-            self.x.clone()
-        } else {
-            if [unit, self.unit.as_str()].contains(&"2th_deg") && self.wavelength.is_none() {
-                return Err(
-                    "This stored batch has no recorded wavelength for angular conversion.".into(),
-                );
-            }
-            let x = self
-                .x
-                .iter()
-                .map(|&x| {
-                    crate::pattern::convert_coordinate(
-                        x,
-                        &self.unit,
-                        unit,
-                        self.wavelength.unwrap_or(1e-10),
-                    )
-                })
-                .collect::<Vec<_>>();
-            if x.iter().any(|x| !x.is_finite()) {
-                return Err(
-                    "The requested series axis cannot be converted at the recorded wavelength."
-                        .into(),
-                );
-            }
-            Arc::new(x)
-        };
+        let x = crate::pattern::convert_axis(&self.x, &self.unit, unit, self.wavelength)?;
         let n = self.x.len();
         Ok(Curve {
             x,
