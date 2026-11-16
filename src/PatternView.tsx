@@ -456,22 +456,32 @@ export function PatternView<U extends PlotUnit = Unit>({
     onViewChange?.({ xMin: xmin, xMax: xmax, yMin: ymin, yMax: ymax });
   }, [xmin, xmax, ymin, ymax, onViewChange]);
   const yspan = ymax - ymin;
-  const regionAt = (x: number) => {
-    const tolerance = ((xmax - xmin) * 9) / w;
-    return [...regions]
-      .sort((a, b) => {
-        const edge = (r: PatternRegion) =>
-          Math.min(Math.abs(x - r.min), Math.abs(x - r.max));
-        const ae = edge(a),
-          be = edge(b);
-        if (ae <= tolerance || be <= tolerance) return ae - be;
-        return Number(!!b.active) - Number(!!a.active);
+  const regionHitAt = (pixel: number) => {
+    return regions
+      .flatMap((region) => {
+        const min = left + ((region.min - xmin) / (xmax - xmin)) * w;
+        const max = left + ((region.max - xmin) / (xmax - xmin)) * w;
+        // Every interior pixel stays available for moving, even in tiny windows.
+        const inside = pixel > min && pixel < max;
+        const distance = Math.min(Math.abs(pixel - min), Math.abs(pixel - max));
+        const mode: "min" | "max" | "move" =
+          inside && region.movable !== false
+            ? "move"
+            : Math.abs(pixel - min) <= Math.abs(pixel - max)
+              ? "min"
+              : "max";
+        // Fixed regions retain their edge-only editing on both sides of the line.
+        if (mode !== "move" && distance > (region.movable === false ? 9 : 8))
+          return [];
+        return [{ region, mode, distance }];
       })
-      .find((r) =>
-        r.movable === false
-          ? Math.min(Math.abs(x - r.min), Math.abs(x - r.max)) <= tolerance
-          : x >= r.min - tolerance && x <= r.max + tolerance,
-      );
+      .sort((a, b) => {
+        // An adjacent window's outside resize zone must not steal the interior.
+        if ((a.mode === "move") !== (b.mode === "move"))
+          return a.mode === "move" ? -1 : 1;
+        if (a.mode !== "move") return a.distance - b.distance;
+        return Number(!!b.region.active) - Number(!!a.region.active);
+      })[0];
   };
   const updateRegionDrag = (point: { x: number; y: number }) => {
     const drag = regionDrag.current;
@@ -510,25 +520,17 @@ export function PatternView<U extends PlotUnit = Unit>({
       if (changed && moved) onRegionInput?.(drag.name, min, max);
     }
   };
-  const hoveredRegion =
-    editRegions && hover !== null
-      ? regionAt(xmin + ((hover - left) / w) * (xmax - xmin))
-      : undefined;
+  const hoveredRegionHit =
+    editRegions && hover !== null ? regionHitAt(hover) : undefined;
+  const hoveredRegion = hoveredRegionHit?.region;
   const regionCursor = regionDrag.current
     ? regionDrag.current.mode === "move"
       ? "grabbing"
       : "ew-resize"
-    : hoveredRegion
-      ? Math.min(
-          Math.abs(
-            hover! - (left + ((hoveredRegion.min - xmin) / (xmax - xmin)) * w),
-          ),
-          Math.abs(
-            hover! - (left + ((hoveredRegion.max - xmin) / (xmax - xmin)) * w),
-          ),
-        ) < 9
-        ? "ew-resize"
-        : "grab"
+    : hoveredRegionHit
+      ? hoveredRegionHit.mode === "move"
+        ? "grab"
+        : "ew-resize"
       : undefined;
   // Submit the pattern in the same commit as the detector, before WebKit paints.
   const renderPattern = (exporting = false) => {
@@ -673,12 +675,8 @@ export function PatternView<U extends PlotUnit = Unit>({
           ? drag.mode === "move"
             ? undefined
             : drag.mode
-          : hovered &&
-              hover !== null &&
-              Math.min(Math.abs(hover - x0), Math.abs(hover - x1)) < 9
-            ? Math.abs(hover - x0) <= Math.abs(hover - x1)
-              ? "min"
-              : "max"
+          : hovered && hoveredRegionHit?.mode !== "move"
+            ? hoveredRegionHit?.mode
             : undefined;
         drawRangeSelection(
           context,
@@ -1357,10 +1355,9 @@ export function PatternView<U extends PlotUnit = Unit>({
             point.y >= top &&
             point.y <= top + h
           ) {
-            const x = navigation.data(point).x;
-            const tolerance = ((xmax - xmin) * 9) / w;
-            const region = regionAt(x);
-            if (region) {
+            const hit = regionHitAt(point.x);
+            if (hit) {
+              const { region, mode } = hit;
               regionDrag.current = {
                 name: region.name,
                 startPixel: point.x,
@@ -1370,13 +1367,7 @@ export function PatternView<U extends PlotUnit = Unit>({
                 bounds: region.bounds,
                 minWidth: region.minWidth,
                 next: null,
-                mode:
-                  Math.min(Math.abs(x - region.min), Math.abs(x - region.max)) <
-                  tolerance
-                    ? Math.abs(x - region.min) <= Math.abs(x - region.max)
-                      ? "min"
-                      : "max"
-                    : "move",
+                mode,
               };
               onRegionDragStart?.();
               e.currentTarget.focus({ preventScroll: true });
