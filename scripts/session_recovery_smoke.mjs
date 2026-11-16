@@ -266,7 +266,7 @@ try {
                 await undo.click();
                 await waitForState("bins", 137);
                 await undo.click();
-                await waitForState("bins", 1000);
+                await waitForState("bins", null);
                 await redo.click();
                 await waitForState("bins", 137);
                 await page

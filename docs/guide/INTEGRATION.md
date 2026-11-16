@@ -2,6 +2,11 @@
 
 > Moved from the former desktop README (now `DEVELOPMENT.md`). Source paths and commands are relative to the repository root.
 
+New sessions estimate the number of radial bins from the detector image dimensions
+and beam center. To use a fixed count, turn off **Settings → Integration →
+Automatic radial binning** and enter the desired number of bins. Saved projects
+retain their binning choice.
+
 New sessions trim contiguous leading and trailing exact-zero bins from 1D
 integrated patterns by default, including combined-detector patterns and their
 exports. **Settings → Integration → Trim leading and trailing zeros** can retain

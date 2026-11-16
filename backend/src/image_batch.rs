@@ -268,6 +268,7 @@ mod tests {
                 .select_detector("Eiger2 CdTe 500k")
                 .unwrap();
             session.settings.calibrated = true;
+            session.settings.automatic_binning = false;
             session.settings.bins = 64;
             session.settings.cake_bins = 16;
             session.settings.trim_zeros = false;
