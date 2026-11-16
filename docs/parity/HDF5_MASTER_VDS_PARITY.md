@@ -148,11 +148,21 @@ application and processor were closed afterward; other work was preserved.
 
 Batch and Map read Bitshuffle/LZ4 Eiger data with the parallel raw reader:
 eight frame workers each decode and integrate whole frames. A master whose
-virtual dataset maps every frame of one source dataset one-to-one (the Bliss
-layout, e.g. `/1.1/instrument/eiger/data` → `scan0001/eiger_0000.h5`) now uses
-that path on the source file directly (`Image::combined_source`). Any other VDS
-keeps the general reader, which decodes through HDF5 one frame at a time:
-several source files, frame offsets, fill regions or nested masters.
+virtual dataset is a stack of whole-frame blocks (the Bliss layout, e.g.
+`/1.1/instrument/eiger/data` → `scan0001/eiger_0000.h5`, `eiger_0001.h5`, …)
+uses that path on the source files directly (`Image::combined_source`). Each
+block must copy a contiguous run of full detector frames from one source
+dataset, possibly starting inside it; together the blocks must cover every
+master frame once, in one pixel type, byte order and Bitshuffle/LZ4 filter. The
+last file may be shorter. Batch and Map split the selected frames at file
+boundaries and run one parallel pipeline per file, with the integration plan
+reused and rows stored under master frame numbers. Any other VDS keeps the
+general reader, which decodes through HDF5 one frame at a time: unmapped
+(filled) frames, partial-frame or strided selections, mixed layouts or nested
+masters. dioptrin-io refuses overlapping mappings outright.
+
+A growing Live master is not followed across files yet: its file list is read
+when the run is planned, so files the acquisition adds later need a new run.
 
 On a 2500-frame 2162 × 2068 uint32 Eiger scan (10.5 GB, Apple M4 Pro, polygon
 integration, 1000 bins), Map integration through the master went from 110–122
@@ -165,7 +175,9 @@ source file; against the general reader they differ only by float rounding
 dioptrin-io 0.4.1 also stopped refusing unwrapped HDF5 files above its 8 GiB
 `source_bytes` transport bound, which before then made such a scan reachable
 only through its master. `tests/integration/vds_series_fast_path.rs` covers
-admission of whole-frame masters and rejection of an offset mapping.
+single- and multi-file masters (including a stride across the file boundary
+and the pyFAI-compatible processed path), an offset block, and a master with
+unmapped frames that stays on the general reader.
 
 ## Limits
 

@@ -633,44 +633,41 @@ impl Image {
             return Ok(None);
         };
         // Same narrow admission as Qt; RawReader repeats layout and codec checks.
-        // A Bliss-style master whose virtual dataset maps every frame of one
-        // source dataset one-to-one is read from that source directly.
-        let (path, dataset, filters, little_endian, pixel_type) =
-            match (&m.virtual_dataset, &m.external_raw) {
-                (None, None) if m.source_file == self.path => (
+        // A Bliss-style master whose virtual dataset is a stack of whole-frame
+        // blocks, one per source file, is read from the file holding `index`.
+        let (path, dataset, frame, master_frames) = match (&m.virtual_dataset, &m.external_raw) {
+            (None, None) if m.source_file == self.path => {
+                if !raw_layout(&m.filters, m.little_endian, m.pixel_type) {
+                    return Ok(None);
+                }
+                let end = m
+                    .first_frame
+                    .saturating_add(m.source_shape.first().copied().unwrap_or(0))
+                    .min(self.frames);
+                (
                     self.path.clone(),
                     m.dataset.clone(),
-                    &m.filters,
-                    m.little_endian,
-                    m.pixel_type,
-                ),
-                (Some(vds), None) => {
-                    let Some(mapping) = whole_frame_mapping(vds, self.frames, m.shape) else {
-                        return Ok(None);
-                    };
-                    if mapping.source_pixel_type != m.pixel_type {
-                        return Ok(None);
-                    }
-                    (
-                        mapping.source_file.clone(),
-                        mapping.resolved_dataset.clone(),
-                        &mapping.filters,
-                        mapping.source_little_endian,
-                        mapping.source_pixel_type,
-                    )
-                }
-                _ => return Ok(None),
-            };
-        if m.source_shape.len() != 3
-            || little_endian != cfg!(target_endian = "little")
-            || filters.len() != 1
-            || filters[0].id != 32008
-            || filters[0].parameters.get(4) != Some(&2)
-            || !matches!(
-                pixel_type,
-                dioptrin_io::PixelType::U16 | dioptrin_io::PixelType::U32
-            )
-        {
+                    index - m.first_frame,
+                    m.first_frame..end,
+                )
+            }
+            (Some(vds), None) => {
+                let Some(mapping) =
+                    whole_frame_mapping(vds, self.frames, m.shape, m.pixel_type, index)
+                else {
+                    return Ok(None);
+                };
+                let start = mapping.virtual_origin[0];
+                (
+                    mapping.source_file.clone(),
+                    mapping.resolved_dataset.clone(),
+                    index - start + mapping.source_origin[0],
+                    start..start + mapping.mapped_shape[0],
+                )
+            }
+            _ => return Ok(None),
+        };
+        if m.source_shape.len() != 3 {
             return Ok(None);
         }
         Ok(Some(CombinedSource {
@@ -678,7 +675,8 @@ impl Image {
             path,
             dataset,
             shape: m.shape,
-            frame: index - m.first_frame,
+            frame,
+            master_frames,
             bindings: reader.source_bindings().map_err(|e| e.to_string())?,
         }))
     }
@@ -874,37 +872,81 @@ impl Image {
     }
 }
 
-/// The single VDS mapping that carries frame `i` of the master from frame `i`
-/// of one concrete source dataset, with nothing filled, nested or offset.
-/// Anything else stays on the general virtual-dataset reader.
+/// Bitshuffle/LZ4 chunks of native-endian 16- or 32-bit counts: the only
+/// layout the parallel raw reader decodes.
+fn raw_layout(
+    filters: &[dioptrin_io::hdf5::Filter],
+    little_endian: bool,
+    pixel_type: dioptrin_io::PixelType,
+) -> bool {
+    little_endian == cfg!(target_endian = "little")
+        && filters.len() == 1
+        && filters[0].id == 32008
+        && filters[0].parameters.get(4) == Some(&2)
+        && matches!(
+            pixel_type,
+            dioptrin_io::PixelType::U16 | dioptrin_io::PixelType::U32
+        )
+}
+
+/// The VDS mapping that carries master frame `index` when the master is a
+/// plain stack of whole-frame blocks: each mapping copies a contiguous run of
+/// full detector frames from one concrete source dataset, and together they
+/// cover every master frame once, without gaps, overlaps, fill, nesting or a
+/// change of pixel layout. Anything else stays on the general virtual reader.
 fn whole_frame_mapping(
     vds: &dioptrin_io::hdf5::typed::VdsMetadata,
     frames: usize,
     shape: [usize; 2],
+    pixel_type: dioptrin_io::PixelType,
+    index: usize,
 ) -> Option<&dioptrin_io::hdf5::typed::VdsMapping> {
-    let [mapping] = vds.mappings.as_slice() else {
-        return None;
-    };
-    let mapped = [frames, shape[0], shape[1]];
+    use dioptrin_io::hdf5::typed::SelectionLayout;
     let unmapped = vds.unmapped_pixels_per_frame.unwrap_or(0) != 0
         || vds.unmapped_pixels_by_frame.iter().any(|&n| n != 0);
-    (frames > 0
-        && !unmapped
-        && vds.nested_nodes.is_empty()
-        && vds.effective_fill_regions.is_empty()
-        && vds.frozen_shape == mapped
-        && mapping.nested_node.is_none()
-        && mapping.selection_layout
-            == dioptrin_io::hdf5::typed::SelectionLayout::ContiguousRectangle
-        && mapping.virtual_origin == [0; 3]
-        && mapping.source_origin == [0; 3]
-        && mapping.mapped_shape == mapped
-        && mapping.virtual_bounding_shape == mapped
-        && mapping.source_bounding_shape == mapped
-        && mapping.selected_elements == mapped.iter().map(|&n| n as u64).product::<u64>()
-        && mapping.source_shape[1..] == mapped[1..]
-        && mapping.source_shape[0] >= frames)
-        .then_some(mapping)
+    if frames == 0
+        || index >= frames
+        || unmapped
+        || !vds.nested_nodes.is_empty()
+        || !vds.effective_fill_regions.is_empty()
+        || vds.frozen_shape != [frames, shape[0], shape[1]]
+        || vds.mappings.is_empty()
+    {
+        return None;
+    }
+    let mut blocks: Vec<_> = vds.mappings.iter().collect();
+    blocks.sort_by_key(|m| m.virtual_origin[0]);
+    let mut next = 0;
+    for m in &blocks {
+        let n = m.mapped_shape[0];
+        let block = [n, shape[0], shape[1]];
+        let whole = n > 0
+            && m.nested_node.is_none()
+            && m.selection_layout == SelectionLayout::ContiguousRectangle
+            && m.virtual_origin == [next, 0, 0]
+            && m.source_origin[1..] == [0, 0]
+            && m.mapped_shape == block
+            && m.virtual_bounding_shape == block
+            && m.source_bounding_shape == block
+            && m.selected_elements == block.iter().map(|&n| n as u64).product::<u64>()
+            && m.source_shape.len() == 3
+            && m.source_shape[1..] == block[1..]
+            && m.source_origin[0]
+                .checked_add(n)
+                .is_some_and(|end| end <= m.source_shape[0])
+            && m.source_pixel_type == pixel_type
+            && raw_layout(&m.filters, m.source_little_endian, m.source_pixel_type);
+        if !whole {
+            return None;
+        }
+        next += n;
+    }
+    if next != frames {
+        return None;
+    }
+    blocks
+        .into_iter()
+        .find(|m| (m.virtual_origin[0]..m.virtual_origin[0] + m.mapped_shape[0]).contains(&index))
 }
 
 #[derive(Clone, PartialEq)]
@@ -912,7 +954,11 @@ pub struct CombinedSource {
     pub path: PathBuf,
     pub dataset: String,
     pub shape: [usize; 2],
+    /// Frame within `dataset`.
     pub frame: usize,
+    /// Master frames carried by `dataset`; master frame `master_frames.start`
+    /// is dataset frame `frame - (index - master_frames.start)`.
+    pub master_frames: std::ops::Range<usize>,
     pub bindings: Vec<dioptrin_io::SourceBinding>,
     pub identity: FileIdentity,
 }

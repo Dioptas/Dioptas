@@ -112,6 +112,48 @@ struct RawSource {
     reader: RawReader,
     buffer: ParallelBlockBuffer,
 }
+/// Selected master frames held by one source dataset, in master order.
+struct RawSegment {
+    /// The dataset, with `frame` cleared like the cached reader's source.
+    source: CombinedSource,
+    /// Dataset frame numbers for the raw reader.
+    local: Vec<usize>,
+    /// Master frame `master_start` is dataset frame `local_start`.
+    master_start: usize,
+    local_start: usize,
+}
+impl RawSegment {
+    fn master(&self, local: usize) -> usize {
+        local - self.local_start + self.master_start
+    }
+}
+/// Split ascending master frames at source-file boundaries. A multi-file
+/// master changes datasets between segments; a direct file has one segment.
+fn raw_segments(image: &Image, frames: &[usize]) -> Result<Vec<RawSegment>, String> {
+    let mut segments = Vec::new();
+    let mut i = 0;
+    while i < frames.len() {
+        let first = frames[i];
+        let mut source = image
+            .combined_source(first)?
+            .ok_or("A series source changed after plan preparation.")?;
+        let range = source.master_frames.clone();
+        let local_start = source.frame - (first - range.start);
+        let count = frames[i..].iter().take_while(|f| range.contains(f)).count();
+        source.frame = 0;
+        segments.push(RawSegment {
+            local: frames[i..i + count]
+                .iter()
+                .map(|f| f - range.start + local_start)
+                .collect(),
+            source,
+            master_start: range.start,
+            local_start,
+        });
+        i += count;
+    }
+    Ok(segments)
+}
 #[derive(Clone)]
 pub struct Prepared {
     key: Arc<Key>,
@@ -592,20 +634,9 @@ impl Engine {
             return Err("Series detector plane exceeds the native pixel bound.".into());
         }
         source.frame = 0;
-        if self.raw.as_ref().is_none_or(|raw| raw.source != source) {
-            let reader =
-                match RawReader::open_snapshot(&source.path, &source.dataset, Limits::default()) {
-                    Ok(reader) => reader,
-                    Err(_) => {
-                        image.check_sources()?;
-                        return Ok(None);
-                    }
-                };
-            self.raw = Some(RawSource {
-                source: source.clone(),
-                reader,
-                buffer: ParallelBlockBuffer::default(),
-            });
+        if !self.ensure_raw(&source) {
+            image.check_sources()?;
+            return Ok(None);
         }
         let k = key(image.shape, p, mask, options, false);
         let plan = self.pattern_plan(k.clone())?;
@@ -661,9 +692,8 @@ impl Engine {
         control: &Control,
         mut consume: impl FnMut(usize, Value) -> Result<(), String>,
     ) -> Result<(), String> {
-        let raw = self.raw.as_ref().ok_or("Missing prepared series reader.")?;
-        if raw.source != plan.source || image.combined_source(0)?.as_ref() != Some(&plan.source) {
-            return Err("A series source changed after plan preparation.".into());
+        if self.raw.is_none() {
+            return Err("Missing prepared series reader.".into());
         }
         let pixels = image.shape[0] * image.shape[1];
         let supplied_variance =
@@ -671,122 +701,134 @@ impl Engine {
         let extra = pixels
             .saturating_mul(if supplied_variance { 16 } else { 8 })
             .saturating_add(context.plugins.series_scratch_bytes(image.shape));
-        let stats = series_pipeline::execute(
-            &raw.reader,
-            frames,
-            control,
-            extra,
-            || {
-                Ok(ProcessedFrameWorker {
-                    integrator: match &plan.integration {
-                        SeriesIntegrationPlan::Dynamic(p) => SeriesFrameIntegrator::Dynamic {
-                            integrator: p.worker(plan.options.errors),
-                            pool: rayon::ThreadPoolBuilder::new()
-                                .num_threads(1)
-                                .build()
-                                .map_err(|e| e.to_string())?,
-                        },
-                        SeriesIntegrationPlan::FixedCompatibility(p) => {
-                            SeriesFrameIntegrator::FixedCompatibility(p)
-                        }
+        let create = || {
+            Ok(ProcessedFrameWorker {
+                integrator: match &plan.integration {
+                    SeriesIntegrationPlan::Dynamic(p) => SeriesFrameIntegrator::Dynamic {
+                        integrator: p.worker(plan.options.errors),
+                        pool: rayon::ThreadPoolBuilder::new()
+                            .num_threads(1)
+                            .build()
+                            .map_err(|e| e.to_string())?,
                     },
-                    values: Vec::new(),
-                    variance: Vec::new(),
-                    plugins: context.plugins.clone(),
-                })
-            },
-            |worker, samples, frame, child| {
-                let (radial, intensity, errors, spread) = match &mut worker.integrator {
-                    SeriesFrameIntegrator::FixedCompatibility(integrator) => {
-                        child.check()?;
-                        let result = match samples {
-                            PixelBuffer::U16(v) => integrator.integrate_u16(v, plan.options.errors),
-                            PixelBuffer::U32(v) => integrator.integrate_u32(v, plan.options.errors),
-                            _ => return Err("Unexpected series sample type.".into()),
-                        }?;
-                        (result.radial, result.intensity, result.errors, None)
+                    SeriesIntegrationPlan::FixedCompatibility(p) => {
+                        SeriesFrameIntegrator::FixedCompatibility(p)
                     }
-                    SeriesFrameIntegrator::Dynamic { integrator, pool } => {
-                        worker.values.clear();
-                        let width = image.shape[1];
-                        match samples {
-                            PixelBuffer::U16(v) => worker.values.extend(
-                                v.chunks_exact(width)
-                                    .rev()
-                                    .flat_map(|r| r.iter().map(|&v| f64::from(v))),
-                            ),
-                            PixelBuffer::U32(v) => worker.values.extend(
-                                v.chunks_exact(width)
-                                    .rev()
-                                    .flat_map(|r| r.iter().map(|&v| f64::from(v))),
-                            ),
-                            _ => return Err("Unexpected series sample type.".into()),
+                },
+                values: Vec::new(),
+                variance: Vec::new(),
+                plugins: context.plugins.clone(),
+            })
+        };
+        // `frame` is the master frame: dynamic-mask plugins see Map numbering.
+        let process = |worker: &mut ProcessedFrameWorker,
+                       samples: &PixelBuffer,
+                       frame: usize,
+                       child: &Control| {
+            let (radial, intensity, errors, spread) = match &mut worker.integrator {
+                SeriesFrameIntegrator::FixedCompatibility(integrator) => {
+                    child.check()?;
+                    let result = match samples {
+                        PixelBuffer::U16(v) => integrator.integrate_u16(v, plan.options.errors),
+                        PixelBuffer::U32(v) => integrator.integrate_u32(v, plan.options.errors),
+                        _ => return Err("Unexpected series sample type.".into()),
+                    }?;
+                    (result.radial, result.intensity, result.errors, None)
+                }
+                SeriesFrameIntegrator::Dynamic { integrator, pool } => {
+                    worker.values.clear();
+                    let width = image.shape[1];
+                    match samples {
+                        PixelBuffer::U16(v) => worker.values.extend(
+                            v.chunks_exact(width)
+                                .rev()
+                                .flat_map(|r| r.iter().map(|&v| f64::from(v))),
+                        ),
+                        PixelBuffer::U32(v) => worker.values.extend(
+                            v.chunks_exact(width)
+                                .rev()
+                                .flat_map(|r| r.iter().map(|&v| f64::from(v))),
+                        ),
+                        _ => return Err("Unexpected series sample type.".into()),
+                    }
+                    if let Some(processing) = &context.processing {
+                        processing.apply(
+                            &mut worker.values,
+                            plan.options.errors.then_some(&mut worker.variance),
+                            child,
+                        )?;
+                    } else if supplied_variance {
+                        worker.variance.clear();
+                        worker
+                            .variance
+                            .extend(worker.values.iter().map(|v| v.max(0.)));
+                    }
+                    let mask = if plan.options.dynamic_mask {
+                        let mut mask = worker.plugins.refresh(
+                            &worker.values,
+                            image.shape,
+                            frame as u64,
+                            Some(&plan.key.geometry),
+                            &context.user_mask,
+                            child,
+                        )?;
+                        for (value, base) in mask.iter_mut().zip(context.base_mask.iter()) {
+                            *value |= base;
                         }
-                        if let Some(processing) = &context.processing {
-                            processing.apply(
-                                &mut worker.values,
-                                plan.options.errors.then_some(&mut worker.variance),
-                                child,
-                            )?;
-                        } else if supplied_variance {
-                            worker.variance.clear();
-                            worker
-                                .variance
-                                .extend(worker.values.iter().map(|v| v.max(0.)));
-                        }
-                        let mask = if plan.options.dynamic_mask {
-                            let mut mask = worker.plugins.refresh(
-                                &worker.values,
-                                image.shape,
-                                frame as u64,
-                                Some(&plan.key.geometry),
-                                &context.user_mask,
-                                child,
-                            )?;
-                            for (value, base) in mask.iter_mut().zip(context.base_mask.iter()) {
-                                *value |= base;
-                            }
-                            std::borrow::Cow::Owned(mask)
-                        } else {
-                            std::borrow::Cow::Borrowed(context.base_mask.as_slice())
-                        };
-                        child.check()?;
+                        std::borrow::Cow::Owned(mask)
+                    } else {
+                        std::borrow::Cow::Borrowed(context.base_mask.as_slice())
+                    };
+                    child.check()?;
 
-                        let result = pool.install(|| {
-                            integrator.integrate(
-                                &worker.values,
-                                Some(&mask),
-                                plan.options.errors.then_some(worker.variance.as_slice()),
-                                plan.options.spread,
-                            )
-                        })?;
-                        (
-                            result.radial,
-                            result.intensity,
-                            result.errors,
-                            result.azimuthal_std,
+                    let result = pool.install(|| {
+                        integrator.integrate(
+                            &worker.values,
+                            Some(&mask),
+                            plan.options.errors.then_some(worker.variance.as_slice()),
+                            plan.options.spread,
                         )
-                    }
-                };
-                Self::finish_pattern(
-                    radial,
-                    intensity,
-                    errors,
-                    spread,
-                    &plan.key.geometry,
-                    &plan.options,
-                )
-                .map(|r| r.0)
-            },
-            &mut consume,
-        )?;
-        image.check_sources()?;
-        control.check()?;
-        self.frame_parallel_integrations += stats.frames as u64;
-        self.processed_frame_integrations += stats.frames as u64;
-        self.series_worker_starts += stats.workers as u64;
-        self.series_pipeline_runs += 1;
-        self.series_pending_peak = self.series_pending_peak.max(stats.pending_peak);
+                    })?;
+                    (
+                        result.radial,
+                        result.intensity,
+                        result.errors,
+                        result.azimuthal_std,
+                    )
+                }
+            };
+            Self::finish_pattern(
+                radial,
+                intensity,
+                errors,
+                spread,
+                &plan.key.geometry,
+                &plan.options,
+            )
+            .map(|r| r.0)
+        };
+        for segment in raw_segments(image, frames)? {
+            self.open_segment(image, &plan.source, &segment)?;
+            let raw = self.raw.as_ref().unwrap();
+            let stats = series_pipeline::execute(
+                &raw.reader,
+                &segment.local,
+                control,
+                extra,
+                create,
+                |worker, samples, frame, child| {
+                    process(worker, samples, segment.master(frame), child)
+                },
+                |frame, pattern| consume(segment.master(frame), pattern),
+            )?;
+            image.check_sources()?;
+            control.check()?;
+            self.frame_parallel_integrations += stats.frames as u64;
+            self.processed_frame_integrations += stats.frames as u64;
+            self.series_worker_starts += stats.workers as u64;
+            self.series_pipeline_runs += 1;
+            self.series_pending_peak = self.series_pending_peak.max(stats.pending_peak);
+        }
         Ok(())
     }
 
@@ -800,37 +842,81 @@ impl Engine {
         control: &Control,
         mut consume: impl FnMut(usize, Value) -> Result<(), String>,
     ) -> Result<(), String> {
-        let raw = self.raw.as_ref().ok_or("Missing prepared series reader.")?;
-        if raw.source != plan.source || image.combined_source(0)?.as_ref() != Some(&plan.source) {
-            return Err("A combined source changed after plan preparation.".into());
+        if self.raw.is_none() {
+            return Err("Missing prepared series reader.".into());
         }
-        let stats = series_pipeline::run(
-            &raw.reader,
-            &plan.fixed,
-            plan.options.errors,
-            frames,
-            control,
-            |frame, result| {
-                let (pattern, _) = Self::finish_pattern(
-                    result.radial,
-                    result.intensity,
-                    result.errors,
-                    None,
-                    &plan.key.geometry,
-                    &plan.options,
-                )?;
-                consume(frame, pattern)
-            },
-        )?;
-        image.check_sources()?;
-        control.check()?;
-        self.frame_parallel_integrations += stats.frames as u64;
-        self.combined_decodes += stats.frames as u64;
-        self.pattern_only_decodes += stats.frames as u64;
-        self.prepared_hits += stats.frames as u64;
-        self.series_worker_starts += stats.workers as u64;
-        self.series_pipeline_runs += 1;
-        self.series_pending_peak = self.series_pending_peak.max(stats.pending_peak);
+        for segment in raw_segments(image, frames)? {
+            self.open_segment(image, &plan.source, &segment)?;
+            let raw = self.raw.as_ref().unwrap();
+            let stats = series_pipeline::run(
+                &raw.reader,
+                &plan.fixed,
+                plan.options.errors,
+                &segment.local,
+                control,
+                |frame, result| {
+                    let (pattern, _) = Self::finish_pattern(
+                        result.radial,
+                        result.intensity,
+                        result.errors,
+                        None,
+                        &plan.key.geometry,
+                        &plan.options,
+                    )?;
+                    consume(segment.master(frame), pattern)
+                },
+            )?;
+            image.check_sources()?;
+            control.check()?;
+            self.frame_parallel_integrations += stats.frames as u64;
+            self.combined_decodes += stats.frames as u64;
+            self.pattern_only_decodes += stats.frames as u64;
+            self.prepared_hits += stats.frames as u64;
+            self.series_worker_starts += stats.workers as u64;
+            self.series_pipeline_runs += 1;
+            self.series_pending_peak = self.series_pending_peak.max(stats.pending_peak);
+        }
+        Ok(())
+    }
+
+    /// Keep the cached raw reader when it already reads `source` (frame 0);
+    /// otherwise replace it. A multi-file master moves it between its files.
+    /// Returns false when the dataset cannot be opened as raw chunks.
+    fn ensure_raw(&mut self, source: &CombinedSource) -> bool {
+        if self.raw.as_ref().is_some_and(|raw| raw.source == *source) {
+            return true;
+        }
+        let Ok(reader) = RawReader::open_snapshot(&source.path, &source.dataset, Limits::default())
+        else {
+            return false;
+        };
+        self.raw = Some(RawSource {
+            source: source.clone(),
+            reader,
+            buffer: ParallelBlockBuffer::default(),
+        });
+        true
+    }
+    /// The series plan was frozen for `planned`; a segment may move to another
+    /// file of the same master, but never to a changed copy of the planned file.
+    fn open_segment(
+        &mut self,
+        image: &Image,
+        planned: &CombinedSource,
+        segment: &RawSegment,
+    ) -> Result<(), String> {
+        if segment.source.shape != planned.shape
+            || (segment.source.path == planned.path && segment.source != *planned)
+        {
+            return Err("A series source changed after plan preparation.".into());
+        }
+        if !self.ensure_raw(&segment.source) {
+            image.check_sources()?;
+            return Err(format!(
+                "Could not open {} as a raw series source.",
+                segment.source.path.display()
+            ));
+        }
         Ok(())
     }
 
@@ -848,20 +934,9 @@ impl Engine {
         };
         let frame = source.frame;
         source.frame = 0;
-        if self.raw.as_ref().is_none_or(|raw| raw.source != source) {
-            let reader =
-                match RawReader::open_snapshot(&source.path, &source.dataset, Limits::default()) {
-                    Ok(reader) => reader,
-                    Err(_) => {
-                        image.check_sources()?;
-                        return Ok(false);
-                    }
-                };
-            self.raw = Some(RawSource {
-                source: source.clone(),
-                reader,
-                buffer: ParallelBlockBuffer::default(),
-            });
+        if !self.ensure_raw(&source) {
+            image.check_sources()?;
+            return Ok(false);
         }
         let raw = self.raw.as_mut().unwrap();
         let kind = raw.reader.pixel_type();
@@ -962,20 +1037,9 @@ impl Engine {
         }
         c.check()?;
         source.frame = 0;
-        if self.raw.as_ref().is_none_or(|r| r.source != source) {
-            let reader =
-                match RawReader::open_snapshot(&source.path, &source.dataset, Limits::default()) {
-                    Ok(reader) => reader,
-                    Err(_) => {
-                        image.check_sources()?;
-                        return Ok(None);
-                    }
-                };
-            self.raw = Some(RawSource {
-                source: source.clone(),
-                reader,
-                buffer: ParallelBlockBuffer::default(),
-            });
+        if !self.ensure_raw(&source) {
+            image.check_sources()?;
+            return Ok(None);
         }
         let m = if mask.is_empty() {
             vec![0; source.shape[0] * source.shape[1]]
@@ -1005,8 +1069,19 @@ impl Engine {
             .ok_or("Admitted combined source disappeared.")?;
         let frame = source.frame;
         source.frame = 0;
-        if source != context.source || self.raw.as_ref().is_none_or(|r| r.source != source) {
+        // The fixed plan depends on geometry and shape only, so a frame in
+        // another file of the same master just moves the raw reader there.
+        if source.shape != context.source.shape
+            || (source.path == context.source.path && source != context.source)
+        {
             return Err("A combined source changed after plan preparation.".into());
+        }
+        if !self.ensure_raw(&source) {
+            image.check_sources()?;
+            return Err(format!(
+                "Could not open {} as a raw series source.",
+                source.path.display()
+            ));
         }
         let o = &context.options;
         let plan = &context.fixed;
