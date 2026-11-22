@@ -820,8 +820,8 @@ dependencies = [
 
 [[package]]
 name = "dioptrin-io"
-version = "0.4.1"
-source = "git+https://github.com/CPrescher/dioptrin-io?tag=v0.4.1#2e771541310c685a5b9172d268b5f8a47add19e5"
+version = "0.4.3"
+source = "git+https://github.com/CPrescher/dioptrin-io?tag=v0.4.3#4ae806439f1c402d305f8f9441bd3db8b7272b37"
 dependencies = [
  "bytemuck",
  "bzip2",
@@ -1026,7 +1026,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1038,7 +1038,7 @@ checksum = "da7c62ceae207dd37ea5b845da6a0696c799f85e97da1ab5b7910be3c1c80223"
 [[package]]
 name = "fax"
 version = "0.2.7"
-source = "git+https://github.com/CPrescher/dioptrin-io?tag=v0.4.1#2e771541310c685a5b9172d268b5f8a47add19e5"
+source = "git+https://github.com/CPrescher/dioptrin-io?tag=v0.4.3#4ae806439f1c402d305f8f9441bd3db8b7272b37"
 
 [[package]]
 name = "fdeflate"
@@ -1546,7 +1546,7 @@ checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
 [[package]]
 name = "hdf5-bitshuffle"
 version = "1.0.0"
-source = "git+https://github.com/CPrescher/dioptrin-io?tag=v0.4.1#2e771541310c685a5b9172d268b5f8a47add19e5"
+source = "git+https://github.com/CPrescher/dioptrin-io?tag=v0.4.3#4ae806439f1c402d305f8f9441bd3db8b7272b37"
 dependencies = [
  "cc",
  "hdf5-metno-src",
@@ -2587,7 +2587,7 @@ version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "680998035259dcfcafe653688bf2aa6d3e2dc05e98be6ab46afb089dc84f1df8"
 dependencies = [
- "proc-macro-crate 3.5.0",
+ "proc-macro-crate 1.3.1",
  "proc-macro2",
  "quote",
  "syn 2.0.119",
@@ -3535,7 +3535,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3591,7 +3591,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4607,10 +4607,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4676,7 +4676,7 @@ dependencies = [
 [[package]]
 name = "tiff"
 version = "0.11.3"
-source = "git+https://github.com/CPrescher/dioptrin-io?tag=v0.4.1#2e771541310c685a5b9172d268b5f8a47add19e5"
+source = "git+https://github.com/CPrescher/dioptrin-io?tag=v0.4.3#4ae806439f1c402d305f8f9441bd3db8b7272b37"
 dependencies = [
  "fax",
  "flate2",
@@ -5367,7 +5367,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

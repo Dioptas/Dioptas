@@ -15,7 +15,7 @@ dioptrin = []
 
 [dependencies]
 dioptas-contract = { path = "../contract" }
-dioptrin-io = { git = "https://github.com/CPrescher/dioptrin-io", tag = "v0.4.1", features = ["wrappers", "hdf5", "containers", "bruker", "oxford", "raxis", "fixed", "fit2d", "kcd", "mpa", "esperanto", "mar345", "xsd"] }
+dioptrin-io = { git = "https://github.com/CPrescher/dioptrin-io", tag = "v0.4.3", features = ["wrappers", "hdf5", "containers", "bruker", "oxford", "raxis", "fixed", "fit2d", "kcd", "mpa", "esperanto", "mar345", "xsd"] }
 dioptrin = { git = "https://github.com/CPrescher/Dioptrin", tag = "v0.14.0", default-features = false }
 half = "2"
 serde = { version = "1", features = ["derive", "rc"] }
@@ -54,7 +54,7 @@ sha2 = { version = "0.10", features = ["asm"] }
 libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Threading"] }
 
 [[bin]]
 name = "dioptas-processor"
