@@ -316,21 +316,37 @@ fn launch_detached(program: &std::path::Path, arguments: &[String]) -> Result<()
         CREATE_NEW_CONSOLE, CREATE_NEW_PROCESS_GROUP, CreateProcessW, PROCESS_INFORMATION,
         STARTUPINFOW,
     };
-    let line = windows_command_line(
-        program
+    let script = program
+        .to_str()
+        .ok_or("The program path is not valid Unicode.")?;
+    // Batch scripts run through cmd.exe, which parses the whole command line
+    // again: MSVC quoting would let `&`, `^` or `%` in an image path split the
+    // command or expand variables. Start cmd.exe explicitly with batch quoting,
+    // as Rust's `Command` does for captured runs.
+    let (application, line) = if is_batch_script(program) {
+        let root = std::env::var_os("SystemRoot").unwrap_or_else(|| r"C:\Windows".into());
+        let cmd = std::path::Path::new(&root).join(r"System32\cmd.exe");
+        let cmd = cmd
             .to_str()
-            .ok_or("The program path is not valid Unicode.")?,
-        arguments,
-    )?;
+            .ok_or("The cmd.exe path is not valid Unicode.")?;
+        let line = windows_batch_command_line(cmd, script, arguments)?;
+        let application: Vec<u16> = cmd.encode_utf16().chain(std::iter::once(0)).collect();
+        (Some(application), line)
+    } else {
+        (None, windows_command_line(script, arguments)?)
+    };
     let mut line: Vec<u16> = line.encode_utf16().chain(std::iter::once(0)).collect();
     // SAFETY: zeroed STARTUPINFOW/PROCESS_INFORMATION are valid initial states;
-    // `line` is a mutable, NUL-terminated buffer that outlives the call.
+    // `line` is a mutable, NUL-terminated buffer and `application`, when set, a
+    // NUL-terminated path; both outlive the call.
     unsafe {
         let mut startup: STARTUPINFOW = std::mem::zeroed();
         startup.cb = std::mem::size_of::<STARTUPINFOW>() as u32;
         let mut info: PROCESS_INFORMATION = std::mem::zeroed();
         if CreateProcessW(
-            std::ptr::null(),
+            application
+                .as_ref()
+                .map_or(std::ptr::null(), |a| a.as_ptr()),
             line.as_mut_ptr(),
             std::ptr::null(),
             std::ptr::null(),
@@ -384,6 +400,58 @@ fn windows_command_line(program: &str, arguments: &[String]) -> Result<String, S
         line.extend(std::iter::repeat_n('\\', backslashes * 2));
         line.push('"');
     }
+    Ok(line)
+}
+
+#[cfg(any(windows, test))]
+fn is_batch_script(program: &std::path::Path) -> bool {
+    program
+        .extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| e.eq_ignore_ascii_case("bat") || e.eq_ignore_ascii_case("cmd"))
+}
+
+/// Build `cmd.exe /c` for a batch script with the rules Rust's `Command` uses:
+/// the command after /c gets an extra pair of quotes, arguments containing cmd
+/// metacharacters are quoted, and `%` is broken up with the empty `%cd:~,%`
+/// substring so that `%NAME%` is never expanded. Quotes and line breaks have no
+/// reliable batch escaping and are refused.
+#[cfg(any(windows, test))]
+fn windows_batch_command_line(
+    cmd: &str,
+    script: &str,
+    arguments: &[String],
+) -> Result<String, String> {
+    if script.contains('"') || script.ends_with('\\') {
+        return Err("The batch script path cannot contain quotation marks.".into());
+    }
+    let mut line = format!("\"{cmd}\" /e:ON /v:OFF /d /c \"\"{script}\"");
+    for argument in arguments {
+        if argument.contains(['"', '\r', '\n']) {
+            return Err(
+                "Batch script arguments cannot contain quotation marks or line breaks.".into(),
+            );
+        }
+        line.push(' ');
+        let quote = argument.is_empty()
+            || argument.contains([
+                ' ', '\t', '&', '(', ')', '[', ']', '{', '}', '^', '=', ';', '!', '\'', '+', ',',
+                '`', '~', '|', '<', '>',
+            ]);
+        if quote {
+            line.push('"');
+        }
+        for c in argument.chars() {
+            if c == '%' {
+                line.push_str("%%cd:~,");
+            }
+            line.push(c);
+        }
+        if quote {
+            line.push('"');
+        }
+    }
+    line.push('"');
     Ok(line)
 }
 
@@ -465,6 +533,62 @@ mod tests {
             std::thread::sleep(std::time::Duration::from_millis(50));
         }
         assert!(launch_detached(std::path::Path::new(r"C:\nonexistent\dioptas.exe"), &[]).is_err());
+    }
+    #[test]
+    fn batch_command_lines_quote_metacharacters_and_break_up_percent() {
+        let args = |a: &[&str]| a.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert!(is_batch_script(std::path::Path::new(r"G:\a b\run.BAT")));
+        assert!(is_batch_script(std::path::Path::new("run.cmd")));
+        assert!(!is_batch_script(std::path::Path::new("run.exe")));
+        assert_eq!(
+            windows_batch_command_line(
+                r"C:\Windows\System32\cmd.exe",
+                r"G:\my tools\run.bat",
+                &args(&[r"G:\a&b.tif", "0", "", r"50%PATH%", r"c^d"])
+            )
+            .unwrap(),
+            r#""C:\Windows\System32\cmd.exe" /e:ON /v:OFF /d /c ""G:\my tools\run.bat" "G:\a&b.tif" 0 "" 50%%cd:~,%PATH%%cd:~,% "c^d"""#
+        );
+        assert!(windows_batch_command_line("cmd.exe", "run.bat", &args(&[r#"say "hi""#])).is_err());
+        assert!(windows_batch_command_line("cmd.exe", "run.bat", &args(&["a\nb"])).is_err());
+        assert!(windows_batch_command_line("cmd.exe", "r\"un.bat", &[]).is_err());
+    }
+    #[cfg(windows)]
+    #[test]
+    fn detached_batch_scripts_receive_metacharacters_literally() {
+        let directory = tempfile::tempdir().unwrap();
+        let folder = directory.path().join("tools & scripts");
+        std::fs::create_dir(&folder).unwrap();
+        let script = folder.join("record args.bat");
+        // Delayed expansion prints each argument without cmd parsing it again.
+        std::fs::write(
+            &script,
+            "@echo off\r\nset \"A=%~2\"\r\nset \"B=%~3\"\r\nset \"C=%~4\"\r\nset \"D=%~5\"\r\nset \"E=%~6\"\r\nsetlocal EnableDelayedExpansion\r\n> \"%~1.tmp\" (echo(!A!& echo(!B!& echo(!C!& echo(!D!& echo(!E!)\r\nmove /y \"%~1.tmp\" \"%~1\" > nul\r\n",
+        )
+        .unwrap();
+        let marker = directory.path().join("received.txt");
+        let sent = [
+            r"G:\data\Fe&Ni (1).tif",
+            r"G:\data\c^d.tif",
+            r"G:\data\50%PATH%.tif",
+            r"G:\data dir\trail\",
+            "0",
+        ];
+        let mut arguments = vec![marker.to_string_lossy().into_owned()];
+        arguments.extend(sent.iter().map(|s| s.to_string()));
+        launch_detached(&script, &arguments).unwrap();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
+        let received = loop {
+            if let Ok(text) = std::fs::read_to_string(&marker) {
+                break text;
+            }
+            assert!(
+                std::time::Instant::now() < deadline,
+                "detached batch script did not run"
+            );
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        };
+        assert_eq!(received.lines().collect::<Vec<_>>(), sent);
     }
     #[test]
     fn detached_flag_defaults_off_and_rejects_non_booleans() {
