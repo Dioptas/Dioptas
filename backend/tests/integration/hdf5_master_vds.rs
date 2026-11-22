@@ -314,7 +314,7 @@ fn compressed_master_keeps_only_external_acquisition_identities_on_reopen() {
     let source_request = &pending.result["hdf5SourceRequest"];
     assert_eq!(
         source_request["path"],
-        json!(master.canonicalize().unwrap())
+        json!(dunce::canonicalize(&master).unwrap())
     );
     let mut options = source_request["options"].clone();
     let mut bindings = choices(temp.path());

@@ -635,8 +635,10 @@ impl Image {
         // Same narrow admission as Qt; RawReader repeats layout and codec checks.
         // A Bliss-style master whose virtual dataset is a stack of whole-frame
         // blocks, one per source file, is read from the file holding `index`.
+        // dioptrin-io reports std-canonical paths (\\?\C:\... on Windows), while
+        // Image paths are dunce-canonical (C:\...); compare them in one form.
         let (path, dataset, frame, master_frames) = match (&m.virtual_dataset, &m.external_raw) {
-            (None, None) if m.source_file == self.path => {
+            (None, None) if dunce::simplified(&m.source_file) == self.path => {
                 if !raw_layout(&m.filters, m.little_endian, m.pixel_type) {
                     return Ok(None);
                 }
@@ -659,7 +661,7 @@ impl Image {
                 };
                 let start = mapping.virtual_origin[0];
                 (
-                    mapping.source_file.clone(),
+                    dunce::simplified(&mapping.source_file).to_path_buf(),
                     mapping.resolved_dataset.clone(),
                     index - start + mapping.source_origin[0],
                     start..start + mapping.mapped_shape[0],
