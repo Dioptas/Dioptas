@@ -74,16 +74,31 @@ for (const [name, engine] of [
       localStorage.setItem("dioptas-batch:docked", "false"),
     );
     await main.goto(pathToFileURL(path.join(root, "dist/index.html")).href);
+    // A companion sends its own commands: wait in every open window, so a
+    // click in a detached window cannot still be in flight when state is read.
     const ready = async () => {
-      await main.evaluate(
-        () =>
-          new Promise((resolve) =>
-            requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      const open = () => context.pages().filter((page) => !page.isClosed());
+      // Only a window that closed meanwhile (docking) may skip the wait.
+      const settled = (page, work) =>
+        work(page).catch((error) => {
+          if (!page.isClosed()) throw error;
+        });
+      for (const page of open())
+        await settled(page, (p) =>
+          p.evaluate(
+            () =>
+              new Promise((resolve) =>
+                requestAnimationFrame(() => requestAnimationFrame(resolve)),
+              ),
           ),
-      );
-      await main.waitForFunction(
-        () => !window.__companionPending && !document.querySelector(".spin"),
-      );
+        );
+      for (const page of open())
+        await settled(page, (p) =>
+          p.waitForFunction(
+            () =>
+              !window.__companionPending && !document.querySelector(".spin"),
+          ),
+        );
     };
     await main
       .getByRole("button", { name: "Integration", exact: true })
