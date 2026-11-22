@@ -635,8 +635,10 @@ impl Image {
         // Same narrow admission as Qt; RawReader repeats layout and codec checks.
         // A Bliss-style master whose virtual dataset is a stack of whole-frame
         // blocks, one per source file, is read from the file holding `index`.
+        // dioptrin-io reports std-canonical paths (\\?\C:\... on Windows), while
+        // Image paths are dunce-canonical (C:\...); compare them in one form.
         let (path, dataset, frame, master_frames) = match (&m.virtual_dataset, &m.external_raw) {
-            (None, None) if m.source_file == self.path => {
+            (None, None) if dunce::simplified(&m.source_file) == self.path => {
                 if !raw_layout(&m.filters, m.little_endian, m.pixel_type) {
                     return Ok(None);
                 }
@@ -659,7 +661,7 @@ impl Image {
                 };
                 let start = mapping.virtual_origin[0];
                 (
-                    mapping.source_file.clone(),
+                    dunce::simplified(&mapping.source_file).to_path_buf(),
                     mapping.resolved_dataset.clone(),
                     index - start + mapping.source_origin[0],
                     start..start + mapping.mapped_shape[0],
@@ -982,7 +984,36 @@ impl CombinedSource {
 pub struct FileIdentity {
     length: u64,
     modified: std::time::SystemTime,
+    #[serde(with = "exact_ids")]
     object: (u64, u64),
+}
+/// Windows file indexes carry a sequence number in their high bits and often
+/// exceed 2^53, so identities that travel through the UI (HDF5 snapshots) are
+/// written as decimal strings that JavaScript cannot round. Numbers written by
+/// earlier versions still read.
+mod exact_ids {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Id {
+        Number(u64),
+        Text(String),
+    }
+    impl Id {
+        fn value<E: serde::de::Error>(self) -> Result<u64, E> {
+            match self {
+                Id::Number(n) => Ok(n),
+                Id::Text(s) => s.parse().map_err(E::custom),
+            }
+        }
+    }
+    pub fn serialize<S: Serializer>(ids: &(u64, u64), serializer: S) -> Result<S::Ok, S::Error> {
+        (ids.0.to_string(), ids.1.to_string()).serialize(serializer)
+    }
+    pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<(u64, u64), D::Error> {
+        let (a, b) = <(Id, Id)>::deserialize(deserializer)?;
+        Ok((a.value()?, b.value()?))
+    }
 }
 impl FileIdentity {
     #[cfg(unix)]
@@ -1038,6 +1069,37 @@ impl FileIdentity {
 #[cfg(test)]
 mod file_identity_tests {
     use super::*;
+
+    #[test]
+    fn identities_round_trip_through_javascript_numbers_exactly() {
+        // A real Windows file index above 2^53 that JavaScript rounded to ...010.
+        let identity = FileIdentity {
+            length: 6144,
+            modified: std::time::UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_000),
+            object: (685_779_879, 21_110_623_253_838_007),
+        };
+        let json = serde_json::to_value(&identity).unwrap();
+        assert_eq!(
+            json["object"],
+            serde_json::json!(["685779879", "21110623253838007"])
+        );
+        // The UI parses and re-serializes the snapshot with JavaScript numbers.
+        let through_ui: Value = serde_json::from_str(&json.to_string()).unwrap();
+        assert_eq!(
+            serde_json::from_value::<FileIdentity>(through_ui).unwrap(),
+            identity
+        );
+        // Snapshots and projects written by earlier versions used numbers.
+        let mut legacy = json.clone();
+        legacy["object"] = serde_json::json!([685_779_879u64, 21_110_623_253_838_007u64]);
+        assert_eq!(
+            serde_json::from_value::<FileIdentity>(legacy).unwrap(),
+            identity
+        );
+        let mut invalid = json;
+        invalid["object"] = serde_json::json!(["685779879", "not a number"]);
+        assert!(serde_json::from_value::<FileIdentity>(invalid).is_err());
+    }
 
     #[test]
     fn replacing_a_file_with_matching_size_and_mtime_changes_its_identity() {

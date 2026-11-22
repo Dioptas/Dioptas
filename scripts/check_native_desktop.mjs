@@ -134,6 +134,28 @@ function run(name, command, args, cwd = desktop) {
 }
 const node = (name, script, ...args) =>
   run(name, process.execPath, ["scripts/" + script, ...args]);
+// Windows has npm only as npm.cmd, which Node does not start without a shell.
+// Run npm's own CLI script with this Node instead: the npm that started the
+// gate (npm_execpath), else the one installed beside node.exe.
+function npmCommand() {
+  if (process.platform !== "win32") return ["npm", []];
+  const cli = [
+    process.env.npm_execpath,
+    path.join(
+      path.dirname(process.execPath),
+      "node_modules/npm/bin/npm-cli.js",
+    ),
+  ].find((file) => file?.endsWith("npm-cli.js") && existsSync(file));
+  if (!cli)
+    throw Error(
+      "npm-cli.js was not found beside node.exe; start the gate through npm.",
+    );
+  return [process.execPath, [cli]];
+}
+const npm = (name, ...args) => {
+  const [command, prefix] = npmCommand();
+  run(name, command, [...prefix, ...args]);
+};
 // The same step without blocking, for checks that run side by side. Each
 // child leads its own process group so that stopping it also stops the
 // browsers and processors it started.
@@ -325,7 +347,7 @@ if (selected.has("--ui")) {
     ])
       if (!existsSync(path.join(root, file)))
         throw Error(`DIOPTAS_GATE_PREBUILT=1 but ${file} is missing`);
-  } else
+  } else {
     run("native-test-fixtures", "cargo", [
       "build",
       "--locked",
@@ -334,13 +356,23 @@ if (selected.has("--ui")) {
       "--example",
       "test_fixtures",
     ]);
+    // `--ui` alone still needs the processor the checks talk to.
+    if (!selected.has("--processor"))
+      run("rust-build", "cargo", [
+        "build",
+        "--locked",
+        "--manifest-path",
+        "backend/Cargo.toml",
+        "--all-features",
+      ]);
+  }
   // Steps that are not UI checks run once, in the first shard.
   const shared = !shard || shard.index === 1;
   if (shared) {
     node("functional-coverage-map", "functional_coverage.mjs");
-    run("frontend-unit", "npm", ["test"]);
+    npm("frontend-unit", "test");
   }
-  run("frontend-build", "npm", ["run", "build"]);
+  npm("frontend-build", "run", "build");
   // The UI checks run side by side (DIOPTAS_GATE_UI_JOBS at a time; by
   // default half the cores, and one at a time below eight cores). Each entry is a script name,
   // followed by the artifacts folder it writes to when another check writes
@@ -498,9 +530,9 @@ if (selected.has("--host")) {
     "--",
     "--check",
   ]);
-  run("release-config", "npm", ["run", "test:release-config"]);
-  run("host-prepare", "npm", ["run", "backend:prepare", "--", "--debug"]);
-  run("host-frontend", "npm", ["run", "build"]);
+  npm("release-config", "run", "test:release-config");
+  npm("host-prepare", "run", "backend:prepare", "--", "--debug");
+  npm("host-frontend", "run", "build");
   run("host-tests", "cargo", [
     "test",
     "--locked",

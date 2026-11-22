@@ -22,8 +22,9 @@ env:
   CARGO_TERM_COLOR: always
   HDF5_PLUGIN_PRELOAD: '::'
 
-# Everything is tested on Linux runners. macOS and Windows runners only build
-# the installers (native_*_artifacts.yml).
+# Everything is tested on Linux runners; the windows job also runs the native
+# tests and headless UI checks on Windows. macOS and Windows runners build the
+# installers in native_*_artifacts.yml.
 #
 # Rust caches are saved only from develop. Pull requests and other branches
 # restore develop's caches without saving their own, which keeps the shared
@@ -164,4 +165,46 @@ jobs:
         if: always()
         with:
           name: native-ui-${{ matrix.shard }}
+          path: artifacts/
+
+  windows:
+    name: Windows processor and headless UI
+    runs-on: windows-2022
+    timeout-minutes: 90
+    env:
+      VSLANG: '1033'
+    steps:
+      # Keep Git for Windows' default core.autocrlf=true: this job checks out
+      # like a developer machine, so .gitattributes must keep hashed data exact.
+      - name: Enable long checkout paths
+        run: git config --global core.longpaths true
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Install Rust
+        run: rustup update stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: . -> target
+          key: processor-${{ runner.os }}
+          save-if: ${{ github.ref == 'refs/heads/develop' }}
+      - run: npm ci
+      - run: npx playwright install chromium webkit
+      # Lint and coverage run once, on Linux; this job covers Windows behavior.
+      - name: Test native processor on Windows
+        run: cargo test --locked --manifest-path backend/Cargo.toml --all-features --no-fail-fast
+      - name: Run headless UI, data flow and stdio checks on Windows
+        env:
+          DIOPTAS_GATE_UI_KEEP_GOING: '1'
+        run: node scripts/check_native_desktop.mjs --ui
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: native-windows-ui
           path: artifacts/

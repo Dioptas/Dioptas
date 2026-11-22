@@ -253,7 +253,7 @@ fn file_only_steps_skip_stacks_and_open_the_first_frame() {
             );
             assert_eq!(
                 r.result["state"]["imagePath"],
-                json!(paths[expected_file].canonicalize().unwrap()),
+                json!(dunce::canonicalize(&paths[expected_file]).unwrap()),
                 "{mode}"
             );
             assert_eq!(r.result["state"]["integration"]["frame"], 1);
@@ -268,7 +268,7 @@ fn file_only_steps_skip_stacks_and_open_the_first_frame() {
             );
             assert_eq!(
                 r.result["state"]["imagePath"],
-                json!(paths[expected_file].canonicalize().unwrap())
+                json!(dunce::canonicalize(&paths[expected_file]).unwrap())
             );
             assert_eq!(
                 r.result["state"]["integration"]["frame"],
@@ -371,7 +371,7 @@ fn selected_source_is_retained_across_files_and_missing_source_never_substitutes
     let next = call(&mut s, "next_image", json!({"direction":1}));
     assert_eq!(
         next.result["state"]["imagePath"],
-        json!(b.canonicalize().unwrap())
+        json!(dunce::canonicalize(&b).unwrap())
     );
     assert_eq!(next.result["state"]["selectedImageSource"], "/b");
     call(&mut s, "next_image", json!({"direction":1}));

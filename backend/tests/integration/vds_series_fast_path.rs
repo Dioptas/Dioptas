@@ -21,10 +21,7 @@ fn call(session: &mut Session, command: &str, payload: Value) -> Reply {
     result
 }
 fn root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .canonicalize()
-        .unwrap()
+    dunce::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("..")).unwrap()
 }
 fn diagnostics(session: &mut Session) -> Value {
     call(session, "integration_diagnostics", json!({})).result["integrationDiagnostics"].clone()
@@ -115,7 +112,7 @@ fn whole_frame_masters_with_and_without_source_offset_use_the_fast_path() {
 
     let image = Image::open(&master, &json!({})).unwrap();
     let combined = image.combined_source(0).unwrap().expect("admitted master");
-    assert_eq!(combined.path, source.canonicalize().unwrap());
+    assert_eq!(combined.path, dunce::canonicalize(&source).unwrap());
     assert_eq!(combined.dataset, "/counts");
     let shifted_source = Image::open(&offset, &json!({}))
         .unwrap()
@@ -246,7 +243,7 @@ fn multi_file_master_runs_one_parallel_segment_per_source_file() {
 
     let image = Image::open(&master, &json!({})).unwrap();
     let late = image.combined_source(4).unwrap().expect("admitted master");
-    assert_eq!(late.path, second.canonicalize().unwrap());
+    assert_eq!(late.path, dunce::canonicalize(&second).unwrap());
     assert_eq!((late.frame, late.master_frames), (1, 3..6));
     let error = Image::open(&overlap, &json!({})).err().unwrap();
     assert!(error.contains("overlapping"), "{error}");
