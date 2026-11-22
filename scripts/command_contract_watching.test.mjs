@@ -25,8 +25,10 @@ test(
   async () => {
     // Both the positive run and deliberate former-bug reproduction operate on
     // private OS-temp copies. No files are written into a user's watched checkout.
-    const temporary = await mkdtemp(
-      path.join(tmpdir(), "dioptas-contract-watch-"),
+    // realpath: Windows runners report an 8.3 temp path (RUNNER~1) that Vite's
+    // file-serving check does not match against the files' long paths.
+    const temporary = await realpath(
+      await mkdtemp(path.join(tmpdir(), "dioptas-contract-watch-")),
     );
     const desktop = temporary;
     let server;
