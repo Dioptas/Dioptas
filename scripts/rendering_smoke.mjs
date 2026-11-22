@@ -579,6 +579,129 @@ try {
     assert.deepEqual(await page.evaluate(() => window.navigationActions), []);
     assert.equal(await page.evaluate(() => window.navigationAutoRange), true);
   }
+  // Map windows keep their whole interior draggable, even below the old 18 px
+  // overlap threshold. Exercise real pointer drags at two display sizes.
+  report.regionInteraction = [];
+  for (const width of [800, 480]) {
+    await page.evaluate((width) => {
+      document.getElementById("fixture").style.width = `${width}px`;
+      window.regionChanges = [];
+      window.regionProps = {
+        key: `regions-${width}`,
+        pattern: { x: [0, 100], y: [1, 2], unit: "2th" },
+        editRegions: true,
+        regions: [],
+        onRegionInput: () => {},
+        onRegionChange: (name, min, max) => {
+          window.regionChanges.push({ name, min, max });
+          window.regionProps.regions = window.regionProps.regions.map((r) =>
+            r.name === name ? { ...r, min, max } : r,
+          );
+          window.paint(window.fixture.PatternView, window.regionProps);
+        },
+      };
+      window.paint(window.fixture.PatternView, window.regionProps);
+    }, width);
+    await settle();
+    const canvas = page.getByTestId("pattern-canvas");
+    const box = await canvas.boundingBox();
+    const bounds = await canvas.evaluate((el) => ({
+      left: +el.dataset.plotLeft,
+      top: +el.dataset.plotTop,
+      width: +el.dataset.plotWidth,
+      height: +el.dataset.plotHeight,
+      min: +el.dataset.viewXMin,
+      max: +el.dataset.viewXMax,
+    }));
+    const scale = (bounds.max - bounds.min) / bounds.width;
+    const x0 = bounds.left + Math.round(bounds.width * 0.4);
+    const y = box.y + bounds.top + bounds.height / 2;
+    const close = (actual, expected) =>
+      assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} vs ${expected}`);
+    for (const pixels of [2, 8, 40]) {
+      const min = bounds.min + (x0 - bounds.left) * scale;
+      const max = min + pixels * scale;
+      await page.evaluate(
+        ({ min, max }) => {
+          window.regionProps.regions = [
+            { name: "narrow", min, max, color: "#66bfff", appearance: "range" },
+          ];
+          window.paint(window.fixture.PatternView, window.regionProps);
+        },
+        { min, max },
+      );
+      const cursorAt = async (x, expected) => {
+        await page.mouse.move(box.x + x, y);
+        await settle();
+        assert.equal(
+          await canvas.evaluate((el) => el.style.cursor),
+          expected,
+          `${width}px plot, ${pixels}px region, pointer at ${x - x0}px`,
+        );
+      };
+      // Just inside either boundary must offer moving, regardless of width.
+      await cursorAt(x0 + 1, "grab");
+      await cursorAt(x0 + pixels - 1, "grab");
+      for (const edge of ["min", "max"]) {
+        // Synthetic hover retains subpixel precision at the exact boundary;
+        // WebKit's mouse automation rounds screen positions to whole pixels.
+        await canvas.evaluate((el, edge) => {
+          const region = JSON.parse(el.dataset.regions)[0];
+          const x =
+            +el.dataset.plotLeft +
+            ((region[edge] - +el.dataset.viewXMin) /
+              (+el.dataset.viewXMax - +el.dataset.viewXMin)) *
+              +el.dataset.plotWidth;
+          const box = el.getBoundingClientRect();
+          el.dispatchEvent(
+            new PointerEvent("pointermove", {
+              bubbles: true,
+              clientX: box.x + x,
+              clientY: box.y + +el.dataset.plotTop + 20,
+            }),
+          );
+        }, edge);
+        await settle();
+        assert.equal(
+          await canvas.evaluate((el) => el.style.cursor),
+          "ew-resize",
+        );
+      }
+      await cursorAt(x0 - 7, "ew-resize");
+      await cursorAt(x0 + pixels + 7, "ew-resize");
+      await cursorAt(x0 - 10, "");
+      await cursorAt(x0 + pixels / 2, "grab");
+      await page.mouse.down();
+      await page.mouse.move(box.x + x0 + pixels / 2 + 30, y);
+      await settle();
+      assert.equal(await canvas.evaluate((el) => el.style.cursor), "grabbing");
+      await page.mouse.up();
+      await settle();
+      let changed = await page.evaluate(() => window.regionChanges.at(-1));
+      close(changed.min, min + 30 * scale);
+      close(changed.max, max + 30 * scale);
+      // Outside each edge changes that edge alone, even after crossing inside.
+      await cursorAt(x0 + 30 - 4, "ew-resize");
+      await page.mouse.down();
+      await page.mouse.move(box.x + x0 + 30 - 14, y);
+      await page.mouse.up();
+      await settle();
+      changed = await page.evaluate(() => window.regionChanges.at(-1));
+      close(changed.min, min + 20 * scale);
+      close(changed.max, max + 30 * scale);
+      await cursorAt(x0 + pixels + 30 + 4, "ew-resize");
+      await page.mouse.down();
+      await page.mouse.move(box.x + x0 + pixels + 30 - 1, y);
+      await settle();
+      assert.equal(await canvas.evaluate((el) => el.style.cursor), "ew-resize");
+      await page.mouse.up();
+      await settle();
+      changed = await page.evaluate(() => window.regionChanges.at(-1));
+      close(changed.min, min + 20 * scale);
+      close(changed.max, max + 25 * scale);
+      report.regionInteraction.push({ width, pixels, moveAndResize: true });
+    }
+  }
   if (baselineRef) report.baselinePattern = await benchmark(true);
   report.sliceNavigation = await verifySliceContentScaling(page);
   assert.deepEqual(errors, []);

@@ -17,6 +17,7 @@ const blank = (): CustomCommand => ({
   arguments: ["{image_path}", "{frame_index}"],
   enabled: true,
   icon: "terminal",
+  detached: false,
 });
 
 export function CustomCommandSettings({
@@ -423,6 +424,15 @@ export function CustomCommandSettings({
             />
             Show button in sidebar
           </label>
+          <label className="check-row">
+            <Input
+              type="checkbox"
+              disabled={pending}
+              checked={!!draft.detached}
+              onChange={(event) => change({ detached: event.target.checked })}
+            />
+            Start detached · own window, output not captured
+          </label>
           <div className="custom-command-actions">
             <Button
               type="submit"
@@ -471,9 +481,11 @@ export function CustomCommandSettings({
             {run.name} ·{" "}
             {run.running
               ? "Running…"
-              : run.exitCode === 0
-                ? "Finished"
-                : `Failed (exit ${run.exitCode})`}
+              : run.detached
+                ? "Started detached"
+                : run.exitCode === 0
+                  ? "Finished"
+                  : `Failed (exit ${run.exitCode})`}
           </h3>
           <details>
             <summary>Program and arguments</summary>
