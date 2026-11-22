@@ -204,7 +204,16 @@ try {
               attributeFilter: ["disabled"],
             });
           });
+          // Wait for this click's command, not only for an idle queue that
+          // the command may not have entered yet.
+          const navigated = await page.evaluate(
+            () => window.__navigationCompleted,
+          );
           await button.click();
+          await page.waitForFunction(
+            (count) => window.__navigationCompleted > count,
+            navigated,
+          );
           await ready();
           assert.deepEqual(
             await page.evaluate(() => {
@@ -213,11 +222,24 @@ try {
             }),
             [],
           );
+          // React publishes the notice just after the reply resolves.
+          const notice =
+            button === previousImage
+              ? "No previous image available"
+              : "No new image available";
+          await page
+            .waitForFunction(
+              (text) =>
+                document
+                  .querySelector(".workflow-status")
+                  ?.textContent?.includes(text),
+              notice,
+              { timeout: 5000 },
+            )
+            .catch(() => {});
           assert.match(
             await page.locator(".workflow-status").innerText(),
-            button === previousImage
-              ? /No previous image available/
-              : /No new image available/,
+            new RegExp(notice),
           );
           assert.equal(await page.getByRole("dialog").count(), 0);
           assert.deepEqual(await call("state"), beforeEnd);

@@ -44,9 +44,11 @@ test(
           path.join(temporary, relative),
           { recursive: true },
         );
+      // A junction needs no Developer Mode on Windows; other systems ignore the type.
       await symlink(
         await realpath(path.join(repository, "node_modules")),
         path.join(desktop, "node_modules"),
+        "junction",
       );
       server = await createServer({
         configFile: false,

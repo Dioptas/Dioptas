@@ -162,9 +162,10 @@ try {
         .first()
         .click();
       await ready();
+      // The master names a POSIX path; Windows resolves it onto the current drive.
       assert.equal(
-        await dialog.getByRole("textbox").first().inputValue(),
-        "/missing/acquisition/a.h5",
+        path.resolve(await dialog.getByRole("textbox").first().inputValue()),
+        path.resolve("/missing/acquisition/a.h5"),
       );
       cancelChooser = false;
       await dialog
@@ -197,6 +198,11 @@ try {
         .click();
       await dialog.waitFor({ state: "hidden" });
       await ready();
+      // The dialog can close before its open command reaches the processor.
+      for (const deadline = Date.now() + 10_000; Date.now() < deadline;) {
+        if ((await pixel()) === 10) break;
+        await page.waitForTimeout(50);
+      }
       assert.equal(await pixel(), 10);
       assert.equal((await state()).integration.frames, 4);
       await page.setViewportSize({ width: 1440, height: 940 });

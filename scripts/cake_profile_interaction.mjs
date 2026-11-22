@@ -43,11 +43,16 @@ export async function checkCakeProfileWidthResize(
       edge === "min" ? Math.max(0, g.band[0]) : Math.min(g.columns, g.band[1]);
     const x = g.x + g.left + (source - g.min) * scale,
       y = g.y + g.top + g.height * 0.4;
-    await page.mouse.move(x, y);
-    assert.equal(
-      await cake.evaluate((el) => getComputedStyle(el).cursor),
-      "ew-resize",
-    );
+    // The edge responds once the profile editor is ready, which can follow
+    // the first hover on a slower machine; hover again until it does.
+    const cursor = () => cake.evaluate((el) => getComputedStyle(el).cursor);
+    const deadline = Date.now() + 5000;
+    for (let i = 0; ; i++) {
+      await page.mouse.move(x, y + (i % 2));
+      if ((await cursor()) === "ew-resize" || Date.now() > deadline) break;
+      await page.waitForTimeout(50);
+    }
+    assert.equal(await cursor(), "ew-resize");
     await page.mouse.down();
     const start = Number(await field.inputValue());
     return async (bins) => {

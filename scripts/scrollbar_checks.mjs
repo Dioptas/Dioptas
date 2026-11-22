@@ -96,9 +96,18 @@ export async function verifyPersistentScrollbars(page, screenshotPath) {
           };
         }),
       );
+    // Playwright's Windows WebKit build lacks the standard scrollbar
+    // properties; every engine that implements them must keep them on auto.
+    const standardScrollbars = await page.evaluate(
+      () =>
+        CSS.supports("scrollbar-width", "auto") &&
+        CSS.supports("scrollbar-color", "auto"),
+    );
     for (const item of measurements) {
-      assert.equal(item.scrollbarWidth, "auto", item.name);
-      assert.equal(item.scrollbarColor, "auto", item.name);
+      if (standardScrollbars) {
+        assert.equal(item.scrollbarWidth, "auto", item.name);
+        assert.equal(item.scrollbarColor, "auto", item.name);
+      }
       if (["vertical", "both"].includes(item.axis)) {
         assert.ok(
           ["auto", "scroll"].includes(item.overflowY),
