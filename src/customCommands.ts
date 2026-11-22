@@ -68,6 +68,7 @@ function sameCommands(a: CustomCommand[], b: CustomCommand[]) {
       c.arguments,
       c.enabled,
       c.icon ?? "terminal",
+      !!c.detached,
     ]);
   return JSON.stringify(values(a)) === JSON.stringify(values(b));
 }
@@ -85,9 +86,13 @@ export interface CustomCommand {
   arguments: string[];
   enabled: boolean;
   icon?: CommandIconId;
+  /** Start without capturing output; console programs get their own window. */
+  detached?: boolean;
 }
 export interface CustomCommandRun {
   running: boolean;
+  /** Started without output capture; its exit is not tracked. */
+  detached?: boolean;
   outputPending?: boolean;
   exitCode: number | null;
   output: string;
