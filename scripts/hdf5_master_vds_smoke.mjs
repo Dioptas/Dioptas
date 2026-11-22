@@ -162,10 +162,11 @@ try {
         .first()
         .click();
       await ready();
-      // The master names a POSIX path; Windows resolves it onto the current drive.
+      // The master names a POSIX path; Windows resolves it onto the drive of
+      // the master that declares it (the temp folder, not this checkout).
       assert.equal(
         path.resolve(await dialog.getByRole("textbox").first().inputValue()),
-        path.resolve("/missing/acquisition/a.h5"),
+        path.resolve(temp, "/missing/acquisition/a.h5"),
       );
       cancelChooser = false;
       await dialog
