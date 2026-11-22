@@ -4,15 +4,13 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium, webkit } from "playwright";
+import { withWebkit } from "./ui_browsers.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
 
 const out = path.join(root, "artifacts/processing-drafts");
 await mkdir(out, { recursive: true });
 const receipts = [];
-for (const [name, engine] of [
-  ["chromium", chromium],
-  ["webkit", webkit],
-]) {
+for (const [name, engine] of [["chromium", chromium], ...withWebkit(webkit)]) {
   const native = nativeClient();
   const browser = await engine.launch({ headless: true });
   let held = null;

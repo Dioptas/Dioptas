@@ -4,6 +4,7 @@ import { mkdir, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium, webkit } from "playwright";
+import { withWebkit } from "./ui_browsers.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
 
 const artifacts = path.join(root, "artifacts/companion-windows");
@@ -15,10 +16,7 @@ const paths = (await readdir(folder))
   .map((file) => path.join(folder, file));
 assert.equal(paths.length, 9);
 const receipts = [];
-for (const [name, engine] of [
-  ["chromium", chromium],
-  ["webkit", webkit],
-]) {
+for (const [name, engine] of [["chromium", chromium], ...withWebkit(webkit)]) {
   const native = nativeClient();
   let browser;
   const errors = [],

@@ -83,12 +83,15 @@ headless image-change check exercises the corresponding GUI in both browsers.
 `.github/workflows/CI_rust_desktop.yml` runs on relevant pushes, pull requests
 and manual dispatch, with read-only repository permissions:
 
-All testing runs on Linux runners; macOS and Windows runners only build the
-installers.
+Testing runs on Linux runners, plus a Windows job; macOS and Windows runners
+also build the installers. Pull requests run a faster subset: no coverage
+instrumentation, and on Windows only the native tests. Pushes to `develop`,
+tags and manual runs run everything.
 
 1. **Native processor:** formatting, strict Clippy, all native processor tests
    and the real processor build. No Python environment is installed by this
-   gate. It also produces LCOV and HTML coverage using cargo-llvm-cov. The
+   gate. Outside pull requests it also produces LCOV and HTML coverage using
+   cargo-llvm-cov. The
    local macOS Rust-only baseline is 14,087/19,932 production-source lines
    (70.68%, excluding test files and dependencies); headless execution is
    additional and is not included in that percentage. The initial report is a
@@ -100,12 +103,16 @@ installers.
    tests against the real Linux dependency graph (no application window) and
    the GLib backport checks. It hands the processor and the test-fixture
    helper to the UI jobs.
-3. **Headless UI checks, three jobs:** the coverage inventory, frontend unit
+3. **Headless UI checks, five jobs:** the coverage inventory, frontend unit
    tests, shared control checks and the native Chromium/WebKit workflows for
    calibration, masks, integration, projects/configuration/combination,
    geometry, detectors, LA Cosmic, file errors, calibration/image reset and
-   stdio cancellation. The checks are dealt out over the three jobs and run
+   stdio cancellation. The checks are dealt out over the five jobs and run
    one at a time within each.
+4. **Windows:** the all-features native tests on every run; outside pull
+   requests also the headless UI checks, in Chromium only (Tauri uses WebView2,
+   a Chromium engine, on Windows). The checkout keeps Git for Windows' default
+   line-ending conversion, like a developer machine.
 
 Every gate writes per-step logs; GitHub uploads logs, numerical receipts,
 screenshots and coverage reports even when a step fails. A failing scientific

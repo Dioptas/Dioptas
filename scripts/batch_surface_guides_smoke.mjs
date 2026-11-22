@@ -3,6 +3,7 @@ import path from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
+import { withWebkit } from "./ui_browsers.mjs";
 import { root } from "./native_backend_client.mjs";
 const artifacts = path.join(root, "artifacts/batch-surface-guides");
 await mkdir(artifacts, { recursive: true });
@@ -48,7 +49,7 @@ const receipts = [];
 try {
   for (const [name, engine] of [
     ["chromium", chromium],
-    ["webkit", webkit],
+    ...withWebkit(webkit),
   ]) {
     const browser = await engine.launch({ headless: true });
     try {

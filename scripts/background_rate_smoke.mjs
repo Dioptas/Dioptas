@@ -3,12 +3,13 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium, webkit } from "playwright";
+import { withWebkit } from "./ui_browsers.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
 
 const receipts = [];
 for (const [name, browserType] of [
   ["chromium", chromium],
-  ["webkit", webkit],
+  ...withWebkit(webkit),
 ]) {
   const native = nativeClient();
   const browser = await browserType.launch({ headless: true });

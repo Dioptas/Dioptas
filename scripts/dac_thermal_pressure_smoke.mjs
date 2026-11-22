@@ -3,6 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
+import { withWebkit } from "./ui_browsers.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
 const artifacts = new URL(
   "../artifacts/dac-thermal-pressure/",
@@ -18,7 +19,7 @@ const receipts = [];
 try {
   for (const [name, engine] of [
     ["chromium", chromium],
-    ["webkit", webkit],
+    ...withWebkit(webkit),
   ]) {
     const native = nativeClient();
     const browser = await engine.launch({ headless: true });

@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
+import { withWebkit } from "./ui_browsers.mjs";
 import { Resvg } from "@resvg/resvg-js";
 import { nativeClient } from "./native_backend_client.mjs";
 import { exerciseFigureStyles } from "./pattern_figure_styles.mjs";
@@ -21,7 +22,7 @@ const receipts = [];
 try {
   for (const [name, engine] of [
     ["chromium", chromium],
-    ["webkit", webkit],
+    ...withWebkit(webkit),
   ]) {
     const browser = await engine.launch({ headless: true });
     const native = nativeClient();

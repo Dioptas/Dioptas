@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
+import { withWebkit } from "./ui_browsers.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
 import { runExample } from "./test_fixtures.mjs";
 import { setInterfaceTextSize } from "./plot_navigation.mjs";
@@ -41,10 +42,7 @@ const server = await createServer({
 await server.listen();
 const reports = [];
 try {
-  for (const [name, type] of [
-    ["chromium", chromium],
-    ["webkit", webkit],
-  ]) {
+  for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
     const native = nativeClient(),
       browser = await type.launch({ headless: true });
     const page = await browser.newPage({

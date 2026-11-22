@@ -4,6 +4,7 @@ import os from "node:os";
 import { mkdtemp, writeFile, readFile, rm, mkdir } from "node:fs/promises";
 import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
+import { withWebkit } from "./ui_browsers.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
 const temp = await mkdtemp(path.join(os.tmpdir(), "dioptas-waterfall-"));
 const artifacts = path.join(root, "artifacts/batch-waterfall");
@@ -39,7 +40,7 @@ await server.listen();
 try {
   for (const [name, engine] of [
     ["chromium", chromium],
-    ["webkit", webkit],
+    ...withWebkit(webkit),
   ]) {
     const native = nativeClient(),
       browser = await engine.launch({ headless: true }),

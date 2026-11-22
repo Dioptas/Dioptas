@@ -3,15 +3,13 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium, webkit } from "playwright";
+import { withWebkit } from "./ui_browsers.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
 import { selectIntegrationDisplay } from "./integration_display.mjs";
 const artifacts = path.join(root, "artifacts/map-detector-independent");
 await mkdir(artifacts, { recursive: true });
 const receipts = [];
-for (const [name, type] of [
-  ["chromium", chromium],
-  ["webkit", webkit],
-]) {
+for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
   const native = nativeClient();
   let browser;
   try {

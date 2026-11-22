@@ -7,6 +7,7 @@ import { build } from "vite";
 import react from "@vitejs/plugin-react";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import { chromium, webkit } from "playwright";
+import { chromiumOnly } from "./ui_browsers.mjs";
 import { verifyPersistentScrollbars } from "./scrollbar_checks.mjs";
 
 const desktop = fileURLToPath(new URL("../", import.meta.url));
@@ -27,7 +28,9 @@ await build({
 });
 const reports = [];
 try {
-  for (const [name, engine] of Object.entries({ chromium, webkit })) {
+  for (const [name, engine] of Object.entries(
+    chromiumOnly ? { chromium } : { chromium, webkit },
+  )) {
     const browser = await engine.launch({
       headless: true,
       // Chromium normally hides every scrollbar in headless screenshots.

@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium, webkit } from "playwright";
+import { withWebkit } from "./ui_browsers.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
 const temp = await mkdtemp(path.join(tmpdir(), "dioptas-correction-preview-"));
 const out = path.join(root, "artifacts/correction-previews");
@@ -30,7 +31,7 @@ const receipts = [];
 try {
   for (const [name, engine] of [
     ["chromium", chromium],
-    ["webkit", webkit],
+    ...withWebkit(webkit),
   ]) {
     const native = nativeClient(),
       browser = await engine.launch({ headless: true });

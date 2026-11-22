@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { createServer, normalizePath } from "vite";
 import { chromium, webkit } from "playwright";
+import { chromiumOnly } from "./ui_browsers.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
 
 // Change the hook layout in memory, without editing files watched by a user's
@@ -17,7 +18,9 @@ const previous = updated.replace(
 );
 assert.notEqual(previous, updated, "Fixture must remove one hook");
 
-for (const [name, engine] of Object.entries({ chromium, webkit })) {
+for (const [name, engine] of Object.entries(
+  chromiumOnly ? { chromium } : { chromium, webkit },
+)) {
   let version = 0;
   const server = await createServer({
     root: desktop,

@@ -26,6 +26,11 @@ env:
 # tests and headless UI checks on Windows. macOS and Windows runners build the
 # installers in native_*_artifacts.yml.
 #
+# Pull requests run the fast subset: no coverage instrumentation, and on
+# Windows only the native tests. Pushes to develop, tags and manual runs
+# (Actions > Rust desktop > Run workflow, on any branch) run everything,
+# including coverage and the Windows headless UI checks.
+#
 # Rust caches are saved only from develop. Pull requests and other branches
 # restore develop's caches without saving their own, which keeps the shared
 # cache quota from evicting the develop entries every job falls back to.
@@ -48,20 +53,23 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/develop' }}
       # A prebuilt, pinned binary instead of compiling the tool on every run.
       - name: Install cargo-llvm-cov
+        if: github.event_name != 'pull_request'
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-llvm-cov@0.9.1
       - name: Run native processor gate (no Python environment)
-        # The gate runs the all-features tests once, instrumented by
-        # cargo-llvm-cov, and writes artifacts/coverage (lcov.info and
-        # html/) instead of rebuilding and rerunning them for coverage
-        # afterwards.
+        # Outside pull requests the gate runs the all-features tests once,
+        # instrumented by cargo-llvm-cov, and writes artifacts/coverage
+        # (lcov.info and html/) instead of rebuilding and rerunning them for
+        # coverage afterwards. Pull requests run them uninstrumented:
+        # instrumentation makes the tests slower and needs a second,
+        # uninstrumented build of the processor (about 6 of 10 minutes).
         #
         # Pull requests skip the library tests of the build without features:
         # they cost a second full compile of the processor for a few seconds
         # of tests. That build is still linted, and develop runs the tests.
         env:
-          DIOPTAS_GATE_COVERAGE: '1'
+          DIOPTAS_GATE_COVERAGE: ${{ github.event_name == 'pull_request' && '0' || '1' }}
           DIOPTAS_GATE_CORE_TESTS: ${{ github.event_name == 'pull_request' && '0' || '1' }}
         run: node scripts/check_native_desktop.mjs --processor
       - uses: actions/upload-artifact@v7
@@ -128,14 +136,14 @@ jobs:
           path: artifacts/
 
   ui:
-    name: Headless UI checks (${{ matrix.shard }}/3)
+    name: Headless UI checks (${{ matrix.shard }}/5)
     needs: host
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4, 5]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -144,6 +152,16 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
       - run: npm ci
+      # Browser downloads are cached per Playwright version; the system
+      # libraries they need are still installed on every run.
+      - name: Find the Playwright version
+        id: playwright
+        shell: bash
+        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - run: npx playwright install --with-deps chromium webkit
       - uses: actions/download-artifact@v8
         with:
@@ -156,7 +174,7 @@ jobs:
       - name: Run headless UI, data flow and stdio checks
         env:
           DIOPTAS_GATE_PREBUILT: '1'
-          DIOPTAS_GATE_UI_SHARD: ${{ matrix.shard }}/3
+          DIOPTAS_GATE_UI_SHARD: ${{ matrix.shard }}/5
           DIOPTAS_GATE_UI_JOBS: '1'
           # Run every check even after one fails: one run shows all failures.
           DIOPTAS_GATE_UI_KEEP_GOING: '1'
@@ -168,7 +186,8 @@ jobs:
           path: artifacts/
 
   windows:
-    name: Windows processor and headless UI
+    # Pull requests run only the native tests here; see the note at the top.
+    name: ${{ github.event_name == 'pull_request' && 'Windows processor' || 'Windows processor and headless UI' }}
     runs-on: windows-2022
     timeout-minutes: 90
     env:
@@ -194,17 +213,23 @@ jobs:
           workspaces: . -> target
           key: processor-${{ runner.os }}
           save-if: ${{ github.ref == 'refs/heads/develop' }}
-      - run: npm ci
-      - run: npx playwright install chromium webkit
       # Lint and coverage run once, on Linux; this job covers Windows behavior.
       - name: Test native processor on Windows
         run: cargo test --locked --manifest-path backend/Cargo.toml --all-features --no-fail-fast
+      - if: github.event_name != 'pull_request'
+        run: npm ci
+      # Chromium only: Tauri renders with WebView2 (Chromium) on Windows, so
+      # Playwright's Windows WebKit tests no engine Windows users run.
+      - if: github.event_name != 'pull_request'
+        run: npx playwright install chromium
       - name: Run headless UI, data flow and stdio checks on Windows
+        if: github.event_name != 'pull_request'
         env:
+          DIOPTAS_GATE_UI_BROWSERS: chromium
           DIOPTAS_GATE_UI_KEEP_GOING: '1'
         run: node scripts/check_native_desktop.mjs --ui
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && github.event_name != 'pull_request'
         with:
           name: native-windows-ui
           path: artifacts/

@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium, webkit } from "playwright";
+import { withWebkit } from "./ui_browsers.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
 
 const temp = await mkdtemp(path.join(os.tmpdir(), "dioptas-batch-background-"));
@@ -17,10 +18,7 @@ await copyFile(
 );
 const receipts = [];
 try {
-  for (const [name, type] of [
-    ["chromium", chromium],
-    ["webkit", webkit],
-  ]) {
+  for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
     const native = nativeClient();
     const browser = await type.launch({ headless: true });
     const context = await browser.newContext({
