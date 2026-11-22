@@ -15,6 +15,12 @@ src/nativePayloadContracts.generated.ts text eol=lf
 contract/src/native_payload_contracts.generated.rs text eol=lf
 src/phaseEquations.generated.json text eol=lf
 
+# Hashed data and reference inputs keep their committed bytes on every OS,
+# also in checkouts with core.autocrlf=true (the Git for Windows default).
+backend/data/** -text
+backend/resources/peritheos/** -text
+backend/tests/fixtures/reference-data/** -text
+
 ###############################################################################
 # Set default behavior for command prompt diff.
 #
