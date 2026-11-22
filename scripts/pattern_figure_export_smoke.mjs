@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
 import { Resvg } from "@resvg/resvg-js";
 import { chromium, webkit } from "playwright";
+import { withWebkit } from "./ui_browsers.mjs";
 
 const desktop = fileURLToPath(new URL("../", import.meta.url));
 const artifacts = new URL(
@@ -20,7 +21,7 @@ const receipts = [];
 try {
   for (const [name, engine] of [
     ["chromium", chromium],
-    ["webkit", webkit],
+    ...withWebkit(webkit),
   ]) {
     const browser = await engine.launch({ headless: true });
     try {

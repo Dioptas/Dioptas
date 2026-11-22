@@ -3,6 +3,7 @@ import path from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { chromium, webkit } from "playwright";
+import { withWebkit } from "./ui_browsers.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
 import { selectCalibrationRing } from "./calibration_ring_picker.mjs";
 
@@ -20,10 +21,7 @@ await writeFile(
   Buffer.concat([prefix, header, Buffer.alloc(32 * 32 * 8)]),
 );
 const receipts = [];
-for (const [name, type] of [
-  ["chromium", chromium],
-  ["webkit", webkit],
-]) {
+for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
   const native = nativeClient();
   let browser;
   const commandErrors = [],

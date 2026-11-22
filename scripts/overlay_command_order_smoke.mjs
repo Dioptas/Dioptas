@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
+import { withWebkit } from "./ui_browsers.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
 
 const temp = await mkdtemp(path.join(os.tmpdir(), "dioptas-overlay-order-"));
@@ -23,7 +24,7 @@ await server.listen();
 try {
   for (const [name, engine] of [
     ["chromium", chromium],
-    ["webkit", webkit],
+    ...withWebkit(webkit),
   ]) {
     const native = nativeClient();
     const browser = await engine.launch({ headless: true });

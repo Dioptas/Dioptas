@@ -3,16 +3,14 @@ import path from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { chromium, webkit } from "playwright";
+import { withWebkit } from "./ui_browsers.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
 import { selectIntegrationDisplay } from "./integration_display.mjs";
 
 const artifacts = path.join(root, "artifacts/native-backend");
 await mkdir(artifacts, { recursive: true });
 const results = [];
-for (const [name, type] of [
-  ["chromium", chromium],
-  ["webkit", webkit],
-]) {
+for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
   const native = nativeClient();
   let browser;
   try {
@@ -108,7 +106,10 @@ for (const [name, type] of [
     await selectIntegrationDisplay(page, "cake");
     await page.getByTestId("cake-canvas").waitFor({ state: "visible" });
     snapshot = await native.invoke("state");
-    assert.equal(snapshot.cake.fullWidth, snapshot.state.integration.actualBins);
+    assert.equal(
+      snapshot.cake.fullWidth,
+      snapshot.state.integration.actualBins,
+    );
     assert.equal(snapshot.cake.height, 360);
     assert.equal(
       (await native.invoke("integration_diagnostics")).integrationDiagnostics

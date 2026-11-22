@@ -17,6 +17,7 @@ import {
   uiJobs,
   uiShard,
 } from "./native_gate_timings.mjs";
+import { chromiumOnly } from "./ui_browsers.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const desktop = root;
@@ -428,18 +429,18 @@ if (selected.has("--ui")) {
     args: [`scripts/${script}.mjs`],
     locks,
   }));
-  checks.push(
-    {
-      name: "batch_background_export",
-      args: ["scripts/batch_export_smoke.mjs", "--background"],
-      locks: ["batch-export"],
-    },
-    {
+  checks.push({
+    name: "batch_background_export",
+    args: ["scripts/batch_export_smoke.mjs", "--background"],
+    locks: ["batch-export"],
+  });
+  // DIOPTAS_GATE_UI_BROWSERS=chromium (see ui_browsers.mjs) skips WebKit.
+  if (!chromiumOnly)
+    checks.push({
       name: "image_change_webkit",
       args: ["scripts/image_change_smoke.mjs", "--webkit"],
       locks: ["image-change"],
-    },
-  );
+    });
   // Seconds each check took on a hosted Linux runner (13.11.2026), used only
   // to give CI's shards equal shares. A check missing here counts as 30.
   const ciSeconds = {

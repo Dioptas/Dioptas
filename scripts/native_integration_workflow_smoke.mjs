@@ -5,6 +5,7 @@ import path from "node:path";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 import { chromium, webkit } from "playwright";
+import { withWebkit } from "./ui_browsers.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
 const artifacts = path.join(root, "artifacts/native-integration");
 await mkdir(artifacts, { recursive: true });
@@ -18,10 +19,7 @@ const paths = await Promise.all(
 );
 const receipts = [];
 try {
-  for (const [name, type] of [
-    ["chromium", chromium],
-    ["webkit", webkit],
-  ]) {
+  for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
     const native = nativeClient();
     const browser = await type.launch({ headless: true });
     try {

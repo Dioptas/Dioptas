@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium, webkit } from "playwright";
+import { withWebkit } from "./ui_browsers.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
 
 const temporary = await mkdtemp(path.join(tmpdir(), "dioptas-recovery-ui-"));
@@ -67,7 +68,7 @@ try {
   const receipts = [];
   for (const [name, engine] of [
     ["chromium", chromium],
-    ["webkit", webkit],
+    ...withWebkit(webkit),
   ]) {
     const browser = await engine.launch({ headless: true });
     try {

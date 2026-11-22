@@ -272,7 +272,11 @@ function scratchGate() {
   const own = path.join(root, "scripts");
   mkdirSync(own, { recursive: true });
   mkdirSync(path.join(root, "backend"));
-  for (const file of ["check_native_desktop.mjs", "native_gate_timings.mjs"])
+  for (const file of [
+    "check_native_desktop.mjs",
+    "native_gate_timings.mjs",
+    "ui_browsers.mjs",
+  ])
     copyFileSync(path.join(scripts, file), path.join(own, file));
   for (const file of [
     "check_glib_backport.mjs",
@@ -326,6 +330,7 @@ function scratchGate() {
             DIOPTAS_GATE_CORE_TESTS: "",
             DIOPTAS_GATE_UI_JOBS: "",
             DIOPTAS_GATE_UI_SHARD: "",
+            DIOPTAS_GATE_UI_BROWSERS: "",
             DIOPTAS_GATE_PREBUILT: "",
             DIOPTAS_GATE_UI_KEEP_GOING: "",
             ...env,
@@ -468,6 +473,15 @@ describe(
           assert.ok(names.includes(name), name);
         assert.ok(r.timings.steps.every((s) => s.status === "passed"));
       }
+    });
+
+    it("leaves out the WebKit-only check when told to use Chromium only", () => {
+      const r = gate.run(["--ui"], { DIOPTAS_GATE_UI_BROWSERS: "chromium" });
+      assert.equal(r.status, 0, r.stderr);
+      assert.match(r.stdout, /UI checks: 44, /);
+      const names = r.timings.steps.map((s) => s.name);
+      assert.ok(!names.includes("image_change_webkit"));
+      assert.ok(names.includes("image_change_smoke"));
     });
 
     it("runs every UI check past a failure when told to keep going", () => {

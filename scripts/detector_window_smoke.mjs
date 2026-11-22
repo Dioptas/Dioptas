@@ -3,6 +3,7 @@ import path from "node:path";
 import { mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { chromium, webkit } from "playwright";
+import { withWebkit } from "./ui_browsers.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
 import { selectIntegrationDisplay } from "./integration_display.mjs";
 import { setInterfaceTextSize } from "./plot_navigation.mjs";
@@ -12,7 +13,7 @@ await mkdir(artifacts, { recursive: true });
 const receipts = [];
 for (const [name, browserType] of [
   ["chromium", chromium],
-  ["webkit", webkit],
+  ...withWebkit(webkit),
 ]) {
   const native = nativeClient();
   let browser;

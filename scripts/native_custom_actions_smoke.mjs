@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium, webkit } from "playwright";
+import { withWebkit } from "./ui_browsers.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
 
 const directory = await mkdtemp(path.join(tmpdir(), "dioptas-native-actions-"));
@@ -22,7 +23,7 @@ async function until(predicate, message) {
 try {
   for (const [name, engine] of [
     ["chromium", chromium],
-    ["webkit", webkit],
+    ...withWebkit(webkit),
   ]) {
     const files = path.join(directory, name);
     await mkdir(files);
