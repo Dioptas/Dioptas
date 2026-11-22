@@ -859,7 +859,7 @@ fn watched_folder_survives_reference_browsing_and_changes_only_explicitly() {
     let reference_reply = call(&mut s, "open_image", json!({"path":reference}));
     assert_eq!(
         reference_reply.result["state"]["integration"]["imageDirectory"],
-        json!(acquisition.canonicalize().unwrap())
+        json!(dunce::canonicalize(&acquisition).unwrap())
     );
     image(&references.join("unrelated.npy"), 30.);
     for _ in 0..2 {
@@ -867,7 +867,7 @@ fn watched_folder_survives_reference_browsing_and_changes_only_explicitly() {
     }
     assert_eq!(
         call(&mut s, "state", json!({})).result["state"]["imagePath"],
-        json!(reference.canonicalize().unwrap())
+        json!(dunce::canonicalize(&reference).unwrap())
     );
     let incoming = acquisition.join("scan_002.npy");
     image(&incoming, 40.);
@@ -877,7 +877,7 @@ fn watched_folder_survives_reference_browsing_and_changes_only_explicitly() {
     let loaded = call(&mut s, "state", json!({}));
     assert_eq!(
         loaded.result["state"]["imagePath"],
-        json!(incoming.canonicalize().unwrap())
+        json!(dunce::canonicalize(&incoming).unwrap())
     );
     let mut independent = prepared(&incoming, &p, "2th_deg");
     close(
@@ -898,7 +898,7 @@ fn watched_folder_survives_reference_browsing_and_changes_only_explicitly() {
     );
     assert_eq!(
         unchanged.result["state"]["integration"]["imageDirectory"],
-        json!(other.canonicalize().unwrap())
+        json!(dunce::canonicalize(&other).unwrap())
     );
     let other_new = other.join("scan_002.npy");
     image(&other_new, 60.);
@@ -907,7 +907,7 @@ fn watched_folder_survives_reference_browsing_and_changes_only_explicitly() {
     }
     assert_eq!(
         call(&mut s, "state", json!({})).result["state"]["imagePath"],
-        json!(other_new.canonicalize().unwrap())
+        json!(dunce::canonicalize(&other_new).unwrap())
     );
     // The command's explicit directory argument must rebaseline too, even if
     // Autoprocess was already enabled. Existing acquisition files are skipped.
@@ -922,7 +922,7 @@ fn watched_folder_survives_reference_browsing_and_changes_only_explicitly() {
     let stable = call(&mut s, "state", json!({}));
     assert_eq!(
         stable.result["state"]["imagePath"],
-        json!(other_new.canonicalize().unwrap())
+        json!(dunce::canonicalize(&other_new).unwrap())
     );
     let failed = invoke(
         &mut s,
@@ -935,7 +935,7 @@ fn watched_folder_survives_reference_browsing_and_changes_only_explicitly() {
     let manual = call(&mut s, "open_image", json!({"path":reference}));
     assert_eq!(
         manual.result["state"]["integration"]["imageDirectory"],
-        json!(references.canonicalize().unwrap())
+        json!(dunce::canonicalize(&references).unwrap())
     );
 }
 
@@ -1291,12 +1291,12 @@ fn multiple_hdf5_files_keep_dataset_frame_order_across_stride_and_map_selection(
     assert_eq!(batch.result["batch"]["total"], 5);
     assert_eq!(
         batch.result["batch"]["entries"][0]["path"],
-        json!(paths[0].canonicalize().unwrap())
+        json!(dunce::canonicalize(&paths[0]).unwrap())
     );
     assert_eq!(batch.result["batch"]["entries"][0]["frame"], 2);
     assert_eq!(
         batch.result["batch"]["entries"][1]["path"],
-        json!(paths[1].canonicalize().unwrap())
+        json!(dunce::canonicalize(&paths[1]).unwrap())
     );
     assert_eq!(batch.result["batch"]["entries"][1]["frame"], 1);
     let output = d.join("ordered.h5");

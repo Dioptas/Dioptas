@@ -332,8 +332,16 @@ try {
           document.querySelector('[data-testid="batch-surface"]').dataset
             .intensityScale === "sqrt",
       );
-      assert.ok(+(await details(surface)).meshUploads > uploads);
+      const sqrtUploads = +(await details(surface)).meshUploads;
+      assert.ok(sqrtUploads > uploads);
       await page.evaluate(() => window.setSurfaceScale("linear"));
+      // Let the linear rebuild land before counting the palette change.
+      await page.waitForFunction((n) => {
+        const d = document.querySelector(
+          '[data-testid="batch-surface"]',
+        ).dataset;
+        return d.intensityScale === "linear" && +d.meshUploads > n;
+      }, sqrtUploads);
       const paletteUploads = +(await details(surface)).meshUploads;
       await page.evaluate(() => window.setSurfacePalette("grey"));
       await page.waitForFunction(

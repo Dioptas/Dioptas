@@ -29,20 +29,31 @@ try {
     const settings = path.join(files, "commands.json");
     const gate = path.join(files, "release");
     const result = path.join(files, "descendant-result");
-    const script = path.join(files, "launcher.sh");
+    // A Node launcher runs on every platform: it starts a descendant that
+    // inherits the output pipes and exits at once, leaving the descendant
+    // waiting at the gate before it writes late output.
+    const script = path.join(files, "launcher.mjs");
     await writeFile(
       script,
-      `#!/bin/sh
-(
-  i=0
-  while [ ! -f "$1" ] && [ "$i" -lt 1500 ]; do
-    i=$((i+1))
-    /bin/sleep 0.02
-  done
-  [ -f "$1" ] || exit 9
-  printf 'Late native descendant output\\n' && printf 0 > "$2"
-) &
-exit 0
+      `import { spawn } from "node:child_process";
+import { existsSync, writeFileSync } from "node:fs";
+const [gate, result, role] = process.argv.slice(2);
+if (role !== "descendant") {
+  // Windows: libuv kills undetached children with their parent's job object.
+  spawn(process.execPath, [process.argv[1], gate, result, "descendant"], {
+    stdio: ["ignore", "inherit", "inherit"],
+    detached: process.platform === "win32",
+  }).unref();
+  process.exit(0);
+}
+const deadline = Date.now() + 30_000;
+while (!existsSync(gate)) {
+  if (Date.now() > deadline) process.exit(9);
+  await new Promise((resolve) => setTimeout(resolve, 20));
+}
+process.stdout.write("Late native descendant output\\n", () => {
+  writeFileSync(result, "0");
+});
 `,
     );
     const native = nativeClient({
@@ -67,7 +78,7 @@ exit 0
         command: {
           id: "launcher",
           name: "Native launcher",
-          program: "/bin/sh",
+          program: process.execPath,
           arguments: [script, gate, result],
           enabled: true,
           icon: "terminal",

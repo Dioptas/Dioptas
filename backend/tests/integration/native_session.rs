@@ -124,7 +124,7 @@ fn packaged_resources_support_example_integration_and_project_without_a_checkout
         example.result["state"]["imagePath"]
             .as_str()
             .unwrap()
-            .starts_with(resources.canonicalize().unwrap().to_str().unwrap())
+            .starts_with(dunce::canonicalize(&resources).unwrap().to_str().unwrap())
     );
     assert!(
         example.result["state"]["calibration"]["calibrants"]
@@ -277,7 +277,7 @@ fn native_hdf5_stack_retains_integer_dtype_and_tracks_selected_frame() {
 fn image_file_boundaries_are_noops_and_later_arrivals_remain_browsable() {
     for mode in ["number", "time"] {
         let temp = tempfile::tempdir().unwrap();
-        let directory = temp.path().canonicalize().unwrap();
+        let directory = dunce::canonicalize(temp.path()).unwrap();
         let first = directory.join("scan_001.npy");
         npy(&first, &[3, 4], &[1.; 12]);
         let mut session = Session::new(root());
@@ -719,12 +719,15 @@ fn snapshots_carry_custom_action_inputs() {
     );
     let opened = call(&mut session, "open_image", json!({"path":path}));
     let context = &opened.result["state"]["customCommandContext"];
-    assert_eq!(context["image_path"], json!(path.canonicalize().unwrap()));
+    assert_eq!(
+        context["image_path"],
+        json!(dunce::canonicalize(&path).unwrap())
+    );
     assert_eq!(context["image_name"], "counts.npy");
     assert_eq!(context["frame_number"], 1);
     assert_eq!(
         context["image_directory"],
-        json!(path.canonicalize().unwrap().parent().unwrap())
+        json!(dunce::canonicalize(&path).unwrap().parent().unwrap())
     );
     assert_eq!(context["frame_index"], 0);
     assert_eq!(context["wavelength_angstrom"], Value::Null);

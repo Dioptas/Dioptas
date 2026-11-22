@@ -74,16 +74,31 @@ for (const [name, engine] of [
       localStorage.setItem("dioptas-batch:docked", "false"),
     );
     await main.goto(pathToFileURL(path.join(root, "dist/index.html")).href);
+    // A companion sends its own commands: wait in every open window, so a
+    // click in a detached window cannot still be in flight when state is read.
     const ready = async () => {
-      await main.evaluate(
-        () =>
-          new Promise((resolve) =>
-            requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      const open = () => context.pages().filter((page) => !page.isClosed());
+      // Only a window that closed meanwhile (docking) may skip the wait.
+      const settled = (page, work) =>
+        work(page).catch((error) => {
+          if (!page.isClosed()) throw error;
+        });
+      for (const page of open())
+        await settled(page, (p) =>
+          p.evaluate(
+            () =>
+              new Promise((resolve) =>
+                requestAnimationFrame(() => requestAnimationFrame(resolve)),
+              ),
           ),
-      );
-      await main.waitForFunction(
-        () => !window.__companionPending && !document.querySelector(".spin"),
-      );
+        );
+      for (const page of open())
+        await settled(page, (p) =>
+          p.waitForFunction(
+            () =>
+              !window.__companionPending && !document.querySelector(".spin"),
+          ),
+        );
     };
     await main
       .getByRole("button", { name: "Integration", exact: true })
@@ -166,29 +181,48 @@ for (const [name, engine] of [
         `${step}: wrong Batch frame`,
       );
       assert.equal(state.map.selected, mapFrame, `${step}: wrong Map cell`);
-      const expected = await fields();
+      // The main window renders a companion's click after it reaches state.
+      await main
+        .waitForFunction(
+          () =>
+            document.querySelectorAll(
+              '[data-testid="click-readout"] [data-field]',
+            ).length >= 3,
+          null,
+          { timeout: 5000 },
+        )
+        .catch(() => {});
+      let expected = await fields();
       assert.ok(
         expected.length >= 3,
         `${step}: missing main click coordinates`,
       );
-      for (const [page, id] of [
+      const readouts = [
         [image, "detector-click-readout"],
         [batch, "batch-click-readout"],
         [map, "map-click-readout"],
-      ]) {
-        if (page === main) continue;
-        await page.getByTestId(id).waitFor();
-        await page.waitForFunction(
-          ({ id, expected }) =>
-            JSON.stringify(
-              [
-                ...document.querySelectorAll(
-                  `[data-testid="${id}"] [data-field]`,
-                ),
-              ].map((element) => element.textContent),
-            ) === JSON.stringify(expected),
-          { id, expected },
+      ].filter(([page]) => page !== main);
+      for (const [page, id] of readouts) await page.getByTestId(id).waitFor();
+      const companionFields = ([page, id]) =>
+        page.getByTestId(id).locator("[data-field]").allTextContents();
+      // Windows update one another asynchronously: re-read the main readout
+      // too, so a value it was still publishing cannot become a stale target.
+      const same = async () => {
+        expected = await fields();
+        for (const readout of readouts)
+          if (
+            JSON.stringify(await companionFields(readout)) !==
+            JSON.stringify(expected)
+          )
+            return false;
+        return true;
+      };
+      for (const deadline = Date.now() + 20_000; !(await same());) {
+        assert.ok(
+          Date.now() < deadline,
+          `${step}: companion click readouts differ from the main window`,
         );
+        await main.waitForTimeout(50);
       }
       // A selected stored Map pattern can use a different axis unit from the
       // Integration settings. Compare the same physical position in that axis.

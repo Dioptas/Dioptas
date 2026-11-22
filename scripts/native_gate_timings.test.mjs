@@ -495,11 +495,13 @@ describe(
         assert.match(r.stdout, new RegExp(`of 45 \\(shard ${shard}\\)`));
         return r.timings.steps.map((s) => s.name);
       });
-      // Every shard checks the boundary and builds the frontend it serves.
+      // Every shard checks the boundary and builds the processor, fixtures
+      // and frontend it serves.
       const perShard = [
         "glib-security-backport",
         "native-contract-generation",
         "native-test-fixtures",
+        "rust-build",
         "frontend-build",
       ];
       const once = parts.flatMap((names) =>

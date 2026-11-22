@@ -20,10 +20,7 @@ fn call(session: &mut Session, command: &str, payload: Value) -> Reply {
     result
 }
 fn root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .canonicalize()
-        .unwrap()
+    dunce::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("..")).unwrap()
 }
 fn mask_bytes(result: &Reply) -> &[u8] {
     let id = result.result["mask"]["bufferId"].as_str().unwrap();

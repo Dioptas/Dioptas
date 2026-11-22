@@ -147,9 +147,11 @@ pub(crate) fn request(
     if contracts.requirements().is_empty() {
         return Ok(None);
     }
+    // dioptrin-io reports std-canonical paths (\\?\C:\... on Windows); compare
+    // and publish them in the dunce form that Dioptas paths use.
     let requirements: Vec<_> = contracts.requirements().iter().map(|r|match r {
-        Requirement::File { kind, owner, stored_filename, expected_file } => json!({"kind":if *kind==FileKind::Virtual {"vds"}else{"raw"},"owner":owner,"stored_filename":stored_filename,"expected_file":expected_file}),
-        Requirement::Printf { owner, dataset, mapping_index, stored_filename, declared_dataset } => json!({"kind":"printf","owner":owner,"dataset":dataset,"mapping_index":mapping_index,"stored_filename":stored_filename,"declared_dataset":declared_dataset}),
+        Requirement::File { kind, owner, stored_filename, expected_file } => json!({"kind":if *kind==FileKind::Virtual {"vds"}else{"raw"},"owner":dunce::simplified(owner),"stored_filename":stored_filename,"expected_file":expected_file}),
+        Requirement::Printf { owner, dataset, mapping_index, stored_filename, declared_dataset } => json!({"kind":"printf","owner":dunce::simplified(owner),"dataset":dataset,"mapping_index":mapping_index,"stored_filename":stored_filename,"declared_dataset":declared_dataset}),
     }).collect();
     let root = settings["path"]
         .as_str()
@@ -170,8 +172,9 @@ pub(crate) fn request(
         contracts
             .source_bindings()
             .iter()
-            .flat_map(|b| [b.requested.clone(), b.resolved.clone()])
-            .filter(|p| p != path && *p != physical_root),
+            .flat_map(|b| [&b.requested, &b.resolved])
+            .map(|p| dunce::simplified(p).to_path_buf())
+            .filter(|p| p != dunce::simplified(path) && *p != physical_root),
     ) {
         if !files.iter().any(|(p, _)| *p == file) {
             files.push((file.clone(), FileIdentity::read(&file)?));

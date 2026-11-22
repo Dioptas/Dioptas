@@ -5,10 +5,7 @@ use dioptas_backend::{
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
 fn root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .canonicalize()
-        .unwrap()
+    dunce::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("..")).unwrap()
 }
 fn call(s: &mut Session, action: &str, payload: Value) -> Reply {
     let r = s.invoke(&Request {

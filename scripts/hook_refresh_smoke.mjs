@@ -1,14 +1,15 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { createServer } from "vite";
+import { createServer, normalizePath } from "vite";
 import { chromium, webkit } from "playwright";
 import { nativeClient, root } from "./native_backend_client.mjs";
 
 // Change the hook layout in memory, without editing files watched by a user's
 // preview. This reproduces the Batch update that crashed App during refresh.
 const desktop = root;
-const hookPath = path.join(desktop, "src/batchWindow.ts");
+// Vite module IDs use forward slashes, also on Windows.
+const hookPath = normalizePath(path.join(desktop, "src/batchWindow.ts"));
 const updated = await readFile(hookPath, "utf8");
 const previous = updated.replace(
   /const published = useRef<\{[\s\S]*?\}>\(\{ batch: undefined, base: 0, sequence: 0 \}\);/,
