@@ -1,3 +1,62 @@
+# 0.14.0-rc.3 (2026-11-23)
+
+Changes since 0.14.0-rc.2. See [the rc.3 release notes](docs/release/RELEASE_0.14.0-rc.3.md)
+for downloads and [the rc.2 release notes](docs/release/RELEASE_0.14.0-rc.2.md)
+for the previous candidate.
+
+## New
+
+- **Start custom actions detached.** A custom action can now be set to **Start
+  detached · own window, output not captured**. The program then runs in its own
+  window, as a double-click would start it, instead of with captured output. On
+  Windows, this lets `.bat` and `.cmd` scripts and console programs run that
+  previously exited at once and reported "Finished". Output of captured runs is
+  kept in memory only (the last 16 KiB per action); no log files are written
+  (#303).
+
+- **Automatic radial binning by default.** New sessions estimate the number of
+  radial bins from the detector size and beam center. To use a fixed count, turn
+  off **Settings → Integration → Automatic radial binning**. Saved projects keep
+  their binning choice.
+
+## Improvements
+
+- **Much faster Batch and Map on Bliss/Eiger HDF5 masters.** Masters whose frames
+  live in one or several Eiger data files now use the parallel Eiger reader. On a
+  2,500-frame Eiger scan (Apple M4 Pro), Map ran at 500–550 images/s instead of
+  110–122. Eiger data files larger than 8 GiB can now also be opened directly.
+  Results are unchanged (#299, #300).
+
+- **Faster background editing on large maps.** Changing the pattern background in
+  Integration no longer refits the whole loaded map after every edit. The map
+  updates once when the Map view is visible and processing is idle; a detached
+  map offers **Update map**. Refits run in parallel, smoothing is about three
+  times faster, and moving a crop edge without crossing a data point reuses the
+  existing fit. Projects keep a pending map update when saved (#301, #302).
+
+- Updated the processing engine to Dioptrin 0.14.0 and dioptrin-io 0.4.3 (#297,
+  #303).
+
+## Fixes
+
+- Fixed a flat 1D pattern for Varex TIFF images (`ngMultiXRD`). Their
+  dark-subtracted counts are signed, but the files do not say so; negative pixels
+  were read as huge values. Dioptas now matches Qt Dioptas for these images
+  (#303).
+
+- Map now applies the Integration pattern background. Previously the map was
+  built from the raw patterns, while selecting a cell showed the
+  background-subtracted pattern (#298).
+
+- Windows paths are shown without the `\\?\` prefix, for example
+  `G:\data\image.tif` (#293, #296).
+
+- Keyboard shortcuts are listed with **Ctrl** instead of ⌘ on Windows and Linux
+  (#294, #296).
+
+- On Windows, opening an HDF5 master after choosing its companion files no longer
+  fails at random with "HDF5 source changed since it was opened" (#304).
+
 # 0.14.0-rc.2 (2026-11-15)
 
 Changes since 0.14.0-rc.1, the first release candidate of the Rust desktop. See

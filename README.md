@@ -16,10 +16,10 @@ setup executable, or a Linux x64 Debian package or AppImage. See the
 [installation guide](manual/src/content/docs/getting-started/installation.md) for requirements and steps.
 
 The current Rust desktop prerelease is
-[Dioptas 0.14.0-rc.2](https://github.com/Dioptas/Dioptas/releases/tag/0.14.0-rc.2),
+[Dioptas 0.14.0-rc.3](https://github.com/Dioptas/Dioptas/releases/tag/0.14.0-rc.3),
 with macOS, Windows and Linux installers for testing. Windows is currently
 unsigned. The latest stable 0.13.x releases remain the legacy Qt edition.
-See the [candidate release notes](docs/release/RELEASE_0.14.0-rc.2.md) and
+See the [candidate release notes](docs/release/RELEASE_0.14.0-rc.3.md) and
 [native installer guide](docs/release/NATIVE_RELEASE.md) for tested scope and limits.
 
 **`pip install dioptas` installs the legacy Qt/Python edition.** It does not

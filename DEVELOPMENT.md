@@ -59,8 +59,8 @@ For signed installer candidates, see [native release packaging](docs/release/NAT
 `npm run release:macos` uses the shared release configuration and Developer ID
 credentials; the artifact-only workflow also notarizes and tests Apple Silicon
 and Intel DMGs. It does not publish a release. The application version comes
-from `package.json`; the current candidate is `0.14.0-rc.2`. See the
-[release notes](docs/release/RELEASE_0.14.0-rc.2.md) for downloads and testing.
+from `package.json`; the current candidate is `0.14.0-rc.3`. See the
+[release notes](docs/release/RELEASE_0.14.0-rc.3.md) for downloads and testing.
 
 The [native Windows installer pipeline](docs/release/NATIVE_WINDOWS_RELEASE.md) adds an x64
 NSIS candidate with offline WebView2, bundled Visual C++ runtime, and automated

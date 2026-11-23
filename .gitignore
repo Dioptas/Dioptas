@@ -42,6 +42,8 @@ __version__
 
 [Dd]ebug/
 [Rr]elease/
+# Release notes and packaging guides are documentation, not build output.
+!/docs/release/
 x64/
 build/
 /dist/
