@@ -84,12 +84,15 @@ try {
       );
       let previewRequests = 0;
       let profileRequests = 0;
+      let savedProfiles = 0;
       await context.exposeBinding("__nativeInvoke", async (_, a, p = {}) => {
         if (a === "integration_correction_preview") previewRequests++;
         if (a === "cake_profile") profileRequests++;
         if (a === "save_cake_profile")
           p = { ...p, path: path.join(temporary, `${name}-profile.xy`) };
-        return native.browserResult(await native.invoke(a, p));
+        const result = await native.invoke(a, p);
+        if (a === "save_cake_profile") savedProfiles++;
+        return native.browserResult(result);
       });
       await context.addInitScript(() => {
         window.pywebview = {
@@ -207,10 +210,18 @@ try {
       await ready();
       await profile.getByTestId("cake-profile-canvas").waitFor();
       assert.equal((await native.invoke("state")).state.unit, "q_A^-1");
+      const savesBefore = savedProfiles;
       await profile
         .getByRole("button", { name: "Save azimuthal profile", exact: true })
         .click();
       await ready();
+      // The save shows no spinner; read the file only after its command returned.
+      for (
+        const deadline = Date.now() + 10_000;
+        savedProfiles === savesBefore && Date.now() < deadline;
+      )
+        await page.waitForTimeout(50);
+      assert.ok(savedProfiles > savesBefore, "The profile save completed");
       assert.match(
         await readFile(path.join(temporary, `${name}-profile.xy`), "utf8"),
         /[0-9]/,
