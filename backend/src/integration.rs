@@ -3,6 +3,10 @@ use crate::{
     control::Control,
     display::Raster,
     geometry::Geometry as Parameters,
+    gpu::{
+        self, ComputeBackend, GpuPrecision,
+        plans::{Gpu1dPlan, Gpu2dPlan},
+    },
     image::{CombinedSource, Image},
 };
 use dioptrin::{
@@ -67,6 +71,8 @@ pub struct Options {
     pub dynamic_mask: bool,
     pub csc: bool,
     pub auto_layout: bool,
+    pub compute_backend: ComputeBackend,
+    pub gpu_precision: GpuPrecision,
 }
 #[derive(Clone, PartialEq)]
 struct Key {
@@ -89,6 +95,9 @@ struct Plan {
     key: Key,
     engine: Integrator,
     fixed: Option<Arc<Fixed1dPlan>>,
+    gpu_1d: Option<(GpuPrecision, Option<Arc<Gpu1dPlan>>)>,
+    gpu_1d_flip: Option<(GpuPrecision, Option<Arc<Gpu1dPlan>>)>,
+    gpu_2d: Option<(GpuPrecision, Option<Arc<Gpu2dPlan>>)>,
     general_1d: Option<Arc<dioptrin::lut::Lut1d>>,
     dynamic_series: Option<Arc<Dynamic1dPlan>>,
     compatibility_1d: Option<Arc<FixedCsr1dPlan>>,
@@ -164,6 +173,7 @@ pub struct Prepared {
 pub struct CombinedSeriesPlan {
     key: Arc<Key>,
     fixed: Arc<Fixed1dPlan>,
+    gpu: Option<Arc<Gpu1dPlan>>,
     source: CombinedSource,
     options: Options,
 }
@@ -219,6 +229,7 @@ pub struct Engine {
     series_pending_peak: usize,
     processed_frame_integrations: u64,
     dynamic_series_builds: u64,
+    gpu_integrations: u64,
 }
 fn unit(value: &str) -> RadialUnit {
     match value {
@@ -291,6 +302,9 @@ impl Plan {
             key,
             engine,
             fixed: None,
+            gpu_1d: None,
+            gpu_1d_flip: None,
+            gpu_2d: None,
             general_1d: None,
             dynamic_series: None,
             compatibility_1d: None,
@@ -327,6 +341,90 @@ impl Plan {
             }));
         }
         Ok(self.fixed.as_ref().unwrap().clone())
+    }
+    fn gpu_1d(&mut self, precision: GpuPrecision) -> Option<Arc<Gpu1dPlan>> {
+        if !matches!(self.gpu_1d, Some((p, _)) if p == precision) {
+            let shape = (self.key.shape[0], self.key.shape[1]);
+            let built = Gpu1dPlan::prepare(
+                &self.engine,
+                shape,
+                self.key.bins,
+                InputOrder::Detector,
+                precision,
+            )
+            .ok()
+            .map(Arc::new);
+            self.gpu_1d = Some((precision, built));
+        }
+        self.gpu_1d.as_ref().and_then(|(_, p)| p.clone())
+    }
+    fn mark_gpu_1d_failed(&mut self, precision: GpuPrecision) {
+        self.gpu_1d = Some((precision, None));
+    }
+    fn gpu_1d_flip(&mut self, precision: GpuPrecision) -> Option<Arc<Gpu1dPlan>> {
+        if !matches!(self.gpu_1d_flip, Some((p, _)) if p == precision) {
+            let shape = (self.key.shape[0], self.key.shape[1]);
+            let built = Gpu1dPlan::prepare(
+                &self.engine,
+                shape,
+                self.key.bins,
+                InputOrder::FlipVertical,
+                precision,
+            )
+            .ok()
+            .map(Arc::new);
+            self.gpu_1d_flip = Some((precision, built));
+        }
+        self.gpu_1d_flip.as_ref().and_then(|(_, p)| p.clone())
+    }
+    fn gpu_2d(&mut self, precision: GpuPrecision) -> Option<Arc<Gpu2dPlan>> {
+        if !matches!(self.gpu_2d, Some((p, _)) if p == precision) {
+            let shape = (self.key.shape[0], self.key.shape[1]);
+            let range = Some((-std::f64::consts::PI, std::f64::consts::PI));
+            let built = Gpu2dPlan::prepare(
+                &self.engine,
+                shape,
+                self.key.bins,
+                self.key.angular_bins,
+                range,
+                InputOrder::Detector,
+                precision,
+            )
+            .ok()
+            .map(Arc::new);
+            self.gpu_2d = Some((precision, built));
+        }
+        self.gpu_2d.as_ref().and_then(|(_, p)| p.clone())
+    }
+    fn mark_gpu_2d_failed(&mut self, precision: GpuPrecision) {
+        self.gpu_2d = Some((precision, None));
+    }
+    fn default_cake_radial(&mut self, o: &Options, wavelength: f64) -> [f64; 2] {
+        if self.radial.is_none() {
+            let g = self.engine.geometry();
+            if o.supersampling > 1 {
+                let radial = RadialUnit::TthDeg.convert_from_tth(&g.calc_tth_all(), wavelength);
+                let lut = dioptrin::lut::build_lut1d_ss_csr(
+                    g,
+                    &radial,
+                    o.bins,
+                    o.supersampling,
+                    RadialUnit::TthDeg,
+                );
+                let bins = lut.bins();
+                self.radial = Some([bins[0], *bins.last().unwrap()]);
+            } else {
+                let (rows, cols) = g.corner_grid();
+                let (tth, _) = g.calc_tth_and_azimuth(&rows, &cols);
+                let radial = RadialUnit::TthDeg.convert_from_tth(&tth, wavelength);
+                let low = radial.iter().copied().fold(f64::INFINITY, f64::min);
+                let high =
+                    radial.iter().copied().fold(f64::NEG_INFINITY, f64::max) + 10.0 * f64::EPSILON;
+                let half = (high - low) / (2.0 * o.bins as f64);
+                self.radial = Some([low + half, high - half]);
+            }
+        }
+        self.radial.unwrap()
     }
     fn prepare_normalization(&mut self) {
         if self.normalization.is_some() {
@@ -495,7 +593,7 @@ impl Engine {
     pub fn diagnostics(&self) -> Value {
         json!({"patternPlanBuilds":self.pattern_builds,"cakePlanBuilds":self.cake_builds,"cakeIntegrations":self.cake_integrations,"combinedDecodes":self.combined_decodes,"preparedHits":self.prepared_hits,"residentIntegrations":self.resident_calls,"typedImageIntegrations":self.typed_image_integrations,"patternOnlyDecodes":self.pattern_only_decodes,"parallelPixelDecodes":self.parallel_pixel_decodes,"lastPixelDecodeMs":self.last_pixel_decode_ms,
             "frameParallelIntegrations":self.frame_parallel_integrations,"seriesWorkerStarts":self.series_worker_starts,"seriesPipelineRuns":self.series_pipeline_runs,"seriesPendingPeak":self.series_pending_peak,
-            "processedFrameIntegrations":self.processed_frame_integrations,"dynamicSeriesPlanBuilds":self.dynamic_series_builds})
+            "processedFrameIntegrations":self.processed_frame_integrations,"dynamicSeriesPlanBuilds":self.dynamic_series_builds,"gpuIntegrations":self.gpu_integrations})
     }
     fn pattern_plan(&mut self, k: Key) -> Result<&mut Plan, String> {
         if self.pattern.as_ref().is_none_or(|p| p.key != k) {
@@ -848,26 +946,66 @@ impl Engine {
         for segment in raw_segments(image, frames)? {
             self.open_segment(image, &plan.source, &segment)?;
             let raw = self.raw.as_ref().unwrap();
-            let stats = series_pipeline::run(
-                &raw.reader,
-                &plan.fixed,
-                plan.options.errors,
-                &segment.local,
-                control,
-                |frame, result| {
-                    let (pattern, _) = Self::finish_pattern(
-                        result.radial,
-                        result.intensity,
-                        result.errors,
-                        None,
-                        &plan.key.geometry,
-                        &plan.options,
-                    )?;
-                    consume(segment.master(frame), pattern)
-                },
-            )?;
+            let mut deliver = |frame: usize, result: dioptrin::integration::Fixed1dResult| {
+                let (pattern, _) = Self::finish_pattern(
+                    result.radial,
+                    result.intensity,
+                    result.errors,
+                    None,
+                    &plan.key.geometry,
+                    &plan.options,
+                )?;
+                consume(segment.master(frame), pattern)
+            };
+            let (stats, gpu_frames) = if let Some(gpu) = &plan.gpu {
+                match series_pipeline::run_gpu(
+                    &raw.reader,
+                    gpu,
+                    plan.options.errors,
+                    &segment.local,
+                    control,
+                    &mut deliver,
+                ) {
+                    Ok(stats) => {
+                        let count = stats.frames;
+                        (stats, count)
+                    }
+                    Err(series_pipeline::GpuRunError::Fatal(err)) => return Err(err),
+                    Err(series_pipeline::GpuRunError::Gpu { consumed }) => {
+                        // Only continue on CPU for frames not yet delivered to the consumer.
+                        let remaining = &segment.local[consumed..];
+                        let cpu_stats = series_pipeline::run(
+                            &raw.reader,
+                            &plan.fixed,
+                            plan.options.errors,
+                            remaining,
+                            control,
+                            &mut deliver,
+                        )?;
+                        let combined = series_pipeline::Stats {
+                            workers: cpu_stats.workers,
+                            frames: consumed + cpu_stats.frames,
+                            pending_peak: cpu_stats.pending_peak,
+                        };
+                        (combined, consumed)
+                    }
+                }
+            } else {
+                (
+                    series_pipeline::run(
+                        &raw.reader,
+                        &plan.fixed,
+                        plan.options.errors,
+                        &segment.local,
+                        control,
+                        &mut deliver,
+                    )?,
+                    0,
+                )
+            };
             image.check_sources()?;
             control.check()?;
+            self.gpu_integrations += gpu_frames as u64;
             self.frame_parallel_integrations += stats.frames as u64;
             self.combined_decodes += stats.frames as u64;
             self.pattern_only_decodes += stats.frames as u64;
@@ -1049,10 +1187,18 @@ impl Engine {
             mask.to_vec()
         };
         let k = key(source.shape, p, &m, &o, false);
-        let plan = self.pattern_plan(k.clone())?.fixed()?;
+        let pixels = source.shape[0] * source.shape[1];
+        let plan_entry = self.pattern_plan(k.clone())?;
+        let fixed = plan_entry.fixed()?;
+        let gpu = if gpu::should_use_gpu(o.compute_backend, pixels) {
+            plan_entry.gpu_1d_flip(o.gpu_precision)
+        } else {
+            None
+        };
         Ok(Some(CombinedSeriesPlan {
             key: Arc::new(k),
-            fixed: plan,
+            fixed,
+            gpu,
             source,
             options: o,
         }))
@@ -1221,19 +1367,41 @@ impl Engine {
                     data, shape[0], shape[1], o.bins, o.errors,
                 );
                 (r.radial, r.intensity, r.errors, Some(r.azimuthal_std))
-            } else if !o.dynamic_mask && o.csc {
-                let r = plan.fixed()?.integrate_frame(data, o.errors)?;
-                (r.radial, r.intensity, r.errors, None)
-            } else if o.errors {
-                let (x, y, e) = plan
-                    .engine
-                    .integrate1d_with_errors_from_slice(data, shape[0], shape[1], o.bins);
-                (x, y, Some(e), None)
             } else {
-                let (x, y) = plan
-                    .engine
-                    .integrate1d_from_slice(data, shape[0], shape[1], o.bins);
-                (x, y, None, None)
+                let gpu_result = if !o.dynamic_mask
+                    && gpu::should_use_gpu(o.compute_backend, shape[0] * shape[1])
+                {
+                    if let Some(gpu) = plan.gpu_1d(o.gpu_precision) {
+                        match gpu.integrate_f64(data, o.errors) {
+                            Ok(r) => Some(r),
+                            Err(_) => {
+                                plan.mark_gpu_1d_failed(o.gpu_precision);
+                                None
+                            }
+                        }
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+                if let Some(r) = gpu_result {
+                    self.gpu_integrations += 1;
+                    (r.radial, r.intensity, r.errors, None)
+                } else if !o.dynamic_mask && o.csc {
+                    let r = plan.fixed()?.integrate_frame(data, o.errors)?;
+                    (r.radial, r.intensity, r.errors, None)
+                } else if o.errors {
+                    let (x, y, e) = plan
+                        .engine
+                        .integrate1d_with_errors_from_slice(data, shape[0], shape[1], o.bins);
+                    (x, y, Some(e), None)
+                } else {
+                    let (x, y) = plan
+                        .engine
+                        .integrate1d_from_slice(data, shape[0], shape[1], o.bins);
+                    (x, y, None, None)
+                }
             }
         };
         Self::finish_pattern(x, y, sigma, spread, p, o)
@@ -1399,48 +1567,51 @@ impl Engine {
                 grid.azimuth,
             )
         } else {
-            let pixels = plan.engine.integrate2d_with_azimuthal_range_from_slice(
-                data,
-                shape[0],
-                shape[1],
-                o.bins,
-                o.cake_bins,
-                -std::f64::consts::PI + std::f64::consts::PI / o.cake_bins as f64,
-                std::f64::consts::TAU / o.cake_bins as f64,
-            );
-            if plan.radial.is_none() {
-                let g = plan.engine.geometry();
-                if o.supersampling > 1 {
-                    let radial =
-                        RadialUnit::TthDeg.convert_from_tth(&g.calc_tth_all(), p.wavelength);
-                    let lut = dioptrin::lut::build_lut1d_ss_csr(
-                        g,
-                        &radial,
-                        o.bins,
-                        o.supersampling,
-                        RadialUnit::TthDeg,
-                    );
-                    let bins = lut.bins();
-                    plan.radial = Some([bins[0], *bins.last().unwrap()]);
+            let gpu_cake =
+                if !o.dynamic_mask && gpu::should_use_gpu(o.compute_backend, shape[0] * shape[1]) {
+                    if let Some(gpu) = plan.gpu_2d(o.gpu_precision) {
+                        match gpu.integrate_f64(data) {
+                            Ok(pixels) => {
+                                Some((pixels, gpu.radial_bounds(), gpu.azimuthal_bounds_deg()))
+                            }
+                            Err(_) => {
+                                plan.mark_gpu_2d_failed(o.gpu_precision);
+                                None
+                            }
+                        }
+                    } else {
+                        None
+                    }
                 } else {
-                    let (rows, cols) = g.corner_grid();
-                    let (tth, _) = g.calc_tth_and_azimuth(&rows, &cols);
-                    let radial = RadialUnit::TthDeg.convert_from_tth(&tth, p.wavelength);
-                    let low = radial.iter().copied().fold(f64::INFINITY, f64::min);
-                    let high = radial.iter().copied().fold(f64::NEG_INFINITY, f64::max)
-                        + 10.0 * f64::EPSILON;
-                    let half = (high - low) / (2.0 * o.bins as f64);
-                    plan.radial = Some([low + half, high - half]);
-                }
-            }
-            (
-                pixels,
-                plan.radial.unwrap(),
-                [
+                    None
+                };
+            if let Some((pixels, gpu_rad, gpu_az)) = gpu_cake {
+                self.gpu_integrations += 1;
+                let radial = gpu_rad.unwrap_or_else(|| plan.default_cake_radial(o, p.wavelength));
+                let azimuth = gpu_az.unwrap_or([
                     -180.0 + 180.0 / o.cake_bins as f64,
                     180.0 - 180.0 / o.cake_bins as f64,
-                ],
-            )
+                ]);
+                (pixels, radial, azimuth)
+            } else {
+                let pixels = plan.engine.integrate2d_with_azimuthal_range_from_slice(
+                    data,
+                    shape[0],
+                    shape[1],
+                    o.bins,
+                    o.cake_bins,
+                    -std::f64::consts::PI + std::f64::consts::PI / o.cake_bins as f64,
+                    std::f64::consts::TAU / o.cake_bins as f64,
+                );
+                (
+                    pixels,
+                    plan.default_cake_radial(o, p.wavelength),
+                    [
+                        -180.0 + 180.0 / o.cake_bins as f64,
+                        180.0 - 180.0 / o.cake_bins as f64,
+                    ],
+                )
+            }
         };
         let mut cake = Raster::image(&pixels, [o.cake_bins, o.bins]);
         cake.metadata["radialRange"] = json!(radial_range);

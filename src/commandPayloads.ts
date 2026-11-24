@@ -102,6 +102,8 @@ export interface IntegrationSettingsPayload {
   azimuthal_std?: boolean;
   spottiness_relative?: boolean;
   sparse_layout?: "csc" | "csr" | "auto";
+  compute_backend?: "auto" | "cpu" | "gpu";
+  gpu_precision?: "f32" | "f32_compensated" | "f64";
   azimuth_range?: [number, number] | null;
   cake_azimuth_range?: [number, number] | null;
   formats?: string[];

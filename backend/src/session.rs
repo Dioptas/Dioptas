@@ -98,6 +98,10 @@ struct Settings {
     csc: bool,
     #[serde(default)]
     auto_layout: bool,
+    #[serde(default)]
+    compute_backend: crate::gpu::ComputeBackend,
+    #[serde(default)]
+    gpu_precision: crate::gpu::GpuPrecision,
     roi: Option<[usize; 4]>,
     auto_save: bool,
     formats: Vec<String>,
@@ -130,6 +134,8 @@ impl Default for Settings {
             spottiness_relative: false,
             csc: false,
             auto_layout: false,
+            compute_backend: crate::gpu::ComputeBackend::Auto,
+            gpu_precision: crate::gpu::GpuPrecision::F32Compensated,
             roi: None,
             auto_save: false,
             formats: vec![".xy".into()],
@@ -1109,6 +1115,18 @@ impl Session {
                                 }
                             };
                             candidate.auto_layout = value.as_str() == Some("auto");
+                        }
+                        "compute_backend" => {
+                            let raw = value
+                                .as_str()
+                                .ok_or("Choose automatic, CPU or GPU compute backend.")?;
+                            candidate.compute_backend = crate::gpu::ComputeBackend::parse(raw)?;
+                        }
+                        "gpu_precision" => {
+                            let raw = value
+                                .as_str()
+                                .ok_or("Choose f32, f32_compensated or f64 GPU precision.")?;
+                            candidate.gpu_precision = crate::gpu::GpuPrecision::parse(raw)?;
                         }
                         "azimuth_range" => candidate.azimuth = optional_azimuth(value)?,
                         "cake_azimuth_range" => candidate.cake_azimuth = optional_azimuth(value)?,
@@ -2234,6 +2252,8 @@ impl Session {
             dynamic_mask: self.settings.use_mask && self.plugins.states.iter().any(|p| p.enabled),
             csc: self.settings.csc,
             auto_layout: self.settings.auto_layout,
+            compute_backend: self.settings.compute_backend,
+            gpu_precision: self.settings.gpu_precision,
         }
     }
     #[cfg(feature = "dioptrin")]
@@ -2436,6 +2456,16 @@ impl Session {
         }, "pattern":self.pattern, "cake":null, "rings":[], "linked":null, "batch":null, "map":null});
         trace.mark("base state");
         let mut buffers = Vec::new();
+        {
+            let gpu = crate::gpu::device_info();
+            let integration = &mut result["state"]["integration"];
+            integration["computeBackend"] = json!(s.compute_backend.as_str());
+            integration["gpuPrecision"] = json!(s.gpu_precision.as_str());
+            integration["gpuAvailable"] = json!(gpu.available);
+            integration["gpuBackend"] = json!(gpu.backend);
+            integration["gpuDevice"] = json!(gpu.device_name);
+            integration["gpuSupportsF64"] = json!(gpu.supports_f64);
+        }
         result["state"]["processingWorkers"] = crate::worker_pool::metadata(self.worker_count);
         for (key, value) in self.patterns.details().as_object().unwrap() {
             result["state"]["integration"][key] = value.clone();

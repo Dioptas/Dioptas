@@ -20,6 +20,8 @@ fn options() -> Options {
         dynamic_mask: false,
         csc: false,
         auto_layout: false,
+        compute_backend: ComputeBackend::Cpu,
+        gpu_precision: GpuPrecision::F32Compensated,
     }
 }
 

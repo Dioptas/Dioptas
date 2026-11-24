@@ -10,6 +10,8 @@ const optionKeys = [
   "supersampling",
   "method",
   "sparseLayout",
+  "computeBackend",
+  "gpuPrecision",
   "azimuthRange",
   "cakeAzimuthRange",
   "cakeBins",
@@ -32,6 +34,10 @@ const optionsPayload = (
         supersampling: source.supersampling,
         ...(source.method ? { method: source.method } : {}),
         ...(source.sparseLayout ? { sparse_layout: source.sparseLayout } : {}),
+        ...(source.computeBackend
+          ? { compute_backend: source.computeBackend }
+          : {}),
+        ...(source.gpuPrecision ? { gpu_precision: source.gpuPrecision } : {}),
         azimuth_range: source.azimuthRange,
         cake_azimuth_range: source.cakeAzimuthRange,
         cake_bins: source.cakeBins,
@@ -260,6 +266,100 @@ export function IntegrationSettings({
           <p className="integration-note">
             Minimum &gt; maximum selects a sector across ±180°.
           </p>
+          {source.computeBackend &&
+            (() => {
+              const gpuLabel = source.gpuDevice
+                ? source.gpuBackend
+                  ? `${source.gpuDevice} (${source.gpuBackend})`
+                  : source.gpuDevice
+                : (source.gpuBackend ?? "GPU");
+              const metalF64Fallback =
+                !source.gpuSupportsF64 && draft.gpuPrecision === "f64";
+              return (
+                <>
+                  <label className="field-label">
+                    Compute backend
+                    <Select
+                      aria-label="Compute backend"
+                      value={draft.computeBackend ?? "auto"}
+                      onChange={(e) =>
+                        set(
+                          "computeBackend",
+                          e.target.value as IntegrationState["computeBackend"],
+                        )
+                      }
+                    >
+                      <option value="auto">
+                        {source.gpuAvailable
+                          ? `Automatic · ${gpuLabel}`
+                          : "Automatic · CPU"}
+                      </option>
+                      <option value="cpu">CPU</option>
+                      {(source.gpuAvailable ||
+                        draft.computeBackend === "gpu") && (
+                        <option value="gpu" disabled={!source.gpuAvailable}>
+                          {source.gpuAvailable
+                            ? `GPU · ${gpuLabel}`
+                            : "GPU (unavailable)"}
+                        </option>
+                      )}
+                    </Select>
+                  </label>
+                  <p className="integration-note">
+                    {source.gpuAvailable
+                      ? draft.computeBackend === "cpu" || metalF64Fallback
+                        ? "Runs 1D and 2D integration on CPU in full float64."
+                        : `Uses ${gpuLabel} for fixed-mask 1D/2D integration and series batches (Automatic enables GPU on detectors ≥ 256×256). Dynamic masks, sectors, spread, disabled solid-angle, variance maps, and pyFAI-compatible splitting use CPU.`
+                      : "No compatible GPU detected on this machine. Integration runs on CPU."}
+                  </p>
+                  {source.gpuAvailable &&
+                    draft.computeBackend !== "cpu" &&
+                    source.gpuPrecision && (
+                      <>
+                        <label className="field-label">
+                          GPU precision
+                          <Select
+                            aria-label="GPU precision"
+                            value={draft.gpuPrecision ?? "f32_compensated"}
+                            onChange={(e) =>
+                              set(
+                                "gpuPrecision",
+                                e.target
+                                  .value as IntegrationState["gpuPrecision"],
+                              )
+                            }
+                          >
+                            <option value="f32_compensated">
+                              Compensated float32 (recommended)
+                            </option>
+                            <option value="f32">Float32 (fastest)</option>
+                            {(source.gpuSupportsF64 ||
+                              draft.gpuPrecision === "f64") && (
+                              <option
+                                value="f64"
+                                disabled={!source.gpuSupportsF64}
+                              >
+                                {source.gpuSupportsF64
+                                  ? "Float64 (double precision)"
+                                  : "Float64 (CUDA only · uses CPU)"}
+                              </option>
+                            )}
+                          </Select>
+                        </label>
+                        <p className="integration-note">
+                          {draft.gpuPrecision === "f64"
+                            ? source.gpuSupportsF64
+                              ? "Full double-precision accumulation on CUDA."
+                              : "Metal does not support hardware float64; integration falls back to CPU float64."
+                            : draft.gpuPrecision === "f32"
+                              ? "Single-precision GPU accumulation (float32 inputs/weights) with float64 normalization and output."
+                              : "Kahan/Neumaier compensated float32 GPU accumulation (float32 inputs/weights) with float64 normalization and output. Choose CPU for strict float64 on Metal."}
+                        </p>
+                      </>
+                    )}
+                </>
+              );
+            })()}
           {source.sparseLayout && (
             <>
               <label className="field-label">

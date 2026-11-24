@@ -412,6 +412,22 @@ pub(super) fn load(
         .get("sparse_layout")
         .cloned()
         .unwrap_or_else(|| json!("csr"));
+    settings["compute_backend"] = json!(
+        doc["native_desktop"]
+            .get("compute_backend")
+            .and_then(|v| v.as_str())
+            .and_then(|s| crate::gpu::ComputeBackend::parse(s).ok())
+            .unwrap_or_default()
+            .as_str()
+    );
+    settings["gpu_precision"] = json!(
+        doc["native_desktop"]
+            .get("gpu_precision")
+            .and_then(|v| v.as_str())
+            .and_then(|s| crate::gpu::GpuPrecision::parse(s).ok())
+            .unwrap_or_default()
+            .as_str()
+    );
     s.dispatch("integration_settings", &settings)?;
     s.processing.factor = finite(&img["factor"], "Image scale factor", -1e12, 1e12)?;
     if let Some(shape) = shape {
@@ -939,7 +955,7 @@ pub(super) fn save(
     }
     merge(
         &mut native,
-        &json!({"version":1,"sparse_layout":if settings.auto_layout {"auto"}else if settings.csc {"csc"}else{"csr"},"integration_method":if settings.pyfai_splitting {"pyfai_full"} else if settings.supersampling>1 {"subpixel"} else {"polygon"},"original_pixel_sizes":settings.original_pixels,"pattern_name":s.patterns.name,"correction_drafts":processing["corrections"],"label":c.label,"reader_options":image.map(|i|&i.options),"image_sources":image.map(|i|&i.sources).cloned().unwrap_or_default(),"automatic_image_source":image.is_some_and(|i|i.automatic_source),"image_source_error":image.and_then(|i|i.source_discovery_error.as_ref()),"mask_filename":s.mask_filename,"image_batch_mode":s.image_batch_mode,
+        &json!({"version":1,"sparse_layout":if settings.auto_layout {"auto"}else if settings.csc {"csc"}else{"csr"},"compute_backend":settings.compute_backend.as_str(),"gpu_precision":settings.gpu_precision.as_str(),"integration_method":if settings.pyfai_splitting {"pyfai_full"} else if settings.supersampling>1 {"subpixel"} else {"polygon"},"original_pixel_sizes":settings.original_pixels,"pattern_name":s.patterns.name,"correction_drafts":processing["corrections"],"label":c.label,"reader_options":image.map(|i|&i.options),"image_sources":image.map(|i|&i.sources).cloned().unwrap_or_default(),"automatic_image_source":image.is_some_and(|i|i.automatic_source),"image_source_error":image.and_then(|i|i.source_discovery_error.as_ref()),"mask_filename":s.mask_filename,"image_batch_mode":s.image_batch_mode,
         "calibration":{"version":1,"calibrant":s.calibration.reference.name,"fit_dirty":s.calibration.dirty,"rms_degrees":s.calibration.rms,
         "custom_calibrant":s.calibration.custom.as_ref().map(|r|json!({"name":r.name,"content":r.content})),"setup_confirmed":s.calibration.confirmed,"calibrant_chosen":s.calibration.reference_chosen,
         "workflow":s.workflow,"geometry_source":s.calibration.source}}),

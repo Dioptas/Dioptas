@@ -15,6 +15,12 @@ export interface IntegrationState {
   supersampling: number;
   method?: "polygon" | "pyfai_full" | "subpixel";
   sparseLayout?: "csc" | "csr" | "auto";
+  computeBackend?: "auto" | "cpu" | "gpu";
+  gpuPrecision?: "f32" | "f32_compensated" | "f64";
+  gpuAvailable?: boolean;
+  gpuBackend?: string | null;
+  gpuDevice?: string | null;
+  gpuSupportsF64?: boolean;
   azimuthRange: [number, number] | null;
   cakeAzimuthRange: [number, number] | null;
   cakeBins: number;
