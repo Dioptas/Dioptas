@@ -412,12 +412,22 @@ pub(super) fn load(
         .get("sparse_layout")
         .cloned()
         .unwrap_or_else(|| json!("csr"));
-    if let Some(compute_backend) = doc["native_desktop"].get("compute_backend") {
-        settings["compute_backend"] = compute_backend.clone();
-    }
-    if let Some(gpu_precision) = doc["native_desktop"].get("gpu_precision") {
-        settings["gpu_precision"] = gpu_precision.clone();
-    }
+    settings["compute_backend"] = json!(
+        doc["native_desktop"]
+            .get("compute_backend")
+            .and_then(|v| v.as_str())
+            .and_then(|s| crate::gpu::ComputeBackend::parse(s).ok())
+            .unwrap_or_default()
+            .as_str()
+    );
+    settings["gpu_precision"] = json!(
+        doc["native_desktop"]
+            .get("gpu_precision")
+            .and_then(|v| v.as_str())
+            .and_then(|s| crate::gpu::GpuPrecision::parse(s).ok())
+            .unwrap_or_default()
+            .as_str()
+    );
     s.dispatch("integration_settings", &settings)?;
     s.processing.factor = finite(&img["factor"], "Image scale factor", -1e12, 1e12)?;
     if let Some(shape) = shape {

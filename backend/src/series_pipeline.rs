@@ -51,6 +51,13 @@ pub(super) fn run(
 
 const GPU_SERIES_BATCH: usize = 16;
 
+/// Distinguishes recoverable GPU execution errors from fatal I/O, cancellation,
+/// or consumer errors so callers never re-consume frames or mask fatal errors.
+pub(super) enum GpuRunError {
+    Gpu { consumed: usize },
+    Fatal(String),
+}
+
 /// Decodes frames in parallel into reusable buffers and submits 16-frame
 /// batches to the GPU plan (using `InputOrder::FlipVertical` to avoid host
 /// vertical flips).
@@ -61,7 +68,7 @@ pub(super) fn run_gpu(
     frames: &[usize],
     control: &Control,
     mut consume: impl FnMut(usize, Fixed1dResult) -> Result<(), String>,
-) -> Result<Stats, String> {
+) -> Result<Stats, GpuRunError> {
     if frames.is_empty() {
         return Ok(Stats {
             workers: 0,
@@ -75,9 +82,10 @@ pub(super) fn run_gpu(
         .min((WORKER_BUDGET / reader.worker_payload_bytes().max(1)).max(1));
     let mut buffers: Vec<FrameBuffer> = (0..max_batch).map(|_| FrameBuffer::default()).collect();
     let kind = reader.pixel_type();
+    let mut consumed = 0usize;
 
     for chunk in frames.chunks(max_batch) {
-        control.check()?;
+        control.check().map_err(GpuRunError::Fatal)?;
         let n = chunk.len();
         pool.install(|| {
             buffers[..n]
@@ -89,34 +97,42 @@ pub(super) fn run_gpu(
                         .read_frame_into(frame, buf)
                         .map_err(|e| e.to_string())
                 })
-        })?;
-        control.check()?;
+        })
+        .map_err(GpuRunError::Fatal)?;
+        control.check().map_err(GpuRunError::Fatal)?;
         let results = match kind {
             PixelType::U16 => {
                 let mut slices = Vec::with_capacity(n);
                 for buf in &buffers[..n] {
                     match buf.pixels() {
                         Some(PixelBuffer::U16(v)) => slices.push(v.as_slice()),
-                        _ => return Err("Unexpected series pixel type.".into()),
+                        _ => {
+                            return Err(GpuRunError::Fatal("Unexpected series pixel type.".into()));
+                        }
                     }
                 }
-                plan.integrate_batch_u16(&slices, errors)?
+                plan.integrate_batch_u16(&slices, errors)
+                    .map_err(|_| GpuRunError::Gpu { consumed })?
             }
             PixelType::U32 => {
                 let mut slices = Vec::with_capacity(n);
                 for buf in &buffers[..n] {
                     match buf.pixels() {
                         Some(PixelBuffer::U32(v)) => slices.push(v.as_slice()),
-                        _ => return Err("Unexpected series pixel type.".into()),
+                        _ => {
+                            return Err(GpuRunError::Fatal("Unexpected series pixel type.".into()));
+                        }
                     }
                 }
-                plan.integrate_batch_u32(&slices, errors)?
+                plan.integrate_batch_u32(&slices, errors)
+                    .map_err(|_| GpuRunError::Gpu { consumed })?
             }
-            _ => return Err("Unexpected series pixel type.".into()),
+            _ => return Err(GpuRunError::Fatal("Unexpected series pixel type.".into())),
         };
         for (&frame, result) in chunk.iter().zip(results) {
-            control.check()?;
-            consume(frame, result)?;
+            control.check().map_err(GpuRunError::Fatal)?;
+            consume(frame, result).map_err(GpuRunError::Fatal)?;
+            consumed += 1;
         }
     }
 

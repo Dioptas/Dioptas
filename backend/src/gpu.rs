@@ -444,7 +444,7 @@ mod tests {
         let data: Vec<f64> = (0..pixels)
             .map(|i| ((i * 73 + 17) % 10_000) as f64 + 10.0)
             .collect();
-        let mask = vec![0u8; pixels];
+        let mask: Vec<u8> = (0..pixels).map(|i| u8::from(i % 13 == 0)).collect();
         let params = Geometry {
             pixel1: 1e-4,
             pixel2: 1e-4,
@@ -486,6 +486,17 @@ mod tests {
             .unwrap();
         assert_eq!(gpu_engine.diagnostics()["gpuIntegrations"], 1);
 
+        let cx = cpu_pat["x"].as_array().unwrap();
+        let gx = gpu_pat["x"].as_array().unwrap();
+        assert_eq!(cx.len(), gx.len());
+        for (a, b) in cx.iter().zip(gx) {
+            assert_eq!(
+                a.as_f64().unwrap().to_bits(),
+                b.as_f64().unwrap().to_bits(),
+                "1D radial axis must be bit-identical between CPU and GPU"
+            );
+        }
+
         let cy = cpu_pat["y"].as_array().unwrap();
         let gy = gpu_pat["y"].as_array().unwrap();
         assert_eq!(cy.len(), gy.len());
@@ -504,19 +515,67 @@ mod tests {
             );
         }
 
+        // Switching backend/precision must NOT rebuild the CPU scientific plan.
+        let builds_before = gpu_engine.diagnostics()["patternPlanBuilds"]
+            .as_u64()
+            .unwrap();
+        let mut f32_opts = gpu_opts.clone();
+        f32_opts.gpu_precision = GpuPrecision::F32;
+        gpu_engine
+            .integrate_pattern_with_variance(&data, None, shape, &params, &mask, &f32_opts, None)
+            .unwrap();
+        assert_eq!(
+            gpu_engine.diagnostics()["patternPlanBuilds"]
+                .as_u64()
+                .unwrap(),
+            builds_before
+        );
+        assert_eq!(gpu_engine.diagnostics()["gpuIntegrations"], 2);
+
+        // Supersampling (subpixel) runs on GPU and matches CPU.
+        let mut ss_cpu = cpu_opts.clone();
+        ss_cpu.supersampling = 2;
+        let mut ss_gpu = gpu_opts.clone();
+        ss_gpu.supersampling = 2;
+        let (ss_cpu_pat, _) = cpu_engine
+            .integrate_pattern_with_variance(&data, None, shape, &params, &mask, &ss_cpu, None)
+            .unwrap();
+        let (ss_gpu_pat, _) = gpu_engine
+            .integrate_pattern_with_variance(&data, None, shape, &params, &mask, &ss_gpu, None)
+            .unwrap();
+        assert_eq!(gpu_engine.diagnostics()["gpuIntegrations"], 3);
+        for (a, b) in ss_cpu_pat["y"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .zip(ss_gpu_pat["y"].as_array().unwrap())
+        {
+            let av = a.as_f64().unwrap();
+            let bv = b.as_f64().unwrap();
+            assert!(
+                (av - bv).abs() <= 1e-5 * av.abs().max(1.0),
+                "1D supersampled mismatch: cpu={av} gpu={bv}"
+            );
+        }
+
         let (gpu_cake_raster, gpu_cake) = gpu_engine
             .integrate_cake(&data, shape, &params, &mask, &gpu_opts)
             .unwrap();
-        assert_eq!(gpu_engine.diagnostics()["gpuIntegrations"], 2);
+        assert_eq!(gpu_engine.diagnostics()["gpuIntegrations"], 4);
         let radial_range = gpu_cake_raster.metadata["radialRange"].as_array().unwrap();
         let azimuth_range = gpu_cake_raster.metadata["azimuthRange"].as_array().unwrap();
         assert!(radial_range[0].as_f64().unwrap() < radial_range[1].as_f64().unwrap());
         assert!(azimuth_range[0].as_f64().unwrap() < azimuth_range[1].as_f64().unwrap());
 
-        let ai = dioptrin::integration::Integrator::new(params.native_geometry(shape).unwrap())
+        let mut ai = dioptrin::integration::Integrator::new(params.native_geometry(shape).unwrap())
             .with_method(dioptrin::integration::IntegrationMethod::PixelSplit)
             .with_radial_unit(dioptrin::integration::RadialUnit::TthDeg)
             .with_polarization_factor(cpu_opts.polarization);
+        ai.set_mask(dioptrin::mask::Mask {
+            data: mask.clone(),
+            dim1: shape[0],
+            dim2: shape[1],
+        });
         let ref_cake = ai
             .integrate2d_on_azimuthal_range_from_slice(
                 &data,
