@@ -425,6 +425,11 @@ mod tests {
         {
             assert_eq!(info.backend, Some("CUDA"));
         }
+        #[cfg(not(feature = "dioptrin"))]
+        {
+            assert!(!info.available);
+            assert!(info.backend.is_none());
+        }
         assert!(!should_use_gpu(ComputeBackend::Cpu, 10_000_000));
         assert!(!should_use_gpu(ComputeBackend::Auto, 64 * 64));
     }
