@@ -101,10 +101,12 @@ jobs:
         run: rustup update stable
       # Reuse develop's processor Rust cache read-only so UI builds stay fast
       # without waiting for processor lint/tests/coverage or the Tauri host.
+      # rust-cache appends the job ID by default; match processor's exact key.
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: . -> target
-          key: processor-${{ runner.os }}
+          key: processor-${{ runner.os }}-processor
+          add-job-id-key: false
           save-if: 'false'
       - name: Build processor and test-fixture helpers for the UI checks
         run: cargo build --locked --manifest-path backend/Cargo.toml --all-features --bin dioptas-processor --example test_fixtures --example hdf5_master_fixture --example hdf5_source_fixture
