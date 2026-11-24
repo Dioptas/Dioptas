@@ -196,8 +196,8 @@ export async function exerciseFigureStyles(page, artifacts, engine) {
     path: fileURLToPath(new URL(`${engine}-phase-row-controls.png`, artifacts)),
   });
 
-  await page.evaluate(async () => {
-    const library = await import("/src/patternFigureStyles.ts");
+  await page.evaluate(() => {
+    const library = window.fixture.patternFigureStyles;
     const figure = window.fixture.patternFigure;
     const check = (condition, message) => {
       if (!condition) throw Error(message);

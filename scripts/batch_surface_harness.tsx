@@ -3,8 +3,19 @@ import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BatchSurfaceView } from "../src/BatchSurfaceView";
 import { captureBatchSurface } from "../src/batchSurfaceCapture";
+import { rasterColor } from "../src/colorMaps";
+import { hitBatchSurface } from "../src/batchSurfaceRenderer";
+import { drawSurfaceGPU, disposeSurfaceGPU } from "../src/WebGLSurface";
 import "../src/style.css";
 import "../src/batch.css";
+Object.assign(window, {
+  surfaceTestModules: {
+    rasterColor,
+    hitBatchSurface,
+    drawSurfaceGPU,
+    disposeSurfaceGPU,
+  },
+});
 const fixture = (rows = 4, cols = 5, invalid = false) => {
   const data = Float32Array.from({ length: rows * cols }, (_, i) =>
     invalid ? NaN : ((i % cols) + 1) * (Math.floor(i / cols) + 1),

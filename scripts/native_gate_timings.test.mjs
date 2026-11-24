@@ -26,6 +26,7 @@ import {
   slowestFirst,
   textSummary,
   timingReport,
+  uiBrowserMode,
   uiJobs,
   uiShard,
 } from "./native_gate_timings.mjs";
@@ -112,6 +113,18 @@ describe("timing report", () => {
     assert.equal(gateSwitch("X", "0", true), false);
     assert.equal(gateSwitch("X", "1", false), true);
     assert.throws(() => gateSwitch("X", "off", true), /X must be 0 or 1/);
+  });
+
+  it("validates the UI browser mode", () => {
+    assert.equal(uiBrowserMode(undefined), "all");
+    assert.equal(uiBrowserMode(""), "all");
+    assert.equal(uiBrowserMode("all"), "all");
+    assert.equal(uiBrowserMode("chromium"), "chromium");
+    assert.equal(uiBrowserMode("webkit-subset"), "webkit-subset");
+    assert.throws(
+      () => uiBrowserMode("firefox"),
+      /all, chromium or webkit-subset/,
+    );
   });
 
   it("runs UI checks side by side only on machines with many cores", () => {
@@ -288,12 +301,17 @@ function scratchGate() {
     path.join(scripts, "check_native_desktop.mjs"),
     "utf8",
   );
-  const stub = `if (process.env.UI_FAIL === process.argv[1].split(/[\\\\/]/).at(-1)) process.exit(1);\n`;
+  const stub =
+    `import { appendFileSync } from "node:fs";\n` +
+    `const name = process.argv[1].split(/[\\\\/]/).at(-1);\n` +
+    `if (process.env.UI_ENV_LOG) appendFileSync(process.env.UI_ENV_LOG, name + "|" + (process.env.DIOPTAS_GATE_UI_BROWSERS ?? "") + "|" + (process.env.DIOPTAS_PREBUILT_HARNESSES ?? "") + "\\n");\n` +
+    `if (process.env.UI_FAIL === name) process.exit(1);\n`;
   for (const [, file] of gate.matchAll(/\["([a-z0-9_]+)"[\],]/g))
     writeFileSync(path.join(own, `${file}.mjs`), stub);
   for (const [, file] of gate.matchAll(/"scripts\/([a-z0-9_.]+\.mjs)"/g))
-    writeFileSync(path.join(own, file), "");
+    writeFileSync(path.join(own, file), stub);
   writeFileSync(path.join(own, "functional_coverage.mjs"), "");
+  writeFileSync(path.join(own, "build_test_harnesses.mjs"), "");
   const bin = path.join(root, "bin");
   mkdirSync(bin);
   for (const tool of ["cargo", "npm"]) {
@@ -311,6 +329,8 @@ function scratchGate() {
     run(flags, env = {}) {
       const log = path.join(root, "calls.log");
       rmSync(log, { force: true });
+      const uiEnvLog = path.join(root, "ui-env.log");
+      rmSync(uiEnvLog, { force: true });
       const summary = path.join(root, "step-summary.md");
       rmSync(summary, { force: true });
       const artifacts = path.join(root, "artifacts");
@@ -324,9 +344,11 @@ function scratchGate() {
             ...process.env,
             PATH: `${bin}${path.delimiter}${process.env.PATH}`,
             FAKE_LOG: log,
+            UI_ENV_LOG: uiEnvLog,
             FAKE_FAIL: "",
             GITHUB_STEP_SUMMARY: summary,
             DIOPTAS_GATE_COVERAGE: "",
+            DIOPTAS_GATE_CORE_CLIPPY: "",
             DIOPTAS_GATE_CORE_TESTS: "",
             DIOPTAS_GATE_UI_JOBS: "",
             DIOPTAS_GATE_UI_SHARD: "",
@@ -340,6 +362,15 @@ function scratchGate() {
       const read = (file) =>
         existsSync(file) ? readFileSync(file, "utf8") : "";
       const timings = read(path.join(artifacts, "ci-native/timings.json"));
+      const uiEnv = Object.fromEntries(
+        read(uiEnvLog)
+          .split("\n")
+          .filter(Boolean)
+          .map((line) => {
+            const [name, browsers, harnesses] = line.split("|");
+            return [name, { browsers, harnesses }];
+          }),
+      );
       return {
         ...r,
         calls: read(log)
@@ -349,6 +380,7 @@ function scratchGate() {
             const [cwd, command] = line.split("|");
             return `${path.relative(root, realpathSync(cwd)) || "."}: ${command}`;
           }),
+        uiEnv,
         summary: read(summary),
         timings: timings && JSON.parse(timings),
         artifacts: path.join(artifacts, "ci-native"),
@@ -455,6 +487,24 @@ describe(
       );
     });
 
+    it("skips no-features clippy and tests when both are switched off", () => {
+      const r = gate.run(["--processor"], {
+        DIOPTAS_GATE_CORE_CLIPPY: "0",
+        DIOPTAS_GATE_CORE_TESTS: "0",
+      });
+      assert.equal(r.status, 0, r.stderr);
+      assert.deepEqual(
+        r.calls,
+        processorCalls.filter((c) => !c.includes("--no-default-features")),
+      );
+      assert.deepEqual(
+        r.timings.steps.map((s) => s.name),
+        processorSteps.filter(
+          (s) => s !== "rust-core-clippy" && s !== "rust-core-tests",
+        ),
+      );
+    });
+
     it("runs every UI check, side by side or one at a time", () => {
       for (const jobs of ["3", "1"]) {
         const r = gate.run(["--ui"], { DIOPTAS_GATE_UI_JOBS: jobs });
@@ -482,6 +532,27 @@ describe(
       const names = r.timings.steps.map((s) => s.name);
       assert.ok(!names.includes("image_change_webkit"));
       assert.ok(names.includes("image_change_smoke"));
+      assert.equal(r.uiEnv["ui_components.mjs"].browsers, "chromium");
+      assert.equal(r.uiEnv["native_project_smoke.mjs"].browsers, "chromium");
+      assert.equal(r.uiEnv["ui_components.mjs"].harnesses, "1");
+    });
+
+    it("keeps WebKit only on the engine-sensitive subset under webkit-subset", () => {
+      const r = gate.run(["--ui"], {
+        DIOPTAS_GATE_UI_BROWSERS: "webkit-subset",
+      });
+      assert.equal(r.status, 0, r.stderr);
+      assert.match(r.stdout, /UI checks: 45, .*\(webkit-subset\)/);
+      const names = r.timings.steps.map((s) => s.name);
+      assert.ok(names.includes("image_change_webkit"));
+      assert.equal(r.uiEnv["ui_components.mjs"].browsers, "");
+      assert.equal(r.uiEnv["detector_window_smoke.mjs"].browsers, "");
+      assert.equal(r.uiEnv["batch_surface_gpu_smoke.mjs"].browsers, "");
+      assert.equal(r.uiEnv["native_project_smoke.mjs"].browsers, "chromium");
+      assert.equal(
+        r.uiEnv["phase_editor_workflow_smoke.mjs"].browsers,
+        "chromium",
+      );
     });
 
     it("runs every UI check past a failure when told to keep going", () => {
@@ -509,14 +580,15 @@ describe(
         assert.match(r.stdout, new RegExp(`of 45 \\(shard ${shard}\\)`));
         return r.timings.steps.map((s) => s.name);
       });
-      // Every shard checks the boundary and builds the processor, fixtures
-      // and frontend it serves.
+      // Every shard checks the boundary and builds the processor, fixtures,
+      // frontend and test harnesses when not prebuilt.
       const perShard = [
         "glib-security-backport",
         "native-contract-generation",
         "native-test-fixtures",
         "rust-build",
         "frontend-build",
+        "test-harnesses",
       ];
       const once = parts.flatMap((names) =>
         names.filter((name) => !perShard.includes(name)),
@@ -528,25 +600,35 @@ describe(
       }
     });
 
-    it("uses prebuilt binaries instead of compiling, and insists on them", () => {
+    it("uses prebuilt binaries, frontend and harnesses instead of rebuilding, and insists on them", () => {
       const missing = gate.run(["--ui"], { DIOPTAS_GATE_PREBUILT: "1" });
       assert.notEqual(missing.status, 0);
       assert.match(missing.stderr, /dioptas-processor is missing/);
       for (const file of [
-        "dioptas-processor",
-        "examples/test_fixtures",
-        "examples/hdf5_master_fixture",
-        "examples/hdf5_source_fixture",
+        "target/debug/dioptas-processor",
+        "target/debug/examples/test_fixtures",
+        "target/debug/examples/hdf5_master_fixture",
+        "target/debug/examples/hdf5_source_fixture",
+        "dist/index.html",
+        "target/test-harnesses/scripts/batch_surface_harness.html",
+        "target/test-harnesses/scripts/rendering_fixture.html",
+        "target/test-harnesses/scripts/ui_fixture.html",
       ]) {
-        const target = path.join(gate.root, "target/debug", file);
+        const target = path.join(gate.root, file);
         mkdirSync(path.dirname(target), { recursive: true });
         writeFileSync(target, "");
       }
       const r = gate.run(["--ui"], { DIOPTAS_GATE_PREBUILT: "1" });
       assert.equal(r.status, 0, r.stderr);
       assert.ok(!r.calls.some((c) => c.includes("cargo")));
+      assert.ok(!r.calls.some((c) => c.includes("npm run build")));
       assert.ok(
-        !r.timings.steps.some((s) => s.name === "native-test-fixtures"),
+        !r.timings.steps.some(
+          (s) =>
+            s.name === "native-test-fixtures" ||
+            s.name === "frontend-build" ||
+            s.name === "test-harnesses",
+        ),
       );
     });
 

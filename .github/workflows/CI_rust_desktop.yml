@@ -26,10 +26,12 @@ env:
 # tests and headless UI checks on Windows. macOS and Windows runners build the
 # installers in native_*_artifacts.yml.
 #
-# Pull requests run the fast subset: no coverage instrumentation, and on
+# Pull requests run the fast subset: no coverage instrumentation, no
+# --no-default-features backend clippy/tests, WebKit on the curated
+# engine-sensitive UI subset (all workflows still run in Chromium), and on
 # Windows only the native tests. Pushes to develop, tags and manual runs
 # (Actions > Rust desktop > Run workflow, on any branch) run everything,
-# including coverage and the Windows headless UI checks.
+# including coverage, full Chromium+WebKit UI checks, and Windows headless UI.
 #
 # Rust caches are saved only from develop. Pull requests and other branches
 # restore develop's caches without saving their own, which keeps the shared
@@ -44,8 +46,15 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '26'
+          cache: npm
+          cache-dependency-path: package-lock.json
       - name: Install Rust tools
-        run: rustup update stable && rustup component add clippy rustfmt llvm-tools-preview
+        run: |
+          rustup update stable
+          rustup component add clippy rustfmt
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            rustup component add llvm-tools-preview
+          fi
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: . -> target
@@ -65,13 +74,40 @@ jobs:
         # instrumentation makes the tests slower and needs a second,
         # uninstrumented build of the processor (about 6 of 10 minutes).
         #
-        # Pull requests skip the library tests of the build without features:
-        # they cost a second full compile of the processor for a few seconds
-        # of tests. That build is still linted, and develop runs the tests.
+        # Pull requests skip clipping and testing the build without default
+        # features: they force a second full compile of the processor crate for
+        # a non-default configuration; develop runs both.
         env:
           DIOPTAS_GATE_COVERAGE: ${{ github.event_name == 'pull_request' && '0' || '1' }}
+          DIOPTAS_GATE_CORE_CLIPPY: ${{ github.event_name == 'pull_request' && '0' || '1' }}
           DIOPTAS_GATE_CORE_TESTS: ${{ github.event_name == 'pull_request' && '0' || '1' }}
         run: node scripts/check_native_desktop.mjs --processor
+      # Build the fixture helpers, frontend bundle and HTML test harnesses once
+      # here (reusing the processor's Rust cache) so the UI shards start in
+      # parallel with the Tauri host job and skip per-shard builds.
+      - name: Build the test-fixture helpers for the UI checks
+        run: cargo build --locked --manifest-path backend/Cargo.toml --example test_fixtures --example hdf5_master_fixture --example hdf5_source_fixture
+      - name: Build frontend and HTML test harnesses for the UI checks
+        run: npm ci && npm run build && node scripts/build_test_harnesses.mjs
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ui-binaries
+          path: |
+            target/debug/dioptas-processor
+            target/debug/examples/test_fixtures
+            target/debug/examples/hdf5_master_fixture
+            target/debug/examples/hdf5_source_fixture
+          retention-days: 1
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ui-frontend
+          path: dist
+          retention-days: 1
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ui-harnesses
+          path: target/test-harnesses
+          retention-days: 1
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -112,19 +148,6 @@ jobs:
       # the real Linux Tauri dependency graph and runs its tests.
       - name: Prepare and test the native host (no application window)
         run: node scripts/check_native_desktop.mjs --host
-      - name: Build the test-fixture helpers for the UI checks
-        run: cargo build --locked --manifest-path backend/Cargo.toml --example test_fixtures --example hdf5_master_fixture --example hdf5_source_fixture
-      # The UI jobs run this processor and these helpers instead of compiling
-      # them: they have no Rust cache, so each compile would take minutes.
-      - uses: actions/upload-artifact@v7
-        with:
-          name: ui-binaries
-          path: |
-            target/debug/dioptas-processor
-            target/debug/examples/test_fixtures
-            target/debug/examples/hdf5_master_fixture
-            target/debug/examples/hdf5_source_fixture
-          retention-days: 1
       - name: Exercise the optimized GLib security regression
         run: cargo test --release --locked --manifest-path security/glib-regression/Cargo.toml --jobs 2
       - name: Check live advisories for the original registry GLib version
@@ -137,7 +160,7 @@ jobs:
 
   ui:
     name: Headless UI checks (${{ matrix.shard }}/5)
-    needs: host
+    needs: processor
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
@@ -167,6 +190,14 @@ jobs:
         with:
           name: ui-binaries
           path: target/debug
+      - uses: actions/download-artifact@v8
+        with:
+          name: ui-frontend
+          path: dist
+      - uses: actions/download-artifact@v8
+        with:
+          name: ui-harnesses
+          path: target/test-harnesses
       # Artifacts do not keep the executable bit.
       - run: chmod +x target/debug/dioptas-processor target/debug/examples/*
       # One check at a time within a job: checks that overlap on a hosted
@@ -176,6 +207,7 @@ jobs:
           DIOPTAS_GATE_PREBUILT: '1'
           DIOPTAS_GATE_UI_SHARD: ${{ matrix.shard }}/5
           DIOPTAS_GATE_UI_JOBS: '1'
+          DIOPTAS_GATE_UI_BROWSERS: ${{ github.event_name == 'pull_request' && 'webkit-subset' || 'all' }}
           # Run every check even after one fails: one run shows all failures.
           DIOPTAS_GATE_UI_KEEP_GOING: '1'
         run: node scripts/check_native_desktop.mjs --ui

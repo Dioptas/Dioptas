@@ -3,11 +3,11 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
 import { version } from "./release_config.mjs";
 import { nativeClient } from "./native_backend_client.mjs";
 import { setInterfaceTextSize } from "./plot_navigation.mjs";
+import { startDistServer } from "./test_app_server.mjs";
 
 const desktop = fileURLToPath(new URL("../", import.meta.url));
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -50,11 +50,7 @@ async function call(action, payload) {
   assert.ok(result.ok, result.error);
   return result;
 }
-const server = await createServer({
-  root: desktop,
-  server: { host: "127.0.0.1", port: 0 },
-});
-await server.listen();
+const server = await startDistServer();
 const browserName = process.argv.includes("--webkit") ? "webkit" : "chromium";
 const browser = await (browserName === "webkit" ? webkit : chromium).launch({
   headless: true,

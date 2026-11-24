@@ -85,14 +85,22 @@ try {
       let previewRequests = 0;
       let profileRequests = 0;
       let savedProfiles = 0;
+      let inFlight = 0;
+      await context.exposeBinding("__detectorInFlight", () => inFlight);
       await context.exposeBinding("__nativeInvoke", async (_, a, p = {}) => {
-        if (a === "integration_correction_preview") previewRequests++;
-        if (a === "cake_profile") profileRequests++;
-        if (a === "save_cake_profile")
-          p = { ...p, path: path.join(temporary, `${name}-profile.xy`) };
-        const result = await native.invoke(a, p);
-        if (a === "save_cake_profile") savedProfiles++;
-        return native.browserResult(result);
+        const tracked = !["progress", "pixel"].includes(a);
+        if (tracked) inFlight++;
+        try {
+          if (a === "integration_correction_preview") previewRequests++;
+          if (a === "cake_profile") profileRequests++;
+          if (a === "save_cake_profile")
+            p = { ...p, path: path.join(temporary, `${name}-profile.xy`) };
+          const result = await native.invoke(a, p);
+          if (a === "save_cake_profile") savedProfiles++;
+          return native.browserResult(result);
+        } finally {
+          if (tracked) inFlight--;
+        }
       });
       await context.addInitScript(() => {
         window.pywebview = {
@@ -103,8 +111,22 @@ try {
       page.setDefaultTimeout(20000);
       await page.goto(pathToFileURL(path.join(root, "dist/index.html")).href);
       const ready = async () => {
-        await page.waitForFunction(() => !document.querySelector(".spin"));
-        await page.waitForTimeout(180);
+        await page.waitForFunction(
+          async () =>
+            (await window.__detectorInFlight()) === 0 &&
+            !document.querySelector(".spin"),
+        );
+        await page.evaluate(
+          () =>
+            new Promise((resolve) =>
+              requestAnimationFrame(() => requestAnimationFrame(resolve)),
+            ),
+        );
+        await page.waitForFunction(
+          async () =>
+            (await window.__detectorInFlight()) === 0 &&
+            !document.querySelector(".spin"),
+        );
       };
       await page
         .getByRole("button", { name: "Integration", exact: true })

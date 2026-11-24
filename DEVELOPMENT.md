@@ -111,16 +111,21 @@ npm run test:native-map-progress
 `node scripts/check_native_desktop.mjs --host` without opening an app window.
 On a machine with at least eight cores the UI gate runs several checks at a
 time (half the cores); `DIOPTAS_GATE_UI_JOBS=1` runs them one after another, which is easier to read when one fails. Pull requests set
-`DIOPTAS_GATE_CORE_TESTS=0` to skip the library tests of the build without
-features; local runs and `develop` keep them.
-CI builds the processor once on Linux and spreads the UI checks over five jobs
-(`DIOPTAS_GATE_UI_SHARD=2/5` with `DIOPTAS_GATE_PREBUILT=1`), one check at a
-time within each. Pull requests run the native tests without coverage
-instrumentation (`DIOPTAS_GATE_COVERAGE=0`) and, on Windows, only the native
-tests. Pushes to `develop`, tags and manual runs (Actions > Rust desktop > Run
-workflow, on any branch) add coverage and the Windows headless UI checks, which
-run in Chromium only (`DIOPTAS_GATE_UI_BROWSERS=chromium`): Tauri renders with
-WebView2, a Chromium engine, on Windows.
+`DIOPTAS_GATE_CORE_CLIPPY=0` and `DIOPTAS_GATE_CORE_TESTS=0` to skip linting
+and testing the build without default features; local runs and `develop` keep both.
+CI builds the processor, fixture helpers, frontend bundle and HTML test
+harnesses once in the `processor` job on Linux and spreads the UI checks over
+five parallel jobs (`DIOPTAS_GATE_UI_SHARD=2/5` with `DIOPTAS_GATE_PREBUILT=1`),
+running alongside the `host` job, one check at a time within each shard. Pull
+requests run the native tests without coverage instrumentation
+(`DIOPTAS_GATE_COVERAGE=0`), keep WebKit on the curated engine-sensitive UI
+subset (`DIOPTAS_GATE_UI_BROWSERS=webkit-subset`, while all workflows still run
+in Chromium), and on Windows run only the native tests. Pushes to `develop`,
+tags and manual runs (Actions > Rust desktop > Run workflow, on any branch) add
+coverage, full Chromium+WebKit UI coverage across every check, and the Windows
+headless UI checks, which run in Chromium only
+(`DIOPTAS_GATE_UI_BROWSERS=chromium`): Tauri renders with WebView2, a Chromium
+engine, on Windows.
 Native bulk transport/progress tests use the Rust `test_fixtures` example to
 create long test series; no Python environment or plugin installation is needed.
 `npm run test:map-window` exercises Chromium and WebKit. All routine GUI checks

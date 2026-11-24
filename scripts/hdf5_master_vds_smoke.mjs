@@ -1,45 +1,19 @@
 import assert from "node:assert/strict";
-import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { execFileSync } from "node:child_process";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
 import { withWebkit } from "./ui_browsers.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
 import { runExample } from "./test_fixtures.mjs";
 import { setInterfaceTextSize } from "./plot_navigation.mjs";
+import { startDistServer } from "./test_app_server.mjs";
 const desktop = root,
   artifacts = path.join(desktop, "artifacts/hdf5-master-vds");
 await mkdir(artifacts, { recursive: true });
 const temp = await mkdtemp(path.join(tmpdir(), "dioptas-master-vds-"));
 runExample("hdf5_master_fixture", temp);
-const metadata = JSON.parse(
-  execFileSync(
-    "cargo",
-    [
-      "metadata",
-      "--manifest-path",
-      path.join(desktop, "backend/Cargo.toml"),
-      "--format-version",
-      "1",
-    ],
-    { encoding: "utf8", maxBuffer: 32 * 1024 * 1024 },
-  ),
-);
-const library = path.dirname(
-  metadata.packages.find((p) => p.name === "dioptrin-io").manifest_path,
-);
-await cp(
-  path.join(library, "tests/data/vds-printf"),
-  path.join(temp, "printf"),
-  { recursive: true },
-);
-const server = await createServer({
-  root: desktop,
-  server: { host: "127.0.0.1", port: 0 },
-});
-await server.listen();
+const server = await startDistServer();
 const reports = [];
 try {
   for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {

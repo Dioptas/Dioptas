@@ -51,10 +51,16 @@ for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
     const page = await context.newPage();
     page.setDefaultTimeout(20000);
     await page.goto(pathToFileURL(path.join(root, "dist/index.html")).href);
-    const ready = async () => {
-      await page.waitForFunction(() => !document.querySelector(".spin"));
-      await page.waitForTimeout(300);
+    const settle = async (target) => {
+      await target.waitForFunction(() => !document.querySelector(".spin"));
+      await target.evaluate(
+        () =>
+          new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve)),
+          ),
+      );
     };
+    const ready = () => settle(page);
     await page
       .getByRole("button", { name: "Integration", exact: true })
       .click();
@@ -66,7 +72,11 @@ for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
       .click();
     const child = await popup;
     await child.getByTestId("detector-canvas").waitFor();
-    await child.waitForTimeout(300);
+    await child.waitForFunction(() => {
+      const c = document.querySelector('[data-testid="detector-canvas"]');
+      return c && Number.isFinite(+c.dataset.viewXMax);
+    });
+    await settle(child);
     const range = (c) =>
       c.evaluate((el) => [+el.dataset.viewXMin, +el.dataset.viewXMax]);
     const integrationRange = await range(child.getByTestId("detector-canvas"));
@@ -79,7 +89,7 @@ for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
     if (!(await canvas.isVisible()) && (await tab.isVisible()))
       await tab.click();
     await canvas.waitFor({ state: "visible" });
-    await page.waitForTimeout(300);
+    await ready();
     assert.equal(
       await page
         .locator(".map-detector-panel")
@@ -121,13 +131,13 @@ for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
     if (!(await canvas.isVisible()) && (await tab.isVisible()))
       await tab.click();
     await canvas.waitFor({ state: "visible" });
-    await page.waitForTimeout(300);
+    await ready();
     const restored = await range(canvas);
     restored.forEach((v, i) =>
       assert(Math.abs(v - zoom[i]) < 1e-6, JSON.stringify({ zoom, restored })),
     );
     await child.close();
-    await page.waitForTimeout(300);
+    await ready();
     assert(await canvas.isVisible());
     const after = await range(canvas);
     after.forEach((v, i) => assert(Math.abs(v - zoom[i]) < 1e-6));

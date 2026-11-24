@@ -1,22 +1,17 @@
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { createServer } from "vite";
 import { Resvg } from "@resvg/resvg-js";
 import { chromium, webkit } from "playwright";
 import { withWebkit } from "./ui_browsers.mjs";
+import { startHarnessServer } from "./test_app_server.mjs";
 
-const desktop = fileURLToPath(new URL("../", import.meta.url));
 const artifacts = new URL(
   "../artifacts/pattern-figure-export/",
   import.meta.url,
 );
 await mkdir(artifacts, { recursive: true });
-const server = await createServer({
-  root: desktop,
-  server: { host: "127.0.0.1", port: 0 },
-});
-await server.listen();
+const server = await startHarnessServer(["scripts/rendering_fixture.html"]);
 const receipts = [];
 try {
   for (const [name, engine] of [

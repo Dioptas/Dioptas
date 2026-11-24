@@ -1,20 +1,16 @@
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
 import { withWebkit } from "./ui_browsers.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
+import { startDistServer } from "./test_app_server.mjs";
 const artifacts = new URL(
   "../artifacts/dac-thermal-pressure/",
   import.meta.url,
 );
 await mkdir(artifacts, { recursive: true });
-const server = await createServer({
-  root: fileURLToPath(new URL("../", import.meta.url)),
-  server: { host: "127.0.0.1", port: 0 },
-});
-await server.listen();
+const server = await startDistServer();
 const receipts = [];
 try {
   for (const [name, engine] of [

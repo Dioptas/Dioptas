@@ -4,10 +4,10 @@ import assert from "node:assert/strict";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
 import { withWebkit } from "./ui_browsers.mjs";
-import { nativeClient, root } from "./native_backend_client.mjs";
+import { nativeClient } from "./native_backend_client.mjs";
+import { startDistServer } from "./test_app_server.mjs";
 
 const temp = await mkdtemp(path.join(os.tmpdir(), "dioptas-overlay-order-"));
 const paths = [];
@@ -16,11 +16,7 @@ for (const name of ["A", "B", "C"]) {
   await writeFile(file, "1 10\n2 20\n3 15\n");
   paths.push(file);
 }
-const server = await createServer({
-  root,
-  server: { host: "127.0.0.1", port: 0 },
-});
-await server.listen();
+const server = await startDistServer();
 try {
   for (const [name, engine] of [
     ["chromium", chromium],

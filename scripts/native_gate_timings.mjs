@@ -13,6 +13,15 @@ export function gateSwitch(name, value, fallback) {
 export const coverageRequested = (value) =>
   gateSwitch("DIOPTAS_GATE_COVERAGE", value, false);
 
+// DIOPTAS_GATE_UI_BROWSERS: "all" (default), "chromium" or "webkit-subset".
+export function uiBrowserMode(value) {
+  if (value === undefined || value === "" || value === "all") return "all";
+  if (value === "chromium" || value === "webkit-subset") return value;
+  throw Error(
+    `DIOPTAS_GATE_UI_BROWSERS must be all, chromium or webkit-subset, not ${value}`,
+  );
+}
+
 // DIOPTAS_GATE_UI_JOBS: how many UI checks run at once. By default half the
 // cores on a machine with at least eight, otherwise one. Each check drives a
 // browser and a processor that already use several cores: on a 3-core hosted
