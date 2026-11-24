@@ -113,9 +113,9 @@ jobs:
           add-job-id-key: false
           save-if: 'false'
       - name: Build processor and test-fixture helpers for the UI checks
-        # Dependencies stay at opt-level=2; opt-level=1 on dioptas-backend cuts
-        # build time ~35% with minimal effect on UI test runtime.
-        run: cargo build --locked --manifest-path backend/Cargo.toml --all-features --bin dioptas-processor --example test_fixtures --example hdf5_master_fixture --example hdf5_source_fixture --config profile.dev.package.dioptas-backend.opt-level=1
+        # Keep Cargo.toml's opt-level=2 here so LA Cosmic and batch-background
+        # transport/UI checks run at full native speed.
+        run: cargo build --locked --manifest-path backend/Cargo.toml --all-features --bin dioptas-processor --example test_fixtures --example hdf5_master_fixture --example hdf5_source_fixture
       - name: Build frontend and HTML test harnesses for the UI checks
         run: npm ci && npm run build && node scripts/build_test_harnesses.mjs
       - uses: actions/upload-artifact@v7
@@ -185,14 +185,14 @@ jobs:
           path: artifacts/
 
   ui:
-    name: Headless UI checks (${{ matrix.shard }}/8)
+    name: Headless UI checks (${{ matrix.shard }}/${{ github.event_name == 'pull_request' && '5' || '8' }})
     needs: ui-build
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5]' || '[1,2,3,4,5,6,7,8]') }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -231,8 +231,9 @@ jobs:
       - name: Run headless UI, data flow and stdio checks
         env:
           DIOPTAS_GATE_PREBUILT: '1'
-          DIOPTAS_GATE_UI_SHARD: ${{ matrix.shard }}/8
+          DIOPTAS_GATE_UI_SHARD: ${{ matrix.shard }}/${{ github.event_name == 'pull_request' && '5' || '8' }}
           DIOPTAS_GATE_UI_JOBS: '1'
+          DIOPTAS_GATE_UI_SUITE: ${{ github.event_name == 'pull_request' && 'pr' || 'full' }}
           DIOPTAS_GATE_UI_BROWSERS: ${{ github.event_name == 'pull_request' && 'webkit-subset' || 'all' }}
           # Run every check even after one fails: one run shows all failures.
           DIOPTAS_GATE_UI_KEEP_GOING: '1'

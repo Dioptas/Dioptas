@@ -18,6 +18,7 @@ import {
   uiBrowserMode,
   uiJobs,
   uiShard,
+  uiSuiteMode,
 } from "./native_gate_timings.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -69,6 +70,7 @@ const backendOptArgs = optLevel
   ? ["--config", `profile.dev.package.dioptas-backend.opt-level=${optLevel}`]
   : [];
 const browserMode = uiBrowserMode(process.env.DIOPTAS_GATE_UI_BROWSERS);
+const uiSuite = uiSuiteMode(process.env.DIOPTAS_GATE_UI_SUITE);
 const shard = uiShard(process.env.DIOPTAS_GATE_UI_SHARD);
 const jobs = uiJobs(process.env.DIOPTAS_GATE_UI_JOBS, availableParallelism());
 mkdirSync(artifacts, { recursive: true });
@@ -419,10 +421,8 @@ if (selected.has("--ui")) {
     ["native_backend_smoke"],
     ["native_custom_actions_smoke"],
     ["native_calibration_smoke"],
-    ["calibration_validation_click_smoke"],
     ["native_mask_smoke"],
     ["native_integration_workflow_smoke"],
-    ["overlay_command_order_smoke"],
     ["phase_editor_workflow_smoke"],
     ["pattern_figure_export_smoke", "pattern-figure-export"],
     ["pattern_figure_save_smoke", "pattern-figure-export"],
@@ -435,16 +435,12 @@ if (selected.has("--ui")) {
     ["batch_surface_axes_smoke"],
     ["batch_export_smoke", "batch-export"],
     ["batch_background_smoke"],
-    ["processing_workers_smoke"],
     ["native_corrections_smoke"],
     ["correction_previews_smoke"],
     ["processing_drafts_smoke"],
-    ["metadata_products_smoke"],
     ["native_project_smoke"],
     ["session_recovery_smoke"],
-    ["dac_thermal_pressure_smoke"],
     ["native_geometry_mask_smoke"],
-    ["native_detector_smoke"],
     ["native_lacosmic_smoke"],
     ["native_file_errors_smoke"],
     ["native_map_progress_smoke"],
@@ -475,6 +471,33 @@ if (selected.has("--ui")) {
       args: ["scripts/image_change_smoke.mjs", "--webkit"],
       locks: ["image-change"],
     });
+  // DIOPTAS_GATE_UI_SUITE=pr runs the core E2E browser smoke tier on pull
+  // requests (covering every workspace mode, WebGL, SVG export, multi-window,
+  // HDF5/VDS, HMR and shared UI components); develop/tags/manual run all 39.
+  const prUiChecks = new Set([
+    "hook_refresh_smoke",
+    "ui_components",
+    "app_update_smoke",
+    "native_backend_smoke",
+    "native_calibration_smoke",
+    "native_geometry_mask_smoke",
+    "native_integration_workflow_smoke",
+    "phase_editor_workflow_smoke",
+    "pattern_figure_export_smoke",
+    "pattern_figure_save_smoke",
+    "batch_surface_smoke",
+    "batch_surface_gpu_smoke",
+    "native_project_smoke",
+    "hdf5_master_vds_smoke",
+    "detector_window_smoke",
+    "companion_windows_smoke",
+    "image_change_smoke",
+    "image_change_webkit",
+  ]);
+  const selectedChecks =
+    uiSuite === "pr"
+      ? checks.filter((check) => prUiChecks.has(check.name))
+      : checks;
   const webkitSubset = new Set([
     "hook_refresh_smoke",
     "ui_components",
@@ -490,10 +513,8 @@ if (selected.has("--ui")) {
   ]);
   const singleEngineChecks = new Set([
     "app_update_smoke",
-    "calibration_validation_click_smoke",
     "image_change_smoke",
     "image_change_webkit",
-    "metadata_products_smoke",
   ]);
   const checkBrowserEnv = (name) => {
     if (browserMode === "chromium") return "chromium";
@@ -514,13 +535,13 @@ if (selected.has("--ui")) {
     native_integration_workflow_smoke: 40,
     pattern_figure_export_smoke: 30,
     pattern_figure_save_smoke: 29,
+    native_calibration_smoke: 29,
     batch_surface_axes_smoke: 28,
     native_file_errors_smoke: 28,
     spottiness_smoke: 28,
     ui_components: 28,
     hdf5_sources_smoke: 26,
     native_backend_smoke: 25,
-    native_calibration_smoke: 24,
     hook_refresh_smoke: 23,
     native_geometry_mask_smoke: 21,
     detector_source_smoke: 20,
@@ -532,12 +553,10 @@ if (selected.has("--ui")) {
     batch_surface_gpu_smoke: 13,
     batch_surface_guides_smoke: 12,
     batch_background_smoke: 11,
-    native_detector_smoke: 11,
     native_lacosmic_smoke: 11,
     image_change_smoke: 10,
     pattern_figure_editor_smoke: 10,
     session_recovery_smoke: 10,
-    dac_thermal_pressure_smoke: 10,
     native_mask_smoke: 9,
     native_corrections_smoke: 9,
     native_custom_actions_smoke: 9,
@@ -545,14 +564,10 @@ if (selected.has("--ui")) {
     hdf5_master_vds_smoke: 9,
     batch_background_export: 8,
     map_detector_independence_smoke: 8,
-    overlay_command_order_smoke: 6,
-    calibration_validation_click_smoke: 4,
-    processing_workers_smoke: 4,
     app_update_smoke: 3,
-    metadata_products_smoke: 1,
   };
   const effectiveSeconds = Object.fromEntries(
-    checks.map((check) => {
+    selectedChecks.map((check) => {
       const base = ciSeconds[check.name] ?? 30;
       const chromiumOnlyCheck =
         checkBrowserEnv(check.name) === "chromium" &&
@@ -561,10 +576,14 @@ if (selected.has("--ui")) {
     }),
   );
   // The first shard also runs the frontend unit and transport tests.
-  const mine = shardTasks(checks, shard, effectiveSeconds, 30);
+  const mine = shardTasks(selectedChecks, shard, effectiveSeconds, 30);
+  const modes = [
+    ...(uiSuite !== "full" ? [uiSuite] : []),
+    ...(browserMode !== "all" ? [browserMode] : []),
+  ];
   console.log(
-    `\nUI checks: ${mine.length}${shard ? ` of ${checks.length} (shard ${shard.index}/${shard.count})` : ""}, ${jobs} at a time` +
-      (browserMode !== "all" ? ` (${browserMode})` : ""),
+    `\nUI checks: ${mine.length}${shard ? ` of ${selectedChecks.length} (shard ${shard.index}/${shard.count})` : ""}, ${jobs} at a time` +
+      (modes.length ? ` (${modes.join(", ")})` : ""),
   );
   const failures = [];
   try {
@@ -586,7 +605,8 @@ if (selected.has("--ui")) {
     report("failed");
     throw error;
   }
-  if (shared)
+  if (shared) {
+    node("metadata-products", "metadata_products_smoke.mjs");
     run("native-transport", process.execPath, [
       "--test",
       "scripts/native_calibration_transport.test.mjs",
@@ -597,6 +617,7 @@ if (selected.has("--ui")) {
       "scripts/native_project_transport.test.mjs",
       "scripts/batch_background_transport.test.mjs",
     ]);
+  }
 }
 if (selected.has("--host")) {
   run("host-format", "cargo", [

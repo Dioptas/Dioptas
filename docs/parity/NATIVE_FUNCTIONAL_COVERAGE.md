@@ -109,17 +109,16 @@ to `develop`, tags and manual runs run everything.
    configuration tests, the processor and frontend builds, the Tauri host unit
    tests against the real Linux dependency graph (no application window) and
    the GLib backport checks. It runs in parallel with the headless UI shards.
-4. **Headless UI checks, eight jobs:** the coverage inventory, frontend unit
-   tests, shared control checks and the native Chromium/WebKit workflows for
-   calibration, masks, integration, projects/configuration/combination,
-   geometry, detectors, LA Cosmic, file errors, calibration/image reset and
-   stdio cancellation. Pull requests use `DIOPTAS_GATE_UI_BROWSERS=webkit-subset`
-   (Chromium for every workflow plus WebKit for rendering, CSS/controls, WebGL,
-   SVG, HMR and the core multi-window checks `companion_windows_smoke` and
-   `detector_window_smoke`); pushes to `develop` run full Chromium+WebKit across
-   all 45 checks. The checks are dealt out over the eight jobs and run
-   one at a time within each, reusing the prebuilt processor, fixture helpers,
-   frontend and HTML test harnesses.
+4. **Headless UI checks (5 shards on PRs, 8 on `develop`):** the coverage
+   inventory, frontend unit tests, stdio wire/transport checks, shared control
+   checks and native Chromium/WebKit workflows. Pull requests use
+   `DIOPTAS_GATE_UI_SUITE=pr` and `DIOPTAS_GATE_UI_BROWSERS=webkit-subset`
+   (18 core E2E browser checks covering every workspace mode, WebGL, SVG export,
+   HDF5/VDS, HMR, shared controls and core multi-window checks
+   `companion_windows_smoke` and `detector_window_smoke`); pushes to `develop`,
+   tags and manual runs execute all 39 browser checks in full Chromium+WebKit.
+   Checks run one at a time within each shard, reusing the prebuilt processor,
+   fixture helpers, frontend and HTML test harnesses.
 4. **Windows:** the all-features native tests on every run; outside pull
    requests also the headless UI checks, in Chromium only (Tauri uses WebView2,
    a Chromium engine, on Windows). The checkout keeps Git for Windows' default

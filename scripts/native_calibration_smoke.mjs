@@ -26,7 +26,8 @@ for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
   let browser;
   const commandErrors = [],
     errors = [],
-    previews = [];
+    previews = [],
+    actions = [];
   try {
     assert.equal((await native.invoke("__host__")).runtime, "rust");
     assert.equal(
@@ -42,6 +43,7 @@ for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
     await page.exposeFunction(
       "__nativeInvoke",
       async (action, payload = {}) => {
+        actions.push([action, payload]);
         const result = await native.invoke(action, payload);
         if (!result.ok) commandErrors.push({ action, error: result.error });
         if (action === "progress" && result.progress?.calibration)
@@ -243,6 +245,139 @@ for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
     );
     assert.equal((await native.invoke("progress")).progress.running, false);
     await page.screenshot({ path: path.join(artifacts, `${name}-fitted.png`) });
+
+    // Validation view: cake, pattern and detector clicks mark linked green
+    // positions when Pick peaks is off; turning Pick peaks back on picks.
+    await page
+      .getByRole("tab", { name: "Step 4: Validate", exact: true })
+      .click();
+    const picking = page.getByLabel("Pick peaks", { exact: true });
+    if (await picking.isChecked()) await picking.uncheck();
+    const cake = page.getByTestId("cake-canvas");
+    const pattern = page.getByTestId("pattern-canvas");
+    await cake.waitFor();
+    await pattern.waitFor();
+    await ready();
+    const clickInside = async (canvas, fx, fy) => {
+      const box = await canvas.boundingBox();
+      const v = await canvas.evaluate((el) => ({
+        left: +el.dataset.plotLeft,
+        top: +el.dataset.plotTop,
+        width: +el.dataset.plotWidth,
+        height: +el.dataset.plotHeight,
+      }));
+      await page.mouse.click(
+        box.x + v.left + v.width * fx,
+        box.y + v.top + v.height * fy,
+      );
+      await ready();
+    };
+    const linked = (canvas) => canvas.getAttribute("data-linked-position");
+    assert.equal(await linked(cake), null, "No marker before a click");
+    await clickInside(cake, 0.4, 0.5);
+    await page.waitForFunction(
+      () =>
+        document.querySelector('[data-testid="cake-canvas"]')?.dataset
+          .linkedPosition != null,
+    );
+    const fromCake = Number(await linked(cake));
+    assert.ok(Number.isFinite(fromCake), "Cake click marks the cake");
+    assert.ok(
+      Number.isFinite(Number(await linked(pattern))),
+      "Cake click marks the pattern",
+    );
+    assert.notEqual(
+      (await page.getByTestId("click-readout").innerText()).trim(),
+      "—",
+      "Cake click fills the footer click position",
+    );
+    await clickInside(pattern, 0.7, 0.5);
+    await page.waitForFunction(
+      (before) =>
+        Number(
+          document.querySelector('[data-testid="cake-canvas"]')?.dataset
+            .linkedPosition,
+        ) !== before,
+      fromCake,
+    );
+    assert.equal(
+      await page.getByTestId("click-readout").getAttribute("data-plot"),
+      "pattern",
+    );
+    const detectorCanvas = page.getByTestId("detector-canvas");
+    const fromPattern = Number(await linked(cake));
+    await clickInside(detectorCanvas, 0.3, 0.3);
+    await page.waitForFunction(
+      () =>
+        document.querySelector('[data-testid="click-readout"]')?.dataset
+          .plot === "detector",
+    );
+    await page.waitForFunction(
+      (before) =>
+        Number(
+          document.querySelector('[data-testid="cake-canvas"]')?.dataset
+            .linkedPosition,
+        ) !== before,
+      fromPattern,
+    );
+    await picking.check();
+    const markerBefore = await linked(cake);
+    const actionsBeforePick = actions.length;
+    await clickInside(detectorCanvas, 0.3, 0.3);
+    const pickActions = actions.slice(actionsBeforePick).map(([a]) => a);
+    assert.ok(
+      pickActions.includes("pick_peak"),
+      "Picking-mode clicks pick peaks",
+    );
+    assert.ok(
+      !pickActions.includes("validation_position"),
+      "Picking-mode clicks do not inspect",
+    );
+    assert.equal(
+      await linked(cake),
+      markerBefore,
+      "Picking does not move the marker",
+    );
+
+    // Step 1 detector catalog + Fit2D manual geometry entry.
+    await page
+      .getByRole("tab", { name: "Step 1: Image & setup", exact: true })
+      .click();
+    await ready();
+    const detectorSelect = page.getByLabel("Detector", { exact: true });
+    assert.equal(await detectorSelect.locator("option").count(), 110);
+    await detectorSelect.selectOption({ label: "Pilatus 1M" });
+    await ready();
+    assert.equal(
+      (await native.invoke("state")).state.calibration.detector,
+      "Pilatus 1M",
+    );
+    assert.equal(await page.getByLabel("Detector orientation").count(), 0);
+    await page
+      .getByRole("button", { name: "Enter manually", exact: true })
+      .click();
+    await ready();
+    const manualDialog = page.getByRole("dialog");
+    await manualDialog.getByRole("tab", { name: "Fit2D", exact: true }).click();
+    await ready();
+    await manualDialog
+      .getByLabel("Manual center x", { exact: true })
+      .fill("450");
+    await manualDialog
+      .getByRole("button", { name: "Apply geometry", exact: true })
+      .click();
+    await ready();
+    assert.ok(
+      Math.abs(
+        (await native.invoke("state")).state.calibration.fit2d.centerX - 450,
+      ) < 1e-8,
+    );
+    assert.ok(
+      actions.some(
+        ([a, p]) => a === "manual_geometry" && p.convention === "fit2d",
+      ),
+    );
+
     assert.deepEqual(commandErrors, []);
     assert.deepEqual(errors, []);
     receipts.push({
@@ -253,6 +388,9 @@ for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
       automaticRmsDegrees: snapshot.state.calibration.rmsDegrees,
       groups: snapshot.state.calibration.picks.length,
       livePreviews: previews.length,
+      validationClicks: true,
+      detectors: 110,
+      fit2d: true,
       errors,
       commandErrors,
     });

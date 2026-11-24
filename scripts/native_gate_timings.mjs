@@ -22,6 +22,14 @@ export function uiBrowserMode(value) {
   );
 }
 
+// DIOPTAS_GATE_UI_SUITE: "full" (default, develop/local) or "pr" (core PR E2E
+// smoke tier).
+export function uiSuiteMode(value) {
+  if (value === undefined || value === "" || value === "full") return "full";
+  if (value === "pr") return value;
+  throw Error(`DIOPTAS_GATE_UI_SUITE must be full or pr, not ${value}`);
+}
+
 // DIOPTAS_BACKEND_OPT_LEVEL: optional dev/test opt-level override (0..3) for
 // dioptas-backend only, keeping cached dependency crates at their Cargo.toml
 // opt-level while cutting CI compile time.
