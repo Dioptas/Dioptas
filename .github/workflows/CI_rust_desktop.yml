@@ -26,12 +26,13 @@ env:
 # tests and headless UI checks on Windows. macOS and Windows runners build the
 # installers in native_*_artifacts.yml.
 #
-# Pull requests run the fast subset: no coverage instrumentation, no
-# --no-default-features backend clippy/tests, WebKit on the curated
-# engine-sensitive UI subset (all workflows still run in Chromium), and on
-# Windows only the native tests. Pushes to develop, tags and manual runs
-# (Actions > Rust desktop > Run workflow, on any branch) run everything,
-# including coverage, full Chromium+WebKit UI checks, and Windows headless UI.
+# Pull requests run the fast subset: no coverage instrumentation, a fast
+# `cargo check --no-default-features --lib` instead of full no-features Clippy
+# and tests, WebKit on the curated engine-sensitive UI subset (all workflows
+# still run in Chromium), and on Windows only the native tests. Pushes to
+# develop, tags and manual runs (Actions > Rust desktop > Run workflow, on any
+# branch) run everything, including coverage, full no-features Clippy/tests,
+# full Chromium+WebKit UI checks, and Windows headless UI.
 #
 # Rust caches are saved only from develop. Pull requests and other branches
 # restore develop's caches without saving their own, which keeps the shared
@@ -46,8 +47,6 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '26'
-          cache: npm
-          cache-dependency-path: package-lock.json
       - name: Install Rust tools
         run: |
           rustup update stable
@@ -74,19 +73,41 @@ jobs:
         # instrumentation makes the tests slower and needs a second,
         # uninstrumented build of the processor (about 6 of 10 minutes).
         #
-        # Pull requests skip clipping and testing the build without default
-        # features: they force a second full compile of the processor crate for
-        # a non-default configuration; develop runs both.
+        # Pull requests downgrade no-features Clippy to a fast library `cargo
+        # check` and skip no-features tests; develop runs full Clippy and tests.
         env:
           DIOPTAS_GATE_COVERAGE: ${{ github.event_name == 'pull_request' && '0' || '1' }}
           DIOPTAS_GATE_CORE_CLIPPY: ${{ github.event_name == 'pull_request' && '0' || '1' }}
           DIOPTAS_GATE_CORE_TESTS: ${{ github.event_name == 'pull_request' && '0' || '1' }}
         run: node scripts/check_native_desktop.mjs --processor
-      # Build the fixture helpers, frontend bundle and HTML test harnesses once
-      # here (reusing the processor's Rust cache) so the UI shards start in
-      # parallel with the Tauri host job and skip per-shard builds.
-      - name: Build the test-fixture helpers for the UI checks
-        run: cargo build --locked --manifest-path backend/Cargo.toml --example test_fixtures --example hdf5_master_fixture --example hdf5_source_fixture
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: native-processor-${{ runner.os }}
+          path: artifacts/
+
+  ui-build:
+    name: Build UI processor and frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install Rust
+        run: rustup update stable
+      # Reuse develop's processor Rust cache read-only so UI builds stay fast
+      # without waiting for processor lint/tests/coverage or the Tauri host.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: . -> target
+          key: processor-${{ runner.os }}
+          save-if: 'false'
+      - name: Build processor and test-fixture helpers for the UI checks
+        run: cargo build --locked --manifest-path backend/Cargo.toml --all-features --bin dioptas-processor --example test_fixtures --example hdf5_master_fixture --example hdf5_source_fixture
       - name: Build frontend and HTML test harnesses for the UI checks
         run: npm ci && npm run build && node scripts/build_test_harnesses.mjs
       - uses: actions/upload-artifact@v7
@@ -108,11 +129,6 @@ jobs:
           name: ui-harnesses
           path: target/test-harnesses
           retention-days: 1
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: native-processor-${{ runner.os }}
-          path: artifacts/
 
   host:
     name: Tauri host, Linux dependencies and GLib security
@@ -160,7 +176,7 @@ jobs:
 
   ui:
     name: Headless UI checks (${{ matrix.shard }}/5)
-    needs: processor
+    needs: ui-build
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:

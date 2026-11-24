@@ -86,10 +86,16 @@ try {
       let profileRequests = 0;
       let savedProfiles = 0;
       let inFlight = 0;
-      await context.exposeBinding("__detectorInFlight", () => inFlight);
+      let lastActivity = performance.now();
+      await context.exposeBinding("__detectorIdleFor", () =>
+        inFlight === 0 ? performance.now() - lastActivity : 0,
+      );
       await context.exposeBinding("__nativeInvoke", async (_, a, p = {}) => {
         const tracked = !["progress", "pixel"].includes(a);
-        if (tracked) inFlight++;
+        if (tracked) {
+          inFlight++;
+          lastActivity = performance.now();
+        }
         try {
           if (a === "integration_correction_preview") previewRequests++;
           if (a === "cake_profile") profileRequests++;
@@ -99,7 +105,10 @@ try {
           if (a === "save_cake_profile") savedProfiles++;
           return native.browserResult(result);
         } finally {
-          if (tracked) inFlight--;
+          if (tracked) {
+            inFlight--;
+            lastActivity = performance.now();
+          }
         }
       });
       await context.addInitScript(() => {
@@ -111,21 +120,18 @@ try {
       page.setDefaultTimeout(20000);
       await page.goto(pathToFileURL(path.join(root, "dist/index.html")).href);
       const ready = async () => {
+        // Wait for a continuous quiet period so effect- or timer-scheduled
+        // follow-up commands (such as 25 ms correction-preview polls) settle.
         await page.waitForFunction(
           async () =>
-            (await window.__detectorInFlight()) === 0 &&
-            !document.querySelector(".spin"),
+            !document.querySelector(".spin") &&
+            (await window.__detectorIdleFor()) >= 90,
         );
         await page.evaluate(
           () =>
             new Promise((resolve) =>
               requestAnimationFrame(() => requestAnimationFrame(resolve)),
             ),
-        );
-        await page.waitForFunction(
-          async () =>
-            (await window.__detectorInFlight()) === 0 &&
-            !document.querySelector(".spin"),
         );
       };
       await page

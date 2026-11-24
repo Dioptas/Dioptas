@@ -40,13 +40,19 @@ for (const [name, browserType] of [
       finishExport = resolve;
     });
     let inFlight = 0;
+    let lastActivity = performance.now();
     context.on("page", (p) => p.on("pageerror", (e) => errors.push(e.message)));
-    await context.exposeBinding("__detectorInFlight", () => inFlight);
+    await context.exposeBinding("__detectorIdleFor", () =>
+      inFlight === 0 ? performance.now() - lastActivity : 0,
+    );
     await context.exposeBinding(
       "__nativeInvoke",
       async (_, command, args = {}) => {
         const tracked = !["progress", "pixel"].includes(command);
-        if (tracked) inFlight++;
+        if (tracked) {
+          inFlight++;
+          lastActivity = performance.now();
+        }
         try {
           commands.push(command);
           if (command === "validation_position")
@@ -60,7 +66,10 @@ for (const [name, browserType] of [
             failures.push(`${command}: ${reply.error}`);
           return native.browserResult(reply);
         } finally {
-          if (tracked) inFlight--;
+          if (tracked) {
+            inFlight--;
+            lastActivity = performance.now();
+          }
         }
       },
     );
@@ -78,21 +87,18 @@ for (const [name, browserType] of [
     page.setDefaultTimeout(20000);
     await page.goto(pathToFileURL(path.join(root, "dist/index.html")).href);
     const ready = async () => {
+      // Wait for a continuous quiet period so effect- or timer-scheduled
+      // follow-up commands (such as 25 ms correction-preview polls) settle.
       await page.waitForFunction(
         async () =>
-          (await window.__detectorInFlight()) === 0 &&
-          !document.querySelector(".spin"),
+          !document.querySelector(".spin") &&
+          (await window.__detectorIdleFor()) >= 90,
       );
       await page.evaluate(
         () =>
           new Promise((resolve) =>
             requestAnimationFrame(() => requestAnimationFrame(resolve)),
           ),
-      );
-      await page.waitForFunction(
-        async () =>
-          (await window.__detectorInFlight()) === 0 &&
-          !document.querySelector(".spin"),
       );
     };
     await page

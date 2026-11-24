@@ -487,7 +487,7 @@ describe(
       );
     });
 
-    it("skips no-features clippy and tests when both are switched off", () => {
+    it("downgrades no-features clippy to a library check and skips no-features tests when switched off", () => {
       const r = gate.run(["--processor"], {
         DIOPTAS_GATE_CORE_CLIPPY: "0",
         DIOPTAS_GATE_CORE_TESTS: "0",
@@ -495,13 +495,19 @@ describe(
       assert.equal(r.status, 0, r.stderr);
       assert.deepEqual(
         r.calls,
-        processorCalls.filter((c) => !c.includes("--no-default-features")),
+        processorCalls
+          .filter((c) => !c.includes("--no-default-features --lib"))
+          .map((c) =>
+            c.includes("--no-default-features --all-targets")
+              ? ".: cargo check --locked --manifest-path backend/Cargo.toml --no-default-features --lib"
+              : c,
+          ),
       );
       assert.deepEqual(
         r.timings.steps.map((s) => s.name),
-        processorSteps.filter(
-          (s) => s !== "rust-core-clippy" && s !== "rust-core-tests",
-        ),
+        processorSteps
+          .filter((s) => s !== "rust-core-tests")
+          .map((s) => (s === "rust-core-clippy" ? "rust-core-check" : s)),
       );
     });
 

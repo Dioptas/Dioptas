@@ -111,12 +111,17 @@ npm run test:native-map-progress
 `node scripts/check_native_desktop.mjs --host` without opening an app window.
 On a machine with at least eight cores the UI gate runs several checks at a
 time (half the cores); `DIOPTAS_GATE_UI_JOBS=1` runs them one after another, which is easier to read when one fails. Pull requests set
-`DIOPTAS_GATE_CORE_CLIPPY=0` and `DIOPTAS_GATE_CORE_TESTS=0` to skip linting
-and testing the build without default features; local runs and `develop` keep both.
+`DIOPTAS_GATE_CORE_CLIPPY=0` and `DIOPTAS_GATE_CORE_TESTS=0` to downgrade
+no-features Clippy to a fast library `cargo check` and skip no-features library
+tests; local runs and `develop` keep both.
 CI builds the processor, fixture helpers, frontend bundle and HTML test
-harnesses once in the `processor` job on Linux and spreads the UI checks over
-five parallel jobs (`DIOPTAS_GATE_UI_SHARD=2/5` with `DIOPTAS_GATE_PREBUILT=1`),
-running alongside the `host` job, one check at a time within each shard. Pull
+harnesses once in a dedicated `ui-build` job on Linux (reusing `processor`'s
+Rust cache) and spreads the UI checks over five parallel jobs
+(`DIOPTAS_GATE_UI_SHARD=2/5` with `DIOPTAS_GATE_PREBUILT=1`), running alongside
+`processor` and `host`, one check at a time within each shard. Under the gate,
+the HTTP-based smoke checks serve the prebuilt `dist/` and harnesses directly
+instead of starting Vite dev servers; standalone invocations outside the gate
+still fall back to Vite so live source edits are picked up automatically. Pull
 requests run the native tests without coverage instrumentation
 (`DIOPTAS_GATE_COVERAGE=0`), keep WebKit on the curated engine-sensitive UI
 subset (`DIOPTAS_GATE_UI_BROWSERS=webkit-subset`, while all workflows still run

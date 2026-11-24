@@ -12,7 +12,7 @@ await mkdir(artifacts, { recursive: true });
 const temp = await mkdtemp(path.join(os.tmpdir(), "dioptas-map-progress-"));
 const source = path.join(temp, "scan.h5");
 // Keep real native work long enough for progress polling in fast kernels.
-const frameCount = Number(process.env.DIOPTAS_MAP_TEST_FRAMES ?? 4096);
+const frameCount = Number(process.env.DIOPTAS_MAP_TEST_FRAMES || 8192);
 testFixture("series", source, "bitshuffle-lz4", frameCount);
 const receipts = [];
 try {

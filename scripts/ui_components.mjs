@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { chromium, webkit } from "playwright";
 import { chromiumOnly } from "./ui_browsers.mjs";
 import { verifyPersistentScrollbars } from "./scrollbar_checks.mjs";
-import { harnessOutputPath } from "./build_test_harnesses.mjs";
+import { harnessOutputPath } from "./test_harness_paths.mjs";
 import { usePrebuiltHarnesses } from "./test_app_server.mjs";
 
 const desktop = fileURLToPath(new URL("../", import.meta.url));

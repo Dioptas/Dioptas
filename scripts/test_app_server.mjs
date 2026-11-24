@@ -1,15 +1,14 @@
 // Lightweight static HTTP server for prebuilt dist/index.html and prebuilt UI
-// test harnesses. Avoids spinning up a Vite dev server (and cold dependency
-// pre-bundling) inside every headless UI check while preserving a real
-// http://127.0.0.1 origin for localStorage, popups and query parameters.
+// test harnesses. Under the gate (DIOPTAS_GATE_PREBUILT=1 or
+// DIOPTAS_PREBUILT_HARNESSES=1) it serves prebuilt single-file HTML over
+// http://127.0.0.1:0 in <1 ms without importing Vite. When a smoke script is
+// invoked standalone outside the gate, it falls back to Vite's dev server so
+// live source edits are always tested without risking a stale dist/.
 import { createServer as createHttpServer } from "node:http";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { harnessOutputPath } from "./build_test_harnesses.mjs";
-
-const root = fileURLToPath(new URL("../", import.meta.url));
+import { harnessOutputPath, root } from "./test_harness_paths.mjs";
 
 const contentTypes = {
   ".html": "text/html; charset=utf-8",
@@ -26,7 +25,7 @@ export const usePrebuiltHarnesses = () =>
   process.env.DIOPTAS_GATE_PREBUILT === "1" ||
   process.env.DIOPTAS_PREBUILT_HARNESSES === "1";
 
-export async function startDistServer({ harnesses = [] } = {}) {
+async function startStaticServer({ harnesses = [] } = {}) {
   const indexHtml = path.join(root, "dist/index.html");
   if (!existsSync(indexHtml)) {
     throw Error(
@@ -96,13 +95,7 @@ export async function startDistServer({ harnesses = [] } = {}) {
   };
 }
 
-// Serves prebuilt harnesses when the gate prebuilt them (DIOPTAS_GATE_PREBUILT
-// or DIOPTAS_PREBUILT_HARNESSES), otherwise falls back to Vite's dev server so
-// standalone local script runs always reflect live source edits.
-export async function startHarnessServer(harnesses) {
-  if (usePrebuiltHarnesses()) {
-    return startDistServer({ harnesses });
-  }
+async function startViteFallback() {
   const { createServer } = await import("vite");
   const server = await createServer({
     root,
@@ -112,3 +105,12 @@ export async function startHarnessServer(harnesses) {
   await server.listen();
   return server;
 }
+
+export async function startDistServer({ harnesses = [] } = {}) {
+  if (usePrebuiltHarnesses()) {
+    return startStaticServer({ harnesses });
+  }
+  return startViteFallback();
+}
+
+export const startHarnessServer = (harnesses) => startDistServer({ harnesses });
