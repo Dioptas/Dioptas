@@ -1,11 +1,12 @@
 //! Bounded, ordered frame execution over one immutable reader and CSC plan.
 //! Shared-pool tasks reuse decoder/integration scratch for the entire source.
-use crate::control::Control;
+use crate::{control::Control, gpu::plans::Gpu1dPlan};
 use dioptrin::integration::{Fixed1dPlan, Fixed1dResult, InputOrder};
 use dioptrin_io::{
-    PixelBuffer,
+    PixelBuffer, PixelType,
     hdf5::raw::{FrameBuffer, RawReader},
 };
+use rayon::prelude::*;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     mpsc,
@@ -46,6 +47,84 @@ pub(super) fn run(
         },
         &mut consume,
     )
+}
+
+const GPU_SERIES_BATCH: usize = 16;
+
+/// Decodes frames in parallel into reusable buffers and submits 16-frame
+/// batches to the GPU plan (using `InputOrder::FlipVertical` to avoid host
+/// vertical flips).
+pub(super) fn run_gpu(
+    reader: &RawReader,
+    plan: &Gpu1dPlan,
+    errors: bool,
+    frames: &[usize],
+    control: &Control,
+    mut consume: impl FnMut(usize, Fixed1dResult) -> Result<(), String>,
+) -> Result<Stats, String> {
+    if frames.is_empty() {
+        return Ok(Stats {
+            workers: 0,
+            frames: 0,
+            pending_peak: 0,
+        });
+    }
+    let pool = crate::worker_pool::current();
+    let max_batch = GPU_SERIES_BATCH
+        .min(frames.len())
+        .min((WORKER_BUDGET / reader.worker_payload_bytes().max(1)).max(1));
+    let mut buffers: Vec<FrameBuffer> = (0..max_batch).map(|_| FrameBuffer::default()).collect();
+    let kind = reader.pixel_type();
+
+    for chunk in frames.chunks(max_batch) {
+        control.check()?;
+        let n = chunk.len();
+        pool.install(|| {
+            buffers[..n]
+                .par_iter_mut()
+                .zip(chunk.par_iter())
+                .try_for_each(|(buf, &frame)| {
+                    control.check()?;
+                    reader
+                        .read_frame_into(frame, buf)
+                        .map_err(|e| e.to_string())
+                })
+        })?;
+        control.check()?;
+        let results = match kind {
+            PixelType::U16 => {
+                let mut slices = Vec::with_capacity(n);
+                for buf in &buffers[..n] {
+                    match buf.pixels() {
+                        Some(PixelBuffer::U16(v)) => slices.push(v.as_slice()),
+                        _ => return Err("Unexpected series pixel type.".into()),
+                    }
+                }
+                plan.integrate_batch_u16(&slices, errors)?
+            }
+            PixelType::U32 => {
+                let mut slices = Vec::with_capacity(n);
+                for buf in &buffers[..n] {
+                    match buf.pixels() {
+                        Some(PixelBuffer::U32(v)) => slices.push(v.as_slice()),
+                        _ => return Err("Unexpected series pixel type.".into()),
+                    }
+                }
+                plan.integrate_batch_u32(&slices, errors)?
+            }
+            _ => return Err("Unexpected series pixel type.".into()),
+        };
+        for (&frame, result) in chunk.iter().zip(results) {
+            control.check()?;
+            consume(frame, result)?;
+        }
+    }
+
+    Ok(Stats {
+        workers: pool.current_num_threads().min(max_batch),
+        frames: frames.len(),
+        pending_peak: max_batch,
+    })
 }
 
 pub(super) fn execute<S: Send, R: Send>(

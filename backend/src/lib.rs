@@ -22,6 +22,7 @@ mod detector_mask;
 pub mod display;
 mod frame_trace;
 mod geometry;
+pub mod gpu;
 mod hdf5_loading;
 mod hdf5_sources;
 mod history_transfer;
