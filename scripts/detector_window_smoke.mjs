@@ -39,21 +39,38 @@ for (const [name, browserType] of [
     const exported = new Promise((resolve) => {
       finishExport = resolve;
     });
+    let inFlight = 0;
+    let lastActivity = performance.now();
     context.on("page", (p) => p.on("pageerror", (e) => errors.push(e.message)));
+    await context.exposeBinding("__detectorIdleFor", () =>
+      inFlight === 0 ? performance.now() - lastActivity : 0,
+    );
     await context.exposeBinding(
       "__nativeInvoke",
       async (_, command, args = {}) => {
-        commands.push(command);
-        if (command === "validation_position")
-          positions.push(structuredClone(args));
+        const tracked = !["progress", "pixel"].includes(command);
+        if (tracked) {
+          inFlight++;
+          lastActivity = performance.now();
+        }
+        try {
+          commands.push(command);
+          if (command === "validation_position")
+            positions.push(structuredClone(args));
 
-        if (command === "integration_save_image")
-          args = { ...args, path: pngPath };
-        const reply = await native.invoke(command, args);
-        if (command === "integration_save_image") finishExport(reply);
-        if (!reply.ok && !reply.cancelled)
-          failures.push(`${command}: ${reply.error}`);
-        return native.browserResult(reply);
+          if (command === "integration_save_image")
+            args = { ...args, path: pngPath };
+          const reply = await native.invoke(command, args);
+          if (command === "integration_save_image") finishExport(reply);
+          if (!reply.ok && !reply.cancelled)
+            failures.push(`${command}: ${reply.error}`);
+          return native.browserResult(reply);
+        } finally {
+          if (tracked) {
+            inFlight--;
+            lastActivity = performance.now();
+          }
+        }
       },
     );
     await context.addInitScript(() => {
@@ -70,9 +87,19 @@ for (const [name, browserType] of [
     page.setDefaultTimeout(20000);
     await page.goto(pathToFileURL(path.join(root, "dist/index.html")).href);
     const ready = async () => {
-      await page.waitForTimeout(150);
-      await page.waitForFunction(() => !document.querySelector(".spin"));
-      await page.waitForTimeout(120);
+      // Wait for a continuous quiet period so effect- or timer-scheduled
+      // follow-up commands (such as 25 ms correction-preview polls) settle.
+      await page.waitForFunction(
+        async () =>
+          !document.querySelector(".spin") &&
+          (await window.__detectorIdleFor()) >= 90,
+      );
+      await page.evaluate(
+        () =>
+          new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve)),
+          ),
+      );
     };
     await page
       .getByRole("button", { name: "Integration", exact: true })

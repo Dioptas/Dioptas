@@ -9,12 +9,12 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
 import { withWebkit } from "./ui_browsers.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
 import { runExample } from "./test_fixtures.mjs";
 import { setInterfaceTextSize } from "./plot_navigation.mjs";
+import { startDistServer } from "./test_app_server.mjs";
 const desktop = root,
   artifacts = path.join(desktop, "artifacts/hdf5-sources");
 await mkdir(artifacts, { recursive: true });
@@ -26,11 +26,7 @@ const secondFile = path.join(temporary, "sources_002.h5"),
   thirdFile = path.join(temporary, "sources_003.h5");
 await copyFile(fixture, secondFile);
 await copyFile(fixture, thirdFile);
-const server = await createServer({
-  root: desktop,
-  server: { host: "127.0.0.1", port: 0 },
-});
-await server.listen();
+const server = await startDistServer();
 const reports = [];
 try {
   for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {

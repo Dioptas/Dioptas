@@ -85,14 +85,31 @@ try {
       let previewRequests = 0;
       let profileRequests = 0;
       let savedProfiles = 0;
+      let inFlight = 0;
+      let lastActivity = performance.now();
+      await context.exposeBinding("__detectorIdleFor", () =>
+        inFlight === 0 ? performance.now() - lastActivity : 0,
+      );
       await context.exposeBinding("__nativeInvoke", async (_, a, p = {}) => {
-        if (a === "integration_correction_preview") previewRequests++;
-        if (a === "cake_profile") profileRequests++;
-        if (a === "save_cake_profile")
-          p = { ...p, path: path.join(temporary, `${name}-profile.xy`) };
-        const result = await native.invoke(a, p);
-        if (a === "save_cake_profile") savedProfiles++;
-        return native.browserResult(result);
+        const tracked = !["progress", "pixel"].includes(a);
+        if (tracked) {
+          inFlight++;
+          lastActivity = performance.now();
+        }
+        try {
+          if (a === "integration_correction_preview") previewRequests++;
+          if (a === "cake_profile") profileRequests++;
+          if (a === "save_cake_profile")
+            p = { ...p, path: path.join(temporary, `${name}-profile.xy`) };
+          const result = await native.invoke(a, p);
+          if (a === "save_cake_profile") savedProfiles++;
+          return native.browserResult(result);
+        } finally {
+          if (tracked) {
+            inFlight--;
+            lastActivity = performance.now();
+          }
+        }
       });
       await context.addInitScript(() => {
         window.pywebview = {
@@ -103,8 +120,19 @@ try {
       page.setDefaultTimeout(20000);
       await page.goto(pathToFileURL(path.join(root, "dist/index.html")).href);
       const ready = async () => {
-        await page.waitForFunction(() => !document.querySelector(".spin"));
-        await page.waitForTimeout(180);
+        // Wait for a continuous quiet period so effect- or timer-scheduled
+        // follow-up commands (such as 25 ms correction-preview polls) settle.
+        await page.waitForFunction(
+          async () =>
+            !document.querySelector(".spin") &&
+            (await window.__detectorIdleFor()) >= 90,
+        );
+        await page.evaluate(
+          () =>
+            new Promise((resolve) =>
+              requestAnimationFrame(() => requestAnimationFrame(resolve)),
+            ),
+        );
       };
       await page
         .getByRole("button", { name: "Integration", exact: true })

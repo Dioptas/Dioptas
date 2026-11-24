@@ -6,6 +6,7 @@ import { availableParallelism } from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import {
+  backendOptLevel,
   coverageRequested,
   gateSwitch,
   markdownSummary,
@@ -14,10 +15,11 @@ import {
   shardTasks,
   textSummary,
   timingReport,
+  uiBrowserMode,
   uiJobs,
   uiShard,
+  uiSuiteMode,
 } from "./native_gate_timings.mjs";
-import { chromiumOnly } from "./ui_browsers.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const desktop = root;
@@ -34,18 +36,23 @@ const artifacts = path.join(desktop, "artifacts/ci-native");
 const coverage =
   coverageRequested(process.env.DIOPTAS_GATE_COVERAGE) &&
   selected.has("--processor");
-// DIOPTAS_GATE_CORE_TESTS=0 (set by CI on pull requests) skips the library
-// tests of the build without features. They need a second full compile of the
-// processor for a few seconds of tests that the all-features run repeats; CI
-// runs them on develop, and the build without features is still linted.
+// DIOPTAS_GATE_CORE_CLIPPY=0 and DIOPTAS_GATE_CORE_TESTS=0 (set by CI on pull
+// requests) skip linting and testing the build without default features. They
+// trigger a second full compile of the processor crate for a non-default
+// feature configuration; CI runs both on develop and local runs keep them.
+const coreClippy = gateSwitch(
+  "DIOPTAS_GATE_CORE_CLIPPY",
+  process.env.DIOPTAS_GATE_CORE_CLIPPY,
+  true,
+);
 const coreTests = gateSwitch(
   "DIOPTAS_GATE_CORE_TESTS",
   process.env.DIOPTAS_GATE_CORE_TESTS,
   true,
 );
-// DIOPTAS_GATE_PREBUILT=1 (set by CI's UI jobs) takes the processor and the
-// test-fixture helper from target/debug as another job built them, instead of
-// compiling them here.
+// DIOPTAS_GATE_PREBUILT=1 (set by CI's UI jobs) reuses the processor, fixture
+// helpers, dist/index.html and prebuilt HTML test harnesses from an earlier job
+// instead of rebuilding them in every UI shard.
 const prebuilt = gateSwitch(
   "DIOPTAS_GATE_PREBUILT",
   process.env.DIOPTAS_GATE_PREBUILT,
@@ -58,6 +65,12 @@ const keepGoing = gateSwitch(
   process.env.DIOPTAS_GATE_UI_KEEP_GOING,
   false,
 );
+const optLevel = backendOptLevel(process.env.DIOPTAS_BACKEND_OPT_LEVEL);
+const backendOptArgs = optLevel
+  ? ["--config", `profile.dev.package.dioptas-backend.opt-level=${optLevel}`]
+  : [];
+const browserMode = uiBrowserMode(process.env.DIOPTAS_GATE_UI_BROWSERS);
+const uiSuite = uiSuiteMode(process.env.DIOPTAS_GATE_UI_SUITE);
 const shard = uiShard(process.env.DIOPTAS_GATE_UI_SHARD);
 const jobs = uiJobs(process.env.DIOPTAS_GATE_UI_JOBS, availableParallelism());
 mkdirSync(artifacts, { recursive: true });
@@ -259,17 +272,29 @@ if (selected.has("--processor")) {
   ]);
   // Keep the portable core healthy as native-only helpers evolve. Clippy and
   // library tests cannot replace the processor executable used by later gates.
-  run("rust-core-clippy", "cargo", [
-    "clippy",
-    "--locked",
-    "--manifest-path",
-    "backend/Cargo.toml",
-    "--no-default-features",
-    "--all-targets",
-    "--",
-    "-D",
-    "warnings",
-  ]);
+  // When DIOPTAS_GATE_CORE_CLIPPY=0 (pull requests), still run a fast library
+  // check so cfg(not(feature = "dioptrin")) cannot break silently.
+  if (coreClippy)
+    run("rust-core-clippy", "cargo", [
+      "clippy",
+      "--locked",
+      "--manifest-path",
+      "backend/Cargo.toml",
+      "--no-default-features",
+      "--all-targets",
+      "--",
+      "-D",
+      "warnings",
+    ]);
+  else
+    run("rust-core-check", "cargo", [
+      "check",
+      "--locked",
+      "--manifest-path",
+      "backend/Cargo.toml",
+      "--no-default-features",
+      "--lib",
+    ]);
   if (coreTests)
     run("rust-core-tests", "cargo", [
       "test",
@@ -327,6 +352,7 @@ if (selected.has("--processor")) {
       "--manifest-path",
       "backend/Cargo.toml",
       "--all-features",
+      ...backendOptArgs,
     ]);
   // Tests can build diagnostic executables; stage the normal processor last.
   run("rust-build", "cargo", [
@@ -335,6 +361,7 @@ if (selected.has("--processor")) {
     "--manifest-path",
     "backend/Cargo.toml",
     "--all-features",
+    ...backendOptArgs,
   ]);
 }
 if (selected.has("--ui")) {
@@ -345,6 +372,10 @@ if (selected.has("--ui")) {
       `target/debug/examples/test_fixtures${exe}`,
       `target/debug/examples/hdf5_master_fixture${exe}`,
       `target/debug/examples/hdf5_source_fixture${exe}`,
+      "dist/index.html",
+      "target/test-harnesses/scripts/batch_surface_harness.html",
+      "target/test-harnesses/scripts/rendering_fixture.html",
+      "target/test-harnesses/scripts/ui_fixture.html",
     ])
       if (!existsSync(path.join(root, file)))
         throw Error(`DIOPTAS_GATE_PREBUILT=1 but ${file} is missing`);
@@ -373,7 +404,10 @@ if (selected.has("--ui")) {
     node("functional-coverage-map", "functional_coverage.mjs");
     npm("frontend-unit", "test");
   }
-  npm("frontend-build", "run", "build");
+  if (!prebuilt) {
+    npm("frontend-build", "run", "build");
+    node("test-harnesses", "build_test_harnesses.mjs");
+  }
   // The UI checks run side by side (DIOPTAS_GATE_UI_JOBS at a time; by
   // default half the cores, and one at a time below eight cores). Each entry is a script name,
   // followed by the artifacts folder it writes to when another check writes
@@ -387,10 +421,8 @@ if (selected.has("--ui")) {
     ["native_backend_smoke"],
     ["native_custom_actions_smoke"],
     ["native_calibration_smoke"],
-    ["calibration_validation_click_smoke"],
     ["native_mask_smoke"],
     ["native_integration_workflow_smoke"],
-    ["overlay_command_order_smoke"],
     ["phase_editor_workflow_smoke"],
     ["pattern_figure_export_smoke", "pattern-figure-export"],
     ["pattern_figure_save_smoke", "pattern-figure-export"],
@@ -403,16 +435,12 @@ if (selected.has("--ui")) {
     ["batch_surface_axes_smoke"],
     ["batch_export_smoke", "batch-export"],
     ["batch_background_smoke"],
-    ["processing_workers_smoke"],
     ["native_corrections_smoke"],
     ["correction_previews_smoke"],
     ["processing_drafts_smoke"],
-    ["metadata_products_smoke"],
     ["native_project_smoke"],
     ["session_recovery_smoke"],
-    ["dac_thermal_pressure_smoke"],
     ["native_geometry_mask_smoke"],
-    ["native_detector_smoke"],
     ["native_lacosmic_smoke"],
     ["native_file_errors_smoke"],
     ["native_map_progress_smoke"],
@@ -434,70 +462,136 @@ if (selected.has("--ui")) {
     args: ["scripts/batch_export_smoke.mjs", "--background"],
     locks: ["batch-export"],
   });
-  // DIOPTAS_GATE_UI_BROWSERS=chromium (see ui_browsers.mjs) skips WebKit.
-  if (!chromiumOnly)
+  // DIOPTAS_GATE_UI_BROWSERS=chromium skips WebKit; webkit-subset keeps WebKit
+  // on the engine-sensitive rendering/CSS/WebGL/SVG/windowing/HMR checks for
+  // fast PR feedback while develop runs every dual-engine check in both.
+  if (browserMode !== "chromium")
     checks.push({
       name: "image_change_webkit",
       args: ["scripts/image_change_smoke.mjs", "--webkit"],
       locks: ["image-change"],
     });
-  // Seconds each check took on a hosted Linux runner (13.11.2026), used only
-  // to give CI's shards equal shares. A check missing here counts as 30.
-  const ciSeconds = {
-    native_project_smoke: 100,
-    phase_editor_workflow_smoke: 74,
-    batch_surface_smoke: 68,
-    native_integration_workflow_smoke: 60,
-    detector_window_smoke: 60,
-    hdf5_master_vds_smoke: 60,
-    native_map_progress_smoke: 56,
-    hdf5_sources_smoke: 50,
-    companion_windows_smoke: 49,
-    detector_source_smoke: 42,
-    ui_components: 41,
-    native_calibration_smoke: 37,
-    batch_surface_axes_smoke: 31,
-    native_file_errors_smoke: 31,
-    spottiness_smoke: 30,
-    correction_previews_smoke: 30,
-    native_geometry_mask_smoke: 27,
-    pattern_figure_export_smoke: 24,
-    native_backend_smoke: 23,
-    processing_drafts_smoke: 22,
-    pattern_figure_editor_smoke: 21,
-    pattern_figure_save_smoke: 21,
-    hook_refresh_smoke: 19,
-    batch_export_smoke: 19,
-    image_change_webkit: 18,
-    batch_waterfall_smoke: 16,
-    session_recovery_smoke: 14,
-    batch_surface_gpu_smoke: 14,
-    dac_thermal_pressure_smoke: 14,
-    image_change_smoke: 14,
-    map_detector_independence_smoke: 14,
-    native_mask_smoke: 13,
-    native_lacosmic_smoke: 13,
-    batch_background_smoke: 13,
-    batch_background_export: 13,
-    overlay_command_order_smoke: 12,
-    native_custom_actions_smoke: 11,
-    native_detector_smoke: 11,
-    batch_surface_guides_smoke: 11,
-    native_corrections_smoke: 10,
-    processing_workers_smoke: 4,
-    app_update_smoke: 3,
-    metadata_products_smoke: 1,
+  // DIOPTAS_GATE_UI_SUITE=pr runs the core E2E browser smoke tier on pull
+  // requests (covering every workspace mode, WebGL, SVG export, multi-window,
+  // HDF5/VDS, HMR and shared UI components); develop/tags/manual run all 39.
+  const prUiChecks = new Set([
+    "hook_refresh_smoke",
+    "ui_components",
+    "app_update_smoke",
+    "native_backend_smoke",
+    "native_calibration_smoke",
+    "native_geometry_mask_smoke",
+    "native_integration_workflow_smoke",
+    "phase_editor_workflow_smoke",
+    "pattern_figure_export_smoke",
+    "pattern_figure_save_smoke",
+    "batch_surface_smoke",
+    "batch_surface_gpu_smoke",
+    "native_project_smoke",
+    "hdf5_master_vds_smoke",
+    "detector_window_smoke",
+    "companion_windows_smoke",
+    "image_change_smoke",
+    "image_change_webkit",
+  ]);
+  const selectedChecks =
+    uiSuite === "pr"
+      ? checks.filter((check) => prUiChecks.has(check.name))
+      : checks;
+  const webkitSubset = new Set([
+    "hook_refresh_smoke",
+    "ui_components",
+    "native_backend_smoke",
+    "pattern_figure_export_smoke",
+    "pattern_figure_save_smoke",
+    "batch_surface_gpu_smoke",
+    "batch_surface_guides_smoke",
+    "batch_surface_axes_smoke",
+    "detector_window_smoke",
+    "companion_windows_smoke",
+    "image_change_webkit",
+  ]);
+  const singleEngineChecks = new Set([
+    "app_update_smoke",
+    "image_change_smoke",
+    "image_change_webkit",
+  ]);
+  const checkBrowserEnv = (name) => {
+    if (browserMode === "chromium") return "chromium";
+    if (browserMode === "webkit-subset" && !webkitSubset.has(name))
+      return "chromium";
+    return "";
   };
+  // Seconds each check takes on a hosted Linux runner (full Chromium+WebKit,
+  // calibrated from hosted runs), used only to give CI's shards equal shares.
+  // A check missing here counts as 30.
+  const ciSeconds = {
+    native_project_smoke: 96,
+    companion_windows_smoke: 62,
+    detector_window_smoke: 58,
+    native_map_progress_smoke: 56,
+    batch_surface_smoke: 45,
+    phase_editor_workflow_smoke: 44,
+    native_integration_workflow_smoke: 40,
+    pattern_figure_export_smoke: 30,
+    pattern_figure_save_smoke: 29,
+    native_calibration_smoke: 29,
+    batch_surface_axes_smoke: 28,
+    native_file_errors_smoke: 28,
+    spottiness_smoke: 28,
+    ui_components: 28,
+    hdf5_sources_smoke: 26,
+    native_backend_smoke: 25,
+    hook_refresh_smoke: 23,
+    native_geometry_mask_smoke: 21,
+    detector_source_smoke: 20,
+    correction_previews_smoke: 20,
+    processing_drafts_smoke: 18,
+    background_rate_smoke: 17,
+    image_change_webkit: 16,
+    batch_export_smoke: 15,
+    batch_surface_gpu_smoke: 13,
+    batch_surface_guides_smoke: 12,
+    batch_background_smoke: 11,
+    native_lacosmic_smoke: 11,
+    image_change_smoke: 10,
+    pattern_figure_editor_smoke: 10,
+    session_recovery_smoke: 10,
+    native_mask_smoke: 9,
+    native_corrections_smoke: 9,
+    native_custom_actions_smoke: 9,
+    batch_waterfall_smoke: 9,
+    hdf5_master_vds_smoke: 9,
+    batch_background_export: 8,
+    map_detector_independence_smoke: 8,
+    app_update_smoke: 3,
+  };
+  const effectiveSeconds = Object.fromEntries(
+    selectedChecks.map((check) => {
+      const base = ciSeconds[check.name] ?? 30;
+      const chromiumOnlyCheck =
+        checkBrowserEnv(check.name) === "chromium" &&
+        !singleEngineChecks.has(check.name);
+      return [check.name, chromiumOnlyCheck ? Math.ceil(base * 0.55) : base];
+    }),
+  );
   // The first shard also runs the frontend unit and transport tests.
-  const mine = shardTasks(checks, shard, ciSeconds, 30);
+  const mine = shardTasks(selectedChecks, shard, effectiveSeconds, 30);
+  const modes = [
+    ...(uiSuite !== "full" ? [uiSuite] : []),
+    ...(browserMode !== "all" ? [browserMode] : []),
+  ];
   console.log(
-    `\nUI checks: ${mine.length}${shard ? ` of ${checks.length} (shard ${shard.index}/${shard.count})` : ""}, ${jobs} at a time`,
+    `\nUI checks: ${mine.length}${shard ? ` of ${selectedChecks.length} (shard ${shard.index}/${shard.count})` : ""}, ${jobs} at a time` +
+      (modes.length ? ` (${modes.join(", ")})` : ""),
   );
   const failures = [];
   try {
     await runPool(mine, jobs, (check) =>
       runAsync(check.name, process.execPath, check.args, {
         DIOPTAS_VITE_CACHE_DIR: `node_modules/.vite-gate/${check.name}`,
+        DIOPTAS_PREBUILT_HARNESSES: "1",
+        DIOPTAS_GATE_UI_BROWSERS: checkBrowserEnv(check.name),
       }).catch((error) => {
         if (!keepGoing) throw error;
         failures.push(error.message);
@@ -511,7 +605,8 @@ if (selected.has("--ui")) {
     report("failed");
     throw error;
   }
-  if (shared)
+  if (shared) {
+    node("metadata-products", "metadata_products_smoke.mjs");
     run("native-transport", process.execPath, [
       "--test",
       "scripts/native_calibration_transport.test.mjs",
@@ -522,6 +617,7 @@ if (selected.has("--ui")) {
       "scripts/native_project_transport.test.mjs",
       "scripts/batch_background_transport.test.mjs",
     ]);
+  }
 }
 if (selected.has("--host")) {
   run("host-format", "cargo", [

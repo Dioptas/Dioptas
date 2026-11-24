@@ -18,6 +18,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 import {
+  backendOptLevel,
   coverageRequested,
   gateSwitch,
   markdownSummary,
@@ -26,8 +27,10 @@ import {
   slowestFirst,
   textSummary,
   timingReport,
+  uiBrowserMode,
   uiJobs,
   uiShard,
+  uiSuiteMode,
 } from "./native_gate_timings.mjs";
 
 const scripts = path.dirname(fileURLToPath(import.meta.url));
@@ -112,6 +115,35 @@ describe("timing report", () => {
     assert.equal(gateSwitch("X", "0", true), false);
     assert.equal(gateSwitch("X", "1", false), true);
     assert.throws(() => gateSwitch("X", "off", true), /X must be 0 or 1/);
+  });
+
+  it("validates the UI browser mode", () => {
+    assert.equal(uiBrowserMode(undefined), "all");
+    assert.equal(uiBrowserMode(""), "all");
+    assert.equal(uiBrowserMode("all"), "all");
+    assert.equal(uiBrowserMode("chromium"), "chromium");
+    assert.equal(uiBrowserMode("webkit-subset"), "webkit-subset");
+    assert.throws(
+      () => uiBrowserMode("firefox"),
+      /all, chromium or webkit-subset/,
+    );
+  });
+
+  it("validates the UI suite mode", () => {
+    assert.equal(uiSuiteMode(undefined), "full");
+    assert.equal(uiSuiteMode(""), "full");
+    assert.equal(uiSuiteMode("full"), "full");
+    assert.equal(uiSuiteMode("pr"), "pr");
+    assert.throws(() => uiSuiteMode("minimal"), /must be full or pr/);
+  });
+
+  it("validates the backend opt-level override", () => {
+    assert.equal(backendOptLevel(undefined), undefined);
+    assert.equal(backendOptLevel(""), undefined);
+    for (const level of ["0", "1", "2", "3"])
+      assert.equal(backendOptLevel(level), level);
+    for (const bad of ["4", "s", "-1", "fast"])
+      assert.throws(() => backendOptLevel(bad), /must be 0, 1, 2 or 3/);
   });
 
   it("runs UI checks side by side only on machines with many cores", () => {
@@ -288,12 +320,18 @@ function scratchGate() {
     path.join(scripts, "check_native_desktop.mjs"),
     "utf8",
   );
-  const stub = `if (process.env.UI_FAIL === process.argv[1].split(/[\\\\/]/).at(-1)) process.exit(1);\n`;
+  const stub =
+    `import { appendFileSync } from "node:fs";\n` +
+    `const name = process.argv[1].split(/[\\\\/]/).at(-1);\n` +
+    `if (process.env.UI_ENV_LOG) appendFileSync(process.env.UI_ENV_LOG, name + "|" + (process.env.DIOPTAS_GATE_UI_BROWSERS ?? "") + "|" + (process.env.DIOPTAS_PREBUILT_HARNESSES ?? "") + "\\n");\n` +
+    `if (process.env.UI_FAIL === name) process.exit(1);\n`;
   for (const [, file] of gate.matchAll(/\["([a-z0-9_]+)"[\],]/g))
     writeFileSync(path.join(own, `${file}.mjs`), stub);
   for (const [, file] of gate.matchAll(/"scripts\/([a-z0-9_.]+\.mjs)"/g))
-    writeFileSync(path.join(own, file), "");
+    writeFileSync(path.join(own, file), stub);
   writeFileSync(path.join(own, "functional_coverage.mjs"), "");
+  writeFileSync(path.join(own, "build_test_harnesses.mjs"), "");
+  writeFileSync(path.join(own, "metadata_products_smoke.mjs"), "");
   const bin = path.join(root, "bin");
   mkdirSync(bin);
   for (const tool of ["cargo", "npm"]) {
@@ -311,6 +349,8 @@ function scratchGate() {
     run(flags, env = {}) {
       const log = path.join(root, "calls.log");
       rmSync(log, { force: true });
+      const uiEnvLog = path.join(root, "ui-env.log");
+      rmSync(uiEnvLog, { force: true });
       const summary = path.join(root, "step-summary.md");
       rmSync(summary, { force: true });
       const artifacts = path.join(root, "artifacts");
@@ -324,13 +364,17 @@ function scratchGate() {
             ...process.env,
             PATH: `${bin}${path.delimiter}${process.env.PATH}`,
             FAKE_LOG: log,
+            UI_ENV_LOG: uiEnvLog,
             FAKE_FAIL: "",
             GITHUB_STEP_SUMMARY: summary,
             DIOPTAS_GATE_COVERAGE: "",
+            DIOPTAS_GATE_CORE_CLIPPY: "",
             DIOPTAS_GATE_CORE_TESTS: "",
+            DIOPTAS_BACKEND_OPT_LEVEL: "",
             DIOPTAS_GATE_UI_JOBS: "",
             DIOPTAS_GATE_UI_SHARD: "",
             DIOPTAS_GATE_UI_BROWSERS: "",
+            DIOPTAS_GATE_UI_SUITE: "",
             DIOPTAS_GATE_PREBUILT: "",
             DIOPTAS_GATE_UI_KEEP_GOING: "",
             ...env,
@@ -340,6 +384,15 @@ function scratchGate() {
       const read = (file) =>
         existsSync(file) ? readFileSync(file, "utf8") : "";
       const timings = read(path.join(artifacts, "ci-native/timings.json"));
+      const uiEnv = Object.fromEntries(
+        read(uiEnvLog)
+          .split("\n")
+          .filter(Boolean)
+          .map((line) => {
+            const [name, browsers, harnesses] = line.split("|");
+            return [name, { browsers, harnesses }];
+          }),
+      );
       return {
         ...r,
         calls: read(log)
@@ -349,6 +402,7 @@ function scratchGate() {
             const [cwd, command] = line.split("|");
             return `${path.relative(root, realpathSync(cwd)) || "."}: ${command}`;
           }),
+        uiEnv,
         summary: read(summary),
         timings: timings && JSON.parse(timings),
         artifacts: path.join(artifacts, "ci-native"),
@@ -455,11 +509,50 @@ describe(
       );
     });
 
+    it("downgrades no-features clippy to a library check and skips no-features tests when switched off", () => {
+      const r = gate.run(["--processor"], {
+        DIOPTAS_GATE_CORE_CLIPPY: "0",
+        DIOPTAS_GATE_CORE_TESTS: "0",
+      });
+      assert.equal(r.status, 0, r.stderr);
+      assert.deepEqual(
+        r.calls,
+        processorCalls
+          .filter((c) => !c.includes("--no-default-features --lib"))
+          .map((c) =>
+            c.includes("--no-default-features --all-targets")
+              ? ".: cargo check --locked --manifest-path backend/Cargo.toml --no-default-features --lib"
+              : c,
+          ),
+      );
+      assert.deepEqual(
+        r.timings.steps.map((s) => s.name),
+        processorSteps
+          .filter((s) => s !== "rust-core-tests")
+          .map((s) => (s === "rust-core-clippy" ? "rust-core-check" : s)),
+      );
+    });
+
+    it("forwards DIOPTAS_BACKEND_OPT_LEVEL to backend test and build commands", () => {
+      const r = gate.run(["--processor"], { DIOPTAS_BACKEND_OPT_LEVEL: "0" });
+      assert.equal(r.status, 0, r.stderr);
+      assert.ok(
+        r.calls.includes(
+          ".: cargo test --locked --manifest-path backend/Cargo.toml --all-features --config profile.dev.package.dioptas-backend.opt-level=0",
+        ),
+      );
+      assert.ok(
+        r.calls.includes(
+          ".: cargo build --locked --manifest-path backend/Cargo.toml --all-features --config profile.dev.package.dioptas-backend.opt-level=0",
+        ),
+      );
+    });
+
     it("runs every UI check, side by side or one at a time", () => {
       for (const jobs of ["3", "1"]) {
         const r = gate.run(["--ui"], { DIOPTAS_GATE_UI_JOBS: jobs });
         assert.equal(r.status, 0, r.stderr);
-        assert.match(r.stdout, new RegExp(`UI checks: 45, ${jobs} at a time`));
+        assert.match(r.stdout, new RegExp(`UI checks: 39, ${jobs} at a time`));
         const names = r.timings.steps.map((s) => s.name);
         assert.equal(new Set(names).size, names.length);
         for (const name of [
@@ -468,6 +561,7 @@ describe(
           "companion_windows_smoke",
           "batch_background_export",
           "image_change_webkit",
+          "metadata-products",
           "native-transport",
         ])
           assert.ok(names.includes(name), name);
@@ -478,10 +572,48 @@ describe(
     it("leaves out the WebKit-only check when told to use Chromium only", () => {
       const r = gate.run(["--ui"], { DIOPTAS_GATE_UI_BROWSERS: "chromium" });
       assert.equal(r.status, 0, r.stderr);
-      assert.match(r.stdout, /UI checks: 44, /);
+      assert.match(r.stdout, /UI checks: 38, /);
       const names = r.timings.steps.map((s) => s.name);
       assert.ok(!names.includes("image_change_webkit"));
       assert.ok(names.includes("image_change_smoke"));
+      assert.equal(r.uiEnv["ui_components.mjs"].browsers, "chromium");
+      assert.equal(r.uiEnv["native_project_smoke.mjs"].browsers, "chromium");
+      assert.equal(r.uiEnv["ui_components.mjs"].harnesses, "1");
+    });
+
+    it("keeps WebKit only on the engine-sensitive subset under webkit-subset", () => {
+      const r = gate.run(["--ui"], {
+        DIOPTAS_GATE_UI_BROWSERS: "webkit-subset",
+      });
+      assert.equal(r.status, 0, r.stderr);
+      assert.match(r.stdout, /UI checks: 39, .*\(webkit-subset\)/);
+      const names = r.timings.steps.map((s) => s.name);
+      assert.ok(names.includes("image_change_webkit"));
+      assert.equal(r.uiEnv["ui_components.mjs"].browsers, "");
+      assert.equal(r.uiEnv["detector_window_smoke.mjs"].browsers, "");
+      assert.equal(r.uiEnv["batch_surface_gpu_smoke.mjs"].browsers, "");
+      assert.equal(r.uiEnv["native_project_smoke.mjs"].browsers, "chromium");
+      assert.equal(
+        r.uiEnv["phase_editor_workflow_smoke.mjs"].browsers,
+        "chromium",
+      );
+    });
+
+    it("runs only the core PR browser smoke tier under DIOPTAS_GATE_UI_SUITE=pr", () => {
+      const r = gate.run(["--ui"], {
+        DIOPTAS_GATE_UI_SUITE: "pr",
+        DIOPTAS_GATE_UI_BROWSERS: "webkit-subset",
+      });
+      assert.equal(r.status, 0, r.stderr);
+      assert.match(r.stdout, /UI checks: 18, .*\(pr, webkit-subset\)/);
+      const names = r.timings.steps.map((s) => s.name);
+      assert.ok(names.includes("ui_components"));
+      assert.ok(names.includes("native_calibration_smoke"));
+      assert.ok(names.includes("companion_windows_smoke"));
+      assert.ok(names.includes("metadata-products"));
+      assert.ok(names.includes("native-transport"));
+      assert.ok(!names.includes("spottiness_smoke"));
+      assert.ok(!names.includes("native_lacosmic_smoke"));
     });
 
     it("runs every UI check past a failure when told to keep going", () => {
@@ -494,8 +626,8 @@ describe(
       const checks = r.timings.steps.filter((s) =>
         /_smoke|ui_components|_export|_webkit/.test(s.name),
       );
-      assert.equal(checks.length, 45);
-      assert.equal(checks.filter((s) => s.status === "passed").length, 44);
+      assert.equal(checks.length, 39);
+      assert.equal(checks.filter((s) => s.status === "passed").length, 38);
     });
 
     it("splits the UI checks over shards without losing or repeating one", () => {
@@ -506,47 +638,62 @@ describe(
       const parts = ["1/3", "2/3", "3/3"].map((shard) => {
         const r = gate.run(["--ui"], { DIOPTAS_GATE_UI_SHARD: shard });
         assert.equal(r.status, 0, r.stderr);
-        assert.match(r.stdout, new RegExp(`of 45 \\(shard ${shard}\\)`));
+        assert.match(r.stdout, new RegExp(`of 39 \\(shard ${shard}\\)`));
         return r.timings.steps.map((s) => s.name);
       });
-      // Every shard checks the boundary and builds the processor, fixtures
-      // and frontend it serves.
+      // Every shard checks the boundary and builds the processor, fixtures,
+      // frontend and test harnesses when not prebuilt.
       const perShard = [
         "glib-security-backport",
         "native-contract-generation",
         "native-test-fixtures",
         "rust-build",
         "frontend-build",
+        "test-harnesses",
       ];
       const once = parts.flatMap((names) =>
         names.filter((name) => !perShard.includes(name)),
       );
       assert.deepEqual([...once, ...perShard].sort(), whole);
-      for (const name of ["frontend-unit", "native-transport"]) {
+      for (const name of [
+        "frontend-unit",
+        "metadata-products",
+        "native-transport",
+      ]) {
         assert.ok(parts[0].includes(name), name);
         assert.ok(!parts[1].includes(name) && !parts[2].includes(name), name);
       }
     });
 
-    it("uses prebuilt binaries instead of compiling, and insists on them", () => {
+    it("uses prebuilt binaries, frontend and harnesses instead of rebuilding, and insists on them", () => {
       const missing = gate.run(["--ui"], { DIOPTAS_GATE_PREBUILT: "1" });
       assert.notEqual(missing.status, 0);
       assert.match(missing.stderr, /dioptas-processor is missing/);
       for (const file of [
-        "dioptas-processor",
-        "examples/test_fixtures",
-        "examples/hdf5_master_fixture",
-        "examples/hdf5_source_fixture",
+        "target/debug/dioptas-processor",
+        "target/debug/examples/test_fixtures",
+        "target/debug/examples/hdf5_master_fixture",
+        "target/debug/examples/hdf5_source_fixture",
+        "dist/index.html",
+        "target/test-harnesses/scripts/batch_surface_harness.html",
+        "target/test-harnesses/scripts/rendering_fixture.html",
+        "target/test-harnesses/scripts/ui_fixture.html",
       ]) {
-        const target = path.join(gate.root, "target/debug", file);
+        const target = path.join(gate.root, file);
         mkdirSync(path.dirname(target), { recursive: true });
         writeFileSync(target, "");
       }
       const r = gate.run(["--ui"], { DIOPTAS_GATE_PREBUILT: "1" });
       assert.equal(r.status, 0, r.stderr);
       assert.ok(!r.calls.some((c) => c.includes("cargo")));
+      assert.ok(!r.calls.some((c) => c.includes("npm run build")));
       assert.ok(
-        !r.timings.steps.some((s) => s.name === "native-test-fixtures"),
+        !r.timings.steps.some(
+          (s) =>
+            s.name === "native-test-fixtures" ||
+            s.name === "frontend-build" ||
+            s.name === "test-harnesses",
+        ),
       );
     });
 

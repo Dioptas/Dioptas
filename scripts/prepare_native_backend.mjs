@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { prepareStandaloneResources } from "./prepare_standalone_resources.mjs";
 
 import { verifyPeritheosResources } from "./peritheos_distribution.mjs";
+import { backendOptLevel } from "./native_gate_timings.mjs";
 
 const desktop = fileURLToPath(new URL("../", import.meta.url));
 const args = process.argv.slice(2);
@@ -30,6 +31,9 @@ if (target === "universal-apple-darwin") {
     "Build each macOS architecture separately; universal packaging is not qualified yet.",
   );
 }
+const optLevel = release
+  ? undefined
+  : backendOptLevel(process.env.DIOPTAS_BACKEND_OPT_LEVEL);
 const command = process.env.CARGO || "cargo";
 const buildArgs = [
   "build",
@@ -40,6 +44,9 @@ const buildArgs = [
   "dioptas-processor",
   "--message-format=json-render-diagnostics",
   ...(release ? ["--release"] : []),
+  ...(optLevel
+    ? ["--config", `profile.dev.package.dioptas-backend.opt-level=${optLevel}`]
+    : []),
   ...(target !== host ? ["--target", target] : []),
 ];
 console.log(

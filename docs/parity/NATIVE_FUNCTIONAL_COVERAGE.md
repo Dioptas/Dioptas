@@ -85,10 +85,12 @@ and manual dispatch, with read-only repository permissions:
 
 Testing runs on Linux runners, plus a Windows job; macOS and Windows runners
 also build the installers. Pull requests run a faster subset: no coverage
-instrumentation, and on Windows only the native tests. Pushes to `develop`,
-tags and manual runs run everything.
+instrumentation, a library `cargo check` instead of full `--no-default-features`
+backend Clippy/tests, WebKit on the curated engine-sensitive UI subset (all
+workflows still run in Chromium), and on Windows only the native tests. Pushes
+to `develop`, tags and manual runs run everything.
 
-1. **Native processor:** formatting, strict Clippy, all native processor tests
+1. **Native processor:** formatting, strict Clippy, all native processor tests,
    and the real processor build. No Python environment is installed by this
    gate. Outside pull requests it also produces LCOV and HTML coverage using
    cargo-llvm-cov. The
@@ -96,19 +98,27 @@ tags and manual runs run everything.
    (70.68%, excluding test files and dependencies); headless execution is
    additional and is not included in that percentage. The initial report is a
    baseline, not an invented minimum-percentage gate. The opt-in performance
-   benchmark remains ignored. Pull requests skip the library tests of the
-   build without features; pushes to `develop` run them.
-2. **Tauri host, Linux dependencies and GLib security:** the release
+   benchmark remains ignored. Pull requests downgrade no-features Clippy to a
+   fast library `cargo check` and skip no-features library tests; pushes to
+   `develop` run both.
+2. **UI build:** a lightweight Linux job that reuses `processor`'s Rust cache to
+   build `dioptas-processor`, the fixture helpers, `dist/` and the HTML test
+   harnesses once for all eight UI shards, so UI feedback is never blocked on
+   processor lint/tests/coverage or Linux Tauri compilation.
+3. **Tauri host, Linux dependencies and GLib security:** the release
    configuration tests, the processor and frontend builds, the Tauri host unit
    tests against the real Linux dependency graph (no application window) and
-   the GLib backport checks. It hands the processor and the test-fixture
-   helper to the UI jobs.
-3. **Headless UI checks, five jobs:** the coverage inventory, frontend unit
-   tests, shared control checks and the native Chromium/WebKit workflows for
-   calibration, masks, integration, projects/configuration/combination,
-   geometry, detectors, LA Cosmic, file errors, calibration/image reset and
-   stdio cancellation. The checks are dealt out over the five jobs and run
-   one at a time within each.
+   the GLib backport checks. It runs in parallel with the headless UI shards.
+4. **Headless UI checks (5 shards on PRs, 8 on `develop`):** the coverage
+   inventory, frontend unit tests, stdio wire/transport checks, shared control
+   checks and native Chromium/WebKit workflows. Pull requests use
+   `DIOPTAS_GATE_UI_SUITE=pr` and `DIOPTAS_GATE_UI_BROWSERS=webkit-subset`
+   (18 core E2E browser checks covering every workspace mode, WebGL, SVG export,
+   HDF5/VDS, HMR, shared controls and core multi-window checks
+   `companion_windows_smoke` and `detector_window_smoke`); pushes to `develop`,
+   tags and manual runs execute all 39 browser checks in full Chromium+WebKit.
+   Checks run one at a time within each shard, reusing the prebuilt processor,
+   fixture helpers, frontend and HTML test harnesses.
 4. **Windows:** the all-features native tests on every run; outside pull
    requests also the headless UI checks, in Chromium only (Tauri uses WebView2,
    a Chromium engine, on Windows). The checkout keeps Git for Windows' default

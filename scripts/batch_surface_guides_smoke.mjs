@@ -1,17 +1,13 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
-import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
 import { withWebkit } from "./ui_browsers.mjs";
 import { root } from "./native_backend_client.mjs";
+import { startHarnessServer } from "./test_app_server.mjs";
 const artifacts = path.join(root, "artifacts/batch-surface-guides");
 await mkdir(artifacts, { recursive: true });
-const server = await createServer({
-  root,
-  server: { host: "127.0.0.1", port: 0 },
-});
-await server.listen();
+const server = await startHarnessServer(["scripts/batch_surface_harness.html"]);
 const url = server.resolvedUrls.local[0] + "scripts/batch_surface_harness.html";
 const refs = [2.2, 4.4].map((q, i) => ({
   x: (2 * Math.PI) / q,
@@ -200,9 +196,8 @@ try {
         .getByRole("button", { name: "Close surface settings", exact: true })
         .click();
       // Test the actual GPU depth buffer with a controlled triangle and guide.
-      const depth = await page.evaluate(async () => {
-        const { drawSurfaceGPU, disposeSurfaceGPU } =
-          await import("/src/WebGLSurface.ts");
+      const depth = await page.evaluate(() => {
+        const { drawSurfaceGPU, disposeSurfaceGPU } = window.surfaceTestModules;
         const target = document.createElement("canvas");
         target.width = target.height = 100;
         const vertices = [

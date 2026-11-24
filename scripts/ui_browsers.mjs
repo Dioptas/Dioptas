@@ -1,8 +1,9 @@
-// DIOPTAS_GATE_UI_BROWSERS=chromium runs the UI checks in Chromium only.
-// CI's Windows job sets it: Tauri renders with WebView2 (Chromium) on
-// Windows, so Playwright's Windows WebKit build tests an engine no Windows
-// user runs. Linux CI keeps both engines; WebKit there stands in for the
-// WebKitGTK and WKWebView hosts.
+// DIOPTAS_GATE_UI_BROWSERS controls which Playwright engines the UI checks use:
+//   unset / "all"   : Chromium + WebKit on every dual-engine check (default, develop).
+//   "chromium"      : Chromium only (Windows CI, where Tauri uses WebView2).
+//   "webkit-subset" : Handled by check_native_desktop.mjs, which keeps WebKit
+//                     for the curated engine-sensitive subset and passes
+//                     DIOPTAS_GATE_UI_BROWSERS=chromium to workflow-only checks.
 export const chromiumOnly = process.env.DIOPTAS_GATE_UI_BROWSERS === "chromium";
 
 // Spread into a [name, browserType] list in place of ["webkit", webkit].

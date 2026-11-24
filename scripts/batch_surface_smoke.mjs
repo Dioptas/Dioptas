@@ -1,18 +1,14 @@
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
 import { withWebkit } from "./ui_browsers.mjs";
 import { nativeClient, root } from "./native_backend_client.mjs";
+import { startHarnessServer } from "./test_app_server.mjs";
 
 const artifacts = path.join(root, "artifacts/batch-surface");
 await fs.mkdir(artifacts, { recursive: true });
-const server = await createServer({
-  root,
-  server: { host: "127.0.0.1", port: 0 },
-});
-await server.listen();
+const server = await startHarnessServer(["scripts/batch_surface_harness.html"]);
 const url = server.resolvedUrls.local[0];
 const waitReady = (page) =>
   page.waitForFunction(
@@ -241,8 +237,8 @@ try {
       );
       await page.evaluate(() => window.setSurfaceConstant(10));
       await page.waitForTimeout(100);
-      const pixel = await surface.evaluate(async (c) => {
-        const { rasterColor } = await import("/src/colorMaps.ts");
+      const pixel = await surface.evaluate((c) => {
+        const { rasterColor } = window.surfaceTestModules;
         const p = JSON.parse(c.dataset.hitSample),
           b = c.getBoundingClientRect();
         const actual = [

@@ -1,17 +1,13 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
-import { createServer } from "vite";
 import { chromium, webkit } from "playwright";
 import { withWebkit } from "./ui_browsers.mjs";
 import { root } from "./native_backend_client.mjs";
+import { startHarnessServer } from "./test_app_server.mjs";
 const artifacts = path.join(root, "artifacts/batch-surface-gpu");
 await mkdir(artifacts, { recursive: true });
-const server = await createServer({
-  root,
-  server: { host: "127.0.0.1", port: 0 },
-});
-await server.listen();
+const server = await startHarnessServer(["scripts/batch_surface_harness.html"]);
 const receipts = [];
 const ready = (page) =>
   page.waitForFunction(
@@ -357,9 +353,8 @@ try {
       );
       await page.evaluate(() => window.setSurfacePalette("viridis"));
       // Picking follows GPU depth rather than the mesh's array order.
-      const pick = await page.evaluate(async () => {
-        const { hitBatchSurface } =
-          await import("/src/batchSurfaceRenderer.ts");
+      const pick = await page.evaluate(() => {
+        const { hitBatchSurface } = window.surfaceTestModules;
         const triangle = (depth, frame) => [
           { x: 0, y: 0, depth, frame, radial: 1, z: 0.5 },
           { x: 20, y: 0, depth, frame, radial: 2, z: 0.5 },

@@ -13,6 +13,32 @@ export function gateSwitch(name, value, fallback) {
 export const coverageRequested = (value) =>
   gateSwitch("DIOPTAS_GATE_COVERAGE", value, false);
 
+// DIOPTAS_GATE_UI_BROWSERS: "all" (default), "chromium" or "webkit-subset".
+export function uiBrowserMode(value) {
+  if (value === undefined || value === "" || value === "all") return "all";
+  if (value === "chromium" || value === "webkit-subset") return value;
+  throw Error(
+    `DIOPTAS_GATE_UI_BROWSERS must be all, chromium or webkit-subset, not ${value}`,
+  );
+}
+
+// DIOPTAS_GATE_UI_SUITE: "full" (default, develop/local) or "pr" (core PR E2E
+// smoke tier).
+export function uiSuiteMode(value) {
+  if (value === undefined || value === "" || value === "full") return "full";
+  if (value === "pr") return value;
+  throw Error(`DIOPTAS_GATE_UI_SUITE must be full or pr, not ${value}`);
+}
+
+// DIOPTAS_BACKEND_OPT_LEVEL: optional dev/test opt-level override (0..3) for
+// dioptas-backend only, keeping cached dependency crates at their Cargo.toml
+// opt-level while cutting CI compile time.
+export function backendOptLevel(value) {
+  if (value === undefined || value === "") return undefined;
+  if (/^[0-3]$/.test(value)) return value;
+  throw Error(`DIOPTAS_BACKEND_OPT_LEVEL must be 0, 1, 2 or 3, not ${value}`);
+}
+
 // DIOPTAS_GATE_UI_JOBS: how many UI checks run at once. By default half the
 // cores on a machine with at least eight, otherwise one. Each check drives a
 // browser and a processor that already use several cores: on a 3-core hosted

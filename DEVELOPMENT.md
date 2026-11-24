@@ -111,16 +111,29 @@ npm run test:native-map-progress
 `node scripts/check_native_desktop.mjs --host` without opening an app window.
 On a machine with at least eight cores the UI gate runs several checks at a
 time (half the cores); `DIOPTAS_GATE_UI_JOBS=1` runs them one after another, which is easier to read when one fails. Pull requests set
-`DIOPTAS_GATE_CORE_TESTS=0` to skip the library tests of the build without
-features; local runs and `develop` keep them.
-CI builds the processor once on Linux and spreads the UI checks over five jobs
-(`DIOPTAS_GATE_UI_SHARD=2/5` with `DIOPTAS_GATE_PREBUILT=1`), one check at a
-time within each. Pull requests run the native tests without coverage
-instrumentation (`DIOPTAS_GATE_COVERAGE=0`) and, on Windows, only the native
-tests. Pushes to `develop`, tags and manual runs (Actions > Rust desktop > Run
-workflow, on any branch) add coverage and the Windows headless UI checks, which
-run in Chromium only (`DIOPTAS_GATE_UI_BROWSERS=chromium`): Tauri renders with
-WebView2, a Chromium engine, on Windows.
+`DIOPTAS_GATE_CORE_CLIPPY=0` and `DIOPTAS_GATE_CORE_TESTS=0` to downgrade
+no-features Clippy to a fast library `cargo check` and skip no-features library
+tests; local runs and `develop` keep both.
+CI builds the processor, fixture helpers, frontend bundle and HTML test
+harnesses once in a dedicated `ui-build` job on Linux (reusing `processor`'s
+Rust cache) and spreads the UI checks over parallel jobs
+(`DIOPTAS_GATE_UI_SHARD=2/5` on pull requests with `DIOPTAS_GATE_UI_SUITE=pr`,
+`2/8` on `develop` with `DIOPTAS_GATE_UI_SUITE=full`, both with
+`DIOPTAS_GATE_PREBUILT=1`), running alongside `processor` and `host`, one check
+at a time within each shard. Under the gate,
+the HTTP-based smoke checks serve the prebuilt `dist/` and harnesses directly
+instead of starting Vite dev servers; standalone invocations outside the gate
+still fall back to Vite so live source edits are picked up automatically. Pull
+requests run the native tests without coverage instrumentation
+(`DIOPTAS_GATE_COVERAGE=0`), lower `dioptas-backend`'s dev/test opt-level via
+`DIOPTAS_BACKEND_OPT_LEVEL` while keeping cached dependency crates at
+`opt-level = 2`, run the 18-check core PR browser smoke tier with WebKit on the
+curated engine-sensitive subset (`DIOPTAS_GATE_UI_BROWSERS=webkit-subset`), and
+on Windows run only the native tests. Pushes to `develop`, tags and manual runs
+(Actions > Rust desktop > Run workflow, on any branch) add coverage, all 39
+browser checks in full Chromium+WebKit, and the Windows headless UI checks,
+which run in Chromium only (`DIOPTAS_GATE_UI_BROWSERS=chromium`): Tauri renders
+with WebView2, a Chromium engine, on Windows.
 Native bulk transport/progress tests use the Rust `test_fixtures` example to
 create long test series; no Python environment or plugin installation is needed.
 `npm run test:map-window` exercises Chromium and WebKit. All routine GUI checks
