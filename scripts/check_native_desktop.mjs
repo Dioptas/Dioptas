@@ -6,6 +6,7 @@ import { availableParallelism } from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import {
+  backendOptLevel,
   coverageRequested,
   gateSwitch,
   markdownSummary,
@@ -63,6 +64,10 @@ const keepGoing = gateSwitch(
   process.env.DIOPTAS_GATE_UI_KEEP_GOING,
   false,
 );
+const optLevel = backendOptLevel(process.env.DIOPTAS_BACKEND_OPT_LEVEL);
+const backendOptArgs = optLevel
+  ? ["--config", `profile.dev.package.dioptas-backend.opt-level=${optLevel}`]
+  : [];
 const browserMode = uiBrowserMode(process.env.DIOPTAS_GATE_UI_BROWSERS);
 const shard = uiShard(process.env.DIOPTAS_GATE_UI_SHARD);
 const jobs = uiJobs(process.env.DIOPTAS_GATE_UI_JOBS, availableParallelism());
@@ -345,6 +350,7 @@ if (selected.has("--processor")) {
       "--manifest-path",
       "backend/Cargo.toml",
       "--all-features",
+      ...backendOptArgs,
     ]);
   // Tests can build diagnostic executables; stage the normal processor last.
   run("rust-build", "cargo", [
@@ -353,6 +359,7 @@ if (selected.has("--processor")) {
     "--manifest-path",
     "backend/Cargo.toml",
     "--all-features",
+    ...backendOptArgs,
   ]);
 }
 if (selected.has("--ui")) {

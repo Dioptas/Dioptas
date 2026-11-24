@@ -22,6 +22,15 @@ export function uiBrowserMode(value) {
   );
 }
 
+// DIOPTAS_BACKEND_OPT_LEVEL: optional dev/test opt-level override (0..3) for
+// dioptas-backend only, keeping cached dependency crates at their Cargo.toml
+// opt-level while cutting CI compile time.
+export function backendOptLevel(value) {
+  if (value === undefined || value === "") return undefined;
+  if (/^[0-3]$/.test(value)) return value;
+  throw Error(`DIOPTAS_BACKEND_OPT_LEVEL must be 0, 1, 2 or 3, not ${value}`);
+}
+
 // DIOPTAS_GATE_UI_JOBS: how many UI checks run at once. By default half the
 // cores on a machine with at least eight, otherwise one. Each check drives a
 // browser and a processor that already use several cores: on a 3-core hosted

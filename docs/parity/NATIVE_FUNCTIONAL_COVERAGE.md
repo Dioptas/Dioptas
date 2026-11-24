@@ -103,13 +103,13 @@ to `develop`, tags and manual runs run everything.
    `develop` run both.
 2. **UI build:** a lightweight Linux job that reuses `processor`'s Rust cache to
    build `dioptas-processor`, the fixture helpers, `dist/` and the HTML test
-   harnesses once for all five UI shards, so UI feedback is never blocked on
+   harnesses once for all eight UI shards, so UI feedback is never blocked on
    processor lint/tests/coverage or Linux Tauri compilation.
 3. **Tauri host, Linux dependencies and GLib security:** the release
    configuration tests, the processor and frontend builds, the Tauri host unit
    tests against the real Linux dependency graph (no application window) and
    the GLib backport checks. It runs in parallel with the headless UI shards.
-4. **Headless UI checks, five jobs:** the coverage inventory, frontend unit
+4. **Headless UI checks, eight jobs:** the coverage inventory, frontend unit
    tests, shared control checks and the native Chromium/WebKit workflows for
    calibration, masks, integration, projects/configuration/combination,
    geometry, detectors, LA Cosmic, file errors, calibration/image reset and
@@ -117,7 +117,7 @@ to `develop`, tags and manual runs run everything.
    (Chromium for every workflow plus WebKit for rendering, CSS/controls, WebGL,
    SVG, HMR and the core multi-window checks `companion_windows_smoke` and
    `detector_window_smoke`); pushes to `develop` run full Chromium+WebKit across
-   all 45 checks. The checks are dealt out over the five jobs and run
+   all 45 checks. The checks are dealt out over the eight jobs and run
    one at a time within each, reusing the prebuilt processor, fixture helpers,
    frontend and HTML test harnesses.
 4. **Windows:** the all-features native tests on every run; outside pull

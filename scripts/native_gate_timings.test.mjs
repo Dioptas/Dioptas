@@ -18,6 +18,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 import {
+  backendOptLevel,
   coverageRequested,
   gateSwitch,
   markdownSummary,
@@ -125,6 +126,15 @@ describe("timing report", () => {
       () => uiBrowserMode("firefox"),
       /all, chromium or webkit-subset/,
     );
+  });
+
+  it("validates the backend opt-level override", () => {
+    assert.equal(backendOptLevel(undefined), undefined);
+    assert.equal(backendOptLevel(""), undefined);
+    for (const level of ["0", "1", "2", "3"])
+      assert.equal(backendOptLevel(level), level);
+    for (const bad of ["4", "s", "-1", "fast"])
+      assert.throws(() => backendOptLevel(bad), /must be 0, 1, 2 or 3/);
   });
 
   it("runs UI checks side by side only on machines with many cores", () => {
@@ -350,6 +360,7 @@ function scratchGate() {
             DIOPTAS_GATE_COVERAGE: "",
             DIOPTAS_GATE_CORE_CLIPPY: "",
             DIOPTAS_GATE_CORE_TESTS: "",
+            DIOPTAS_BACKEND_OPT_LEVEL: "",
             DIOPTAS_GATE_UI_JOBS: "",
             DIOPTAS_GATE_UI_SHARD: "",
             DIOPTAS_GATE_UI_BROWSERS: "",
@@ -508,6 +519,21 @@ describe(
         processorSteps
           .filter((s) => s !== "rust-core-tests")
           .map((s) => (s === "rust-core-clippy" ? "rust-core-check" : s)),
+      );
+    });
+
+    it("forwards DIOPTAS_BACKEND_OPT_LEVEL to backend test and build commands", () => {
+      const r = gate.run(["--processor"], { DIOPTAS_BACKEND_OPT_LEVEL: "0" });
+      assert.equal(r.status, 0, r.stderr);
+      assert.ok(
+        r.calls.includes(
+          ".: cargo test --locked --manifest-path backend/Cargo.toml --all-features --config profile.dev.package.dioptas-backend.opt-level=0",
+        ),
+      );
+      assert.ok(
+        r.calls.includes(
+          ".: cargo build --locked --manifest-path backend/Cargo.toml --all-features --config profile.dev.package.dioptas-backend.opt-level=0",
+        ),
       );
     });
 

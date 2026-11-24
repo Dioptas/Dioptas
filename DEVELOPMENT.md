@@ -116,14 +116,16 @@ no-features Clippy to a fast library `cargo check` and skip no-features library
 tests; local runs and `develop` keep both.
 CI builds the processor, fixture helpers, frontend bundle and HTML test
 harnesses once in a dedicated `ui-build` job on Linux (reusing `processor`'s
-Rust cache) and spreads the UI checks over five parallel jobs
-(`DIOPTAS_GATE_UI_SHARD=2/5` with `DIOPTAS_GATE_PREBUILT=1`), running alongside
+Rust cache) and spreads the UI checks over eight parallel jobs
+(`DIOPTAS_GATE_UI_SHARD=2/8` with `DIOPTAS_GATE_PREBUILT=1`), running alongside
 `processor` and `host`, one check at a time within each shard. Under the gate,
 the HTTP-based smoke checks serve the prebuilt `dist/` and harnesses directly
 instead of starting Vite dev servers; standalone invocations outside the gate
 still fall back to Vite so live source edits are picked up automatically. Pull
 requests run the native tests without coverage instrumentation
-(`DIOPTAS_GATE_COVERAGE=0`), keep WebKit on the curated engine-sensitive UI
+(`DIOPTAS_GATE_COVERAGE=0`), lower `dioptas-backend`'s dev/test opt-level via
+`DIOPTAS_BACKEND_OPT_LEVEL` while keeping cached dependency crates at
+`opt-level = 2`, keep WebKit on the curated engine-sensitive UI
 subset (`DIOPTAS_GATE_UI_BROWSERS=webkit-subset`, while all workflows still run
 in Chromium), and on Windows run only the native tests. Pushes to `develop`,
 tags and manual runs (Actions > Rust desktop > Run workflow, on any branch) add
