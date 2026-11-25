@@ -358,6 +358,14 @@ impl Session {
                 self.patterns.separation,
             )
         });
+        #[cfg(debug_assertions)]
+        let debug_read_only_shared = read_only.then(|| {
+            (
+                self.phases.clone(),
+                self.patterns.overlays.clone(),
+                self.patterns.separation,
+            )
+        });
         let checkpoint = (!read_only).then(|| self.checkpoint());
         let integration_before =
             integration_history::is_edit(&request.action).then(|| self.integration_snapshot());
@@ -427,6 +435,16 @@ impl Session {
             });
         match dispatched {
             Ok(mut reply) => {
+                #[cfg(debug_assertions)]
+                if let Some(before) = debug_read_only_shared {
+                    debug_assert!(
+                        self.phases == before.0
+                            && self.patterns.overlays == before.1
+                            && self.patterns.separation == before.2,
+                        "read-only action `{}` mutated shared phase or overlay state",
+                        request.action
+                    );
+                }
                 if let Some(shared_before) = shared_before
                     && !matches!(
                         request.action.as_str(),

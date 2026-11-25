@@ -182,13 +182,12 @@ impl IndexedField {
         }
     }
     pub fn contour(&self, target: f64) -> serde_json::Value {
-        contours(
-            &self.angles,
-            self.shape,
-            &[(0, target)],
-            1,
-            Some(self),
-            true,
+        use serde_json::json;
+        serde_json::Value::Array(
+            self.contour_paths(target)
+                .into_iter()
+                .map(|points| json!({"ring":0,"points":points}))
+                .collect(),
         )
     }
     fn contour_paths(&self, target: f64) -> Vec<Vec<[f64; 2]>> {

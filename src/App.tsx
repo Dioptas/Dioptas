@@ -1144,9 +1144,7 @@ export default function App() {
   }, [busy, quietBackgroundProcessing]);
   useWorkspaceShortcuts({
     run,
-    state,
     currentState,
-    setupDirty,
     canPick,
     mode,
     setMode,

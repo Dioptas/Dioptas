@@ -19,9 +19,7 @@ export type WorkspaceMode =
 
 export interface WorkspaceShortcutOptions {
   run: ScheduledRun;
-  state: State | null;
   currentState: RefObject<State | null>;
-  setupDirty: boolean;
   canPick: boolean;
   mode: WorkspaceMode;
   setMode: Dispatch<SetStateAction<WorkspaceMode>>;
@@ -43,9 +41,7 @@ export interface WorkspaceShortcutOptions {
 
 export function useWorkspaceShortcuts({
   run,
-  state,
   currentState,
-  setupDirty,
   canPick,
   mode,
   setMode,
@@ -222,8 +218,8 @@ export function useWorkspaceShortcuts({
       } else if (
         (mode === "integration" || mode === "calibration") &&
         event.key === "Enter" &&
-        state?.hasImage &&
-        state.calibrated
+        currentState.current?.hasImage &&
+        currentState.current.calibrated
       )
         void run("integrate", {}, "Integrating image and cake…");
     }
@@ -231,10 +227,6 @@ export function useWorkspaceShortcuts({
     return () => window.removeEventListener("keydown", keyboard);
   }, [
     run,
-    state?.hasImage,
-    state?.calibrated,
-    state?.calibration.setupConfirmed,
-    setupDirty,
     canPick,
     mode,
     selectedPicks,

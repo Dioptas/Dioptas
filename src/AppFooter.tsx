@@ -3,9 +3,10 @@ import { BackendStatusMessage } from "./BackendStatusMessage";
 import { ReadingFields, sourceLabel, type SourcedReading } from "./PlotStatus";
 import type { PlotReading } from "./plotReadout";
 import { Button } from "./ui";
+import type { WorkspaceMode } from "./useWorkspaceShortcuts";
 
 export interface AppFooterProps {
-  mode: string;
+  mode: WorkspaceMode;
   settingsOpen: boolean;
   correctionPreviewActive: boolean;
   linkedClicks: boolean;
