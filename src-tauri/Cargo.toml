@@ -2,7 +2,7 @@
 [package]
 name = "dioptas-desktop"
 version = "0.14.0-rc.3"
-edition = "2021"
+edition = "2024"
 rust-version = "1.90"
 publish = false
 license = "MIT"

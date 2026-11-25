@@ -63,7 +63,7 @@ fn top_left(anchor: [f64; 4], size: [f64; 2], work: [f64; 4]) -> [f64; 2] {
 mod platform {
     use super::top_left;
     use block2::RcBlock;
-    use objc2::{rc::Retained, runtime::ProtocolObject, MainThreadMarker};
+    use objc2::{MainThreadMarker, rc::Retained, runtime::ProtocolObject};
     use objc2_app_kit::{
         NSColorPanel, NSWindow, NSWindowDidBecomeKeyNotification, NSWindowDidUpdateNotification,
     };

@@ -1,13 +1,13 @@
 //! Development replaces only the scientific child, after a validated handoff.
 //! Ordinary commands are serialized; progress/cancel bypass the swap gate.
-use crate::processor::command_contract::{execution, CommandExecution};
+use crate::processor::command_contract::{CommandExecution, execution};
 use crate::processor::{Backend, Packet, Processor};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{
     path::{Path, PathBuf},
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc, Mutex, RwLock,
+        atomic::{AtomicBool, Ordering},
     },
 };
 
@@ -214,10 +214,10 @@ impl ProcessorHost {
         }
         *self.build.lock().unwrap() = Some(command.spawn().map_err(|e| e.to_string())?);
         let status = loop {
-            if self.closed.load(Ordering::Acquire) {
-                if let Some(child) = self.build.lock().unwrap().as_mut() {
-                    let _ = child.kill();
-                }
+            if self.closed.load(Ordering::Acquire)
+                && let Some(child) = self.build.lock().unwrap().as_mut()
+            {
+                let _ = child.kill();
             }
             let status = self
                 .build
@@ -375,17 +375,22 @@ mod tests {
             "[package]\nname='dioptas-processor'\nversion='0.0.0'\nedition='2021'\n[workspace]\n",
         )
         .unwrap();
-        let source=format!("fn main() {{ std::process::exit(std::process::Command::new({:?}).args(std::env::args().skip(1)).status().unwrap().code().unwrap_or(1)); }}",binary().to_str().unwrap());
+        let source = format!(
+            "fn main() {{ std::process::exit(std::process::Command::new({:?}).args(std::env::args().skip(1)).status().unwrap().code().unwrap_or(1)); }}",
+            binary().to_str().unwrap()
+        );
         let file = root.join("src/main.rs");
         std::fs::write(&file, &source).unwrap();
-        assert!(Command::new("cargo")
-            .args(["generate-lockfile", "--offline", "--manifest-path"])
-            .arg(root.join("Cargo.toml"))
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .unwrap()
-            .success());
+        assert!(
+            Command::new("cargo")
+                .args(["generate-lockfile", "--offline", "--manifest-path"])
+                .arg(root.join("Cargo.toml"))
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()
+                .unwrap()
+                .success()
+        );
         let (tx, rx) = mpsc::channel();
         host.watch_at(root.to_path_buf(), move |status| {
             let _ = tx.send(status);

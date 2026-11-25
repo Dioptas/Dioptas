@@ -5,10 +5,10 @@
 //! choose an endpoint nor install a package by itself. Nothing is replaced
 //! before the user confirms the restart.
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
     Mutex,
+    atomic::{AtomicBool, Ordering},
 };
 use std::time::{Duration, Instant};
 use tauri::{Emitter, State};
@@ -250,11 +250,13 @@ mod tests {
         .unwrap();
         assert_eq!(release.version.to_string(), "0.15.0");
         assert!(release.pub_date.is_some());
-        assert!(release
-            .download_url("linux-x86_64-deb")
-            .unwrap()
-            .path()
-            .ends_with(".deb"));
+        assert!(
+            release
+                .download_url("linux-x86_64-deb")
+                .unwrap()
+                .path()
+                .ends_with(".deb")
+        );
         assert!(release.download_url("linux-x86_64").is_err());
         // A release candidate is offered the stable release of the same number.
         let candidate: tauri_plugin_updater::RemoteRelease = serde_json::from_value(json!({

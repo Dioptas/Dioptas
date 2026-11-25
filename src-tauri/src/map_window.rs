@@ -1,4 +1,4 @@
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{fs, path::PathBuf, sync::Mutex};
 use tauri::{LogicalSize, Manager, PhysicalPosition, WebviewUrl, WebviewWindowBuilder};
 
@@ -233,10 +233,10 @@ fn save_kind<const K: u8>(app: &tauri::AppHandle) {
         .unwrap()
         .last_normal
         .clone();
-    if let Some(placement) = placement {
-        if let Err(error) = persist::<K>(app, &placement) {
-            eprintln!("Could not save map window placement: {error}");
-        }
+    if let Some(placement) = placement
+        && let Err(error) = persist::<K>(app, &placement)
+    {
+        eprintln!("Could not save map window placement: {error}");
     }
 }
 fn window_event_kind<const K: u8>(window: &tauri::Window, event: &tauri::WindowEvent) {

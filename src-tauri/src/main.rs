@@ -15,17 +15,17 @@ mod smoke_dialog;
 mod smoke_storage;
 
 use calibration_tooltip::{
-    calibration_tooltip_ready, hide_calibration_tooltip, present_calibration_tooltip,
-    show_calibration_tooltip, TooltipState,
+    TooltipState, calibration_tooltip_ready, hide_calibration_tooltip, present_calibration_tooltip,
+    show_calibration_tooltip,
 };
 
 use dioptas_contract::image_formats::{COMPRESSED_IMAGE_EXTENSIONS, DETECTOR_IMAGE_EXTENSIONS};
-use processor::{wire_contract, Backend, Packet};
+use processor::{Backend, Packet, wire_contract};
 use processor_reload::ProcessorHost;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
     Arc,
+    atomic::{AtomicBool, Ordering},
 };
 use tauri::{Manager, State};
 use tauri_plugin_dialog::DialogExt;
@@ -126,10 +126,12 @@ fn choose_batch_image_output(
         let Some(folder) = app.dialog().file().blocking_pick_folder() else {
             return Ok(false);
         };
-        payload["output_directory"] = json!(folder
-            .into_path()
-            .map_err(|e| e.to_string())?
-            .to_string_lossy());
+        payload["output_directory"] = json!(
+            folder
+                .into_path()
+                .map_err(|e| e.to_string())?
+                .to_string_lossy()
+        );
     }
     Ok(true)
 }
@@ -665,24 +667,30 @@ fn main() {
                     std::thread::sleep(std::time::Duration::from_secs(600));
                     let host = handle.state::<Host>();
                     if host.closing.load(Ordering::SeqCst) { break; }
-                    if let Ok(processor) = &host.processor {
-                        if let Err(error) = host.recovery.checkpoint(processor, false) {
-                            use tauri::Emitter;
-                            let _ = handle.emit_to("main", "dioptas-recovery-error", error);
-                        }
+                    if let Ok(processor) = &host.processor
+                        && let Err(error) = host.recovery.checkpoint(processor, false)
+                    {
+                        use tauri::Emitter;
+                        let _ = handle.emit_to("main", "dioptas-recovery-error", error);
                     }
                 });
             }
             #[cfg(debug_assertions)]
-            if tauri::is_dev() && !smoke && Backend::requested(&args, std::env::var("DIOPTAS_BACKEND").ok().as_deref()) == Ok(Backend::Rust) {
-                if let Ok(processor) = &app.state::<Host>().processor {
-                    let handle = app.handle().clone();
-                    processor.watch(move |status| {
-                        use tauri::Emitter;
-                        eprintln!("{}", status["message"].as_str().unwrap_or("Backend update"));
-                        let _ = handle.emit("dioptas-backend-update",status);
-                    });
-                }
+            if tauri::is_dev()
+                && !smoke
+                && Backend::requested(&args, std::env::var("DIOPTAS_BACKEND").ok().as_deref())
+                    == Ok(Backend::Rust)
+                && let Ok(processor) = &app.state::<Host>().processor
+            {
+                let handle = app.handle().clone();
+                processor.watch(move |status| {
+                    use tauri::Emitter;
+                    eprintln!(
+                        "{}",
+                        status["message"].as_str().unwrap_or("Backend update")
+                    );
+                    let _ = handle.emit("dioptas-backend-update", status);
+                });
             }
             color_picker::install()?;
             let window = if smoke {
@@ -731,12 +739,13 @@ fn main() {
             }
             if smoke && webview.label() == "map-window" && matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
                 static EXPECTED_CHECKED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-                if !EXPECTED_CHECKED.swap(true, std::sync::atomic::Ordering::SeqCst) {
-                    if let Ok(expected) = std::env::var("DIOPTAS_MAP_WINDOW_EXPECTED") {
-                        if let Ok(value) = serde_json::from_str::<Value>(&expected) {
-                            let _ = webview.eval(format!("window.__dioptasMapPlacementExpected = {value};"));
-                        }
-                    }
+                if !EXPECTED_CHECKED.swap(true, std::sync::atomic::Ordering::SeqCst)
+                    && let Ok(expected) = std::env::var("DIOPTAS_MAP_WINDOW_EXPECTED")
+                    && let Ok(value) = serde_json::from_str::<Value>(&expected)
+                {
+                    let _ = webview.eval(format!(
+                        "window.__dioptasMapPlacementExpected = {value};"
+                    ));
                 }
                 let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
                 let _ = webview.eval(include_str!("../../scripts/map_window_native_smoke.js"));
@@ -761,13 +770,13 @@ fn main() {
                     let _ = webview.eval(include_str!("../../scripts/detector_window_native_main.js"));
                     return;
                 }
-                if batch_smoke {
-                    if let Ok(stage) = std::env::var("DIOPTAS_BATCH_LAYOUT_STAGE") {
-                        let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
-                        let _ = webview.eval(format!("window.__batchLayoutStage={};", json!(stage)));
-                        let _ = webview.eval(include_str!("../../scripts/batch_layout_native_smoke.js"));
-                        return;
-                    }
+                if batch_smoke
+                    && let Ok(stage) = std::env::var("DIOPTAS_BATCH_LAYOUT_STAGE")
+                {
+                    let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
+                    let _ = webview.eval(format!("window.__batchLayoutStage={};", json!(stage)));
+                    let _ = webview.eval(include_str!("../../scripts/batch_layout_native_smoke.js"));
+                    return;
                 }
                 if pattern_benchmark {
                     let _ = webview.eval(include_str!("../../scripts/native_binary_call.js"));
@@ -775,10 +784,12 @@ fn main() {
                     return;
                 }
                 if navigation_benchmark {
-                    if let Ok(config) = std::env::var("DIOPTAS_NAVIGATION_BENCHMARK") {
-                        if let Ok(value) = serde_json::from_str::<Value>(&config) {
-                            let _ = webview.eval(format!("window.__dioptasNavigationConfig = {value};"));
-                        }
+                    if let Ok(config) = std::env::var("DIOPTAS_NAVIGATION_BENCHMARK")
+                        && let Ok(value) = serde_json::from_str::<Value>(&config)
+                    {
+                        let _ = webview.eval(format!(
+                            "window.__dioptasNavigationConfig = {value};"
+                        ));
                     }
                     let _ = webview.eval(include_str!("../../scripts/series_navigation_native.js"));
                     let _ = webview.eval(include_str!("../../scripts/image_navigation_native.js"));
@@ -805,14 +816,14 @@ fn main() {
             }
         })
         .on_window_event(|window, event| {
-            if window.label() == "main" {
-                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                    let host = window.app_handle().state::<Host>();
-                    if !host.smoke && !host.exit_ready.load(Ordering::SeqCst) {
-                        api.prevent_close();
-                        begin_close(window.app_handle());
-                        return;
-                    }
+            if window.label() == "main"
+                && let tauri::WindowEvent::CloseRequested { api, .. } = event
+            {
+                let host = window.app_handle().state::<Host>();
+                if !host.smoke && !host.exit_ready.load(Ordering::SeqCst) {
+                    api.prevent_close();
+                    begin_close(window.app_handle());
+                    return;
                 }
             }
             if window.label() == "main" && matches!(event, tauri::WindowEvent::CloseRequested { .. } | tauri::WindowEvent::Destroyed) {
@@ -969,16 +980,20 @@ mod tests {
         }
         assert!(choice.save);
         for extension in choice.extensions {
-            assert!(file_choice(
-                "integration_save_pattern",
-                &json!({"path":format!("/tmp/pattern.{extension}")})
-            )
-            .is_none());
+            assert!(
+                file_choice(
+                    "integration_save_pattern",
+                    &json!({"path":format!("/tmp/pattern.{extension}")})
+                )
+                .is_none()
+            );
         }
-        assert!(!file_choice("integration_open_pattern", &json!({}))
-            .unwrap()
-            .extensions
-            .contains(&"svg"));
+        assert!(
+            !file_choice("integration_open_pattern", &json!({}))
+                .unwrap()
+                .extensions
+                .contains(&"svg")
+        );
     }
 
     #[test]
@@ -987,11 +1002,13 @@ mod tests {
         assert!(choice.save);
         assert_eq!(choice.extensions, &["csv"]);
         assert_eq!(choice.name, "pattern_spottiness.csv");
-        assert!(file_choice(
-            "integration_save_spottiness",
-            &json!({"path":"/tmp/spread.csv"})
-        )
-        .is_none());
+        assert!(
+            file_choice(
+                "integration_save_spottiness",
+                &json!({"path":"/tmp/spread.csv"})
+            )
+            .is_none()
+        );
     }
 
     #[test]
@@ -1068,11 +1085,13 @@ mod tests {
         let choice = file_choice("save_combined_pattern", &json!({})).unwrap();
         assert!(choice.save);
         assert_eq!(choice.extensions, &["xy", "chi", "dat", "fxye"]);
-        assert!(file_choice(
-            "save_combined_pattern",
-            &json!({"path": "/tmp/combined.xy"})
-        )
-        .is_none());
+        assert!(
+            file_choice(
+                "save_combined_pattern",
+                &json!({"path": "/tmp/combined.xy"})
+            )
+            .is_none()
+        );
     }
 
     #[test]
@@ -1109,24 +1128,30 @@ mod tests {
         assert!(file_choice("integration_open_pattern", &json!({"direction": 1})).is_none());
         assert!(file_choice("integration_overlay", &json!({"operation": "load"})).is_some());
         assert!(file_choice("integration_overlay", &json!({"operation": "capture"})).is_none());
-        assert!(file_choice(
-            "integration_overlay",
-            &json!({"operation": "load", "paths": ["a.xy", "b.xy"]})
-        )
-        .is_none());
+        assert!(
+            file_choice(
+                "integration_overlay",
+                &json!({"operation": "load", "paths": ["a.xy", "b.xy"]})
+            )
+            .is_none()
+        );
         assert!(file_choice("integration_phase", &json!({"operation": "update"})).is_none());
         assert!(file_choice("integration_phase", &json!({"operation": "load"})).is_some());
-        assert!(file_choice(
-            "integration_phase",
-            &json!({"operation": "load", "paths": ["/tmp/phase.cif"]})
-        )
-        .is_none());
+        assert!(
+            file_choice(
+                "integration_phase",
+                &json!({"operation": "load", "paths": ["/tmp/phase.cif"]})
+            )
+            .is_none()
+        );
         assert!(file_choice("integration_phase_files", &json!({})).is_some());
-        assert!(file_choice(
-            "integration_phase_files",
-            &json!({"paths": ["/tmp/phase.cif"]})
-        )
-        .is_none());
+        assert!(
+            file_choice(
+                "integration_phase_files",
+                &json!({"paths": ["/tmp/phase.cif"]})
+            )
+            .is_none()
+        );
         assert!(
             file_choice("integration_phase_list", &json!({"save": true}))
                 .unwrap()
@@ -1149,11 +1174,13 @@ mod tests {
         assert!(file_choice("integration_transfer", &json!({"source":"original"})).is_some());
         assert!(file_choice("integration_transfer", &json!({"source":"response"})).is_some());
         assert!(file_choice("integration_transfer", &json!({"enabled":true})).is_none());
-        assert!(file_choice(
-            "integration_transfer",
-            &json!({"source":"original","reset":true})
-        )
-        .is_none());
+        assert!(
+            file_choice(
+                "integration_transfer",
+                &json!({"source":"original","reset":true})
+            )
+            .is_none()
+        );
         assert!(file_choice("integration_image_background", &json!({"poisson":true})).is_none());
         assert!(
             file_choice("integration_save_pattern", &json!({}))

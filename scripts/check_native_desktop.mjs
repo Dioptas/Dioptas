@@ -630,6 +630,16 @@ if (selected.has("--host")) {
   npm("release-config", "run", "test:release-config");
   npm("host-prepare", "run", "backend:prepare", "--", "--debug");
   npm("host-frontend", "run", "build");
+  run("host-clippy", "cargo", [
+    "clippy",
+    "--locked",
+    "--manifest-path",
+    "src-tauri/Cargo.toml",
+    "--all-targets",
+    "--",
+    "-D",
+    "warnings",
+  ]);
   run("host-tests", "cargo", [
     "test",
     "--locked",
