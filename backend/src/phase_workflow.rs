@@ -314,7 +314,7 @@ pub(super) struct GuideFieldCache {
     geometry: Geometry,
     shape: [usize; 2],
     field: crate::contours::IndexedField,
-    contours: std::collections::HashMap<u64, Value>,
+    contours: std::collections::HashMap<u64, Vec<Vec<[f64; 2]>>>,
     buffers: std::collections::HashMap<String, GuideBuffer>,
 }
 #[cfg(feature = "dioptrin")]
@@ -415,15 +415,17 @@ impl Session {
                     let targets: Vec<_> = phase.iter().map(|line| line.5).collect();
                     let hit = cached.buffers.remove(uid).filter(|b| b.targets == targets);
                     let packed = hit.unwrap_or_else(|| {
-                        let mut bytes = vec![];
+                        let total_points: usize = phase
+                            .iter()
+                            .flat_map(|line| &next[&line.5])
+                            .map(Vec::len)
+                            .sum();
+                        let mut bytes = Vec::with_capacity(total_points * 16);
                         for line in phase {
-                            for path in next[&line.5].as_array().unwrap() {
-                                for point in path["points"].as_array().unwrap() {
-                                    for coordinate in point.as_array().unwrap() {
-                                        bytes.extend_from_slice(
-                                            &coordinate.as_f64().unwrap().to_le_bytes(),
-                                        );
-                                    }
+                            for path in &next[&line.5] {
+                                for &[x, y] in path {
+                                    bytes.extend_from_slice(&x.to_le_bytes());
+                                    bytes.extend_from_slice(&y.to_le_bytes());
                                 }
                             }
                         }
@@ -442,14 +444,14 @@ impl Session {
                     None
                 };
                 for &(i, j, t, color, intensity, key) in phase {
-                    for path in next[&key].as_array().unwrap() {
+                    for path in &next[&key] {
                         let points = if let Some((id, count)) = &packed {
-                            let length = path["points"].as_array().unwrap().len();
+                            let length = path.len();
                             let descriptor = json!({"bufferId":id,"dtype":"xy-f64le","count":count,"offset":point_offset,"length":length});
                             point_offset += length;
                             descriptor
                         } else {
-                            path["points"].clone()
+                            json!(path)
                         };
                         let mut guide = json!({"ring":0,"twoTheta":t,"color":color,"phaseIndex":i,"reflectionIndex":j,"lineWidth":1.0+3.0*intensity,"opacity":0.3+0.4*intensity});
                         guide["points"] = points;

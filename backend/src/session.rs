@@ -339,13 +339,7 @@ impl Session {
             self.control.request_cake(true);
             self.control.request_calibration_rings(true);
         }
-        let project_checkpoint = self.project.clone();
-        let shared_before = (
-            self.phases.clone(),
-            self.patterns.overlays.clone(),
-            self.patterns.separation,
-        );
-        let checkpoint = (!matches!(
+        let read_only = matches!(
             request.action.as_str(),
             "state"
                 | "pixel"
@@ -355,8 +349,16 @@ impl Session {
                 | "__host__"
                 | "integration_diagnostics"
                 | "integration_phase_guides"
-        ))
-        .then(|| self.checkpoint());
+        );
+        let project_checkpoint = (!read_only).then(|| self.project.clone());
+        let shared_before = (!read_only).then(|| {
+            (
+                self.phases.clone(),
+                self.patterns.overlays.clone(),
+                self.patterns.separation,
+            )
+        });
+        let checkpoint = (!read_only).then(|| self.checkpoint());
         let integration_before =
             integration_history::is_edit(&request.action).then(|| self.integration_snapshot());
         if matches!(
@@ -425,12 +427,14 @@ impl Session {
             });
         match dispatched {
             Ok(mut reply) => {
-                if !matches!(
-                    request.action.as_str(),
-                    "development_restore" | "recovery_restore"
-                ) && (self.phases != shared_before.0
-                    || self.patterns.overlays != shared_before.1
-                    || self.patterns.separation != shared_before.2)
+                if let Some(shared_before) = shared_before
+                    && !matches!(
+                        request.action.as_str(),
+                        "development_restore" | "recovery_restore"
+                    )
+                    && (self.phases != shared_before.0
+                        || self.patterns.overlays != shared_before.1
+                        || self.patterns.separation != shared_before.2)
                 {
                     self.forget_other_shared_history();
                 }
