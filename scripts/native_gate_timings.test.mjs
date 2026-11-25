@@ -756,6 +756,7 @@ describe(
         ".: npm run test:release-config",
         ".: npm run backend:prepare -- --debug",
         ".: npm run build",
+        ".: cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings",
         ".: cargo test --locked --manifest-path src-tauri/Cargo.toml",
       ]);
       assert.equal(r.timings.steps.at(-1).name, "host-tests");
