@@ -515,7 +515,9 @@ impl Session {
                 // Disposable work from a rejected edit must not be announced
                 // by a later, unrelated successful response.
                 self.processing.cancel_preview_preparation();
-                self.project = project_checkpoint;
+                if let Some(project) = project_checkpoint {
+                    self.project = project;
+                }
                 if let Some(checkpoint) = checkpoint {
                     self.restore_checkpoint(checkpoint);
                 }
