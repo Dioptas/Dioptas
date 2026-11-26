@@ -1594,23 +1594,21 @@ impl Engine {
                 ]);
                 (pixels, radial, azimuth)
             } else {
-                let pixels = plan.engine.integrate2d_with_azimuthal_range_from_slice(
+                let result = plan.engine.integrate2d_on_azimuthal_range_from_slice(
                     data,
                     shape[0],
                     shape[1],
                     o.bins,
                     o.cake_bins,
-                    -std::f64::consts::PI + std::f64::consts::PI / o.cake_bins as f64,
-                    std::f64::consts::TAU / o.cake_bins as f64,
-                );
-                (
-                    pixels,
-                    plan.default_cake_radial(o, p.wavelength),
-                    [
-                        -180.0 + 180.0 / o.cake_bins as f64,
-                        180.0 - 180.0 / o.cake_bins as f64,
-                    ],
-                )
+                    (-std::f64::consts::PI, std::f64::consts::PI),
+                    false,
+                )?;
+                let radial = [result.radial[0], *result.radial.last().unwrap()];
+                let azimuth = [
+                    result.azimuthal[0].to_degrees(),
+                    result.azimuthal.last().unwrap().to_degrees(),
+                ];
+                (result.intensity, radial, azimuth)
             }
         };
         let mut cake = Raster::image(&pixels, [o.cake_bins, o.bins]);
