@@ -41,6 +41,7 @@ pub fn install() -> Result<(), String> {
 }
 
 // Cocoa desktop coordinates are logical points with a bottom-left origin.
+#[cfg(any(target_os = "macos", test))]
 fn top_left(anchor: [f64; 4], size: [f64; 2], work: [f64; 4]) -> [f64; 2] {
     let gap = 8.0;
     let x = anchor[0].clamp(work[0] + gap, (work[2] - size[0] - gap).max(work[0] + gap));
@@ -63,7 +64,7 @@ fn top_left(anchor: [f64; 4], size: [f64; 2], work: [f64; 4]) -> [f64; 2] {
 mod platform {
     use super::top_left;
     use block2::RcBlock;
-    use objc2::{rc::Retained, runtime::ProtocolObject, MainThreadMarker};
+    use objc2::{MainThreadMarker, rc::Retained, runtime::ProtocolObject};
     use objc2_app_kit::{
         NSColorPanel, NSWindow, NSWindowDidBecomeKeyNotification, NSWindowDidUpdateNotification,
     };

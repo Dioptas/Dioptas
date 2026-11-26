@@ -1,13 +1,13 @@
 //! Presentation-only detector companion. No processor, decoding or integration
 //! lives here: immutable pixels are published once by the main webview.
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{
     collections::{HashMap, HashSet},
     sync::{Arc, Mutex},
 };
 use tauri::{
-    ipc::{InvokeBody, Request, Response},
     State,
+    ipc::{InvokeBody, Request, Response},
 };
 
 const MAX_HEADER: usize = 8 * 1024 * 1024;

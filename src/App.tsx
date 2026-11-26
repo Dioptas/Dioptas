@@ -71,11 +71,11 @@ import { HistoryControls } from "./HistoryControls";
 import { useGeometryDraft } from "./geometryDraft";
 import { useWorkflowNotice } from "./useWorkflowNotice";
 import { scientificValue } from "./ScientificNumberInput";
+import { AppFooter } from "./AppFooter";
+import { useWorkspaceShortcuts } from "./useWorkspaceShortcuts";
 import {
-  scientificHistoryCommand,
-  scientificHistoryAction,
   isScientificHistoryCommand,
-  canTraverseScientificHistory,
+  scientificHistoryAction,
 } from "./historyLabels";
 import {
   useIntegrationSettingsDraft,
@@ -103,7 +103,6 @@ import {
   FileImage,
   FolderOpen,
   Layers,
-  LoaderCircle,
   Plus,
   Save,
   Settings,
@@ -124,8 +123,6 @@ import {
   type PlotReading,
 } from "./plotReadout";
 import {
-  ReadingFields,
-  sourceLabel,
   patternReading,
   detectorReading,
   cakeReading,
@@ -1145,187 +1142,27 @@ export default function App() {
       clearInterval(timer);
     };
   }, [busy, quietBackgroundProcessing]);
-  useEffect(() => {
-    function keyboard(event: KeyboardEvent) {
-      const target =
-        event.target instanceof Element ? event.target : document.body;
-      if (settingsOpen) return;
-      if (
-        target.closest(
-          '[role="dialog"], dialog, [role="listbox"], [role="menu"]',
-        ) ||
-        ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName)
-      )
-        return;
-      // Native controls own their unmodified activation keys.
-      if (target.closest('[contenteditable="true"]')) return;
-      if (
-        !(event.metaKey || event.ctrlKey) &&
-        ["Enter", " "].includes(event.key) &&
-        target.closest('button, a, summary, [role="tab"]')
-      )
-        return;
-      if (event.defaultPrevented) return;
-      const key = event.key.toLowerCase(),
-        mod = event.metaKey || event.ctrlKey;
-      if (mode === "scxrd" && mod && ["s", "o", "z", "y"].includes(key)) {
-        event.preventDefault();
-        if (key === "s" || key === "o")
-          void run(
-            "scxrd_file",
-            { operation: key === "s" ? "save" : "open" },
-            key === "s"
-              ? "Saving single-crystal recipe…"
-              : "Opening single-crystal recipe…",
-          );
-        else if (!scxrdDraftDirty)
-          void run(
-            "scxrd_edit",
-            { operation: key === "y" || event.shiftKey ? "redo" : "undo" },
-            "Restoring single-crystal decision…",
-          );
-        else
-          setNotice(
-            "Apply or reset the single-crystal settings draft before Undo/Redo.",
-          );
-        return;
-      }
-      if (!mod && !event.altKey && event.shiftKey && key === "c") {
-        event.preventDefault();
-        if (!event.repeat)
-          changeConfigurationControls(!showConfigurationControls);
-      } else if (
-        !mod &&
-        !event.altKey &&
-        !event.shiftKey &&
-        ["PageUp", "PageDown"].includes(event.key) &&
-        (mode === "integration" || mode === "calibration") &&
-        currentState.current?.hasImage
-      ) {
-        event.preventDefault();
-        void run(
-          "next_image",
-          {
-            direction: event.key === "PageUp" ? -1 : 1,
-            step: mode === "integration" ? imageFileStep : 1,
-            files_only: true,
-          },
-          "Opening image…",
-        );
-      } else if (mod && key === "o") {
-        event.preventDefault();
-        void run(
-          "open_image",
-          mode === "integration"
-            ? {
-                multiple: true,
-                batch_mode:
-                  currentState.current?.integration.imageBatchMode ??
-                  "integrate",
-              }
-            : {},
-          "Opening image…",
-        );
-      } else if (mod && key === "s") {
-        event.preventDefault();
-        if (mode === "mask") void run("mask_file", { save: true }, "Saving…");
-        else void run("save_project", {}, "Saving…");
-      } else if (mod && key === "z") {
-        event.preventDefault();
-        if (
-          !canTraverseScientificHistory(
-            currentState.current,
-            event.shiftKey,
-            mode,
-          )
-        )
-          return;
-        void run(
-          scientificHistoryCommand(
-            scientificHistoryAction(currentState.current, mode, event.shiftKey),
-            event.shiftKey,
-          ),
-          {},
-          "Restoring previous state…",
-        );
-      } else if (mod && key === "y") {
-        event.preventDefault();
-        if (!canTraverseScientificHistory(currentState.current, true, mode))
-          return;
-        void run(
-          scientificHistoryCommand(
-            scientificHistoryAction(currentState.current, mode, true),
-            true,
-          ),
-          {},
-          "Restoring previous state…",
-        );
-      } else if (mode === "mask") {
-        if (mod) return;
-        if (key === "b") {
-          maskTools.setShape("point");
-          maskTools.setErase(false);
-        }
-        if (key === "e") {
-          maskTools.setShape("point");
-          maskTools.setErase(true);
-        }
-        if (key === "v") maskTools.setShape("navigate");
-        if (key === "f") {
-          plotViews.detector.current = null;
-          setResetKey((k) => k + 1);
-        }
-        return;
-      } else if (mod) return;
-      else if (key === "b" || key === "e") {
-        setMode("mask");
-        maskTools.setShape("point");
-        maskTools.setErase(key === "e");
-      } else if (key === "p" && canPick) {
-        setMode("calibration");
-        setPickingEnabled(true);
-      } else if (key === "f") {
-        if (mode === "map") {
-          mapPlotViews.detector.current = null;
-          setMapResetKey((k) => k + 1);
-        } else {
-          plotViews.detector.current = null;
-          setResetKey((k) => k + 1);
-        }
-      } else if (
-        (event.key === "Delete" || event.key === "Backspace") &&
-        mode === "calibration" &&
-        selectedPicks.length
-      ) {
-        event.preventDefault();
-        void run("remove_picks", { indices: selectedPicks });
-        setSelectedPicks([]);
-      } else if (
-        (mode === "integration" || mode === "calibration") &&
-        event.key === "Enter" &&
-        state?.hasImage &&
-        state.calibrated
-      )
-        void run("integrate", {}, "Integrating image and cake…");
-    }
-    window.addEventListener("keydown", keyboard);
-    return () => window.removeEventListener("keydown", keyboard);
-  }, [
+  useWorkspaceShortcuts({
     run,
-    state?.hasImage,
-    state?.calibrated,
-    state?.calibration.setupConfirmed,
-    setupDirty,
+    currentState,
     canPick,
     mode,
+    setMode,
+    setPickingEnabled,
     selectedPicks,
+    setSelectedPicks,
     maskTools,
+    plotViews,
+    mapPlotViews,
+    setResetKey,
+    setMapResetKey,
     settingsOpen,
     changeConfigurationControls,
     showConfigurationControls,
     scxrdDraftDirty,
+    setNotice,
     imageFileStep,
-  ]);
+  });
   const onPatternHover = useCallback(
     (point: PatternHover | null) => {
       reportPlot(
@@ -3643,138 +3480,33 @@ export default function App() {
             onClose={() => setFigureEditor(null)}
           />
         )}
-        <footer className="app-status">
-          <div className="plot-status">
-            <div className="plot-status-line">
-              <span
-                data-testid="mouse-readout"
-                className="plot-status-reading"
-                data-plot={mainPlotReading?.source}
-                data-pixel-x={mainPlotReading?.x}
-                data-pixel-row={mainPlotReading?.row}
-                title={mainPlotReading?.text}
-              >
-                {mainPlotReading ? (
-                  <ReadingFields reading={mainPlotReading} />
-                ) : mode === "scxrd" ? (
-                  (scxrd?.filename ?? "No rotation scan loaded")
-                ) : (
-                  (state?.imageName ?? "No image loaded")
-                )}
-              </span>
-            </div>
-            {!correctionPreview.map &&
-              !settingsOpen &&
-              (linkedClicks || mode === "map") && (
-                <div className="plot-status-line clicked-position">
-                  <span
-                    className="plot-status-kind"
-                    title="Last selected position. Click a detector or pattern to choose a point; move the pointer to inspect values."
-                  >
-                    Click
-                  </span>
-                  <span
-                    data-testid="click-readout"
-                    data-plot={clickedReading?.source}
-                    className="plot-status-reading"
-                    title={
-                      clickedReading
-                        ? `${sourceLabel(clickedReading.source)} · ${clickPositionReading?.fields?.map((f) => `${f.label} ${f.value}`).join(" · ") ?? clickedReading.text}`
-                        : "Click an image, cake or pattern to mark a linked position"
-                    }
-                  >
-                    {clickPositionReading ? (
-                      <ReadingFields reading={clickPositionReading} />
-                    ) : (
-                      "—"
-                    )}
-                  </span>
-                </div>
-              )}
-            {!settingsOpen && mode === "scxrd" && (
-              <div className="plot-status-line clicked-position">
-                <span
-                  className="plot-status-kind"
-                  title="Last selected detector position. It stays while you change frames; the reading is taken at the click."
-                >
-                  Click
-                </span>
-                <span
-                  data-testid="click-readout"
-                  data-plot={scxrdClick ? "detector" : undefined}
-                  className="plot-status-reading"
-                  title={
-                    scxrdClick?.text ?? "Click the image to mark a position"
-                  }
-                >
-                  {scxrdClick ? <ReadingFields reading={scxrdClick} /> : "—"}
-                </span>
-              </div>
-            )}
-          </div>
-          <div className="workflow-status">
-            {busy ? (
-              <LoaderCircle className="spin" size={13} />
-            ) : (
-              <span className="ready-dot" />
-            )}
-            <BackendStatusMessage
-              error={error}
-              message={statusMessage}
-              crystalFrames={scxrd?.frames ?? 0}
-              processing={!!busy || !!progress?.running}
-            />
-            {mode === "map" && map?.backgroundPending && ready && (
-              <Button
-                variant="secondary"
-                className="status-action"
-                onClick={() =>
-                  void run("map_refresh", {}, "Updating map background…")
-                }
-              >
-                Update map
-              </Button>
-            )}
-            {error && (
-              <Button
-                variant="secondary"
-                className="status-action"
-                aria-label="Dismiss error"
-                onClick={() => setError(null)}
-              >
-                ×
-              </Button>
-            )}
-            {maskSelection && (
-              <Button
-                variant="secondary"
-                className="status-action"
-                onClick={maskSelection.cancel}
-              >
-                Cancel selection
-              </Button>
-            )}
-            {progress?.running && (
-              <Button
-                variant="secondary"
-                className="status-action"
-                onClick={() => {
-                  void bridge.current?.("cancel_refinement");
-                }}
-              >
-                {mode === "scxrd"
-                  ? "Stop processing"
-                  : mode === "map"
-                    ? "Cancel map processing"
-                    : mode === "integration"
-                      ? "Cancel processing"
-                      : mode === "mask"
-                        ? "Cancel mask processing"
-                        : "Cancel refinement"}
-              </Button>
-            )}
-          </div>
-        </footer>
+        <AppFooter
+          mode={mode}
+          settingsOpen={settingsOpen}
+          correctionPreviewActive={Boolean(correctionPreview.map)}
+          linkedClicks={linkedClicks}
+          mainPlotReading={mainPlotReading}
+          clickedReading={clickedReading}
+          clickPositionReading={clickPositionReading}
+          scxrdClick={scxrdClick}
+          scxrdFilename={scxrd?.filename}
+          scxrdFrames={scxrd?.frames ?? 0}
+          imageName={state?.imageName}
+          busy={Boolean(busy)}
+          progressRunning={Boolean(progress?.running)}
+          error={error}
+          statusMessage={statusMessage}
+          mapBackgroundPending={Boolean(map?.backgroundPending)}
+          ready={ready}
+          onRefreshMap={() =>
+            void run("map_refresh", {}, "Updating map background…")
+          }
+          onDismissError={() => setError(null)}
+          onCancelMaskSelection={maskSelection?.cancel}
+          onCancelProcessing={() => {
+            void bridge.current?.("cancel_refinement");
+          }}
+        />
       </div>
     </div>
   );

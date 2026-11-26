@@ -54,7 +54,9 @@ mod tests {
 
     #[test]
     fn manual_links_stay_on_the_documented_origin() {
-        assert!(valid_manual_url("https://peritheos.readthedocs.io/en/latest/equation-reference/#variable-exponent-debye-temperature-law"));
+        assert!(valid_manual_url(
+            "https://peritheos.readthedocs.io/en/latest/equation-reference/#variable-exponent-debye-temperature-law"
+        ));
         for url in [
             "https://peritheos.readthedocs.io.example.org/en/latest/",
             "https://peritheos.readthedocs.io@other.example/en/latest/",

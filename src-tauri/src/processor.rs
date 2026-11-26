@@ -1,14 +1,15 @@
 use command_contract::{MAX_REQUEST_BYTES, REQUEST_SIZE_ERROR};
 pub use dioptas_contract::{command_contract, wire_contract};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{
     collections::HashMap,
     io::{BufReader, Read, Write},
     path::{Path, PathBuf},
     process::{Child, ChildStdin, Command, Stdio},
     sync::{
+        Arc, Mutex,
         atomic::{AtomicBool, AtomicU64, Ordering},
-        mpsc, Arc, Mutex,
+        mpsc,
     },
     thread,
     time::Duration,
@@ -248,12 +249,18 @@ impl Processor {
                         })
                     });
                 if !native.is_file() {
-                    return Err(format!("The native processor is missing at {}. Run npm run backend:prepare in desktop (add -- --release for a release host), then restart. Python was not started.", native.display()));
+                    return Err(format!(
+                        "The native processor is missing at {}. Run npm run backend:prepare in desktop (add -- --release for a release host), then restart. Python was not started.",
+                        native.display()
+                    ));
                 }
                 let mut command = Command::new(native);
                 if let Some(resources) = resources {
                     if !resources.join("RESOURCE_MANIFEST.json").is_file() {
-                        return Err(format!("Application resources are missing at {}. Rebuild or reinstall the complete application.", resources.display()));
+                        return Err(format!(
+                            "Application resources are missing at {}. Rebuild or reinstall the complete application.",
+                            resources.display()
+                        ));
                     }
                     command.arg("--resource-dir").arg(resources);
                 } else {
@@ -455,26 +462,32 @@ mod tests {
             .request("unported_legacy_command", json!({}))
             .unwrap();
         assert_eq!(unsupported["ok"], false);
-        assert!(unsupported["error"]
-            .as_str()
-            .unwrap()
-            .contains("not migrated"));
+        assert!(
+            unsupported["error"]
+                .as_str()
+                .unwrap()
+                .contains("not migrated")
+        );
         processor.shutdown();
     }
 
     #[test]
     fn chooser_payloads_allow_missing_paths_and_typed_cancellation_round_trips() {
         assert!(wire_contract::validate_payload("integration_flat_field", &json!({})).is_ok());
-        assert!(wire_contract::validate_payload(
-            "integration_transfer",
-            &json!({"source":"original","path":null})
-        )
-        .is_ok());
-        assert!(wire_contract::validate_payload(
-            "save_cake_profile",
-            &json!({"two_theta":10.,"bins":1,"shift":0.})
-        )
-        .is_ok());
+        assert!(
+            wire_contract::validate_payload(
+                "integration_transfer",
+                &json!({"source":"original","path":null})
+            )
+            .is_ok()
+        );
+        assert!(
+            wire_contract::validate_payload(
+                "save_cake_profile",
+                &json!({"two_theta":10.,"bins":1,"shift":0.})
+            )
+            .is_ok()
+        );
         let packet = Packet::cancelled();
         let result = packet.result_value().unwrap();
         assert_eq!(result, json!({"ok":true,"cancelled":true}));
@@ -503,13 +516,15 @@ mod tests {
             false
         );
         processor.shutdown();
-        assert!(processor
-            .child
-            .lock()
-            .unwrap()
-            .try_wait()
-            .unwrap()
-            .is_some());
+        assert!(
+            processor
+                .child
+                .lock()
+                .unwrap()
+                .try_wait()
+                .unwrap()
+                .is_some()
+        );
         assert!(processor.request("state", json!({})).is_err());
     }
 
@@ -551,13 +566,15 @@ mod tests {
         );
         assert_eq!(processor.request("state", json!({})).unwrap()["ok"], true);
         processor.shutdown();
-        assert!(processor
-            .child
-            .lock()
-            .unwrap()
-            .try_wait()
-            .unwrap()
-            .is_some());
+        assert!(
+            processor
+                .child
+                .lock()
+                .unwrap()
+                .try_wait()
+                .unwrap()
+                .is_some()
+        );
         assert!(processor.request("state", json!({})).is_err());
     }
 
@@ -605,9 +622,16 @@ mod tests {
         assert!(second["result"].get("batch").is_none());
         assert_eq!(second["products"], first["products"]);
         assert!(warm.bytes.len() < full.bytes.len());
-        assert!(processor
-            .request_packet_with_products("state", json!({}), vec![], Some(json!({"unknown":"id"})))
-            .is_err());
+        assert!(
+            processor
+                .request_packet_with_products(
+                    "state",
+                    json!({}),
+                    vec![],
+                    Some(json!({"unknown":"id"}))
+                )
+                .is_err()
+        );
         let legacy = processor
             .request_packet("batch_snapshot", json!({}), vec![])
             .unwrap();

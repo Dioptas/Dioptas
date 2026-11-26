@@ -80,8 +80,7 @@ impl ContourGraph {
             }
         }
     }
-    fn paths(mut self) -> serde_json::Value {
-        use serde_json::json;
+    fn paths(mut self) -> Vec<Vec<[f64; 2]>> {
         let mut paths = vec![];
         // Hash insertion avoids per-node tree and neighbor allocations. Sort
         // only start IDs to retain the exact legacy path and endpoint order.
@@ -122,10 +121,10 @@ impl ContourGraph {
                 }
             }
             if points.len() >= 2 {
-                paths.push(json!({"ring":0,"points":points}));
+                paths.push(points);
             }
         }
-        serde_json::Value::Array(paths)
+        paths
     }
 }
 #[cfg(any(feature = "dioptrin", test))]
@@ -183,7 +182,16 @@ impl IndexedField {
         }
     }
     pub fn contour(&self, target: f64) -> serde_json::Value {
-        contours(
+        use serde_json::json;
+        serde_json::Value::Array(
+            self.contour_paths(target)
+                .into_iter()
+                .map(|points| json!({"ring":0,"points":points}))
+                .collect(),
+        )
+    }
+    fn contour_paths(&self, target: f64) -> Vec<Vec<[f64; 2]>> {
+        contours_typed(
             &self.angles,
             self.shape,
             &[(0, target)],
@@ -191,11 +199,14 @@ impl IndexedField {
             Some(self),
             true,
         )
+        .into_iter()
+        .map(|(_, points)| points)
+        .collect()
     }
     /// Trace changed reflections from every phase together. Each sample cell is
     /// read once, and sorted target angles select only the levels it crosses.
     /// Graph insertion stays in row-major order, matching independent contours.
-    pub fn contours(&self, targets: &[f64]) -> Vec<serde_json::Value> {
+    pub fn contours(&self, targets: &[f64]) -> Vec<Vec<Vec<[f64; 2]>>> {
         let mut active: Vec<_> = targets
             .iter()
             .copied()
@@ -205,7 +216,7 @@ impl IndexedField {
         // A few moving lines benefit more from the existing strip lookup than
         // from walking the whole shared grid.
         if active.len() < 32 {
-            return targets.iter().map(|&t| self.contour(t)).collect();
+            return targets.iter().map(|&t| self.contour_paths(t)).collect();
         }
         active.sort_by(|a, b| a.1.total_cmp(&b.1));
         use rayon::prelude::*;
@@ -219,7 +230,7 @@ impl IndexedField {
                 .map(|levels| self.contour_band(levels))
                 .collect()
         });
-        let mut paths = vec![serde_json::Value::Array(vec![]); targets.len()];
+        let mut paths = vec![vec![]; targets.len()];
         for (i, value) in bands.into_iter().flatten() {
             paths[i] = value;
         }
@@ -228,7 +239,7 @@ impl IndexedField {
     // Narrow angle bands share cell samples and skip cached strips outside the
     // band's complete range. Each independent band runs within the selected
     // worker pool; its graph insertion remains exactly row-major.
-    fn contour_band(&self, levels: &[(usize, f64)]) -> Vec<(usize, serde_json::Value)> {
+    fn contour_band(&self, levels: &[(usize, f64)]) -> Vec<(usize, Vec<Vec<[f64; 2]>>)> {
         let mut graphs: Vec<_> = levels.iter().map(|_| ContourGraph::default()).collect();
         let [h, w] = self.shape;
         let low = levels[0].1;
@@ -283,6 +294,21 @@ fn contours(
     skip_empty: bool,
 ) -> serde_json::Value {
     use serde_json::json;
+    serde_json::Value::Array(
+        contours_typed(angles, shape, targets, step, index, skip_empty)
+            .into_iter()
+            .map(|(ring, points)| json!({"ring":ring,"points":points}))
+            .collect(),
+    )
+}
+fn contours_typed(
+    angles: &[f64],
+    shape: [usize; 2],
+    targets: &[(usize, f64)],
+    step: usize,
+    index: Option<&IndexedField>,
+    skip_empty: bool,
+) -> Vec<(usize, Vec<[f64; 2]>)> {
     use std::collections::{BTreeMap, BTreeSet};
     let [h, w] = shape;
     let coordinate_step = index.map_or(1, |i| i.coordinate_step);
@@ -290,7 +316,7 @@ fn contours(
     let cols: Vec<_> = (0..w).step_by(step).collect();
     let mut paths = vec![];
     if rows.len() < 2 || cols.len() < 2 {
-        return json!(paths);
+        return paths;
     }
     // Calibration previews already sample the field for display. Build bounds
     // on that exact sample grid once, then skip strips that cannot cross any
@@ -424,11 +450,11 @@ fn contours(
                 }
             }
             if points.len() >= 2 {
-                paths.push(json!({"ring":ring,"points":points}));
+                paths.push((ring, points));
             }
         }
     }
-    json!(paths)
+    paths
 }
 
 #[cfg(test)]
@@ -483,8 +509,14 @@ mod tests {
                         assert_eq!(parallel, actual, "Worker count must not change path data");
                     }
                     for (&target, paths) in targets.iter().zip(actual) {
+                        let as_json = serde_json::Value::Array(
+                            paths
+                                .into_iter()
+                                .map(|points| serde_json::json!({"ring":0,"points":points}))
+                                .collect(),
+                        );
                         assert_eq!(
-                            paths,
+                            as_json,
                             contours_at_step(&field, [h, w], &[(0, target)], step),
                             "shape {h}x{w}, step {step}, target {target}, special {special}"
                         );
@@ -496,7 +528,13 @@ mod tests {
         let index = IndexedField::new(field.clone(), [2, 2]);
         let targets = vec![0.5; 40];
         for paths in index.contours(&targets) {
-            assert_eq!(paths, contours_at_step(&field, [2, 2], &[(0, 0.5)], 1));
+            let as_json = serde_json::Value::Array(
+                paths
+                    .into_iter()
+                    .map(|points| serde_json::json!({"ring":0,"points":points}))
+                    .collect(),
+            );
+            assert_eq!(as_json, contours_at_step(&field, [2, 2], &[(0, 0.5)], 1));
         }
     }
     #[test]

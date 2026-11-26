@@ -1,6 +1,6 @@
 //! Native automatic recovery. No legacy ~/.Dioptas files are read or written.
 use crate::processor_reload::ProcessorHost;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{
     path::{Path, PathBuf},
     sync::{Arc, Condvar, Mutex},
@@ -284,9 +284,10 @@ mod tests {
             waiting.wait();
             tx.send(()).unwrap();
         });
-        assert!(rx
-            .recv_timeout(std::time::Duration::from_millis(30))
-            .is_err());
+        assert!(
+            rx.recv_timeout(std::time::Duration::from_millis(30))
+                .is_err()
+        );
         drop(admitted);
         rx.recv_timeout(std::time::Duration::from_secs(2)).unwrap();
     }
