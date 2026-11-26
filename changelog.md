@@ -1,3 +1,30 @@
+# 0.14.0-rc.4 (2026-11-26)
+
+Changes since 0.14.0-rc.3. See [the rc.4 release notes](docs/release/RELEASE_0.14.0-rc.4.md)
+for downloads and [the rc.3 release notes](docs/release/RELEASE_0.14.0-rc.3.md)
+for the previous candidate.
+
+## New
+
+- **GPU-accelerated integration (Metal and CUDA).** **Settings → Integration**
+  now offers compute backend and GPU precision controls (compensated float32,
+  float32, and double-precision float64 on CUDA) for 1D and 2D integration,
+  using Apple Metal on macOS and NVIDIA CUDA on Windows and Linux. Volta and
+  newer NVIDIA GPUs run from embedded precompiled PTX with only the NVIDIA
+  display driver installed (no CUDA Toolkit required); unsupported configurations
+  fall back to CPU automatically (#308).
+
+## Improvements
+
+- **Updated the processing engine to Dioptrin 0.16.0.** Default 2D `PixelSplit`
+  cakes now use the unified exact fractional-area `shared_grid` builder, and
+  non-contiguous/gapped detectors use per-pixel angular corners in 2D pixel
+  splitting so pixel quads no longer straddle module gaps.
+
+- **Host and session hardening.** Restored optional project checkpoints on
+  session errors, returned typed contours for phase guides, and aligned the
+  Tauri host crate to Rust 2024 with clippy checks enforced in CI (#310).
+
 # 0.14.0-rc.3 (2026-11-23)
 
 Changes since 0.14.0-rc.2. See [the rc.3 release notes](docs/release/RELEASE_0.14.0-rc.3.md)

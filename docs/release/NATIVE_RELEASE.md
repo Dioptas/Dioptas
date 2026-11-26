@@ -13,7 +13,7 @@ installed applications, is a separate manual workflow; see
 that version directly. `src-tauri/tauri.release.conf.json` overlays the stable
 native identity (`org.dioptas.desktop`), window title, platform icons and bundle
 metadata. The preview identity and legacy Qt identity remain separate, including
-their settings/WebKit storage. The current release candidate is `0.14.0-rc.3`. The early `0.1.0`
+their settings/WebKit storage. The current release candidate is `0.14.0-rc.4`. The early `0.1.0`
 artifacts below were packaging tests and are superseded for public distribution.
 
 The release overlay is shared with the [Windows installer pipeline](NATIVE_WINDOWS_RELEASE.md)
