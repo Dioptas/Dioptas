@@ -265,7 +265,12 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
         ),
         "detector_file" => ("Detector definition", &["h5", "hdf5", "nxs"], "", false),
         "distortion_file" => ("Distortion spline", &["spline"], "", false),
-        "open_calibrant" => ("Calibrant d spacings", &["D", "d"], "", false),
+        "open_calibrant" => (
+            "Calibrant files (.D, .cif)",
+            &["D", "d", "cif", "CIF"],
+            "",
+            false,
+        ),
         _ => return None,
     };
     let compressed = (extensions == DETECTOR_IMAGE_EXTENSIONS)

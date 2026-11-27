@@ -181,7 +181,7 @@ export function PatternView<U extends PlotUnit = Unit>({
   hoverHint?: string;
   linkedPosition?: number;
   activeRing?: number;
-  calibrantLines?: { x: number; ring: number }[];
+  calibrantLines?: { x: number; ring: number; intensity?: number }[];
   showNumbers?: boolean;
   overlayLegend?: { name: string; color: string }[];
   curves?: NonNullable<Pattern["curves"]>;
@@ -917,37 +917,170 @@ export function PatternView<U extends PlotUnit = Unit>({
         );
         curveContext.stroke();
       }
-      const ringLabelBoxes: { left: number; right: number; row: number }[] = [];
-      for (const reference of calibrantLines) {
+      const hasCalibrantIntensities = calibrantLines.some(
+        (reference) =>
+          typeof reference.intensity === "number" &&
+          Number.isFinite(reference.intensity),
+      );
+      const calibrantLineTops = hasCalibrantIntensities
+        ? scalePhaseLines(
+            pattern,
+            calibrantLines.map((reference) => ({
+              x: reference.x,
+              intensity: reference.intensity ?? 0,
+              name: "calibrant",
+              color: "#ff4040",
+              hkl: [],
+            })),
+            navigation.view,
+            (y) => (log && y <= 0 ? NaN : transform(y)),
+          )
+        : null;
+      const pendingLabels: {
+        ring: number;
+        x: number;
+        lineTop: number;
+        intensity: number;
+      }[] = [];
+      for (const [index, reference] of calibrantLines.entries()) {
         const x = left + ((reference.x - xmin) / (xmax - xmin)) * w;
         if (x < left || x > left + w) continue;
         const active = reference.ring === activeRing;
         curveContext.strokeStyle = active ? "#ff4040d9" : "#ff4040b3";
-        curveContext.lineWidth = active ? 2.2 : 1;
+        curveContext.lineWidth = active ? 2.2 : 1.3;
+        const lineTop = calibrantLineTops
+          ? Math.max(
+              top,
+              Math.min(
+                top + h,
+                top + h - ((calibrantLineTops[index] - ymin) / yspan) * h,
+              ),
+            )
+          : top;
         curveContext.beginPath();
-        curveContext.moveTo(x, top);
-        curveContext.lineTo(x, top + h);
+        curveContext.moveTo(x, top + h);
+        curveContext.lineTo(x, lineTop);
         curveContext.stroke();
         if (showNumbers) {
-          curveContext.fillStyle = "#ff4040";
-          const text = String(reference.ring),
+          pendingLabels.push({
+            ring: reference.ring,
+            x,
+            lineTop,
+            intensity: reference.intensity ?? 1,
+          });
+        }
+      }
+      if (showNumbers && pendingLabels.length) {
+        if (calibrantLineTops) {
+          // Label strongest peaks first so crowded weak rings drop cleanly.
+          pendingLabels.sort(
+            (a, b) => b.intensity - a.intensity || a.ring - b.ring,
+          );
+        }
+        const labelHeight = 13;
+        const placed: {
+          left: number;
+          right: number;
+          top: number;
+          bottom: number;
+        }[] = [];
+        const curveCeiling = (bx0: number, bx1: number) => {
+          const x0 = xmin + ((bx0 - 2 - left) / w) * (xmax - xmin);
+          const x1 = xmin + ((bx1 + 2 - left) / w) * (xmax - xmin);
+          const [start, end] = visibleSamples(
+            pattern.x,
+            Math.min(x0, x1),
+            Math.max(x0, x1),
+            false,
+          );
+          let highestY = top + h;
+          for (let i = start; i < end; i++) {
+            const y = pattern.y[i];
+            if (y == null || !Number.isFinite(y) || (log && y <= 0)) continue;
+            const ty = transform(y);
+            if (!Number.isFinite(ty)) continue;
+            const py = top + h - ((ty - ymin) / yspan) * h;
+            if (py < highestY) highestY = py;
+          }
+          return highestY;
+        };
+        const hitsCurve = (
+          bx0: number,
+          bx1: number,
+          by0: number,
+          by1: number,
+        ) => {
+          const x0 = xmin + ((bx0 - 2 - left) / w) * (xmax - xmin);
+          const x1 = xmin + ((bx1 + 2 - left) / w) * (xmax - xmin);
+          const [start, end] = visibleSamples(
+            pattern.x,
+            Math.min(x0, x1),
+            Math.max(x0, x1),
+            false,
+          );
+          for (let i = start; i < end; i++) {
+            const y = pattern.y[i];
+            if (y == null || !Number.isFinite(y) || (log && y <= 0)) continue;
+            const ty = transform(y);
+            if (!Number.isFinite(ty)) continue;
+            const py = top + h - ((ty - ymin) / yspan) * h;
+            if (py >= by0 - 2 && py <= by1 + 2) return true;
+          }
+          return false;
+        };
+        curveContext.fillStyle = "#ff4040";
+        for (const item of pendingLabels) {
+          const text = String(item.ring),
             width = curveContext.measureText(text).width;
-          const labelX = Math.max(
-            left + 2,
-            Math.min(x + 4, left + w - width - 2),
-          );
-          const row = Array.from({ length: 4 }, (_, i) => i).find(
-            (row) =>
-              !ringLabelBoxes.some(
-                (box) =>
-                  box.row === row &&
-                  labelX < box.right + 5 &&
-                  labelX + width > box.left - 5,
-              ),
-          );
-          if (row !== undefined) {
-            ringLabelBoxes.push({ left: labelX, right: labelX + width, row });
-            curveContext.fillText(text, labelX, top + 14 + row * 16);
+          const candidateXs = calibrantLineTops
+            ? [item.x + 5, item.x - width - 5]
+            : [item.x + 4];
+          let chosen: {
+            left: number;
+            right: number;
+            top: number;
+            bottom: number;
+          } | null = null;
+          for (const rawX of candidateXs) {
+            const labelX = Math.max(
+              left + 2,
+              Math.min(rawX, left + w - width - 2),
+            );
+            const preferredY = calibrantLineTops
+              ? Math.min(
+                  item.lineTop - 7,
+                  curveCeiling(labelX, labelX + width) - 5,
+                )
+              : top + labelHeight + 1;
+            const baselineY = Math.max(
+              top + labelHeight,
+              Math.min(preferredY, top + h - 4),
+            );
+            const box = {
+              left: labelX,
+              right: labelX + width,
+              top: baselineY - labelHeight,
+              bottom: baselineY,
+            };
+            const overlapsLabel = placed.some(
+              (other) =>
+                box.left < other.right + 5 &&
+                box.right > other.left - 5 &&
+                box.top < other.bottom + 2 &&
+                box.bottom > other.top - 2,
+            );
+            if (
+              !overlapsLabel &&
+              (!calibrantLineTops ||
+                !hitsCurve(box.left, box.right, box.top, box.bottom))
+            ) {
+              chosen = box;
+              break;
+            }
+          }
+          if (chosen) {
+            placed.push(chosen);
+            curveContext.fillText(text, chosen.left, chosen.bottom);
           }
         }
       }

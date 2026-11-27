@@ -75,7 +75,6 @@ export async function prepareStandaloneResources(target) {
     ["vendor/HDF5_WINDOWS_ABI.md", "licenses/hdf5/HDF5_WINDOWS_ABI.md"],
     ["standalone/README.html", "README.html"],
     ["backend/resources", "scientific-data"],
-    ["resources/calibrants", "calibrants"],
     ["resources/data", "reference-data"],
     ["tests/data/CeO2_Pilatus1M.tif", "examples/CeO2_Pilatus1M.tif"],
     ["tests/data/CeO2_Pilatus1M.poni", "examples/CeO2_Pilatus1M.poni"],

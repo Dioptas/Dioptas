@@ -61,12 +61,9 @@ fn fixture() -> Fixture {
     let temp = tempfile::tempdir().unwrap();
     let image = temp.path().join("rings.npy");
     let peaks = temp.path().join("peaks.json");
-    let text = fs::read_to_string(root().join("resources/calibrants/CeO2.D")).unwrap();
-    let spacings: Vec<f64> = text
-        .lines()
-        .filter_map(|l| l.split('#').next().unwrap().split_whitespace().next())
-        .map(|v| v.parse().unwrap())
-        .collect();
+    let spacings = dioptrin::calibration::Calibrant::builtin("CeO2")
+        .unwrap()
+        .d_spacings;
     let mut data = vec![5.0_f64; 256 * 256];
     let mut groups = vec![];
     for (ring, &d) in spacings.iter().take(5).enumerate() {
@@ -1205,4 +1202,85 @@ fn automatic_massif_refinement_handles_circular_zero_corner_detector_and_free_wa
             < 0.05
     );
     assert_eq!(pe_fit["state"]["geometry"]["rot3"], 0.0);
+}
+
+#[test]
+fn builtin_calibrant_intensities_and_cif_calibrant_loading_work() {
+    let mut s = Session::new(root());
+    // Default LaB6 has PhaseSmith-computed reflection intensities and phase-style lineWidth/opacity.
+    let lab6_rings = state(&mut s)["calibration"]["rings"]
+        .as_array()
+        .unwrap()
+        .clone();
+    assert!(!lab6_rings.is_empty());
+    assert!(lab6_rings[0]["intensity"].as_f64().is_some());
+    assert!(lab6_rings[0]["lineWidth"].as_f64().unwrap() >= 1.0);
+    assert!(lab6_rings[0]["opacity"].as_f64().unwrap() >= 0.3);
+    let lab6_lines = state(&mut s)["calibration"]["referenceLines"]
+        .as_array()
+        .unwrap()
+        .clone();
+    assert!(lab6_lines[0]["intensity"].as_f64().is_some());
+
+    // Built-in CeO2 extends beyond the 41 spacings in CeO2.D down to 0.35 Å via PhaseSmith.
+    call(&mut s, "calibration_setup", json!({"calibrant": "CeO2"}));
+    let ceo2_rings = state(&mut s)["calibration"]["rings"]
+        .as_array()
+        .unwrap()
+        .clone();
+    assert!(
+        ceo2_rings.len() > 100,
+        "expected >100 CeO2 rings via PhaseSmith extension, got {}",
+        ceo2_rings.len()
+    );
+
+    // Organic .D-only calibrant (AgBh) has no built-in crystal structure -> uniform lines.
+    call(&mut s, "calibration_setup", json!({"calibrant": "AgBh"}));
+    let agbh_rings = state(&mut s)["calibration"]["rings"]
+        .as_array()
+        .unwrap()
+        .clone();
+    assert!(!agbh_rings.is_empty());
+    assert!(agbh_rings[0].get("intensity").is_none());
+    assert!(agbh_rings[0].get("lineWidth").is_none());
+
+    // Loading a .cif file as a custom calibrant computes d-spacings and intensities via PhaseSmith.
+    let temp = tempfile::tempdir().unwrap();
+    let cif_path = temp.path().join("ceo2_test.cif");
+    fs::write(
+        &cif_path,
+        r#"data_CeO2
+_cell_length_a 5.411651
+_cell_length_b 5.411651
+_cell_length_c 5.411651
+_cell_angle_alpha 90
+_cell_angle_beta 90
+_cell_angle_gamma 90
+_space_group_name_H-M_alt 'F m -3 m'
+_space_group_IT_number 225
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_occupancy
+Ce1 Ce 0 0 0 1
+O1 O 0.25 0.25 0.25 1
+"#,
+    )
+    .unwrap();
+    let loaded = call(&mut s, "open_calibrant", json!({"path": &cif_path}));
+    assert_eq!(
+        loaded["state"]["calibration"]["calibrant"],
+        "ceo2_test (custom)"
+    );
+    let cif_rings = loaded["state"]["calibration"]["rings"].as_array().unwrap();
+    assert!(cif_rings.len() >= 10);
+    assert!(cif_rings[0]["intensity"].as_f64().unwrap() > 0.0);
+    assert!(cif_rings[0]["lineWidth"].as_f64().unwrap() > 1.0);
+    let cif_lines = loaded["state"]["calibration"]["referenceLines"]
+        .as_array()
+        .unwrap();
+    assert!(cif_lines[0]["intensity"].as_f64().unwrap() > 0.0);
 }
