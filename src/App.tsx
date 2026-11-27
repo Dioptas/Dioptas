@@ -1791,6 +1791,24 @@ export default function App() {
       fitDraft.parameters.wavelength?.value > 0 &&
       Number.isFinite(fitDraft.polarization) &&
       Math.abs(fitDraft.polarization) <= 1);
+  const autoCalibrateReady =
+    ready &&
+    !!state?.hasImage &&
+    !setupDirty &&
+    !advancedDirty &&
+    !geometryDirty &&
+    validFitDraft;
+  const autoCalibrateBlocker = !state?.hasImage
+    ? "Open a calibrant image first."
+    : geometryDirty
+      ? "Apply geometry changes on Validate before auto-calibrating."
+      : setupDirty
+        ? "Finish entering valid detector pixel sizes on Image."
+        : advancedDirty
+          ? "Finish entering valid refinement options."
+          : !validFitDraft
+            ? "Enter valid fit parameters."
+            : "";
   const fitReady =
     ready &&
     (!!fitDraft || !!state?.calibration.setupConfirmed) &&
@@ -3264,6 +3282,21 @@ export default function App() {
                             Apply geometry
                           </Button>
                         )}
+                        <Button
+                          variant="secondary"
+                          className="auto-calibrate-button"
+                          title={`Automatically calibrate from the image using the calibrant, wavelength, pixel sizes, and starting distance (no manual peak picking required).${!autoCalibrateReady && autoCalibrateBlocker ? ` ${autoCalibrateBlocker}` : ""}`}
+                          disabled={!autoCalibrateReady}
+                          onClick={() =>
+                            run(
+                              "auto_calibrate",
+                              fitDraft ?? {},
+                              "Auto-calibrating detector geometry…",
+                            )
+                          }
+                        >
+                          Auto-calibrate
+                        </Button>
                         <Button
                           variant="primary"
                           className="fit-button"

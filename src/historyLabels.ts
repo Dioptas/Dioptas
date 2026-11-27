@@ -10,6 +10,7 @@ const peakEdits = new Set([
 ]);
 const geometryEdits = new Set([
   "calibrate",
+  "auto_calibrate",
   "manual_geometry",
   "open_calibration",
   "calibration_setup",

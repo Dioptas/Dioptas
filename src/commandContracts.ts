@@ -199,6 +199,14 @@ export interface CommandContracts {
     },
     WorkspaceDelta
   >;
+  auto_calibrate: Spec<
+    {
+      parameters?: P.FitParameters;
+      polarization?: number;
+      use_start_distance?: boolean;
+    },
+    WorkspaceDelta
+  >;
   pick_peak: Spec<NativePayloadContracts["pick_peak"], WorkspaceDelta>;
   remove_pick: Spec<{ index: number }, WorkspaceDelta>;
   remove_picks: Spec<{ indices: number[] }, WorkspaceDelta>;

@@ -901,3 +901,75 @@ fn recorded_rotation_on_a_non_square_image_rotates_instead_of_refusing() {
         );
     }
 }
+
+#[cfg(feature = "dioptrin")]
+#[test]
+fn auto_calibrate_recovers_ceo2_and_lab6_without_manual_picks_and_supports_undo() {
+    // 1. CeO2_Pilatus1M via the raw example setup (zero picked peaks).
+    let mut s = Session::new(root());
+    call(&mut s, "example", json!({}));
+    assert_eq!(state(&mut s)["calibrated"], false);
+    assert!(
+        state(&mut s)["calibration"]["picks"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+
+    let reply = call(&mut s, "auto_calibrate", json!({}));
+    assert_eq!(reply["state"]["calibrated"], true);
+    let dist_mm = reply["state"]["geometry"]["dist"].as_f64().unwrap() * 1000.0;
+    assert!(
+        (dist_mm - 208.65).abs() < 1.0,
+        "CeO2_Pilatus1M distance mismatch: {dist_mm} mm"
+    );
+    assert!(
+        reply["state"]["calibration"]["rmsDegrees"]
+            .as_f64()
+            .unwrap()
+            < 0.05
+    );
+    assert!(!reply["rings"].as_array().unwrap().is_empty());
+    assert!(reply["pattern"]["x"].as_array().unwrap().len() > 100);
+
+    // Undo restores the uncalibrated state; redo restores the auto-calibrated geometry.
+    call(&mut s, "undo_calibration", json!({}));
+    assert_eq!(state(&mut s)["calibrated"], false);
+    call(&mut s, "redo_calibration", json!({}));
+    assert_eq!(state(&mut s)["calibrated"], true);
+
+    // 2. LaB6_40keV_MarCCD with zero manual picks.
+    let mut s2 = Session::new(root());
+    call(
+        &mut s2,
+        "open_image",
+        json!({"path": root().join("tests/data/LaB6_40keV_MarCCD.tif")}),
+    );
+    call(
+        &mut s2,
+        "calibration_setup",
+        json!({"calibrant": "LaB6", "pixel_x": 79.0, "pixel_y": 79.0}),
+    );
+    let reply2 = call(
+        &mut s2,
+        "auto_calibrate",
+        json!({
+            "parameters": {
+                "dist": {"value": 200.0, "refine": true},
+                "wavelength": {"value": 0.31, "refine": false}
+            }
+        }),
+    );
+    assert_eq!(reply2["state"]["calibrated"], true);
+    let dist2_mm = reply2["state"]["geometry"]["dist"].as_f64().unwrap() * 1000.0;
+    assert!(
+        (dist2_mm - 196.7).abs() < 1.0,
+        "LaB6_40keV_MarCCD distance mismatch: {dist2_mm} mm"
+    );
+    assert!(
+        reply2["state"]["calibration"]["rmsDegrees"]
+            .as_f64()
+            .unwrap()
+            < 0.05
+    );
+}

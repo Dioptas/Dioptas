@@ -143,6 +143,34 @@ for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
     await page.reload();
     await page.getByTestId("detector-canvas").waitFor();
     await ready();
+    await page
+      .getByRole("tab", { name: "Step 3: Calibrate", exact: true })
+      .click();
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Calibrate", exact: true })
+        .isDisabled(),
+      true,
+    );
+    await page
+      .getByRole("button", { name: "Auto-calibrate", exact: true })
+      .click();
+    await ready();
+    let autoSnapshot = await native.invoke("state");
+    assert.equal(autoSnapshot.state.calibrated, true);
+    assert.ok(autoSnapshot.state.calibration.rmsDegrees < 0.05);
+    assert.ok(autoSnapshot.rings.length > 0);
+    assert.equal(
+      await page
+        .getByRole("tab", { name: "Step 4: Validate", exact: true })
+        .getAttribute("aria-selected"),
+      "true",
+    );
+    assert.equal((await native.invoke("undo_calibration")).ok, true);
+    await page.reload();
+    await page.getByTestId("detector-canvas").waitFor();
+    await ready();
+    assert.equal((await native.invoke("state")).state.calibrated, false);
     const seeds = [
       [637, 564, 1],
       [671, 511, 2],

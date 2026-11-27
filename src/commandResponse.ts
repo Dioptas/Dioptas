@@ -59,8 +59,10 @@ export function commandCompletion(
     }
     if (command === "manual_geometry")
       effects.push({ kind: "draft", target: "geometry", state });
-    if (command === "calibrate")
+    if (command === "calibrate" || command === "auto_calibrate") {
       effects.push({ kind: "draft", target: "fit", state });
+      effects.push({ kind: "draft", target: "geometry", state });
+    }
   }
   if (command === "save_project" && result.savedPath && pendingDrafts)
     notice(
@@ -100,7 +102,9 @@ export function commandCompletion(
     effects.push({ kind: "clear-picks" });
   if (
     !result.cancelled &&
-    ["calibrate", "manual_geometry", "open_calibration"].includes(command)
+    ["calibrate", "auto_calibrate", "manual_geometry", "open_calibration"].includes(
+      command,
+    )
   )
     effects.push({
       kind: "calibration-step",

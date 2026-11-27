@@ -26,6 +26,7 @@ pub fn execution(action: &str) -> CommandExecution {
         | "scxrd_settings"
         | "scxrd_file"
         | "calibrate"
+        | "auto_calibrate"
         | "pick_peak"
         | "calibration_setup"
         | "image_transform"
