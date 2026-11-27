@@ -1025,6 +1025,13 @@ fn auto_calibrate_recovers_ceo2_and_lab6_without_manual_picks_and_supports_undo(
             < 0.05
     );
     assert!(!reply["rings"].as_array().unwrap().is_empty());
+    assert!(
+        !reply["state"]["calibration"]["picks"]
+            .as_array()
+            .unwrap()
+            .is_empty(),
+        "auto_calibrate should populate matched ring peaks"
+    );
     assert!(reply["pattern"]["x"].as_array().unwrap().len() > 100);
 
     // Undo restores the uncalibrated state; redo restores the auto-calibrated geometry.
@@ -1033,7 +1040,24 @@ fn auto_calibrate_recovers_ceo2_and_lab6_without_manual_picks_and_supports_undo(
     call(&mut s, "redo_calibration", json!({}));
     assert_eq!(state(&mut s)["calibrated"], true);
 
-    // 2. LaB6_40keV_MarCCD with zero manual picks.
+    // 2. Non-converging auto-calibration returns a graceful notice without mutating state.
+    let blank_dir = tempfile::tempdir().unwrap();
+    let blank_path = blank_dir.path().join("blank.npy");
+    npy(&blank_path, [64, 64], &[0.0; 64 * 64]);
+    let mut s_blank = Session::new(root());
+    call(&mut s_blank, "open_image", json!({"path": &blank_path}));
+    let before_blank = state(&mut s_blank);
+    let missed = call(&mut s_blank, "auto_calibrate", json!({}));
+    assert_eq!(missed["autoCalibrateFailed"], true);
+    assert!(
+        missed["autoCalibrateNotice"]
+            .as_str()
+            .unwrap()
+            .contains("Check wavelength, calibrant, and pixel sizes")
+    );
+    assert_eq!(state(&mut s_blank), before_blank);
+
+    // 3. LaB6_40keV_MarCCD with zero manual picks.
     let mut s2 = Session::new(root());
     call(
         &mut s2,

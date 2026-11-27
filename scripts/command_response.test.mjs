@@ -285,6 +285,18 @@ test("notice precedence, pending drafts and history cancellation retain existing
       { kind: "clear-picks" },
     ],
   );
+  assert.deepEqual(
+    commandCompletion(
+      "auto_calibrate",
+      {},
+      {
+        ok: true,
+        autoCalibrateFailed: true,
+        autoCalibrateNotice: "Auto-calibration could not match the rings.",
+      },
+    ),
+    [{ kind: "notice", message: "Auto-calibration could not match the rings." }],
+  );
 });
 
 // Failure classification belongs to the transaction, even when the application
