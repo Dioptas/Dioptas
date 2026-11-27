@@ -311,6 +311,7 @@ pub(super) fn is_command(action: &str) -> bool {
             | "clear_peaks"
             | "reassign_pick"
             | "calibrate"
+            | "auto_calibrate"
             | "undo_calibration"
             | "redo_calibration"
             | "open_calibrant"
@@ -845,6 +846,9 @@ impl Session {
             "calibrate" => {
                 self.fit_transaction(args, defer)?;
             }
+            "auto_calibrate" => {
+                self.auto_calibrate_transaction(args, defer)?;
+            }
             _ => unreachable!(),
         }
         Ok(json!({}))
@@ -871,6 +875,10 @@ impl Session {
     #[cfg(not(feature = "dioptrin"))]
     fn fit_transaction(&mut self, _args: &Value, _defer: bool) -> Result<(), String> {
         Err("Calibration fitting requires a compiled native engine; build with --features dioptrin. No Python fallback was used.".into())
+    }
+    #[cfg(not(feature = "dioptrin"))]
+    fn auto_calibrate_transaction(&mut self, _args: &Value, _defer: bool) -> Result<(), String> {
+        Err("Automatic calibration requires a compiled native engine; build with --features dioptrin. No Python fallback was used.".into())
     }
 }
 

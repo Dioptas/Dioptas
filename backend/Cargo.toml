@@ -16,7 +16,7 @@ dioptrin = []
 [dependencies]
 dioptas-contract = { path = "../contract" }
 dioptrin-io = { git = "https://github.com/CPrescher/dioptrin-io", tag = "v0.4.3", features = ["wrappers", "hdf5", "containers", "bruker", "oxford", "raxis", "fixed", "fit2d", "kcd", "mpa", "esperanto", "mar345", "xsd"] }
-dioptrin = { git = "https://github.com/CPrescher/Dioptrin", tag = "v0.16.0", default-features = false }
+dioptrin = { git = "https://github.com/CPrescher/Dioptrin", tag = "v0.17.0", default-features = false }
 half = "2"
 serde = { version = "1", features = ["derive", "rc"] }
 # Preserve the established ordering of plugin controls in embedded schemas.
@@ -51,10 +51,10 @@ xraydb = { version = "=0.4.1", default-features = false }
 sha2 = { version = "0.10", features = ["asm"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-dioptrin = { git = "https://github.com/CPrescher/Dioptrin", tag = "v0.16.0", default-features = false, features = ["metal"] }
+dioptrin = { git = "https://github.com/CPrescher/Dioptrin", tag = "v0.17.0", default-features = false, features = ["metal"] }
 
 [target.'cfg(any(target_os = "windows", target_os = "linux"))'.dependencies]
-dioptrin = { git = "https://github.com/CPrescher/Dioptrin", tag = "v0.16.0", default-features = false, features = ["cuda"] }
+dioptrin = { git = "https://github.com/CPrescher/Dioptrin", tag = "v0.17.0", default-features = false, features = ["cuda"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

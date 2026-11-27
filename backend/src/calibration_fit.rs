@@ -2,8 +2,9 @@ use super::*;
 use crate::control::Control;
 use dioptrin::{
     calibration::{
-        Calibrant, CalibrationOptions, CalibrationPoints, MassifOptions, ParamMask, PreparedMassif,
-        RingCenterOptions,
+        AutoCalibrateError, AutoCalibrateImageOptions, Calibrant, CalibrationOptions,
+        CalibrationPoints, MassifOptions, ParamMask, PreparedMassif, RingCenterOptions,
+        auto_calibrate_image_with_mask,
     },
     geometry::Geometry as NativeGeometry,
 };
@@ -526,6 +527,212 @@ impl Session {
         }
         // Retain the preceding products by ownership, without cloning detector
         // pixels. Cancellation after integration restores both model and display.
+        let previous = (
+            self.pattern.take(),
+            self.cake.take(),
+            self.cake_values.take(),
+            self.elapsed_ms,
+            self.sigma.take(),
+            self.plugins.clone(),
+            self.effective_mask.clone(),
+            self.mask_raster.clone(),
+        );
+        self.restore_calibration(candidate)?;
+        let result = self.calculate(defer).and_then(|_| control.check());
+        if result.is_ok() {
+            *self.ring_cache.borrow_mut() = ring_cache.into_inner();
+        }
+        if result.is_err() {
+            (
+                self.pattern,
+                self.cake,
+                self.cake_values,
+                self.elapsed_ms,
+                self.sigma,
+                self.plugins,
+                self.effective_mask,
+                self.mask_raster,
+            ) = previous;
+        }
+        control.finish();
+        result
+    }
+    pub(super) fn auto_calibrate_transaction(
+        &mut self,
+        args: &Value,
+        defer: bool,
+    ) -> Result<(), String> {
+        check_keys(
+            args,
+            &[
+                "parameters",
+                "polarization",
+                "use_start_distance",
+                "defer_integration",
+            ],
+        )?;
+        let image = self.image.as_ref().ok_or("Open a calibrant image first.")?;
+        let shape = image.shape;
+        let mut candidate = self.calibration_snapshot();
+        if let Some(parameters) = args.get("parameters") {
+            candidate.data.fit_parameters(
+                parameters,
+                &mut candidate.polarization,
+                args.get("polarization"),
+            )?;
+        }
+        let use_start_distance = args
+            .get("use_start_distance")
+            .map(|v| boolean(v, "Use starting distance"))
+            .transpose()?
+            .unwrap_or(true);
+
+        let pixel1 = candidate.geometry.pixel1;
+        let pixel2 = candidate.geometry.pixel2;
+        let wavelength = candidate.data.start[6];
+        if !pixel1.is_finite() || pixel1 <= 0.0 || !pixel2.is_finite() || pixel2 <= 0.0 {
+            return Err("Enter valid detector pixel sizes before auto-calibrating.".into());
+        }
+        if !wavelength.is_finite() || wavelength <= 0.0 {
+            return Err("Enter a valid wavelength before auto-calibrating.".into());
+        }
+
+        let free = candidate.data.free;
+        let refine_mask = ParamMask {
+            distance: free[0],
+            poni1: free[1],
+            poni2: free[2],
+            rot1: free[3],
+            rot2: free[4],
+            rot3: free[5],
+            wavelength: free[6],
+        };
+        let starting_distance = (use_start_distance
+            && candidate.data.start[0].is_finite()
+            && candidate.data.start[0] > 0.0)
+            .then_some(candidate.data.start[0]);
+
+        let reference = Calibrant::from_d_spacings(
+            &candidate.data.reference.name,
+            candidate.data.reference.spacings.clone(),
+        );
+        let data = self.scientific_values();
+        let mask_bool: Option<Vec<bool>> = self
+            .settings
+            .use_mask
+            .then(|| self.effective_mask.iter().map(|&v| v != 0).collect());
+
+        let control = self.control.clone();
+        let ring_cache = RefCell::new(None);
+        let publish = |candidate: &Snapshot, current, total, label: &str, ring| {
+            publish(
+                &control,
+                candidate,
+                shape,
+                &ring_cache,
+                (current, total, label, ring),
+            )
+        };
+
+        let outcome = (|| {
+            control.check()?;
+            publish(&candidate, 0, 1, "Auto-calibrating detector geometry", None);
+            let opts = AutoCalibrateImageOptions {
+                starting_distance,
+                refine_mask,
+                ..Default::default()
+            };
+            let fitted = crate::worker_pool::install(|| {
+                let first = auto_calibrate_image_with_mask(
+                    &data,
+                    shape[0],
+                    shape[1],
+                    mask_bool.as_deref(),
+                    &reference,
+                    wavelength,
+                    pixel1,
+                    pixel2,
+                    &opts,
+                );
+                // If a starting distance hint missed (e.g. default 200 mm left on a
+                // 500 mm setup) and distance is free, retry blind before failing.
+                if control.check().is_ok()
+                    && matches!(first, Err(AutoCalibrateError::NoConfidentIdentity))
+                    && opts.starting_distance.is_some()
+                    && opts.refine_mask.distance
+                {
+                    let blind_opts = AutoCalibrateImageOptions {
+                        starting_distance: None,
+                        ..opts.clone()
+                    };
+                    auto_calibrate_image_with_mask(
+                        &data,
+                        shape[0],
+                        shape[1],
+                        mask_bool.as_deref(),
+                        &reference,
+                        wavelength,
+                        pixel1,
+                        pixel2,
+                        &blind_opts,
+                    )
+                } else {
+                    first
+                }
+            })
+            .map_err(|e| {
+                format!(
+                    "Auto-calibration failed: {e}. Check calibrant, wavelength, and pixel sizes, or pick peaks manually."
+                )
+            })?;
+            control.check()?;
+
+            let (result, _diag) = fitted;
+            let p = result.poni;
+            candidate.geometry = Geometry {
+                dist: p.distance,
+                poni1: p.poni1,
+                poni2: p.poni2,
+                rot1: p.rot1,
+                rot2: p.rot2,
+                rot3: p.rot3,
+                pixel1: p.pixel1,
+                pixel2: p.pixel2,
+                wavelength: p.wavelength,
+                ..candidate.geometry.clone()
+            };
+            candidate.geometry.validate()?;
+            if !result.rms_rad.is_finite() {
+                return Err(
+                    "Auto-calibration produced a nonfinite residual; previous geometry restored."
+                        .into(),
+                );
+            }
+            candidate.calibrated = true;
+            candidate.name = Some("current".into());
+            candidate.data.confirmed = true;
+            candidate.data.rms = Some(result.rms_rad.to_degrees());
+            candidate.data.source = "fitted".into();
+            candidate.data.reference_chosen = true;
+            candidate.data.reference_wavelength = candidate.geometry.wavelength;
+            candidate.data.saved = false;
+            candidate.data.dirty = false;
+            candidate.data.start = [
+                candidate.geometry.dist,
+                candidate.geometry.poni1,
+                candidate.geometry.poni2,
+                candidate.geometry.rot1,
+                candidate.geometry.rot2,
+                candidate.geometry.rot3,
+                candidate.geometry.wavelength,
+            ];
+            publish(&candidate, 1, 1, "Integrating calibrated image", None);
+            Ok(())
+        })();
+        if let Err(error) = outcome {
+            control.finish();
+            return Err(error);
+        }
         let previous = (
             self.pattern.take(),
             self.cake.take(),
