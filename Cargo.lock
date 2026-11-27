@@ -817,8 +817,8 @@ dependencies = [
 
 [[package]]
 name = "dioptrin"
-version = "0.17.0"
-source = "git+https://github.com/CPrescher/Dioptrin?tag=v0.17.0#e70048dafd008fb7195c68394b3b9188f8978dfa"
+version = "0.18.0"
+source = "git+https://github.com/CPrescher/Dioptrin?tag=v0.18.0#3b9a5f5e1574b16d71fe326a891bfff5df3eec88"
 dependencies = [
  "cudarc",
  "flate2",

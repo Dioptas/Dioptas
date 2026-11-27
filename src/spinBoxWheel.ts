@@ -57,6 +57,10 @@ export function installSpinBoxWheel() {
         input.readOnly
       )
         return;
+      if (input.closest("[data-no-wheel-step]")) {
+        if (document.activeElement === input) input.blur();
+        return;
+      }
       const current = input.valueAsNumber;
       if (!Number.isFinite(current)) return;
       consume(event);

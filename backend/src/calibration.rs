@@ -2,7 +2,6 @@
 use super::*;
 use serde::{Deserialize, Serialize};
 use std::io::Read;
-include!(concat!(env!("OUT_DIR"), "/calibrants.rs"));
 #[cfg(feature = "dioptrin")]
 #[path = "calibration_fit.rs"]
 mod native;
@@ -24,6 +23,7 @@ const MAX_POINTS: usize = 100_000;
 pub(super) struct RingCache {
     geometry: Geometry,
     targets: Vec<(usize, f64)>,
+    intensities: Option<Vec<f64>>,
     shape: [usize; 2],
     angles: Arc<Vec<f64>>,
     value: Value,
@@ -39,6 +39,8 @@ const CUSTOM_SUFFIX: &str = " (custom)";
 pub(super) struct Reference {
     pub name: String,
     pub spacings: Vec<f64>,
+    #[serde(default)]
+    pub intensities: Option<Vec<f64>>,
     pub content: String,
 }
 impl Reference {
@@ -46,6 +48,13 @@ impl Reference {
     /// so the file names the spacings file itself.
     pub(super) fn recorded_name(&self) -> &str {
         self.name.strip_suffix(CUSTOM_SUFFIX).unwrap_or(&self.name)
+    }
+    pub(super) fn intensity(&self, ring: usize) -> Option<f64> {
+        self.intensities
+            .as_ref()?
+            .get(ring.checked_sub(1)?)
+            .copied()
+            .filter(|v| v.is_finite())
     }
     pub(super) fn parse(name: &str, content: &str) -> Result<Self, String> {
         if content.len() > 1024 * 1024 {
@@ -76,15 +85,55 @@ impl Reference {
         Ok(Self {
             name: name.into(),
             spacings,
+            intensities: None,
+            content: content.into(),
+        })
+    }
+    pub(super) fn parse_cif(
+        name: &str,
+        content: &str,
+        wavelength_angstrom: f64,
+    ) -> Result<Self, String> {
+        if content.len() > 1024 * 1024 {
+            return Err("Calibrant files must be smaller than 1 MiB.".into());
+        }
+        let (spacings, intensities) =
+            crate::calibrant_intensity::parse_cif(content, wavelength_angstrom)?;
+        Ok(Self {
+            name: name.into(),
+            spacings,
+            intensities: Some(intensities),
             content: content.into(),
         })
     }
     fn named(name: &str) -> Result<Self, String> {
-        let (_, content) = CALIBRANTS
+        let cal = dioptrin::calibration::Calibrant::builtin(name)
+            .map_err(|_| "Choose an available calibrant.".to_string())?;
+        let content = dioptrin::calibration::Calibrant::builtin_str(&cal.name)
+            .unwrap_or_default()
+            .to_string();
+        let max_intensity = cal
+            .intensities
             .iter()
-            .find(|(n, _)| *n == name)
-            .ok_or("Choose an available calibrant.")?;
-        Self::parse(name, content)
+            .flatten()
+            .copied()
+            .filter(|v| v.is_finite() && *v > 0.0)
+            .fold(0.0_f64, f64::max);
+        let intensities = (max_intensity > 0.0).then(|| {
+            cal.intensities
+                .iter()
+                .map(|v| {
+                    v.filter(|x| x.is_finite() && *x >= 0.0)
+                        .map_or(0.0, |x| (x / max_intensity).clamp(0.0, 1.0))
+                })
+                .collect()
+        });
+        Ok(Self {
+            name: cal.name,
+            spacings: cal.d_spacings,
+            intensities,
+            content,
+        })
     }
     pub fn angles(&self, wavelength: f64) -> Vec<(usize, f64)> {
         self.spacings
@@ -152,11 +201,14 @@ impl Calibration {
             .to_str()?
             .to_ascii_lowercase()
             .replace('-', "_");
-        let names = CALIBRANTS.iter().map(|(name, _)| (*name, *name)).chain(
-            self.custom
-                .iter()
-                .map(|reference| (reference.recorded_name(), reference.name.as_str())),
-        );
+        let names = dioptrin::calibration::Calibrant::builtin_names()
+            .iter()
+            .map(|&name| (name, name))
+            .chain(
+                self.custom
+                    .iter()
+                    .map(|reference| (reference.recorded_name(), reference.name.as_str())),
+            );
         let mut matches = Vec::new();
         for (label, name) in names {
             let label = label.to_ascii_lowercase().replace('-', "_");
@@ -612,7 +664,7 @@ impl Session {
                             }
                         }
                         "searchSize" => next.search_size = integer(v, key, 1, 1000)?,
-                        "numberOfRings" => next.number_of_rings = integer(v, key, 1, 100)?,
+                        "numberOfRings" => next.number_of_rings = integer(v, key, 1, 500)?,
                         "deltaTth" => next.delta_tth = finite(v, key, 0.00001, 1e15)?,
                         "meanFactor" => next.mean_factor = finite(v, key, 0.00001, 1e15)?,
                         "intensityLimit" => next.intensity_limit = finite(v, key, 0.00001, 1e15)?,
@@ -760,7 +812,20 @@ impl Session {
                     "{}{CUSTOM_SUFFIX}",
                     file.file_stem().unwrap_or_default().to_string_lossy()
                 );
-                let reference = Reference::parse(&name, &content)?;
+                let is_cif = file
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .is_some_and(|e| e.eq_ignore_ascii_case("cif"));
+                let wavelength_angstrom = if self.settings.calibrated {
+                    self.settings.geometry.wavelength
+                } else {
+                    self.calibration.start[6]
+                } * 1e10;
+                let reference = if is_cif {
+                    Reference::parse_cif(&name, &content, wavelength_angstrom)?
+                } else {
+                    Reference::parse(&name, &content)?
+                };
                 self.calibration.custom = Some(reference.clone());
                 self.calibration.reference = reference;
                 self.calibration.reference_chosen = true;
@@ -832,8 +897,20 @@ impl Session {
                         "The saved peaks require the same image dimensions and orientation.".into(),
                     );
                 }
-                if document["calibrant"]["dSpacingsAngstrom"]
-                    != json!(self.calibration.reference.spacings)
+                let saved_spacings = document["calibrant"]["dSpacingsAngstrom"]
+                    .as_array()
+                    .filter(|arr| {
+                        !arr.is_empty() && arr.len() <= self.calibration.reference.spacings.len()
+                    })
+                    .ok_or("Choose the saved peaks' calibrant before loading them.")?;
+                if !saved_spacings
+                    .iter()
+                    .zip(&self.calibration.reference.spacings)
+                    .all(|(saved, current)| {
+                        saved
+                            .as_f64()
+                            .is_some_and(|v| (v - current).abs() <= 1e-9 * current.max(1.0))
+                    })
                 {
                     return Err("Choose the saved peaks' calibrant before loading them.".into());
                 }
@@ -895,15 +972,49 @@ impl Session {
         let c = &self.calibration;
         let g = &self.settings.geometry;
         let angles = c.reference.angles(c.reference_wavelength);
-        let mut names: Vec<_> = CALIBRANTS.iter().map(|(n, _)| n.to_string()).collect();
+        let mut names: Vec<_> = dioptrin::calibration::Calibrant::builtin_names()
+            .iter()
+            .map(|&n| n.to_string())
+            .collect();
         if let Some(custom) = &c.custom {
             names.push(custom.name.clone());
         }
-        let lines:Vec<_>=angles.iter().map(|&(ring,t)|json!({"ring":ring,"x":match self.settings.unit.as_str(){"q_A^-1"=>4.0*std::f64::consts::PI*(t/2.0).sin()/(g.wavelength*1e10),"d_A"=>g.wavelength*1e10/(2.0*(t/2.0).sin()),_=>t.to_degrees()}})).collect();
+        let lines: Vec<_> = angles
+            .iter()
+            .map(|&(ring, t)| {
+                let x = match self.settings.unit.as_str() {
+                    "q_A^-1" => {
+                        4.0 * std::f64::consts::PI * (t / 2.0).sin() / (g.wavelength * 1e10)
+                    }
+                    "d_A" => g.wavelength * 1e10 / (2.0 * (t / 2.0).sin()),
+                    _ => t.to_degrees(),
+                };
+                match c.reference.intensity(ring) {
+                    Some(intensity) => json!({"ring": ring, "x": x, "intensity": intensity}),
+                    None => json!({"ring": ring, "x": x}),
+                }
+            })
+            .collect();
+        let cake_rings: Vec<_> = angles
+            .iter()
+            .map(|&(ring, t)| match c.reference.intensity(ring) {
+                Some(intensity) => {
+                    let strength = intensity.clamp(0.0, 1.0).sqrt();
+                    json!({
+                        "ring": ring,
+                        "twoTheta": t.to_degrees(),
+                        "intensity": intensity,
+                        "lineWidth": 1.2 + 2.8 * strength,
+                        "opacity": 0.35 + 0.45 * strength,
+                    })
+                }
+                None => json!({"ring": ring, "twoTheta": t.to_degrees()}),
+            })
+            .collect();
         json!({"setupConfirmed":c.confirmed,"workflow":self.workflow,"parameters":c.parameters(g),"freeParameterCount":c.free_count(),"polarization":self.settings.polarization,"fitWavelength":c.free[6],
             "geometrySource":c.source,"canUndo":!self.calibration_history.undo.is_empty()||self.integration_history.can_undo(),"canRedo":!self.calibration_history.redo.is_empty()||self.integration_history.can_redo(),"fitTilts":c.free[3],
             "calibrant":c.reference.name,"calibrants":names,"distance":c.start[0]*1000.0,"wavelength":c.start[6]*1e10,"fitDirty":c.dirty,"rmsDegrees":c.rms,"saved":c.saved,"picks":c.picks,
-            "rings":angles.iter().map(|&(ring,t)|json!({"ring":ring,"twoTheta":t.to_degrees()})).collect::<Vec<_>>(),"referenceLines":lines,
+            "rings":cake_rings,"referenceLines":lines,
             "steps":[if self.image.is_some(){"done"}else{"attention"},if !c.picks.is_empty(){"done"}else if self.settings.calibrated{"skipped"}else{"attention"},if self.settings.calibrated{"done"}else if !c.picks.is_empty(){"attention"}else{"pending"},if self.settings.calibrated{"done"}else{"pending"}]})
     }
     #[cfg(not(feature = "dioptrin"))]

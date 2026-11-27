@@ -165,7 +165,7 @@ export interface Calibration {
   detectorOrientation?: number;
   detectorAssignment?: string | null;
   detectorCandidates?: string[];
-  referenceLines: { ring: number; x: number }[];
+  referenceLines: { ring: number; x: number; intensity?: number }[];
   workflow: {
     autoIncrement: boolean;
     searchSize: number;
@@ -205,7 +205,13 @@ export interface Calibration {
   rmsDegrees: number | null;
   saved: boolean;
   picks: { ring: number; points: number[][] }[];
-  rings: { ring: number; twoTheta: number }[];
+  rings: {
+    ring: number;
+    twoTheta: number;
+    intensity?: number;
+    lineWidth?: number;
+    opacity?: number;
+  }[];
 }
 export interface RingOverlay {
   ring: number;

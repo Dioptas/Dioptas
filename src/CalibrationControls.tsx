@@ -1,6 +1,6 @@
 import { Input, Select } from "./ui";
 import { CalibrantPicker } from "./CalibrantPicker";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Calibration, Response } from "./types";
 
 export function CalibrationControls({
@@ -24,6 +24,20 @@ export function CalibrationControls({
 }) {
   const [px, setPx] = useState("79"),
     [py, setPy] = useState("79");
+  const pendingFocus = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!ready || !pendingFocus.current) return;
+    const target = pendingFocus.current;
+    pendingFocus.current = null;
+    if (
+      target.isConnected &&
+      (document.activeElement === document.body ||
+        document.activeElement === null)
+    ) {
+      target.focus();
+      if (target instanceof HTMLInputElement) target.select();
+    }
+  }, [ready]);
   useEffect(() => {
     if (c) setPx(String(Number(c.pixelX.toPrecision(7))));
   }, [c?.pixelX]);
@@ -162,7 +176,13 @@ export function CalibrationControls({
                 onChange={(e) => setPx(e.target.value)}
                 onBlur={(event) => {
                   if (!event.currentTarget.reportValidity()) return;
-                  if (ready && hasImage && dirty && valid) void applySetup();
+                  if (ready && hasImage && dirty && valid) {
+                    pendingFocus.current =
+                      event.relatedTarget instanceof HTMLElement
+                        ? event.relatedTarget
+                        : null;
+                    void applySetup();
+                  }
                 }}
               />
             </label>
@@ -180,7 +200,13 @@ export function CalibrationControls({
                 onChange={(e) => setPy(e.target.value)}
                 onBlur={(event) => {
                   if (!event.currentTarget.reportValidity()) return;
-                  if (ready && hasImage && dirty && valid) void applySetup();
+                  if (ready && hasImage && dirty && valid) {
+                    pendingFocus.current =
+                      event.relatedTarget instanceof HTMLElement
+                        ? event.relatedTarget
+                        : null;
+                    void applySetup();
+                  }
                 }}
               />
             </label>

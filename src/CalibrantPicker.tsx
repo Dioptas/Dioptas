@@ -68,8 +68,8 @@ export function CalibrantPicker({
         }
         title={
           validation
-            ? "Load custom reference spacings"
-            : "Load custom calibrant spacings (.D)"
+            ? "Load custom reference (.D or .cif)"
+            : "Load custom calibrant (.D or .cif)"
         }
         disabled={disabled}
         onClick={() =>

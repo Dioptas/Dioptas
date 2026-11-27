@@ -1,5 +1,5 @@
 import { Input, Select, Button } from "./ui";
-import { useEffect, useState, Fragment } from "react";
+import { useEffect, useRef, useState, Fragment } from "react";
 import {
   FolderOpen,
   RotateCcw,
@@ -82,6 +82,20 @@ export function CalibrationExtras({
   useEffect(() => {
     onDirtyChange(refinementDirty);
   }, [refinementDirty, onDirtyChange]);
+  const pendingFocus = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!ready || !pendingFocus.current) return;
+    const target = pendingFocus.current;
+    pendingFocus.current = null;
+    if (
+      target.isConnected &&
+      (document.activeElement === document.body ||
+        document.activeElement === null)
+    ) {
+      target.focus();
+      if (target instanceof HTMLInputElement) target.select();
+    }
+  }, [ready]);
   const toggle = (name: string, value: unknown) =>
     run("workflow_settings", { [name]: value });
   return (
@@ -397,7 +411,7 @@ export function CalibrationExtras({
                       type="number"
                       step={key === "numberOfRings" ? 1 : "any"}
                       min={key === "numberOfRings" ? 1 : 0.00001}
-                      max={key === "numberOfRings" ? 100 : 1e15}
+                      max={key === "numberOfRings" ? 500 : 1e15}
                       required
                       disabled={!ready}
                       value={refinementDraft[key] ?? String(workflow[key])}
@@ -413,8 +427,13 @@ export function CalibrationExtras({
                           ready &&
                           e.currentTarget.validity.valid &&
                           value !== workflow[key]
-                        )
+                        ) {
+                          pendingFocus.current =
+                            e.relatedTarget instanceof HTMLElement
+                              ? e.relatedTarget
+                              : null;
                           toggle(key, value);
+                        }
                       }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {

@@ -555,8 +555,13 @@ export function RasterView({
           context.strokeStyle =
             ring.color ??
             (linked ? POSITION_LINE_COLOR : active ? "#ff4040d9" : "#ff4040b3");
+          const ringZoomBoost =
+            ring.ring > 0
+              ? Math.min(2.5, 0.7 * Math.log2(Math.max(1, zoom)))
+              : 0;
           context.lineWidth =
-            ring.lineWidth ?? (active ? 2.2 : linked ? 2 : 0.8);
+            (ring.lineWidth ?? (active ? 2.2 : linked ? 2 : 0.8)) +
+            ringZoomBoost;
           context.globalAlpha = ring.opacity ?? 1;
           context.stroke();
           context.globalAlpha = 1;
@@ -671,11 +676,18 @@ export function RasterView({
           } else context.arc(x, y, 5, 0, Math.PI * 2);
           context.stroke();
         }
-        // Start with Qt's 7/9 px dots at fit, then grow gently with zoom so
-        // picked points remain visible without covering the enlarged peaks.
+        // Scale picked points smoothly with zoom (and stay compact at fit when
+        // many ring peaks are displayed) so individual subpixel picks stay
+        // readable at both full-detector view and deep pixel zoom.
         // Orange for the current ring, red otherwise, white selection outline.
         // Draw selected groups last so overlapping picks cannot hide them.
-        const peakScale = Math.min(2.5, Math.sqrt(Math.max(1, zoom)));
+        const densePeaks = peaks.length > 60;
+        const baseRadius = densePeaks ? 2.65 : 3.75;
+        const selectedRadius = densePeaks ? 4.0 : 5.25;
+        const peakScale = Math.min(
+          2.6,
+          1 + 0.45 * Math.log2(Math.max(1, zoom)),
+        );
         const orderedPeaks = [...peaks].sort(
           (a, b) => Number(!!a.selected) - Number(!!b.selected),
         );
@@ -692,7 +704,7 @@ export function RasterView({
           context.arc(
             x,
             y,
-            (peak.selected ? 4.5 : 3.5) * peakScale,
+            (peak.selected ? selectedRadius : baseRadius) * peakScale,
             0,
             Math.PI * 2,
           );
@@ -738,8 +750,8 @@ export function RasterView({
           context.strokeStyle =
             line.color ?? (active ? "#ff4040d9" : "#ff4040b3");
           context.lineWidth =
-            line.lineWidth ??
-            (active ? 2.2 : 0.8) + (line.color ? 0 : calibrantWidthBoost);
+            (line.lineWidth ?? (active ? 2.2 : 0.8)) +
+            (line.color ? 0 : calibrantWidthBoost);
           context.globalAlpha = line.opacity ?? 1;
           context.beginPath();
           context.moveTo(x, top);

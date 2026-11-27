@@ -2,9 +2,9 @@ use super::*;
 use crate::control::Control;
 use dioptrin::{
     calibration::{
-        AutoCalibrateError, AutoCalibrateImageOptions, Calibrant, CalibrationOptions,
-        CalibrationPoints, MassifOptions, ParamMask, PreparedMassif, RingCenterOptions,
-        auto_calibrate_image_with_mask,
+        AutoCalibrateError, AutoCalibrateImageOptions, AutoCalibrateProgress, Calibrant,
+        CalibrationOptions, CalibrationPoints, MassifOptions, ParamMask, PreparedMassif,
+        RingCenterOptions, auto_calibrate_image_with_progress,
     },
     geometry::Geometry as NativeGeometry,
 };
@@ -187,6 +187,7 @@ fn rings(candidate: &Snapshot, shape: [usize; 2], cache: &RefCell<Option<RingCac
         && entry.geometry == candidate.geometry
         && entry.shape == shape
         && entry.targets == targets
+        && entry.intensities == candidate.data.reference.intensities
     {
         return entry.value.clone();
     }
@@ -194,11 +195,23 @@ fn rings(candidate: &Snapshot, shape: [usize; 2], cache: &RefCell<Option<RingCac
         return json!([]);
     };
     let field = Arc::new(native.calc_tth_all());
-    let value = crate::peak_search::contours(&field, shape, &targets);
+    let mut value = crate::peak_search::contours(&field, shape, &targets);
+    if let Some(items) = value.as_array_mut() {
+        for item in items {
+            if let Some(ring) = item["ring"].as_u64().map(|r| r as usize)
+                && let Some(intensity) = candidate.data.reference.intensity(ring)
+            {
+                let strength = intensity.clamp(0.0, 1.0).sqrt();
+                item["lineWidth"] = json!(1.2 + 2.8 * strength);
+                item["opacity"] = json!(0.35 + 0.45 * strength);
+            }
+        }
+    }
     *cache.borrow_mut() = Some(RingCache {
         geometry: candidate.geometry.clone(),
         shape,
         targets,
+        intensities: candidate.data.reference.intensities.clone(),
         angles: field,
         value: value.clone(),
     });
@@ -605,10 +618,17 @@ impl Session {
             && candidate.data.start[0] > 0.0)
             .then_some(candidate.data.start[0]);
 
-        let reference = Calibrant::from_d_spacings(
-            &candidate.data.reference.name,
-            candidate.data.reference.spacings.clone(),
-        );
+        let reference = match &candidate.data.reference.intensities {
+            Some(intensities) => Calibrant::from_d_spacings_and_intensities(
+                &candidate.data.reference.name,
+                candidate.data.reference.spacings.clone(),
+                intensities.iter().map(|&v| Some(v * 100.0)).collect(),
+            ),
+            None => Calibrant::from_d_spacings(
+                &candidate.data.reference.name,
+                candidate.data.reference.spacings.clone(),
+            ),
+        };
         let data = self.scientific_values();
         let mask_u8 = if self.settings.use_mask {
             self.effective_mask.clone()
@@ -622,7 +642,7 @@ impl Session {
 
         let control = self.control.clone();
         let ring_cache = RefCell::new(None);
-        let publish = |candidate: &Snapshot, current, total, label: &str, ring| {
+        let publish_snap = |candidate: &Snapshot, current, total, label: &str, ring| {
             publish(
                 &control,
                 candidate,
@@ -634,14 +654,66 @@ impl Session {
 
         let outcome: Result<Option<String>, String> = (|| {
             control.check()?;
-            publish(&candidate, 0, 1, "Auto-calibrating detector geometry", None);
+            publish_snap(
+                &candidate,
+                0,
+                100,
+                "Auto-calibrating detector geometry",
+                None,
+            );
             let opts = AutoCalibrateImageOptions {
                 starting_distance,
                 refine_mask,
                 ..Default::default()
             };
+            let preview_base = candidate.clone();
             let fitted = crate::worker_pool::install(|| {
-                let first = auto_calibrate_image_with_mask(
+                let preview_cache = RefCell::new(None);
+                let mut stream_progress = |p: AutoCalibrateProgress| -> bool {
+                    if control.check().is_err() {
+                        return false;
+                    }
+                    let mut preview = preview_base.clone();
+                    if let Some(peaks) = p.peaks {
+                        let points: Vec<[f64; 2]> =
+                            peaks.into_iter().map(|(y, x)| [y, x]).collect();
+                        if !points.is_empty() {
+                            preview.data.picks = vec![Group { ring: 1, points }];
+                        }
+                    }
+                    if let Some(poni) = p.candidate_poni {
+                        let cand_geom = Geometry {
+                            dist: poni.distance,
+                            poni1: poni.poni1,
+                            poni2: poni.poni2,
+                            rot1: poni.rot1,
+                            rot2: poni.rot2,
+                            rot3: poni.rot3,
+                            pixel1: poni.pixel1,
+                            pixel2: poni.pixel2,
+                            wavelength: poni.wavelength,
+                            ..preview.geometry.clone()
+                        };
+                        if cand_geom.validate().is_ok() {
+                            preview.geometry = cand_geom;
+                            preview.calibrated = true;
+                            preview.data.reference_wavelength = preview.geometry.wavelength;
+                        }
+                    }
+                    if let Some(rms) = p.candidate_rms_rad.filter(|r| r.is_finite()) {
+                        preview.data.rms = Some(rms.to_degrees());
+                    }
+                    let step = (p.progress.clamp(0.0, 1.0) * 100.0).round() as usize;
+                    publish(
+                        &control,
+                        &preview,
+                        shape,
+                        &preview_cache,
+                        (step, 100, &p.message, None),
+                    );
+                    true
+                };
+                let first = auto_calibrate_image_with_progress(
                     &data,
                     shape[0],
                     shape[1],
@@ -651,6 +723,7 @@ impl Session {
                     pixel1,
                     pixel2,
                     &opts,
+                    &mut stream_progress,
                 );
                 // If a starting distance hint missed (e.g. default 200 mm left on a
                 // 500 mm setup) and distance is free, retry blind before failing.
@@ -663,7 +736,7 @@ impl Session {
                         starting_distance: None,
                         ..opts.clone()
                     };
-                    auto_calibrate_image_with_mask(
+                    auto_calibrate_image_with_progress(
                         &data,
                         shape[0],
                         shape[1],
@@ -673,6 +746,7 @@ impl Session {
                         pixel1,
                         pixel2,
                         &blind_opts,
+                        &mut stream_progress,
                     )
                 } else {
                     first
@@ -682,6 +756,9 @@ impl Session {
 
             let (result, _diag) = match fitted {
                 Ok(v) => v,
+                Err(AutoCalibrateError::Cancelled) => {
+                    return Err("Operation cancelled.".into());
+                }
                 Err(_) => {
                     return Ok(Some(format!(
                         "Auto-calibration could not match the rings ({} at {:.4} Å). Check wavelength, calibrant, and pixel sizes, or pick peaks manually.",
@@ -731,7 +808,13 @@ impl Session {
 
             // Extract visible ring peaks using the fitted geometry so the user can
             // inspect the matched points on the detector and refine if desired.
-            publish(&candidate, 1, 1, "Extracting calibrated ring peaks", None);
+            publish_snap(
+                &candidate,
+                95,
+                100,
+                "Extracting calibrated ring peaks",
+                None,
+            );
             let field = ring_cache
                 .borrow()
                 .as_ref()
@@ -775,7 +858,7 @@ impl Session {
                 }
             }
             candidate.data.picks = picks;
-            publish(&candidate, 1, 1, "Integrating calibrated image", None);
+            publish_snap(&candidate, 100, 100, "Integrating calibrated image", None);
             Ok(None)
         })();
         match outcome {

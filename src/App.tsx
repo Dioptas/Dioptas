@@ -2959,6 +2959,7 @@ export default function App() {
                 data-calibration-section={
                   mode === "calibration" ? calibrationStep : undefined
                 }
+                data-no-wheel-step={mode === "calibration" ? "" : undefined}
               >
                 <div className="options-label">
                   {mode === "mask" ? "MASK OPTIONS" : "EXPERIMENT OPTIONS"}
