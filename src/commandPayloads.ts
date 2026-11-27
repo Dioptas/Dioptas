@@ -45,6 +45,7 @@ export interface ImageOpenPayload extends FilePayload, ReaderOptions {
   reset_calibration?: boolean;
   keep_calibration?: boolean;
   reset_image_state?: boolean;
+  detect_calibrant?: boolean;
 }
 export type GeometryParameter =
   "dist" | "poni1" | "poni2" | "rot1" | "rot2" | "rot3" | "wavelength";

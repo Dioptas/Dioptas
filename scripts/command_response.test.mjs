@@ -274,6 +274,17 @@ test("notice precedence, pending drafts and history cancellation retain existing
     ),
     [{ kind: "notice", message: "No previous image available" }],
   );
+  assert.deepEqual(
+    commandCompletion(
+      "open_image",
+      { path: "lab6_001.tif", detect_calibrant: true },
+      { ok: true, calibrantNotice: "Calibrant LaB6 from filename" },
+    ),
+    [
+      { kind: "notice", message: "Calibrant LaB6 from filename" },
+      { kind: "clear-picks" },
+    ],
+  );
 });
 
 // Failure classification belongs to the transaction, even when the application

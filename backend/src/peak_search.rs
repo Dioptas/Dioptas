@@ -1,33 +1,33 @@
-//! Native calibration search adapters. Massif reuses Dioptrin; Blob uses a
-//! deterministic difference-of-Gaussians scale space on original f64 samples.
+//! Native calibration search adapters. Massif searches local maxima directly on
+//! each ring band; Blob uses a deterministic difference-of-Gaussians scale space
+//! on original f64 samples.
 use crate::control::Control;
 
 pub fn candidates(
     data: &[f64],
+    mask: &[u8],
     shape: [usize; 2],
     algorithm: &str,
     control: &Control,
-) -> Result<Vec<[f64; 2]>, String> {
+) -> Result<Option<Vec<[f64; 2]>>, String> {
     control.check()?;
-    let points = if algorithm == "Massif" {
-        dioptrin::calibration::find_peaks_image(
-            data,
-            shape[0],
-            shape[1],
-            &dioptrin::calibration::ImagePeakOptions {
-                threshold_factor: 0.0,
-                max_peaks: 100_000,
-                ..Default::default()
-            },
-        )
-        .into_iter()
-        .map(|(y, x)| [y, x])
-        .collect()
-    } else {
-        blob_candidates(data, shape, control)?
-    };
+    if algorithm == "Massif" {
+        return Ok(None);
+    }
+    let clean: Vec<_> = data
+        .iter()
+        .enumerate()
+        .map(|(i, &v)| {
+            if v.is_finite() && mask[i] == 0 {
+                v
+            } else {
+                0.0
+            }
+        })
+        .collect();
+    let points = blob_candidates(&clean, shape, control)?;
     control.check()?;
-    Ok(points)
+    Ok(Some(points))
 }
 
 fn gaussian(
@@ -158,7 +158,7 @@ pub fn on_ring(
     angles: &[f64],
     mask: &[u8],
     shape: [usize; 2],
-    candidates: &[[f64; 2]],
+    candidates: Option<&[[f64; 2]]>,
     band: Band,
     control: &Control,
 ) -> Result<Vec<[f64; 2]>, String> {
@@ -168,11 +168,12 @@ pub fn on_ring(
         factor,
         ceiling,
     } = band;
+    let delta_rad = delta.to_radians();
     let eligible = |i: usize| {
         data[i].is_finite()
             && data[i] <= ceiling
             && mask[i] == 0
-            && (angles[i] - target).abs() <= delta.to_radians()
+            && (angles[i] - target).abs() <= delta_rad
     };
     let mut n = 0.0;
     let mut mean = 0.0;
@@ -200,17 +201,93 @@ pub fn on_ring(
         return Ok(vec![]);
     }
     let mut points = vec![];
-    for &p in candidates {
-        let row = p[0].round().clamp(0.0, shape[0] as f64 - 1.0) as usize;
-        let col = p[1].round().clamp(0.0, shape[1] as f64 - 1.0) as usize;
-        let i = row * shape[1] + col;
-        if eligible(i)
-            && data[i] > threshold
-            && !points
-                .iter()
-                .any(|q: &[f64; 2]| (p[0] - q[0]).hypot(p[1] - q[1]) < 1.0)
-        {
-            points.push(p);
+    if let Some(candidates) = candidates {
+        for (idx, &p) in candidates.iter().enumerate() {
+            if idx % 4096 == 0 {
+                control.check()?;
+            }
+            let row = p[0].round().clamp(0.0, shape[0] as f64 - 1.0) as usize;
+            let col = p[1].round().clamp(0.0, shape[1] as f64 - 1.0) as usize;
+            let i = row * shape[1] + col;
+            if eligible(i)
+                && data[i] > threshold
+                && !points
+                    .iter()
+                    .any(|q: &[f64; 2]| (p[0] - q[0]).hypot(p[1] - q[1]) < 1.0)
+            {
+                points.push(p);
+            }
+        }
+    } else {
+        let [h, w] = shape;
+        if h >= 3 && w >= 3 {
+            // Track the start index in `points` for the last 3 rows; subpixel
+            // shifts are <= 1 px, so points > 3 rows earlier cannot be within 1 px.
+            let mut recent_starts = [0usize; 4];
+            for y in 1..h - 1 {
+                if y % 64 == 0 {
+                    control.check()?;
+                }
+                recent_starts[y & 3] = points.len();
+                let check_from = if y >= 3 {
+                    recent_starts[(y - 3) & 3]
+                } else {
+                    0
+                };
+                for x in 1..w - 1 {
+                    let i = y * w + x;
+                    if !eligible(i) || data[i] <= threshold {
+                        continue;
+                    }
+                    let v = data[i];
+                    let mut is_max = true;
+                    let mut has_lower = false;
+                    let mut clean_neighbors = true;
+                    for ny in y - 1..=y + 1 {
+                        for nx in x - 1..=x + 1 {
+                            if ny == y && nx == x {
+                                continue;
+                            }
+                            let ni = ny * w + nx;
+                            let nv = data[ni];
+                            if mask[ni] != 0 || !nv.is_finite() {
+                                clean_neighbors = false;
+                                continue;
+                            }
+                            let already_scanned = ny < y || (ny == y && nx < x);
+                            if nv > v || (already_scanned && nv == v) {
+                                is_max = false;
+                                break;
+                            }
+                            if nv < v {
+                                has_lower = true;
+                            }
+                        }
+                        if !is_max {
+                            break;
+                        }
+                    }
+                    if !is_max || !has_lower {
+                        continue;
+                    }
+                    let mut p = if clean_neighbors {
+                        subpixel(data, shape, (y, x))
+                    } else {
+                        [y as f64, x as f64]
+                    };
+                    let pr = p[0].round().clamp(0.0, h as f64 - 1.0) as usize;
+                    let pc = p[1].round().clamp(0.0, w as f64 - 1.0) as usize;
+                    if !eligible(pr * w + pc) {
+                        p = [y as f64, x as f64];
+                    }
+                    if !points[check_from..]
+                        .iter()
+                        .any(|q: &[f64; 2]| (p[0] - q[0]).hypot(p[1] - q[1]) < 1.0)
+                    {
+                        points.push(p);
+                    }
+                }
+            }
         }
     }
     // Candidate order is scan order. Uniform subsampling avoids selecting only
@@ -232,3 +309,42 @@ pub fn contours(angles: &[f64], shape: [usize; 2], targets: &[(usize, f64)]) -> 
     )
 }
 use crate::contours::contours_at_step;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn massif_on_ring_deduplicates_flat_topped_peaks_and_stays_inside_band() {
+        let shape = [16, 16];
+        let mut data = vec![1.0; 16 * 16];
+        // A 2×2 flat-topped peak at rows 6..=7, cols 6..=7.
+        for y in 6..=7 {
+            for x in 6..=7 {
+                data[y * 16 + x] = 50.0;
+            }
+        }
+        // A second distinct peak far enough away to be kept.
+        data[11 * 16 + 11] = 80.0;
+        let angles = vec![0.2; 16 * 16];
+        let mask = vec![0u8; 16 * 16];
+        let points = on_ring(
+            &data,
+            &angles,
+            &mask,
+            shape,
+            None,
+            Band {
+                target: 0.2,
+                delta: 1.0,
+                factor: 1.0,
+                ceiling: 1000.0,
+            },
+            &Control::default(),
+        )
+        .unwrap();
+        assert_eq!(points.len(), 2, "expected 1 point per peak, got {points:?}");
+        assert!((points[0][0] - 6.0).abs() <= 1.0 && (points[0][1] - 6.0).abs() <= 1.0);
+        assert!((points[1][0] - 11.0).abs() <= 1.0 && (points[1][1] - 11.0).abs() <= 1.0);
+    }
+}

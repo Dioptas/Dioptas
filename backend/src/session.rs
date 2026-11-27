@@ -890,7 +890,6 @@ impl Session {
                 check_keys(args, &["path", "defer_integration", "clear_image"])?;
                 let file = path(args)?;
                 let (mut candidate, comments) = Geometry::load_with_comments(file)?;
-                let calibrant = comments.calibrant;
                 let clear = args
                     .get("clear_image")
                     .map(|v| boolean(v, "Clear image"))
@@ -970,29 +969,32 @@ impl Session {
                     }
                 }
                 self.settings.geometry = candidate;
-                // A calibrant recorded in the file wins when it is one we know;
-                // unknown names keep the current selection. Ring picks belong to
-                // the previous calibrant's reflections, so a switch drops them
-                // (loading is one undo step, picks included).
+                // A recorded calibrant takes precedence over the filename,
+                // including when its spacings are unavailable in this session.
                 let mut calibrant_notice = None;
-                if let Some(name) = calibrant {
-                    match self.calibration.choose(&name) {
-                        Ok(reference) => {
-                            if reference.name != self.calibration.reference.name {
-                                calibrant_notice =
-                                    Some(format!("calibrant {} from file", reference.name));
-                                self.calibration.picks.clear();
-                            }
-                            self.calibration.reference = reference;
-                            self.calibration.reference_chosen = true;
-                        }
+                let (reference, source) = match comments.calibrant {
+                    Some(name) => match self.calibration.choose(&name) {
+                        Ok(reference) => (Some(reference), "file"),
                         Err(_) => {
                             calibrant_notice = Some(format!(
                                 "recorded calibrant {name} is not available; kept {}",
                                 self.calibration.reference.name
-                            ))
+                            ));
+                            (None, "file")
                         }
+                    },
+                    None => (self.calibration.reference_from_filename(file), "filename"),
+                };
+                if let Some(reference) = reference {
+                    if reference.name != self.calibration.reference.name {
+                        calibrant_notice =
+                            Some(format!("calibrant {} from {source}", reference.name));
+                        // Ring numbers belong to the previous reference. Undo
+                        // restores both that reference and its picks.
+                        self.calibration.picks.clear();
                     }
+                    self.calibration.reference = reference;
+                    self.calibration.reference_chosen = true;
                 }
                 self.settings.original_pixels = None;
                 self.settings.calibration_path = Some(file.to_string_lossy().into_owned());
@@ -1688,8 +1690,14 @@ impl Session {
                 "reset_calibration",
                 "keep_calibration",
                 "reset_image_state",
+                "detect_calibrant",
             ],
         )?;
+        let detect_calibrant = args
+            .get("detect_calibrant")
+            .map(|v| boolean(v, "Detect calibrant"))
+            .transpose()?
+            .unwrap_or(false);
         let file = path(args)?;
         let file = if !file.is_absolute() {
             args["directory"]
@@ -1724,14 +1732,16 @@ impl Session {
         if let Some(reply) = self.image_change(&image, args)? {
             return Ok(Some(reply));
         }
+        let path_changed = self.image.as_ref().is_none_or(|old| old.path != image.path);
         let coordinates_changed = self
             .image
             .as_ref()
             .is_some_and(|old| old.source_shape != image.source_shape);
-        if args["reset_calibration"].as_bool() == Some(true) {
+        let reset_calibration = args["reset_calibration"] == true;
+        if reset_calibration {
             self.reset_detector_state()?;
         }
-        if coordinates_changed && args["reset_calibration"] != true {
+        if coordinates_changed && !reset_calibration {
             self.reset_image_coordinates(image.source_shape);
         }
         self.assign_image_detector(&image)?;
@@ -1770,6 +1780,32 @@ impl Session {
         image.read(image.frame)?;
         trace.mark("decode and warm-plan handoff");
         self.publish_image(image)?;
+        let mut calibrant_notice = None;
+        if detect_calibrant
+            && path_changed
+            && !self.settings.calibrated
+            && let Some(reference) = self.calibration.reference_from_filename(&file)
+        {
+            if reference.name != self.calibration.reference.name {
+                let before_cal = self.calibration_snapshot();
+                calibrant_notice = Some(format!("Calibrant {} from filename", reference.name));
+                self.calibration.picks.clear();
+                self.calibration.reference = reference;
+                self.calibration.reference_chosen = true;
+                self.calibration.reference_wavelength = self.calibration.start[6];
+                let after_cal = self.calibration_snapshot();
+                self.calibration_history.record(
+                    "open_image",
+                    before_cal,
+                    after_cal,
+                    self.revision + 1,
+                );
+            } else {
+                self.calibration.reference = reference;
+                self.calibration.reference_chosen = true;
+                self.calibration.reference_wavelength = self.calibration.start[6];
+            }
+        }
         trace.mark("display preparation");
         #[cfg(feature = "dioptrin")]
         {
@@ -1782,16 +1818,20 @@ impl Session {
                 .map_or(Ok(false), |v| boolean(v, "Pattern only"))?,
         )?;
         trace.mark("processing masks and integration");
-        if args["reset_calibration"].as_bool() == Some(true) {
+        if reset_calibration || coordinates_changed || calibrant_notice.is_some() {
             self.revision += 1;
             let mut reply = self.snapshot(true);
-            reply.result["calibrationReset"] = json!(true);
-            return Ok(Some(reply));
-        }
-        if coordinates_changed {
-            self.revision += 1;
-            let mut reply = self.snapshot(true);
-            reply.result["imageStateReset"] = json!(true);
+            if reset_calibration {
+                reply.result["calibrationReset"] = json!(true);
+            } else if coordinates_changed {
+                reply.result["imageStateReset"] = json!(true);
+            }
+            if let Some(notice) = calibrant_notice {
+                reply.result["calibrantNotice"] = json!(notice);
+                if !reset_calibration && !coordinates_changed {
+                    reply.result["nextRing"] = json!(1);
+                }
+            }
             return Ok(Some(reply));
         }
         Ok(None)

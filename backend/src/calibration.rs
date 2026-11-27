@@ -146,6 +146,44 @@ impl Calibration {
         }
         Reference::named(name)
     }
+    pub(super) fn reference_from_filename(&self, path: &Path) -> Option<Reference> {
+        let stem = path
+            .file_stem()?
+            .to_str()?
+            .to_ascii_lowercase()
+            .replace('-', "_");
+        let names = CALIBRANTS.iter().map(|(name, _)| (*name, *name)).chain(
+            self.custom
+                .iter()
+                .map(|reference| (reference.recorded_name(), reference.name.as_str())),
+        );
+        let mut matches = Vec::new();
+        for (label, name) in names {
+            let label = label.to_ascii_lowercase().replace('-', "_");
+            for (start, matched) in stem.match_indices(&label) {
+                let end = start + matched.len();
+                if !stem[..start].ends_with(char::is_alphanumeric)
+                    && !stem[end..].starts_with(char::is_alphanumeric)
+                {
+                    matches.push((start, end, name));
+                }
+            }
+        }
+        // An SRM name includes the base calibrant. Keep the specific match,
+        // but require all remaining matches to identify the same reference.
+        let mut names = matches.iter().filter_map(|&(start, end, name)| {
+            (!matches.iter().any(|&(other_start, other_end, _)| {
+                other_start <= start && end <= other_end && (other_start < start || end < other_end)
+            }))
+            .then_some(name)
+        });
+        let name = names.next()?;
+        if names.all(|other| other == name) {
+            self.choose(name).ok()
+        } else {
+            None
+        }
+    }
     pub fn modified(&mut self) {
         self.dirty = true;
         self.rms = None;

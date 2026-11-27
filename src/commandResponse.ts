@@ -71,6 +71,8 @@ export function commandCompletion(
   if (result.correctionNotice) notice(result.correctionNotice);
   if (command === "pick_peak" && result.noPeakFound)
     notice("No peaks found in this area");
+  if (command === "open_image" && result.calibrantNotice)
+    notice(result.calibrantNotice);
   if (command === "open_calibration" && !result.cancelled)
     notice(
       `Loaded calibration: ${result.state?.calibrationName ?? "PONI"}${result.calibrantNotice ? ` · ${result.calibrantNotice}` : ""}${result.orientationNotice ? ` · ${result.orientationNotice}` : ""}${result.state?.hasImage ? "" : " · Load a matching detector image"}`,
