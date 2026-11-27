@@ -201,7 +201,8 @@
   padding: 7px 10px;
   font-size: var(--text-small);
 }
-.calibration-main-action .calibration-apply-geometry {
+.calibration-main-action .calibration-apply-geometry,
+.calibration-main-action .auto-calibrate-button {
   grid-column: 1 / -1;
 }
 .calibration-general-actions {

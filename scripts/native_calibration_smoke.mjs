@@ -143,15 +143,7 @@ for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
     await page.reload();
     await page.getByTestId("detector-canvas").waitFor();
     await ready();
-    await page
-      .getByRole("tab", { name: "Step 3: Calibrate", exact: true })
-      .click();
-    assert.equal(
-      await page
-        .getByRole("button", { name: "Calibrate", exact: true })
-        .isDisabled(),
-      true,
-    );
+    // Auto-calibrate is immediately visible on Step 1: Image once an image is loaded.
     await page
       .getByRole("button", { name: "Auto-calibrate", exact: true })
       .click();
@@ -160,6 +152,7 @@ for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
     assert.equal(autoSnapshot.state.calibrated, true);
     assert.ok(autoSnapshot.state.calibration.rmsDegrees < 0.05);
     assert.ok(autoSnapshot.rings.length > 0);
+    assert.ok(autoSnapshot.state.calibration.picks.length > 0);
     assert.equal(
       await page
         .getByRole("tab", { name: "Step 4: Validate", exact: true })

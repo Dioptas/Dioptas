@@ -426,8 +426,8 @@ impl Session {
             Err(error) => Err(error),
             Ok(mut extra) => {
                 self.control.check()?;
-                if extra["noPeakFound"] == true {
-                    // A missed click does not edit calibration or its history.
+                if extra["noPeakFound"] == true || extra["autoCalibrateFailed"] == true {
+                    // A missed click or unconverged auto-calibration does not edit calibration or its history.
                     extra["ok"] = json!(true);
                     return Ok(Reply::metadata(extra));
                 }
@@ -885,7 +885,7 @@ impl Session {
                 self.fit_transaction(args, defer)?;
             }
             "auto_calibrate" => {
-                self.auto_calibrate_transaction(args, defer)?;
+                return self.auto_calibrate_transaction(args, defer);
             }
             _ => unreachable!(),
         }
@@ -915,7 +915,7 @@ impl Session {
         Err("Calibration fitting requires a compiled native engine; build with --features dioptrin. No Python fallback was used.".into())
     }
     #[cfg(not(feature = "dioptrin"))]
-    fn auto_calibrate_transaction(&mut self, _args: &Value, _defer: bool) -> Result<(), String> {
+    fn auto_calibrate_transaction(&mut self, _args: &Value, _defer: bool) -> Result<Value, String> {
         Err("Automatic calibration requires a compiled native engine; build with --features dioptrin. No Python fallback was used.".into())
     }
 }

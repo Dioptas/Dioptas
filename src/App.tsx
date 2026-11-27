@@ -2504,7 +2504,10 @@ export default function App() {
                               }
                               activeRing={
                                 mode === "calibration"
-                                  ? displayedRing
+                                  ? (calibrationPreview?.activeRing ??
+                                    (calibrationStep !== 3 && pickingEnabled
+                                      ? ring
+                                      : undefined))
                                   : undefined
                               }
                               onPick={(point) => {
@@ -2676,7 +2679,8 @@ export default function App() {
                                 clickedPoint={linkedClicks ? cakeClick : null}
                                 activeRing={
                                   mode === "calibration"
-                                    ? displayedRing
+                                    ? (calibrationPreview?.activeRing ??
+                                      undefined)
                                     : undefined
                                 }
                                 calibrantLines={cakeCalibrantLines?.map(
@@ -2857,7 +2861,9 @@ export default function App() {
                             onHover={onPatternHover}
                             onResolution={setPatternResolution}
                             activeRing={
-                              mode === "calibration" ? displayedRing : undefined
+                              mode === "calibration"
+                                ? (calibrationPreview?.activeRing ?? undefined)
+                                : undefined
                             }
                             calibrantLines={
                               mode === "calibration" && showRings
@@ -3261,7 +3267,7 @@ export default function App() {
                 </div>
                 {mode === "calibration" && (
                   <div className="calibration-task-footer">
-                    {calibrationStep >= 2 && (
+                    {(calibrationStep >= 2 || !!state?.hasImage) && (
                       <div className="calibration-main-action">
                         {calibrationStep === 3 && geometryDirty && (
                           <Button
@@ -3297,35 +3303,39 @@ export default function App() {
                         >
                           Auto-calibrate
                         </Button>
-                        <Button
-                          variant="primary"
-                          className="fit-button"
-                          title={`Start a fresh geometry from the current peaks and start values.${!fitReady ? ` ${fitBlocker}` : ""}`}
-                          disabled={!fitReady}
-                          onClick={() =>
-                            run(
-                              "calibrate",
-                              { ...fitDraft, restart: true },
-                              "Calibrating detector geometry…",
-                            )
-                          }
-                        >
-                          Calibrate
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          title={`Adjust the existing geometry using the current peaks.${!state?.calibrated ? " Calibrate or load a geometry first." : !fitReady ? ` ${fitBlocker}` : ""}`}
-                          disabled={!fitReady || !state?.calibrated}
-                          onClick={() =>
-                            run(
-                              "calibrate",
-                              fitDraft ?? {},
-                              "Refining detector geometry…",
-                            )
-                          }
-                        >
-                          Refine
-                        </Button>
+                        {calibrationStep >= 2 && (
+                          <>
+                            <Button
+                              variant="primary"
+                              className="fit-button"
+                              title={`Start a fresh geometry from the current peaks and start values.${!fitReady ? ` ${fitBlocker}` : ""}`}
+                              disabled={!fitReady}
+                              onClick={() =>
+                                run(
+                                  "calibrate",
+                                  { ...fitDraft, restart: true },
+                                  "Calibrating detector geometry…",
+                                )
+                              }
+                            >
+                              Calibrate
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              title={`Adjust the existing geometry using the current peaks.${!state?.calibrated ? " Calibrate or load a geometry first." : !fitReady ? ` ${fitBlocker}` : ""}`}
+                              disabled={!fitReady || !state?.calibrated}
+                              onClick={() =>
+                                run(
+                                  "calibrate",
+                                  fitDraft ?? {},
+                                  "Refining detector geometry…",
+                                )
+                              }
+                            >
+                              Refine
+                            </Button>
+                          </>
+                        )}
                       </div>
                     )}
                     <div className="calibration-general-actions">

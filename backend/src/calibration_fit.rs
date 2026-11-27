@@ -554,7 +554,7 @@ impl Session {
         &mut self,
         args: &Value,
         defer: bool,
-    ) -> Result<(), String> {
+    ) -> Result<Value, String> {
         check_keys(
             args,
             &[
@@ -610,10 +610,15 @@ impl Session {
             candidate.data.reference.spacings.clone(),
         );
         let data = self.scientific_values();
+        let mask_u8 = if self.settings.use_mask {
+            self.effective_mask.clone()
+        } else {
+            Arc::new(vec![0; data.len()])
+        };
         let mask_bool: Option<Vec<bool>> = self
             .settings
             .use_mask
-            .then(|| self.effective_mask.iter().map(|&v| v != 0).collect());
+            .then(|| mask_u8.iter().map(|&v| v != 0).collect());
 
         let control = self.control.clone();
         let ring_cache = RefCell::new(None);
@@ -627,7 +632,7 @@ impl Session {
             )
         };
 
-        let outcome = (|| {
+        let outcome: Result<Option<String>, String> = (|| {
             control.check()?;
             publish(&candidate, 0, 1, "Auto-calibrating detector geometry", None);
             let opts = AutoCalibrateImageOptions {
@@ -672,15 +677,19 @@ impl Session {
                 } else {
                     first
                 }
-            })
-            .map_err(|e| {
-                format!(
-                    "Auto-calibration failed: {e}. Check calibrant, wavelength, and pixel sizes, or pick peaks manually."
-                )
-            })?;
+            });
             control.check()?;
 
-            let (result, _diag) = fitted;
+            let (result, _diag) = match fitted {
+                Ok(v) => v,
+                Err(_) => {
+                    return Ok(Some(format!(
+                        "Auto-calibration could not match the rings ({} at {:.4} Å). Check wavelength, calibrant, and pixel sizes, or pick peaks manually.",
+                        candidate.data.reference.name,
+                        wavelength * 1e10,
+                    )));
+                }
+            };
             let p = result.poni;
             candidate.geometry = Geometry {
                 dist: p.distance,
@@ -694,12 +703,12 @@ impl Session {
                 wavelength: p.wavelength,
                 ..candidate.geometry.clone()
             };
-            candidate.geometry.validate()?;
-            if !result.rms_rad.is_finite() {
-                return Err(
-                    "Auto-calibration produced a nonfinite residual; previous geometry restored."
-                        .into(),
-                );
+            if candidate.geometry.validate().is_err() || !result.rms_rad.is_finite() {
+                return Ok(Some(format!(
+                    "Auto-calibration did not converge ({} at {:.4} Å). Check wavelength, calibrant, and pixel sizes, or pick peaks manually.",
+                    candidate.data.reference.name,
+                    wavelength * 1e10,
+                )));
             }
             candidate.calibrated = true;
             candidate.name = Some("current".into());
@@ -719,12 +728,69 @@ impl Session {
                 candidate.geometry.rot3,
                 candidate.geometry.wavelength,
             ];
+
+            // Extract visible ring peaks using the fitted geometry so the user can
+            // inspect the matched points on the detector and refine if desired.
+            publish(&candidate, 1, 1, "Extracting calibrated ring peaks", None);
+            let field = ring_cache
+                .borrow()
+                .as_ref()
+                .filter(|entry| entry.geometry == candidate.geometry && entry.shape == shape)
+                .map(|entry| entry.angles.clone());
+            let field = match field {
+                Some(field) => field,
+                None => Arc::new(geometry(shape, &candidate.geometry)?.calc_tth_all()),
+            };
+            let mut picks = Vec::new();
+            let mut total_points = 0usize;
+            let ring_limit = self.workflow.number_of_rings.max(15);
+            for (ring, target) in candidate
+                .data
+                .reference
+                .angles(candidate.geometry.wavelength)
+                .into_iter()
+                .take(ring_limit)
+            {
+                control.check()?;
+                let points = crate::peak_search::on_ring(
+                    &data,
+                    &field,
+                    &mask_u8,
+                    shape,
+                    None,
+                    crate::peak_search::Band {
+                        target,
+                        delta: self.workflow.delta_tth,
+                        factor: self.workflow.mean_factor,
+                        ceiling: self.workflow.intensity_limit,
+                    },
+                    &control,
+                )?;
+                if !points.is_empty() {
+                    if total_points + points.len() > MAX_POINTS {
+                        break;
+                    }
+                    total_points += points.len();
+                    picks.push(Group { ring, points });
+                }
+            }
+            candidate.data.picks = picks;
             publish(&candidate, 1, 1, "Integrating calibrated image", None);
-            Ok(())
+            Ok(None)
         })();
-        if let Err(error) = outcome {
-            control.finish();
-            return Err(error);
+        match outcome {
+            Err(error) => {
+                control.finish();
+                return Err(error);
+            }
+            Ok(Some(notice)) => {
+                control.finish();
+                return Ok(json!({
+                    "autoCalibrateFailed": true,
+                    "autoCalibrateNotice": notice,
+                }));
+            }
+            Ok(None) => {}
         }
         let previous = (
             self.pattern.take(),
@@ -754,7 +820,7 @@ impl Session {
             ) = previous;
         }
         control.finish();
-        result
+        result.map(|()| json!({}))
     }
 }
 

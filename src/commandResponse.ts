@@ -59,7 +59,10 @@ export function commandCompletion(
     }
     if (command === "manual_geometry")
       effects.push({ kind: "draft", target: "geometry", state });
-    if (command === "calibrate" || command === "auto_calibrate") {
+    if (
+      command === "calibrate" ||
+      (command === "auto_calibrate" && !result.autoCalibrateFailed)
+    ) {
       effects.push({ kind: "draft", target: "fit", state });
       effects.push({ kind: "draft", target: "geometry", state });
     }
@@ -73,6 +76,8 @@ export function commandCompletion(
     notice("No peaks found in this area");
   if (command === "open_image" && result.calibrantNotice)
     notice(result.calibrantNotice);
+  if (command === "auto_calibrate" && result.autoCalibrateNotice)
+    notice(result.autoCalibrateNotice);
   if (command === "open_calibration" && !result.cancelled)
     notice(
       `Loaded calibration: ${result.state?.calibrationName ?? "PONI"}${result.calibrantNotice ? ` · ${result.calibrantNotice}` : ""}${result.orientationNotice ? ` · ${result.orientationNotice}` : ""}${result.state?.hasImage ? "" : " · Load a matching detector image"}`,
@@ -104,6 +109,7 @@ export function commandCompletion(
     effects.push({ kind: "clear-picks" });
   if (
     !result.cancelled &&
+    !result.autoCalibrateFailed &&
     ["calibrate", "auto_calibrate", "manual_geometry", "open_calibration"].includes(
       command,
     )
