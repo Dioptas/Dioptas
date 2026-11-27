@@ -125,6 +125,8 @@ export function applyWorkspaceResponse(
       result.levels,
     );
   if (result.nextRing !== undefined) ports.products.ring(result.nextRing);
+  else if (result.calibrationReset || result.imageStateReset)
+    ports.products.ring(1);
   if ("linked" in result) ports.inspection.linked.current = result.linked;
   if (
     result.rings &&

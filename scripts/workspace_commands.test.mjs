@@ -78,6 +78,14 @@ test("workspace submission adds only transport metadata and Map view context wit
     true,
   );
   assert.equal("defer_integration" in calls.at(-1)[1], false);
+  const image = ["open_image", { path: "ceo2_00001.tif" }];
+  await submitWorkspaceCommand(invoke, image, "calibration", false);
+  assert.deepEqual(calls.at(-1), [
+    "open_image",
+    { ...image[1], detect_calibrant: true },
+  ]);
+  await submitWorkspaceCommand(invoke, image, "integration", false);
+  assert.deepEqual(calls.at(-1), image);
   const map = ["map_select", { index: 4, reintegrate: true }];
   await submitWorkspaceCommand(invoke, map, "integration", false);
   assert.deepEqual(calls.at(-1), [

@@ -67,8 +67,8 @@ fn fit_once_in_pool(
         start.rot1 = 0.0;
         start.rot2 = 0.0;
         start.rot3 = 0.0;
+        start.wavelength = candidate.data.start[6];
     }
-    start.wavelength = candidate.data.start[6];
     let mut values = [
         start.dist,
         start.poni1,
@@ -105,7 +105,10 @@ fn fit_once_in_pool(
             poni2: free[2],
             rot1: free[3],
             rot2: free[4],
-            rot3: free[5],
+            // 2θ residuals are invariant under rot3 (rotation around the beam
+            // axis), so leaving rot3 free adds a zero Jacobian column that can
+            // make the normal equations singular or drift to arbitrary angles.
+            rot3: false,
             wavelength: free[6],
         },
         max_iter: 300,
@@ -391,7 +394,7 @@ impl Session {
                 let mut data = self.scientific_values();
                 let mut data_generation = self.scientific_generation;
                 let mut mask = Vec::new();
-                let mut candidates = Vec::new();
+                let mut candidates = None;
                 for ring in 1..=total {
                     let mut trace =
                         crate::frame_trace::FrameTrace::new("calibration-ring", ring as u64);
@@ -425,19 +428,9 @@ impl Session {
                     trace.mark("corrections-and-mask");
                     if ring == 1 || current_mask != mask || changed {
                         mask = current_mask;
-                        let clean: Vec<_> = data
-                            .iter()
-                            .enumerate()
-                            .map(|(i, &v)| {
-                                if v.is_finite() && mask[i] == 0 {
-                                    v
-                                } else {
-                                    0.0
-                                }
-                            })
-                            .collect();
                         candidates = crate::peak_search::candidates(
-                            &clean,
+                            &data,
+                            &mask,
                             shape,
                             &self.workflow.algorithm,
                             &control,
@@ -473,7 +466,7 @@ impl Session {
                         &field,
                         &mask,
                         shape,
-                        &candidates,
+                        candidates.as_deref(),
                         crate::peak_search::Band {
                             target,
                             delta: self.workflow.delta_tth,

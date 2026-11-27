@@ -77,6 +77,8 @@ export function submitWorkspaceCommand(
   canDefer: boolean,
 ): Promise<Response> {
   const invocation = commandInvocation(call);
+  if (invocation[0] === "open_image" && mode === "calibration")
+    return invoke("open_image", { ...invocation[1], detect_calibrant: true });
   if (
     mode === "mask" &&
     canDefer &&

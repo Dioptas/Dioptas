@@ -564,22 +564,23 @@ fn poni_calibrant_comment_round_trips_and_follows_pyfai_calib2() {
     let temp = tempfile::tempdir().unwrap();
     let geometry = "PixelSize1: 0.0001\nPixelSize2: 0.0001\nDistance: 0.1\nPoni1: 0.003\nPoni2: 0.004\nRot1: 0\nRot2: 0\nRot3: 0\nSplineFile: None\nWavelength: 4e-11\n";
     // pyFAI-calib2 writes the calibrant and image as trailing comments.
-    let pyfai = temp.path().join("pyfai.poni");
+    let pyfai = temp.path().join("pyfai_CeO2.poni");
     fs::write(
         &pyfai,
         format!("# Nota: C-Order, 1 refers to the Y axis, 2 to the X axis\n{geometry}# Calibrant: Si\n# Image: si.tif\n"),
     )
     .unwrap();
-    let unknown = temp.path().join("unknown.poni");
+    let unknown = temp.path().join("unknown_CeO2.poni");
     fs::write(&unknown, format!("# Calibrant: Unobtainium\n{geometry}")).unwrap();
     let plain = temp.path().join("plain.poni");
     fs::write(&plain, geometry).unwrap();
 
     let mut s = Session::new(root());
     call(&mut s, "validation_calibrant", json!({"calibrant":"CeO2"}));
-    call(&mut s, "open_calibration", json!({"path":pyfai}));
+    let recorded = call(&mut s, "open_calibration", json!({"path":pyfai}));
+    assert_eq!(recorded["calibrantNotice"], "calibrant Si from file");
     assert_eq!(state(&mut s)["calibration"]["calibrant"], "Si");
-    // Unknown names and files without a comment keep the current selection.
+    // Recorded names take precedence even when their spacings are unavailable.
     call(&mut s, "open_calibration", json!({"path":unknown}));
     assert_eq!(state(&mut s)["calibration"]["calibrant"], "Si");
     call(&mut s, "open_calibration", json!({"path":plain}));
@@ -635,21 +636,115 @@ fn poni_calibrant_switch_drops_picks_and_reports_the_change() {
     let mut s = prepared(&f);
     let picks = state(&mut s)["calibration"]["picks"].clone();
     assert!(!picks.as_array().unwrap().is_empty());
-    let si = f.temp.path().join("si.poni");
-    fs::write(&si, format!("{PLAIN_PONI}# Calibrant: Si\n")).unwrap();
+    let si = f.temp.path().join("si_400mm_calibration.poni");
+    fs::write(&si, PLAIN_PONI).unwrap();
     let loaded = call(&mut s, "open_calibration", json!({"path":si}));
-    assert_eq!(loaded["calibrantNotice"], "calibrant Si from file");
+    assert_eq!(loaded["calibrantNotice"], "calibrant Si from filename");
     assert_eq!(loaded["state"]["calibration"]["calibrant"], "Si");
     assert_eq!(loaded["state"]["calibration"]["picks"], json!([]));
     let undone = call(&mut s, "undo_calibration", json!({}));
     assert_eq!(undone["state"]["calibration"]["calibrant"], "CeO2");
     assert_eq!(undone["state"]["calibration"]["picks"], picks);
     // Loading the calibrant already selected keeps picks and says nothing.
-    let ceo2 = f.temp.path().join("ceo2.poni");
-    fs::write(&ceo2, format!("{PLAIN_PONI}# Calibrant: CeO2\n")).unwrap();
+    let ceo2 = f
+        .temp
+        .path()
+        .join("ceo2_400mm_20250325-00001_calibration.poni");
+    fs::write(&ceo2, PLAIN_PONI).unwrap();
     let same = call(&mut s, "open_calibration", json!({"path":ceo2}));
     assert!(same.get("calibrantNotice").is_none());
     assert_eq!(same["state"]["calibration"]["picks"], picks);
+}
+
+#[test]
+fn calibration_image_open_detects_only_unambiguous_filename_references() {
+    let temp = tempfile::tempdir().unwrap();
+    let images = temp.path().join("Ni");
+    fs::create_dir(&images).unwrap();
+    let mut s = Session::new(root());
+    for (filename, detect, expected) in [
+        ("ceo2_400mm_20250325-00000.npy", false, "LaB6"),
+        ("ceo2_400mm_20250325-00001.npy", true, "CeO2"),
+        ("silicon_sample.npy", true, "CeO2"),
+        ("LaB6_Si.npy", true, "CeO2"),
+        ("scan-lab6_srm660c-001.npy", true, "LaB6_SRM660c"),
+        ("scan-lab6-srm660c-002.npy", true, "LaB6_SRM660c"),
+    ] {
+        let path = images.join(filename);
+        npy(&path, [16, 16], &[5.0; 256]);
+        let loaded = call(
+            &mut s,
+            "open_image",
+            json!({"path":path,"detect_calibrant":detect}),
+        );
+        assert_eq!(
+            loaded["state"]["calibration"]["calibrant"], expected,
+            "{filename}"
+        );
+    }
+    let poni = temp.path().join("silicon.poni");
+    fs::write(&poni, format!("{PLAIN_PONI}# Calibrant: Si\n")).unwrap();
+    call(&mut s, "open_calibration", json!({"path":poni}));
+    let loaded = call(
+        &mut s,
+        "open_image",
+        json!({"path":images.join("ceo2_400mm_20250325-00001.npy"),"detect_calibrant":true}),
+    );
+    assert_eq!(loaded["state"]["calibration"]["calibrant"], "Si");
+    assert!(loaded.get("calibrantNotice").is_none());
+}
+
+#[test]
+fn calibration_image_open_clears_picks_records_undo_and_preserves_manual_choice_on_frame_change() {
+    let f = fixture();
+    let ceo2_img = f.temp.path().join("ceo2_001.npy");
+    let lab6_img = f.temp.path().join("lab6_001.npy");
+    fs::copy(&f.image, &ceo2_img).unwrap();
+    fs::copy(&f.image, &lab6_img).unwrap();
+
+    let mut s = Session::new(root());
+    call(
+        &mut s,
+        "open_image",
+        json!({"path": &ceo2_img, "detect_calibrant": true}),
+    );
+    assert_eq!(state(&mut s)["calibration"]["calibrant"], "CeO2");
+    call(&mut s, "load_peaks", json!({"path": f.peaks}));
+    let picks = state(&mut s)["calibration"]["picks"].clone();
+    assert!(!picks.as_array().unwrap().is_empty());
+
+    // Opening a same-shape LaB6 image switches calibrant, clears stale CeO2 picks,
+    // resets nextRing to 1, and records a calibration undo step.
+    let switched = call(
+        &mut s,
+        "open_image",
+        json!({"path": &lab6_img, "detect_calibrant": true}),
+    );
+    assert_eq!(switched["state"]["calibration"]["calibrant"], "LaB6");
+    assert_eq!(switched["state"]["calibration"]["picks"], json!([]));
+    assert_eq!(switched["calibrantNotice"], "Calibrant LaB6 from filename");
+    assert_eq!(switched["nextRing"], 1);
+
+    // Undo reverts the filename-detected calibrant back to CeO2 (keeping picks empty
+    // for the new image); redo restores LaB6.
+    let undone = call(&mut s, "undo_calibration", json!({}));
+    assert_eq!(undone["state"]["calibration"]["calibrant"], "CeO2");
+    assert_eq!(undone["state"]["calibration"]["picks"], json!([]));
+    let redone = call(&mut s, "redo_calibration", json!({}));
+    assert_eq!(redone["state"]["calibration"]["calibrant"], "LaB6");
+    assert_eq!(redone["state"]["calibration"]["picks"], json!([]));
+
+    // Manually switching calibrant then reopening the same path (frame change)
+    // must keep the manual calibrant choice.
+    call(&mut s, "calibration_setup", json!({"calibrant": "Si"}));
+    assert_eq!(state(&mut s)["calibration"]["calibrant"], "Si");
+    let same_file = call(
+        &mut s,
+        "open_image",
+        json!({"path": &lab6_img, "frame": 0, "detect_calibrant": true}),
+    );
+    assert_eq!(same_file["state"]["calibration"]["calibrant"], "Si");
+    assert!(same_file.get("calibrantNotice").is_none());
 }
 
 #[test]
@@ -972,4 +1067,118 @@ fn auto_calibrate_recovers_ceo2_and_lab6_without_manual_picks_and_supports_undo(
             .unwrap()
             < 0.05
     );
+}
+
+#[cfg(feature = "dioptrin")]
+#[test]
+fn automatic_massif_refinement_handles_circular_zero_corner_detector_and_free_wavelength() {
+    // 1. LaB6_40keV_MarCCD.tif has large zero-valued corners outside the active
+    //    circle; automatic Massif search must still find rings across the image.
+    let mut s = Session::new(root());
+    call(
+        &mut s,
+        "open_image",
+        json!({
+            "path": root().join("tests/data/LaB6_40keV_MarCCD.tif"),
+            "frame": 0,
+            "reset_calibration": true
+        }),
+    );
+    call(
+        &mut s,
+        "pick_peak",
+        json!({"x": 1209.6, "y": 1043.2, "ring": 1, "automatic": true}),
+    );
+    call(
+        &mut s,
+        "pick_peak",
+        json!({"x": 1288.0, "y": 1067.3, "ring": 2, "automatic": true}),
+    );
+    let fitted = call(
+        &mut s,
+        "calibrate",
+        json!({
+            "parameters": {
+                "dist": {"value": 200.0, "refine": true},
+                "poni1": {"value": 0.0, "refine": true},
+                "poni2": {"value": 0.0, "refine": true},
+                "rot1": {"value": 0.0, "refine": true},
+                "rot2": {"value": 0.0, "refine": true},
+                "rot3": {"value": 0.0, "refine": true},
+                "wavelength": {"value": 0.31, "refine": false}
+            },
+            "polarization": 0.99,
+            "restart": true,
+            "automatic": true
+        }),
+    );
+    assert!(
+        fitted["state"]["calibration"]["picks"]
+            .as_array()
+            .unwrap()
+            .len()
+            >= 10
+    );
+    assert!(
+        fitted["state"]["calibration"]["rmsDegrees"]
+            .as_f64()
+            .unwrap()
+            < 0.05
+    );
+    assert_eq!(fitted["state"]["geometry"]["rot3"], 0.0);
+
+    // 2. Free wavelength with rot3 checked must not hit a singular normal matrix
+    //    or reset the fitted wavelength between staged automatic ring refits.
+    let mut pe = Session::new(root());
+    call(
+        &mut pe,
+        "open_image",
+        json!({
+            "path": root().join("tests/data/LaB6_OffCenter_PE.tif"),
+            "frame": 0,
+            "reset_calibration": true
+        }),
+    );
+    call(
+        &mut pe,
+        "pick_peak",
+        json!({"x": 1936.6, "y": 1199.3, "ring": 1, "automatic": true}),
+    );
+    call(
+        &mut pe,
+        "pick_peak",
+        json!({"x": 1872.3, "y": 1156.3, "ring": 2, "automatic": true}),
+    );
+    let pe_fit = call(
+        &mut pe,
+        "calibrate",
+        json!({
+            "parameters": {
+                "dist": {"value": 179.3840618847747, "refine": true},
+                "poni1": {"value": 103.88909961110059, "refine": true},
+                "poni2": {"value": 190.96659985735545, "refine": true},
+                "rot1": {"value": 0.09892603519374353, "refine": true},
+                "rot2": {"value": -0.0011249765124669952, "refine": true},
+                "rot3": {"value": 0.6273962123849444, "refine": true},
+                "wavelength": {"value": 0.28457, "refine": true}
+            },
+            "polarization": 0.99,
+            "restart": true,
+            "automatic": true
+        }),
+    );
+    assert!(
+        pe_fit["state"]["calibration"]["picks"]
+            .as_array()
+            .unwrap()
+            .len()
+            >= 5
+    );
+    assert!(
+        pe_fit["state"]["calibration"]["rmsDegrees"]
+            .as_f64()
+            .unwrap()
+            < 0.05
+    );
+    assert_eq!(pe_fit["state"]["geometry"]["rot3"], 0.0);
 }

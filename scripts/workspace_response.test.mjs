@@ -233,11 +233,38 @@ test("clear/replacement, calibration reset, guides, linked null and configuratio
     h.events
       .map((e) => e[0])
       .filter((e) =>
-        ["clear-selection", "guides", "restore", "notice"].includes(e),
+        ["clear-selection", "guides", "ring", "restore", "notice"].includes(e),
       ),
-    ["clear-selection", "guides", "restore", "clear-selection", "notice"],
+    ["clear-selection", "guides", "ring", "restore", "clear-selection", "notice"],
+  );
+  assert.deepEqual(
+    h.events.find((e) => e[0] === "ring"),
+    ["ring", 1],
   );
   assert.equal(h.events.at(-1)[1], "Saved saved.dio");
+});
+test("imageStateReset resets the active calibration ring to 1 unless nextRing is explicit", () => {
+  const h = harness();
+  applyWorkspaceResponse(
+    { ok: true, state: state({ revision: 5 }), imageStateReset: true },
+    h.ports,
+  );
+  applyWorkspaceResponse(
+    {
+      ok: true,
+      state: state({ revision: 6 }),
+      imageStateReset: true,
+      nextRing: 4,
+    },
+    h.ports,
+  );
+  assert.deepEqual(
+    h.events.filter((e) => e[0] === "ring"),
+    [
+      ["ring", 1],
+      ["ring", 4],
+    ],
+  );
 });
 test("failed snapshot has no side effects, and omitted cake cannot erase source identity", () => {
   const h = harness();
