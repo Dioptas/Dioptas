@@ -83,6 +83,7 @@ export function commandPolicy({
       "integration_phase_guides",
       "integration_autoprocess_poll",
       "cake_profile",
+      "detect_detector_modules",
       "validation_position",
       "image_levels",
       "image_batch_mode",
@@ -100,6 +101,7 @@ export function commandPolicy({
       frame ||
       [
         "cake_profile",
+        "detect_detector_modules",
         "integration_phase_state",
         "integration_phase_guides",
         "image_levels",

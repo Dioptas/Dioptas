@@ -28,6 +28,7 @@ export type WorkspaceDelta = Pick<
   | "clearImage"
   | "calibrationReset"
   | "calibrantNotice"
+  | "autoMaskNotice"
   | "orientationNotice"
   | "imageStateReset"
   | "configurationReset"
@@ -233,6 +234,10 @@ export interface CommandContracts {
   >;
   apply_distortion: Spec<P.EmptyPayload, WorkspaceDelta>;
   save_distortion: Spec<{ path?: string; format?: "spline" | "h5" }, Saved>;
+  detect_detector_modules: Spec<
+    P.EmptyPayload,
+    { detectedModules: NonNullable<Response["detectedModules"]> }
+  >;
   pick_peak: Spec<NativePayloadContracts["pick_peak"], WorkspaceDelta>;
   remove_pick: Spec<{ index: number }, WorkspaceDelta>;
   remove_picks: Spec<{ indices: number[] }, WorkspaceDelta>;

@@ -1736,6 +1736,7 @@ impl Session {
         if let Some(reply) = self.image_change(&image, args)? {
             return Ok(Some(reply));
         }
+        let first_image = self.image.is_none();
         let path_changed = self.image.as_ref().is_none_or(|old| old.path != image.path);
         let coordinates_changed = self
             .image
@@ -1784,6 +1785,11 @@ impl Session {
         image.read(image.frame)?;
         trace.mark("decode and warm-plan handoff");
         self.publish_image(image)?;
+        let auto_mask_notice = if first_image || coordinates_changed || reset_calibration {
+            self.auto_mask_detector_gaps()?
+        } else {
+            None
+        };
         let mut calibrant_notice = None;
         if detect_calibrant
             && path_changed
@@ -1822,7 +1828,11 @@ impl Session {
                 .map_or(Ok(false), |v| boolean(v, "Pattern only"))?,
         )?;
         trace.mark("processing masks and integration");
-        if reset_calibration || coordinates_changed || calibrant_notice.is_some() {
+        if reset_calibration
+            || coordinates_changed
+            || calibrant_notice.is_some()
+            || auto_mask_notice.is_some()
+        {
             self.revision += 1;
             let mut reply = self.snapshot(true);
             if reset_calibration {
@@ -1836,9 +1846,41 @@ impl Session {
                     reply.result["nextRing"] = json!(1);
                 }
             }
+            if let Some(notice) = auto_mask_notice {
+                reply.result["autoMaskNotice"] = json!(notice);
+            }
             return Ok(Some(reply));
         }
         Ok(None)
+    }
+    fn auto_mask_detector_gaps(&mut self) -> Result<Option<String>, String> {
+        let Some(image) = self.image.as_ref() else {
+            return Ok(None);
+        };
+        if self.mask_filename.is_some() || self.mask.iter().any(|&v| v != 0) {
+            return Ok(None);
+        }
+        if self
+            .physical_mask_for(image.shape, Some(image))?
+            .is_some_and(|m| m.iter().any(|&v| v != 0))
+        {
+            return Ok(None);
+        }
+        let Some(layout) = calibration::detect_detector_modules_in_image(
+            &image.values,
+            image.shape,
+            Some(&image.source_dtype),
+            false,
+        ) else {
+            return Ok(None);
+        };
+        let gap_mask = calibration::gap_mask_for_layout(layout, image.shape);
+        self.replace_mask(gap_mask);
+        self.settings.use_mask = true;
+        Ok(Some(format!(
+            "Auto-masked {}×{} detector gaps ({}×{} px)",
+            layout.module_rows, layout.module_cols, layout.gap_height, layout.gap_width,
+        )))
     }
     fn assign_image_detector(&mut self, image: &Image) -> Result<(), String> {
         if self.settings.geometry.auto_assign
@@ -1891,6 +1933,7 @@ impl Session {
         {
             self.settings.roi = None;
             self.mask = Arc::new(vec![0; image.values.len()]);
+            self.mask_filename = None;
             self.undo.clear();
             self.redo.clear();
         }

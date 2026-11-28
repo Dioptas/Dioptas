@@ -414,6 +414,7 @@ pub(super) fn is_command(action: &str) -> bool {
             | "estimate_distortion"
             | "apply_distortion"
             | "save_distortion"
+            | "detect_detector_modules"
             | "undo_calibration"
             | "redo_calibration"
             | "open_calibrant"
@@ -484,6 +485,11 @@ impl Session {
         args: &Value,
         defer: bool,
     ) -> Result<Reply, String> {
+        if action == "detect_detector_modules" {
+            let mut extra = self.detect_detector_modules_transaction(args)?;
+            extra["ok"] = json!(true);
+            return Ok(Reply::metadata(extra));
+        }
         let before = self.calibration_snapshot();
         let outcome = self.edit_calibration(action, args, defer);
         match outcome {
@@ -1075,6 +1081,302 @@ impl Session {
     fn save_distortion_transaction(&mut self, _args: &Value) -> Result<Value, String> {
         Err("Distortion export requires a compiled native engine; build with --features dioptrin. No Python fallback was used.".into())
     }
+    fn detect_detector_modules_transaction(&self, args: &Value) -> Result<Value, String> {
+        check_keys(args, &[])?;
+        let image = self
+            .image
+            .as_ref()
+            .ok_or("Open a detector image before detecting modules.")?;
+        // Use the raw oriented detector values without user-drawn masks so that
+        // background subtraction or beamstop masks cannot create or hide gap bands.
+        let detected = detect_detector_modules_in_image(
+            &image.values,
+            image.shape,
+            Some(&image.source_dtype),
+            true,
+        );
+        match detected {
+            Some(layout) => {
+                let notice = format!(
+                    "Detected {}×{} modules ({}×{} px, gap {}×{} px) from image gaps.",
+                    layout.module_rows,
+                    layout.module_cols,
+                    layout.module_height,
+                    layout.module_width,
+                    layout.gap_height,
+                    layout.gap_width,
+                );
+                Ok(json!({
+                    "detectedModules": {
+                        "detected": true,
+                        "moduleHeight": layout.module_height,
+                        "moduleWidth": layout.module_width,
+                        "gapHeight": layout.gap_height,
+                        "gapWidth": layout.gap_width,
+                        "moduleRows": layout.module_rows,
+                        "moduleCols": layout.module_cols,
+                        "notice": notice,
+                    }
+                }))
+            }
+            None => Ok(json!({
+                "detectedModules": {
+                    "detected": false,
+                    "notice": "No regular inter-module gap rows or columns were detected in the active image.",
+                }
+            })),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct DetectedModuleLayout {
+    pub module_height: usize,
+    pub module_width: usize,
+    pub gap_height: usize,
+    pub gap_width: usize,
+    pub module_rows: usize,
+    pub module_cols: usize,
+}
+
+/// Detect regular tiled-detector module dimensions and inter-module gaps by
+/// locating full rows and columns dominated by sentinel gap pixels (negative
+/// values like Pilatus `-1`, non-finite values, upper-sentinel values like
+/// Eiger `u32::MAX` / `65535` / `i16::MAX`, or optionally all-zero gap bands on
+/// dense images when `allow_zero_gaps` is true).
+pub(crate) fn detect_detector_modules_in_image(
+    values: &[f64],
+    shape: [usize; 2],
+    source_dtype: Option<&str>,
+    allow_zero_gaps: bool,
+) -> Option<DetectedModuleLayout> {
+    let [rows, cols] = shape;
+    if rows < 32 || cols < 32 || values.len() != rows * cols {
+        return None;
+    }
+
+    let exact_upper: &[f64] = match source_dtype {
+        Some("U16") => &[u16::MAX as f64],
+        Some("I16") => &[i16::MAX as f64],
+        Some("U32") => &[u32::MAX as f64, i32::MAX as f64, u16::MAX as f64],
+        Some("I32") => &[i32::MAX as f64],
+        _ => &[],
+    };
+    let mut max_finite = f64::NEG_INFINITY;
+    if exact_upper.is_empty() {
+        for &v in values {
+            if v.is_finite() && v > max_finite {
+                max_finite = v;
+            }
+        }
+    }
+    let has_upper_sentinel =
+        exact_upper.is_empty() && max_finite.is_finite() && max_finite >= 65_535.0;
+    let upper_threshold = max_finite - (max_finite * 1e-6).max(1.0);
+
+    let mut row_strict = vec![0usize; rows];
+    let mut col_strict = vec![0usize; cols];
+    let mut row_zero = vec![0usize; rows];
+    let mut col_zero = vec![0usize; cols];
+    let mut row_positive = vec![0usize; rows];
+
+    for r in 0..rows {
+        let row_offset = r * cols;
+        for c in 0..cols {
+            let idx = row_offset + c;
+            let v = values[idx];
+            let is_upper = if !exact_upper.is_empty() {
+                exact_upper.contains(&v)
+            } else {
+                has_upper_sentinel && v.is_finite() && v >= upper_threshold
+            };
+            let is_strict = !v.is_finite() || v < 0.0 || is_upper;
+            if is_strict {
+                row_strict[r] += 1;
+                col_strict[c] += 1;
+                row_zero[r] += 1;
+                col_zero[c] += 1;
+            } else if v == 0.0 {
+                row_zero[r] += 1;
+                col_zero[c] += 1;
+            } else {
+                row_positive[r] += 1;
+            }
+        }
+    }
+
+    let row_gap_strict: Vec<bool> = row_strict.iter().map(|&n| n * 100 >= cols * 95).collect();
+    let col_gap_strict: Vec<bool> = col_strict.iter().map(|&n| n * 100 >= rows * 95).collect();
+
+    let mut row_tiling = detect_axis_tiling(&row_gap_strict);
+    let mut col_tiling = detect_axis_tiling(&col_gap_strict);
+
+    if allow_zero_gaps && (row_tiling.is_none() || col_tiling.is_none()) {
+        let mut positive_fracs: Vec<usize> = row_positive.clone();
+        positive_fracs.sort_unstable();
+        let median_positive = positive_fracs[rows / 2];
+        // Only fall back to zero-valued gaps when active rows are reasonably dense.
+        if median_positive * 100 >= cols * 30 {
+            if row_tiling.is_none() {
+                let row_gap_zero: Vec<bool> =
+                    row_zero.iter().map(|&n| n * 100 >= cols * 98).collect();
+                row_tiling = detect_axis_tiling(&row_gap_zero);
+            }
+            if col_tiling.is_none() {
+                let col_gap_zero: Vec<bool> =
+                    col_zero.iter().map(|&n| n * 100 >= rows * 98).collect();
+                col_tiling = detect_axis_tiling(&col_gap_zero);
+            }
+        }
+    }
+
+    match (row_tiling, col_tiling) {
+        (None, None) => None,
+        (Some((mh, gh, mr)), Some((mw, gw, mc))) => Some(DetectedModuleLayout {
+            module_height: mh,
+            module_width: mw,
+            gap_height: gh,
+            gap_width: gw,
+            module_rows: mr,
+            module_cols: mc,
+        }),
+        (Some((mh, gh, mr)), None) => Some(DetectedModuleLayout {
+            module_height: mh,
+            module_width: cols,
+            gap_height: gh,
+            gap_width: 0,
+            module_rows: mr,
+            module_cols: 1,
+        }),
+        (None, Some((mw, gw, mc))) => Some(DetectedModuleLayout {
+            module_height: rows,
+            module_width: mw,
+            gap_height: 0,
+            gap_width: gw,
+            module_rows: 1,
+            module_cols: mc,
+        }),
+    }
+}
+
+/// Build a binary mask (`1` = gap, `0` = active) for a detected regular tiled
+/// detector layout.
+pub(crate) fn gap_mask_for_layout(
+    layout: DetectedModuleLayout,
+    [rows, cols]: [usize; 2],
+) -> Vec<u8> {
+    let pitch_r = layout.module_height + layout.gap_height;
+    let pitch_c = layout.module_width + layout.gap_width;
+    let mut mask = vec![0u8; rows * cols];
+    for r in 0..rows {
+        if layout.gap_height > 0 && (r % pitch_r) >= layout.module_height {
+            mask[r * cols..(r + 1) * cols].fill(1);
+            continue;
+        }
+        if layout.gap_width > 0 {
+            let row_offset = r * cols;
+            for c in 0..cols {
+                if (c % pitch_c) >= layout.module_width {
+                    mask[row_offset + c] = 1;
+                }
+            }
+        }
+    }
+    mask
+}
+
+/// Extract a regular `(module_size, gap_size, module_count)` tiling from a 1D
+/// per-row or per-column gap indicator slice.
+fn detect_axis_tiling(is_gap: &[bool]) -> Option<(usize, usize, usize)> {
+    let len = is_gap.len();
+    let mut interior_bands = Vec::new();
+    let mut i = 0;
+    while i < len {
+        if is_gap[i] {
+            let start = i;
+            while i < len && is_gap[i] {
+                i += 1;
+            }
+            let end = i;
+            if start > 0 && end < len {
+                interior_bands.push((start, end));
+            }
+        } else {
+            i += 1;
+        }
+    }
+    if interior_bands.is_empty() {
+        return None;
+    }
+
+    if let Some(found) = try_regular_bands(&interior_bands, len) {
+        return Some(found);
+    }
+
+    // If stray thin dead lines broke regularity, retry with bands matching the widest interior gap.
+    let max_gap = interior_bands
+        .iter()
+        .map(|&(s, e)| e - s)
+        .max()
+        .unwrap_or(0);
+    if max_gap >= 2 {
+        let filtered: Vec<(usize, usize)> = interior_bands
+            .iter()
+            .copied()
+            .filter(|&(s, e)| (e - s).abs_diff(max_gap) <= 2)
+            .collect();
+        if !filtered.is_empty() && filtered.len() < interior_bands.len() {
+            return try_regular_bands(&filtered, len);
+        }
+    }
+    None
+}
+
+fn try_regular_bands(bands: &[(usize, usize)], len: usize) -> Option<(usize, usize, usize)> {
+    if bands.is_empty() {
+        return None;
+    }
+    let k = bands.len() + 1;
+    let mut active = Vec::with_capacity(k);
+    let mut gaps = Vec::with_capacity(bands.len());
+
+    active.push(bands[0].0);
+    for (idx, &(s, e)) in bands.iter().enumerate() {
+        gaps.push(e - s);
+        if idx + 1 < bands.len() {
+            active.push(bands[idx + 1].0.checked_sub(e)?);
+        }
+    }
+    active.push(len.checked_sub(bands[bands.len() - 1].1)?);
+
+    let min_a = *active.iter().min()?;
+    let max_a = *active.iter().max()?;
+    let min_g = *gaps.iter().min()?;
+    let max_g = *gaps.iter().max()?;
+
+    // Inter-module gaps must be at least 2 px wide (ignores isolated single dead lines),
+    // strictly narrower than the modules themselves, and consistent in width & pitch.
+    if min_a < 16 || max_a - min_a > 2 || min_g < 2 || max_g - min_g > 2 || max_g >= min_a {
+        return None;
+    }
+
+    active.sort_unstable();
+    gaps.sort_unstable();
+    let mut mod_s = active[active.len() / 2];
+    let gap_s = gaps[gaps.len() / 2];
+
+    if len > (k - 1) * gap_s && (len - (k - 1) * gap_s).is_multiple_of(k) {
+        let exact = (len - (k - 1) * gap_s) / k;
+        if exact.abs_diff(mod_s) <= 2 {
+            mod_s = exact;
+        }
+    }
+
+    let total = k * mod_s + (k - 1) * gap_s;
+    if total.abs_diff(len) > k {
+        return None;
+    }
+    Some((mod_s, gap_s, k))
 }
 
 fn read_text(path: &Path, limit: usize) -> Result<String, String> {
@@ -1113,4 +1415,197 @@ fn validate_groups(groups: &[Group], shape: [usize; 2], rings: usize) -> Result<
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod module_detection_tests {
+    use super::*;
+
+    fn synthetic_tiled(
+        layout: DetectedModuleLayout,
+        bg: f64,
+        gap_val: f64,
+    ) -> (Vec<f64>, [usize; 2]) {
+        let h = layout.module_rows * layout.module_height
+            + (layout.module_rows - 1) * layout.gap_height;
+        let w =
+            layout.module_cols * layout.module_width + (layout.module_cols - 1) * layout.gap_width;
+        let pitch_r = layout.module_height + layout.gap_height;
+        let pitch_c = layout.module_width + layout.gap_width;
+        let mut data = vec![bg; h * w];
+        for r in 0..h {
+            let in_row_gap = layout.gap_height > 0 && (r % pitch_r) >= layout.module_height;
+            for c in 0..w {
+                let in_col_gap = layout.gap_width > 0 && (c % pitch_c) >= layout.module_width;
+                if in_row_gap || in_col_gap {
+                    data[r * w + c] = gap_val;
+                }
+            }
+        }
+        (data, [h, w])
+    }
+
+    #[test]
+    fn detects_eiger_max_intensity_gaps_with_hot_pixels() {
+        let expected = DetectedModuleLayout {
+            module_height: 64,
+            module_width: 80,
+            gap_height: 12,
+            gap_width: 6,
+            module_rows: 3,
+            module_cols: 2,
+        };
+        let (mut data, shape) = synthetic_tiled(expected, 120.0, u32::MAX as f64);
+        // Add scattered saturated hot pixels inside active modules.
+        data[10 * shape[1] + 15] = u32::MAX as f64;
+        data[20 * shape[1] + 40] = u32::MAX as f64;
+        let detected = detect_detector_modules_in_image(&data, shape, Some("U32"), false).unwrap();
+        assert_eq!(detected, expected);
+    }
+
+    #[test]
+    fn detects_single_axis_gaps_and_zero_gaps() {
+        let expected = DetectedModuleLayout {
+            module_height: 48,
+            module_width: 120,
+            gap_height: 8,
+            gap_width: 0,
+            module_rows: 3,
+            module_cols: 1,
+        };
+        let (data, shape) = synthetic_tiled(expected, 50.0, 0.0);
+        // Zero gaps are detected when allow_zero_gaps = true (Per-module dialog),
+        // but rejected in strict mode (auto-masking on load).
+        assert_eq!(
+            detect_detector_modules_in_image(&data, shape, Some("F64"), true),
+            Some(expected)
+        );
+        assert_eq!(
+            detect_detector_modules_in_image(&data, shape, Some("F64"), false),
+            None
+        );
+    }
+
+    #[test]
+    fn ignores_stray_single_dead_row_alongside_real_gaps() {
+        let expected = DetectedModuleLayout {
+            module_height: 64,
+            module_width: 80,
+            gap_height: 10,
+            gap_width: 6,
+            module_rows: 3,
+            module_cols: 2,
+        };
+        let (mut data, shape) = synthetic_tiled(expected, 200.0, -1.0);
+        // Add a 1-px dead row inside the first module.
+        for c in 0..shape[1] {
+            data[30 * shape[1] + c] = -1.0;
+        }
+        let detected = detect_detector_modules_in_image(&data, shape, Some("I32"), false).unwrap();
+        assert_eq!(detected, expected);
+    }
+
+    #[test]
+    fn rejects_circular_zero_corner_detector_and_single_dead_line() {
+        let h = 256;
+        let w = 256;
+        let mut circular = vec![0.0; h * w];
+        let cx = 128.0_f64;
+        let cy = 128.0_f64;
+        for r in 0..h {
+            for c in 0..w {
+                if (r as f64 - cy).hypot(c as f64 - cx) <= 122.0 {
+                    circular[r * w + c] = 500.0;
+                }
+            }
+        }
+        assert_eq!(
+            detect_detector_modules_in_image(&circular, [h, w], Some("U16"), true),
+            None
+        );
+
+        let mut flat = vec![100.0; h * w];
+        for c in 0..w {
+            flat[128 * w + c] = -1.0;
+        }
+        assert_eq!(
+            detect_detector_modules_in_image(&flat, [h, w], Some("I32"), true),
+            None
+        );
+        assert_eq!(
+            detect_detector_modules_in_image(&vec![10.0; 16 * 16], [16, 16], None, true),
+            None
+        );
+    }
+
+    #[test]
+    fn detects_nan_i16_u16_max_gaps_and_mixed_chip_gaps() {
+        let nan_layout = DetectedModuleLayout {
+            module_height: 64,
+            module_width: 64,
+            gap_height: 16,
+            gap_width: 8,
+            module_rows: 2,
+            module_cols: 2,
+        };
+        let (nan_data, nan_shape) = synthetic_tiled(nan_layout, 80.0, f64::NAN);
+        assert_eq!(
+            detect_detector_modules_in_image(&nan_data, nan_shape, Some("F32"), false),
+            Some(nan_layout)
+        );
+
+        // Signed 16-bit max sentinel (i16::MAX = 32767).
+        let (i16_data, i16_shape) = synthetic_tiled(nan_layout, 80.0, i16::MAX as f64);
+        assert_eq!(
+            detect_detector_modules_in_image(&i16_data, i16_shape, Some("I16"), false),
+            Some(nan_layout)
+        );
+
+        // Eiger-like 16-bit max sentinel (65535) with 2-px inter-chip gaps inside modules.
+        let eiger_layout = DetectedModuleLayout {
+            module_height: 128,
+            module_width: 128,
+            gap_height: 36,
+            gap_width: 12,
+            module_rows: 2,
+            module_cols: 2,
+        };
+        let (mut data, shape) = synthetic_tiled(eiger_layout, 100.0, 65_535.0);
+        // Add 2-px inter-chip gap rows inside each module (should be ignored in favor of 36-px module gap).
+        for chip_r in [63, 64, 128 + 36 + 63, 128 + 36 + 64] {
+            for c in 0..shape[1] {
+                data[chip_r * shape[1] + c] = 65_535.0;
+            }
+        }
+        assert_eq!(
+            detect_detector_modules_in_image(&data, shape, Some("U16"), false),
+            Some(eiger_layout)
+        );
+    }
+
+    #[test]
+    fn rejects_sparse_zero_image_with_accidental_zero_rows() {
+        // Sparse photon-counting image (< 30% positive pixels per row) with periodic zero rows.
+        let layout = DetectedModuleLayout {
+            module_height: 48,
+            module_width: 120,
+            gap_height: 8,
+            gap_width: 0,
+            module_rows: 3,
+            module_cols: 1,
+        };
+        let (mut data, shape) = synthetic_tiled(layout, 0.0, 0.0);
+        // Sprinkle 5% nonzero counts on active rows.
+        for r in 0..shape[0] {
+            if (r % (48 + 8)) < 48 {
+                for c in (0..shape[1]).step_by(20) {
+                    data[r * shape[1] + c] = 1.0;
+                }
+            }
+        }
+        assert_eq!(
+            detect_detector_modules_in_image(&data, shape, Some("U32"), true),
+            None
+        );
+    }
 }
