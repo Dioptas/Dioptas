@@ -26,6 +26,8 @@ export interface AppFooterProps {
   onRefreshMap: () => void;
   onDismissError: () => void;
   onCancelMaskSelection?: () => void;
+  canUndoAutoMask?: boolean;
+  onUndoAutoMask?: () => void;
   onCancelProcessing: () => void;
 }
 
@@ -50,6 +52,8 @@ export function AppFooter({
   onRefreshMap,
   onDismissError,
   onCancelMaskSelection,
+  canUndoAutoMask,
+  onUndoAutoMask,
   onCancelProcessing,
 }: AppFooterProps) {
   return (
@@ -149,6 +153,15 @@ export function AppFooter({
             onClick={onDismissError}
           >
             ×
+          </Button>
+        )}
+        {canUndoAutoMask && onUndoAutoMask && ready && !busy && !error && (
+          <Button
+            variant="secondary"
+            className="status-action"
+            onClick={onUndoAutoMask}
+          >
+            Undo mask
           </Button>
         )}
         {onCancelMaskSelection && (

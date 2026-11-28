@@ -76,8 +76,11 @@ export function commandCompletion(
   if (result.correctionNotice) notice(result.correctionNotice);
   if (command === "pick_peak" && result.noPeakFound)
     notice("No peaks found in this area");
-  if (command === "open_image" && result.calibrantNotice)
-    notice(result.calibrantNotice);
+  if (command === "open_image" && (result.calibrantNotice || result.autoMaskNotice))
+    notice(
+      [result.calibrantNotice, result.autoMaskNotice].filter(Boolean).join(" · "),
+    );
+  else if (result.autoMaskNotice) notice(result.autoMaskNotice);
   if (command === "auto_calibrate" && result.autoCalibrateNotice)
     notice(result.autoCalibrateNotice);
   if (command === "estimate_rot3" && result.rot3Notice)

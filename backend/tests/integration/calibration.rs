@@ -1543,3 +1543,102 @@ fn detect_detector_modules_finds_pilatus_gaps_and_rejects_flat_ccd() {
     let flat = call(&mut s_ccd, "detect_detector_modules", json!({}));
     assert_eq!(flat["detectedModules"]["detected"], false, "{flat}");
 }
+
+#[test]
+fn auto_mask_detector_gaps_runs_once_on_first_load_and_supports_undo() {
+    let temp = tempfile::tempdir().unwrap();
+    let mod_h = 64usize;
+    let mod_w = 80usize;
+    let gap_h = 10usize;
+    let gap_w = 6usize;
+    let h = 2 * mod_h + gap_h;
+    let w = 2 * mod_w + gap_w;
+    let mut img = vec![120.0_f64; h * w];
+    for r in 0..h {
+        let row_gap = r >= mod_h && r < mod_h + gap_h;
+        for c in 0..w {
+            let col_gap = c >= mod_w && c < mod_w + gap_w;
+            if row_gap || col_gap {
+                img[r * w + c] = -1.0;
+            }
+        }
+    }
+    let expected_gap_pixels = gap_h * w + gap_w * (h - gap_h);
+    let path1 = temp.path().join("custom_tiled_001.npy");
+    let path2 = temp.path().join("custom_tiled_002.npy");
+    npy(&path1, [h, w], &img);
+    npy(&path2, [h, w], &img);
+
+    let mut s = Session::new(root());
+    let first = call(&mut s, "open_image", json!({"path": &path1}));
+    assert!(
+        first["autoMaskNotice"]
+            .as_str()
+            .is_some_and(|n| n.contains("Auto-masked 2×2 detector gaps (10×6 px)")),
+        "expected autoMaskNotice: {first}"
+    );
+    assert_eq!(first["state"]["useMask"], true);
+    assert_eq!(first["state"]["canUndoMask"], true);
+    assert_eq!(first["state"]["maskedPixels"], expected_gap_pixels);
+
+    // Subsequent image of the same shape retains the mask without re-announcing.
+    let second = call(&mut s, "open_image", json!({"path": &path2}));
+    assert!(second["autoMaskNotice"].is_null(), "{second}");
+    assert_eq!(state(&mut s)["maskedPixels"], expected_gap_pixels);
+
+    // Undoing removes the auto-masked gaps and subsequent same-shape loads stay unmasked.
+    call(&mut s, "undo_mask", json!({}));
+    assert_eq!(state(&mut s)["maskedPixels"], 0);
+    let third = call(&mut s, "open_image", json!({"path": &path1}));
+    assert!(third["autoMaskNotice"].is_null(), "{third}");
+    assert_eq!(state(&mut s)["maskedPixels"], 0);
+
+    // Zero-valued gaps are not auto-masked on load (strict sentinels only).
+    let mut zero_img = vec![120.0_f64; h * w];
+    for r in 0..h {
+        let row_gap = r >= mod_h && r < mod_h + gap_h;
+        for c in 0..w {
+            let col_gap = c >= mod_w && c < mod_w + gap_w;
+            if row_gap || col_gap {
+                zero_img[r * w + c] = 0.0;
+            }
+        }
+    }
+    let zero_path = temp.path().join("custom_zero_gaps.npy");
+    npy(&zero_path, [h, w], &zero_img);
+    let mut s_zero = Session::new(root());
+    let loaded_zero = call(&mut s_zero, "open_image", json!({"path": &zero_path}));
+    assert!(loaded_zero["autoMaskNotice"].is_null(), "{loaded_zero}");
+    assert_eq!(state(&mut s_zero)["maskedPixels"], 0);
+
+    // Opening Pilatus 1M directly (without a preselected detector) auto-masks its 5×2 gaps.
+    let mut s_pilatus = Session::new(root());
+    let loaded_pilatus = call(
+        &mut s_pilatus,
+        "open_image",
+        json!({"path": root().join("tests/data/CeO2_Pilatus1M.tif")}),
+    );
+    assert!(
+        loaded_pilatus["autoMaskNotice"]
+            .as_str()
+            .is_some_and(|n| n.contains("Auto-masked 5×2 detector gaps (17×7 px)")),
+        "expected Pilatus 1M auto-mask notice: {loaded_pilatus}"
+    );
+    assert_eq!(state(&mut s_pilatus)["canUndoMask"], true);
+
+    // When a detector with a built-in physical mask is already selected (e.g. Pilatus 1M),
+    // opening the image does not duplicate gaps into the user mask.
+    let mut s_known = Session::new(root());
+    call(
+        &mut s_known,
+        "calibration_setup",
+        json!({"detector": "Pilatus 1M"}),
+    );
+    let loaded_known = call(
+        &mut s_known,
+        "open_image",
+        json!({"path": root().join("tests/data/CeO2_Pilatus1M.tif")}),
+    );
+    assert!(loaded_known["autoMaskNotice"].is_null(), "{loaded_known}");
+    assert_eq!(state(&mut s_known)["canUndoMask"], false);
+}

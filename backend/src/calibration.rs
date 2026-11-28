@@ -1089,7 +1089,12 @@ impl Session {
             .ok_or("Open a detector image before detecting modules.")?;
         // Use the raw oriented detector values without user-drawn masks so that
         // background subtraction or beamstop masks cannot create or hide gap bands.
-        let detected = detect_detector_modules_in_image(&image.values, image.shape);
+        let detected = detect_detector_modules_in_image(
+            &image.values,
+            image.shape,
+            Some(&image.source_dtype),
+            true,
+        );
         match detected {
             Some(layout) => {
                 let notice = format!(
@@ -1137,23 +1142,36 @@ pub(crate) struct DetectedModuleLayout {
 /// Detect regular tiled-detector module dimensions and inter-module gaps by
 /// locating full rows and columns dominated by sentinel gap pixels (negative
 /// values like Pilatus `-1`, non-finite values, upper-sentinel values like
-/// Eiger `u32::MAX` / `65535`, or all-zero gap bands on dense images).
+/// Eiger `u32::MAX` / `65535` / `i16::MAX`, or optionally all-zero gap bands on
+/// dense images when `allow_zero_gaps` is true).
 pub(crate) fn detect_detector_modules_in_image(
     values: &[f64],
     shape: [usize; 2],
+    source_dtype: Option<&str>,
+    allow_zero_gaps: bool,
 ) -> Option<DetectedModuleLayout> {
     let [rows, cols] = shape;
     if rows < 32 || cols < 32 || values.len() != rows * cols {
         return None;
     }
 
+    let exact_upper: &[f64] = match source_dtype {
+        Some("U16") => &[u16::MAX as f64],
+        Some("I16") => &[i16::MAX as f64],
+        Some("U32") => &[u32::MAX as f64, i32::MAX as f64, u16::MAX as f64],
+        Some("I32") => &[i32::MAX as f64],
+        _ => &[],
+    };
     let mut max_finite = f64::NEG_INFINITY;
-    for &v in values {
-        if v.is_finite() && v > max_finite {
-            max_finite = v;
+    if exact_upper.is_empty() {
+        for &v in values {
+            if v.is_finite() && v > max_finite {
+                max_finite = v;
+            }
         }
     }
-    let has_upper_sentinel = max_finite.is_finite() && max_finite >= 65_535.0;
+    let has_upper_sentinel =
+        exact_upper.is_empty() && max_finite.is_finite() && max_finite >= 65_535.0;
     let upper_threshold = max_finite - (max_finite * 1e-6).max(1.0);
 
     let mut row_strict = vec![0usize; rows];
@@ -1167,7 +1185,11 @@ pub(crate) fn detect_detector_modules_in_image(
         for c in 0..cols {
             let idx = row_offset + c;
             let v = values[idx];
-            let is_upper = has_upper_sentinel && v.is_finite() && v >= upper_threshold;
+            let is_upper = if !exact_upper.is_empty() {
+                exact_upper.contains(&v)
+            } else {
+                has_upper_sentinel && v.is_finite() && v >= upper_threshold
+            };
             let is_strict = !v.is_finite() || v < 0.0 || is_upper;
             if is_strict {
                 row_strict[r] += 1;
@@ -1189,7 +1211,7 @@ pub(crate) fn detect_detector_modules_in_image(
     let mut row_tiling = detect_axis_tiling(&row_gap_strict);
     let mut col_tiling = detect_axis_tiling(&col_gap_strict);
 
-    if row_tiling.is_none() || col_tiling.is_none() {
+    if allow_zero_gaps && (row_tiling.is_none() || col_tiling.is_none()) {
         let mut positive_fracs: Vec<usize> = row_positive.clone();
         positive_fracs.sort_unstable();
         let median_positive = positive_fracs[rows / 2];
@@ -1235,6 +1257,32 @@ pub(crate) fn detect_detector_modules_in_image(
             module_cols: mc,
         }),
     }
+}
+
+/// Build a binary mask (`1` = gap, `0` = active) for a detected regular tiled
+/// detector layout.
+pub(crate) fn gap_mask_for_layout(
+    layout: DetectedModuleLayout,
+    [rows, cols]: [usize; 2],
+) -> Vec<u8> {
+    let pitch_r = layout.module_height + layout.gap_height;
+    let pitch_c = layout.module_width + layout.gap_width;
+    let mut mask = vec![0u8; rows * cols];
+    for r in 0..rows {
+        if layout.gap_height > 0 && (r % pitch_r) >= layout.module_height {
+            mask[r * cols..(r + 1) * cols].fill(1);
+            continue;
+        }
+        if layout.gap_width > 0 {
+            let row_offset = r * cols;
+            for c in 0..cols {
+                if (c % pitch_c) >= layout.module_width {
+                    mask[row_offset + c] = 1;
+                }
+            }
+        }
+    }
+    mask
 }
 
 /// Extract a regular `(module_size, gap_size, module_count)` tiling from a 1D
@@ -1411,7 +1459,7 @@ mod module_detection_tests {
         // Add scattered saturated hot pixels inside active modules.
         data[10 * shape[1] + 15] = u32::MAX as f64;
         data[20 * shape[1] + 40] = u32::MAX as f64;
-        let detected = detect_detector_modules_in_image(&data, shape).unwrap();
+        let detected = detect_detector_modules_in_image(&data, shape, Some("U32"), false).unwrap();
         assert_eq!(detected, expected);
     }
 
@@ -1426,8 +1474,16 @@ mod module_detection_tests {
             module_cols: 1,
         };
         let (data, shape) = synthetic_tiled(expected, 50.0, 0.0);
-        let detected = detect_detector_modules_in_image(&data, shape).unwrap();
-        assert_eq!(detected, expected);
+        // Zero gaps are detected when allow_zero_gaps = true (Per-module dialog),
+        // but rejected in strict mode (auto-masking on load).
+        assert_eq!(
+            detect_detector_modules_in_image(&data, shape, Some("F64"), true),
+            Some(expected)
+        );
+        assert_eq!(
+            detect_detector_modules_in_image(&data, shape, Some("F64"), false),
+            None
+        );
     }
 
     #[test]
@@ -1445,7 +1501,7 @@ mod module_detection_tests {
         for c in 0..shape[1] {
             data[30 * shape[1] + c] = -1.0;
         }
-        let detected = detect_detector_modules_in_image(&data, shape).unwrap();
+        let detected = detect_detector_modules_in_image(&data, shape, Some("I32"), false).unwrap();
         assert_eq!(detected, expected);
     }
 
@@ -1463,21 +1519,27 @@ mod module_detection_tests {
                 }
             }
         }
-        assert_eq!(detect_detector_modules_in_image(&circular, [h, w]), None);
+        assert_eq!(
+            detect_detector_modules_in_image(&circular, [h, w], Some("U16"), true),
+            None
+        );
 
         let mut flat = vec![100.0; h * w];
         for c in 0..w {
             flat[128 * w + c] = -1.0;
         }
-        assert_eq!(detect_detector_modules_in_image(&flat, [h, w]), None);
         assert_eq!(
-            detect_detector_modules_in_image(&vec![10.0; 16 * 16], [16, 16]),
+            detect_detector_modules_in_image(&flat, [h, w], Some("I32"), true),
+            None
+        );
+        assert_eq!(
+            detect_detector_modules_in_image(&vec![10.0; 16 * 16], [16, 16], None, true),
             None
         );
     }
 
     #[test]
-    fn detects_nan_and_u16_max_gaps_and_mixed_chip_gaps() {
+    fn detects_nan_i16_u16_max_gaps_and_mixed_chip_gaps() {
         let nan_layout = DetectedModuleLayout {
             module_height: 64,
             module_width: 64,
@@ -1488,7 +1550,14 @@ mod module_detection_tests {
         };
         let (nan_data, nan_shape) = synthetic_tiled(nan_layout, 80.0, f64::NAN);
         assert_eq!(
-            detect_detector_modules_in_image(&nan_data, nan_shape),
+            detect_detector_modules_in_image(&nan_data, nan_shape, Some("F32"), false),
+            Some(nan_layout)
+        );
+
+        // Signed 16-bit max sentinel (i16::MAX = 32767).
+        let (i16_data, i16_shape) = synthetic_tiled(nan_layout, 80.0, i16::MAX as f64);
+        assert_eq!(
+            detect_detector_modules_in_image(&i16_data, i16_shape, Some("I16"), false),
             Some(nan_layout)
         );
 
@@ -1509,7 +1578,7 @@ mod module_detection_tests {
             }
         }
         assert_eq!(
-            detect_detector_modules_in_image(&data, shape),
+            detect_detector_modules_in_image(&data, shape, Some("U16"), false),
             Some(eiger_layout)
         );
     }
@@ -1534,6 +1603,9 @@ mod module_detection_tests {
                 }
             }
         }
-        assert_eq!(detect_detector_modules_in_image(&data, shape), None);
+        assert_eq!(
+            detect_detector_modules_in_image(&data, shape, Some("U32"), true),
+            None
+        );
     }
 }

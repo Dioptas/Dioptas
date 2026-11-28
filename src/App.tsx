@@ -264,6 +264,7 @@ export default function App() {
   const [distortionPreview, setDistortionPreview] = useState<
     import("./types").DistortionPreview | null
   >(null);
+  const [autoMaskUndoAvailable, setAutoMaskUndoAvailable] = useState(false);
   const [manualSection, setManualSection] = useState<"peaks" | "parameters">(
     "peaks",
   );
@@ -840,6 +841,26 @@ export default function App() {
                     ].includes(command)
                   ) {
                     setDistortionPreview(null);
+                  }
+                  if (result.autoMaskNotice) {
+                    setAutoMaskUndoAvailable(true);
+                  } else if (
+                    [
+                      "open_image",
+                      "next_image",
+                      "select_image_source",
+                      "example",
+                      "open_project",
+                      "reset_calibration",
+                      "undo_mask",
+                      "redo_mask",
+                      "clear_mask",
+                      "mask_edit",
+                      "mask_stroke",
+                      "mask_file",
+                    ].includes(command)
+                  ) {
+                    setAutoMaskUndoAvailable(false);
                   }
                   if (command === "auto_calibrate" && result.wavelengthHint) {
                     setWavelengthHint(result.wavelengthHint);
@@ -3997,6 +4018,15 @@ export default function App() {
           }
           onDismissError={() => setError(null)}
           onCancelMaskSelection={maskSelection?.cancel}
+          canUndoAutoMask={
+            autoMaskUndoAvailable &&
+            Boolean(state?.canUndoMask) &&
+            Boolean(notice?.includes("Auto-masked"))
+          }
+          onUndoAutoMask={() => {
+            setAutoMaskUndoAvailable(false);
+            void run("undo_mask", {});
+          }}
           onCancelProcessing={() => {
             void bridge.current?.("cancel_refinement");
           }}

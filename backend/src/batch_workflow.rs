@@ -751,8 +751,19 @@ impl Session {
             // The outer selection publishes the completed state. Building an
             // intermediate open-image reply duplicates metadata and ring paths.
             let loaded = self.open_image_model(&args, defer).and_then(|reply| {
-                if let Some(r) = reply { Err(if r.result.get("imageChange").is_some() { "Detector dimensions changed; open this image manually to reset calibration.".into() } else { "HDF5 source files are missing; open the master to select its companions.".into() }) }
-                else { Ok(()) }
+                if let Some(r) = reply
+                    && r.result.get("state").is_none()
+                {
+                    Err(if r.result.get("imageChange").is_some() {
+                        "Detector dimensions changed; open this image manually to reset calibration."
+                            .into()
+                    } else {
+                        "HDF5 source files are missing; open the master to select its companions."
+                            .into()
+                    })
+                } else {
+                    Ok(())
+                }
             });
             if loaded.is_ok() {
                 self.revision += 1;

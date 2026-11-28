@@ -321,6 +321,8 @@ export interface Response {
   calibrationReset?: boolean;
   /** Set when a loaded PONI file changed, or could not apply, its recorded calibrant. */
   calibrantNotice?: string;
+  /** Set when opening an unrecognized tiled detector image auto-masked strict-sentinel inter-module gaps. */
+  autoMaskNotice?: string;
   autoCalibrateFailed?: boolean;
   autoCalibrateNotice?: string;
   rot3Notice?: string;
