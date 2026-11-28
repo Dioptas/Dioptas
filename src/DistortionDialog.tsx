@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Dialog, DialogHeader, DialogPanel, Input, Select } from "./ui";
 import type { DistortionPreview, State } from "./types";
 import type { Run } from "./commandContracts";
@@ -245,6 +245,13 @@ export function DistortionDialog({
   const [gapW, setGapW] = useState("7");
   const [fitZ, setFitZ] = useState(false);
   const [nPasses, setNPasses] = useState("3");
+  const [detectNote, setDetectNote] = useState<string | null>(null);
+  const lastPresetKey = useRef<string | null>(null);
+  const lastAutoDetectKey = useRef<string | null>(null);
+  const activeShapeKey = activeShape ? `${activeShape[0]}x${activeShape[1]}` : "";
+  const activeImageKey = `${activeIndex}:${activeShapeKey}:${state?.imagePath ?? state?.imageName ?? ""}`;
+  const currentDetectContextRef = useRef({ open, activeImageKey });
+  currentDetectContextRef.current = { open, activeImageKey };
 
   // Keep eligible selection synced when dialog opens or configurations change.
   const eligibleIndices = useMemo(
@@ -263,25 +270,83 @@ export function DistortionDialog({
     [summaries, activeShape],
   );
 
+  const detectModules = useCallback(
+    (userInitiated: boolean) => {
+      const requestedKey = currentDetectContextRef.current.activeImageKey;
+      void run(
+        "detect_detector_modules",
+        {},
+        userInitiated ? "Detecting detector modules…" : undefined,
+        (result) => {
+          if (
+            !currentDetectContextRef.current.open ||
+            currentDetectContextRef.current.activeImageKey !== requestedKey
+          ) {
+            return;
+          }
+          const m = result.detectedModules;
+          if (!m) return;
+          if (
+            m.detected &&
+            m.moduleHeight != null &&
+            m.moduleWidth != null &&
+            m.gapHeight != null &&
+            m.gapWidth != null
+          ) {
+            setModuleH(String(m.moduleHeight));
+            setModuleW(String(m.moduleWidth));
+            setGapH(String(m.gapHeight));
+            setGapW(String(m.gapWidth));
+            setDetectNote(m.notice);
+          } else if (userInitiated) {
+            setDetectNote(m.notice);
+          }
+        },
+      );
+    },
+    [run],
+  );
+
+  // Sync eligible configurations without touching module fields or detection state.
   useEffect(() => {
     if (!open) return;
-    const preset = modulePresetForDetector(
-      state?.calibration.detector,
-      activeShape,
-    );
-    if (preset) {
-      setModuleH(preset.h);
-      setModuleW(preset.w);
-      setGapH(preset.gh);
-      setGapW(preset.gw);
-    }
     setSelectedConfigs((prev) => {
       const kept = prev.filter((i) => eligibleIndices.includes(i));
       if (kept.length > 0) return kept;
       if (eligibleIndices.includes(activeIndex)) return [activeIndex];
       return eligibleIndices.slice(0, 1);
     });
-  }, [open, activeIndex, eligibleIndices, state?.calibration.detector]);
+  }, [open, activeIndex, eligibleIndices]);
+
+  // Apply detector-name / shape preset once per dialog open or active image change,
+  // so subsequent workspace updates (e.g. after Estimate) never overwrite detected or
+  // user-edited module dimensions.
+  const detectorName = state?.calibration.detector;
+  useEffect(() => {
+    if (!open) {
+      lastPresetKey.current = null;
+      lastAutoDetectKey.current = null;
+      return;
+    }
+    const presetKey = `${activeImageKey}:${detectorName ?? ""}`;
+    if (lastPresetKey.current === presetKey) return;
+    lastPresetKey.current = presetKey;
+    const preset = modulePresetForDetector(detectorName, activeShape);
+    if (preset) {
+      setModuleH(preset.h);
+      setModuleW(preset.w);
+      setGapH(preset.gh);
+      setGapW(preset.gw);
+    }
+    setDetectNote(null);
+  }, [open, activeImageKey, detectorName, activeShape]);
+
+  useEffect(() => {
+    if (!open || !ready || model !== "per_module" || !activeShape) return;
+    if (lastAutoDetectKey.current === activeImageKey) return;
+    lastAutoDetectKey.current = activeImageKey;
+    detectModules(false);
+  }, [open, ready, model, activeShape, activeImageKey, detectModules]);
 
   if (!open) return null;
 
@@ -317,10 +382,16 @@ export function DistortionDialog({
       );
       payload.smoothness = Math.max(1e-8, Number(smoothness) || 1e-3);
     } else if (model === "per_module") {
+      const parsedGapH = gapH.trim() === "" ? Number.NaN : Number(gapH);
+      const parsedGapW = gapW.trim() === "" ? Number.NaN : Number(gapW);
       payload.module_height = Math.max(16, Math.round(Number(moduleH) || 195));
       payload.module_width = Math.max(16, Math.round(Number(moduleW) || 487));
-      payload.gap_height = Math.max(0, Math.round(Number(gapH) || 17));
-      payload.gap_width = Math.max(0, Math.round(Number(gapW) || 7));
+      payload.gap_height = Number.isFinite(parsedGapH)
+        ? Math.max(0, Math.round(parsedGapH))
+        : 17;
+      payload.gap_width = Number.isFinite(parsedGapW)
+        ? Math.max(0, Math.round(parsedGapW))
+        : 7;
       payload.fit_z = fitZ;
     }
     void run(
@@ -565,6 +636,19 @@ export function DistortionDialog({
                     />
                     Fit out-of-plane Δz per module
                   </label>
+                  <div className="distortion-module-detect">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={!ready || !activeShape}
+                      onClick={() => detectModules(true)}
+                    >
+                      Auto-detect modules from image
+                    </Button>
+                    {detectNote && (
+                      <p className="muted distortion-tip">{detectNote}</p>
+                    )}
+                  </div>
                 </>
               )}
 

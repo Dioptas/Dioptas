@@ -1500,3 +1500,46 @@ fn estimate_apply_and_save_distortion_works_across_single_and_multi_configuratio
             .ends_with("estimated.spline")
     );
 }
+
+#[test]
+fn detect_detector_modules_finds_pilatus_gaps_and_rejects_flat_ccd() {
+    let mut s = Session::new(root());
+    call(
+        &mut s,
+        "open_image",
+        json!({"path": root().join("tests/data/CeO2_Pilatus1M.tif")}),
+    );
+    let detected = call(&mut s, "detect_detector_modules", json!({}));
+    assert_eq!(detected["detectedModules"]["detected"], true);
+    assert_eq!(detected["detectedModules"]["moduleHeight"], 195);
+    assert_eq!(detected["detectedModules"]["moduleWidth"], 487);
+    assert_eq!(detected["detectedModules"]["gapHeight"], 17);
+    assert_eq!(detected["detectedModules"]["gapWidth"], 7);
+    assert_eq!(detected["detectedModules"]["moduleRows"], 5);
+    assert_eq!(detected["detectedModules"]["moduleCols"], 2);
+
+    // Rotating the image by 90 degrees transposes the detected module dimensions.
+    call(
+        &mut s,
+        "image_transform",
+        json!({"operation": "rotate_right"}),
+    );
+    let rotated = call(&mut s, "detect_detector_modules", json!({}));
+    assert_eq!(rotated["detectedModules"]["detected"], true);
+    assert_eq!(rotated["detectedModules"]["moduleHeight"], 487);
+    assert_eq!(rotated["detectedModules"]["moduleWidth"], 195);
+    assert_eq!(rotated["detectedModules"]["gapHeight"], 7);
+    assert_eq!(rotated["detectedModules"]["gapWidth"], 17);
+    assert_eq!(rotated["detectedModules"]["moduleRows"], 2);
+    assert_eq!(rotated["detectedModules"]["moduleCols"], 5);
+
+    // A circular non-tiled MAR CCD detector must not falsely detect modules.
+    let mut s_ccd = Session::new(root());
+    call(
+        &mut s_ccd,
+        "open_image",
+        json!({"path": root().join("tests/data/LaB6_40keV_MarCCD.tif")}),
+    );
+    let flat = call(&mut s_ccd, "detect_detector_modules", json!({}));
+    assert_eq!(flat["detectedModules"]["detected"], false, "{flat}");
+}

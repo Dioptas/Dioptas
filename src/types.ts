@@ -98,6 +98,17 @@ export interface ConfigurationSummary {
   calibrant: string;
 }
 
+export interface DetectedModules {
+  detected: boolean;
+  moduleHeight?: number;
+  moduleWidth?: number;
+  gapHeight?: number;
+  gapWidth?: number;
+  moduleRows?: number;
+  moduleCols?: number;
+  notice: string;
+}
+
 export interface DistortionPreview {
   model: "smooth_spline" | "radial_optical" | "bow_z" | "per_module";
   modelLabel: string;
@@ -315,6 +326,7 @@ export interface Response {
   rot3Notice?: string;
   distortionNotice?: string;
   distortionPreview?: DistortionPreview;
+  detectedModules?: DetectedModules;
   wavelengthHint?: {
     currentWavelength: number;
     suggestedWavelength?: number;
