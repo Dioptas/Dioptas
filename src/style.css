@@ -53,24 +53,8 @@ button {
     background 0.12s,
     border-color 0.12s;
 }
-button:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
 button:not(:disabled):hover {
   background: #ffffff09;
-}
-button:focus-visible,
-input:focus-visible,
-select:focus-visible {
-  outline: 2px solid var(--ui-focus);
-  outline-offset: 3px;
-}
-input:not([type="checkbox"]):not([type="radio"]):focus-visible,
-select:focus-visible {
-  border-color: var(--ui-focus);
-  outline: 1px solid var(--ui-focus);
-  outline-offset: -1px;
 }
 button svg {
   flex-shrink: 0;
@@ -122,7 +106,7 @@ input[type="checkbox"]:checked,
 input[type="checkbox"]:indeterminate,
 input[type="radio"]:checked {
   border-color: var(--ui-choice-border);
-  background-color: var(--ui-choice-background);
+  background-color: var(--ui-choice-checked);
 }
 input[type="checkbox"]:checked {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m3.5 8 3 3 6-6' fill='none' stroke='%23e3e7eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -168,8 +152,8 @@ button.primary:not(:disabled):hover {
   background: #ffab36;
 }
 button.secondary {
-  background: #1d252e;
-  border-color: #3b4652;
+  background: var(--ui-button-background);
+  border-color: var(--ui-field-border);
   padding: 9px 13px;
   color: var(--ui-text);
 }
@@ -1441,7 +1425,7 @@ main {
   color: #a4b2bf;
 }
 .calibration-step-buttons .active {
-  color: var(--accent-text, var(--accent));
+  color: var(--accent);
   background: #ffffff08;
   border-color: var(--accent);
 }

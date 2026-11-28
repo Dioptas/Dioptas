@@ -146,3 +146,41 @@ test("field and floating-surface colors are owned by the shared UI styles", asyn
     "Use shared palette tokens instead of adding a private field/dialog color.",
   );
 });
+
+test("all CSS custom property references resolve to defined tokens", async () => {
+  const defined = new Set();
+  const refs = [];
+  for (const filename of await files(source)) {
+    if (filename.endsWith(".css")) {
+      const root = postcss.parse(await readFile(filename, "utf8"), {
+        from: filename,
+      });
+      root.walkDecls((decl) => {
+        if (decl.prop.startsWith("--")) defined.add(decl.prop);
+        for (const match of decl.value.matchAll(/var\(\s*(--[\w-]+)/g)) {
+          refs.push({
+            file: path.basename(filename),
+            line: decl.source?.start?.line ?? 0,
+            token: match[1],
+          });
+        }
+      });
+    } else if (filename.endsWith(".tsx") || filename.endsWith(".ts")) {
+      const text = await readFile(filename, "utf8");
+      for (const match of text.matchAll(/["'](--[\w-]+)["']\s*:/g)) {
+        defined.add(match[1]);
+      }
+      for (const match of text.matchAll(/setProperty\(\s*["'](--[\w-]+)["']/g)) {
+        defined.add(match[1]);
+      }
+    }
+  }
+  const missing = refs
+    .filter((r) => !defined.has(r.token))
+    .map((r) => `${r.file}:${r.line}: undefined ${r.token}`);
+  assert.deepEqual(
+    missing,
+    [],
+    "Every CSS var(--...) reference must resolve to a defined custom property.",
+  );
+});

@@ -228,6 +228,10 @@
   touch-action: none;
   outline: none;
 }
+.batch-heatmap canvas:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: -2px;
+}
 .batch-bottom-controls {
   flex: 0 0 auto;
   display: flex;

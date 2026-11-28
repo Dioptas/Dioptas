@@ -52,14 +52,14 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ui-focus);
   outline-offset: 3px;
 }
 input:not([type="checkbox"]):not([type="radio"]):focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  border-color: var(--accent);
-  outline: 1px solid var(--accent);
+  border-color: var(--ui-focus);
+  outline: 1px solid var(--ui-focus);
   outline-offset: -1px;
 }
 button svg {
@@ -382,7 +382,11 @@ button.quiet {
   ) {
   color: #aab4be;
 }
-.ui-button.plot-zoom-button:not(:disabled):hover,
+.ui-button.plot-zoom-button:not(:disabled):hover {
+  --button-fill: var(--ui-button-hover);
+  background: var(--button-fill);
+  color: #dce2e7;
+}
 .app
   :is(
     .integration-image-tools .plot-tool-button,
@@ -1037,6 +1041,9 @@ textarea::placeholder {
   --ui-input: var(--ui-field-background);
   --ui-panel: #202226;
   --ui-focus: #87939f;
+  --ui-success: #7fe5b2;
+  --ui-warning: #ffb84d;
+  --ui-click: #73d68c;
 }
 
 .muted {
