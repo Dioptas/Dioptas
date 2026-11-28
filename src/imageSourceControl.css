@@ -37,6 +37,6 @@
 }
 .image-source-error {
   grid-column: 2;
-  color: var(--text-muted, #bbc1c8);
+  color: var(--ui-danger);
   overflow-wrap: anywhere;
 }

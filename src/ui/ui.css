@@ -1038,3 +1038,7 @@ textarea::placeholder {
   --ui-panel: #202226;
   --ui-focus: #87939f;
 }
+
+.muted {
+  color: var(--ui-muted);
+}

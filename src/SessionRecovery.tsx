@@ -228,7 +228,7 @@ export function useSessionRecovery(input: {
       className="session-recovery-dialog"
       aria-labelledby="session-recovery-title"
       onCancel={() => {
-        if (!working) void fresh();
+        // Never discard a saved recovery session on Escape; require an explicit choice.
       }}
     >
       <h2 id="session-recovery-title">Restore previous work?</h2>

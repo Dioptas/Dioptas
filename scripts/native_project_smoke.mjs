@@ -167,6 +167,9 @@ try {
             .length === 3,
       );
       await group.getByRole("button", { name: "Remove", exact: true }).click();
+      await group
+        .getByRole("button", { name: "Confirm remove", exact: true })
+        .click();
       await page.waitForFunction(
         () =>
           document.querySelector('[aria-label="Active configuration"]')?.options
@@ -187,6 +190,9 @@ try {
           ?.textContent?.endsWith(".dio"),
       );
       await group.getByRole("button", { name: "Remove", exact: true }).click();
+      await group
+        .getByRole("button", { name: "Confirm remove", exact: true })
+        .click();
       await page.waitForFunction(
         () =>
           document.querySelector('[aria-label="Active configuration"]')?.options

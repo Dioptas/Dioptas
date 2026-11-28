@@ -319,7 +319,7 @@ export function ScanMapPanel({
           </Select>
         </label>
         <Button
-          className="plot-tool-button map-icon-button"
+          className="plot-tool-button"
           aria-label="Save PNG…"
           title="Save map viewport as PNG"
           disabled={!ready || !map}

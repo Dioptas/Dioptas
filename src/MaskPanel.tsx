@@ -145,6 +145,20 @@ export function MaskPanel({
 }) {
   const [above, setAbove] = useState(""),
     [below, setBelow] = useState("");
+  const [diameterDraft, setDiameterDraft] = useState(() =>
+    String(tools.diameter),
+  );
+  useEffect(() => {
+    setDiameterDraft(String(tools.diameter));
+  }, [tools.diameter]);
+  const commitDiameter = (raw: string) => {
+    const parsed = Number(raw);
+    const clamped = Number.isFinite(parsed)
+      ? Math.max(2, Math.min(600, Math.round(parsed)))
+      : tools.diameter;
+    tools.setDiameter(clamped);
+    setDiameterDraft(String(clamped));
+  };
   const [unit, setUnit] = useState<Unit>("2th_deg"),
     [lower, setLower] = useState(""),
     [upper, setUpper] = useState("");
@@ -215,15 +229,30 @@ export function MaskPanel({
                       type="number"
                       min="2"
                       max="600"
-                      value={tools.diameter}
-                      onChange={(e) =>
-                        tools.setDiameter(
-                          Math.max(
-                            2,
-                            Math.min(600, Number(e.target.value) || 2),
-                          ),
-                        )
-                      }
+                      step="1"
+                      value={diameterDraft}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        setDiameterDraft(raw);
+                        const parsed = Number(raw);
+                        if (
+                          raw.trim() !== "" &&
+                          Number.isFinite(parsed) &&
+                          parsed >= 2 &&
+                          parsed <= 600
+                        ) {
+                          tools.setDiameter(Math.round(parsed));
+                        }
+                      }}
+                      onBlur={() => commitDiameter(diameterDraft)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          commitDiameter(diameterDraft);
+                        } else if (e.key === "Escape") {
+                          setDiameterDraft(String(tools.diameter));
+                        }
+                      }}
                     />
                     <span aria-hidden="true">px</span>
                   </label>

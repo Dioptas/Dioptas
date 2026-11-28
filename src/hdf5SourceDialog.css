@@ -27,7 +27,7 @@
   font-weight: 600;
 }
 .hdf5-source-owner {
-  color: var(--text-muted, #aaa);
+  color: var(--ui-muted);
   font-size: 0.9em;
 }
 .hdf5-source-file {

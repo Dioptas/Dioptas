@@ -502,8 +502,8 @@ export default function App() {
   const [busy, setBusy] = useState("Connecting to Dioptas…"),
     [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useWorkflowNotice();
-  const canPick =
-    calibrationStep === 2 && !!state?.hasImage && !setupDirty && !geometryDirty;
+  const canSwitchToPick = !!state?.hasImage && !setupDirty && !geometryDirty;
+  const canPick = calibrationStep === 2 && canSwitchToPick;
   const tool: Tool =
     mode === "calibration" && pickingEnabled && canPick ? "pick" : "pan";
   // Calibration validation shows the image, cake and pattern together; clicks
@@ -1217,9 +1217,15 @@ export default function App() {
   useWorkspaceShortcuts({
     run,
     currentState,
-    canPick,
+    canPick: canSwitchToPick,
     mode,
     setMode,
+    onPickShortcut: () => {
+      setMode("calibration");
+      setCalibrationStep(2);
+      setManualSection("peaks");
+      setPickingEnabled(true);
+    },
     setPickingEnabled,
     selectedPicks,
     setSelectedPicks,
@@ -1875,7 +1881,7 @@ export default function App() {
     : geometryDirty
       ? "Apply geometry changes on Validate before auto-calibrating."
       : setupDirty
-        ? "Finish entering valid detector pixel sizes on Image."
+        ? "Finish entering valid detector pixel sizes on Calibrate."
         : advancedDirty
           ? "Finish entering valid refinement options."
           : !validFitDraft
@@ -1899,7 +1905,7 @@ export default function App() {
   const fitBlocker = geometryDirty
     ? "Apply geometry changes on Validate before fitting."
     : setupDirty
-      ? "Finish entering valid detector pixel sizes on Image."
+      ? "Finish entering valid detector pixel sizes on Calibrate."
       : advancedDirty
         ? "Finish entering valid refinement options."
         : !validFitDraft
@@ -3547,6 +3553,7 @@ export default function App() {
                                 state={state}
                                 ready={ready}
                                 ring={ring}
+                                picking={pickingEnabled}
                                 automatic={automatic}
                                 setAutomatic={setAutomatic}
                                 run={run}
@@ -4019,9 +4026,7 @@ export default function App() {
           onDismissError={() => setError(null)}
           onCancelMaskSelection={maskSelection?.cancel}
           canUndoAutoMask={
-            autoMaskUndoAvailable &&
-            Boolean(state?.canUndoMask) &&
-            Boolean(notice?.includes("Auto-masked"))
+            autoMaskUndoAvailable && Boolean(state?.canUndoMask)
           }
           onUndoAutoMask={() => {
             setAutoMaskUndoAvailable(false);

@@ -101,6 +101,7 @@
 .calibration-inline-fit input[type="checkbox"] {
   width: 13px;
   height: 13px;
+  min-height: 13px;
   margin: 0;
 }
 .calibration-beam-setup {
@@ -600,7 +601,7 @@
 /* Let long setup/geometry forms scroll without moving the ring controls or actions. */
 .calibration-task-panel:is(
     [data-calibration-section="0"],
-    [data-calibration-section="3"]
+    [data-calibration-section="1"]
   )
   .sidebar-scroll {
   display: block;

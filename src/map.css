@@ -207,7 +207,7 @@
   border-bottom: 2px solid transparent;
   background: transparent;
   padding: 9px 6px 7px;
-  font-size: var(--text-normal);
+  font-size: var(--text-small);
   min-width: 0;
 }
 .map-tabs button[aria-selected="true"] {

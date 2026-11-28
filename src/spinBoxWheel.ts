@@ -52,19 +52,22 @@ export function installSpinBoxWheel() {
         !step ||
         !(input instanceof HTMLInputElement) ||
         input.type !== "number" ||
+        document.activeElement !== input ||
         !input.closest(".app") ||
         input.matches(":disabled") ||
         input.readOnly
       )
         return;
       if (input.closest("[data-no-wheel-step]")) {
-        if (document.activeElement === input) input.blur();
+        input.blur();
         return;
       }
+      // Do not guess a step of 1 for continuous step="any" fields (e.g. smoothness 0.001).
+      const quantum = Number(input.step);
+      if (!Number.isFinite(quantum) || quantum <= 0) return;
       const current = input.valueAsNumber;
       if (!Number.isFinite(current)) return;
       consume(event);
-      const quantum = Number(input.step) > 0 ? Number(input.step) : 1;
       const min = input.min ? Number(input.min) : -Infinity;
       const max = input.max ? Number(input.max) : Infinity;
       const next = Math.min(
