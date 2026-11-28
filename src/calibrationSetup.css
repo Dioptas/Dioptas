@@ -104,16 +104,14 @@
 }
 .calibration-task-panel .orientation-tools {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 5px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
 }
 .calibration-task-panel .orientation-tools button {
-  padding: 6px 4px;
+  padding: 4px;
   min-width: 0;
-  font-size: var(--text-small);
-}
-.calibration-task-panel .orientation-tools button:last-child {
-  grid-column: 1 / -1;
+  min-height: 30px;
+  justify-content: center;
 }
 .calibration-task-panel .orientation-tools svg {
   flex-shrink: 0;

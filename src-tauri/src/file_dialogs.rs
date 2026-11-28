@@ -167,6 +167,24 @@ fn file_choice(action: &str, payload: &Value) -> Option<FileChoice> {
             "calibration-peaks.json",
             true,
         ),
+        "save_distortion" => (
+            if payload["format"] == "h5" {
+                "pyFAI NeXus detector"
+            } else {
+                "Fit2D / pyFAI distortion spline"
+            },
+            if payload["format"] == "h5" {
+                &["h5", "hdf5"]
+            } else {
+                &["spline"]
+            },
+            if payload["format"] == "h5" {
+                "detector-distortion.h5"
+            } else {
+                "distortion.spline"
+            },
+            true,
+        ),
         "open_project" => ("Dioptas project", &["dio"], "", false),
         "save_project" => ("Dioptas project", &["dio"], "experiment.dio", true),
         "save_cake_profile" => (

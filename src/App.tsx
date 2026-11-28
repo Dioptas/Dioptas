@@ -194,6 +194,7 @@ import {
   GeometryEditor,
   ManualGeometryDialog,
 } from "./CalibrationExtras";
+import { DistortionDialog } from "./DistortionDialog";
 import type { RingOverlay } from "./types";
 import type { ZoomMode } from "./usePlotNavigation";
 import { LoadCalibrationButton } from "./LoadCalibrationButton";
@@ -256,6 +257,21 @@ export default function App() {
   const [phaseGuides, setPhaseGuides] = useState<RingOverlay[]>([]);
   const phaseGuideRevision = useRef<number | null>(null);
   const [calibrationStep, setCalibrationStep] = useState(0);
+  const [wavelengthHint, setWavelengthHint] = useState<NonNullable<
+    import("./types").Response["wavelengthHint"]
+  > | null>(null);
+  const [distortionOpen, setDistortionOpen] = useState(false);
+  const [distortionPreview, setDistortionPreview] = useState<
+    import("./types").DistortionPreview | null
+  >(null);
+  const [manualSection, setManualSection] = useState<"peaks" | "parameters">(
+    "peaks",
+  );
+  useEffect(() => {
+    if (calibrationStep === 1 && state && !state.calibrated) {
+      setCalibrationStep(0);
+    }
+  }, [calibrationStep, state?.calibrated]);
   const [validationConvention, setValidationConvention] = useState<
     "pyfai" | "fit2d"
   >(() => {
@@ -485,16 +501,16 @@ export default function App() {
   const [busy, setBusy] = useState("Connecting to Dioptas…"),
     [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useWorkflowNotice();
-  const canPick = !!state?.hasImage && !setupDirty && !geometryDirty;
+  const canPick =
+    calibrationStep === 2 && !!state?.hasImage && !setupDirty && !geometryDirty;
   const tool: Tool =
     mode === "calibration" && pickingEnabled && canPick ? "pick" : "pan";
   // Calibration validation shows the image, cake and pattern together; clicks
   // there mark the same linked green position as in Integration.
   const linkedClicks =
-    mode === "integration" || (mode === "calibration" && calibrationStep === 3);
-  // With Pick peaks on, image clicks only pick, even while drafts block picking.
-  const detectorInspects =
-    linkedClicks && !(mode === "calibration" && pickingEnabled);
+    mode === "integration" || (mode === "calibration" && calibrationStep === 1);
+  // Picking is only active in Manual; Validate clicks always inspect.
+  const detectorInspects = linkedClicks;
   const [logImage, setLogImage] = useState(false),
     [logPattern, setLogPattern] = useState(false);
   const [palette, setPalette] = useState<Palette>("grey");
@@ -541,7 +557,7 @@ export default function App() {
     setCakePalette,
     setCakePreferences,
   });
-  const multipleImages = mode === "integration" || calibrationStep === 3;
+  const multipleImages = mode === "integration" || calibrationStep === 1;
   const detectorDisplay = useRef({ name: "detector", filterGaps: true });
   detectorDisplay.current = {
     name:
@@ -809,7 +825,40 @@ export default function App() {
                     ),
                   calibrationStep: setCalibrationStep,
                 },
-                success: (result) => notifyScheduledSuccess(call, result),
+                success: (result) => {
+                  if (
+                    command === "estimate_distortion" &&
+                    result.distortionPreview
+                  ) {
+                    setDistortionPreview(result.distortionPreview);
+                  } else if (
+                    [
+                      "open_image",
+                      "example",
+                      "open_project",
+                      "reset_calibration",
+                    ].includes(command)
+                  ) {
+                    setDistortionPreview(null);
+                  }
+                  if (command === "auto_calibrate" && result.wavelengthHint) {
+                    setWavelengthHint(result.wavelengthHint);
+                  } else if (
+                    [
+                      "auto_calibrate",
+                      "calibrate",
+                      "manual_geometry",
+                      "open_calibration",
+                      "reset_calibration",
+                      "open_image",
+                      "example",
+                      "open_project",
+                    ].includes(command)
+                  ) {
+                    setWavelengthHint(null);
+                  }
+                  notifyScheduledSuccess(call, result);
+                },
               },
             );
           } finally {
@@ -1051,7 +1100,9 @@ export default function App() {
     restoreUi: (ui) => {
       if (ui.mode !== undefined) setMode(ui.mode);
       if (ui.calibrationStep !== undefined)
-        setCalibrationStep(ui.calibrationStep);
+        setCalibrationStep(
+          ui.calibrationStep === 3 ? 1 : Math.min(2, ui.calibrationStep),
+        );
       if (ui.validationConvention !== undefined)
         setValidationConvention(ui.validationConvention);
       if (ui.integrationDisplay !== undefined)
@@ -1857,23 +1908,22 @@ export default function App() {
         (mode === "calibration" && calibrationStep === 2 && !fitReady
           ? fitBlocker
           : null) ||
-        (mode === "calibration" && calibrationStep === 3 && geometryDirty
+        (mode === "calibration" && calibrationStep === 1 && geometryDirty
           ? "Apply geometry changes before refining or saving."
           : null) ||
         (mode === "calibration"
           ? !state?.hasImage
             ? "Open a calibrant image to begin."
             : [
-                "Check detector settings. Pick peaks on the image or open another tab.",
-                pickingEnabled
-                  ? `Pick ring ${ring}. ${state.calibration.workflow.autoIncrement ? "Ring number increases after each pick." : "Ring number stays fixed."}`
-                  : "Picking is off. Move over the plots to inspect coordinates and intensity.",
-                "Check fit parameters, then calibrate the detector.",
+                "Check calibrant, pixel sizes, and wavelength, then click Auto-calibrate.",
                 state.calibration.fitDirty
                   ? "Ring selections changed. Calibrate or refine the geometry before saving."
                   : state.calibration.rmsDegrees != null
                     ? "Inspect fitted ring alignment and RMS, then save .poni."
                     : "Inspect ring overlays. This geometry has no fitted peak residual.",
+                pickingEnabled
+                  ? `Pick ring ${ring}. ${state.calibration.workflow.autoIncrement ? "Ring number increases after each pick." : "Ring number stays fixed."}`
+                  : "Picking is off. Move over the plots to inspect coordinates and intensity.",
               ][calibrationStep]
           : mode === "map"
             ? map
@@ -2389,7 +2439,7 @@ export default function App() {
                       </div>
                     )}
                   <div
-                    className={`views-grid ${mode === "calibration" ? (calibrationStep === 3 ? "validation-views" : "image-only") : ""}`}
+                    className={`views-grid ${mode === "calibration" ? (calibrationStep === 1 ? "validation-views" : "image-only") : ""}`}
                   >
                     <IntegrationLeftPane
                       active={mode === "integration"}
@@ -2505,7 +2555,7 @@ export default function App() {
                               activeRing={
                                 mode === "calibration"
                                   ? (calibrationPreview?.activeRing ??
-                                    (calibrationStep !== 3 && pickingEnabled
+                                    (calibrationStep === 2 && pickingEnabled
                                       ? ring
                                       : undefined))
                                   : undefined
@@ -2630,7 +2680,7 @@ export default function App() {
                           </div>
                         )}
                       </section>
-                      {(mode === "integration" || calibrationStep === 3) && (
+                      {(mode === "integration" || calibrationStep === 1) && (
                         <section className="panel cake-panel">
                           {cake ? (
                             <DetectorSurface
@@ -2785,7 +2835,7 @@ export default function App() {
                         />
                       )}
                     </IntegrationLeftPane>
-                    {((pattern && calibrationStep === 3) ||
+                    {((pattern && calibrationStep === 1) ||
                       mode === "integration") && (
                       <section className="panel pattern-panel">
                         {mode === "integration" && (
@@ -2965,6 +3015,17 @@ export default function App() {
                   {mode === "mask" ? "MASK OPTIONS" : "EXPERIMENT OPTIONS"}
                 </div>
                 {mode === "calibration" && (
+                  <CalibrationWorkflowTabs
+                    active={calibrationStep}
+                    disabled={[
+                      false,
+                      !setupValid || !state?.calibrated,
+                      !setupValid || !state?.hasImage,
+                    ]}
+                    onChange={setCalibrationStep}
+                  />
+                )}
+                {mode === "calibration" && calibrationStep === 2 && (
                   <CalibrationRingControls
                     calibration={displayedCalibration}
                     ring={displayedRing}
@@ -2985,17 +3046,29 @@ export default function App() {
                     canPick={canPick}
                   />
                 )}
-                {mode === "calibration" && (
-                  <CalibrationWorkflowTabs
-                    active={calibrationStep}
-                    disabled={[
-                      false,
-                      !setupValid || !state?.hasImage,
-                      !setupValid || !state?.hasImage,
-                      !setupValid || !state?.calibrated,
-                    ]}
-                    onChange={setCalibrationStep}
-                  />
+                {mode === "calibration" && calibrationStep === 2 && (
+                  <div
+                    className="calibration-manual-tabs"
+                    role="tablist"
+                    aria-label="Manual calibration sections"
+                  >
+                    <Button
+                      type="button"
+                      role="tab"
+                      aria-selected={manualSection === "peaks"}
+                      onClick={() => setManualSection("peaks")}
+                    >
+                      Peaks
+                    </Button>
+                    <Button
+                      type="button"
+                      role="tab"
+                      aria-selected={manualSection === "parameters"}
+                      onClick={() => setManualSection("parameters")}
+                    >
+                      Parameters
+                    </Button>
+                  </div>
                 )}
                 <div
                   className="sidebar-scroll"
@@ -3117,40 +3190,295 @@ export default function App() {
                         </>
                       ) : null}
                       {mode === "calibration" && calibrationStep === 0 && (
-                        <CalibrationControls
-                          onDirtyChange={setSetupDirty}
-                          onValidityChange={setSetupValid}
-                          additionalOptions={
-                            <CalibrationExtras
-                              state={state}
-                              step={0}
-                              ready={ready}
-                              run={run}
-                              onDirtyChange={() => {}}
-                              imageToolsOnly
-                            />
-                          }
-                          maskControls={
-                            <CalibrationExtras
-                              state={state}
-                              step={0}
-                              ready={ready}
-                              run={run}
-                              onDirtyChange={() => {}}
-                              hideImageTools
-                            />
-                          }
-                          calibration={state?.calibration}
-                          ready={ready}
-                          hasImage={!!state?.hasImage}
-                          run={run}
-                        />
+                        <>
+                          {state?.calibration.distortionFile && (
+                            <div
+                              className="calibration-distortion-banner"
+                              role="status"
+                              title={state.calibration.distortionFile}
+                            >
+                              <span className="calibration-distortion-banner-text">
+                                Distortion:{" "}
+                                <strong>
+                                  {state.calibration.distortionFile
+                                    .split(/[\\/]/)
+                                    .at(-1)}
+                                </strong>
+                              </span>
+                              <div className="calibration-distortion-banner-actions">
+                                {state?.calibrated && (
+                                  <Button
+                                    type="button"
+                                    variant="quiet"
+                                    disabled={!ready}
+                                    onClick={() => setDistortionOpen(true)}
+                                  >
+                                    Edit…
+                                  </Button>
+                                )}
+                                <Button
+                                  type="button"
+                                  className="icon-button"
+                                  aria-label="Clear active distortion"
+                                  title="Clear active distortion"
+                                  disabled={!ready}
+                                  onClick={() => {
+                                    setDistortionPreview(null);
+                                    void run("distortion_file", {
+                                      reset: true,
+                                    });
+                                  }}
+                                >
+                                  ×
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                          <CalibrationControls
+                            onDirtyChange={setSetupDirty}
+                            onValidityChange={setSetupValid}
+                            additionalOptions={
+                              <CalibrationExtras
+                                state={state}
+                                step={0}
+                                ready={ready}
+                                run={run}
+                                onDirtyChange={() => {}}
+                                fitEditor={fitEditor}
+                                imageToolsOnly
+                              />
+                            }
+                            maskControls={
+                              <CalibrationExtras
+                                state={state}
+                                step={0}
+                                ready={ready}
+                                run={run}
+                                onDirtyChange={() => {}}
+                                hideImageTools
+                              />
+                            }
+                            calibration={state?.calibration}
+                            ready={ready}
+                            hasImage={!!state?.hasImage}
+                            run={run}
+                          />
+                        </>
                       )}
                       {mode === "calibration" && (
                         <>
-                          {calibrationStep === 3 && (
+                          {calibrationStep === 1 && (
                             <>
                               <GeometryProvenance state={state} detail />
+                              {state?.calibration.distortionFile && (
+                                <div
+                                  className="calibration-distortion-banner"
+                                  role="status"
+                                  title={state.calibration.distortionFile}
+                                >
+                                  <span className="calibration-distortion-banner-text">
+                                    Distortion:{" "}
+                                    <strong>
+                                      {state.calibration.distortionFile
+                                        .split(/[\\/]/)
+                                        .at(-1)}
+                                    </strong>
+                                  </span>
+                                  <div className="calibration-distortion-banner-actions">
+                                    <Button
+                                      type="button"
+                                      variant="quiet"
+                                      disabled={!ready}
+                                      onClick={() => setDistortionOpen(true)}
+                                    >
+                                      Edit…
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      className="icon-button"
+                                      aria-label="Clear active distortion"
+                                      title="Clear active distortion"
+                                      disabled={!ready}
+                                      onClick={() => {
+                                        setDistortionPreview(null);
+                                        void run("distortion_file", {
+                                          reset: true,
+                                        });
+                                      }}
+                                    >
+                                      ×
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
+                              {wavelengthHint && (
+                                <section
+                                  className="calibration-wavelength-hint"
+                                  role="status"
+                                  aria-label="Wavelength mismatch suggestion"
+                                >
+                                  <div className="calibration-wavelength-hint-header">
+                                    <span>
+                                      {wavelengthHint.suggestedWavelength !==
+                                      undefined
+                                        ? "Wavelength mismatch suspected"
+                                        : `High residual (RMS ${wavelengthHint.currentRmsDegrees.toFixed(3)}°)`}
+                                    </span>
+                                    <Button
+                                      type="button"
+                                      className="icon-button"
+                                      aria-label="Dismiss wavelength suggestion"
+                                      onClick={() => setWavelengthHint(null)}
+                                    >
+                                      ×
+                                    </Button>
+                                  </div>
+                                  {wavelengthHint.suggestedWavelength !==
+                                  undefined ? (
+                                    <>
+                                      <p>
+                                        Rings fit better at{" "}
+                                        <strong>
+                                          {wavelengthHint.suggestedWavelength.toFixed(
+                                            4,
+                                          )}{" "}
+                                          Å
+                                        </strong>{" "}
+                                        (
+                                        {wavelengthHint.suggestedEnergy?.toFixed(
+                                          2,
+                                        )}{" "}
+                                        keV) — RMS{" "}
+                                        {wavelengthHint.suggestedRmsDegrees?.toFixed(
+                                          3,
+                                        )}
+                                        ° vs{" "}
+                                        {wavelengthHint.currentRmsDegrees.toFixed(
+                                          3,
+                                        )}
+                                        °.
+                                      </p>
+                                      <div className="calibration-wavelength-hint-actions">
+                                        <Button
+                                          type="button"
+                                          variant="primary"
+                                          disabled={!ready}
+                                          onClick={() => {
+                                            const wl = Number(
+                                              wavelengthHint.suggestedWavelength!.toPrecision(
+                                                6,
+                                              ),
+                                            );
+                                            void run(
+                                              "auto_calibrate",
+                                              {
+                                                ...(fitDraft ?? {}),
+                                                parameters: {
+                                                  ...(fitDraft?.parameters ??
+                                                    {}),
+                                                  wavelength: {
+                                                    value: wl,
+                                                    refine: false,
+                                                  },
+                                                },
+                                              },
+                                              `Auto-calibrating at ${wl} Å…`,
+                                            );
+                                          }}
+                                        >
+                                          Refit at{" "}
+                                          {wavelengthHint.suggestedWavelength.toFixed(
+                                            4,
+                                          )}{" "}
+                                          Å
+                                        </Button>
+                                        <Button
+                                          type="button"
+                                          variant="secondary"
+                                          disabled={!ready}
+                                          onClick={() => {
+                                            const wl = Number(
+                                              wavelengthHint.suggestedWavelength!.toPrecision(
+                                                6,
+                                              ),
+                                            );
+                                            void run(
+                                              "calibrate",
+                                              {
+                                                ...(fitDraft ?? {}),
+                                                restart: false,
+                                                from_image: true,
+                                                parameters: {
+                                                  ...(fitDraft?.parameters ??
+                                                    {}),
+                                                  wavelength: {
+                                                    value: wl,
+                                                    refine: true,
+                                                  },
+                                                },
+                                              },
+                                              "Refining geometry and wavelength…",
+                                            );
+                                          }}
+                                        >
+                                          Fit wavelength
+                                        </Button>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <p>
+                                        Rings do not match cleanly at{" "}
+                                        <strong>
+                                          {wavelengthHint.currentWavelength.toFixed(
+                                            4,
+                                          )}{" "}
+                                          Å
+                                        </strong>
+                                        . Check wavelength, calibrant, pixel
+                                        size, or starting distance.
+                                      </p>
+                                      <div className="calibration-wavelength-hint-actions">
+                                        <Button
+                                          type="button"
+                                          variant="primary"
+                                          disabled={!ready}
+                                          onClick={() => setCalibrationStep(0)}
+                                        >
+                                          Adjust setup
+                                        </Button>
+                                        <Button
+                                          type="button"
+                                          variant="secondary"
+                                          disabled={!ready}
+                                          onClick={() =>
+                                            void run(
+                                              "calibrate",
+                                              {
+                                                ...(fitDraft ?? {}),
+                                                restart: false,
+                                                from_image: true,
+                                                parameters: {
+                                                  ...(fitDraft?.parameters ??
+                                                    {}),
+                                                  wavelength: {
+                                                    value:
+                                                      wavelengthHint.currentWavelength,
+                                                    refine: true,
+                                                  },
+                                                },
+                                              },
+                                              "Refining geometry and wavelength…",
+                                            )
+                                          }
+                                        >
+                                          Fit wavelength
+                                        </Button>
+                                      </div>
+                                    </>
+                                  )}
+                                </section>
+                              )}
                               <section className="calibration-validation-reference">
                                 <label htmlFor="validation-calibrant">
                                   Calibrant
@@ -3165,7 +3493,7 @@ export default function App() {
                               </section>
                             </>
                           )}
-                          <div hidden={calibrationStep !== 3}>
+                          <div hidden={calibrationStep !== 1}>
                             <GeometryEditor
                               editor={geometryDraft}
                               ready={ready}
@@ -3175,28 +3503,117 @@ export default function App() {
                               convention={validationConvention}
                               onConventionChange={setValidationConvention}
                             />
+                            {state?.hasImage && state?.calibrated && (
+                              <div className="calibration-rot3-action">
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  disabled={!ready}
+                                  title="Estimate spatial detector distortion (single or multi-configuration) and export a .spline or NeXus .h5 file."
+                                  onClick={() => setDistortionOpen(true)}
+                                >
+                                  Distortion correction…
+                                </Button>
+                              </div>
+                            )}
                           </div>
-                          {calibrationStep === 1 && (
-                            <CalibrationPanel
-                              selected={selectedPicks}
-                              onSelected={setSelectedPicks}
-                              onRingChange={setRing}
-                              state={state}
-                              ready={ready}
-                              ring={ring}
-                              automatic={automatic}
-                              setAutomatic={setAutomatic}
-                              run={run}
-                            />
-                          )}
+                          {calibrationStep === 2 &&
+                            manualSection === "peaks" && (
+                              <CalibrationPanel
+                                selected={selectedPicks}
+                                onSelected={setSelectedPicks}
+                                onRingChange={setRing}
+                                state={state}
+                                ready={ready}
+                                ring={ring}
+                                automatic={automatic}
+                                setAutomatic={setAutomatic}
+                                run={run}
+                              />
+                            )}
                           <CalibrationExtras
                             state={state}
-                            step={calibrationStep === 2 ? 2 : -1}
+                            step={
+                              calibrationStep === 2 &&
+                              manualSection === "parameters"
+                                ? 2
+                                : calibrationStep === 1
+                                  ? 1
+                                  : -1
+                            }
                             ready={ready}
                             run={run}
                             onDirtyChange={setAdvancedDirty}
                             fitEditor={fitEditor}
                           />
+                          {calibrationStep === 2 && (
+                            <div className="calibration-manual-refinement">
+                              <label className="check-row">
+                                <Input
+                                  aria-label="Automatic refinement"
+                                  type="checkbox"
+                                  disabled={!ready}
+                                  checked={
+                                    state?.calibration.workflow
+                                      ?.automaticRefinement ?? true
+                                  }
+                                  onChange={(e) =>
+                                    run("workflow_settings", {
+                                      automaticRefinement: e.target.checked,
+                                    })
+                                  }
+                                />
+                                Automatic refinement
+                              </label>
+                              <label
+                                className="calibration-manual-rings"
+                                title="Maximum number of rings used by automatic refinement"
+                              >
+                                Rings
+                                <Input
+                                  aria-label="Number of rings"
+                                  type="number"
+                                  min="1"
+                                  max="100"
+                                  step="1"
+                                  key={`manual-rings-${state?.calibration.workflow?.numberOfRings ?? 15}`}
+                                  defaultValue={
+                                    state?.calibration.workflow
+                                      ?.numberOfRings ?? 15
+                                  }
+                                  disabled={
+                                    !ready ||
+                                    !(
+                                      state?.calibration.workflow
+                                        ?.automaticRefinement ?? true
+                                    )
+                                  }
+                                  onBlur={(e) => {
+                                    const n = Math.round(
+                                      Number(e.target.value),
+                                    );
+                                    if (
+                                      Number.isFinite(n) &&
+                                      n >= 1 &&
+                                      n <= 100 &&
+                                      n !==
+                                        (state?.calibration.workflow
+                                          ?.numberOfRings ?? 15)
+                                    ) {
+                                      void run("workflow_settings", {
+                                        numberOfRings: n,
+                                      });
+                                    }
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.currentTarget.blur();
+                                    }
+                                  }}
+                                />
+                              </label>
+                            </div>
+                          )}
                         </>
                       )}
                       {mode === "integration" && (
@@ -3268,9 +3685,9 @@ export default function App() {
                 </div>
                 {mode === "calibration" && (
                   <div className="calibration-task-footer">
-                    {(calibrationStep >= 2 || !!state?.hasImage) && (
+                    {(calibrationStep === 2 || !!state?.hasImage) && (
                       <div className="calibration-main-action">
-                        {calibrationStep === 3 && geometryDirty && (
+                        {calibrationStep === 1 && geometryDirty && (
                           <Button
                             type="submit"
                             form="validation-geometry-form"
@@ -3289,22 +3706,7 @@ export default function App() {
                             Apply geometry
                           </Button>
                         )}
-                        <Button
-                          variant="secondary"
-                          className="auto-calibrate-button"
-                          title={`Automatically calibrate from the image using the calibrant, wavelength, pixel sizes, and starting distance (no manual peak picking required).${!autoCalibrateReady && autoCalibrateBlocker ? ` ${autoCalibrateBlocker}` : ""}`}
-                          disabled={!autoCalibrateReady}
-                          onClick={() =>
-                            run(
-                              "auto_calibrate",
-                              fitDraft ?? {},
-                              "Auto-calibrating detector geometry…",
-                            )
-                          }
-                        >
-                          Auto-calibrate
-                        </Button>
-                        {calibrationStep >= 2 && (
+                        {calibrationStep === 2 ? (
                           <>
                             <Button
                               variant="primary"
@@ -3335,6 +3737,45 @@ export default function App() {
                             >
                               Refine
                             </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              variant="primary"
+                              className="auto-calibrate-button"
+                              title={`Automatically calibrate from the image using the calibrant, wavelength, pixel sizes, and starting distance (no manual peak picking required).${!autoCalibrateReady && autoCalibrateBlocker ? ` ${autoCalibrateBlocker}` : ""}`}
+                              disabled={!autoCalibrateReady}
+                              onClick={() =>
+                                run(
+                                  "auto_calibrate",
+                                  fitDraft ?? {},
+                                  "Auto-calibrating detector geometry…",
+                                )
+                              }
+                            >
+                              Auto-calibrate
+                            </Button>
+                            {state?.calibrated && (
+                              <Button
+                                variant="secondary"
+                                className="calibration-refine-image"
+                                title={`Refine the current geometry directly against the image using Dioptrin.${!autoCalibrateReady && autoCalibrateBlocker ? ` ${autoCalibrateBlocker}` : ""}`}
+                                disabled={!autoCalibrateReady}
+                                onClick={() =>
+                                  run(
+                                    "calibrate",
+                                    {
+                                      ...(fitDraft ?? {}),
+                                      restart: false,
+                                      from_image: true,
+                                    },
+                                    "Refining detector geometry…",
+                                  )
+                                }
+                              >
+                                Refine
+                              </Button>
+                            )}
                           </>
                         )}
                       </div>
@@ -3488,6 +3929,15 @@ export default function App() {
               })}
             />
           )}
+          <DistortionDialog
+            open={distortionOpen}
+            onClose={() => setDistortionOpen(false)}
+            state={state}
+            ready={ready}
+            run={run}
+            preview={distortionPreview}
+            onClearPreview={() => setDistortionPreview(null)}
+          />
           {settingsOpen && (
             <SettingsWorkspace
               section={settingsSection}

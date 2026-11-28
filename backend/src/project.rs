@@ -87,6 +87,41 @@ impl Project {
     }
 }
 impl Session {
+    pub(super) fn configuration_summaries(&self) -> Value {
+        let labels = self.project.labels();
+        let items: Vec<Value> = (0..self.project.configurations.len())
+            .map(|i| {
+                if i == self.project.selected {
+                    json!({
+                        "index": i,
+                        "label": labels[i],
+                        "active": true,
+                        "hasImage": self.image.is_some(),
+                        "imageName": self.image.as_ref().and_then(|img| img.path.file_name()).map(|n| n.to_string_lossy().into_owned()),
+                        "shape": self.image.as_ref().map(|img| img.shape),
+                        "calibrated": self.settings.calibrated,
+                        "distMm": self.settings.calibrated.then_some(self.settings.geometry.dist * 1000.0),
+                        "calibrant": self.calibration.reference.name,
+                    })
+                } else {
+                    let cfg = self.project.configurations[i].as_ref().unwrap();
+                    let st = &cfg.state;
+                    json!({
+                        "index": i,
+                        "label": labels[i],
+                        "active": false,
+                        "hasImage": st.image.is_some(),
+                        "imageName": st.image.as_ref().and_then(|img| img.path.file_name()).map(|n| n.to_string_lossy().into_owned()),
+                        "shape": st.image.as_ref().map(|img| img.shape),
+                        "calibrated": st.settings.calibrated,
+                        "distMm": st.settings.calibrated.then_some(st.settings.geometry.dist * 1000.0),
+                        "calibrant": st.calibration.reference.name,
+                    })
+                }
+            })
+            .collect();
+        json!(items)
+    }
     pub(super) fn forget_other_shared_history(&mut self) {
         for c in self.project.configurations.iter_mut().flatten() {
             Rc::make_mut(c)

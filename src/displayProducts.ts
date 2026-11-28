@@ -16,7 +16,7 @@ export function wantsCake(view: {
     (!view.concealed &&
       ((view.mode === "integration" &&
         (view.display === "cake" || view.profile === true)) ||
-        (view.mode === "calibration" && view.calibrationStep === 3)))
+        (view.mode === "calibration" && view.calibrationStep === 1)))
   );
 }
 export function requestedDisplayProducts(

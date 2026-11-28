@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, path::Path};
 #[path = "detector_io.rs"]
-mod detector_io;
+pub(crate) mod detector_io;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Geometry {

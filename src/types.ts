@@ -86,6 +86,46 @@ export interface Pattern {
     hkl: number[];
   }[];
 }
+export interface ConfigurationSummary {
+  index: number;
+  label: string;
+  active: boolean;
+  hasImage: boolean;
+  imageName: string | null;
+  shape: [number, number] | null;
+  calibrated: boolean;
+  distMm: number | null;
+  calibrant: string;
+}
+
+export interface DistortionPreview {
+  model: "smooth_spline" | "radial_optical" | "bow_z" | "per_module";
+  modelLabel: string;
+  shape: [number, number];
+  initialRmsPx: number;
+  rmsBeforePx: number;
+  rmsAfterPx: number;
+  cvRmsPx: number;
+  significant: boolean;
+  rmsBeforeDegrees: number;
+  rmsAfterDegrees: number;
+  maxDisplacementPx: number;
+  maxDzUm: number;
+  nPointsUsed: number;
+  nPassesCompleted: number;
+  canSaveSpline: boolean;
+  exposures: Array<{
+    index: number;
+    label: string;
+    nRings: number;
+    nPoints: number;
+    distBeforeMm: number;
+    distAfterMm: number;
+  }>;
+  /** [u, v, dx_px, dy_px, dz_um] in normalized detector coordinates (0..1). */
+  grid: Array<[number, number, number, number, number]>;
+}
+
 export interface State {
   processingWorkers?: {
     requested: number | null;
@@ -132,6 +172,7 @@ export interface State {
   configurationCount: number;
   configurationIndex: number;
   configurationLabels?: string[];
+  configurationSummaries?: ConfigurationSummary[];
   configurationContext?: number;
   combination?: {
     patterns: boolean;
@@ -271,6 +312,16 @@ export interface Response {
   calibrantNotice?: string;
   autoCalibrateFailed?: boolean;
   autoCalibrateNotice?: string;
+  rot3Notice?: string;
+  distortionNotice?: string;
+  distortionPreview?: DistortionPreview;
+  wavelengthHint?: {
+    currentWavelength: number;
+    suggestedWavelength?: number;
+    suggestedEnergy?: number;
+    currentRmsDegrees: number;
+    suggestedRmsDegrees?: number;
+  };
   /** Set when a loaded PONI file changed, or could not apply, its recorded image orientation. */
   orientationNotice?: string;
   savedPaths?: string[];

@@ -1,7 +1,7 @@
 /* Keep calibration navigation attached to its controls, above their scroll area. */
 .app .calibration-task-panel > .calibration-workflow-tabs {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   flex-shrink: 0;
   padding: 0 10px;
   border-bottom: 1px solid var(--border);
@@ -67,9 +67,373 @@
 .calibration-task-panel .calibration-setup-page .calibration-tool-divider {
   margin: 6px 0;
 }
+.calibration-task-panel .orientation-tools {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
 .calibration-task-panel .orientation-tools button {
-  padding-top: 4px;
+  min-width: 0;
+  min-height: 30px;
+  padding: 4px;
+  justify-content: center;
+}
+.calibration-beam-setup .setup-pair {
+  align-items: end;
+}
+.calibration-field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  line-height: 1.2;
+}
+.calibration-inline-fit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-meta);
+  color: var(--ui-muted);
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+}
+.calibration-inline-fit input[type="checkbox"] {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+}
+.calibration-beam-setup {
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+.calibration-disclosure {
+  margin-top: 6px;
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+}
+.calibration-disclosure > summary {
+  cursor: pointer;
+  font-size: var(--text-meta);
+  color: var(--ui-muted);
+  user-select: none;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.calibration-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+.calibration-disclosure > summary::before {
+  content: "▸";
+  font-size: 11px;
+  transition: transform 0.12s ease;
+}
+.calibration-disclosure[open] > summary::before {
+  transform: rotate(90deg);
+}
+.calibration-disclosure > summary:hover {
+  color: var(--ui-text);
+}
+.calibration-disclosure-body {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+}
+.calibration-task-panel .calibration-mask-controls {
+  padding-top: 6px;
   padding-bottom: 4px;
+}
+.calibration-task-panel .calibration-mask-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.calibration-task-panel .calibration-mask-checks {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.calibration-manual-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  flex-shrink: 0;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--border);
+}
+.app .calibration-manual-tabs button {
+  --button-fill: transparent;
+  --button-edge: transparent;
+  --button-sheen: none;
+  min-width: 0;
+  min-height: 34px;
+  padding: 6px 4px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ui-muted);
+  font-size: var(--text-small);
+  font-weight: 500;
+  box-shadow: none;
+}
+.app .calibration-manual-tabs button[aria-selected="true"] {
+  --button-fill: transparent;
+  --button-edge: transparent;
+  color: #f3f5f7;
+  background: transparent;
+  border-bottom-color: var(--accent);
+  box-shadow: none;
+}
+.app .calibration-manual-tabs button:not(:disabled):hover {
+  background: rgb(255 255 255 / 4%);
+  border-color: transparent;
+  border-bottom-color: transparent;
+  color: #f3f5f7;
+}
+.app .calibration-manual-tabs button[aria-selected="true"]:hover {
+  border-bottom-color: var(--accent);
+}
+.calibration-manual-refinement {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.calibration-manual-rings {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-meta);
+  color: var(--ui-muted);
+  white-space: nowrap;
+}
+.calibration-manual-rings input {
+  width: 58px;
+  text-align: right;
+  padding: 3px 6px;
+}
+.calibration-rot3-action {
+  margin-top: 6px;
+}
+.calibration-rot3-action button {
+  width: 100%;
+  min-height: 30px;
+  padding: 4px 8px;
+  font-size: var(--text-meta);
+}
+.calibration-wavelength-hint {
+  margin: 6px 0 8px;
+  padding: 8px 10px;
+  border: 1px solid rgb(255 149 0 / 45%);
+  border-radius: 6px;
+  background: rgb(255 149 0 / 8%);
+  font-size: var(--text-meta);
+}
+.calibration-wavelength-hint-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-weight: 600;
+  color: #ffb84d;
+  margin-bottom: 4px;
+}
+.calibration-wavelength-hint-header .icon-button {
+  min-width: 20px;
+  min-height: 20px;
+  padding: 0 4px;
+  line-height: 1;
+}
+.calibration-wavelength-hint p {
+  margin: 0 0 8px;
+  color: var(--ui-text);
+  line-height: 1.35;
+}
+.calibration-wavelength-hint-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.calibration-wavelength-hint-actions button {
+  min-height: 28px;
+  padding: 4px 6px;
+  font-size: var(--text-meta);
+}
+.calibration-distortion-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 4px 0 6px;
+  padding: 5px 8px;
+  border: 1px solid rgb(46 194 126 / 40%);
+  border-radius: 6px;
+  background: rgb(46 194 126 / 10%);
+  font-size: var(--text-meta);
+  color: #bcebd3;
+}
+.calibration-distortion-banner-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.calibration-distortion-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.calibration-distortion-banner-actions button {
+  min-height: 22px;
+  padding: 2px 6px;
+  font-size: var(--text-meta);
+}
+
+.distortion-dialog {
+  width: min(720px, calc(100vw - 32px));
+}
+.distortion-dialog-body {
+  padding: 14px 16px 16px;
+}
+.distortion-dialog-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  gap: 16px;
+  align-items: start;
+}
+.distortion-controls-col {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.distortion-section {
+  display: grid;
+  gap: 8px;
+}
+.distortion-section-title {
+  font-size: var(--text-meta);
+  font-weight: 600;
+  color: var(--ui-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.distortion-config-list {
+  display: grid;
+  gap: 5px;
+  max-height: 132px;
+  overflow-y: auto;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgb(0 0 0 / 16%);
+}
+.distortion-config-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-small);
+}
+.distortion-config-name {
+  white-space: nowrap;
+}
+.distortion-config-meta {
+  font-size: var(--text-meta);
+  color: var(--ui-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+.distortion-tip {
+  margin: 0;
+  font-size: var(--text-meta);
+  line-height: 1.35;
+}
+.distortion-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding-top: 4px;
+}
+.distortion-actions button:first-child {
+  grid-column: 1 / -1;
+}
+.distortion-actions button.quiet {
+  grid-column: 1 / -1;
+}
+.distortion-preview-col {
+  display: grid;
+  gap: 10px;
+}
+.distortion-preview-canvas {
+  width: 300px;
+  height: 300px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: block;
+}
+.distortion-metrics {
+  display: grid;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgb(0 0 0 / 16%);
+  font-size: var(--text-meta);
+}
+.distortion-badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.distortion-badge {
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 11px;
+}
+.distortion-badge.good {
+  background: rgb(46 194 126 / 18%);
+  color: #7fe5b2;
+}
+.distortion-badge.warn {
+  background: rgb(255 149 0 / 18%);
+  color: #ffb84d;
+}
+.distortion-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 10px;
+}
+.distortion-stat-grid > div {
+  display: grid;
+  gap: 2px;
+}
+.distortion-exposures {
+  display: grid;
+  gap: 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.distortion-exposure-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+@media (max-width: 680px) {
+  .distortion-dialog-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .calibration-task-panel .calibration-section-tabs {
   margin: 4px 0 5px;
@@ -202,7 +566,8 @@
   font-size: var(--text-small);
 }
 .calibration-main-action .calibration-apply-geometry,
-.calibration-main-action .auto-calibrate-button {
+.calibration-main-action .calibration-estimate-rot3,
+.calibration-main-action .auto-calibrate-button:only-child {
   grid-column: 1 / -1;
 }
 .calibration-general-actions {

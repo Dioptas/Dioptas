@@ -203,6 +203,8 @@ pub struct Session {
     #[cfg(feature = "dioptrin")]
     massif_cache: std::cell::RefCell<Option<calibration::MassifCache>>,
     #[cfg(feature = "dioptrin")]
+    pending_distortion: Option<calibration::PendingDistortion>,
+    #[cfg(feature = "dioptrin")]
     sigma: Option<Vec<f64>>,
     #[cfg(feature = "dioptrin")]
     engine: crate::integration::Engine,
@@ -285,6 +287,8 @@ impl Session {
             ring_cache: Default::default(),
             #[cfg(feature = "dioptrin")]
             massif_cache: Default::default(),
+            #[cfg(feature = "dioptrin")]
+            pending_distortion: None,
             #[cfg(feature = "dioptrin")]
             sigma: None,
             #[cfg(feature = "dioptrin")]
@@ -2494,7 +2498,7 @@ impl Session {
             "maskedPixels": self.mask_raster.as_ref().and_then(|r|r.cached_mask_count(&self.effective_mask)).unwrap_or_else(||self.effective_mask.iter().filter(|&&v| v != 0).count()), "canUndoMask": !self.undo.is_empty(), "canRedoMask": !self.redo.is_empty(),
             "maskDetails": {"mode": self.mask_mode, "filename": null, "plugins": self.plugins.details()}, "exampleAvailable": self.example_path().is_file(),
             "elapsedMs": self.elapsed_ms, "integrationDirty": self.image.is_some() && s.calibrated && self.pattern.is_none(), "configurationCount": self.project.configurations.len(), "configurationIndex": self.project.selected,
-            "configurationLabels": self.project.labels(),"configurationContext":self.project.active_id,
+            "configurationLabels": self.project.labels(),"configurationSummaries": self.configuration_summaries(),"configurationContext":self.project.active_id,
             "geometry": {"dist":g.dist,"poni1":g.poni1,"poni2":g.poni2,"rot1":g.rot1,"rot2":g.rot2,"rot3":g.rot3,"wavelength":g.wavelength},
             "integration": {
                 "roi":s.roi, "automaticBinning": s.automatic_binning, "actualBins": if s.automatic_binning {self.automatic_bins()}else{s.bins}, "supersampling":s.supersampling, "method":if s.pyfai_splitting {"pyfai_full"} else if s.supersampling > 1 {"subpixel"} else {"polygon"}, "azimuthRange":s.azimuth, "cakeAzimuthRange":s.cake_azimuth,

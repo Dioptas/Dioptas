@@ -193,6 +193,8 @@ export interface CommandContracts {
     {
       restart?: boolean;
       refine?: boolean;
+      from_image?: boolean;
+      fit_rot3?: boolean;
       parameters?: P.FitParameters;
       polarization?: number;
       engine?: "rust" | "dioptrin";
@@ -204,9 +206,33 @@ export interface CommandContracts {
       parameters?: P.FitParameters;
       polarization?: number;
       use_start_distance?: boolean;
+      fit_rot3?: boolean;
     },
     WorkspaceDelta
   >;
+  estimate_rot3: Spec<{ polarization?: number }, WorkspaceDelta>;
+  estimate_distortion: Spec<
+    {
+      configurations?: number[];
+      model?: "smooth_spline" | "radial_optical" | "bow_z" | "per_module";
+      grid_nx?: number;
+      grid_ny?: number;
+      smoothness?: number;
+      max_order?: number;
+      max_degree?: number;
+      module_height?: number;
+      module_width?: number;
+      gap_height?: number;
+      gap_width?: number;
+      fit_z?: boolean;
+      regularization?: number;
+      n_passes?: number;
+      cv_folds?: number;
+    },
+    WorkspaceDelta
+  >;
+  apply_distortion: Spec<P.EmptyPayload, WorkspaceDelta>;
+  save_distortion: Spec<{ path?: string; format?: "spline" | "h5" }, Saved>;
   pick_peak: Spec<NativePayloadContracts["pick_peak"], WorkspaceDelta>;
   remove_pick: Spec<{ index: number }, WorkspaceDelta>;
   remove_picks: Spec<{ indices: number[] }, WorkspaceDelta>;
