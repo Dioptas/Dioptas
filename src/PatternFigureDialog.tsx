@@ -44,7 +44,10 @@ export function PatternFigureDialog({
     [saveError, setSaveError] = useState("");
   const [savedPath, setSavedPath] = useState(initialPath ?? "");
   const trigger = useRef<HTMLElement | null>(
-    document.querySelector('[aria-label="Save pattern"]'),
+    (document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null) ??
+      document.querySelector('[aria-label="Export pattern figure"]'),
   );
   const o = settings.options;
   const preview = useMemo(() => {

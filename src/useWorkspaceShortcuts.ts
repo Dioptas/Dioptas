@@ -23,6 +23,7 @@ export interface WorkspaceShortcutOptions {
   canPick: boolean;
   mode: WorkspaceMode;
   setMode: Dispatch<SetStateAction<WorkspaceMode>>;
+  onPickShortcut?: () => void;
   setPickingEnabled: (enabled: boolean) => void;
   selectedPicks: number[];
   setSelectedPicks: (picks: number[]) => void;
@@ -45,6 +46,7 @@ export function useWorkspaceShortcuts({
   canPick,
   mode,
   setMode,
+  onPickShortcut,
   setPickingEnabled,
   selectedPicks,
   setSelectedPicks,
@@ -197,8 +199,12 @@ export function useWorkspaceShortcuts({
         maskTools.setShape("point");
         maskTools.setErase(key === "e");
       } else if (key === "p" && canPick) {
-        setMode("calibration");
-        setPickingEnabled(true);
+        if (onPickShortcut) {
+          onPickShortcut();
+        } else {
+          setMode("calibration");
+          setPickingEnabled(true);
+        }
       } else if (key === "f") {
         if (mode === "map") {
           mapPlotViews.detector.current = null;
@@ -229,6 +235,7 @@ export function useWorkspaceShortcuts({
     run,
     canPick,
     mode,
+    onPickShortcut,
     selectedPicks,
     maskTools,
     settingsOpen,

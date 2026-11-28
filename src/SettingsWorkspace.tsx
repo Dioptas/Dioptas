@@ -112,7 +112,12 @@ export function SettingsWorkspace({
     const key = (event: KeyboardEvent) => {
       const target =
         event.target instanceof Element ? event.target : document.body;
-      if (event.defaultPrevented || target.closest('dialog, [role="dialog"]'))
+      if (
+        event.defaultPrevented ||
+        target.closest(
+          'dialog, [role="dialog"], input, textarea, select, [contenteditable="true"]',
+        )
+      )
         return;
       if (event.key === "Escape") {
         event.preventDefault();

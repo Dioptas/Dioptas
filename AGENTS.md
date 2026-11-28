@@ -20,9 +20,9 @@ machine-specific notes (checkout locations, worktrees, local files to preserve).
   text option. Neutral charcoal backgrounds, orange accents, green elongated
   crystal identity. Do not turn backgrounds green.
 - Images have no extra title/dimension header, Fit button or Display mask
-  toggle, and no tool/zoom selection strip above them. The shared Ring / Auto /
-  Pick peaks strip stays above the calibration tabs; its switch controls picking
-  in every calibration tab. All plots default to rectangle zoom; cake and pattern
+  toggle, and no tool/zoom selection strip above them. The Ring / Auto /
+  Pick peaks strip lives in the calibration Manual tab; its switch controls
+  picking in Manual, and pressing P jumps to Manual with picking enabled. All plots default to rectangle zoom; cake and pattern
   have separate icon-only rectangle/X-range selectors in the empty corner below
   the y-axis and left of the x-axis. Keep them small and rectangular, with a
   little left inset and transparent backgrounds; the selected icon is orange,

@@ -21,8 +21,8 @@
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  font-size: 14px;
-  color: var(--text-muted);
+  font-size: var(--text-small);
+  color: var(--ui-muted);
 }
 .correction-preview-heading > span {
   min-width: 0;

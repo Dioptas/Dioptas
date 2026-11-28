@@ -10,6 +10,7 @@ export function CalibrationPanel({
   state,
   ready,
   ring,
+  picking = true,
   automatic,
   setAutomatic,
   run,
@@ -23,6 +24,7 @@ export function CalibrationPanel({
   onRingChange: (value: number) => void;
   ready: boolean;
   ring: number;
+  picking?: boolean;
   automatic: boolean;
   setAutomatic: (value: boolean) => void;
   run: import("./commandContracts").Run;
@@ -323,8 +325,9 @@ export function CalibrationPanel({
             <div className="no-peaks">
               No peaks selected yet.
               <br />
-              Picking is active in Manual mode. Click bright positions on the
-              current ring.
+              {picking
+                ? "Click bright positions on the current ring to pick peaks."
+                : "Picking is off. Enable Pick peaks (P) to click bright positions on the current ring."}
             </div>
           )}
         </TableScroll>

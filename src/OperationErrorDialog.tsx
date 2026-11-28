@@ -48,7 +48,7 @@ export function OperationErrorDialog({
         {mismatch
           ? "This calibration’s detector does not match the current image."
           : failure.title === "An error occurred"
-            ? "An operation could not be completed."
+            ? failure.details || "An operation could not be completed."
             : failure.title.includes("save")
               ? "The selected file could not be saved."
               : "The selected file could not be loaded."}
@@ -57,8 +57,9 @@ export function OperationErrorDialog({
         {mismatch
           ? "Open the matching detector image, then load the calibration."
           : failure.title === "An error occurred"
-            ? "The error report includes diagnostic details and your recent steps."
-            : "Check the selected file. Details below explain the problem."}
+            ? "The error report below includes diagnostic details and your recent steps."
+            : failure.details ||
+              "Check the selected file. Details below explain the problem."}
       </p>
       <details>
         <summary>

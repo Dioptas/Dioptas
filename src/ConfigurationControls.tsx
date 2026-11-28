@@ -17,6 +17,7 @@ export function ConfigurationControls({
   run: IntegrationRun;
 }) {
   const [editing, setEditing] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [name, setName] = useState("");
   const labels = state.configurationLabels ?? [];
   const label =
@@ -75,6 +76,32 @@ export function ConfigurationControls({
             Cancel
           </Button>
         </form>
+      ) : confirmRemove ? (
+        <div
+          className="configuration-rename"
+          role="group"
+          aria-label={`Confirm removing ${label}`}
+        >
+          <span className="muted">Remove “{label}”?</span>
+          <Button
+            type="button"
+            variant="primary"
+            disabled={!ready || labels.length < 2}
+            onClick={() => {
+              setConfirmRemove(false);
+              action("remove");
+            }}
+          >
+            Confirm remove
+          </Button>
+          <Button
+            type="button"
+            disabled={!ready}
+            onClick={() => setConfirmRemove(false)}
+          >
+            Cancel
+          </Button>
+        </div>
       ) : (
         <>
           <Button
@@ -102,7 +129,7 @@ export function ConfigurationControls({
           </Button>
           <Button
             disabled={!ready || labels.length < 2}
-            onClick={() => action("remove")}
+            onClick={() => setConfirmRemove(true)}
             title="Remove the selected configuration"
           >
             Remove

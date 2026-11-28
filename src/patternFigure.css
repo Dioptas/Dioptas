@@ -109,7 +109,7 @@
   min-width: 0;
 }
 .pattern-figure-controls [role="tab"][aria-selected="true"] {
-  color: var(--ui-accent);
+  color: var(--accent);
 }
 .pattern-figure-control-scroll {
   overflow: auto;

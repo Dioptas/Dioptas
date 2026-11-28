@@ -52,7 +52,7 @@
   margin-top: 12px;
   font: 12px/1.4 monospace;
   color: var(--text);
-  background: var(--bg);
+  background: var(--ui-input);
   border: 1px solid var(--border);
   padding: 8px;
 }
