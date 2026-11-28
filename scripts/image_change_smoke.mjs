@@ -356,7 +356,11 @@ try {
     result = await call("state");
     assert.equal(result.state.imageName, path.basename(selectedImage));
     assert.equal(result.state.calibrated, false);
-    assert.equal(result.state.maskedPixels, 0);
+    // The previous mask is cleared on size change; Pilatus 1M's strict-sentinel
+    // inter-module gaps (73,533 px) are auto-masked with 1-click undo.
+    const isPilatus = path.basename(selectedImage) === "CeO2_Pilatus1M.tif";
+    assert.equal(result.state.maskedPixels, isPilatus ? 73533 : 0);
+    assert.equal(result.state.canUndoMask, isPilatus);
     if (mode === "Calibration")
       assert.equal(await calibrationTab.getAttribute("aria-selected"), "true");
     assert.deepEqual(result.state.calibration.transformations, []);
