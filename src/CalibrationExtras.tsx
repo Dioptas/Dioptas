@@ -476,7 +476,7 @@ export function CalibrationExtras({
           </section>
         </div>
       )}
-      {!imageToolsOnly && (step === 0 || step === 1) && (
+      {!imageToolsOnly && (step === 0 || step === 1 || step === 2) && (
         <section
           className="calibration-mask-controls"
           aria-label="Detector mask"

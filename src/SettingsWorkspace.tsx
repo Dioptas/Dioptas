@@ -1,6 +1,7 @@
-import { Input, Button } from "./ui";
+import { Input, Button, Select } from "./ui";
 import { ShortcutReference } from "./ShortcutReference";
 import { TabList } from "./TabList";
+import type { ZoomMode } from "./usePlotNavigation";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import {
   ArrowLeft,
@@ -74,6 +75,8 @@ export function SettingsWorkspace({
   run,
   largeText,
   onLargeText,
+  patternZoom,
+  onPatternZoom,
   showConfigurationControls,
   onShowConfigurationControls,
   onClose,
@@ -91,6 +94,8 @@ export function SettingsWorkspace({
   run: IntegrationRun;
   largeText: boolean;
   onLargeText: (large: boolean) => void;
+  patternZoom: ZoomMode;
+  onPatternZoom: (mode: ZoomMode) => void;
   showConfigurationControls: boolean;
   onShowConfigurationControls: (show: boolean) => void;
   onClose: () => void;
@@ -222,6 +227,27 @@ export function SettingsWorkspace({
                   </Button>
                 ))}
               </div>
+            </section>
+            <section className="settings-card">
+              <div className="settings-card-heading">
+                <Scan size={18} />
+                <h3>Pattern zoom</h3>
+              </div>
+              <p>
+                Choose whether dragging on the 1D diffraction pattern zooms a
+                rectangle or only the horizontal axis.
+              </p>
+              <label className="settings-preference-row">
+                <span>Pattern drag zoom</span>
+                <Select
+                  aria-label="Pattern drag zoom"
+                  value={patternZoom}
+                  onChange={(e) => onPatternZoom(e.target.value as ZoomMode)}
+                >
+                  <option value="rectangle">Rectangle zoom</option>
+                  <option value="horizontal">X-range zoom</option>
+                </Select>
+              </label>
             </section>
             <ProcessingWorkerSettings state={state} ready={ready} run={run} />
             <AppUpdateSettings controller={appUpdate} />

@@ -150,6 +150,9 @@ export function CalibrationPanel({
                     searchSize: Number(e.target.value),
                   });
               }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+              }}
             />
             <span>px</span>
           </label>
@@ -290,6 +293,9 @@ export function CalibrationPanel({
                         index,
                         ring: Number(e.target.value),
                       });
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") e.currentTarget.blur();
                   }}
                 />
                 <span className="peak-count">{pick.points.length}</span>

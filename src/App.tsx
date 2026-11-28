@@ -22,6 +22,7 @@ import { clickContext } from "./responseSnapshot";
 import { applyWorkspaceResponse } from "./workspaceResponse";
 import { CommandCoordinator, commandPolicy } from "./commandCoordinator";
 import { Hdf5SourceDialog } from "./Hdf5SourceDialog";
+import { TabList } from "./TabList";
 import type { Hdf5SourceRequest } from "./types";
 import { useCakeProfileNavigation } from "./useCakeProfileNavigation";
 import { useCakeRadialAxis } from "./useCakeRadialAxis";
@@ -2299,7 +2300,7 @@ export default function App() {
                 title={
                   mode === "scxrd"
                     ? "Save single-crystal recipe · ⌘/Ctrl+S"
-                    : `${state?.projectName ? `Save ${state.projectName}` : "Save project"} · ⌘/Ctrl+S${geometryDirty || fitEditor.dirty || integrationDraft.dirty ? " · Saves applied options; unapplied drafts stay in this session" : ""}`
+                    : `${state?.projectName ? `Save ${state.projectName}` : "Save project"}${mode === "mask" ? "" : " · ⌘/Ctrl+S"}${geometryDirty || fitEditor.dirty || integrationDraft.dirty ? " · Saves applied options; unapplied drafts stay in this session" : ""}`
                 }
               >
                 <Save size={20} />
@@ -3074,28 +3075,26 @@ export default function App() {
                   />
                 )}
                 {mode === "calibration" && calibrationStep === 2 && (
-                  <div
+                  <TabList
                     className="calibration-manual-tabs"
-                    role="tablist"
-                    aria-label="Manual calibration sections"
-                  >
-                    <Button
-                      type="button"
-                      role="tab"
-                      aria-selected={manualSection === "peaks"}
-                      onClick={() => setManualSection("peaks")}
-                    >
-                      Peaks
-                    </Button>
-                    <Button
-                      type="button"
-                      role="tab"
-                      aria-selected={manualSection === "parameters"}
-                      onClick={() => setManualSection("parameters")}
-                    >
-                      Parameters
-                    </Button>
-                  </div>
+                    label="Manual calibration sections"
+                    value={manualSection}
+                    onChange={setManualSection}
+                    options={[
+                      {
+                        value: "peaks" as const,
+                        label: "Peaks",
+                        id: "calibration-manual-peaks",
+                        panelId: "calibration-task-content",
+                      },
+                      {
+                        value: "parameters" as const,
+                        label: "Parameters",
+                        id: "calibration-manual-parameters",
+                        panelId: "calibration-task-content",
+                      },
+                    ]}
+                  />
                 )}
                 <div
                   className="sidebar-scroll"
@@ -3541,6 +3540,24 @@ export default function App() {
                                 >
                                   Distortion correction…
                                 </Button>
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  disabled={!ready}
+                                  title="Estimate in-plane detector rotation (Rotation 3) from azimuthal polarization modulation."
+                                  onClick={() =>
+                                    void run(
+                                      "estimate_rot3",
+                                      {
+                                        polarization:
+                                          state.calibration.polarization,
+                                      },
+                                      "Estimating Rotation 3 from polarization…",
+                                    )
+                                  }
+                                >
+                                  Fit Rotation 3 (polarization)
+                                </Button>
                               </div>
                             )}
                           </div>
@@ -3769,7 +3786,11 @@ export default function App() {
                         ) : (
                           <>
                             <Button
-                              variant="primary"
+                              variant={
+                                calibrationStep === 1 && state?.calibrated
+                                  ? "secondary"
+                                  : "primary"
+                              }
                               className="auto-calibrate-button"
                               title={`Automatically calibrate from the image using the calibrant, wavelength, pixel sizes, and starting distance (no manual peak picking required).${!autoCalibrateReady && autoCalibrateBlocker ? ` ${autoCalibrateBlocker}` : ""}`}
                               disabled={!autoCalibrateReady}
@@ -3979,6 +4000,8 @@ export default function App() {
               run={run}
               largeText={largeText}
               onLargeText={setLargeText}
+              patternZoom={patternZoom}
+              onPatternZoom={setPatternZoom}
               showConfigurationControls={showConfigurationControls}
               onShowConfigurationControls={changeConfigurationControls}
               onClose={closeSettings}
