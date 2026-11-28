@@ -274,11 +274,12 @@
   gap: 6px;
   margin: 4px 0 6px;
   padding: 5px 8px;
-  border: 1px solid rgb(46 194 126 / 40%);
+  border: 1px solid var(--ui-field-border);
+  border-left: 2px solid var(--ui-success);
   border-radius: 6px;
-  background: rgb(46 194 126 / 10%);
+  background: var(--ui-raised);
   font-size: var(--text-meta);
-  color: #bcebd3;
+  color: var(--ui-success);
 }
 .calibration-distortion-banner-text {
   overflow: hidden;
@@ -300,6 +301,7 @@
 
 .distortion-dialog {
   width: min(720px, calc(100vw - 32px));
+  padding: 0;
 }
 .distortion-dialog-body {
   padding: 14px 16px 16px;

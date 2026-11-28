@@ -158,6 +158,7 @@ export function Dialog({
     <dialog
       {...props}
       ref={element}
+      data-ui-dialog="true"
       className={classes("ui-dialog", className)}
       data-backdrop={backdrop}
       onClose={(event) => {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button, Dialog, DialogHeader, DialogPanel, Input, Select } from "./ui";
+import { Button, Dialog, DialogHeader, Input, Portal, Select } from "./ui";
 import type { DistortionPreview, State } from "./types";
 import type { Run } from "./commandContracts";
 
@@ -406,18 +406,20 @@ export function DistortionDialog({
   const hasAppliedDistortion = Boolean(state?.calibration.distortionFile);
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      className="distortion-dialog"
-      aria-labelledby="distortion-dialog-title"
-    >
-      <DialogHeader
-        headingId="distortion-dialog-title"
-        title="Detector distortion correction"
+    <Portal>
+      <Dialog
+        open={open}
+        onDismiss={onClose}
         onClose={onClose}
-      />
-      <DialogPanel className="distortion-dialog-body">
+        className="distortion-dialog"
+        aria-labelledby="distortion-dialog-title"
+      >
+        <DialogHeader
+          headingId="distortion-dialog-title"
+          title="Detector distortion correction"
+          onClose={onClose}
+        />
+        <div className="distortion-dialog-body">
         <div className="distortion-dialog-grid">
           <div className="distortion-controls-col">
             <section className="distortion-section">
@@ -782,7 +784,8 @@ export function DistortionDialog({
             )}
           </div>
         </div>
-      </DialogPanel>
-    </Dialog>
+        </div>
+      </Dialog>
+    </Portal>
   );
 }

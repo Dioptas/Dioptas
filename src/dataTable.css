@@ -4,7 +4,7 @@
   --table-header-background: var(--ui-raised);
   --table-header-text: var(--ui-muted);
   --table-border: #ffffff0b;
-  --table-selection: #ff950018;
+  --table-selection: #ff95002e;
   --table-row-height: 26px;
   --table-header-height: 29px;
   --table-control-height: 23px;
@@ -63,6 +63,11 @@
 .app .data-table-grid .data-table-row[data-selected="true"],
 .app .data-list .data-list-row[aria-selected="true"] {
   background: var(--table-selection);
+}
+.app .data-table tbody tr[aria-selected="true"] > td:first-child,
+.app .data-table-grid .data-table-row[data-selected="true"],
+.app .data-list .data-list-row[aria-selected="true"] {
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 .app .data-table tr:focus-visible,
 .app .data-table-grid .data-table-row:focus-visible,
