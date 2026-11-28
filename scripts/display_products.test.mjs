@@ -19,7 +19,7 @@ test("cake demand follows the displayed view, with explicit combination support"
   assert.equal(wantsCake({ ...view, display: "cake" }), true);
   assert.equal(wantsCake({ ...view, mode: "map", display: "cake" }), false);
   assert.equal(
-    wantsCake({ ...view, mode: "calibration", calibrationStep: 3 }),
+    wantsCake({ ...view, mode: "calibration", calibrationStep: 1 }),
     true,
   );
   assert.equal(wantsCake({ ...view, display: "cake", concealed: true }), false);

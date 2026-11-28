@@ -209,7 +209,7 @@ impl Geometry {
         Ok(())
     }
 }
-fn write_nexus(d: &Detector, path: &Path) -> Result<(), String> {
+pub(crate) fn write_nexus(d: &Detector, path: &Path) -> Result<(), String> {
     use std::str::FromStr;
     let shape = d
         .max_shape

@@ -1,9 +1,8 @@
 import { TabList } from "./TabList";
 const sections = [
-  ["Image", "Image & setup"],
-  ["Peaks", "Pick rings"],
-  ["Fit", "Calibrate"],
+  ["Calibrate", "Calibrate"],
   ["Validate", "Validate"],
+  ["Manual", "Manual picking & constraints"],
 ] as const;
 
 export function CalibrationWorkflowTabs({
@@ -24,7 +23,7 @@ export function CalibrationWorkflowTabs({
       options={sections.map(([label, description], index) => ({
         value: index,
         label,
-        name: `Step ${index + 1}: ${description}`,
+        name: label,
         id: `calibration-section-${index}`,
         panelId: "calibration-task-content",
         title: description,

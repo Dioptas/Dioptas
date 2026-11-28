@@ -25,8 +25,16 @@ pub(super) struct RingCache {
     targets: Vec<(usize, f64)>,
     intensities: Option<Vec<f64>>,
     shape: [usize; 2],
-    angles: Arc<Vec<f64>>,
     value: Value,
+}
+
+#[cfg(feature = "dioptrin")]
+#[derive(Clone)]
+pub(super) struct PendingDistortion {
+    pub(super) detector: Arc<dioptrin::detector::Detector>,
+    pub(super) spline_text: Option<String>,
+    pub(super) model_label: String,
+    pub(super) configs: Vec<(usize, dioptrin::poni::Poni, f64)>,
 }
 
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
@@ -172,7 +180,7 @@ impl Default for Calibration {
             custom: None,
             picks: vec![],
             start: [0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3344e-10],
-            free: [true, true, true, true, true, true, false],
+            free: [true, true, true, true, true, false, false],
             confirmed: false,
             dirty: false,
             rms: None,
@@ -402,6 +410,10 @@ pub(super) fn is_command(action: &str) -> bool {
             | "reassign_pick"
             | "calibrate"
             | "auto_calibrate"
+            | "estimate_rot3"
+            | "estimate_distortion"
+            | "apply_distortion"
+            | "save_distortion"
             | "undo_calibration"
             | "redo_calibration"
             | "open_calibrant"
@@ -496,6 +508,8 @@ impl Session {
                     action,
                     "workflow_settings"
                         | "save_peaks"
+                        | "estimate_distortion"
+                        | "save_distortion"
                         | "undo_calibration"
                         | "redo_calibration"
                         | "calibration_engine"
@@ -964,6 +978,18 @@ impl Session {
             "auto_calibrate" => {
                 return self.auto_calibrate_transaction(args, defer);
             }
+            "estimate_rot3" => {
+                return self.estimate_rot3_transaction(args, defer);
+            }
+            "estimate_distortion" => {
+                return self.estimate_distortion_transaction(args);
+            }
+            "apply_distortion" => {
+                return self.apply_distortion_transaction(args, defer);
+            }
+            "save_distortion" => {
+                return self.save_distortion_transaction(args);
+            }
             _ => unreachable!(),
         }
         Ok(json!({}))
@@ -1028,6 +1054,26 @@ impl Session {
     #[cfg(not(feature = "dioptrin"))]
     fn auto_calibrate_transaction(&mut self, _args: &Value, _defer: bool) -> Result<Value, String> {
         Err("Automatic calibration requires a compiled native engine; build with --features dioptrin. No Python fallback was used.".into())
+    }
+    #[cfg(not(feature = "dioptrin"))]
+    fn estimate_rot3_transaction(&mut self, _args: &Value, _defer: bool) -> Result<Value, String> {
+        Err("Polarization rot3 estimation requires a compiled native engine; build with --features dioptrin. No Python fallback was used.".into())
+    }
+    #[cfg(not(feature = "dioptrin"))]
+    fn estimate_distortion_transaction(&mut self, _args: &Value) -> Result<Value, String> {
+        Err("Distortion estimation requires a compiled native engine; build with --features dioptrin. No Python fallback was used.".into())
+    }
+    #[cfg(not(feature = "dioptrin"))]
+    fn apply_distortion_transaction(
+        &mut self,
+        _args: &Value,
+        _defer: bool,
+    ) -> Result<Value, String> {
+        Err("Distortion estimation requires a compiled native engine; build with --features dioptrin. No Python fallback was used.".into())
+    }
+    #[cfg(not(feature = "dioptrin"))]
+    fn save_distortion_transaction(&mut self, _args: &Value) -> Result<Value, String> {
+        Err("Distortion export requires a compiled native engine; build with --features dioptrin. No Python fallback was used.".into())
     }
 }
 

@@ -611,25 +611,6 @@ export function RasterView({
             }
           }
         }
-        context.font = typography.text;
-        context.textAlign = "left";
-        for (const label of labels) {
-          const width = context.measureText(label.text).width + 10;
-          const labelX = Math.max(
-            left,
-            Math.min(label.x + 3, left + plotWidth - width),
-          );
-          const labelY = Math.max(
-            top,
-            Math.min(label.y - 18, top + plotHeight - 22),
-          );
-          context.fillStyle = "#202226dd";
-          context.beginPath();
-          context.roundRect(labelX, labelY, width, 22, 3);
-          context.fill();
-          context.fillStyle = "#ff4040";
-          context.fillText(label.text, labelX + 5, labelY + 16);
-        }
         context.strokeStyle = "#ffffff88";
         context.lineWidth = 1;
         for (const contour of contours) {
@@ -710,6 +691,55 @@ export function RasterView({
           );
           context.fill();
           context.stroke();
+        }
+        // Draw ring number badges on top of picked peak markers, skipping
+        // collisions with previously placed badges so labels stay legible.
+        if (labels.length) {
+          context.font = typography.text;
+          context.textAlign = "left";
+          const placed: Array<{
+            x0: number;
+            y0: number;
+            x1: number;
+            y1: number;
+          }> = [];
+          for (const label of labels) {
+            const width = context.measureText(label.text).width + 10;
+            const height = 22;
+            const labelX = Math.max(
+              left,
+              Math.min(label.x + 3, left + plotWidth - width),
+            );
+            const labelY = Math.max(
+              top,
+              Math.min(label.y - 18, top + plotHeight - height),
+            );
+            const box = {
+              x0: labelX - 2,
+              y0: labelY - 2,
+              x1: labelX + width + 2,
+              y1: labelY + height + 2,
+            };
+            if (
+              !label.active &&
+              placed.some(
+                (other) =>
+                  box.x0 < other.x1 &&
+                  box.x1 > other.x0 &&
+                  box.y0 < other.y1 &&
+                  box.y1 > other.y0,
+              )
+            ) {
+              continue;
+            }
+            placed.push(box);
+            context.fillStyle = "#202226ee";
+            context.beginPath();
+            context.roundRect(labelX, labelY, width, height, 3);
+            context.fill();
+            context.fillStyle = "#ff4040";
+            context.fillText(label.text, labelX + 5, labelY + 16);
+          }
         }
       }
       if (cake) {

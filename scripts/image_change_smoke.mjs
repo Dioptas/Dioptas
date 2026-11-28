@@ -191,7 +191,7 @@ try {
   assert.equal(result.cake, null);
   assert.equal(
     await page
-      .getByRole("tab", { name: "Step 1: Image & setup", exact: true })
+      .getByRole("tab", { name: "Calibrate", exact: true })
       .getAttribute("aria-selected"),
     "true",
   );
@@ -205,9 +205,7 @@ try {
   await button("Load .poni").click();
   await ready();
   assert.equal((await call("state")).state.calibrated, true);
-  await page
-    .getByRole("tab", { name: "Step 1: Image & setup", exact: true })
-    .click();
+  await page.getByRole("tab", { name: "Calibrate", exact: true }).click();
   selectedImage = same;
   await button("Open image").click();
   await page.waitForFunction(
@@ -307,13 +305,12 @@ try {
   for (const mode of ["Integration", "Map", "Mask", "Calibration"]) {
     await button(mode).click();
     const calibrationTab = page.getByRole("tab", {
-      name: "Step 2: Pick rings",
+      name: "Manual",
       exact: true,
     });
     if (mode === "Calibration") {
-      await page
-        .getByRole("tab", { name: "Step 3: Calibrate", exact: true })
-        .click();
+      await calibrationTab.click();
+      await page.getByRole("tab", { name: "Parameters", exact: true }).click();
       await page
         .getByLabel("Distance constraint value", { exact: true })
         .fill("321.5");
@@ -367,9 +364,6 @@ try {
       `uncalibrated size change explains coordinate-only reset in ${mode}`,
     );
     if (mode === "Calibration") {
-      await page
-        .getByRole("tab", { name: "Step 3: Calibrate", exact: true })
-        .click();
       assert.equal(
         await page
           .getByLabel("Distance constraint value", { exact: true })

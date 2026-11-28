@@ -323,7 +323,7 @@ export function CalibrationPanel({
             <div className="no-peaks">
               No peaks selected yet.
               <br />
-              Picking is active in Pick rings. Click bright positions on the
+              Picking is active in Manual mode. Click bright positions on the
               current ring.
             </div>
           )}

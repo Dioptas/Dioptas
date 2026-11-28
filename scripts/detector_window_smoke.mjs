@@ -894,9 +894,7 @@ for (const [name, browserType] of [
     await page
       .getByRole("button", { name: "Calibration", exact: true })
       .click();
-    await page
-      .getByRole("tab", { name: "Step 2: Pick rings", exact: true })
-      .click();
+    await page.getByRole("tab", { name: "Manual", exact: true }).click();
     await ready();
     await child.waitForTimeout(200);
     const pickCount = (await native.invoke("state")).state.calibration.picks

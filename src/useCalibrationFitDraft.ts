@@ -16,6 +16,14 @@ export const fitEnergyLimits = {
   unit: "keV",
 };
 
+/** Format a finite number for editing without IEEE-754 unit-conversion dust
+ * (e.g. `0.3344e-10 * 1e10 = 0.33440000000000003` -> `"0.3344"`). */
+export const formatCleanNumber = (value: number, precision = 12): string =>
+  Number.isFinite(value) ? String(Number(value.toPrecision(precision))) : "";
+
+const sameNumber = (a: number, b?: number) =>
+  b !== undefined && Math.abs(a - b) <= 1e-12 * Math.max(1, Math.abs(b));
+
 /** Session-owned starting values are separate from applied geometry. */
 export function useCalibrationFitDraft(c?: Calibration) {
   const [parameterSettings, setParameters] = useState<
@@ -29,14 +37,17 @@ export function useCalibrationFitDraft(c?: Calibration) {
     () =>
       Object.fromEntries(
         Object.entries(parameterSettings).map(([key, setting]) => {
-          const text = parameterText[key] ?? String(setting.value);
+          const text = parameterText[key];
           return [
             key,
             {
               ...setting,
-              value: numericDraftError(text, fitParameterLimits(key))
-                ? NaN
-                : Number(text),
+              value:
+                text === undefined
+                  ? setting.value
+                  : numericDraftError(text, fitParameterLimits(key))
+                    ? NaN
+                    : Number(text),
             },
           ];
         }),
@@ -44,7 +55,7 @@ export function useCalibrationFitDraft(c?: Calibration) {
     [parameterSettings, parameterText],
   );
   const [polarization, setPolarization] = useState(
-    String(c?.polarization ?? 0.99),
+    formatCleanNumber(c?.polarization ?? 0.99),
   );
 
   const base = useRef(c);
@@ -56,7 +67,7 @@ export function useCalibrationFitDraft(c?: Calibration) {
           Object.entries(texts).filter(
             ([key, text]) =>
               numericDraftError(text) ||
-              Number(text) !== previous?.parameters[key]?.value,
+              !sameNumber(Number(text), previous?.parameters[key]?.value),
           ),
         ),
       );
@@ -76,15 +87,18 @@ export function useCalibrationFitDraft(c?: Calibration) {
       );
       setPolarization((text) =>
         !previous ||
-        (!numericDraftError(text) && Number(text) === previous.polarization)
-          ? String(c.polarization)
+        (!numericDraftError(text) &&
+          sameNumber(Number(text), previous.polarization))
+          ? formatCleanNumber(c.polarization)
           : text,
       );
       if (
         parameterText.wavelength === undefined ||
         (!numericDraftError(parameterText.wavelength) &&
-          Number(parameterText.wavelength) ===
-            previous?.parameters.wavelength?.value)
+          sameNumber(
+            Number(parameterText.wavelength),
+            previous?.parameters.wavelength?.value,
+          ))
       )
         setEnergyText(null);
       base.current = c;
@@ -102,10 +116,10 @@ export function useCalibrationFitDraft(c?: Calibration) {
   );
   const dirty =
     !!c &&
-    (draft.polarization !== c.polarization ||
+    (!sameNumber(draft.polarization, c.polarization) ||
       Object.entries(parameters).some(
         ([key, parameter]) =>
-          parameter.value !== c.parameters[key]?.value ||
+          !sameNumber(parameter.value, c.parameters[key]?.value) ||
           parameter.refine !== c.parameters[key]?.refine,
       ));
   const sync = useCallback((next?: Calibration) => {
@@ -113,7 +127,7 @@ export function useCalibrationFitDraft(c?: Calibration) {
     setParameters(next?.parameters ?? {});
     setParameterText({});
     setEnergyText(null);
-    setPolarization(String(next?.polarization ?? 0.99));
+    setPolarization(formatCleanNumber(next?.polarization ?? 0.99));
   }, []);
   return {
     draft,

@@ -108,9 +108,7 @@ export async function verifyCalibrationRingPicker(
   await trigger.click();
   await page.locator(".app-status").click();
   assert.equal(await menu.count(), 0, "Outside click closes the menu");
-  await page
-    .getByRole("tab", { name: "Step 2: Pick rings", exact: true })
-    .click();
+  await page.getByRole("tab", { name: "Manual", exact: true }).click();
   assert.equal(await menu.count(), 0, "Outside click closes the menu");
   const row = page.locator(".peak-row").first();
   const rowRing = calibration.picks[0].ring;
@@ -165,9 +163,7 @@ export async function verifyFiftyRingPicker(
     assert.equal(result.state.calibration.rings.length, 50);
     await page.reload();
     await waitReady();
-    await page
-      .getByRole("tab", { name: "Step 2: Pick rings", exact: true })
-      .click();
+    await page.getByRole("tab", { name: "Manual", exact: true }).click();
     const trigger = page.getByRole("button", {
       name: "Current calibrant ring",
       exact: true,

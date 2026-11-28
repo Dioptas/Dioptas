@@ -28,7 +28,7 @@ export type CompletionEffect =
   | { kind: "notice"; message: string | null }
   | { kind: "autoprocess-error"; message: string | null }
   | { kind: "clear-picks" }
-  | { kind: "calibration-step"; step: 0 | 3 };
+  | { kind: "calibration-step"; step: 0 | 1 };
 /** Pure post-command policy. Ordering determines the final notice and preserves
  * cancellation semantics: publish its snapshot/callback, retain option drafts. */
 export function commandCompletion(
@@ -61,6 +61,8 @@ export function commandCompletion(
       effects.push({ kind: "draft", target: "geometry", state });
     if (
       command === "calibrate" ||
+      command === "estimate_rot3" ||
+      command === "apply_distortion" ||
       (command === "auto_calibrate" && !result.autoCalibrateFailed)
     ) {
       effects.push({ kind: "draft", target: "fit", state });
@@ -78,6 +80,10 @@ export function commandCompletion(
     notice(result.calibrantNotice);
   if (command === "auto_calibrate" && result.autoCalibrateNotice)
     notice(result.autoCalibrateNotice);
+  if (command === "estimate_rot3" && result.rot3Notice)
+    notice(result.rot3Notice);
+  if (command === "apply_distortion" && result.distortionNotice)
+    notice(result.distortionNotice);
   if (command === "open_calibration" && !result.cancelled)
     notice(
       `Loaded calibration: ${result.state?.calibrationName ?? "PONI"}${result.calibrantNotice ? ` · ${result.calibrantNotice}` : ""}${result.orientationNotice ? ` · ${result.orientationNotice}` : ""}${result.state?.hasImage ? "" : " · Load a matching detector image"}`,
@@ -110,13 +116,16 @@ export function commandCompletion(
   if (
     !result.cancelled &&
     !result.autoCalibrateFailed &&
-    ["calibrate", "auto_calibrate", "manual_geometry", "open_calibration"].includes(
-      command,
-    )
+    [
+      "calibrate",
+      "auto_calibrate",
+      "manual_geometry",
+      "open_calibration",
+    ].includes(command)
   )
     effects.push({
       kind: "calibration-step",
-      step: command === "open_calibration" && !result.state?.hasImage ? 0 : 3,
+      step: command === "open_calibration" && !result.state?.hasImage ? 0 : 1,
     });
   return effects;
 }
@@ -130,7 +139,7 @@ export interface CommandCompletionPorts {
     notice(message: string | null): void;
     error(message: string | null): void;
     clearPicks(): void;
-    calibrationStep(step: 0 | 3): void;
+    calibrationStep(step: 0 | 1): void;
   };
 }
 function complete(effects: CompletionEffect[], ports: CommandCompletionPorts) {

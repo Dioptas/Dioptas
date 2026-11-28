@@ -104,6 +104,7 @@ for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
         el.dataset.viewYMax,
       ]);
     const zoomed = await view();
+    await page.getByRole("tab", { name: "Manual", exact: true }).click();
     const beforeMiss = (await native.invoke("state")).state;
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
     const notice = page.locator('.workflow-status [role="status"]');
@@ -143,7 +144,7 @@ for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
     await page.reload();
     await page.getByTestId("detector-canvas").waitFor();
     await ready();
-    // Auto-calibrate is immediately visible on Step 1: Image once an image is loaded.
+    // Auto-calibrate is immediately visible on Calibrate once an image is loaded.
     await page
       .getByRole("button", { name: "Auto-calibrate", exact: true })
       .click();
@@ -155,7 +156,7 @@ for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
     assert.ok(autoSnapshot.state.calibration.picks.length > 0);
     assert.equal(
       await page
-        .getByRole("tab", { name: "Step 4: Validate", exact: true })
+        .getByRole("tab", { name: "Validate", exact: true })
         .getAttribute("aria-selected"),
       "true",
     );
@@ -164,6 +165,7 @@ for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
     await page.getByTestId("detector-canvas").waitFor();
     await ready();
     assert.equal((await native.invoke("state")).state.calibrated, false);
+    await page.getByRole("tab", { name: "Manual", exact: true }).click();
     const seeds = [
       [637, 564, 1],
       [671, 511, 2],
@@ -193,9 +195,6 @@ for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
     }
     let snapshot = await native.invoke("state");
     assert.equal(snapshot.state.calibration.picks.length, 5);
-    await page
-      .getByRole("tab", { name: "Step 2: Pick rings", exact: true })
-      .click();
     await page.getByRole("button", { name: "Undo", exact: true }).click();
     await ready();
     assert.equal(
@@ -208,9 +207,6 @@ for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
       (await native.invoke("state")).state.calibration.picks.length,
       5,
     );
-    await page
-      .getByRole("tab", { name: "Step 3: Calibrate", exact: true })
-      .click();
     await page.getByLabel("Automatic refinement", { exact: true }).click();
     await ready();
     await page.waitForFunction(
@@ -232,9 +228,7 @@ for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
     assert.ok(snapshot.rings.length > 0);
     assert.equal(snapshot.state.calibration.geometrySource, "fitted");
     const manualRms = snapshot.state.calibration.rmsDegrees;
-    await page
-      .getByRole("tab", { name: "Step 3: Calibrate", exact: true })
-      .click();
+    await page.getByRole("tab", { name: "Manual", exact: true }).click();
     await page.getByLabel("Automatic refinement", { exact: true }).click();
     await ready();
     await page.waitForFunction(
@@ -248,10 +242,6 @@ for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
         .isChecked(),
       true,
     );
-    const rings = page.getByLabel("Number of rings", { exact: true });
-    await rings.fill("4");
-    await rings.press("Enter");
-    await ready();
     await page.getByRole("button", { name: "Refine", exact: true }).click();
     await ready();
     snapshot = await native.invoke("state");
@@ -268,12 +258,8 @@ for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
     await page.screenshot({ path: path.join(artifacts, `${name}-fitted.png`) });
 
     // Validation view: cake, pattern and detector clicks mark linked green
-    // positions when Pick peaks is off; turning Pick peaks back on picks.
-    await page
-      .getByRole("tab", { name: "Step 4: Validate", exact: true })
-      .click();
-    const picking = page.getByLabel("Pick peaks", { exact: true });
-    if (await picking.isChecked()) await picking.uncheck();
+    // positions directly (picking is only active in Manual).
+    await page.getByRole("tab", { name: "Validate", exact: true }).click();
     const cake = page.getByTestId("cake-canvas");
     const pattern = page.getByTestId("pattern-canvas");
     await cake.waitFor();
@@ -341,29 +327,8 @@ for (const [name, type] of [["chromium", chromium], ...withWebkit(webkit)]) {
         ) !== before,
       fromPattern,
     );
-    await picking.check();
-    const markerBefore = await linked(cake);
-    const actionsBeforePick = actions.length;
-    await clickInside(detectorCanvas, 0.3, 0.3);
-    const pickActions = actions.slice(actionsBeforePick).map(([a]) => a);
-    assert.ok(
-      pickActions.includes("pick_peak"),
-      "Picking-mode clicks pick peaks",
-    );
-    assert.ok(
-      !pickActions.includes("validation_position"),
-      "Picking-mode clicks do not inspect",
-    );
-    assert.equal(
-      await linked(cake),
-      markerBefore,
-      "Picking does not move the marker",
-    );
-
-    // Step 1 detector catalog + Fit2D manual geometry entry.
-    await page
-      .getByRole("tab", { name: "Step 1: Image & setup", exact: true })
-      .click();
+    // Calibrate tab detector catalog + Fit2D manual geometry entry.
+    await page.getByRole("tab", { name: "Calibrate", exact: true }).click();
     await ready();
     const detectorSelect = page.getByLabel("Detector", { exact: true });
     assert.equal(await detectorSelect.locator("option").count(), 110);

@@ -1,21 +1,21 @@
-import { Input, Select, Button } from "./ui";
-import { useEffect, useRef, useState, Fragment } from "react";
+import { Input, Button } from "./ui";
+import { useEffect, Fragment } from "react";
 import {
   FolderOpen,
   RotateCcw,
-  RotateCw,
-  FlipHorizontal,
-  FlipVertical,
+  RotateCcwSquare,
+  RotateCwSquare,
+  FlipHorizontal2,
+  FlipVertical2,
 } from "lucide-react";
 import type { State } from "./types";
-import { CalibrationHelp, calibrationHelp } from "./CalibrationHelp";
-import { CalibrantPicker } from "./CalibrantPicker";
 
 import { ScientificNumberInput } from "./ScientificNumberInput";
 import { numericDraftError } from "./numericDraft";
 import {
   fitParameterLimits,
   fitEnergyLimits,
+  formatCleanNumber,
   type CalibrationFitEditor,
 } from "./useCalibrationFitDraft";
 
@@ -61,73 +61,160 @@ export function CalibrationExtras({
     polarization = String(c?.polarization ?? 0.99),
     setPolarization,
   } = fitEditor ?? {};
-  const [refinementDraft, setRefinementDraft] = useState<
-    Record<string, string>
-  >({});
-  const workflow = c?.workflow;
   useEffect(() => {
-    setRefinementDraft({});
-  }, [
-    workflow?.deltaTth,
-    workflow?.meanFactor,
-    workflow?.intensityLimit,
-    workflow?.numberOfRings,
-  ]);
-  const refinementDirty =
-    !!workflow &&
-    Object.entries(refinementDraft).some(
-      ([key, value]) =>
-        Number(value) !== Number(workflow[key as keyof typeof workflow]),
-    );
-  useEffect(() => {
-    onDirtyChange(refinementDirty);
-  }, [refinementDirty, onDirtyChange]);
-  const pendingFocus = useRef<HTMLElement | null>(null);
-  useEffect(() => {
-    if (!ready || !pendingFocus.current) return;
-    const target = pendingFocus.current;
-    pendingFocus.current = null;
-    if (
-      target.isConnected &&
-      (document.activeElement === document.body ||
-        document.activeElement === null)
-    ) {
-      target.focus();
-      if (target instanceof HTMLInputElement) target.select();
-    }
-  }, [ready]);
-  const toggle = (name: string, value: unknown) =>
-    run("workflow_settings", { [name]: value });
+    onDirtyChange(false);
+  }, [onDirtyChange]);
   return (
     <>
+      {step === 0 && imageToolsOnly && fitEditor && (
+        <section
+          className="calibration-fit-page calibration-beam-setup"
+          aria-label="Beam and start parameters"
+        >
+          <div className="setup-pair">
+            <div className="field-label">
+              <div className="calibration-field-header">
+                <label htmlFor="setup-wavelength">Wavelength · Å</label>
+                <label
+                  className="calibration-inline-fit"
+                  title="Checked: refine wavelength during calibration. Unchecked: hold wavelength fixed."
+                >
+                  <Input
+                    aria-label="Refine wavelength"
+                    type="checkbox"
+                    disabled={!ready}
+                    checked={parameters.wavelength?.refine ?? false}
+                    onChange={(e) =>
+                      setParameters?.((p) => ({
+                        ...p,
+                        wavelength: {
+                          ...p.wavelength,
+                          refine: e.target.checked,
+                        },
+                      }))
+                    }
+                  />
+                  Fit
+                </label>
+              </div>
+              <ScientificNumberInput
+                id="setup-wavelength"
+                aria-label="Wavelength in angstroms"
+                step="any"
+                disabled={!ready}
+                value={
+                  parameterText.wavelength ??
+                  formatCleanNumber(parameters.wavelength?.value ?? 0.3344)
+                }
+                aria-invalid={
+                  numericDraftError(
+                    parameterText.wavelength ??
+                      formatCleanNumber(parameters.wavelength?.value ?? 0.3344),
+                    fitParameterLimits("wavelength"),
+                  )
+                    ? true
+                    : undefined
+                }
+                onValueChange={(value) => {
+                  setParameterText?.((p) => ({ ...p, wavelength: value }));
+                  setEnergyText?.(null);
+                }}
+              />
+            </div>
+            <label className="field-label">
+              Energy · keV
+              <ScientificNumberInput
+                id="setup-energy"
+                aria-label="Energy in kiloelectronvolts"
+                step="any"
+                disabled={!ready}
+                value={
+                  energyText ??
+                  (parameters.wavelength?.value > 0
+                    ? formatCleanNumber(
+                        12.39841984332 / parameters.wavelength.value,
+                        7,
+                      )
+                    : "")
+                }
+                aria-invalid={
+                  energyText !== null &&
+                  numericDraftError(energyText, fitEnergyLimits)
+                    ? true
+                    : undefined
+                }
+                onValueChange={(value) => {
+                  setEnergyText?.(value);
+                  setParameterText?.((p) => ({
+                    ...p,
+                    wavelength: numericDraftError(value, fitEnergyLimits)
+                      ? ""
+                      : formatCleanNumber(12.39841984332 / Number(value), 7),
+                  }));
+                }}
+              />
+            </label>
+          </div>
+          <div className="setup-pair">
+            <label className="field-label">
+              Distance · mm
+              <ScientificNumberInput
+                id="setup-distance"
+                aria-label="Starting distance in millimetres"
+                step="any"
+                disabled={!ready}
+                value={
+                  parameterText.dist ??
+                  formatCleanNumber(parameters.dist?.value ?? 200)
+                }
+                aria-invalid={
+                  numericDraftError(
+                    parameterText.dist ??
+                      formatCleanNumber(parameters.dist?.value ?? 200),
+                    fitParameterLimits("dist"),
+                  )
+                    ? true
+                    : undefined
+                }
+                onValueChange={(value) =>
+                  setParameterText?.((p) => ({ ...p, dist: value }))
+                }
+              />
+            </label>
+            <label className="field-label">
+              Polarization
+              <ScientificNumberInput
+                id="setup-polarization"
+                aria-label="Polarization factor"
+                step=".01"
+                min="-1"
+                max="1"
+                disabled={!ready}
+                value={polarization}
+                aria-invalid={
+                  numericDraftError(polarization, { min: -1, max: 1 })
+                    ? true
+                    : undefined
+                }
+                onValueChange={(value) => setPolarization?.(value)}
+              />
+            </label>
+          </div>
+        </section>
+      )}
       {step === 0 && !hideImageTools && (
         <section className="image-detector-tools">
-          <div className="calibration-group-label">Image orientation</div>
+          <div className="calibration-group-label">Orientation</div>
           <div className="orientation-tools">
             {(
               [
-                ["rotate_left", "Rotate image −90°", RotateCcw, "Rotate −90°"],
-                ["rotate_right", "Rotate image +90°", RotateCw, "Rotate +90°"],
-                [
-                  "flip_horizontal",
-                  "Flip image horizontally",
-                  FlipHorizontal,
-                  "Flip horizontal",
-                ],
-                [
-                  "flip_vertical",
-                  "Flip image vertically",
-                  FlipVertical,
-                  "Flip vertical",
-                ],
-                [
-                  "reset",
-                  "Reset image transformations",
-                  RotateCcw,
-                  "Reset transformations",
-                ],
+                ["rotate_left", "Rotate image −90°", RotateCcwSquare],
+                ["rotate_right", "Rotate image +90°", RotateCwSquare],
+                ["flip_horizontal", "Flip image horizontally", FlipHorizontal2],
+                ["flip_vertical", "Flip image vertically", FlipVertical2],
+                ["reset", "Reset image transformations", RotateCcw],
               ] as const
-            ).map(([operation, label, Icon, text]) => (
+            ).map(([operation, label, Icon]) => (
               <Button
                 type="button"
                 key={operation}
@@ -139,70 +226,65 @@ export function CalibrationExtras({
                   run("image_transform", { operation }, "Transforming image…")
                 }
               >
-                <Icon size={15} />
-                {text}
+                <Icon size={16} aria-hidden="true" />
               </Button>
             ))}
           </div>
-          <hr className="calibration-tool-divider" />
-          <div className="file-actions">
-            <Button
-              type="button"
-              disabled={!ready}
-              title={c?.detectorFile ?? "Load detector definition"}
-              onClick={() =>
-                run("detector_file", {}, "Loading detector definition…")
-              }
-            >
-              <FolderOpen size={14} />
-              Detector file
-            </Button>
-            <Button
-              type="button"
-              variant="quiet"
-              disabled={!ready || !c?.detectorFile}
-              onClick={() => run("detector_file", { reset: true })}
-            >
-              Reset
-            </Button>
-          </div>
-          <div className="file-actions">
-            <Button
-              type="button"
-              disabled={!ready}
-              title={c?.distortionFile ?? "Load distortion spline"}
-              onClick={() =>
-                run("distortion_file", {}, "Loading distortion spline…")
-              }
-            >
-              <FolderOpen size={14} />
-              Distortion spline
-            </Button>
-            <Button
-              type="button"
-              variant="quiet"
-              disabled={!ready || !c?.distortionFile}
-              onClick={() => run("distortion_file", { reset: true })}
-            >
-              Reset
-            </Button>
-          </div>
+          <details
+            className="calibration-disclosure"
+            open={Boolean(c?.detectorFile || c?.distortionFile)}
+          >
+            <summary>Detector &amp; distortion files</summary>
+            <div className="calibration-disclosure-body">
+              <div className="file-actions">
+                <Button
+                  type="button"
+                  disabled={!ready}
+                  title={c?.detectorFile ?? "Load detector definition"}
+                  onClick={() =>
+                    run("detector_file", {}, "Loading detector definition…")
+                  }
+                >
+                  <FolderOpen size={14} />
+                  Detector file
+                </Button>
+                <Button
+                  type="button"
+                  variant="quiet"
+                  disabled={!ready || !c?.detectorFile}
+                  onClick={() => run("detector_file", { reset: true })}
+                >
+                  Reset
+                </Button>
+              </div>
+              <div className="file-actions">
+                <Button
+                  type="button"
+                  disabled={!ready}
+                  title={c?.distortionFile ?? "Load distortion spline"}
+                  onClick={() =>
+                    run("distortion_file", {}, "Loading distortion spline…")
+                  }
+                >
+                  <FolderOpen size={14} />
+                  Distortion spline
+                </Button>
+                <Button
+                  type="button"
+                  variant="quiet"
+                  disabled={!ready || !c?.distortionFile}
+                  onClick={() => run("distortion_file", { reset: true })}
+                >
+                  Reset
+                </Button>
+              </div>
+            </div>
+          </details>
         </section>
       )}
       {step === 2 && fitEditor && (
         <div className="calibration-fit-controls">
           <section className="calibration-fit-page" aria-label="Fit parameters">
-            <h3 className="calibration-fit-heading">Starting values</h3>
-            <div className="calibration-field-row calibration-calibrant-row">
-              <label htmlFor="calibration-calibrant">Calibrant</label>
-              <CalibrantPicker
-                calibration={c}
-                ready={ready}
-                run={run}
-                purpose="fit"
-                id="calibration-calibrant"
-              />
-            </div>
             <div className="constraint-heading">
               <span>Parameter</span>
               <span>Start value</span>
@@ -213,7 +295,9 @@ export function CalibrationExtras({
             {fields.map(([key, label, unit]) => {
               const text =
                 parameterText[key] ??
-                String(parameterSettings[key]?.value ?? "");
+                (parameterSettings[key] !== undefined
+                  ? formatCleanNumber(parameterSettings[key].value)
+                  : "");
               const error = numericDraftError(text, fitParameterLimits(key));
               return (
                 <Fragment key={key}>
@@ -237,19 +321,23 @@ export function CalibrationExtras({
                       }}
                     />
                     <span className="calibration-unit">{unit}</span>
-                    <Input
-                      aria-label={`Refine ${label.toLowerCase()}`}
-                      title="Checked: refine this parameter. Unchecked: hold it fixed."
-                      type="checkbox"
-                      disabled={!ready}
-                      checked={parameters[key]?.refine ?? true}
-                      onChange={(e) => {
-                        setParameters?.((p) => ({
-                          ...p,
-                          [key]: { ...p[key], refine: e.target.checked },
-                        }));
-                      }}
-                    />
+                    {key === "rot3" ? (
+                      <span aria-hidden="true" />
+                    ) : (
+                      <Input
+                        aria-label={`Refine ${label.toLowerCase()}`}
+                        title="Checked: refine this parameter. Unchecked: hold it fixed."
+                        type="checkbox"
+                        disabled={!ready}
+                        checked={parameters[key]?.refine ?? true}
+                        onChange={(e) => {
+                          setParameters?.((p) => ({
+                            ...p,
+                            [key]: { ...p[key], refine: e.target.checked },
+                          }));
+                        }}
+                      />
+                    )}
                     {error && (
                       <span
                         className="ui-field-error constraint-error"
@@ -271,8 +359,9 @@ export function CalibrationExtras({
                           value={
                             energyText ??
                             (parameters.wavelength?.value > 0
-                              ? String(
+                              ? formatCleanNumber(
                                   12.39841984332 / parameters.wavelength.value,
+                                  7,
                                 )
                               : "")
                           }
@@ -297,7 +386,10 @@ export function CalibrationExtras({
                                 fitEnergyLimits,
                               )
                                 ? ""
-                                : String(12.39841984332 / Number(value)),
+                                : formatCleanNumber(
+                                    12.39841984332 / Number(value),
+                                    7,
+                                  ),
                             }));
                           }}
                         />
@@ -356,126 +448,70 @@ export function CalibrationExtras({
                 </Fragment>
               );
             })}
-          </section>
-          <section
-            className="calibration-fit-page calibration-refinement-section"
-            aria-label="Refinement options"
-          >
-            <h3 className="calibration-fit-heading">Refinement</h3>
-            <label className="check-row">
-              <Input
-                aria-label="Automatic refinement"
-                type="checkbox"
-                disabled={!ready}
-                checked={workflow?.automaticRefinement ?? true}
-                onChange={(e) =>
-                  toggle("automaticRefinement", e.target.checked)
+            <div className="calibration-rot3-action">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={
+                  !ready ||
+                  !state?.hasImage ||
+                  !state?.calibrated ||
+                  !!numericDraftError(polarization, {
+                    min: -1,
+                    max: 1,
+                  })
                 }
-              />
-              Automatic refinement
-            </label>
-            {workflow?.automaticRefinement && (
-              <>
-                <div className="calibration-field-row">
-                  <label htmlFor="refinement-algorithm">
-                    Peak-search algorithm
-                  </label>
-                  <Select
-                    id="refinement-algorithm"
-                    aria-label="Refinement peak-search algorithm"
-                    value={workflow.algorithm}
-                    disabled={!ready}
-                    onChange={(e) => toggle("algorithm", e.target.value)}
-                  >
-                    <option>Massif</option>
-                    <option>Blob</option>
-                  </Select>
-                </div>
-                {(
-                  [
-                    ["deltaTth", "Search width Δ2θ (°)"],
-                    ["meanFactor", "Intensity mean factor"],
-                    ["intensityLimit", "Upper intensity limit"],
-                    ["numberOfRings", "Number of rings"],
-                  ] as const
-                ).map(([key, label]) => (
-                  <div
-                    className="calibration-field-row calibration-refinement-field"
-                    key={key}
-                  >
-                    <label htmlFor={`refinement-${key}`}>{label}</label>
-                    <Input
-                      id={`refinement-${key}`}
-                      className="full-input"
-                      aria-label={label}
-                      type="number"
-                      step={key === "numberOfRings" ? 1 : "any"}
-                      min={key === "numberOfRings" ? 1 : 0.00001}
-                      max={key === "numberOfRings" ? 500 : 1e15}
-                      required
-                      disabled={!ready}
-                      value={refinementDraft[key] ?? String(workflow[key])}
-                      onChange={(e) =>
-                        setRefinementDraft((draft) => ({
-                          ...draft,
-                          [key]: e.target.value,
-                        }))
-                      }
-                      onBlur={(e) => {
-                        const value = e.currentTarget.valueAsNumber;
-                        if (
-                          ready &&
-                          e.currentTarget.validity.valid &&
-                          value !== workflow[key]
-                        ) {
-                          pendingFocus.current =
-                            e.relatedTarget instanceof HTMLElement
-                              ? e.relatedTarget
-                              : null;
-                          toggle(key, value);
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          if (e.currentTarget.reportValidity())
-                            e.currentTarget.blur();
-                        }
-                      }}
-                    />
-                    <CalibrationHelp
-                      label={label}
-                      text={calibrationHelp[key]}
-                    />
-                  </div>
-                ))}
-              </>
-            )}
+                title="Estimate detector rotation 3 from azimuthal intensity variation using the current polarization factor."
+                onClick={() =>
+                  run(
+                    "estimate_rot3",
+                    { polarization: Number(polarization) },
+                    "Estimating rot3 from polarization…",
+                  )
+                }
+              >
+                Fit Rotation 3 (polarization)
+              </Button>
+            </div>
           </section>
         </div>
       )}
-      {!imageToolsOnly && (step === 0 || step === 3) && (
+      {!imageToolsOnly && (step === 0 || step === 1) && (
         <section
           className="calibration-mask-controls"
           aria-label="Detector mask"
         >
           <div className="calibration-mask-row">
-            <label className="check-row">
-              <Input
-                aria-label="Use mask"
-                type="checkbox"
-                checked={state?.useMask ?? false}
-                disabled={!ready || !state?.hasImage}
-                onChange={(e) =>
-                  run(
-                    "settings",
-                    { use_mask: e.target.checked },
-                    "Updating mask…",
-                  )
-                }
-              />
-              Use mask
-            </label>
+            <div className="calibration-mask-checks">
+              <label className="check-row">
+                <Input
+                  aria-label="Use mask"
+                  type="checkbox"
+                  checked={state?.useMask ?? false}
+                  disabled={!ready || !state?.hasImage}
+                  onChange={(e) =>
+                    run(
+                      "settings",
+                      { use_mask: e.target.checked },
+                      "Updating mask…",
+                    )
+                  }
+                />
+                Use mask
+              </label>
+              <label className="check-row">
+                <Input
+                  aria-label="Transparent"
+                  type="checkbox"
+                  checked={state?.transparentMask ?? false}
+                  disabled={!ready || !state?.useMask}
+                  onChange={(e) =>
+                    run("settings", { transparent_mask: e.target.checked })
+                  }
+                />
+                Transparent
+              </label>
+            </div>
             <Button
               type="button"
               className="icon-button"
@@ -487,18 +523,6 @@ export function CalibrationExtras({
               <FolderOpen size={16} />
             </Button>
           </div>
-          <label className="check-row">
-            <Input
-              aria-label="Transparent"
-              type="checkbox"
-              checked={state?.transparentMask ?? false}
-              disabled={!ready || !state?.useMask}
-              onChange={(e) =>
-                run("settings", { transparent_mask: e.target.checked })
-              }
-            />
-            Transparent
-          </label>
         </section>
       )}
     </>

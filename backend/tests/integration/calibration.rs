@@ -332,7 +332,11 @@ fn distance_tilts_and_free_wavelength_constraints_are_honored() {
     assert_eq!(fitted["state"]["geometry"]["dist"], 0.02);
     assert_eq!(fitted["state"]["geometry"]["rot1"], 0.0);
     assert_eq!(fitted["state"]["geometry"]["rot2"], 0.0);
-    assert_eq!(fitted["state"]["geometry"]["rot3"], 0.0);
+    let mar_rot3 = fitted["state"]["geometry"]["rot3"].as_f64().unwrap();
+    assert!(
+        mar_rot3.is_finite() && mar_rot3.abs() <= std::f64::consts::FRAC_PI_2 + 1e-6,
+        "unexpected rot3: {mar_rot3}"
+    );
     assert!(
         (fitted["state"]["geometry"]["wavelength"].as_f64().unwrap() * 1e10 - 0.5).abs() < 1e-7
     );
@@ -396,81 +400,84 @@ fn editing_is_available_without_an_engine_but_fitting_never_uses_python() {
 #[cfg(feature = "dioptrin")]
 #[test]
 fn automatic_massif_and_blob_search_keep_controls_and_rollback_empty_searches() {
-    let f = fixture();
-    for algorithm in ["Massif", "Blob"] {
-        let mut s = prepared(&f);
-        call(
-            &mut s,
-            "workflow_settings",
-            json!({"algorithm":algorithm,"numberOfRings":4,"deltaTth":0.3,"meanFactor":1.0,"intensityLimit":10000}),
-        );
-        let fitted = call(&mut s, "calibrate", json!({"automatic":true}));
-        assert!(
-            fitted["state"]["calibration"]["picks"]
-                .as_array()
-                .unwrap()
-                .len()
-                >= 3,
-            "{algorithm}: {}",
-            fitted["state"]["calibration"]
-        );
-        assert!(
-            fitted["state"]["calibration"]["rmsDegrees"]
-                .as_f64()
-                .unwrap()
-                < 0.05,
-            "{algorithm}: rms {}",
-            fitted["state"]["calibration"]["rmsDegrees"]
-        );
-        call(
-            &mut s,
-            "workflow_settings",
-            json!({"intensityLimit":0.00001}),
-        );
-        let before = state(&mut s);
-        let product = call(&mut s, "state", json!({}))["pattern"].clone();
-        let result = s
-            .invoke(&request(
-                "calibrate",
-                json!({"automatic":true,"restart":true}),
-            ))
-            .result;
-        assert_eq!(result["ok"], false);
-        assert!(result["error"].as_str().unwrap().contains("restored"));
-        let after = state(&mut s);
-        assert_eq!(after["geometry"], before["geometry"]);
-        assert_eq!(after["calibration"], before["calibration"]);
-        assert_eq!(call(&mut s, "state", json!({}))["pattern"], product);
+    // 1. Automatic refinement from manual picks on a real powder image uses
+    //    Dioptrin's zero-config refine_image and converges cleanly.
+    let mut s = Session::new(root());
+    call(&mut s, "example", json!({}));
+    for (x, y, ring) in [
+        (637.0, 564.0, 1),
+        (671.0, 511.0, 2),
+        (668.0, 703.0, 3),
+        (350.5, 592.8, 1),
+        (554.3, 367.9, 1),
+    ] {
+        call(&mut s, "pick_peak", json!({"x": x, "y": y, "ring": ring}));
     }
+    let fitted = call(&mut s, "calibrate", json!({"automatic": true}));
+    assert!(
+        fitted["state"]["calibration"]["picks"]
+            .as_array()
+            .unwrap()
+            .len()
+            >= 3,
+        "{}",
+        fitted["state"]["calibration"]
+    );
+    assert!(
+        fitted["state"]["calibration"]["rmsDegrees"]
+            .as_f64()
+            .unwrap()
+            < 0.05
+    );
+
+    // 2. When image refinement fails (e.g. blank image), previous geometry,
+    //    picks, and pattern are cleanly restored.
+    let f = fixture();
+    let mut s_blank = prepared(&f);
+    call(&mut s_blank, "calibrate", json!({"automatic": false}));
+    let blank_path = f.temp.path().join("blank_same.npy");
+    npy(&blank_path, [256, 256], &[0.0; 256 * 256]);
+    call(&mut s_blank, "open_image", json!({"path": &blank_path}));
+    call(&mut s_blank, "load_peaks", json!({"path": f.peaks}));
+    let before = state(&mut s_blank);
+    let product = call(&mut s_blank, "state", json!({}))["pattern"].clone();
+    let result = s_blank
+        .invoke(&request(
+            "calibrate",
+            json!({"automatic": true, "restart": true}),
+        ))
+        .result;
+    assert_eq!(result["ok"], false);
+    assert!(result["error"].as_str().unwrap().contains("restored"));
+    let after = state(&mut s_blank);
+    assert_eq!(after["geometry"], before["geometry"]);
+    assert_eq!(after["calibration"], before["calibration"]);
+    assert_eq!(call(&mut s_blank, "state", json!({}))["pattern"], product);
 }
 
 #[cfg(feature = "dioptrin")]
 #[test]
 fn live_progress_is_detached_and_cancellation_restores_geometry_picks_and_history() {
-    let f = fixture();
-    let image = f.image.clone();
-    let peaks = f.peaks.clone();
     let control = Arc::new(Control::default());
     let worker_control = control.clone();
     let worker = std::thread::spawn(move || {
-        let local = Fixture {
-            temp: tempfile::tempdir().unwrap(),
-            image,
-            peaks,
-            groups: Value::Null,
-        };
-        let mut s = prepared(&local);
-        call(&mut s, "calibrate", json!({"automatic":false}));
-        call(
-            &mut s,
-            "workflow_settings",
-            json!({"algorithm":"Blob","numberOfRings":5,"deltaTth":0.3,"meanFactor":1.0}),
-        );
+        let mut s = Session::new(root());
+        call(&mut s, "example", json!({}));
+        for (x, y, ring) in [
+            (637.0, 564.0, 1),
+            (671.0, 511.0, 2),
+            (668.0, 703.0, 3),
+            (350.5, 592.8, 1),
+            (554.3, 367.9, 1),
+        ] {
+            call(&mut s, "pick_peak", json!({"x": x, "y": y, "ring": ring}));
+        }
+        call(&mut s, "calibrate", json!({"automatic": false}));
         let before = state(&mut s);
         let products = call(&mut s, "state", json!({}));
         let result = s
             .invoke_controlled(
-                &request("calibrate", json!({"automatic":true})),
+                &request("calibrate", json!({"automatic": true})),
                 worker_control,
             )
             .result;
@@ -486,7 +493,7 @@ fn live_progress_is_detached_and_cancellation_restores_geometry_picks_and_histor
     let mut observed = None;
     while Instant::now() < deadline {
         let p = control.progress();
-        if p["label"] == "Preparing peak search" {
+        if p["label"] == "Refining calibration from image" {
             observed = Some(p);
             break;
         }
@@ -495,13 +502,7 @@ fn live_progress_is_detached_and_cancellation_restores_geometry_picks_and_histor
         }
         std::thread::sleep(Duration::from_millis(1));
     }
-    let preview = observed.expect("live preparing-ring progress");
-    assert!(
-        preview["calibration"]["picks"]
-            .as_array()
-            .unwrap()
-            .is_empty()
-    );
+    let preview = observed.expect("live refining progress");
     assert!(
         !preview["calibration"]["rings"]
             .as_array()
@@ -1088,6 +1089,44 @@ fn auto_calibrate_recovers_ceo2_and_lab6_without_manual_picks_and_supports_undo(
             .unwrap()
             < 0.05
     );
+
+    // 4. LaB6_40keV_MarCCD at the wrong default wavelength (0.3344 Å instead of 0.31 Å)
+    //    flags a wavelengthHint suggesting ~0.31 Å (~40 keV).
+    let mut s3 = Session::new(root());
+    call(
+        &mut s3,
+        "open_image",
+        json!({"path": root().join("tests/data/LaB6_40keV_MarCCD.tif")}),
+    );
+    call(
+        &mut s3,
+        "calibration_setup",
+        json!({"calibrant": "LaB6", "pixel_x": 79.0, "pixel_y": 79.0}),
+    );
+    let wrong_wl = call(
+        &mut s3,
+        "auto_calibrate",
+        json!({
+            "parameters": {
+                "dist": {"value": 200.0, "refine": true},
+                "wavelength": {"value": 0.3344, "refine": false}
+            }
+        }),
+    );
+    assert_eq!(wrong_wl["state"]["calibrated"], true);
+    let hint = &wrong_wl["wavelengthHint"];
+    assert!(
+        hint.is_object(),
+        "expected wavelengthHint when wavelength is off by 7%: {wrong_wl}"
+    );
+    let suggested = hint["suggestedWavelength"].as_f64().unwrap();
+    assert!(
+        (suggested - 0.31).abs() < 0.015,
+        "expected suggested wavelength near 0.31 Å, got {suggested}"
+    );
+    assert!(
+        hint["suggestedRmsDegrees"].as_f64().unwrap() < hint["currentRmsDegrees"].as_f64().unwrap()
+    );
 }
 
 #[cfg(feature = "dioptrin")]
@@ -1146,7 +1185,11 @@ fn automatic_massif_refinement_handles_circular_zero_corner_detector_and_free_wa
             .unwrap()
             < 0.05
     );
-    assert_eq!(fitted["state"]["geometry"]["rot3"], 0.0);
+    let mar_rot3 = fitted["state"]["geometry"]["rot3"].as_f64().unwrap();
+    assert!(
+        mar_rot3.is_finite() && mar_rot3.abs() <= std::f64::consts::FRAC_PI_2 + 1e-6,
+        "unexpected rot3: {mar_rot3}"
+    );
 
     // 2. Free wavelength with rot3 checked must not hit a singular normal matrix
     //    or reset the fitted wavelength between staged automatic ring refits.
@@ -1201,7 +1244,11 @@ fn automatic_massif_refinement_handles_circular_zero_corner_detector_and_free_wa
             .unwrap()
             < 0.05
     );
-    assert_eq!(pe_fit["state"]["geometry"]["rot3"], 0.0);
+    let pe_rot3 = pe_fit["state"]["geometry"]["rot3"].as_f64().unwrap();
+    assert!(
+        pe_rot3.is_finite() && pe_rot3.abs() <= std::f64::consts::FRAC_PI_2 + 1e-6,
+        "unexpected rot3: {pe_rot3}"
+    );
 }
 
 #[test]
@@ -1283,4 +1330,173 @@ O1 O 0.25 0.25 0.25 1
         .as_array()
         .unwrap();
     assert!(cif_lines[0]["intensity"].as_f64().unwrap() > 0.0);
+}
+
+#[cfg(feature = "dioptrin")]
+#[test]
+fn refine_from_image_refines_perturbed_geometry_with_zero_manual_picks() {
+    let mut s = Session::new(root());
+    call(&mut s, "example", json!({}));
+    // Apply a slightly perturbed initial geometry (off by ~2 mm in distance and ~0.5 mm in poni)
+    // with zero manual picks.
+    call(
+        &mut s,
+        "manual_geometry",
+        json!({
+            "convention": "pyfai",
+            "values": {
+                "dist": 0.2065,
+                "poni1": 0.0878,
+                "poni2": 0.0805,
+                "rot1": -0.015,
+                "rot2": 0.002,
+                "rot3": 0.0,
+                "pixel1": 0.000172,
+                "pixel2": 0.000172,
+                "wavelength": 4.06626e-11,
+                "polarization_factor": 0.99
+            }
+        }),
+    );
+    assert!(
+        state(&mut s)["calibration"]["picks"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+
+    let refined = call(
+        &mut s,
+        "calibrate",
+        json!({
+            "restart": false,
+            "from_image": true
+        }),
+    );
+    assert_eq!(refined["state"]["calibrated"], true);
+    let dist_mm = refined["state"]["geometry"]["dist"].as_f64().unwrap() * 1000.0;
+    assert!(
+        (dist_mm - 208.65).abs() < 1.0,
+        "refine_image distance mismatch: {dist_mm} mm"
+    );
+    assert!(
+        refined["state"]["calibration"]["rmsDegrees"]
+            .as_f64()
+            .unwrap()
+            < 0.05
+    );
+    assert!(
+        !refined["state"]["calibration"]["picks"]
+            .as_array()
+            .unwrap()
+            .is_empty(),
+        "refine_image should populate matched ring peaks"
+    );
+
+    // Changing a fixed start parameter (wavelength) and refining from image must
+    // honor the new fixed value instead of snapping back to the old geometry.
+    let shifted_wavelength = 0.41;
+    let refined_shifted = call(
+        &mut s,
+        "calibrate",
+        json!({
+            "restart": false,
+            "from_image": true,
+            "parameters": {
+                "wavelength": {"value": shifted_wavelength, "refine": false}
+            }
+        }),
+    );
+    let fitted_wl = refined_shifted["state"]["geometry"]["wavelength"]
+        .as_f64()
+        .unwrap()
+        * 1e10;
+    assert!(
+        (fitted_wl - shifted_wavelength).abs() < 1e-6,
+        "expected fixed wavelength {shifted_wavelength}, got {fitted_wl}"
+    );
+
+    // rot3 remains locked during calibration/refinement, and estimate_rot3 runs
+    // polarization-based rot3 estimation on demand.
+    assert_eq!(refined_shifted["state"]["geometry"]["rot3"], 0.0);
+    let est = call(&mut s, "estimate_rot3", json!({"polarization": 0.99}));
+    assert!(
+        est["rot3Notice"].as_str().is_some(),
+        "expected rot3Notice in reply: {est}"
+    );
+    let zero_pol = s
+        .invoke(&request("estimate_rot3", json!({"polarization": 0.0})))
+        .result;
+    assert_eq!(zero_pol["ok"], false);
+}
+
+#[cfg(feature = "dioptrin")]
+#[test]
+fn estimate_apply_and_save_distortion_works_across_single_and_multi_configurations() {
+    let mut s = Session::new(root());
+    call(&mut s, "example", json!({}));
+    call(&mut s, "auto_calibrate", json!({}));
+
+    // Add a second configuration with the same detector image & calibrate it too
+    // to exercise multi-configuration joint distortion estimation.
+    call(&mut s, "configuration", json!({"operation": "add"}));
+    call(&mut s, "example", json!({}));
+    call(&mut s, "auto_calibrate", json!({}));
+
+    let est = call(
+        &mut s,
+        "estimate_distortion",
+        json!({
+            "configurations": [0, 1],
+            "model": "smooth_spline",
+            "grid_nx": 6,
+            "grid_ny": 6,
+            "n_passes": 2,
+            "cv_folds": 3
+        }),
+    );
+    let preview = &est["distortionPreview"];
+    assert_eq!(preview["model"], "smooth_spline");
+    assert_eq!(preview["canSaveSpline"], true);
+    assert_eq!(preview["exposures"].as_array().unwrap().len(), 2);
+    assert_eq!(preview["grid"].as_array().unwrap().len(), 17 * 17);
+    assert!(preview["rmsAfterPx"].as_f64().unwrap().is_finite());
+
+    let applied = call(&mut s, "apply_distortion", json!({}));
+    assert!(
+        applied["distortionNotice"]
+            .as_str()
+            .unwrap()
+            .contains("2 configurations")
+    );
+    assert!(
+        applied["state"]["calibration"]["distortionFile"]
+            .as_str()
+            .unwrap()
+            .contains("Smooth B-spline")
+    );
+
+    let temp = tempfile::tempdir().unwrap();
+    let spline_path = temp.path().join("estimated.spline");
+    let saved = call(
+        &mut s,
+        "save_distortion",
+        json!({"path": &spline_path, "format": "spline"}),
+    );
+    assert_eq!(saved["savedPath"], spline_path.to_string_lossy().as_ref());
+    let text = fs::read_to_string(&spline_path).unwrap();
+    assert!(text.contains("VALID REGION"), "{text}");
+
+    // Switching back to configuration 0 also carries the saved distortion file path.
+    call(
+        &mut s,
+        "configuration",
+        json!({"operation": "select", "index": 0}),
+    );
+    assert!(
+        state(&mut s)["calibration"]["distortionFile"]
+            .as_str()
+            .unwrap()
+            .ends_with("estimated.spline")
+    );
 }

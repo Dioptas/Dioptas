@@ -35,6 +35,8 @@ test(
       for (let i = 0; i < 1000; i++) {
         const p = (await call("progress")).progress;
         if (
+          p.label === "Refining calibration from image" ||
+          p.label === "Initial fit complete" ||
           p.label === "Preparing peak search" ||
           p.label === "Finding peaks on ring"
         ) {

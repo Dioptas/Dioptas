@@ -444,9 +444,7 @@ try {
       await page
         .getByRole("button", { name: "Calibration", exact: true })
         .click();
-      await page
-        .getByRole("tab", { name: "Step 1: Image & setup", exact: true })
-        .click();
+      await page.getByRole("tab", { name: "Calibrate", exact: true }).click();
       await ready();
       await page
         .getByRole("button", { name: "Rotate image +90°", exact: true })
