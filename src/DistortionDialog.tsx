@@ -246,6 +246,7 @@ export function DistortionDialog({
   const [fitZ, setFitZ] = useState(false);
   const [nPasses, setNPasses] = useState("3");
   const [detectNote, setDetectNote] = useState<string | null>(null);
+  const [appliedNote, setAppliedNote] = useState<string | null>(null);
   const lastPresetKey = useRef<string | null>(null);
   const lastAutoDetectKey = useRef<string | null>(null);
   const activeShapeKey = activeShape ? `${activeShape[0]}x${activeShape[1]}` : "";
@@ -359,6 +360,7 @@ export function DistortionDialog({
   };
 
   const handleEstimate = () => {
+    setAppliedNote(null);
     const payload: Record<string, unknown> = {
       configurations: selectedConfigs.length ? selectedConfigs : [activeIndex],
       model,
@@ -470,9 +472,9 @@ export function DistortionDialog({
               </div>
               {summaries.length < 2 && (
                 <p className="muted distortion-tip">
-                  Tip: add configurations at different detector distances or
-                  positions in the top bar for stronger multi-exposure
-                  constraints.
+                  Tip: enable Configurations (Shift+C or Settings) and add
+                  exposures at different detector distances or positions for
+                  stronger multi-exposure constraints.
                 </p>
               )}
             </section>
@@ -686,6 +688,10 @@ export function DistortionDialog({
                     "apply_distortion",
                     {},
                     "Applying distortion correction…",
+                    (res) => {
+                      if (res.distortionNotice)
+                        setAppliedNote(res.distortionNotice);
+                    },
                   )
                 }
               >
@@ -698,18 +704,32 @@ export function DistortionDialog({
                 type="button"
                 variant="secondary"
                 disabled={!ready || !preview}
-                onClick={() =>
+                onClick={() => {
+                  const useSpline =
+                    preview?.canSaveSpline ??
+                    (model === "smooth_spline" || model === "radial_optical");
                   void run(
                     "save_distortion",
-                    { format: preview?.canSaveSpline ? "spline" : "h5" },
-                    preview?.canSaveSpline
+                    { format: useSpline ? "spline" : "h5" },
+                    useSpline
                       ? "Saving distortion spline…"
                       : "Saving NeXus detector…",
-                  )
-                }
+                  );
+                }}
               >
-                {preview?.canSaveSpline ? "Save .spline" : "Save .h5"}
+                {(preview?.canSaveSpline ??
+                (model === "smooth_spline" || model === "radial_optical"))
+                  ? "Save .spline"
+                  : "Save .h5"}
               </Button>
+              {appliedNote && (
+                <p
+                  className="muted distortion-tip"
+                  style={{ gridColumn: "1 / -1" }}
+                >
+                  {appliedNote}
+                </p>
+              )}
               {hasAppliedDistortion && (
                 <Button
                   type="button"
